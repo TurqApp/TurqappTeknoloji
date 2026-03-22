@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/StoryCommentUser/story_comment_user.dart';
@@ -142,6 +143,10 @@ class _StoryCommentsState extends State<StoryComments> {
                                 top: 4,
                                 right: 4,
                                 child: GestureDetector(
+                                  key: const ValueKey(
+                                    IntegrationTestKeys
+                                        .actionStoryCommentClearGif,
+                                  ),
                                   onTap: controller.clearSelectedGif,
                                   child: Container(
                                     width: 18,
@@ -163,6 +168,8 @@ class _StoryCommentsState extends State<StoryComments> {
                         );
                       }),
                       TextField(
+                        key: const ValueKey(
+                            IntegrationTestKeys.inputStoryComment),
                         controller: controller.commentTextfield,
                         focusNode: controller.commentFocus,
                         maxLines: null,
@@ -195,6 +202,9 @@ class _StoryCommentsState extends State<StoryComments> {
                 ),
               ),
               GestureDetector(
+                key: const ValueKey(
+                  IntegrationTestKeys.actionStoryCommentGifPicker,
+                ),
                 onTap: () => controller.pickGif(context),
                 child: Container(
                   width: 36,
@@ -216,6 +226,7 @@ class _StoryCommentsState extends State<StoryComments> {
               ),
               const SizedBox(width: 8),
               IconButton(
+                key: const ValueKey(IntegrationTestKeys.actionStoryCommentSend),
                 onPressed: () {
                   controller.setComment();
                 },

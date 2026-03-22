@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -414,6 +415,7 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenPracticeExamPreview),
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,

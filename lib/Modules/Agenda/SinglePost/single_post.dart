@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -33,6 +34,7 @@ class _SinglePostState extends State<SinglePost> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenSinglePost),
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(

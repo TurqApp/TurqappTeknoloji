@@ -12,8 +12,10 @@ class IntegrationTestKeys {
   static const String screenFeed = 'it-screen-feed';
   static const String screenExplore = 'it-screen-explore';
   static const String screenProfile = 'it-screen-profile';
+  static const String screenSocialProfile = 'it-screen-social-profile';
   static const String screenShort = 'it-screen-short';
   static const String screenChat = 'it-screen-chat';
+  static const String screenChatConversation = 'it-screen-chat-conversation';
   static const String screenEducation = 'it-screen-education';
   static const String screenNotifications = 'it-screen-notifications';
   static const String screenFollowingFollowers =
@@ -22,8 +24,14 @@ class IntegrationTestKeys {
   static const String screenEditProfile = 'it-screen-edit-profile';
   static const String screenPostCreator = 'it-screen-post-creator';
   static const String screenComments = 'it-screen-comments';
+  static const String screenSinglePost = 'it-screen-single-post';
   static const String screenStoryViewer = 'it-screen-story-viewer';
   static const String screenSingleShort = 'it-screen-single-short';
+  static const String screenMarketDetail = 'it-screen-market-detail';
+  static const String screenJobDetail = 'it-screen-job-detail';
+  static const String screenScholarshipDetail = 'it-screen-scholarship-detail';
+  static const String screenPracticeExamPreview =
+      'it-screen-practice-exam-preview';
   static const String screenMyQr = 'it-screen-my-qr';
   static const String storyRow = 'it-story-row';
 
@@ -48,6 +56,18 @@ class IntegrationTestKeys {
   static const String actionNotificationsDeleteAll =
       'it-action-notifications-delete-all';
   static const String actionChatCreate = 'it-action-chat-create';
+  static const String actionChatAttach = 'it-action-chat-attach';
+  static const String actionChatGifPicker = 'it-action-chat-gif-picker';
+  static const String actionChatCamera = 'it-action-chat-camera';
+  static const String actionChatSend = 'it-action-chat-send';
+  static const String actionChatMic = 'it-action-chat-mic';
+  static const String actionStoryOpenComments = 'it-action-story-open-comments';
+  static const String actionStoryCommentGifPicker =
+      'it-action-story-comment-gif-picker';
+  static const String actionStoryCommentSend = 'it-action-story-comment-send';
+  static const String actionStoryCommentClearGif =
+      'it-action-story-comment-clear-gif';
+  static const String actionStoryLike = 'it-action-story-like';
   static const String profileFollowersCounter = 'it-profile-followers-counter';
   static const String profileFollowingCounter = 'it-profile-following-counter';
   static const String inputEditProfileFirstName =
@@ -56,6 +76,8 @@ class IntegrationTestKeys {
       'it-input-edit-profile-last-name';
   static const String inputComment = 'it-input-comment';
   static const String inputChatSearch = 'it-input-chat-search';
+  static const String inputChatComposer = 'it-input-chat-composer';
+  static const String inputStoryComment = 'it-input-story-comment';
   static const String chatTabAll = 'it-chat-tab-all';
   static const String chatTabUnread = 'it-chat-tab-unread';
   static const String chatTabArchive = 'it-chat-tab-archive';
@@ -85,6 +107,13 @@ class IntegrationTestKeys {
   static String commentLikeButton(String commentId) =>
       'it-comment-like-$commentId';
   static String chatTile(String chatId) => 'it-chat-tile-$chatId';
+  static String notificationItem(String notificationId) =>
+      'it-notification-item-$notificationId';
+  static String storyReaction(int index) => 'it-story-reaction-$index';
+  static String marketItem(String itemId) => 'it-market-item-$itemId';
+  static String jobItem(String jobId) => 'it-job-item-$jobId';
+  static String scholarshipItem(String scholarshipId) =>
+      'it-scholarship-item-$scholarshipId';
 
   static const String marketTopActionViewMode = 'it-market-top-action-view';
   static const String marketTopActionSort = 'it-market-top-action-sort';

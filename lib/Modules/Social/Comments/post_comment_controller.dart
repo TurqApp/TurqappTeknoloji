@@ -12,6 +12,8 @@ import '../../../Services/current_user_service.dart';
 import '../../../Services/post_interaction_service.dart';
 
 class PostCommentController extends GetxController {
+  static String? _activeTag;
+
   static PostCommentController ensure({
     required String postID,
     required String userID,
@@ -21,8 +23,11 @@ class PostCommentController extends GetxController {
     bool permanent = false,
   }) {
     final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
+    if (existing != null) {
+      _activeTag = tag;
+      return existing;
+    }
+    final created = Get.put(
       PostCommentController(
         postID: postID,
         userID: userID,
@@ -32,12 +37,20 @@ class PostCommentController extends GetxController {
       tag: tag,
       permanent: permanent,
     );
+    created.controllerTag = tag;
+    _activeTag = tag;
+    return created;
   }
 
   static PostCommentController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<PostCommentController>(tag: tag);
+    final resolvedTag = (tag ?? _activeTag)?.trim();
+    final isRegistered = Get.isRegistered<PostCommentController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
     if (!isRegistered) return null;
-    return Get.find<PostCommentController>(tag: tag);
+    return Get.find<PostCommentController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
   }
 
   PostCommentController({
@@ -51,6 +64,7 @@ class PostCommentController extends GetxController {
   final String collection;
   final String userID;
   final Function(bool increment)? onCommentCountChange;
+  String? controllerTag;
 
   final CurrentUserService userService = CurrentUserService.instance;
   final PostInteractionService _interactionService =
@@ -63,6 +77,11 @@ class PostCommentController extends GetxController {
   final RxString replyingToCommentId = ''.obs;
   final RxString replyingToNickname = ''.obs;
   final RxString selectedGifUrl = ''.obs;
+  final RxString lastSuccessfulCommentId = ''.obs;
+  final RxString lastSuccessfulSendText = ''.obs;
+  final RxBool lastSuccessfulSendWasReply = false.obs;
+  final RxString lastDeletedCommentId = ''.obs;
+  final RxString lastDeletedCommentText = ''.obs;
   final Map<String, PostCommentModel> _pendingLocalComments = {};
 
   StreamSubscription<List<PostCommentModel>>? _commentSub;
@@ -70,6 +89,9 @@ class PostCommentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    if ((controllerTag ?? '').trim().isNotEmpty) {
+      _activeTag = controllerTag;
+    }
     _bindComments();
     _loadPostOwnerNickname();
   }
@@ -183,6 +205,11 @@ class PostCommentController extends GetxController {
     if (commentId != null && onCommentCountChange != null) {
       onCommentCountChange!(true);
     }
+    if (commentId != null) {
+      lastSuccessfulCommentId.value = commentId;
+      lastSuccessfulSendText.value = trimmed;
+      lastSuccessfulSendWasReply.value = targetCommentId.isNotEmpty;
+    }
 
     clearReplyTarget();
     clearSelectedGif();
@@ -193,11 +220,15 @@ class PostCommentController extends GetxController {
       pendingCommentIds.contains(commentId);
 
   Future<bool> deleteComment(String commentId) async {
+    final existing =
+        list.firstWhereOrNull((comment) => comment.docID == commentId);
     final success = await _interactionService.deleteComment(postID, commentId);
     if (success && onCommentCountChange != null) {
       onCommentCountChange!(false);
     }
     if (success) {
+      lastDeletedCommentId.value = commentId;
+      lastDeletedCommentText.value = existing?.text.trim() ?? '';
       list.removeWhere((comment) => comment.docID == commentId);
       pendingCommentIds.remove(commentId);
       _pendingLocalComments.remove(commentId);
@@ -269,6 +300,9 @@ class PostCommentController extends GetxController {
 
   @override
   void onClose() {
+    if (_activeTag == controllerTag) {
+      _activeTag = null;
+    }
     _commentSub?.cancel();
     super.onClose();
   }

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
@@ -134,6 +135,7 @@ class _JobContentState extends State<JobContent> {
   Widget listingView(JobContentController controller) {
     const metrics = PasajListCardMetrics.regular;
     return GestureDetector(
+      key: ValueKey(IntegrationTestKeys.jobItem(_baseTag)),
       onLongPress: () => controller.reactivateEndedJob(model),
       child: Padding(
         padding: const EdgeInsets.only(left: 15, right: 15, bottom: 6, top: 6),
@@ -319,6 +321,7 @@ class _JobContentState extends State<JobContent> {
 
   Widget gridView(JobContentController controller) {
     return PasajGridCard(
+      key: ValueKey(IntegrationTestKeys.jobItem(_baseTag)),
       onTap: () => Get.to(JobDetails(model: model)),
       onLongPress: () => controller.reactivateEndedJob(model),
       media: _buildLogo(

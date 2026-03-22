@@ -53,6 +53,7 @@ extension _MarketViewCardsPart on MarketView {
     final accent = _accentForItem(item);
     final canCall = item.canShowPhone;
     return GestureDetector(
+      key: ValueKey(IntegrationTestKeys.marketItem(item.id)),
       onTap: () => controller.openItem(item),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 6),
@@ -254,6 +255,7 @@ extension _MarketViewCardsPart on MarketView {
     final statusColor = _statusColor(item.status);
     final canCall = item.canShowPhone;
     return PasajGridCard(
+      key: ValueKey(IntegrationTestKeys.marketItem(item.id)),
       onTap: () => controller.openItem(item),
       media: _MarketGridMedia(
         item: item,

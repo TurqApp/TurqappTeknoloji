@@ -5,6 +5,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
@@ -105,6 +106,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   Widget build(BuildContext context) {
     final galleryImages = _galleryImages;
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenMarketDetail),
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,

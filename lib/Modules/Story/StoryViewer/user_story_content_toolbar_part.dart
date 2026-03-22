@@ -316,9 +316,15 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
           Obx(() {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: UserStoryContentController.reactionEmojis.map((emoji) {
+              children: UserStoryContentController.reactionEmojis
+                  .asMap()
+                  .entries
+                  .map((entry) {
+                final index = entry.key;
+                final emoji = entry.value;
                 final isSelected = controller.myReaction.value == emoji;
                 return GestureDetector(
+                  key: ValueKey(IntegrationTestKeys.storyReaction(index)),
                   onTap: () => controller.react(currentStory.id, emoji),
                   child: AnimatedScale(
                     scale: isSelected ? 1.3 : 1.0,
@@ -349,6 +355,9 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
             children: [
               Expanded(
                 child: GestureDetector(
+                  key: const ValueKey(
+                    IntegrationTestKeys.actionStoryOpenComments,
+                  ),
                   onTap: () async {
                     await _pauseStoryAudio();
                     _timer?.cancel();
@@ -389,6 +398,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
               const SizedBox(width: 12),
               Obx(() {
                 return GestureDetector(
+                  key: const ValueKey(IntegrationTestKeys.actionStoryLike),
                   onTap: () {
                     controller.like(currentStory.id);
                   },

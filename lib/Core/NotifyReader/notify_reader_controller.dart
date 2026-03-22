@@ -28,11 +28,28 @@ class NotifyReaderController extends GetxController {
 
   final NotifyLookupRepository _lookupRepository =
       NotifyLookupRepository.ensure();
+  final RxString lastOpenedNotificationId = ''.obs;
+  final RxString lastOpenedNotificationType = ''.obs;
+  final RxString lastOpenedRouteKind = ''.obs;
+  final RxString lastOpenedTargetId = ''.obs;
   static const _commentType = kNotificationPostTypeCommentLower;
   static const _profileTypes = {'follow', 'user'};
   static const _tutoringTypes = {'tutoring_application', 'tutoring_status'};
   static const _chatTypes = {'message', 'chat'};
   static const _marketTypes = {'market_offer', 'market_offer_status'};
+
+  void _recordOpen(
+    NotificationModel model, {
+    required String routeKind,
+    required String targetId,
+    required String normalizedType,
+  }) {
+    lastOpenedNotificationId.value = model.docID;
+    lastOpenedNotificationType.value = normalizedType;
+    lastOpenedRouteKind.value = routeKind;
+    lastOpenedTargetId.value = targetId;
+  }
+
   Future<void> openNotification(NotificationModel model) async {
     final normalizedType =
         normalizeNotificationType(model.type, model.postType);
@@ -43,6 +60,12 @@ class NotifyReaderController extends GetxController {
         AppSnackbar('common.info'.tr, 'notify_reader.profile_open_failed'.tr);
         return;
       }
+      _recordOpen(
+        model,
+        routeKind: 'social_profile',
+        targetId: model.userID.trim(),
+        normalizedType: normalizedType,
+      );
       await goToProfile(model.userID);
       return;
     }
@@ -52,6 +75,12 @@ class NotifyReaderController extends GetxController {
         AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
         return;
       }
+      _recordOpen(
+        model,
+        routeKind: 'job_detail',
+        targetId: targetId,
+        normalizedType: normalizedType,
+      );
       await goToJob(targetId);
       return;
     }
@@ -61,6 +90,12 @@ class NotifyReaderController extends GetxController {
         AppSnackbar('common.info'.tr, 'notify_reader.tutoring_missing'.tr);
         return;
       }
+      _recordOpen(
+        model,
+        routeKind: 'tutoring_detail',
+        targetId: targetId,
+        normalizedType: normalizedType,
+      );
       await goToTutoring(targetId);
       return;
     }
@@ -70,6 +105,12 @@ class NotifyReaderController extends GetxController {
         AppSnackbar('common.info'.tr, 'notify_reader.chat_missing'.tr);
         return;
       }
+      _recordOpen(
+        model,
+        routeKind: 'chat_conversation',
+        targetId: targetId,
+        normalizedType: normalizedType,
+      );
       await goToChat(targetId);
       return;
     }
@@ -79,6 +120,12 @@ class NotifyReaderController extends GetxController {
         AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
         return;
       }
+      _recordOpen(
+        model,
+        routeKind: 'market_detail',
+        targetId: targetId,
+        normalizedType: normalizedType,
+      );
       await goToMarket(targetId);
       return;
     }
@@ -88,6 +135,12 @@ class NotifyReaderController extends GetxController {
         AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
         return;
       }
+      _recordOpen(
+        model,
+        routeKind: 'single_post_comments',
+        targetId: targetId,
+        normalizedType: normalizedType,
+      );
       await goToPostComments(targetId);
       return;
     }
@@ -97,11 +150,23 @@ class NotifyReaderController extends GetxController {
         AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
         return;
       }
+      _recordOpen(
+        model,
+        routeKind: 'single_post',
+        targetId: targetId,
+        normalizedType: normalizedType,
+      );
       await goToPost(targetId);
       return;
     }
 
     if (model.userID.trim().isNotEmpty) {
+      _recordOpen(
+        model,
+        routeKind: 'social_profile',
+        targetId: model.userID.trim(),
+        normalizedType: normalizedType,
+      );
       await goToProfile(model.userID);
       return;
     }

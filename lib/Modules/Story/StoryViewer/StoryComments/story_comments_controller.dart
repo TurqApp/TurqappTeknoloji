@@ -7,6 +7,8 @@ import 'package:turqappv2/Models/story_comment_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryCommentsController extends GetxController {
+  static String? _activeTag;
+
   static StoryCommentsController ensure({
     required String nickname,
     required String storyID,
@@ -14,8 +16,11 @@ class StoryCommentsController extends GetxController {
     bool permanent = false,
   }) {
     final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
+    if (existing != null) {
+      _activeTag = tag;
+      return existing;
+    }
+    final created = Get.put(
       StoryCommentsController(
         nickname: nickname,
         storyID: storyID,
@@ -23,12 +28,20 @@ class StoryCommentsController extends GetxController {
       tag: tag,
       permanent: permanent,
     );
+    created.controllerTag = tag;
+    _activeTag = tag;
+    return created;
   }
 
   static StoryCommentsController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<StoryCommentsController>(tag: tag);
+    final resolvedTag = (tag ?? _activeTag)?.trim();
+    final isRegistered = Get.isRegistered<StoryCommentsController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
     if (!isRegistered) return null;
-    return Get.find<StoryCommentsController>(tag: tag);
+    return Get.find<StoryCommentsController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
   }
 
   final StoryRepository _storyRepository = StoryRepository.ensure();
@@ -37,14 +50,20 @@ class StoryCommentsController extends GetxController {
   TextEditingController commentTextfield = TextEditingController();
   String nickname = "";
   String storyID = "";
+  String? controllerTag;
   var totalComment = 0.obs;
   final RxString selectedGifUrl = ''.obs;
+  final RxString lastSuccessfulCommentText = ''.obs;
+  final RxString lastSuccessfulCommentGif = ''.obs;
 
   StoryCommentsController({required this.nickname, required this.storyID});
 
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   Future<void> getData() async {
+    if ((controllerTag ?? '').trim().isNotEmpty) {
+      _activeTag = controllerTag;
+    }
     list.assignAll(await _storyRepository.fetchStoryComments(storyID));
     totalComment.value = await _storyRepository.fetchStoryCommentCount(storyID);
   }
@@ -71,6 +90,8 @@ class StoryCommentsController extends GetxController {
         text: text,
         gif: gif,
       );
+      lastSuccessfulCommentText.value = text;
+      lastSuccessfulCommentGif.value = gif;
       commentTextfield.clear();
       selectedGifUrl.value = '';
       await getLast();
@@ -96,6 +117,9 @@ class StoryCommentsController extends GetxController {
 
   @override
   void onClose() {
+    if (_activeTag == controllerTag) {
+      _activeTag = null;
+    }
     commentFocus.dispose();
     commentTextfield.dispose();
     super.onClose();

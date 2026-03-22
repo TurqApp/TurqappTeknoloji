@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -110,6 +111,7 @@ class _NotificationContentState extends State<NotificationContent> {
       return Column(
         children: [
           Container(
+            key: ValueKey(IntegrationTestKeys.notificationItem(model.docID)),
             margin: const EdgeInsets.fromLTRB(10, 4, 10, 4),
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
             decoration: BoxDecoration(

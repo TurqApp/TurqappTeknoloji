@@ -265,6 +265,15 @@ extension ChatControllerSendPart on ChatController {
         chatId: chatID,
         payload: Map<String, dynamic>.from(conversationMessageData),
       );
+      lastSentMessageId.value = addedRef.id;
+      lastSentText.value = text;
+      lastSentType.value = messageType;
+      lastSentMediaCount.value = imageUrls?.length ?? 0;
+      lastSentPrimaryMediaUrl.value = imageUrls?.isNotEmpty == true
+          ? imageUrls!.first
+          : (gif?.trim() ?? '');
+      lastSentVideoUrl.value = videoUrl?.trim() ?? '';
+      lastSentAudioUrl.value = audioUrl?.trim() ?? '';
 
       try {
         final optimistic = MessageModel.fromConversationData(

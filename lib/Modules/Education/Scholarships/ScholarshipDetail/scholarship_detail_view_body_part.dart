@@ -8,6 +8,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData == null || scholarshipData['model'] == null) {
       return Scaffold(
+        key: const ValueKey(IntegrationTestKeys.screenScholarshipDetail),
         body: Center(
           child: Text(
             'scholarship.detail_missing'.tr,
@@ -47,6 +48,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
       }
 
       return Scaffold(
+        key: const ValueKey(IntegrationTestKeys.screenScholarshipDetail),
         body: SafeArea(
           bottom: false,
           child: Stack(children: [

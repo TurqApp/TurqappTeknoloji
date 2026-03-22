@@ -1,6 +1,47 @@
 part of 'chat_controller.dart';
 
 extension ChatControllerComposerPart on ChatController {
+  void seedSelectedGifForTesting(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return;
+    selectedGifUrl.value = trimmed;
+    focus.unfocus();
+  }
+
+  Future<void> sendSyntheticAudioForTesting({
+    required String audioUrl,
+    required int audioDurationMs,
+  }) async {
+    final trimmed = audioUrl.trim();
+    if (trimmed.isEmpty) return;
+    await sendMessage(
+      audioUrl: trimmed,
+      audioDurationMs: audioDurationMs,
+    );
+  }
+
+  Future<void> sendSyntheticImagesForTesting(List<String> imageUrls) async {
+    final sanitized = imageUrls
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    if (sanitized.isEmpty) return;
+    await sendMessage(imageUrls: sanitized);
+  }
+
+  Future<void> sendSyntheticVideoForTesting({
+    required String videoUrl,
+    String thumbnailUrl = '',
+  }) async {
+    final trimmedVideo = videoUrl.trim();
+    if (trimmedVideo.isEmpty) return;
+    final trimmedThumbnail = thumbnailUrl.trim();
+    await sendMessage(
+      videoUrl: trimmedVideo,
+      videoThumbnail: trimmedThumbnail.isEmpty ? null : trimmedThumbnail,
+    );
+  }
+
   void startReply(MessageModel model) {
     replyingTo.value = model;
     editingMessage.value = null;

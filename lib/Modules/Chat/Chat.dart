@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:get/get.dart';
@@ -72,6 +73,7 @@ class ChatView extends StatelessWidget {
         }
       },
       child: Scaffold(
+        key: const ValueKey(IntegrationTestKeys.screenChatConversation),
         body: SafeArea(
           bottom: false,
           child: Obx(() {
@@ -161,6 +163,7 @@ class _ChatTextFieldState extends State<_ChatTextField> {
         children: [
           // + butonu (attachment menü)
           GestureDetector(
+            key: const ValueKey(IntegrationTestKeys.actionChatAttach),
             onTap: _showAttachmentMenu,
             child: Container(
               key: _plusButtonKey,
@@ -190,6 +193,8 @@ class _ChatTextFieldState extends State<_ChatTextField> {
                 children: [
                   Expanded(
                     child: TextField(
+                      key:
+                          const ValueKey(IntegrationTestKeys.inputChatComposer),
                       focusNode: widget.focusNode,
                       controller: widget.textController,
                       textCapitalization: TextCapitalization.sentences,
@@ -223,6 +228,7 @@ class _ChatTextFieldState extends State<_ChatTextField> {
           GestureDetector(
             onTap: () => widget.controller.pickGif(context),
             child: Container(
+              key: const ValueKey(IntegrationTestKeys.actionChatGifPicker),
               width: 36,
               height: 36,
               margin: const EdgeInsets.only(bottom: 2),
@@ -236,6 +242,7 @@ class _ChatTextFieldState extends State<_ChatTextField> {
           GestureDetector(
             onTap: widget.controller.openCustomCameraCapture,
             child: Container(
+              key: const ValueKey(IntegrationTestKeys.actionChatCamera),
               width: 36,
               height: 36,
               margin: const EdgeInsets.only(bottom: 2),
@@ -304,6 +311,7 @@ class _ChatTrailingButton extends StatelessWidget {
             }
           },
           child: Container(
+            key: const ValueKey(IntegrationTestKeys.actionChatSend),
             width: 36,
             height: 36,
             margin: const EdgeInsets.only(bottom: 2),
@@ -320,6 +328,7 @@ class _ChatTrailingButton extends StatelessWidget {
       return GestureDetector(
         onTap: controller.startVoiceRecording,
         child: Container(
+          key: const ValueKey(IntegrationTestKeys.actionChatMic),
           width: 36,
           height: 36,
           margin: const EdgeInsets.only(bottom: 2),

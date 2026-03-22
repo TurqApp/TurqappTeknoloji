@@ -1,5 +1,8 @@
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
+import 'package:turqappv2/Models/message_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
@@ -7,7 +10,9 @@ import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_contro
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
+import 'package:turqappv2/Modules/Social/Comments/post_comment_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 
 class IntegrationTestStateProbe {
   const IntegrationTestStateProbe._();
@@ -19,10 +24,13 @@ class IntegrationTestStateProbe {
       'explore': _exploreSnapshot(),
       'education': _educationSnapshot(),
       'chat': _chatSnapshot(),
+      'chatConversation': _chatConversationSnapshot(),
+      'comments': _commentsSnapshot(),
       'short': _shortSnapshot(),
       'profile': _profileSnapshot(),
       'socialProfile': _socialProfileSnapshot(),
       'notifications': _notificationsSnapshot(),
+      'storyComments': _storyCommentsSnapshot(),
       'navBar': _navBarSnapshot(),
       'currentRoute': Get.currentRoute,
       'previousRoute': routing.previous,
@@ -137,6 +145,70 @@ class IntegrationTestStateProbe {
     };
   }
 
+  static Map<String, dynamic> _chatConversationSnapshot() {
+    final controller = ChatController.maybeFind();
+    if (controller == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    final latest =
+        controller.messages.isNotEmpty ? controller.messages.first : null;
+    return <String, dynamic>{
+      'registered': true,
+      'chatId': controller.chatID,
+      'userId': controller.userID,
+      'count': controller.messages.length,
+      'draftText': controller.textEditingController.text,
+      'selectedGifUrl': controller.selectedGifUrl.value,
+      'lastSentMessageId': controller.lastSentMessageId.value,
+      'lastSentText': controller.lastSentText.value,
+      'lastSentType': controller.lastSentType.value,
+      'lastSentMediaCount': controller.lastSentMediaCount.value,
+      'lastSentPrimaryMediaUrl': controller.lastSentPrimaryMediaUrl.value,
+      'lastSentVideoUrl': controller.lastSentVideoUrl.value,
+      'lastSentAudioUrl': controller.lastSentAudioUrl.value,
+      'latestMessageId': latest?.rawDocID ?? '',
+      'latestMessageText': latest?.metin ?? '',
+      'latestMessageType': _resolveChatMessageType(latest),
+      'latestMessageMediaCount': latest?.imgs.length ?? 0,
+      'latestMessageVideoUrl': latest?.video ?? '',
+      'latestMessageAudioUrl': latest?.sesliMesaj ?? '',
+    };
+  }
+
+  static String _resolveChatMessageType(MessageModel? model) {
+    if (model == null) return '';
+    if (model.video.trim().isNotEmpty) return 'video';
+    if (model.sesliMesaj.trim().isNotEmpty) return 'audio';
+    if (model.imgs.isNotEmpty) return 'media';
+    if (model.postID.trim().isNotEmpty) return 'post';
+    if (model.kisiAdSoyad.trim().isNotEmpty) return 'contact';
+    if (model.lat != 0 || model.long != 0) return 'location';
+    return 'text';
+  }
+
+  static Map<String, dynamic> _commentsSnapshot() {
+    final controller = PostCommentController.maybeFind();
+    if (controller == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    return <String, dynamic>{
+      'registered': true,
+      'count': controller.list.length,
+      'docIds': controller.list
+          .take(24)
+          .map((item) => item.docID)
+          .toList(growable: false),
+      'replyingToCommentId': controller.replyingToCommentId.value,
+      'replyingToNickname': controller.replyingToNickname.value,
+      'selectedGifUrl': controller.selectedGifUrl.value,
+      'lastSuccessfulCommentId': controller.lastSuccessfulCommentId.value,
+      'lastSuccessfulSendText': controller.lastSuccessfulSendText.value,
+      'lastSuccessfulSendWasReply': controller.lastSuccessfulSendWasReply.value,
+      'lastDeletedCommentId': controller.lastDeletedCommentId.value,
+      'lastDeletedCommentText': controller.lastDeletedCommentText.value,
+    };
+  }
+
   static Map<String, dynamic> _profileSnapshot() {
     final controller = ProfileController.maybeFind();
     if (controller == null) {
@@ -183,11 +255,53 @@ class IntegrationTestStateProbe {
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
+    final notifyReader = NotifyReaderController.maybeFind();
     return <String, dynamic>{
       'registered': true,
       'count': controller.list.length,
       'selection': controller.selection.value,
       'unreadTotal': controller.unreadTotal.value,
+      'docIds': controller.list
+          .take(24)
+          .map((item) => item.docID)
+          .toList(growable: false),
+      'types': controller.list
+          .take(24)
+          .map((item) => item.type)
+          .toList(growable: false),
+      'postTypes': controller.list
+          .take(24)
+          .map((item) => item.postType)
+          .toList(growable: false),
+      'postIds': controller.list
+          .take(24)
+          .map((item) => item.postID)
+          .toList(growable: false),
+      'userIds': controller.list
+          .take(24)
+          .map((item) => item.userID)
+          .toList(growable: false),
+      'lastOpenedNotificationId':
+          notifyReader?.lastOpenedNotificationId.value ?? '',
+      'lastOpenedNotificationType':
+          notifyReader?.lastOpenedNotificationType.value ?? '',
+      'lastOpenedRouteKind': notifyReader?.lastOpenedRouteKind.value ?? '',
+      'lastOpenedTargetId': notifyReader?.lastOpenedTargetId.value ?? '',
+    };
+  }
+
+  static Map<String, dynamic> _storyCommentsSnapshot() {
+    final controller = StoryCommentsController.maybeFind();
+    if (controller == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    return <String, dynamic>{
+      'registered': true,
+      'storyId': controller.storyID,
+      'count': controller.list.length,
+      'selectedGifUrl': controller.selectedGifUrl.value,
+      'lastSuccessfulCommentText': controller.lastSuccessfulCommentText.value,
+      'lastSuccessfulCommentGif': controller.lastSuccessfulCommentGif.value,
     };
   }
 }

@@ -46,6 +46,8 @@ part 'chat_controller_media_part.dart';
 part 'chat_controller_send_part.dart';
 
 class ChatController extends GetxController {
+  static String? _activeTag;
+
   static ChatController ensure({
     required String chatID,
     required String userID,
@@ -53,18 +55,28 @@ class ChatController extends GetxController {
     bool permanent = false,
   }) {
     final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
+    if (existing != null) {
+      _activeTag = tag ?? chatID;
+      return existing;
+    }
+    final created = Get.put(
       ChatController(chatID: chatID, userID: userID),
       tag: tag,
       permanent: permanent,
     );
+    _activeTag = tag ?? chatID;
+    return created;
   }
 
   static ChatController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<ChatController>(tag: tag);
+    final resolvedTag = (tag ?? _activeTag)?.trim();
+    final isRegistered = Get.isRegistered<ChatController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
     if (!isRegistered) return null;
-    return Get.find<ChatController>(tag: tag);
+    return Get.find<ChatController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
   }
 
   String chatID;
@@ -81,6 +93,13 @@ class ChatController extends GetxController {
   var textMesage = ''.obs;
   var uploadPercent = 0.0.obs;
   RxList<MessageModel> messages = <MessageModel>[].obs;
+  final RxString lastSentMessageId = ''.obs;
+  final RxString lastSentText = ''.obs;
+  final RxString lastSentType = ''.obs;
+  final RxInt lastSentMediaCount = 0.obs;
+  final RxString lastSentPrimaryMediaUrl = ''.obs;
+  final RxString lastSentVideoUrl = ''.obs;
+  final RxString lastSentAudioUrl = ''.obs;
   TextEditingController textEditingController = TextEditingController();
   ScrollController scrollController = ScrollController();
   PageController pageController = PageController();
@@ -148,6 +167,7 @@ class ChatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _activeTag = chatID;
     getUserData();
     loadChatBackgroundPreference();
     unawaited(getData());
@@ -185,6 +205,9 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    if (_activeTag == chatID) {
+      _activeTag = null;
+    }
     unawaited(_markConversationOpenedNow());
     _messageSyncTimer?.cancel();
     _messagesSubscription?.cancel();

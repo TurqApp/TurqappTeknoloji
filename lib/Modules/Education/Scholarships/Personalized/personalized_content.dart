@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
@@ -19,7 +20,12 @@ class PersonalizedContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final docId =
+        PersonalizedController.maybeFind()?.docIdByTimestamp[model.timeStamp] ??
+            '';
+    final keyId = docId.isNotEmpty ? docId : 'ts_${model.timeStamp}';
     return GestureDetector(
+      key: ValueKey(IntegrationTestKeys.scholarshipItem(keyId)),
       onTap: () => _navigateToDetail(context),
       child: Container(
         decoration: BoxDecoration(

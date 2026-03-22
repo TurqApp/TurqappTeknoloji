@@ -3,6 +3,7 @@ part of 'social_profile.dart';
 extension _SocialProfileContentPart on _SocialProfileState {
   Widget _buildSocialProfileScaffold(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenSocialProfile),
       body: SafeArea(
         bottom: false,
         child: Obx(() {

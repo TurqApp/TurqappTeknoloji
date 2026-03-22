@@ -3,6 +3,7 @@ part of 'job_details.dart';
 extension JobDetailsBodyPart on _JobDetailsState {
   Widget buildContent(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenJobDetail),
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -25,11 +26,13 @@ extension JobDetailsBodyPart on _JobDetailsState {
             return Padding(
               padding: const EdgeInsets.only(right: 2),
               child: AppHeaderActionButton(
-                onTap: () => controller.toggleSave(controller.model.value.docID),
+                onTap: () =>
+                    controller.toggleSave(controller.model.value.docID),
                 child: Icon(
                   controller.saved.value ? AppIcons.saved : AppIcons.save,
                   size: AppIconSurface.kIconSize,
-                  color: controller.saved.value ? Colors.orange : Colors.black87,
+                  color:
+                      controller.saved.value ? Colors.orange : Colors.black87,
                 ),
               ),
             );
@@ -45,8 +48,9 @@ extension JobDetailsBodyPart on _JobDetailsState {
         bottom: false,
         child: Obx(() {
           final current = controller.model.value;
-          final title =
-              current.ilanBasligi.isNotEmpty ? current.ilanBasligi : current.meslek;
+          final title = current.ilanBasligi.isNotEmpty
+              ? current.ilanBasligi
+              : current.meslek;
           return ListView(
             padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
             children: [
@@ -110,10 +114,10 @@ extension JobDetailsBodyPart on _JobDetailsState {
                     'pasaj.job_finder.application_count'.tr,
                     current.applicationCount.toString(),
                   ),
-                    _infoRow(
-                      'pasaj.job_finder.work_type'.tr,
-                      localizeJobDisplayList(current.calismaTuru),
-                    ),
+                  _infoRow(
+                    'pasaj.job_finder.work_type'.tr,
+                    localizeJobDisplayList(current.calismaTuru),
+                  ),
                   if (current.calismaGunleri.isNotEmpty)
                     _infoRow(
                       'pasaj.job_finder.work_days'.tr,
@@ -145,7 +149,8 @@ extension JobDetailsBodyPart on _JobDetailsState {
                 title: 'pasaj.job_finder.listing_info'.tr,
                 children: [
                   _infoRow('common.company'.tr, current.brand),
-                  _infoRow('common.city'.tr, '${current.city}, ${current.town}'),
+                  _infoRow(
+                      'common.city'.tr, '${current.city}, ${current.town}'),
                   _infoRow('common.views'.tr, current.viewCount.toString()),
                   _infoRow(
                     'common.status'.tr,
@@ -189,7 +194,8 @@ extension JobDetailsBodyPart on _JobDetailsState {
                     GestureDetector(
                       onTap: current.userID == _currentUid
                           ? null
-                          : () => Get.to(() => SocialProfile(userID: current.userID)),
+                          : () => Get.to(
+                              () => SocialProfile(userID: current.userID)),
                       child: Row(
                         children: [
                           CachedUserAvatar(
