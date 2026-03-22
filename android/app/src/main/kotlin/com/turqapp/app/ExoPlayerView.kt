@@ -87,6 +87,9 @@ class ExoPlayerView(
     private var smokeProbe: ExoPlayerPlaybackProbe? = null
 
     init {
+        smokeMonitor.stateListener = {
+            ExoPlayerSmokeRegistry.publish(context, it)
+        }
         val layoutRes = R.layout.turq_texture_player_view
         playerView = (LayoutInflater.from(context)
             .inflate(layoutRes, container, false) as PlayerView).apply {
@@ -133,14 +136,14 @@ class ExoPlayerView(
                     }
                 }
                 smokeProbe?.onSurfaceAttached()
-                ExoPlayerSmokeRegistry.register(smokeMonitor)
+                ExoPlayerSmokeRegistry.register(context, smokeMonitor)
             }
 
             override fun onViewDetachedFromWindow(v: View) {
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
                 smokeProbe?.onSurfaceDetached()
-                ExoPlayerSmokeRegistry.clear(smokeMonitor)
+                ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
                 softHold()
             }
         })
@@ -384,7 +387,6 @@ class ExoPlayerView(
         playerView.player = activePlayer
         player = activePlayer
         currentUrl = url
-        ExoPlayerSmokeRegistry.register(smokeMonitor)
         if (autoPlay) {
             smokeMonitor.resetForNewPlaybackSession()
             smokeProbe?.onAutoplayRequested()
@@ -729,7 +731,7 @@ class ExoPlayerView(
         stopStallWatchdog()
         player?.pause()
         resetSurfaceVisibility()
-        ExoPlayerSmokeRegistry.clear(smokeMonitor)
+        ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
         if (fully) {
             smokeProbe?.detach()
             smokeProbe = null

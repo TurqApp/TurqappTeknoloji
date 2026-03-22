@@ -22,6 +22,20 @@ class HLSController {
   static const MethodChannel _methodChannel =
       MethodChannel('turqapp.hls_player/method');
 
+  static Future<Map<String, dynamic>> getActiveSmokeSnapshot() async {
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>(
+        'getActiveSmokeSnapshot',
+      );
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return const <String, dynamic>{};
+    } on PlatformException {
+      return const <String, dynamic>{};
+    }
+  }
+
   int? _viewId;
   EventChannel? _eventChannel;
   StreamSubscription? _eventSubscription;
@@ -349,6 +363,70 @@ class HLSController {
     } on PlatformException catch (e) {
       _handleError('Failed to get mute state: ${e.message}');
       return false;
+    }
+  }
+
+  Future<bool> isPlayingNative() async {
+    if (_viewId == null) return false;
+
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('isPlaying', {
+        'viewId': _viewId,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      _handleError('Failed to get play state: ${e.message}');
+      return false;
+    }
+  }
+
+  Future<bool> isBufferingNative() async {
+    if (_viewId == null) return false;
+
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('isBuffering', {
+        'viewId': _viewId,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      _handleError('Failed to get buffering state: ${e.message}');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getPlaybackDiagnostics() async {
+    if (_viewId == null) return const <String, dynamic>{};
+
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>(
+        'getPlaybackDiagnostics',
+        {'viewId': _viewId},
+      );
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return const <String, dynamic>{};
+    } on PlatformException catch (e) {
+      _handleError('Failed to get playback diagnostics: ${e.message}');
+      return const <String, dynamic>{};
+    }
+  }
+
+  Future<Map<String, dynamic>> getProcessDiagnostics() async {
+    if (_viewId == null) return const <String, dynamic>{};
+
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>(
+        'getProcessDiagnostics',
+        {'viewId': _viewId},
+      );
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return const <String, dynamic>{};
+    } on PlatformException catch (e) {
+      _handleError('Failed to get process diagnostics: ${e.message}');
+      return const <String, dynamic>{};
     }
   }
 

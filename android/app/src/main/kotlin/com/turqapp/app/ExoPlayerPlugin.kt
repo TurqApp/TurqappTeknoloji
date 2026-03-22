@@ -1,5 +1,6 @@
 package com.turqapp.app
 
+import android.content.Context
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -11,9 +12,12 @@ class ExoPlayerPlugin private constructor(
     companion object {
         var instance: ExoPlayerPlugin? = null
             private set
+        private lateinit var applicationContext: Context
+        internal fun appContext(): Context = applicationContext
 
-        fun registerWith(flutterEngine: FlutterEngine) {
+        fun registerWith(flutterEngine: FlutterEngine, appContext: Context) {
             val messenger = flutterEngine.dartExecutor.binaryMessenger
+            applicationContext = appContext
 
             val channel = MethodChannel(messenger, "turqapp.hls_player/method")
             val plugin = ExoPlayerPlugin(channel)
@@ -36,6 +40,11 @@ class ExoPlayerPlugin private constructor(
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         val args = call.arguments as? Map<String, Any>
+        if (call.method == "getActiveSmokeSnapshot") {
+            result.success(ExoPlayerSmokeBridge.readActiveSnapshot())
+            return
+        }
+
         val viewId = (args?.get("viewId") as? Number)?.toLong()
 
         if (viewId == null) {
@@ -105,6 +114,15 @@ class ExoPlayerPlugin private constructor(
             "isPlaying" -> {
                 result.success(view!!.isPlaying())
             }
+            "isBuffering" -> {
+                result.success(view!!.isBuffering())
+            }
+            "getPlaybackDiagnostics" -> {
+                result.success(view!!.getPlaybackDiagnostics())
+            }
+            "getProcessDiagnostics" -> {
+                result.success(view!!.getProcessDiagnostics())
+            }
             "stopPlayback" -> {
                 view!!.stopPlayback()
                 result.success(null)
@@ -123,5 +141,27 @@ class ExoPlayerPlugin private constructor(
             }
             else -> result.notImplemented()
         }
+    }
+}
+
+private object ExoPlayerSmokeBridge {
+    fun readActiveSnapshot(): Map<String, Any> {
+        val snapshot = com.turqapp.app.qa.ExoPlayerSmokeRegistry.readSnapshot(
+            ExoPlayerPlugin.appContext()
+        )
+            ?: return mapOf(
+                "supported" to true,
+                "active" to false,
+                "firstFrameRendered" to false,
+                "errors" to emptyList<String>(),
+                "raw" to "",
+            )
+        return mapOf(
+            "supported" to true,
+            "active" to snapshot.active,
+            "firstFrameRendered" to snapshot.firstFrameRendered,
+            "errors" to snapshot.errors,
+            "raw" to snapshot.raw,
+        )
     }
 }
