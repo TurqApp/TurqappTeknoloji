@@ -6,6 +6,9 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'my_tests_controller_bootstrap_part.dart';
+part 'my_tests_controller_data_part.dart';
+
 class MyTestsController extends GetxController {
   static MyTestsController ensure({
     String? tag,
@@ -34,48 +37,6 @@ class MyTestsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapData());
-  }
-
-  Future<void> _bootstrapData() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    final cached = await _testRepository.fetchByOwner(
-      uid,
-      cacheOnly: true,
-    );
-    if (cached.isNotEmpty) {
-      list.assignAll(cached);
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'tests:owner:$uid',
-        minInterval: _silentRefreshInterval,
-      )) {
-        unawaited(getData(silent: true, forceRefresh: true));
-      }
-      return;
-    }
-    await getData();
-  }
-
-  Future<void> getData({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) async {
-    if (!silent || list.isEmpty) {
-      isLoading.value = true;
-    }
-    try {
-      final uid = CurrentUserService.instance.effectiveUserId;
-      final items = await _testRepository.fetchByOwner(
-        uid,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
-      list.assignAll(items);
-      SilentRefreshGate.markRefreshed('tests:owner:$uid');
-    } catch (_) {
-    } finally {
-      isLoading.value = false;
-    }
+    _handleControllerInit();
   }
 }

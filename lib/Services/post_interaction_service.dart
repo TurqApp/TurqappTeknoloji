@@ -17,6 +17,8 @@ import 'offline_mode_service.dart';
 import 'post_moderation_utils.dart';
 
 part 'post_interaction_service_actions_part.dart';
+part 'post_interaction_service_moderation_part.dart';
+part 'post_interaction_service_query_part.dart';
 
 enum ModerationFlagStatus {
   accepted,
@@ -116,119 +118,6 @@ class PostInteractionService extends GetxController {
       );
     } catch (e) {
       print('Create notification error: $e');
-    }
-  }
-
-  Future<Map<String, int>> getPostInteractionCounts(String postId) async {
-    try {
-      final snap = await _postRef(postId).get();
-      final stats = _statsFromSnapshot(snap);
-      return {
-        'likes': stats.likeCount.toInt(),
-        'comments': stats.commentCount.toInt(),
-        'saves': stats.savedCount.toInt(),
-        'reshares': stats.retryCount.toInt(),
-        'views': stats.statsCount.toInt(),
-        'reports': stats.reportedCount.toInt(),
-      };
-    } catch (e) {
-      print('Get interaction counts error: $e');
-      return const {
-        'likes': 0,
-        'comments': 0,
-        'saves': 0,
-        'reshares': 0,
-        'views': 0,
-        'reports': 0,
-      };
-    }
-  }
-
-  Future<Map<String, bool>> getUserInteractionStatus(String postId) async {
-    final userId = currentUserID;
-    if (userId == null) {
-      return const {
-        'liked': false,
-        'saved': false,
-        'reshared': false,
-        'reported': false,
-      };
-    }
-
-    final cacheKey = _cacheKey(userId, postId);
-    final cached = _interactionStatusCache[cacheKey];
-    if (cached != null && !cached.isExpired(_cacheTTL)) {
-      return Map<String, bool>.from(cached.status);
-    }
-
-    try {
-      final futures = await Future.wait<UserSubcollectionEntry?>([
-        _userSubcollectionRepository.getEntry(
-          userId,
-          subcollection: 'liked_posts',
-          docId: postId,
-          preferCache: true,
-          forceRefresh: false,
-        ),
-        _userSubcollectionRepository.getEntry(
-          userId,
-          subcollection: 'saved_posts',
-          docId: postId,
-          preferCache: true,
-          forceRefresh: false,
-        ),
-        _userSubcollectionRepository.getEntry(
-          userId,
-          subcollection: 'reshared_posts',
-          docId: postId,
-          preferCache: true,
-          forceRefresh: false,
-        ),
-      ]);
-
-      // reporters read'i Firestore rules gereği kapalı; gereksiz permission-denied
-      // spamını önlemek için sadece local report cache'i kullan.
-      final reported = _reportedByMe.contains(postId);
-
-      final status = <String, bool>{
-        'liked': futures[0] != null,
-        'saved': futures[1] != null,
-        'reshared': futures[2] != null,
-        'reported': reported,
-      };
-
-      _interactionStatusCache[cacheKey] =
-          _InteractionCacheEntry(status: status, fetchedAt: DateTime.now());
-      return status;
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        if (!_permissionDeniedLogged) {
-          _permissionDeniedLogged = true;
-          print(
-              'Interaction status read denied by Firestore rules. Falling back to defaults.');
-        }
-        return const {
-          'liked': false,
-          'saved': false,
-          'reshared': false,
-          'reported': false,
-        };
-      }
-      print('Get user interaction status error: $e');
-      return const {
-        'liked': false,
-        'saved': false,
-        'reshared': false,
-        'reported': false,
-      };
-    } catch (e) {
-      print('Get user interaction status error: $e');
-      return const {
-        'liked': false,
-        'saved': false,
-        'reshared': false,
-        'reported': false,
-      };
     }
   }
 

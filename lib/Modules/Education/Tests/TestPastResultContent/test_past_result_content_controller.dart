@@ -6,6 +6,9 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'test_past_result_content_controller_data_part.dart';
+part 'test_past_result_content_controller_snapshot_part.dart';
+
 class TestPastResultContentController extends GetxController {
   static TestPastResultContentController ensure(
     TestsModel model, {
@@ -40,66 +43,6 @@ class TestPastResultContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapData());
-  }
-
-  Future<void> _bootstrapData() async {
-    final cached = await _testRepository.fetchAnswers(
-      model.docID,
-      cacheOnly: true,
-    );
-    if (cached.isNotEmpty) {
-      _applySnapshot(cached);
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'tests:past_result:${model.docID}',
-        minInterval: _silentRefreshInterval,
-      )) {
-        unawaited(getData(silent: true, forceRefresh: true));
-      }
-      return;
-    }
-    await getData();
-  }
-
-  Future<void> getData({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) async {
-    if (!silent) {
-      isLoading.value = true;
-    }
-    try {
-      final snapshot = await _testRepository.fetchAnswers(
-        model.docID,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
-      _applySnapshot(snapshot);
-      SilentRefreshGate.markRefreshed('tests:past_result:${model.docID}');
-    } catch (_) {
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void _applySnapshot(List<Map<String, dynamic>> snapshot) {
-    count.value = 0;
-    timeStamp.value = 0;
-    final currentUserId = CurrentUserService.instance.effectiveUserId;
-    final filtered = snapshot
-        .where(
-          (doc) => (doc["userID"] ?? "").toString() == currentUserId,
-        )
-        .toList(growable: false)
-      ..sort(
-        (a, b) => ((b["timeStamp"] ?? 0) as num)
-            .compareTo((a["timeStamp"] ?? 0) as num),
-      );
-
-    if (filtered.isNotEmpty) {
-      count.value = filtered.length;
-      timeStamp.value = ((filtered.first["timeStamp"] ?? 0) as num).toInt();
-    }
+    _handleControllerInit();
   }
 }

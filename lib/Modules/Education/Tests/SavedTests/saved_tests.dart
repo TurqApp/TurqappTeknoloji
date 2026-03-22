@@ -6,6 +6,9 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Modules/Education/Tests/SavedTests/saved_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
+part 'saved_tests_shell_part.dart';
+part 'saved_tests_content_part.dart';
+
 class SavedTests extends StatefulWidget {
   const SavedTests({super.key});
 
@@ -42,56 +45,6 @@ class _SavedTestsState extends State<SavedTests> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: "common.saved".tr),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                child: Obx(
-                  () => controller.isLoading.value
-                      ? const Center(
-                          child: CupertinoActivityIndicator(
-                            radius: 20,
-                            color: Colors.black,
-                          ),
-                        )
-                      : controller.list.isEmpty
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                EmptyRow(text: "tests.saved_empty".tr),
-                              ],
-                            )
-                          : Padding(
-                              padding:
-                                  const EdgeInsets.only(left: 15, right: 15),
-                              child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 5.0,
-                                  mainAxisSpacing: 5.0,
-                                  childAspectRatio: 1.85 / 3.6,
-                                ),
-                                itemCount: controller.list.length,
-                                itemBuilder: (context, index) {
-                                  return TestsGrid(
-                                      model: controller.list[index]);
-                                },
-                              ),
-                            ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildPage();
   }
 }

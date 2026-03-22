@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +15,9 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+
+part 'create_book_controller_form_part.dart';
+part 'create_book_controller_submission_part.dart';
 
 class CreateBookController extends GetxController {
   static CreateBookController ensure(
@@ -61,7 +65,7 @@ class CreateBookController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _prefillIfEditing();
+    _handleControllerInit();
   }
 
   @override
@@ -86,207 +90,6 @@ class CreateBookController extends GetxController {
 
   void selectSinavTuru(String value) {
     sinavTuru.value = value;
-  }
-
-  void addItem() {
-    list.add(
-      CevapAnahtariHazirlikModel(
-        baslik: "Deneme ${list.length + 1}",
-        dogruCevaplar: [],
-        sira: list.length + 1,
-      ),
-    );
-  }
-
-  void removeLastItem() {
-    if (list.isNotEmpty) {
-      list.removeLast();
-    }
-  }
-
-  void navigateToCevapAnahtari(
-    BuildContext context,
-    CevapAnahtariHazirlikModel model,
-  ) {
-    Get.to(
-      () => CreateBookAnswerKey(
-        model: model,
-        onBack: () {
-          list.refresh();
-        },
-      ),
-    );
-  }
-
-  bool isFormValid() {
-    return imageFile.value != null &&
-        baslikController.text.isNotEmpty &&
-        yayinEviController.text.isNotEmpty &&
-        basimTarihiController.text.isNotEmpty &&
-        sinavTuru.value.isNotEmpty;
-  }
-
-  Future<void> pickImage() async {
-    final ctx = Get.context;
-    if (ctx == null) return;
-    final pickedFile = await AppImagePickerService.pickSingleImage(ctx);
-    if (pickedFile != null) {
-      imageFile.value = pickedFile;
-      await _analyzeImage();
-    }
-  }
-
-  Future<void> _analyzeImage() async {
-    if (imageFile.value == null) return;
-    try {
-      final detector = await NsfwDetector.load(threshold: 0.3);
-      final result = await detector.detectNSFWFromFile(imageFile.value!);
-      if (result == null || result.isNsfw) {
-        imageFile.value = null;
-      }
-    } catch (_) {
-      imageFile.value = null;
-    }
-  }
-
-  Future<void> setData(BuildContext context) async {
-    showIndicator.value = true;
-    await FirebaseFirestore.instance.collection("books").doc(docID).set({
-      "basimTarihi": basimTarihiController.text,
-      "baslik": baslikController.text,
-      "cover": existingBook?.cover ?? "",
-      "dil": "Türkçe",
-      "sinavTuru": sinavTuru.value,
-      "timeStamp":
-          existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
-      "yayinEvi": yayinEviController.text,
-      "userID":
-          existingBook?.userID ?? CurrentUserService.instance.effectiveUserId,
-      "viewCount": existingBook?.viewCount ?? 0,
-    }, SetOptions(merge: true));
-
-    await _bookletRepository.replaceAnswerKeys(
-      docID,
-      list
-          .map(
-            (item) => <String, dynamic>{
-              "baslik": item.baslik,
-              "sira": item.sira,
-              "dogruCevaplar": item.dogruCevaplar,
-            },
-          )
-          .toList(growable: false),
-    );
-
-    if (imageFile.value != null) {
-      await uploadImageToFirebaseStorage(imageFile.value!, context);
-    } else {
-      showIndicator.value = false;
-      onBack?.call(true);
-      Get.back();
-    }
-  }
-
-  Future<void> _prefillIfEditing() async {
-    final book = existingBook;
-    if (book == null) return;
-    baslikController.text = book.baslik;
-    yayinEviController.text = book.yayinEvi;
-    basimTarihiController.text = book.basimTarihi;
-    sinavTuru.value = book.sinavTuru;
-
-    final answers = await _bookletRepository.fetchAnswerKeys(
-      book.docID,
-      preferCache: true,
-    );
-    final items = answers.map(
-      (item) {
-        final data = Map<String, dynamic>.from(
-            item['data'] ?? const <String, dynamic>{});
-        return CevapAnahtariHazirlikModel(
-          baslik: (data['baslik'] ?? '').toString(),
-          dogruCevaplar: List<String>.from(data['dogruCevaplar'] ?? const []),
-          sira: (data['sira'] as num?)?.toInt() ?? 0,
-        );
-      },
-    ).toList()
-      ..sort((a, b) => a.sira.compareTo(b.sira));
-    list.assignAll(items);
-  }
-
-  Future<void> uploadImageToFirebaseStorage(
-    File imageFile,
-    BuildContext context,
-  ) async {
-    try {
-      final userId = CurrentUserService.instance.effectiveUserId;
-      if (userId.isEmpty) {
-        showIndicator.value = false;
-        return;
-      }
-
-      final imageBytes = await imageFile.readAsBytes();
-      final originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) {
-        showIndicator.value = false;
-        return;
-      }
-
-      final resized = img.copyResize(
-        originalImage,
-        width: originalImage.width > 1400 ? 1400 : originalImage.width,
-      );
-      final resizedBytes = Uint8List.fromList(img.encodePng(resized));
-      final webpData =
-          await WebpUploadService.toWebpFromBytes(resizedBytes, quality: 85);
-      if (webpData == null || webpData.isEmpty) {
-        showIndicator.value = false;
-        return;
-      }
-
-      final storagePath = 'books/$docID/cover.webp';
-      final firebaseStorageRef = FirebaseStorage.instance.ref().child(
-            storagePath,
-          );
-      final uploadTask = firebaseStorageRef.putData(
-        webpData,
-        SettableMetadata(
-          contentType: 'image/webp',
-          cacheControl: 'public, max-age=31536000, immutable',
-        ),
-      );
-
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        final progress = (snapshot.bytesTransferred / snapshot.totalBytes * 100)
-            .toStringAsFixed(2);
-        print("Yükleme ilerlemesi: $progress%");
-      });
-
-      final taskSnapshot = await uploadTask;
-      final downloadUrl = await taskSnapshot.ref.getDownloadURL();
-      final cacheBustedUrl =
-          '$downloadUrl${downloadUrl.contains('?') ? '&' : '?'}v=${DateTime.now().millisecondsSinceEpoch}';
-
-      await FirebaseFirestore.instance.collection("books").doc(docID).update({
-        "cover": cacheBustedUrl,
-        "coverStoragePath": storagePath,
-        "coverFormat": "webp",
-      });
-
-      AppSnackbar(
-        'answer_key.cover_updated'.tr,
-        'answer_key.cover_updated_body'.tr,
-      );
-      showIndicator.value = false;
-      onBack?.call(true);
-      Get.back();
-    } catch (e) {
-      showIndicator.value = false;
-      AppSnackbar(
-        'common.error'.tr,
-        'answer_key.cover_update_failed'.tr,
-      );
-    }
   }
 }
 

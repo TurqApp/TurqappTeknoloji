@@ -12,6 +12,9 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'answer_key_controller_data_part.dart';
+part 'answer_key_controller_search_part.dart';
+
 class AnswerKeyController extends GetxController {
   static AnswerKeyController ensure({bool permanent = false}) {
     final existing = maybeFind();
@@ -47,116 +50,16 @@ class AnswerKeyController extends GetxController {
   Timer? _searchDebounce;
   int _searchToken = 0;
 
-  bool _sameBookletList(List<BookletModel> next) {
-    return _sameBookletEntries(bookList, next);
-  }
-
-  bool _sameBookletEntries(
-    List<BookletModel> current,
-    List<BookletModel> next,
-  ) {
-    final currentKeys = current
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.sinavTuru,
-            item.yayinEvi,
-            item.basimTarihi,
-            item.dil,
-            item.timeStamp,
-            item.viewCount,
-            item.cover,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.sinavTuru,
-            item.yayinEvi,
-            item.basimTarihi,
-            item.dil,
-            item.timeStamp,
-            item.viewCount,
-            item.cover,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
-
-  String _listingSelectionKeyFor(String uid) =>
-      '${_listingSelectionPrefKeyPrefix}_$uid';
-
-  Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      listingSelection.value = 0;
-      listingSelectionReady.value = true;
-      return;
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      listingSelection.value =
-          (prefs.getInt(_listingSelectionKeyFor(uid)) ?? 0) == 1 ? 1 : 0;
-    } catch (_) {
-      listingSelection.value = 0;
-    } finally {
-      listingSelectionReady.value = true;
-    }
-  }
-
-  Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        _listingSelectionKeyFor(uid),
-        listingSelection.value == 1 ? 1 : 0,
-      );
-    } catch (_) {}
-  }
-
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
   @override
   void onInit() {
     super.onInit();
-    unawaited(_restoreListingSelection());
-    scrollController.addListener(_onScroll);
-    unawaited(_bootstrapInitialData());
+    _handleControllerInit();
   }
 
   void toggleListingSelection() {
-    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
-    unawaited(_persistListingSelection());
-  }
-
-  Future<void> _bootstrapInitialData() async {
-    await AnswerKeyContentController.warmSavedIdsForCurrentUser();
-    final userId = CurrentUserService.instance.effectiveUserId;
-    _homeSnapshotSub?.cancel();
-    _homeSnapshotSub = _answerKeySnapshotRepository
-        .openHome(
-          userId: userId,
-          limit: _pageSize,
-        )
-        .listen(_applyHomeSnapshotResource);
-  }
-
-  void _onScroll() {
-    scrollOffset.value = scrollController.offset;
-    if (scrollController.position.pixels >=
-            scrollController.position.maxScrollExtent - 200 &&
-        !hasActiveSearch &&
-        !isLoadingMore.value &&
-        hasMore.value) {
-      loadMore();
-    }
+    _toggleListingSelectionValue();
   }
 
   List<String> lessons = [
@@ -221,118 +124,9 @@ class AnswerKeyController extends GetxController {
     Icons.design_services,
   ];
 
-  Future<void> refreshData() async {
-    final hadLocalItems = bookList.isNotEmpty;
-    if (!hadLocalItems) {
-      isLoading.value = true;
-    }
-    hasMore.value = true;
-    _lastDocument = null;
-    try {
-      final resource = await _answerKeySnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.effectiveUserId,
-        limit: _pageSize,
-      );
-      final items = resource.data ?? const <BookletModel>[];
-      if (!_sameBookletList(items)) {
-        bookList.assignAll(items);
-      }
-      hasMore.value = items.length >= _pageSize;
-    } catch (_) {
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> loadMore() async {
-    if (_lastDocument == null || isLoadingMore.value || !hasMore.value) return;
-
-    isLoadingMore.value = true;
-    try {
-      final page = await _bookletRepository.fetchPage(
-        startAfter: _lastDocument,
-        limit: _pageSize,
-      );
-      bookList.addAll(page.items);
-      _lastDocument = page.lastDocument;
-      hasMore.value = page.hasMore;
-    } catch (_) {
-    } finally {
-      isLoadingMore.value = false;
-    }
-  }
-
-  void setSearchQuery(String query) {
-    searchQuery.value = query.trim();
-    _searchDebounce?.cancel();
-    if (!hasActiveSearch) {
-      isSearchLoading.value = false;
-      searchResults.clear();
-      _searchToken++;
-      return;
-    }
-
-    final token = ++_searchToken;
-    isSearchLoading.value = true;
-    _searchDebounce = Timer(const Duration(milliseconds: 150), () async {
-      await _searchFromTypesense(searchQuery.value, token);
-    });
-  }
-
-  Future<void> _searchFromTypesense(String query, int token) async {
-    final normalized = query.trim();
-    try {
-      final resource = await _answerKeySnapshotRepository.search(
-        query: normalized,
-        userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
-        forceSync: true,
-      );
-      if (token != _searchToken || searchQuery.value.trim() != normalized)
-        return;
-
-      final results = resource.data ?? const <BookletModel>[];
-      if (token != _searchToken || searchQuery.value.trim() != normalized)
-        return;
-      if (!_sameBookletEntries(searchResults, results)) {
-        searchResults.assignAll(results);
-      }
-    } catch (_) {
-      if (token == _searchToken) {
-        searchResults.clear();
-      }
-    } finally {
-      if (token == _searchToken) {
-        isSearchLoading.value = false;
-      }
-    }
-  }
-
-  void _applyHomeSnapshotResource(
-    CachedResource<List<BookletModel>> resource,
-  ) {
-    final items = resource.data ?? const <BookletModel>[];
-    if (items.isNotEmpty) {
-      if (!_sameBookletList(items)) {
-        bookList.assignAll(items);
-      }
-      hasMore.value = items.length >= _pageSize;
-    }
-
-    if (!resource.isRefreshing || items.isNotEmpty) {
-      isLoading.value = false;
-      return;
-    }
-    if (bookList.isEmpty) {
-      isLoading.value = true;
-    }
-  }
-
   @override
   void onClose() {
-    _homeSnapshotSub?.cancel();
-    _searchDebounce?.cancel();
-    scrollController.dispose();
+    _handleControllerClose();
     super.onClose();
   }
 }

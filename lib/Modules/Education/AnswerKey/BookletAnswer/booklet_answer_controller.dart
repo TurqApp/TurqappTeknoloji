@@ -6,6 +6,9 @@ import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'booklet_answer_controller_data_part.dart';
+part 'booklet_answer_controller_actions_part.dart';
+
 class BookletAnswerController extends GetxController {
   static BookletAnswerController ensure(
     AnswerKeySubModel model,
@@ -48,72 +51,6 @@ class BookletAnswerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    cevaplar.assignAll(List.filled(model.dogruCevaplar.length, ""));
-    fetchAds();
-  }
-
-  Future<void> fetchAds() async {
-    try {
-      final doc = await _configRepository.getLegacyConfigDoc(
-        collection: 'Yönetim',
-        docId: 'Genel',
-      );
-      iosList.value = (doc?["iosFullReklamlar"] ?? '').toString();
-      androidList.value = (doc?["androidFullReklamlar"] ?? '').toString();
-      runAds();
-    } catch (_) {}
-  }
-
-  void runAds() {
-    final adUnitId = Platform.isIOS ? iosList.value : androidList.value;
-    if (adUnitId.isNotEmpty) {}
-  }
-
-  void updateAnswer(int index, String answer) {
-    cevaplar[index] = answer;
-  }
-
-  Future<void> finishTest() async {
-    int correct = 0;
-    int wrong = 0;
-
-    for (int i = 0; i < model.dogruCevaplar.length; i++) {
-      if (cevaplar[i] == model.dogruCevaplar[i]) {
-        correct++;
-      } else if (cevaplar[i] != model.dogruCevaplar[i] && cevaplar[i] != "") {
-        wrong++;
-      }
-    }
-
-    final total = model.dogruCevaplar.length;
-    final empty = total - (correct + wrong);
-    final score = (correct / total) * 100;
-    final net = correct - (wrong / 4.0);
-
-    correctCount.value = correct;
-    wrongCount.value = wrong;
-    emptyCount.value = empty;
-    scorePercent.value = score;
-    netScore.value = net;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(CurrentUserService.instance.effectiveUserId)
-          .collection("KitapcikCevaplari")
-          .add({
-        "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "kitapcikID": anaModel.docID,
-        "baslik": model.baslik,
-        "cevaplar": cevaplar,
-        "dogruCevaplar": model.dogruCevaplar,
-        "dogru": correct,
-        "yanlis": wrong,
-        "bos": empty,
-        "puan": score,
-        "net": net,
-      });
-      completed.value = true;
-    } catch (_) {}
+    _handleControllerInit();
   }
 }

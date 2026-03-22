@@ -5,6 +5,9 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'solve_test_controller_data_part.dart';
+part 'solve_test_controller_actions_part.dart';
+
 class SolveTestController extends GetxController {
   static SolveTestController ensure({
     required String testID,
@@ -49,71 +52,12 @@ class SolveTestController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _startTime = DateTime.now();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      elapsedTime.value = DateTime.now().difference(_startTime);
-    });
-    getSorular();
-    getUserFullName();
+    _handleControllerInit();
   }
 
   @override
   void onClose() {
-    _timer.cancel();
+    _handleControllerClose();
     super.onClose();
-  }
-
-  String formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(duration.inHours);
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$hours:$minutes:$seconds";
-  }
-
-  Future<void> getSorular() async {
-    isLoading.value = true;
-    try {
-      soruList.assignAll(
-        await _testRepository.fetchQuestions(
-          testID,
-          preferCache: true,
-        ),
-      );
-      cevaplar.assignAll(List.generate(soruList.length, (index) => ""));
-    } catch (e) {
-      soruList.clear();
-      cevaplar.clear();
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> getUserFullName() async {
-    try {
-      final summary = await _userSummaryResolver.resolve(
-        CurrentUserService.instance.effectiveUserId,
-        preferCache: true,
-      );
-      fullname.value = summary?.preferredName ?? "";
-    } catch (e) {
-      fullname.value = "";
-    }
-  }
-
-  void updateAnswer(int index, String choice) {
-    cevaplar[index] = choice;
-  }
-
-  void testiBitir() {
-    _testRepository
-        .submitAnswers(
-          testID,
-          userId: CurrentUserService.instance.effectiveUserId,
-          answers: cevaplar.toList(growable: false),
-        )
-        .catchError((error) {});
-    Get.back();
-    showSucces();
   }
 }
