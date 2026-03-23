@@ -8,23 +8,8 @@ extension AccountCenterViewSecurityTogglePart on _SessionSecuritySection {
       ),
       value: enabled,
       onChanged: _handleSecurityToggleChanged,
-      title: Text(
-        'account_center.single_device_title'.tr,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 14,
-          fontFamily: 'MontserratBold',
-        ),
-      ),
-      subtitle: Text(
-        'account_center.single_device_desc'.tr,
-        style: TextStyle(
-          color: Colors.black54,
-          fontSize: 12,
-          fontFamily: 'MontserratMedium',
-          height: 1.35,
-        ),
-      ),
+      title: _buildSecurityToggleTitle(),
+      subtitle: _buildSecurityToggleSubtitle(),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
