@@ -7,6 +7,7 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controll
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'ads_campaign_editor_view_actions_part.dart';
+part 'ads_campaign_editor_view_creative_part.dart';
 part 'ads_campaign_editor_view_content_part.dart';
 part 'ads_campaign_editor_view_form_part.dart';
 part 'ads_campaign_editor_view_sections_part.dart';

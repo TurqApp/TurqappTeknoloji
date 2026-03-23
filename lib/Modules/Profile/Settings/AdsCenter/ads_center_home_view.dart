@@ -11,6 +11,9 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_preview_screen.
 
 part 'ads_center_home_view_shell_part.dart';
 part 'ads_center_home_view_lifecycle_part.dart';
+part 'ads_center_home_view_appbar_part.dart';
+part 'ads_center_home_view_state_part.dart';
+part 'ads_center_home_view_tabs_part.dart';
 
 class AdsCenterHomeView extends StatefulWidget {
   const AdsCenterHomeView({super.key});

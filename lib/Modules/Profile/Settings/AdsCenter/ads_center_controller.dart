@@ -11,7 +11,11 @@ import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_utils.dart';
 
 part 'ads_center_controller_data_part.dart';
+part 'ads_center_controller_filter_part.dart';
 part 'ads_center_controller_actions_part.dart';
+part 'ads_center_controller_stream_part.dart';
+part 'ads_center_controller_subscription_part.dart';
+part 'ads_center_controller_preview_part.dart';
 
 class AdsCenterController extends GetxController {
   static AdsCenterController ensure({bool permanent = false}) {
