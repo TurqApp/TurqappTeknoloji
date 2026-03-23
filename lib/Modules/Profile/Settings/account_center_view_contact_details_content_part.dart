@@ -41,12 +41,4 @@ extension AccountCenterViewContactDetailsContentPart on _ContactDetailsView {
       );
     });
   }
-
-  String _emailValue(CurrentUserService currentUserService) {
-    return currentUserService.email.trim();
-  }
-
-  String _phoneValue(CurrentUserService currentUserService) {
-    return currentUserService.phoneNumber.trim();
-  }
 }
