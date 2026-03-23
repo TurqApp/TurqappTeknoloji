@@ -1,4 +1,5 @@
 integration_test/auth/auth_session_churn_e2e_test.dart
+integration_test/comments/comment_root_delete_e2e_test.dart
 integration_test/comments/comment_reply_delete_e2e_test.dart
 integration_test/chat/chat_media_surfaces_smoke_test.dart
 integration_test/chat/chat_media_picker_upload_failure_e2e_test.dart

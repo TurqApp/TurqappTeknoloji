@@ -98,6 +98,9 @@ class _PostCommentsState extends State<PostComments> {
                               itemBuilder: (ctx, i) => Column(
                                 children: [
                                   PostCommentContent(
+                                    key: ValueKey(
+                                      'post_comment_${controller.list[i].docID}',
+                                    ),
                                     model: controller.list[i],
                                     postID: widget.postID,
                                     commentControllerTag: _controllerTag,

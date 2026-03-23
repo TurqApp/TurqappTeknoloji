@@ -4,8 +4,10 @@
     "PEER_EMAIL": "integration-peer@turqapp.local",
     "MESSAGE_ID": "it_seed_message_1",
     "NOTIFICATION_ID": "it_notification_follow_profile",
+    "COMMENT_ID": "it_seed_comment_1",
     "POST_ID": "it_seed_feed_post_1",
-    "POST_VIDEO_URL": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8"
+    "POST_VIDEO_URL": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
+    "POST_THUMBNAIL_URL": "https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg"
   },
   "apply": [
     {
@@ -68,7 +70,7 @@
         "sikayetEdildi": false,
         "stabilized": true,
         "stats": {
-          "commentCount": 0,
+          "commentCount": 1,
           "likeCount": 0,
           "reportedCount": 0,
           "retryCount": 0,
@@ -76,7 +78,7 @@
           "statsCount": 0
         },
         "tags": [],
-        "thumbnail": "",
+        "thumbnail": "{{POST_THUMBNAIL_URL}}",
         "timeStamp": "{{NOW_MS}}",
         "userID": "{{PEER_UID}}",
         "authorNickname": "integration_peer",
@@ -100,6 +102,24 @@
           "visibility": 0
         },
         "poll": {}
+      }
+    },
+    {
+      "op": "merge",
+      "path": "Posts/{{POST_ID}}/comments/{{COMMENT_ID}}",
+      "data": {
+        "likes": [],
+        "text": "Integration seeded comment",
+        "imgs": [],
+        "videos": [],
+        "timeStamp": "{{NOW_MS}}",
+        "userID": "{{PEER_UID}}",
+        "edited": false,
+        "editTimestamp": 0,
+        "deleted": false,
+        "deletedTimeStamp": 0,
+        "hasReplies": false,
+        "repliesCount": 0
       }
     },
     {

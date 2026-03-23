@@ -68,8 +68,9 @@ Future<Map<String, dynamic>> waitForSurfaceProbe(
   if (predicate(payload)) {
     return payload;
   }
-  throw TestFailure(
-      reason ?? 'Surface probe did not reach expected state: $surface');
+  final detail =
+      reason ?? 'Surface probe did not reach expected state: $surface';
+  throw TestFailure('$detail Last payload: $payload');
 }
 
 Future<String> openCommentsForFirstFeedPost(WidgetTester tester) async {
