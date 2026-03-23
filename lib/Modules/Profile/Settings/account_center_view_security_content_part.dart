@@ -8,14 +8,7 @@ extension AccountCenterViewSecurityContentPart on _SessionSecuritySection {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black12),
       ),
-      child: StreamBuilder<Map<String, dynamic>?>(
-        stream: UserRepository.ensure().watchUserRaw(uid),
-        builder: (context, snapshot) {
-          final enabled =
-              (snapshot.data?['singleDeviceSessionEnabled'] ?? false) == true;
-          return _buildSecurityToggle(enabled);
-        },
-      ),
+      child: _buildSecurityStream(uid),
     );
   }
 }
