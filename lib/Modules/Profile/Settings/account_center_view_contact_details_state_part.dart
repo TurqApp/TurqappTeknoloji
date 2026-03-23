@@ -2,8 +2,8 @@ part of 'account_center_view.dart';
 
 extension AccountCenterViewContactDetailsStatePart on _ContactDetailsView {
   Widget _buildResolvedContactDetails(CurrentUserService currentUserService) {
-    final email = _emailValue(currentUserService);
-    final phone = _phoneValue(currentUserService);
+    final email = currentUserService.email.trim();
+    final phone = currentUserService.phoneNumber.trim();
     final emailVerified = currentUserService.emailVerifiedRx.value;
     final phoneVerified = phone.isNotEmpty;
     return _buildAccountCenterCard(
