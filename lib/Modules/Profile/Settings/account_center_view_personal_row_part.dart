@@ -15,7 +15,15 @@ class _PersonalDetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return _buildAccountCenterRowShell(
       onTap: onTap,
-      child: _buildPersonalRowBody(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(child: _buildPersonalRowContent()),
+            _buildAccountCenterChevron(),
+          ],
+        ),
+      ),
     );
   }
 }
