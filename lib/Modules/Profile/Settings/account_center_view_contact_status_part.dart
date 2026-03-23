@@ -21,8 +21,8 @@ class _ContactStatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = accountCenterStatusColor;
-    final statusText = accountCenterStatusText;
+    final statusColor = isVerified ? Colors.green : Colors.blueAccent;
+    final statusText = isVerified ? verifiedLabel : pendingLabel;
 
     return _buildAccountCenterRowShell(
       onTap: onTap,
