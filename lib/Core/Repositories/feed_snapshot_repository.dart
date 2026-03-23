@@ -53,6 +53,9 @@ class FeedSnapshotRepository extends GetxService {
   static const int _defaultPersistLimit = 40;
   static final Set<String> _hybridBackfillRequested = <String>{};
 
+  bool get _shouldLogDiagnostics =>
+      kDebugMode && !IntegrationTestMode.enabled;
+
   static FeedSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<FeedSnapshotRepository>();
     if (!isRegistered) return null;

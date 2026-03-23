@@ -61,7 +61,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         .where((item) => _isEligibleFeedReference(item, nowMs, cutoffMs))
         .toList(growable: false);
 
-    if (kDebugMode) {
+    if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$normalizedUserId startAfter=${startAfter?.id ?? ''} '
         'refs=${refsPage.items.length} eligible=${refs.length} limit=$limit',
@@ -84,7 +84,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         refs = refsPage.items
             .where((item) => _isEligibleFeedReference(item, nowMs, cutoffMs))
             .toList(growable: false);
-        if (kDebugMode) {
+        if (_shouldLogDiagnostics) {
           debugPrint(
             '[FeedSnapshot] uid=$normalizedUserId repairRefetch refs=${refsPage.items.length} '
             'eligible=${refs.length}',
@@ -140,7 +140,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       merged.putIfAbsent(post.docID, () => post);
     }
 
-    if (kDebugMode) {
+    if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$normalizedUserId merged=${merged.length} '
         'celebAuthors=${celebIds.length} publicScheduled=${publicScheduled.length}',
@@ -148,7 +148,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     }
 
     if (merged.isEmpty && refsPage.lastDoc == null && startAfter == null) {
-      if (kDebugMode) {
+      if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedSnapshot] uid=$normalizedUserId fallback=personal reason=primary_empty',
         );
@@ -166,7 +166,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (personalFallback.items.isNotEmpty) {
         return personalFallback;
       }
-      if (kDebugMode) {
+      if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedSnapshot] uid=$normalizedUserId fallback=legacy reason=personal_empty',
         );
@@ -194,7 +194,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       limit: limit,
     );
 
-    if (kDebugMode) {
+    if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$normalizedUserId visible=${visible.length} '
         'sample=${visible.take(5).map((post) => post.docID).join(',')}',
@@ -294,7 +294,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       limit: limit,
     );
 
-    if (kDebugMode) {
+    if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$currentUserId personalFallback own=${ownPosts.length} '
         'followingSeed=${followingIds.length} '
@@ -331,14 +331,14 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         'uid': normalizedUserId,
         'perAuthorLimit': limit < 20 ? 3 : 4,
       });
-      if (kDebugMode) {
+      if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedSnapshot] uid=$normalizedUserId repairTriggered result=${response.data}',
         );
       }
       return true;
     } catch (error, stackTrace) {
-      if (kDebugMode) {
+      if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedSnapshot] uid=$normalizedUserId repairFailed error=$error',
         );

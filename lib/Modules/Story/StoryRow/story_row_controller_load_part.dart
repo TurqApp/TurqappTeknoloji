@@ -103,7 +103,7 @@ extension StoryRowControllerLoadPart on StoryRowController {
         ...seen,
       ];
       unawaited(_warmVisibleAvatarFiles(users));
-      if (kDebugMode && myUid.isNotEmpty) {
+      if (_shouldLogDebug && myUid.isNotEmpty) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
         debugPrint(
           "Story row self state: exists=${me != null} stories=${me?.stories.length ?? 0}",
