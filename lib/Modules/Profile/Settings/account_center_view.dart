@@ -32,6 +32,7 @@ part 'account_center_view_personal_details_part.dart';
 part 'account_center_view_personal_card_part.dart';
 part 'account_center_view_personal_row_part.dart';
 part 'account_center_view_personal_section_part.dart';
+part 'account_center_view_remove_part.dart';
 part 'account_center_view_security_part.dart';
 part 'account_center_view_shell_part.dart';
 
