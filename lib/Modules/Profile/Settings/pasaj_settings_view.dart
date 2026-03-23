@@ -24,5 +24,17 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
   bool _ownsController = false;
 
   @override
+  void initState() {
+    super.initState();
+    _handleInitState();
+  }
+
+  @override
+  void dispose() {
+    _handleDispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => _buildPage(context);
 }

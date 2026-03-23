@@ -1,9 +1,7 @@
 part of 'pasaj_settings_view.dart';
 
 extension PasajSettingsViewLifecyclePart on _PasajSettingsViewState {
-  @override
-  void initState() {
-    super.initState();
+  void _handleInitState() {
     final existingController = SettingsController.maybeFind();
     if (existingController != null) {
       controller = existingController;
@@ -13,12 +11,10 @@ extension PasajSettingsViewLifecyclePart on _PasajSettingsViewState {
     }
   }
 
-  @override
-  void dispose() {
+  void _handleDispose() {
     if (_ownsController &&
         identical(SettingsController.maybeFind(), controller)) {
       Get.delete<SettingsController>(force: true);
     }
-    super.dispose();
   }
 }
