@@ -17,7 +17,7 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
             lastSuccessfulSignInAt: now,
           )
         : account;
-    if (kDebugMode) {
+    if (_shouldLogDebug) {
       debugPrint(
         '[AccountCenter] addOrUpdate uid=${normalizedAccount.uid} '
         'username=${normalizedAccount.username} '
@@ -65,7 +65,7 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
       lastUsedUid.value = normalizedAccount.uid;
     }
     await _persist();
-    if (kDebugMode) {
+    if (_shouldLogDebug) {
       debugPrint(
         '[AccountCenter] addOrUpdate persisted accounts=${accounts.map((e) => e.uid).toList()} '
         'active=${activeUid.value} lastUsed=${lastUsedUid.value}',

@@ -216,7 +216,7 @@ extension PostRepositoryQueryPart on PostRepository {
         .where((item) => item.postId.isNotEmpty)
         .toList(growable: false);
 
-    if (kDebugMode) {
+    if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedRefs] uid=$normalizedUid count=${items.length} '
         'startAfter=${startAfter?.id ?? ''} '

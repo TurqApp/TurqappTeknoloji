@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
@@ -30,6 +31,7 @@ class AccountCenterService extends GetxService {
   bool _initialized = false;
   Future<void>? _initFuture;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  bool get _shouldLogDebug => kDebugMode && !IntegrationTestMode.enabled;
 
   @override
   void onInit() {

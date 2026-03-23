@@ -41,7 +41,7 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
     final restored = _dedupeAccounts(
       StoredAccount.decodeList(raw).toList(growable: true),
     )..sort(_compareAccounts);
-    if (kDebugMode) {
+    if (_shouldLogDebug) {
       debugPrint(
         '[AccountCenter] init rawLength=${raw.length} restored=${restored.map((e) => e.uid).toList()}',
       );
@@ -176,7 +176,7 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
     } else {
       await _prefs?.remove(_accountCenterLastUsedUidStorageKey);
     }
-    if (kDebugMode) {
+    if (_shouldLogDebug) {
       final stored = _prefs?.getString(_accountCenterAccountsStorageKey) ?? '';
       debugPrint(
         '[AccountCenter] persist storedLength=${stored.length} '

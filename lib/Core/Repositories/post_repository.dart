@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 
@@ -129,6 +130,8 @@ class PostRepository extends GetxService {
   static const Duration _interactionTtl = Duration(seconds: 30);
   static const Duration _stuckUploadingRepairAge = Duration(seconds: 10);
   static final Set<String> _uploadRepairInFlight = <String>{};
+  bool get _shouldLogDiagnostics =>
+      kDebugMode && !IntegrationTestMode.enabled;
   final Map<String, PostRepositoryState> _states =
       <String, PostRepositoryState>{};
   final Map<String, List<PostSharersModel>> _postSharersMemory =
