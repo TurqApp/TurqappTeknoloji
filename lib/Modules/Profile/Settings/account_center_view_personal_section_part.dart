@@ -20,13 +20,7 @@ class _PersonalDetailsSection extends StatelessWidget {
         currentUserService: currentUserService,
         userRepository: userRepository,
       ),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done &&
-            !(snapshot.hasData && (snapshot.data?.isNotEmpty ?? false))) {
-          return _buildPersonalLoadingState();
-        }
-        return _buildPersonalLoadedState(snapshot.data);
-      },
+      builder: (context, snapshot) => _buildPersonalSnapshotState(snapshot),
     );
   }
 }
