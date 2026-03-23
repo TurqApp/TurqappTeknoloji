@@ -13,18 +13,11 @@ extension AccountCenterViewContactDetailsCardBodyPart on _ContactDetailsView {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black12),
       ),
-      child: Column(
-        children: [
-          _buildEmailContactStatusRow(
-            email: email,
-            emailVerified: emailVerified,
-          ),
-          const Divider(height: 1, indent: 18, endIndent: 18),
-          _buildPhoneContactStatusRow(
-            phone: phone,
-            phoneVerified: phoneVerified,
-          ),
-        ],
+      child: _buildContactDetailsRows(
+        email: email,
+        phone: phone,
+        emailVerified: emailVerified,
+        phoneVerified: phoneVerified,
       ),
     );
   }
