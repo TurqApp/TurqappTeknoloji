@@ -17,10 +17,9 @@ extension AccountCenterViewActionsPart on AccountCenterView {
       return;
     }
 
-    if (currentUid.isNotEmpty) {
-      await _clearCurrentSession(currentUid);
-    }
-
-    await _continueWithUsernameAccount(account);
+    await _continueWithNonPasswordProviderAccount(
+      currentUid: currentUid,
+      account: account,
+    );
   }
 }
