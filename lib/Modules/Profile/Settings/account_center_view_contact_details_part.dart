@@ -25,9 +25,16 @@ class _ContactDetailsView extends StatelessWidget {
                   return _buildAccountCenterCard(
                     child: Column(
                       children: [
-                        _buildEmailContactStatusRow(
-                          email: email,
-                          emailVerified: emailVerified,
+                        _ContactStatusRow(
+                          icon: CupertinoIcons.mail,
+                          title: 'account_center.email'.tr,
+                          value: email.isNotEmpty
+                              ? email
+                              : 'account_center.email_missing'.tr,
+                          isVerified: emailVerified,
+                          verifiedLabel: 'account_center.verified'.tr,
+                          pendingLabel: 'account_center.verify'.tr,
+                          onTap: () => Get.to(() => EditorEmail()),
                         ),
                         const Divider(
                           height: 1,
