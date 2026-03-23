@@ -23,15 +23,7 @@ class _PersonalDetailsSection extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done &&
             !(snapshot.hasData && (snapshot.data?.isNotEmpty ?? false))) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.black12),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-            child: const CupertinoActivityIndicator(),
-          );
+          return _buildPersonalLoadingState();
         }
         return _PersonalDetailsCard(
           contactDetails: snapshot.data,
