@@ -6,11 +6,13 @@ extension AccountCenterViewContactDetailsStatePart on _ContactDetailsView {
     final phone = _phoneValue(currentUserService);
     final emailVerified = currentUserService.emailVerifiedRx.value;
     final phoneVerified = phone.isNotEmpty;
-    return _buildContactDetailsCard(
-      email: email,
-      phone: phone,
-      emailVerified: emailVerified,
-      phoneVerified: phoneVerified,
+    return _buildAccountCenterCard(
+      child: _buildContactDetailsRows(
+        email: email,
+        phone: phone,
+        emailVerified: emailVerified,
+        phoneVerified: phoneVerified,
+      ),
     );
   }
 }
