@@ -32,7 +32,12 @@ class _ContactStatusRow extends StatelessWidget {
           children: [
             Icon(icon, color: Colors.black54, size: 20),
             const SizedBox(width: 12),
-            Expanded(child: _buildContactStatusContent()),
+            Expanded(
+              child: _buildAccountCenterInfoContent(
+                title: title,
+                value: value,
+              ),
+            ),
             if (!isVerified)
               Text(
                 statusText,
