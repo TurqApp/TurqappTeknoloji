@@ -13,35 +13,16 @@ extension AccountCenterViewActionsPart on AccountCenterView {
     }
 
     if (account.hasPasswordProvider) {
-      if (account.requiresReauth) {
-        final identifier = await _signInController
-            .preferredIdentifierForStoredAccount(account);
-        await Get.offAll(
-          () => SignIn(
-            initialIdentifier: identifier,
-            storedAccountUid: account.uid,
-          ),
-        );
-        AppSnackbar(
-          'account_center.reauth_title'.tr,
-          'account_center.reauth_body'
-              .trParams(<String, String>{'username': account.username}),
-        );
+      final switched = await _continueWithPasswordAccount(account);
+      if (switched) {
         return;
       }
-      Get.dialog(
-        const Center(child: CupertinoActivityIndicator()),
-        barrierDismissible: false,
-      );
-      final switched = await _signInController.signInWithStoredAccount(account);
-      if (Get.isDialogOpen == true) {
-        Get.back();
+      if (!account.requiresReauth) {
+        AppSnackbar(
+          'account_center.switch_failed_title'.tr,
+          'account_center.switch_failed_body'.tr,
+        );
       }
-      if (switched) return;
-      AppSnackbar(
-        'account_center.switch_failed_title'.tr,
-        'account_center.switch_failed_body'.tr,
-      );
       return;
     }
 
