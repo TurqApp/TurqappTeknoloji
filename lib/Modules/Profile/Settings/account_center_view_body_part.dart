@@ -8,13 +8,7 @@ extension AccountCenterViewBodyPart on AccountCenterView {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CupertinoActivityIndicator());
         }
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Obx(() {
-            final items = accountCenter.accounts.toList(growable: false);
-            return _buildContent(context, items);
-          }),
-        );
+        return _buildBodyContent(context);
       },
     );
   }
