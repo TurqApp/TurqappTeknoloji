@@ -17,15 +17,7 @@ class _PersonalDetailRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Expanded(child: _buildPersonalRowContent()),
-              _buildAccountCenterChevron(),
-            ],
-          ),
-        ),
+        child: _buildPersonalRowBody(),
       ),
     );
   }
