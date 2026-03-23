@@ -54,7 +54,6 @@ part 'account_center_view_personal_row_part.dart';
 part 'account_center_view_personal_section_part.dart';
 part 'account_center_view_remove_part.dart';
 part 'account_center_view_security_part.dart';
-part 'account_center_view_security_section_label_part.dart';
 part 'account_center_view_security_toggle_labels_part.dart';
 part 'account_center_view_security_toggle_title_part.dart';
 part 'account_center_view_security_toggle_subtitle_part.dart';

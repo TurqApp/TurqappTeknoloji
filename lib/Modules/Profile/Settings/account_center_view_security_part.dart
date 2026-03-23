@@ -19,7 +19,14 @@ class _SessionSecuritySection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-          child: _buildSecuritySectionLabel(),
+          child: Text(
+            'account_center.security'.tr,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 14,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
         ),
         _buildAccountCenterCard(
           child: _buildSecurityStream(uid),
