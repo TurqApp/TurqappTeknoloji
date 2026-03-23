@@ -29,6 +29,17 @@ class _SupportContactViewState extends State<SupportContactView> {
   bool _sending = false;
   String _selectedTopicKey = _supportTopicKeys.first;
 
+  void _updateViewState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
+  }
+
+  @override
+  void dispose() {
+    _handleDispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return _buildContent(context);

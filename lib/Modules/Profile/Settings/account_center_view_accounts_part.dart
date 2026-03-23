@@ -1,0 +1,102 @@
+part of 'account_center_view.dart';
+
+extension AccountCenterViewAccountsPart on AccountCenterView {
+  Widget _buildAccountsSection(
+    BuildContext context,
+    List<StoredAccount> items,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'account_center.header_title'.tr,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 26,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'account_center.accounts'.tr,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 14,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.black12),
+          ),
+          child: items.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 22,
+                  ),
+                  child: Text(
+                    'account_center.no_accounts'.tr,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                )
+              : Column(
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      _AccountRow(
+                        account: items[i],
+                        avatar: _avatar(items[i]),
+                        onTap: () => _continueWithAccount(items[i]),
+                        onLongPress: () => _confirmRemoveAccount(
+                          context,
+                          items[i],
+                        ),
+                      ),
+                      if (i != items.length - 1)
+                        const Divider(
+                          height: 1,
+                          indent: 84,
+                          endIndent: 16,
+                        ),
+                    ],
+                    InkWell(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(18),
+                      ),
+                      onTap: () => Get.to(() => SignIn()),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 18,
+                        ),
+                        child: Text(
+                          'account_center.add_account'.tr,
+                          style: const TextStyle(
+                            color: Color(0xFF3797EF),
+                            fontSize: 15,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+}
