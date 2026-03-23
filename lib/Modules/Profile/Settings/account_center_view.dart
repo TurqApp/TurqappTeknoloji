@@ -53,7 +53,6 @@ part 'account_center_view_contact_details_divider_part.dart';
 part 'account_center_view_contact_details_state_part.dart';
 part 'account_center_view_contact_status_part.dart';
 part 'account_center_view_info_content_part.dart';
-part 'account_center_view_non_password_provider_part.dart';
 part 'account_center_view_personal_data_part.dart';
 part 'account_center_view_personal_data_direct_part.dart';
 part 'account_center_view_personal_data_fallback_part.dart';
