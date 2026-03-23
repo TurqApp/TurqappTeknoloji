@@ -5,12 +5,6 @@ extension AccountCenterViewAccountsPart on AccountCenterView {
     BuildContext context,
     List<StoredAccount> items,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildAccountsHeader(),
-        _buildAccountsCard(context, items),
-      ],
-    );
+    return _buildAccountsSectionBody(context, items);
   }
 }
