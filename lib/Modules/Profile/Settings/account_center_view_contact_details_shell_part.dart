@@ -8,7 +8,7 @@ extension AccountCenterViewContactDetailsShellPart on _ContactDetailsView {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'account_center.contact_details'.tr),
+            _buildContactDetailsHeader(),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
