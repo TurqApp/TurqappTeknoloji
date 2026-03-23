@@ -30,6 +30,11 @@ extension AccountCenterViewActionsPart on AccountCenterView {
       await _clearCurrentSession(currentUid);
     }
 
-    await _continueWithUsernameAccount(account);
+    await Get.offAll(
+      () => SignIn(
+        initialIdentifier: account.username,
+        storedAccountUid: account.uid,
+      ),
+    );
   }
 }
