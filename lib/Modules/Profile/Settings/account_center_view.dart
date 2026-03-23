@@ -22,6 +22,7 @@ part 'account_center_view_accounts_card_part.dart';
 part 'account_center_view_accounts_header_part.dart';
 part 'account_center_view_body_part.dart';
 part 'account_center_view_content_part.dart';
+part 'account_center_view_personal_details_part.dart';
 part 'account_center_view_security_part.dart';
 part 'account_center_view_sections_part.dart';
 part 'account_center_view_shell_part.dart';
