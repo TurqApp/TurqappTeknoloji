@@ -8,8 +8,8 @@ extension AccountCenterViewSecurityTogglePart on _SessionSecuritySection {
       ),
       value: enabled,
       onChanged: _handleSecurityToggleChanged,
-      title: _buildSecurityToggleTitle(),
-      subtitle: _buildSecurityToggleSubtitle(),
+      title: _buildSingleDeviceTitle(),
+      subtitle: _buildSingleDeviceSubtitle(),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
