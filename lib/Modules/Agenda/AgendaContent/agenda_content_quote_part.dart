@@ -66,9 +66,9 @@ extension _AgendaContentQuotePart on _AgendaContentState {
           padding: EdgeInsets.only(top: actionTopSpacing),
           child: Obx(() {
             final currentUser = controller.userService.currentUserRx.value;
-            final me = currentUser?.userID ??
-                controller.userService.currentAuthUser?.uid ??
-                '';
+            final me = currentUser?.userID.trim().isNotEmpty == true
+                ? currentUser!.userID.trim()
+                : controller.userService.effectiveUserId.trim();
             if (me.isEmpty) return const SizedBox.shrink();
             return Transform.translate(
               offset: const Offset(17, 0),
