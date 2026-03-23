@@ -28,6 +28,7 @@ part 'account_center_view_accounts_list_part.dart';
 part 'account_center_view_avatar_part.dart';
 part 'account_center_view_body_part.dart';
 part 'account_center_view_body_content_part.dart';
+part 'account_center_view_body_loading_part.dart';
 part 'account_center_view_contact_details_part.dart';
 part 'account_center_view_contact_details_card_part.dart';
 part 'account_center_view_contact_details_content_part.dart';
