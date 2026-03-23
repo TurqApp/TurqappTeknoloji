@@ -29,7 +29,9 @@ void main() {
         originalOnError?.call(details);
       };
 
-      final perf = PerfMonitor()..start();
+      final launchPerf = PerfMonitor()..start();
+      final scrollPerf = PerfMonitor();
+      var scrollPerfStarted = false;
 
       try {
         await SmokeArtifactCollector.runScenario(
@@ -80,6 +82,10 @@ void main() {
             );
             await _assertAudioToggleWorks(firstAdapter, label: 'feed_first');
             seenDocIds.add(firstSample.docId);
+
+            final launchPerfReport = launchPerf.stop();
+            scrollPerf.start();
+            scrollPerfStarted = true;
 
             final baselineProcess = await firstAdapter.getProcessDiagnostics();
 
@@ -155,7 +161,8 @@ void main() {
                   _phaseDeadline(suiteDeadline, const Duration(seconds: 5)),
             );
 
-            final perfReport = perf.stop();
+            final scrollPerfReport = scrollPerf.stop();
+            scrollPerfStarted = false;
             final finalProcess = await finalAdapter.getProcessDiagnostics();
             final finalPlayback = await finalAdapter.getPlaybackDiagnostics();
             final poolSnapshot = pool.debugSnapshot();
@@ -171,15 +178,16 @@ void main() {
                   'Feed memory grew too much under stress (baseline=$baselineMemory MB, final=$finalMemory MB).',
             );
             expect(
-              perfReport.severeJankRatio,
+              scrollPerfReport.severeJankRatio,
               lessThan(0.85),
               reason:
-                  'Feed severe jank ratio is too high (${perfReport.severeJankRatio}).',
+                  'Feed severe jank ratio is too high (${scrollPerfReport.severeJankRatio}).',
             );
 
             debugPrint(
               '[feed_production_smoke_suite] ${jsonEncode(<String, dynamic>{
-                    'performance': perfReport.toJson(),
+                    'launchPerformance': launchPerfReport.toJson(),
+                    'scrollPerformance': scrollPerfReport.toJson(),
                     'baselineProcess': baselineProcess,
                     'finalProcess': finalProcess,
                     'finalPlayback': finalPlayback,
@@ -190,7 +198,10 @@ void main() {
           },
         );
       } finally {
-        perf.stop();
+        launchPerf.stop();
+        if (scrollPerfStarted) {
+          scrollPerf.stop();
+        }
         FlutterError.onError = originalOnError;
       }
     },

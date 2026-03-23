@@ -104,6 +104,7 @@ class AgendaController extends GetxController {
   Timer? _visibilityDebounce;
   Timer? _feedPrefetchDebounce;
   Timer? _scrollIdleDebounce;
+  Timer? _playbackReassertTimer;
   Timer? _agendaRetryTimer;
   int _agendaRetryCount = 0;
   Worker? _mergedFeedWorker;
@@ -182,6 +183,10 @@ class AgendaController extends GetxController {
       AgendaShuffleCacheService.ensure();
   bool _ensureInitialLoadInFlight = false;
   DateTime? _lastEnsureInitialLoadAt;
+  DateTime? _lastPlaybackCommandAt;
+  String? _lastPlaybackCommandDocId;
+  bool _feedModeFallbackQueued = false;
+  int _feedModeFallbackEpoch = 0;
   // null => no time window limit
   static const Duration? _agendaWindow = null;
   static const int _reshareScanPostLimit = 12;

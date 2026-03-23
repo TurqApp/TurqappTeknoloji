@@ -22,35 +22,13 @@ extension _AgendaViewFeedPart on AgendaView {
         } catch (_) {}
       },
       child: Obx(() {
-        final _ = controller.mergedFeedEntries.length;
-        final __ = controller.filteredFeedEntries.length;
-        controller.feedViewMode.value;
-        final display = controller.mergedFeedEntries.toList(growable: false);
-        var filteredDisplay =
-            controller.filteredFeedEntries.toList(growable: false);
-        var renderDisplay =
-            controller.renderFeedEntries.toList(growable: false);
+        final display = controller.mergedFeedEntries;
+        final filteredDisplay = controller.filteredFeedEntries;
+        final renderDisplay = controller.renderFeedEntries;
+        final displayCount = display.length;
+        final filteredCount = filteredDisplay.length;
 
-        final shouldFallbackToForYou = display.isNotEmpty &&
-            filteredDisplay.isEmpty &&
-            !controller.isLoading.value &&
-            (controller.isFollowingMode || controller.isCityMode);
-        if (shouldFallbackToForYou) {
-          filteredDisplay = display;
-          renderDisplay = FeedRenderCoordinator.ensure().buildRenderEntries(
-            filteredEntries: filteredDisplay,
-          );
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final agendaController = AgendaController.maybeFind();
-            if (agendaController == null) return;
-            if (agendaController.feedViewMode.value != FeedViewMode.forYou) {
-              agendaController.setFeedViewMode(FeedViewMode.forYou);
-            }
-          });
-        }
-
-        if (display.isEmpty) {
-          unawaited(controller.ensureInitialFeedLoaded());
+        if (displayCount == 0) {
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
@@ -66,7 +44,7 @@ extension _AgendaViewFeedPart on AgendaView {
           );
         }
 
-        if (filteredDisplay.isEmpty) {
+        if (filteredCount == 0) {
           final emptyText = controller.isCityMode
               ? 'feed.empty_city'.tr
               : 'feed.empty_following'.tr;
@@ -90,9 +68,6 @@ extension _AgendaViewFeedPart on AgendaView {
 
             final actualIndex = index - 1;
             if (actualIndex >= renderDisplay.length) {
-              if (controller.hasMore.value && !controller.isLoading.value) {
-                controller.fetchAgendaBigData();
-              }
               return const SizedBox.shrink();
             }
 

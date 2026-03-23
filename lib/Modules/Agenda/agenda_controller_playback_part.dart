@@ -35,7 +35,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
     _visibilityDebounce?.cancel();
     _visibilityDebounce = Timer(
       GetPlatform.isAndroid
-          ? const Duration(milliseconds: 24)
+          ? const Duration(milliseconds: 48)
           : const Duration(milliseconds: 40),
       () => _evaluateCenteredPlayback(
         playThreshold: playThreshold,
@@ -82,7 +82,10 @@ extension AgendaControllerPlaybackPart on AgendaController {
         centeredIndex.value = bestIndex;
         lastCenteredIndex = bestIndex;
       }
-      _ensureFeedPlaybackForIndex(bestIndex);
+      if (centeredIndex.value != bestIndex ||
+          !_isPlaybackTargetCurrent(bestIndex)) {
+        _ensureFeedPlaybackForIndex(bestIndex);
+      }
       _trackPlaybackWindow();
       return;
     }
@@ -93,7 +96,10 @@ extension AgendaControllerPlaybackPart on AgendaController {
         centeredIndex.value = fallbackIndex;
         lastCenteredIndex = fallbackIndex;
       }
-      _ensureFeedPlaybackForIndex(fallbackIndex);
+      if (centeredIndex.value != fallbackIndex ||
+          !_isPlaybackTargetCurrent(fallbackIndex)) {
+        _ensureFeedPlaybackForIndex(fallbackIndex);
+      }
       _trackPlaybackWindow();
       return;
     }
@@ -133,7 +139,10 @@ extension AgendaControllerPlaybackPart on AgendaController {
             centeredIndex.value = preservedIndex;
           }
           lastCenteredIndex = preservedIndex;
-          _ensureFeedPlaybackForIndex(preservedIndex);
+          if (centeredIndex.value != preservedIndex ||
+              !_isPlaybackTargetCurrent(preservedIndex)) {
+            _ensureFeedPlaybackForIndex(preservedIndex);
+          }
         } else {
           centeredIndex.value = -1;
         }
@@ -143,7 +152,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
         lastCenteredIndex! < agendaList.length &&
         _canAutoplayVideoPost(agendaList[lastCenteredIndex!])) {
       centeredIndex.value = lastCenteredIndex!;
-      _ensureFeedPlaybackForIndex(lastCenteredIndex!);
+      if (!_isPlaybackTargetCurrent(lastCenteredIndex!)) {
+        _ensureFeedPlaybackForIndex(lastCenteredIndex!);
+      }
     }
 
     _trackPlaybackWindow();

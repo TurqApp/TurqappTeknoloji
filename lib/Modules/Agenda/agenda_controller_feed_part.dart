@@ -7,35 +7,26 @@ extension AgendaControllerFeedPart on AgendaController {
     final post = agendaList[index];
     if (!_canAutoplayVideoPost(post)) return;
     final manager = VideoStateManager.instance;
-    if (manager.currentPlayingDocID == post.docID) {
-      manager.reassertOnlyThis(post.docID);
-    } else {
-      manager.playOnlyThis(post.docID);
+    final now = DateTime.now();
+    final shouldIssueImmediateCommand =
+        _lastPlaybackCommandDocId != post.docID ||
+            _lastPlaybackCommandAt == null ||
+            now.difference(_lastPlaybackCommandAt!) >
+                const Duration(milliseconds: 180);
+    if (shouldIssueImmediateCommand) {
+      if (manager.currentPlayingDocID == post.docID) {
+        manager.reassertOnlyThis(post.docID);
+      } else {
+        manager.playOnlyThis(post.docID);
+      }
+      _lastPlaybackCommandDocId = post.docID;
+      _lastPlaybackCommandAt = now;
     }
-    Future.delayed(const Duration(milliseconds: 220), () {
-      if (centeredIndex.value != index) return;
-      if (index < 0 || index >= agendaList.length) return;
-      if (agendaList[index].docID != post.docID) return;
-      manager.reassertOnlyThis(post.docID);
-    });
-    Future.delayed(const Duration(milliseconds: 520), () {
-      if (centeredIndex.value != index) return;
-      if (index < 0 || index >= agendaList.length) return;
-      if (agendaList[index].docID != post.docID) return;
-      manager.reassertOnlyThis(post.docID);
-    });
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (centeredIndex.value != index) return;
-      if (index < 0 || index >= agendaList.length) return;
-      if (agendaList[index].docID != post.docID) return;
-      manager.reassertOnlyThis(post.docID);
-    });
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (centeredIndex.value != index) return;
-      if (index < 0 || index >= agendaList.length) return;
-      if (agendaList[index].docID != post.docID) return;
-      manager.reassertOnlyThis(post.docID);
-    });
+    _schedulePlaybackReassert(
+      index: index,
+      docId: post.docID,
+      manager: manager,
+    );
   }
 
   void _bindCenteredIndexListener() {
@@ -43,16 +34,19 @@ extension AgendaControllerFeedPart on AgendaController {
       final videoManager = VideoStateManager.instance;
 
       if (playbackSuspended.value) {
+        _cancelPendingPlaybackReassert();
         videoManager.pauseAllVideos(force: true);
         return;
       }
 
       if (!isPrimaryFeedRouteVisible) {
+        _cancelPendingPlaybackReassert();
         videoManager.pauseAllVideos(force: true);
         return;
       }
 
       if (newIndex == -1) {
+        _cancelPendingPlaybackReassert();
         videoManager.pauseAllVideos();
         return;
       }
@@ -60,8 +54,9 @@ extension AgendaControllerFeedPart on AgendaController {
       if (newIndex >= 0 && newIndex < agendaList.length) {
         final centeredPost = agendaList[newIndex];
         if (_canAutoplayVideoPost(centeredPost)) {
-          videoManager.playOnlyThis(centeredPost.docID);
+          _ensureFeedPlaybackForIndex(newIndex);
         } else {
+          _cancelPendingPlaybackReassert();
           videoManager.pauseAllVideos();
         }
       }
@@ -72,7 +67,7 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _scheduleFeedPrefetch() {
     _feedPrefetchDebounce?.cancel();
-    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 500), () {
+    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 900), () {
       _updateFeedPrefetchQueue();
     });
   }
@@ -219,16 +214,7 @@ extension AgendaControllerFeedPart on AgendaController {
       },
     );
 
-    final targetPost = agendaList[target];
-    if (!_canAutoplayVideoPost(targetPost)) return;
-
-    final manager = VideoStateManager.instance;
-    manager.playOnlyThis(targetPost.docID);
-
-    Future.delayed(const Duration(milliseconds: 220), () {
-      if (centeredIndex.value != target) return;
-      manager.playOnlyThis(targetPost.docID);
-    });
+    _ensureFeedPlaybackForIndex(target);
   }
 
   int _resolvePendingCenteredDocIndex() {
@@ -283,6 +269,37 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void ensureFeedCacheWarm() {
     _scheduleFeedPrefetch();
+  }
+
+  void _schedulePlaybackReassert({
+    required int index,
+    required String docId,
+    required VideoStateManager manager,
+  }) {
+    _playbackReassertTimer?.cancel();
+    _playbackReassertTimer = Timer(
+      const Duration(milliseconds: 480),
+      () {
+        if (!canClaimPlaybackNow) return;
+        if (centeredIndex.value != index) return;
+        if (index < 0 || index >= agendaList.length) return;
+        if (agendaList[index].docID != docId) return;
+        manager.reassertOnlyThis(docId);
+        _lastPlaybackCommandDocId = docId;
+        _lastPlaybackCommandAt = DateTime.now();
+      },
+    );
+  }
+
+  void _cancelPendingPlaybackReassert() {
+    _playbackReassertTimer?.cancel();
+    _playbackReassertTimer = null;
+  }
+
+  bool _isPlaybackTargetCurrent(int index) {
+    if (index < 0 || index >= agendaList.length) return false;
+    return VideoStateManager.instance.currentPlayingDocID ==
+        agendaList[index].docID;
   }
 
   GlobalKey getAgendaKeyForDoc(String docID) {

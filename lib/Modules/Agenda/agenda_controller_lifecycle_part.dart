@@ -21,11 +21,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (playbackSuspended.value) return;
       if (agendaList.isNotEmpty && centeredIndex.value == 0) {
-        final videoManager = VideoStateManager.instance;
-        final firstPost = agendaList[0];
-        if (_canAutoplayVideoPost(firstPost)) {
-          videoManager.playOnlyThis(firstPost.docID);
-        }
+        _ensureFeedPlaybackForIndex(0);
       }
       _scheduleFeedPrefetch();
     });
@@ -38,6 +34,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
     _scrollIdleDebounce?.cancel();
+    _playbackReassertTimer?.cancel();
     _agendaRetryTimer?.cancel();
     unawaited(persistWarmLaunchCache());
     scrollController.removeListener(_onScroll);

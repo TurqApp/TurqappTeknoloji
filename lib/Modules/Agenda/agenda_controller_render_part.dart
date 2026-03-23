@@ -18,6 +18,7 @@ extension AgendaControllerRenderPart on AgendaController {
         feedViewMode,
         followingIDs,
         CurrentUserService.instance.currentUserRx,
+        isLoading,
       ],
       (_) => _rebuildFilteredFeedEntries(),
     );
@@ -52,16 +53,25 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildFilteredFeedEntries() {
     if (mergedFeedEntries.isEmpty) {
+      _cancelQueuedFeedModeFallback();
       filteredFeedEntries.clear();
       return;
     }
-    final filtered = _feedRenderCoordinator.filterEntries(
+    var filtered = _feedRenderCoordinator.filterEntries(
       mergedEntries: mergedFeedEntries.toList(growable: false),
       isFollowingMode: isFollowingMode,
       isCityMode: isCityMode,
       followingIds: followingIDs.toSet(),
       city: currentUserLocationCity,
     );
+    final shouldFallbackToForYou =
+        filtered.isEmpty && !isLoading.value && (isFollowingMode || isCityMode);
+    if (shouldFallbackToForYou) {
+      filtered = mergedFeedEntries.toList(growable: false);
+      _queueFeedModeFallbackToForYou();
+    } else {
+      _cancelQueuedFeedModeFallback();
+    }
     final patch = _feedRenderCoordinator.buildPatch(
       previous: filteredFeedEntries.toList(growable: false),
       next: filtered,
@@ -84,5 +94,35 @@ extension AgendaControllerRenderPart on AgendaController {
       reason: 'render_feed_rebuild',
     );
     _feedRenderCoordinator.applyPatch(renderFeedEntries, patch);
+  }
+
+  void _queueFeedModeFallbackToForYou() {
+    if (_feedModeFallbackQueued || feedViewMode.value == FeedViewMode.forYou) {
+      return;
+    }
+    _feedModeFallbackQueued = true;
+    final token = ++_feedModeFallbackEpoch;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed || _feedModeFallbackEpoch != token) return;
+      _feedModeFallbackQueued = false;
+      if (feedViewMode.value == FeedViewMode.forYou) return;
+      if (isLoading.value || mergedFeedEntries.isEmpty) return;
+      final fallbackStillNeeded = _feedRenderCoordinator
+          .filterEntries(
+            mergedEntries: mergedFeedEntries.toList(growable: false),
+            isFollowingMode: isFollowingMode,
+            isCityMode: isCityMode,
+            followingIds: followingIDs.toSet(),
+            city: currentUserLocationCity,
+          )
+          .isEmpty;
+      if (!fallbackStillNeeded) return;
+      setFeedViewMode(FeedViewMode.forYou);
+    });
+  }
+
+  void _cancelQueuedFeedModeFallback() {
+    _feedModeFallbackEpoch++;
+    _feedModeFallbackQueued = false;
   }
 }
