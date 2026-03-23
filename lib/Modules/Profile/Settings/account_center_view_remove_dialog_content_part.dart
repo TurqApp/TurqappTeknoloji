@@ -15,7 +15,17 @@ class _RemoveAccountDialog extends StatelessWidget {
         'account_center.remove_account_body'
             .trParams(<String, String>{'username': account.username}),
       ),
-      actions: _buildRemoveAccountDialogActions(context),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text('common.cancel'.tr),
+        ),
+        CupertinoDialogAction(
+          isDestructiveAction: true,
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text('common.delete'.tr),
+        ),
+      ],
     );
   }
 }
