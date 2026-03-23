@@ -45,26 +45,7 @@ extension AccountCenterViewAccountsCardPart on AccountCenterView {
                       endIndent: 16,
                     ),
                 ],
-                InkWell(
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(18),
-                  ),
-                  onTap: () => Get.to(() => SignIn()),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 18,
-                    ),
-                    child: Text(
-                      'account_center.add_account'.tr,
-                      style: const TextStyle(
-                        color: Color(0xFF3797EF),
-                        fontSize: 15,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                  ),
-                ),
+                _buildAddAccountAction(),
               ],
             ),
     );
