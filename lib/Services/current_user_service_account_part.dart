@@ -402,7 +402,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
         try {
           final uid = user?.uid;
           if (uid != null && uid.isNotEmpty) {
-            final data = await _readRootUserData(uid, preferCache: true);
+            final data = await _readCachedRootUserDataSilently(uid);
             isVerified = data['emailVerified'] == true;
           }
         } catch (e, st) {
@@ -420,7 +420,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       try {
         final uid = authUserId;
         if (uid.isNotEmpty) {
-          final data = await _readRootUserData(uid, preferCache: true);
+          final data = await _readCachedRootUserDataSilently(uid);
           emailVerifiedRx.value = data['emailVerified'] == true;
           return;
         }

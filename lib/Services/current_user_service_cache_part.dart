@@ -210,6 +210,40 @@ extension CurrentUserServiceCachePart on CurrentUserService {
     return Map<String, dynamic>.from(data);
   }
 
+  Future<Map<String, dynamic>> _readCachedRootUserDataSilently(
+    String uid, {
+    bool allowStaleMemory = true,
+  }) async {
+    if (uid.isEmpty) return const <String, dynamic>{};
+
+    final memory = _peekRootUserData(
+      uid,
+      allowStale: allowStaleMemory,
+    );
+    if (memory != null && memory.isNotEmpty) {
+      return memory;
+    }
+
+    try {
+      final cached = await UserRepository.ensure().getUserRaw(
+            uid,
+            preferCache: true,
+            cacheOnly: true,
+          ) ??
+          const <String, dynamic>{};
+      if (cached.isNotEmpty) {
+        _storeRootUserData(uid, cached);
+        return Map<String, dynamic>.from(cached);
+      }
+    } catch (_) {}
+
+    return _peekRootUserData(
+          uid,
+          allowStale: true,
+        ) ??
+        const <String, dynamic>{};
+  }
+
   void _logSilently(String key, Object error, [StackTrace? stackTrace]) {
     final now = DateTime.now();
     final last = _silentLogAt[key];
@@ -262,7 +296,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
       if (hasLocalSelection) {
         return;
       }
-      final data = await _readRootUserData(uid, preferCache: true);
+      final data = await _readCachedRootUserDataSilently(uid);
       if (data.isEmpty) return;
       final raw = data['viewSelection'];
       final remote = raw is int
