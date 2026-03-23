@@ -42,8 +42,15 @@ Future<String?> _loadPersonalContactDetails({
   required CurrentUserService currentUserService,
   required UserRepository userRepository,
 }) async {
-  final directContactDetails =
-      _loadDirectPersonalContactDetails(currentUserService);
+  final current = currentUserService.currentUser;
+  final parts = <String>[];
+
+  final directEmail = (current?.email ?? currentUserService.email).trim();
+  final directPhone =
+      (current?.phoneNumber ?? currentUserService.phoneNumber).trim();
+  if (directEmail.isNotEmpty) parts.add(directEmail);
+  if (directPhone.isNotEmpty) parts.add(directPhone);
+  final directContactDetails = parts.isEmpty ? null : parts.join(', ');
   if (directContactDetails != null) return directContactDetails;
 
   return _loadFallbackPersonalContactDetails(
