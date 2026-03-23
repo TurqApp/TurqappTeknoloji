@@ -7,7 +7,16 @@ extension AccountCenterViewContentPart on AccountCenterView {
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: _buildContentSections(context, items),
+      children: [
+        _buildAccountsSection(context, items),
+        const SizedBox(height: 18),
+        _SessionSecuritySection(
+          accountCenter: accountCenter,
+        ),
+        const SizedBox(height: 18),
+        _buildPersonalDetailsContent(),
+        if (!_isLoggedIn) const SizedBox(height: 0),
+      ],
     );
   }
 }
