@@ -24,7 +24,10 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildPersonalDetailsHeader(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+                  child: _buildPersonalDetailsSectionLabel(),
+                ),
                 _PersonalDetailsSection(
                   currentUserService: _currentUserService,
                   userRepository: _userRepository,
