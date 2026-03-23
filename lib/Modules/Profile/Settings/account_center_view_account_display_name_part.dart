@@ -2,8 +2,7 @@ part of 'account_center_view.dart';
 
 extension AccountCenterViewAccountDisplayNamePart on _AccountRow {
   List<Widget> _buildAccountDisplayName() {
-    if (account.displayName.trim().isEmpty ||
-        account.displayName.trim() == account.username.trim()) {
+    if (!account.hasDistinctAccountCenterDisplayName) {
       return const <Widget>[];
     }
 

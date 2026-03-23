@@ -4,9 +4,7 @@ extension AccountCenterViewAccountUsernamePart on _AccountRow {
   Widget _buildAccountUsername() {
     return Flexible(
       child: Text(
-        account.username.trim().isNotEmpty
-            ? account.username
-            : account.displayName,
+        account.accountCenterPrimaryLabel,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(

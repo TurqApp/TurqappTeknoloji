@@ -6,9 +6,7 @@ extension AccountCenterViewAvatarFallbackPart on AccountCenterView {
       radius: 24,
       backgroundColor: Colors.black.withAlpha(18),
       child: Text(
-        account.displayName.trim().isNotEmpty
-            ? account.displayName.trim()[0].toUpperCase()
-            : '@',
+        account.accountCenterAvatarFallbackInitial,
         style: const TextStyle(
           color: Colors.black,
           fontFamily: 'MontserratBold',
