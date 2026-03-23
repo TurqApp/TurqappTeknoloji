@@ -12,6 +12,10 @@ class _PersonalDetailsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = _buildPersonalRows();
-    return _buildPersonalCardState(rows);
+    if (rows.isEmpty) {
+      return _buildPersonalEmptyState();
+    }
+
+    return _buildPersonalCardBody(rows);
   }
 }
