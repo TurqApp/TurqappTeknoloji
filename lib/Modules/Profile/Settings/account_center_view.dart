@@ -18,6 +18,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'account_center_view_actions_part.dart';
 part 'account_center_view_account_row_part.dart';
+part 'account_center_view_account_identity_part.dart';
 part 'account_center_view_accounts_part.dart';
 part 'account_center_view_accounts_card_part.dart';
 part 'account_center_view_accounts_add_part.dart';
