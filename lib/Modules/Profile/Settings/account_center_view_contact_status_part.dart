@@ -30,7 +30,7 @@ class _ContactStatusRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
           children: [
-            _buildContactStatusIcon(),
+            Icon(icon, color: Colors.black54, size: 20),
             const SizedBox(width: 12),
             Expanded(child: _buildContactStatusContent()),
             if (!isVerified)
