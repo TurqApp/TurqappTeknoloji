@@ -27,7 +27,6 @@ part 'account_center_view_avatar_part.dart';
 part 'account_center_view_avatar_fallback_part.dart';
 part 'account_center_view_body_part.dart';
 part 'account_center_view_body_content_part.dart';
-part 'account_center_view_body_loading_part.dart';
 part 'account_center_view_card_decoration_part.dart';
 part 'account_center_view_card_shell_part.dart';
 part 'account_center_view_chevron_part.dart';

@@ -6,7 +6,7 @@ extension AccountCenterViewBodyPart on AccountCenterView {
       future: _initFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return _buildBodyLoadingState();
+          return const Center(child: CupertinoActivityIndicator());
         }
 
         return _buildBodyContent(context);
