@@ -20,7 +20,12 @@ class _PersonalDetailsCard extends StatelessWidget {
         ),
     ];
     if (rows.isEmpty) {
-      return _buildPersonalEmptyState();
+      return _buildAccountCenterCard(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        child: _buildAccountCenterEmptyText(
+          'account_center.no_personal_detail'.tr,
+        ),
+      );
     }
 
     return _buildPersonalCardBody(rows);
