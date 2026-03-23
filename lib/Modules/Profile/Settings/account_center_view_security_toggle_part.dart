@@ -7,15 +7,7 @@ extension AccountCenterViewSecurityTogglePart on _SessionSecuritySection {
         IntegrationTestKeys.actionAccountCenterSingleDeviceToggle,
       ),
       value: enabled,
-      onChanged: (value) async {
-        await accountCenter.setSingleDeviceSessionEnabled(value);
-        AppSnackbar(
-          'settings.account_center'.tr,
-          value
-              ? 'account_center.single_device_enabled'.tr
-              : 'account_center.single_device_disabled'.tr,
-        );
-      },
+      onChanged: _handleSecurityToggleChanged,
       title: Text(
         'account_center.single_device_title'.tr,
         style: TextStyle(
