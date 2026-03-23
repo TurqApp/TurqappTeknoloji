@@ -36,6 +36,7 @@ part 'account_center_view_contact_details_data_part.dart';
 part 'account_center_view_contact_details_state_part.dart';
 part 'account_center_view_contact_status_part.dart';
 part 'account_center_view_contact_status_badge_part.dart';
+part 'account_center_view_contact_status_content_part.dart';
 part 'account_center_view_content_part.dart';
 part 'account_center_view_personal_data_part.dart';
 part 'account_center_view_personal_details_part.dart';
