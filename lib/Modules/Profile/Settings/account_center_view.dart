@@ -108,8 +108,6 @@ part 'account_center_view_remove_dialog_content_part.dart';
 part 'account_center_view_remove_execute_part.dart';
 part 'account_center_view_remove_part.dart';
 part 'account_center_view_security_part.dart';
-part 'account_center_view_security_content_part.dart';
-part 'account_center_view_security_header_part.dart';
 part 'account_center_view_security_section_label_part.dart';
 part 'account_center_view_security_toggle_labels_part.dart';
 part 'account_center_view_security_toggle_title_part.dart';

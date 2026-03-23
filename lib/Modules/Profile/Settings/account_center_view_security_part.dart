@@ -17,8 +17,13 @@ class _SessionSecuritySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSecurityHeader(),
-        _buildSecurityContent(uid),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+          child: _buildSecuritySectionLabel(),
+        ),
+        _buildAccountCenterCard(
+          child: _buildSecurityStream(uid),
+        ),
       ],
     );
   }
