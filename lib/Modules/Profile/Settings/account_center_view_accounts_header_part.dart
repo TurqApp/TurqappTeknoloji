@@ -9,14 +9,7 @@ extension AccountCenterViewAccountsHeaderPart on AccountCenterView {
         children: [
           _buildAccountsTitle(),
           const SizedBox(height: 18),
-          Text(
-            'account_center.accounts'.tr,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 14,
-              fontFamily: 'MontserratBold',
-            ),
-          ),
+          _buildAccountsSectionLabel(),
         ],
       ),
     );
