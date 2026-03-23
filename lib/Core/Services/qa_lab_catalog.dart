@@ -101,6 +101,13 @@ class QALabCatalog {
     'chat',
     'notifications',
     'auth',
+    'story',
+    'pasaj',
+    'explore',
+    'profile',
+    'settings',
+    'permissions',
+    'upload',
   ];
 
   static const Map<String, List<String>> focusSurfaceRequirements =
@@ -137,6 +144,34 @@ class QALabCatalog {
       'auth',
       'login',
       'splash',
+    ],
+    'story': <String>[
+      'story',
+      'video',
+      'message',
+    ],
+    'pasaj': <String>[
+      'pasaj',
+      'education',
+    ],
+    'explore': <String>[
+      'explore',
+    ],
+    'profile': <String>[
+      'profile',
+      'video',
+      'resume',
+    ],
+    'settings': <String>[
+      'settings',
+    ],
+    'permissions': <String>[
+      'permissions',
+      'settings',
+    ],
+    'upload': <String>[
+      'upload',
+      'composer',
     ],
   };
 

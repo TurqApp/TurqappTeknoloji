@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show FrameTiming;
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/runtime_health_exporter.dart';
@@ -29,6 +31,9 @@ enum QALabIssueSource {
   handled,
   cache,
   video,
+  performance,
+  lifecycle,
+  permission,
   route,
   manual,
 }
@@ -211,10 +216,13 @@ class QALabRecorder extends GetxService {
   final RxString lastRoute = ''.obs;
   final RxString lastSurface = ''.obs;
   final RxString lastExportPath = ''.obs;
+  final RxString lastLifecycleState = ''.obs;
+  final RxMap<String, String> lastPermissionStatuses = <String, String>{}.obs;
   final RxList<QALabIssue> issues = <QALabIssue>[].obs;
   final RxList<QALabRouteEvent> routes = <QALabRouteEvent>[].obs;
   final RxList<QALabCheckpoint> checkpoints = <QALabCheckpoint>[].obs;
   Timer? _periodicTimer;
+  final Map<String, DateTime> _rateLimitedIssueTimes = <String, DateTime>{};
 
   @override
   void onInit() {
@@ -234,6 +242,9 @@ class QALabRecorder extends GetxService {
     routes.clear();
     checkpoints.clear();
     lastExportPath.value = '';
+    lastLifecycleState.value = '';
+    lastPermissionStatuses.clear();
+    _rateLimitedIssueTimes.clear();
     _periodicTimer?.cancel();
     if (QALabMode.periodicSnapshots) {
       _periodicTimer = Timer.periodic(
@@ -290,6 +301,9 @@ class QALabRecorder extends GetxService {
           'current': current,
           'previous': previous,
         },
+      );
+      unawaited(
+        refreshPermissionSnapshot(trigger: 'route_change'),
       );
     }
   }
@@ -392,6 +406,139 @@ class QALabRecorder extends GetxService {
       message: message,
       metadata: metadata,
     );
+  }
+
+  void recordFrameTimings(List<FrameTiming> timings) {
+    if (!QALabMode.enabled || timings.isEmpty) return;
+    final totals = timings
+        .map((timing) => timing.totalSpan.inMilliseconds)
+        .toList(growable: false);
+    if (totals.isEmpty) return;
+    final slowFrames = totals
+        .where((totalMs) => totalMs >= QALabMode.frameJankWarningMs)
+        .length;
+    if (slowFrames == 0) return;
+
+    final maxTotalMs =
+        totals.reduce((left, right) => left > right ? left : right);
+    final maxBuildMs = timings
+        .map((timing) => timing.buildDuration.inMilliseconds)
+        .reduce((left, right) => left > right ? left : right);
+    final maxRasterMs = timings
+        .map((timing) => timing.rasterDuration.inMilliseconds)
+        .reduce((left, right) => left > right ? left : right);
+    final averageTotalMs = totals.isEmpty
+        ? 0
+        : totals.reduce((left, right) => left + right) ~/ totals.length;
+
+    var severity = QALabIssueSeverity.warning;
+    var code = 'frame_jank_warning';
+    if (maxTotalMs >= QALabMode.frameJankBlockingMs || slowFrames >= 6) {
+      severity = QALabIssueSeverity.blocking;
+      code = 'frame_jank_blocking';
+    } else if (maxTotalMs >= QALabMode.frameJankErrorMs || slowFrames >= 4) {
+      severity = QALabIssueSeverity.error;
+      code = 'frame_jank_error';
+    }
+
+    if (_isRateLimited(
+      '${lastSurface.value}|$code',
+      const Duration(seconds: 6),
+    )) {
+      return;
+    }
+
+    recordIssue(
+      source: QALabIssueSource.performance,
+      code: code,
+      severity: severity,
+      message:
+          'Frame pipeline slowed down on ${lastSurface.value.isEmpty ? 'app' : lastSurface.value}.',
+      metadata: <String, dynamic>{
+        'frameCount': timings.length,
+        'slowFrameCount': slowFrames,
+        'maxTotalMs': maxTotalMs,
+        'maxBuildMs': maxBuildMs,
+        'maxRasterMs': maxRasterMs,
+        'averageTotalMs': averageTotalMs,
+      },
+    );
+  }
+
+  void recordLifecycleState(String state) {
+    if (!QALabMode.enabled) return;
+    lastLifecycleState.value = state;
+    if (sessionId.value.isEmpty) {
+      startSession(trigger: 'lifecycle');
+    }
+    recordIssue(
+      source: QALabIssueSource.lifecycle,
+      code: 'lifecycle_$state',
+      severity: QALabIssueSeverity.info,
+      message: 'Application lifecycle changed to $state.',
+      metadata: <String, dynamic>{
+        'state': state,
+      },
+    );
+    if (_isPrioritySurface(lastSurface.value)) {
+      captureCheckpoint(
+        label: 'lifecycle_$state',
+        surface: lastSurface.value,
+        extra: <String, dynamic>{
+          'state': state,
+        },
+      );
+    }
+  }
+
+  Future<void> refreshPermissionSnapshot({
+    String trigger = 'manual',
+  }) async {
+    if (!QALabMode.enabled) return;
+    final statuses = <String, PermissionStatus>{
+      'notifications': await Permission.notification.status,
+      'camera': await Permission.camera.status,
+      'microphone': await Permission.microphone.status,
+      'photos': await Permission.photos.status,
+      'location': await Permission.locationWhenInUse.status,
+    };
+    lastPermissionStatuses.assignAll(
+      statuses.map((key, value) => MapEntry(key, value.name)),
+    );
+
+    final currentSurface = lastSurface.value;
+    final route = lastRoute.value;
+    final notificationStatus = statuses['notifications'];
+    if (_isPermissionBlocked(notificationStatus)) {
+      _recordPermissionIssue(
+        code: 'permission_notifications_blocked',
+        message: 'Notification permission is not granted.',
+        route: route,
+        surface: currentSurface.isEmpty ? 'permissions' : currentSurface,
+        metadata: <String, dynamic>{
+          'trigger': trigger,
+          'status': notificationStatus?.name ?? 'unknown',
+        },
+      );
+    }
+
+    if (_surfaceNeedsMediaPermissions(currentSurface)) {
+      _recordCriticalPermissionIfBlocked(
+        permissionKey: 'camera',
+        status: statuses['camera'],
+        trigger: trigger,
+      );
+      _recordCriticalPermissionIfBlocked(
+        permissionKey: 'microphone',
+        status: statuses['microphone'],
+        trigger: trigger,
+      );
+      _recordCriticalPermissionIfBlocked(
+        permissionKey: 'photos',
+        status: statuses['photos'],
+        trigger: trigger,
+      );
+    }
   }
 
   void captureCheckpoint({
@@ -530,6 +677,7 @@ class QALabRecorder extends GetxService {
         'startedAt': startedAt.value?.toUtc().toIso8601String(),
         'lastRoute': lastRoute.value,
         'lastSurface': lastSurface.value,
+        'lastLifecycleState': lastLifecycleState.value,
         'healthScore': healthScore,
         'issueCounts': <String, dynamic>{
           'blocking': blockingIssueCount,
@@ -548,6 +696,7 @@ class QALabRecorder extends GetxService {
             .toList(growable: false),
       },
       'device': _deviceInfoSnapshot(),
+      'permissions': Map<String, String>.from(lastPermissionStatuses),
       'currentSnapshot': currentSnapshot,
       'routes': routes.map((event) => event.toJson()).toList(growable: false),
       'issues': issues.map((issue) => issue.toJson()).toList(growable: false),
@@ -931,6 +1080,54 @@ class QALabRecorder extends GetxService {
       }
     }
 
+    final suppressedNoiseCount = surfaceIssues
+        .where(
+          (issue) =>
+              issue.code == 'flutter_suppressed' ||
+              issue.code == 'platform_suppressed',
+        )
+        .length;
+    if (suppressedNoiseCount >= QALabMode.noiseBurstWarningCount) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.warning,
+          code: '${surface}_noise_burst',
+          message:
+              'Suppressed runtime noise accumulated on $surface and may hide real regressions.',
+          route: route,
+          surface: surface,
+          timestamp: referenceTime,
+          context: <String, dynamic>{
+            'suppressedNoiseCount': suppressedNoiseCount,
+          },
+        ),
+      );
+    }
+
+    final lifecycleInterruptions = surfaceIssues
+        .where(
+          (issue) =>
+              issue.source == QALabIssueSource.lifecycle &&
+              issue.code != 'lifecycle_resume',
+        )
+        .length;
+    if (lifecycleInterruptions >= 2) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.warning,
+          code: '${surface}_lifecycle_interruptions',
+          message:
+              'Application lifecycle interrupted $surface multiple times during this session.',
+          route: route,
+          surface: surface,
+          timestamp: referenceTime,
+          context: <String, dynamic>{
+            'interruptions': lifecycleInterruptions,
+          },
+        ),
+      );
+    }
+
     findings.addAll(
       _buildVideoSurfaceFindings(
         surface: surface,
@@ -966,6 +1163,30 @@ class QALabRecorder extends GetxService {
     final cacheFailures = surfaceIssues
         .where((issue) => issue.code == 'cache_first_failed')
         .length;
+    final jankEvents = surfaceIssues
+        .where((issue) => issue.code.startsWith('frame_jank_'))
+        .length;
+    final worstFrameJankMs = surfaceIssues
+        .where((issue) => issue.code.startsWith('frame_jank_'))
+        .map((issue) => _asInt(issue.metadata['maxTotalMs']))
+        .fold<int>(0, (left, right) => left > right ? left : right);
+    final suppressedNoiseCount = surfaceIssues
+        .where(
+          (issue) =>
+              issue.code == 'flutter_suppressed' ||
+              issue.code == 'platform_suppressed',
+        )
+        .length;
+    final permissionBlocks = surfaceIssues
+        .where((issue) => issue.source == QALabIssueSource.permission)
+        .length;
+    final lifecycleInterruptions = surfaceIssues
+        .where(
+          (issue) =>
+              issue.source == QALabIssueSource.lifecycle &&
+              issue.code != 'lifecycle_resume',
+        )
+        .length;
     final blankSnapshots = surfaceCheckpoints.where((checkpoint) {
       final probe = checkpoint.probe[surface] as Map<String, dynamic>? ??
           const <String, dynamic>{};
@@ -983,6 +1204,11 @@ class QALabRecorder extends GetxService {
       'videoFirstFrameCount': videoFirstFrames,
       'videoErrorCount': videoErrors,
       'cacheFailureCount': cacheFailures,
+      'jankEventCount': jankEvents,
+      'worstFrameJankMs': worstFrameJankMs,
+      'suppressedNoiseCount': suppressedNoiseCount,
+      'permissionBlockCount': permissionBlocks,
+      'lifecycleInterruptionCount': lifecycleInterruptions,
       'blankSnapshotCount': blankSnapshots,
       'runtimeFindingCount': runtimeFindings.length,
     };
@@ -1022,13 +1248,14 @@ class QALabRecorder extends GetxService {
         final ttffMs = _asInt(ended?.metadata['ttffMs']);
         final elapsedMs =
             referenceTime.difference(issue.timestamp).inMilliseconds;
-        if ((ended == null || ttffMs < 0) && elapsedMs >= 8000) {
+        if ((ended == null || ttffMs < 0) &&
+            elapsedMs >= QALabMode.videoFirstFrameTimeoutMs) {
           findings.add(
             QALabPinpointFinding(
               severity: QALabIssueSeverity.blocking,
               code: '${surface}_first_frame_timeout',
               message:
-                  'Video session started on $surface but no first frame was confirmed within 8 seconds.',
+                  'Video session started on $surface but no first frame was confirmed before timeout.',
               route: route,
               surface: surface,
               timestamp: issue.timestamp,
@@ -1047,13 +1274,13 @@ class QALabRecorder extends GetxService {
             ended == null || ended.timestamp.isBefore(issue.timestamp);
         final elapsedMs =
             referenceTime.difference(issue.timestamp).inMilliseconds;
-        if (stillBuffering && elapsedMs >= 6000) {
+        if (stillBuffering && elapsedMs >= QALabMode.videoBufferStallMs) {
           findings.add(
             QALabPinpointFinding(
               severity: QALabIssueSeverity.error,
               code: '${surface}_buffer_stall',
               message:
-                  'Video buffering started on $surface and never recovered within 6 seconds.',
+                  'Video buffering started on $surface and never recovered before the stall threshold.',
               route: route,
               surface: surface,
               timestamp: issue.timestamp,
@@ -1070,13 +1297,13 @@ class QALabRecorder extends GetxService {
         final ttffMs = _asInt(issue.metadata['ttffMs']);
         final rebufferCount = _asInt(issue.metadata['rebufferCount']);
         final totalRebufferMs = _asInt(issue.metadata['totalRebufferMs']);
-        if (ttffMs >= 12000) {
+        if (ttffMs >= QALabMode.videoFirstFrameBlockingMs) {
           findings.add(
             QALabPinpointFinding(
               severity: QALabIssueSeverity.blocking,
               code: '${surface}_first_frame_too_slow',
               message:
-                  'Video first frame latency on $surface exceeded 12 seconds.',
+                  'Video first frame latency on $surface exceeded the blocking threshold.',
               route: route,
               surface: surface,
               timestamp: issue.timestamp,
@@ -1086,7 +1313,7 @@ class QALabRecorder extends GetxService {
               },
             ),
           );
-        } else if (ttffMs >= 6000) {
+        } else if (ttffMs >= QALabMode.videoFirstFrameWarningMs) {
           findings.add(
             QALabPinpointFinding(
               severity: QALabIssueSeverity.warning,
@@ -1173,9 +1400,90 @@ class QALabRecorder extends GetxService {
     ];
   }
 
+  void _recordCriticalPermissionIfBlocked({
+    required String permissionKey,
+    required PermissionStatus? status,
+    required String trigger,
+  }) {
+    if (!_isPermissionBlocked(status)) return;
+    final surface =
+        lastSurface.value.isEmpty ? 'permissions' : lastSurface.value;
+    _recordPermissionIssue(
+      code: 'permission_${permissionKey}_blocked',
+      message: '$permissionKey permission is not granted.',
+      route: lastRoute.value,
+      surface: surface,
+      metadata: <String, dynamic>{
+        'trigger': trigger,
+        'status': status?.name ?? 'unknown',
+      },
+    );
+  }
+
+  void _recordPermissionIssue({
+    required String code,
+    required String message,
+    required String route,
+    required String surface,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    final rateKey = '$surface|$code|${metadata['status'] ?? ''}';
+    if (_isRateLimited(rateKey, const Duration(seconds: 10))) {
+      return;
+    }
+    issues.add(
+      QALabIssue(
+        id: '${DateTime.now().microsecondsSinceEpoch}',
+        source: QALabIssueSource.permission,
+        severity: QALabIssueSeverity.warning,
+        code: code,
+        message: message,
+        timestamp: DateTime.now(),
+        route: route,
+        surface: surface,
+        metadata: <String, dynamic>{
+          ...metadata,
+          'probe': IntegrationTestStateProbe.snapshot(),
+        },
+      ),
+    );
+    _trimList(issues, QALabMode.maxIssues);
+  }
+
+  bool _surfaceNeedsMediaPermissions(String surface) {
+    return surface == 'chat' ||
+        surface == 'story' ||
+        surface == 'story_comments' ||
+        surface == 'short' ||
+        surface == 'feed' ||
+        surface == 'upload';
+  }
+
+  bool _isPermissionBlocked(PermissionStatus? status) {
+    return status == PermissionStatus.denied ||
+        status == PermissionStatus.permanentlyDenied ||
+        status == PermissionStatus.restricted;
+  }
+
+  bool _isRateLimited(String key, Duration interval) {
+    final now = DateTime.now();
+    final previous = _rateLimitedIssueTimes[key];
+    if (previous != null && now.difference(previous) < interval) {
+      return true;
+    }
+    _rateLimitedIssueTimes[key] = now;
+    return false;
+  }
+
   bool _matchesSurface(String actualSurface, String targetSurface) {
     if (actualSurface == targetSurface) return true;
     if (targetSurface == 'chat' && actualSurface == 'chat_conversation') {
+      return true;
+    }
+    if (targetSurface == 'story' && actualSurface == 'story_comments') {
+      return true;
+    }
+    if (targetSurface == 'profile' && actualSurface == 'social_profile') {
       return true;
     }
     return false;
@@ -1264,6 +1572,7 @@ class QALabRecorder extends GetxService {
     if (registered('profile')) {
       final route = (snapshot['currentRoute'] ?? '').toString();
       if (route.contains('FollowingFollowers')) return 'following_followers';
+      if (route.contains('Permissions')) return 'permissions';
       if (route.contains('Settings')) return 'settings';
       return 'profile';
     }

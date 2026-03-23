@@ -82,6 +82,12 @@ class _QALabViewState extends State<QALabView> {
               Text(
                 '${'settings.diagnostics.qa_last_export'.tr}: ${_recorder.lastExportPath.value.isEmpty ? '-' : _recorder.lastExportPath.value}',
               ),
+              Text(
+                'lifecycle=${_recorder.lastLifecycleState.value.isEmpty ? "-" : _recorder.lastLifecycleState.value}',
+              ),
+              Text(
+                'permissions=${_recorder.lastPermissionStatuses.isEmpty ? "-" : _recorder.lastPermissionStatuses.entries.map((entry) => "${entry.key}:${entry.value}").join("  ")}',
+              ),
               const SizedBox(height: 8),
               Text(
                 'blocking=${_recorder.blockingIssueCount} error=${_recorder.errorIssueCount} warning=${_recorder.warningIssueCount}',
@@ -331,6 +337,10 @@ class _QALabViewState extends State<QALabView> {
                     'videoStarts=${item.runtime['videoSessionStartCount'] ?? 0} '
                     'firstFrames=${item.runtime['videoFirstFrameCount'] ?? 0} '
                     'cacheFails=${item.runtime['cacheFailureCount'] ?? 0} '
+                    'jank=${item.runtime['jankEventCount'] ?? 0} '
+                    'worstFrame=${item.runtime['worstFrameJankMs'] ?? 0}ms '
+                    'noise=${item.runtime['suppressedNoiseCount'] ?? 0} '
+                    'permBlocks=${item.runtime['permissionBlockCount'] ?? 0} '
                     'findings=${item.findings.length}',
                   ),
                 ),

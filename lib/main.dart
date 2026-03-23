@@ -43,6 +43,7 @@ Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ensureQALabIfEnabled();
+  WidgetsBinding.instance.addTimingsCallback(recordQALabFrameTimings);
   ErrorWidget.builder = (FlutterErrorDetails details) {
     _reportStartupFallbackError(details);
     return Material(
@@ -95,9 +96,10 @@ Future<void> main() async {
   runApp(const MyApp());
 
   _appLifecycleListener = AppLifecycleListener(
-    onInactive: _handleAppBackgroundTransition,
-    onPause: _handleAppBackgroundTransition,
-    onDetach: _handleAppBackgroundTransition,
+    onResume: _handleAppResumeTransition,
+    onInactive: () => _handleAppBackgroundTransition('inactive'),
+    onPause: () => _handleAppBackgroundTransition('pause'),
+    onDetach: () => _handleAppBackgroundTransition('detach'),
   );
 
   // Ilk frame sonrasi yalnizca sistem UI ayarlari.
@@ -143,7 +145,15 @@ void _clearConsumedCacheIfNeeded() {
   } catch (_) {}
 }
 
-void _handleAppBackgroundTransition() {
+void _handleAppResumeTransition() {
+  recordQALabLifecycleState('resume');
+  unawaited(
+    refreshQALabPermissionSnapshot(trigger: 'resume'),
+  );
+}
+
+void _handleAppBackgroundTransition(String state) {
+  recordQALabLifecycleState(state);
   _clearConsumedCacheIfNeeded();
   try {
     VideoStateManager.maybeFind()?.pauseAllVideos(force: true);

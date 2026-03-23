@@ -38,4 +38,44 @@ class QALabMode {
     'QA_LAB_MAX_CHECKPOINTS',
     defaultValue: 80,
   );
+
+  static const int videoFirstFrameTimeoutMs = int.fromEnvironment(
+    'QA_LAB_VIDEO_FIRST_FRAME_TIMEOUT_MS',
+    defaultValue: 8000,
+  );
+
+  static const int videoFirstFrameWarningMs = int.fromEnvironment(
+    'QA_LAB_VIDEO_FIRST_FRAME_WARNING_MS',
+    defaultValue: 6000,
+  );
+
+  static const int videoFirstFrameBlockingMs = int.fromEnvironment(
+    'QA_LAB_VIDEO_FIRST_FRAME_BLOCKING_MS',
+    defaultValue: 12000,
+  );
+
+  static const int videoBufferStallMs = int.fromEnvironment(
+    'QA_LAB_VIDEO_BUFFER_STALL_MS',
+    defaultValue: 6000,
+  );
+
+  static const int frameJankWarningMs = int.fromEnvironment(
+    'QA_LAB_FRAME_JANK_WARNING_MS',
+    defaultValue: 34,
+  );
+
+  static const int frameJankErrorMs = int.fromEnvironment(
+    'QA_LAB_FRAME_JANK_ERROR_MS',
+    defaultValue: 66,
+  );
+
+  static const int frameJankBlockingMs = int.fromEnvironment(
+    'QA_LAB_FRAME_JANK_BLOCKING_MS',
+    defaultValue: 120,
+  );
+
+  static const int noiseBurstWarningCount = int.fromEnvironment(
+    'QA_LAB_NOISE_BURST_WARNING_COUNT',
+    defaultValue: 3,
+  );
 }

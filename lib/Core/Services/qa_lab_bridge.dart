@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui' show FrameTiming;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -6,7 +9,8 @@ import 'qa_lab_recorder.dart';
 
 void ensureQALabIfEnabled() {
   if (!QALabMode.enabled) return;
-  QALabRecorder.ensure();
+  final recorder = QALabRecorder.ensure();
+  unawaited(recorder.refreshPermissionSnapshot(trigger: 'bootstrap'));
 }
 
 void recordQALabRouteChange({
@@ -81,6 +85,23 @@ void recordQALabVideoEvent({
     message: message,
     metadata: metadata,
   );
+}
+
+void recordQALabFrameTimings(List<FrameTiming> timings) {
+  if (!QALabMode.enabled) return;
+  QALabRecorder.ensure().recordFrameTimings(timings);
+}
+
+void recordQALabLifecycleState(String state) {
+  if (!QALabMode.enabled) return;
+  QALabRecorder.ensure().recordLifecycleState(state);
+}
+
+Future<void> refreshQALabPermissionSnapshot({
+  String trigger = 'manual',
+}) async {
+  if (!QALabMode.enabled) return;
+  await QALabRecorder.ensure().refreshPermissionSnapshot(trigger: trigger);
 }
 
 void captureQALabCheckpoint({
