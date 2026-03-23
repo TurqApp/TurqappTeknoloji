@@ -5,7 +5,7 @@ extension AccountCenterViewContactDetailsBodyPart on _ContactDetailsView {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: _buildContactDetailsContent(currentUserService),
+        child: Obx(() => _buildResolvedContactDetails(currentUserService)),
       ),
     );
   }
