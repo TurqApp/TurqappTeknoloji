@@ -370,6 +370,20 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   debugPrint(
     '[integration-smoke] feed: primed count=${agendaController.agendaList.length}',
   );
+
+  if (!_feedSatisfiesFixtureContract(agendaController)) {
+    final contract = IntegrationTestFixtureContract.current.surface('feed');
+    final requiredDocIds = contract?.requiredDocIds ?? const <String>[];
+    final actualDocIds = agendaController.agendaList
+        .take(24)
+        .map((post) => post.docID)
+        .toList(growable: false);
+    throw TestFailure(
+      'Feed prime did not satisfy fixture contract '
+      '(count=${agendaController.agendaList.length}, '
+      'requiredDocIds=$requiredDocIds, actualDocIds=$actualDocIds).',
+    );
+  }
 }
 
 bool _feedSatisfiesFixtureContract(AgendaController controller) {
