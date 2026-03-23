@@ -46,6 +46,7 @@ part 'account_center_view_contact_details_data_part.dart';
 part 'account_center_view_contact_details_email_action_part.dart';
 part 'account_center_view_contact_details_email_part.dart';
 part 'account_center_view_contact_details_header_part.dart';
+part 'account_center_view_contact_details_phone_action_part.dart';
 part 'account_center_view_contact_details_phone_part.dart';
 part 'account_center_view_contact_details_rows_part.dart';
 part 'account_center_view_contact_details_state_part.dart';
