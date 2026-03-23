@@ -15,6 +15,9 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/sav
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'deneme_sinavlari_controller_data_part.dart';
+part 'deneme_sinavlari_controller_search_part.dart';
+
 class DenemeSinavlariController extends GetxController {
   static DenemeSinavlariController ensure({
     bool permanent = false,
@@ -91,108 +94,25 @@ class DenemeSinavlariController extends GetxController {
     return listEquals(currentKeys, nextKeys);
   }
 
-  String _listingSelectionKeyFor(String uid) =>
-      '${_listingSelectionPrefKeyPrefix}_$uid';
-
-  Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      listingSelection.value = 0;
-      listingSelectionReady.value = true;
-      return;
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      listingSelection.value =
-          (prefs.getInt(_listingSelectionKeyFor(uid)) ?? 0) == 1 ? 1 : 0;
-    } catch (_) {
-      listingSelection.value = 0;
-    } finally {
-      listingSelectionReady.value = true;
-    }
-  }
-
-  Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        _listingSelectionKeyFor(uid),
-        listingSelection.value == 1 ? 1 : 0,
-      );
-    } catch (_) {}
-  }
-
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
   @override
   void onInit() {
     super.onInit();
-    unawaited(_restoreListingSelection());
+    unawaited(_restoreListingSelectionImpl());
     scrolControlcu();
     getOkulBilgisi();
-    unawaited(_bootstrapInitialData());
+    unawaited(_bootstrapInitialDataImpl());
   }
 
   void toggleListingSelection() {
     listingSelection.value = listingSelection.value == 0 ? 1 : 0;
-    unawaited(_persistListingSelection());
+    unawaited(_persistListingSelectionImpl());
   }
 
-  Future<void> _bootstrapInitialData() async {
-    final savedController = SavedPracticeExamsController.ensure(
-      permanent: true,
-    );
-    await savedController.loadSavedExams(silent: true);
-    final userId = CurrentUserService.instance.effectiveUserId;
-    _homeSnapshotSub?.cancel();
-    _homeSnapshotSub = _practiceExamSnapshotRepository
-        .openHome(
-          userId: userId,
-          limit: _pageSize,
-        )
-        .listen(_applyHomeSnapshotResource);
-  }
+  void scrolControlcu() => _setupScrollControllerImpl();
 
-  void scrolControlcu() {
-    scrollController.addListener(() {
-      double currentOffset = scrollController.position.pixels;
-      scrollOffset.value = currentOffset;
-
-      if (currentOffset > _previousOffset) {
-        if (showButons.value) showButons.value = false;
-        if (ustBar.value) ustBar.value = false;
-      } else if (currentOffset < _previousOffset) {
-        if (showButons.value) showButons.value = false;
-        if (!ustBar.value) ustBar.value = true;
-      }
-
-      if (scrollController.position.pixels >=
-              scrollController.position.maxScrollExtent - 200 &&
-          !hasActiveSearch &&
-          !isLoadingMore.value &&
-          hasMore.value) {
-        loadMore();
-      }
-
-      _previousOffset = currentOffset;
-    });
-  }
-
-  Future<void> getOkulBilgisi() async {
-    try {
-      final data = await _userSummaryResolver.resolve(
-        CurrentUserService.instance.effectiveUserId,
-        preferCache: true,
-      );
-      final rozet = data?.rozet;
-      okul.value =
-          hasRozetPermission(currentRozet: rozet, minimumRozet: "Sarı");
-    } catch (e) {
-      AppSnackbar('common.error'.tr, 'practice.school_info_failed'.tr);
-    }
-  }
+  Future<void> getOkulBilgisi() => _getOkulBilgisiImpl();
 
   Future<void> getData() async {
     final hadLocalItems = list.isNotEmpty;
@@ -202,10 +122,7 @@ class DenemeSinavlariController extends GetxController {
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final resource = await _practiceExamSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.effectiveUserId,
-        limit: _pageSize,
-      );
+      final resource = await _loadHomeSnapshotImpl();
       final items = resource.data ?? const <SinavModel>[];
       if (!_sameExamList(items)) {
         list.assignAll(items);
@@ -224,10 +141,7 @@ class DenemeSinavlariController extends GetxController {
 
     isLoadingMore.value = true;
     try {
-      final page = await _practiceExamRepository.fetchPage(
-        startAfter: _lastDocument,
-        limit: _pageSize,
-      );
+      final page = await _fetchNextPageImpl();
       list.addAll(page.items);
       _lastDocument = page.lastDocument;
       hasMore.value = page.hasMore;
@@ -238,70 +152,7 @@ class DenemeSinavlariController extends GetxController {
     }
   }
 
-  void setSearchQuery(String query) {
-    searchQuery.value = query.trim();
-    _searchDebounce?.cancel();
-    if (!hasActiveSearch) {
-      isSearchLoading.value = false;
-      searchResults.clear();
-      _searchToken++;
-      return;
-    }
-
-    final token = ++_searchToken;
-    isSearchLoading.value = true;
-    _searchDebounce = Timer(const Duration(milliseconds: 150), () async {
-      await _searchFromTypesense(searchQuery.value, token);
-    });
-  }
-
-  Future<void> _searchFromTypesense(String query, int token) async {
-    final normalized = query.trim();
-    try {
-      final resource = await _practiceExamSnapshotRepository.search(
-        query: normalized,
-        userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
-        forceSync: true,
-      );
-      if (token != _searchToken || searchQuery.value.trim() != normalized)
-        return;
-
-      final results = resource.data ?? const <SinavModel>[];
-      if (token != _searchToken || searchQuery.value.trim() != normalized)
-        return;
-      if (!_sameExamEntries(searchResults, results)) {
-        searchResults.assignAll(results);
-      }
-    } catch (e) {
-      log("Deneme typesense search error: $e");
-      if (token == _searchToken) {
-        searchResults.clear();
-      }
-    } finally {
-      if (token == _searchToken) {
-        isSearchLoading.value = false;
-      }
-    }
-  }
-
-  void _applyHomeSnapshotResource(CachedResource<List<SinavModel>> resource) {
-    final items = resource.data ?? const <SinavModel>[];
-    if (items.isNotEmpty) {
-      if (!_sameExamList(items)) {
-        list.assignAll(items);
-      }
-      hasMore.value = items.length >= _pageSize;
-    }
-
-    if (!resource.isRefreshing || items.isNotEmpty) {
-      isLoading.value = false;
-      return;
-    }
-    if (list.isEmpty) {
-      isLoading.value = true;
-    }
-  }
+  void setSearchQuery(String query) => _setSearchQueryImpl(query);
 
   @override
   void onClose() {
