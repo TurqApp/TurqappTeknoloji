@@ -22,11 +22,7 @@ class _PersonalDetailRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(child: _buildPersonalRowContent()),
-              const Icon(
-                CupertinoIcons.chevron_right,
-                color: Colors.black38,
-                size: 18,
-              ),
+              _buildAccountCenterChevron(),
             ],
           ),
         ),

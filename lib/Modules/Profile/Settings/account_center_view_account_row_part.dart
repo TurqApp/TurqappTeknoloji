@@ -27,11 +27,7 @@ class _AccountRow extends StatelessWidget {
               avatar,
               const SizedBox(width: 14),
               Expanded(child: _buildAccountIdentity()),
-              const Icon(
-                CupertinoIcons.chevron_right,
-                color: Colors.black38,
-                size: 18,
-              ),
+              _buildAccountCenterChevron(),
             ],
           ),
         ),
