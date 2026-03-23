@@ -212,7 +212,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     func setVolume(_ volume: Double) {
-        player?.volume = Float(volume)
+        let normalizedVolume = Float(max(0.0, min(1.0, volume)))
+        player?.volume = normalizedVolume
+        player?.isMuted = normalizedVolume <= 0.0001
     }
 
     func setLoop(_ loop: Bool) {

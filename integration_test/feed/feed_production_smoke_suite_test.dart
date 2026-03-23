@@ -433,11 +433,45 @@ Future<void> _assertAudioToggleWorks(
   required String label,
 }) async {
   await adapter.setVolume(0);
-  final muted = await adapter.isMutedNative();
+  final muted = await _waitForMutedOrVolumeZero(adapter);
   expect(muted, isTrue, reason: '$label failed mute toggle.');
   await adapter.setVolume(1);
-  final unmuted = await adapter.isMutedNative();
-  expect(unmuted, isFalse, reason: '$label failed unmute toggle.');
+  final unmuted = await _waitForAudibleOrUnmuted(adapter);
+  expect(unmuted, isTrue, reason: '$label failed unmute toggle.');
+}
+
+Future<bool> _waitForMutedOrVolumeZero(
+  HLSVideoAdapter adapter, {
+  Duration timeout = const Duration(seconds: 3),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final muted = await adapter.isMutedNative();
+    final diagnostics = await adapter.getPlaybackDiagnostics();
+    final volume = (diagnostics['volume'] as num?)?.toDouble() ?? 1.0;
+    if (muted || volume <= 0.001) {
+      return true;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+  }
+  return false;
+}
+
+Future<bool> _waitForAudibleOrUnmuted(
+  HLSVideoAdapter adapter, {
+  Duration timeout = const Duration(seconds: 3),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final muted = await adapter.isMutedNative();
+    final diagnostics = await adapter.getPlaybackDiagnostics();
+    final volume = (diagnostics['volume'] as num?)?.toDouble() ?? 0.0;
+    if (!muted && volume >= 0.95) {
+      return true;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+  }
+  return false;
 }
 
 Future<void> _scrollFeed(

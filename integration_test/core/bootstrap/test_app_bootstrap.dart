@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
@@ -130,7 +131,13 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
 
   final accountCenter = AccountCenterService.ensure();
   await accountCenter.init();
-  await accountCenter.refreshCurrentAccountMetadata();
+  final firebaseUser = FirebaseAuth.instance.currentUser;
+  if (firebaseUser != null) {
+    await _refreshAccountCenterMetadataForSmoke(
+      accountCenter,
+      firebaseUser,
+    );
+  }
   final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
   if (signedUid.isNotEmpty) {
     await accountCenter.markSuccessfulSignIn(signedUid);
@@ -156,6 +163,63 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
     } catch (error) {
       debugPrint('[integration-smoke] auth: route to NavBar skipped: $error');
     }
+  }
+}
+
+bool _isTransientFirestoreUnavailable(Object error) {
+  return error is FirebaseException &&
+      error.plugin == 'cloud_firestore' &&
+      error.code == 'unavailable';
+}
+
+Future<void> _refreshAccountCenterMetadataForSmoke(
+  AccountCenterService accountCenter,
+  User firebaseUser,
+) async {
+  const retryDelays = <Duration>[
+    Duration.zero,
+    Duration(milliseconds: 350),
+    Duration(milliseconds: 750),
+  ];
+  Object? lastError;
+  StackTrace? lastStackTrace;
+
+  for (var attempt = 0; attempt < retryDelays.length; attempt++) {
+    final delay = retryDelays[attempt];
+    if (delay > Duration.zero) {
+      await Future<void>.delayed(delay);
+    }
+    try {
+      await accountCenter.refreshCurrentAccountMetadata();
+      return;
+    } catch (error, stackTrace) {
+      if (!_isTransientFirestoreUnavailable(error)) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      lastError = error;
+      lastStackTrace = stackTrace;
+      debugPrint(
+        '[integration-smoke] auth: account center metadata transient failure '
+        '${attempt + 1}/${retryDelays.length}: $error',
+      );
+    }
+  }
+
+  if (lastError != null) {
+    debugPrint(
+      '[integration-smoke] auth: account center metadata fallback to firebase user '
+      'after transient Firestore failures: $lastError',
+    );
+  }
+  try {
+    await accountCenter.addOrUpdateAccount(
+      StoredAccount.fromFirebaseUser(firebaseUser),
+    );
+  } catch (error, stackTrace) {
+    if (lastError != null && lastStackTrace != null) {
+      Error.throwWithStackTrace(lastError, lastStackTrace);
+    }
+    Error.throwWithStackTrace(error, stackTrace);
   }
 }
 

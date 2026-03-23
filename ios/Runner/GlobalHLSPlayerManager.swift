@@ -122,7 +122,9 @@ class GlobalHLSPlayerManager {
 
     /// Set volume
     func setVolume(_ volume: Float) {
-        player?.volume = volume
+        let normalizedVolume = max(0.0, min(1.0, volume))
+        player?.volume = normalizedVolume
+        player?.isMuted = normalizedVolume <= 0.0001
     }
 
     /// Get current time
