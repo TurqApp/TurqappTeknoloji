@@ -22,7 +22,6 @@ part 'account_center_view_active_account_part.dart';
 part 'account_center_view_account_row_part.dart';
 part 'account_center_view_account_data_part.dart';
 part 'account_center_view_account_identity_part.dart';
-part 'account_center_view_account_username_part.dart';
 part 'account_center_view_accounts_part.dart';
 part 'account_center_view_accounts_card_part.dart';
 part 'account_center_view_accounts_add_part.dart';

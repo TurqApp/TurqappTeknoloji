@@ -7,7 +7,18 @@ extension AccountCenterViewAccountIdentityPart on _AccountRow {
       children: [
         Row(
           children: [
-            _buildAccountUsername(),
+            Flexible(
+              child: Text(
+                account.accountCenterPrimaryLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 15,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+            ),
             RozetContent(
               size: 17,
               userID: account.uid,
