@@ -16,7 +16,6 @@ import 'package:turqappv2/Modules/SignIn/sign_in_controller.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'account_center_view_actions_part.dart';
 part 'account_center_view_body_content_part.dart';
 
 class AccountCenterView extends StatelessWidget {
