@@ -13,14 +13,6 @@ extension AccountCenterViewSecurityToggleLabelsPart on _SessionSecuritySection {
   }
 
   Widget _buildSecurityToggleSubtitle() {
-    return Text(
-      'account_center.single_device_desc'.tr,
-      style: TextStyle(
-        color: Colors.black54,
-        fontSize: 12,
-        fontFamily: 'MontserratMedium',
-        height: 1.35,
-      ),
-    );
+    return _buildSingleDeviceSubtitle();
   }
 }

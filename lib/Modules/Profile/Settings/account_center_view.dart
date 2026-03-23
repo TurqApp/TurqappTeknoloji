@@ -89,6 +89,7 @@ part 'account_center_view_security_content_part.dart';
 part 'account_center_view_security_header_part.dart';
 part 'account_center_view_security_section_label_part.dart';
 part 'account_center_view_security_toggle_labels_part.dart';
+part 'account_center_view_security_toggle_subtitle_part.dart';
 part 'account_center_view_security_toggle_action_part.dart';
 part 'account_center_view_security_stream_part.dart';
 part 'account_center_view_security_toggle_part.dart';
