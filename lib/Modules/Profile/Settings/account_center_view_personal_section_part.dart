@@ -53,10 +53,18 @@ Future<String?> _loadPersonalContactDetails({
   final directContactDetails = parts.isEmpty ? null : parts.join(', ');
   if (directContactDetails != null) return directContactDetails;
 
-  return _loadFallbackPersonalContactDetails(
-    currentUserService: currentUserService,
-    userRepository: userRepository,
-  );
+  final uid = currentUserService.effectiveUserId;
+  if (uid.isEmpty) return null;
+  final raw = await userRepository.getUserRaw(uid, preferCache: true);
+  if (raw == null) return null;
+
+  final fallbackParts = <String>[];
+  final email = (raw['email'] ?? '').toString().trim();
+  final phone = (raw['phoneNumber'] ?? '').toString().trim();
+  if (email.isNotEmpty) fallbackParts.add(email);
+  if (phone.isNotEmpty) fallbackParts.add(phone);
+  if (fallbackParts.isEmpty) return null;
+  return fallbackParts.join(', ');
 }
 
 class _PersonalDetailsCard extends StatelessWidget {
