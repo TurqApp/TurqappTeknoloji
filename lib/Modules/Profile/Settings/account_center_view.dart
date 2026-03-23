@@ -63,7 +63,6 @@ part 'account_center_view_contact_status_icon_part.dart';
 part 'account_center_view_contact_status_badge_part.dart';
 part 'account_center_view_contact_status_content_part.dart';
 part 'account_center_view_contact_status_data_part.dart';
-part 'account_center_view_contact_status_verified_part.dart';
 part 'account_center_view_contact_status_text_part.dart';
 part 'account_center_view_info_content_part.dart';
 part 'account_center_view_non_password_provider_part.dart';

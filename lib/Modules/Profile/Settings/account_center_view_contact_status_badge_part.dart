@@ -11,9 +11,19 @@ extension AccountCenterViewContactStatusBadgePart on _ContactStatusRow {
       );
     }
 
-    return _buildVerifiedStatusBadge(
-      statusColor: statusColor,
-      statusText: statusText,
+    return Row(
+      children: [
+        Icon(
+          CupertinoIcons.checkmark_seal_fill,
+          color: statusColor,
+          size: 18,
+        ),
+        const SizedBox(width: 6),
+        _buildContactStatusText(
+          statusColor: statusColor,
+          statusText: statusText,
+        ),
+      ],
     );
   }
 }
