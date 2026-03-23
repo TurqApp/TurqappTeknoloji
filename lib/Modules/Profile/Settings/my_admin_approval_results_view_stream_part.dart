@@ -2,10 +2,8 @@ part of 'my_admin_approval_results_view.dart';
 
 extension MyAdminApprovalResultsViewStreamPart on MyAdminApprovalResultsView {
   Widget _buildApprovalStream(String uid) {
-    final repo = AdminApprovalRepository.ensure();
-
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: repo.watchOwnApprovals(uid),
+      stream: _watchOwnApprovals(uid),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
