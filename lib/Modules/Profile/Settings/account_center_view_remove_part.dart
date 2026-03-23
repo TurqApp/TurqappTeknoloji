@@ -9,7 +9,13 @@ extension AccountCenterViewRemovePart on AccountCenterView {
       return;
     }
 
-    final shouldRemove = await _showRemoveAccountDialog(context, account);
+    final shouldRemove = await showCupertinoDialog<bool>(
+          context: context,
+          builder: (dialogContext) => _RemoveAccountDialog(
+            account: account,
+          ),
+        ) ??
+        false;
 
     if (!shouldRemove) return;
     await _removeAccount(account);
