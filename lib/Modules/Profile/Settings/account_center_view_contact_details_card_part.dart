@@ -7,11 +7,13 @@ extension AccountCenterViewContactDetailsCardPart on _ContactDetailsView {
     required bool emailVerified,
     required bool phoneVerified,
   }) {
-    return _buildContactDetailsCardBody(
-      email: email,
-      phone: phone,
-      emailVerified: emailVerified,
-      phoneVerified: phoneVerified,
+    return _buildAccountCenterCard(
+      child: _buildContactDetailsRows(
+        email: email,
+        phone: phone,
+        emailVerified: emailVerified,
+        phoneVerified: phoneVerified,
+      ),
     );
   }
 }
