@@ -159,15 +159,12 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         if (_replayAdVisible) {
           _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
             if (!mounted) return;
-            setState(() {
-              _replayAdVisible = false;
-              _replayButtonVisible = true;
-            });
+            _replayAdVisible = false;
+            _replayButtonVisible = true;
+            _markPostContentDirty();
           });
         }
-        if (mounted) {
-          setState(() {});
-        }
+        _markPostContentDirty();
       }
     } else if (_replayOverlayLatched &&
         (v.isPlaying || v.position == Duration.zero)) {

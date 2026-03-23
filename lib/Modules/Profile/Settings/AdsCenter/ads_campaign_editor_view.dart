@@ -8,6 +8,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'ads_campaign_editor_view_actions_part.dart';
 part 'ads_campaign_editor_view_content_part.dart';
+part 'ads_campaign_editor_view_lifecycle_part.dart';
 
 class AdsCampaignEditorView extends StatefulWidget {
   const AdsCampaignEditorView({super.key, this.initialCampaign});
@@ -61,73 +62,12 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   @override
   void initState() {
     super.initState();
-    _controller = AdsCenterController.ensure();
-
-    final c = widget.initialCampaign;
-    _name = TextEditingController(text: c?.name ?? '');
-    _totalBudget =
-        TextEditingController(text: (c?.totalBudget ?? 0).toString());
-    _dailyBudget =
-        TextEditingController(text: (c?.dailyBudget ?? 0).toString());
-    _bidAmount = TextEditingController(text: (c?.bidAmount ?? 0).toString());
-    _priority = TextEditingController(text: (c?.priority ?? 0).toString());
-    _minAge =
-        TextEditingController(text: c?.targeting.minAge?.toString() ?? '');
-    _maxAge =
-        TextEditingController(text: c?.targeting.maxAge?.toString() ?? '');
-    _countries =
-        TextEditingController(text: c?.targeting.countries.join(',') ?? '');
-    _cities = TextEditingController(text: c?.targeting.cities.join(',') ?? '');
-    _appVersions =
-        TextEditingController(text: c?.targeting.appVersions.join(',') ?? '');
-    _ctaText = TextEditingController();
-    _destinationUrl = TextEditingController();
-    _creativeMediaUrl = TextEditingController();
-    _creativeHlsUrl = TextEditingController();
-    _creativeThumbUrl = TextEditingController();
-    _creativeHeadline = TextEditingController();
-    _creativeBody = TextEditingController();
-    _creativeDuration = TextEditingController();
-    _creativeStoragePath = TextEditingController();
-
-    _status = c?.status ?? AdCampaignStatus.draft;
-    _budgetType = c?.budgetType ?? AdBudgetType.daily;
-    _bidType = c?.bidType ?? AdBidType.cpm;
-    _placements
-      ..clear()
-      ..addAll(c?.placementTypes ?? const [AdPlacementType.feed]);
-    _advertiserId = c?.advertiserId ?? '';
-    _isTestCampaign = c?.isTestCampaign ?? true;
-    _deliveryEnabled = c?.deliveryEnabled ?? false;
-    _startAt = c?.startAt ?? DateTime.now();
-    _endAt = c?.endAt ?? DateTime.now().add(const Duration(days: 7));
+    _initLifecycle();
   }
 
   @override
   void dispose() {
-    for (final c in [
-      _name,
-      _totalBudget,
-      _dailyBudget,
-      _bidAmount,
-      _priority,
-      _minAge,
-      _maxAge,
-      _countries,
-      _cities,
-      _appVersions,
-      _ctaText,
-      _destinationUrl,
-      _creativeMediaUrl,
-      _creativeHlsUrl,
-      _creativeThumbUrl,
-      _creativeHeadline,
-      _creativeBody,
-      _creativeDuration,
-      _creativeStoragePath,
-    ]) {
-      c.dispose();
-    }
+    _disposeLifecycle();
     super.dispose();
   }
 

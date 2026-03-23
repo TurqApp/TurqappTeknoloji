@@ -28,11 +28,7 @@ extension _FollowingFollowersShellPart on _FollowingFollowersState {
                   child: PageView(
                     controller: controller.pageController,
                     onPageChanged: (idx) {
-                      if (mounted && _currentPage != idx) {
-                        setState(() {
-                          _currentPage = idx;
-                        });
-                      }
+                      _setCurrentPage(idx);
                       syncPageLineBarSelection(_pageLineBarTag, idx);
                     },
                     children: [

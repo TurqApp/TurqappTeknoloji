@@ -75,4 +75,11 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
   Widget build(BuildContext context) {
     return _buildFollowingFollowersShell(context);
   }
+
+  void _setCurrentPage(int index) {
+    if (!mounted || _currentPage == index) return;
+    setState(() {
+      _currentPage = index;
+    });
+  }
 }

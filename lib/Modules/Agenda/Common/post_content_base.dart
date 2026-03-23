@@ -239,6 +239,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   void _onVideoUpdate() => _handleVideoUpdate();
 
+  void _markPostContentDirty() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
