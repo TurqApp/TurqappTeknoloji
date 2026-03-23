@@ -23,7 +23,6 @@ part 'account_center_view_body_content_part.dart';
 part 'account_center_view_card_shell_part.dart';
 part 'account_center_view_chevron_part.dart';
 part 'account_center_view_row_shell_part.dart';
-part 'account_center_view_info_content_part.dart';
 
 class AccountCenterView extends StatelessWidget {
   AccountCenterView({super.key});
