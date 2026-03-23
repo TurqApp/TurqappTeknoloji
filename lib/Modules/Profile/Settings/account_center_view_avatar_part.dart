@@ -4,7 +4,17 @@ extension AccountCenterViewAvatarPart on AccountCenterView {
   Widget _avatar(StoredAccount account) {
     final avatarUrl = account.avatarUrl.trim();
     if (avatarUrl.isEmpty) {
-      return _buildFallbackAvatar(account);
+      return CircleAvatar(
+        radius: 24,
+        backgroundColor: Colors.black.withAlpha(18),
+        child: Text(
+          account.accountCenterAvatarFallbackInitial,
+          style: const TextStyle(
+            color: Colors.black,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+      );
     }
     return CircleAvatar(
       radius: 24,

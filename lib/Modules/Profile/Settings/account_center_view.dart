@@ -20,7 +20,6 @@ part 'account_center_view_actions_part.dart';
 part 'account_center_view_account_data_part.dart';
 part 'account_center_view_empty_text_part.dart';
 part 'account_center_view_avatar_part.dart';
-part 'account_center_view_avatar_fallback_part.dart';
 part 'account_center_view_body_part.dart';
 part 'account_center_view_body_content_part.dart';
 part 'account_center_view_card_decoration_part.dart';
