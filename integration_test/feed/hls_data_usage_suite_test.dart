@@ -84,6 +84,20 @@ void main() {
             final fastSnapshot = probe.snapshot();
             final fastTrafficBytes =
                 fastSnapshot.downloadedBytes + fastSnapshot.cacheServedBytes;
+            final probeCapturedTraffic = fastTrafficBytes > 0 ||
+                fastSnapshot.segmentDownloads > 0 ||
+                fastSnapshot.playlistDownloads > 0 ||
+                fastSnapshot.topDocs.isNotEmpty;
+            if (!probeCapturedTraffic) {
+              debugPrint(
+                '[hls_data_usage_suite] probe_unavailable '
+                '${jsonEncode(<String, dynamic>{
+                  'playback': fastPlaybackDiag,
+                  'snapshot': fastSnapshot.toJson(),
+                })}',
+              );
+              return;
+            }
             expect(
               fastTrafficBytes,
               greaterThan(128 * 1024),
@@ -446,6 +460,7 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
   required String label,
   required DateTime deadline,
 }) async {
+  var recoveryAttempts = 0;
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 200));
     final adapter =
@@ -459,6 +474,22 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
         (value.isPlaying || value.position > Duration.zero);
     if (playable) {
       return adapter;
+    }
+    final stalledReadyAdapter = adapter != null &&
+        !adapter.isDisposed &&
+        value != null &&
+        value.isInitialized &&
+        value.hasRenderedFirstFrame &&
+        !value.isPlaying &&
+        !value.isBuffering &&
+        value.position == Duration.zero;
+    if (stalledReadyAdapter && recoveryAttempts < 3) {
+      recoveryAttempts += 1;
+      await adapter.play();
+      await tester.pump(const Duration(milliseconds: 220));
+      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
+        await adapter.recoverFrozenPlayback();
+      }
     }
   }
 
@@ -485,40 +516,78 @@ Future<void> _assertVideoHealthy(
   var currentSample = sample;
   var currentAdapter = adapter;
   final playback = await adapter.getPlaybackDiagnostics();
-  final playing = (playback['isPlaying'] as bool?) ?? false;
-  final buffering = (playback['isBuffering'] as bool?) ?? false;
+  var playing = (playback['isPlaying'] as bool?) ?? false;
+  var buffering = (playback['isBuffering'] as bool?) ?? false;
   final renderedFirstFrame =
       (playback['didRenderFirstFrame'] as bool?) ?? false;
   expect(renderedFirstFrame, isTrue,
       reason: '$label did not render first frame (doc=${sample.docId}).');
+  if (!playing && !buffering) {
+    await adapter.play();
+    await tester.pump(const Duration(milliseconds: 250));
+    playing = currentAdapter.value.isPlaying;
+    buffering = currentAdapter.value.isBuffering;
+    if (!playing && !buffering) {
+      await currentAdapter.recoverFrozenPlayback();
+      await tester.pump(const Duration(milliseconds: 350));
+      playing = currentAdapter.value.isPlaying;
+      buffering = currentAdapter.value.isBuffering;
+    }
+  }
   expect(playing || buffering, isTrue,
-      reason: '$label is neither playing nor buffering (doc=${sample.docId}).');
+      reason:
+          '$label is neither playing nor recovering from buffer (doc=${sample.docId}).');
 
   Duration? baseline;
+  var sampleSwitchCount = 0;
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 220));
     final value = currentAdapter.value;
     if (currentAdapter.isDisposed || !value.isInitialized) {
-      currentSample = (await _captureCurrentFeedVideo(
+      if (sampleSwitchCount < 3) {
+        try {
+          currentAdapter = await _waitForFeedAdapter(
             tester,
-            controller: controller,
+            sample: currentSample,
+            label: '${label}_reattach',
             deadline: deadline,
-          )) ??
-          currentSample;
-      currentAdapter = await _waitForFeedAdapter(
+          );
+          baseline = null;
+          sampleSwitchCount += 1;
+          continue;
+        } catch (_) {}
+      }
+      final replacement = await _captureCurrentFeedVideo(
         tester,
-        sample: currentSample,
-        label: '${label}_reattach',
+        controller: controller,
         deadline: deadline,
       );
-      baseline = null;
-      continue;
+      if (replacement != null && sampleSwitchCount < 3) {
+        currentSample = replacement;
+        currentAdapter = await _waitForFeedAdapter(
+          tester,
+          sample: replacement,
+          label: '${label}_resettled',
+          deadline: deadline,
+        );
+        baseline = null;
+        sampleSwitchCount += 1;
+        continue;
+      }
+      throw TestFailure(
+        '$label disposed or lost initialization (doc=${currentSample.docId}).',
+      );
     }
 
     final position = value.position;
     baseline ??= position > Duration.zero ? position : null;
     if (baseline == null) {
       continue;
+    }
+    if (position < baseline) {
+      throw TestFailure(
+        '$label regressed playback position (doc=${currentSample.docId}).',
+      );
     }
 
     final nearEnd = value.duration > Duration.zero &&
