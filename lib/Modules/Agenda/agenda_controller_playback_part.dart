@@ -7,7 +7,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
 
     if (GetPlatform.isAndroid &&
         prev != null &&
-        (prev - visibleFraction).abs() < 0.08) {
+        (prev - visibleFraction).abs() < 0.12) {
       return;
     }
 
@@ -35,7 +35,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
     _visibilityDebounce?.cancel();
     _visibilityDebounce = Timer(
       GetPlatform.isAndroid
-          ? const Duration(milliseconds: 48)
+          ? const Duration(milliseconds: 72)
           : const Duration(milliseconds: 40),
       () => _evaluateCenteredPlayback(
         playThreshold: playThreshold,

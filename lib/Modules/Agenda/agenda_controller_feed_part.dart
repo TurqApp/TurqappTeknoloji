@@ -68,7 +68,7 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _scheduleFeedPrefetch() {
     _feedPrefetchDebounce?.cancel();
-    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 900), () {
+    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 1400), () {
       _updateFeedPrefetchQueue();
     });
   }
@@ -226,7 +226,7 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _prefetchUpcomingImages() {
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
-    final end = (current + 6).clamp(0, agendaList.length);
+    final end = (current + 4).clamp(0, agendaList.length);
     for (int i = current + 1; i < end; i++) {
       final post = agendaList[i];
       if (post.img.isNotEmpty) {
@@ -241,7 +241,7 @@ extension AgendaControllerFeedPart on AgendaController {
   void _prefetchThumbnailBatches() {
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
     final targetCount =
-        min(max(30, ((current ~/ 10) + 1) * 10), agendaList.length);
+        min(max(18, ((current ~/ 8) + 1) * 8), agendaList.length);
     if (targetCount <= _prefetchedThumbnailPostCount) return;
 
     for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {
@@ -259,7 +259,7 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _warmReplayAdsForPreparedWindow(int preparedPostCount) {
     if (preparedPostCount <= 0) return;
-    final targetAds = min(6, max(3, (preparedPostCount / 10).ceil()));
+    final targetAds = min(4, max(2, (preparedPostCount / 12).ceil()));
     unawaited(
       AdmobBannerWarmupService.ensure().warmForSurfaceEntry(
         surfaceKey: 'feed:replay_overlay',
@@ -360,7 +360,7 @@ extension AgendaControllerFeedPart on AgendaController {
 
     _scrollIdleDebounce?.cancel();
     _scrollIdleDebounce = Timer(
-      const Duration(milliseconds: 180),
+      const Duration(milliseconds: 220),
       () {
         final centered = centeredIndex.value;
         if (centered >= 0 && centered < agendaList.length) {
