@@ -1,0 +1,51 @@
+part of 'qa_lab_view.dart';
+
+extension _QALabViewSummaryPart on _QALabViewState {
+  Widget _buildSummaryCard() {
+    return Obx(() {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'settings.diagnostics.qa_summary'.tr,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${'settings.diagnostics.qa_health_score'.tr}: ${_recorder.healthScore}/100',
+              ),
+              Text(
+                '${'settings.diagnostics.qa_live_surface'.tr}: ${_recorder.lastSurface.value}',
+              ),
+              Text(
+                '${'settings.diagnostics.qa_live_route'.tr}: ${_recorder.lastRoute.value}',
+              ),
+              Text(
+                '${'settings.diagnostics.qa_last_export'.tr}: ${_recorder.lastExportPath.value.isEmpty ? '-' : _recorder.lastExportPath.value}',
+              ),
+              Text(
+                'lifecycle=${_recorder.lastLifecycleState.value.isEmpty ? "-" : _recorder.lastLifecycleState.value}',
+              ),
+              Text(
+                'permissions=${_recorder.lastPermissionStatuses.isEmpty ? "-" : _recorder.lastPermissionStatuses.entries.map((entry) => "${entry.key}:${entry.value}").join("  ")}',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'blocking=${_recorder.blockingIssueCount} error=${_recorder.errorIssueCount} warning=${_recorder.warningIssueCount}',
+              ),
+              Text(
+                'routes=${_recorder.routes.length} checkpoints=${_recorder.checkpoints.length}',
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+}
