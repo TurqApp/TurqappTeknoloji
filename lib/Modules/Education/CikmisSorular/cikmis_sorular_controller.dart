@@ -82,16 +82,20 @@ class CikmisSorularController extends GetxController {
       'TUS',
       'DUS',
     ];
-    final items = rawDocs
-        .map(
-          (doc) => CikmisSorularCoverModel(
-            anaBaslik: (doc['anaBaslik'] ?? '').toString(),
-            docID: (doc['_docId'] ?? '').toString(),
-            sinavTuru: (doc['sinavTuru'] ?? '').toString(),
-          ),
-        )
-        .where((item) => item.anaBaslik.isNotEmpty)
-        .toList(growable: true);
+    final seen = <String>{};
+    final items = <CikmisSorularCoverModel>[];
+    for (final doc in rawDocs) {
+      final anaBaslik = (doc['anaBaslik'] ?? '').toString();
+      if (anaBaslik.isEmpty || seen.contains(anaBaslik)) continue;
+      seen.add(anaBaslik);
+      items.add(
+        CikmisSorularCoverModel(
+          anaBaslik: anaBaslik,
+          docID: (doc['_docId'] ?? '').toString(),
+          sinavTuru: (doc['sinavTuru'] ?? '').toString(),
+        ),
+      );
+    }
     items.sort((a, b) {
       var indexA = baslikSirasi.indexOf(a.anaBaslik);
       var indexB = baslikSirasi.indexOf(b.anaBaslik);
