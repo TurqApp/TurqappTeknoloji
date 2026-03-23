@@ -21,30 +21,7 @@ class _PersonalDetailRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      value,
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
-                        fontFamily: 'MontserratMedium',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              Expanded(child: _buildPersonalRowContent()),
               const Icon(
                 CupertinoIcons.chevron_right,
                 color: Colors.black38,
