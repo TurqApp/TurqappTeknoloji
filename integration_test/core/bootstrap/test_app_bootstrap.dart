@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -287,7 +288,8 @@ Future<void> _refreshAccountCenterMetadataForSmoke(
 Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   final agendaController =
       AgendaController.maybeFind() ?? AgendaController.ensure();
-  if (agendaController.agendaList.isNotEmpty) {
+  agendaController.setFeedViewMode(FeedViewMode.forYou);
+  if (_feedSatisfiesFixtureContract(agendaController)) {
     debugPrint(
       '[integration-smoke] feed: already primed '
       '(count=${agendaController.agendaList.length})',
@@ -305,28 +307,56 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   }
 
   int retries = 0;
-  while (agendaController.agendaList.isEmpty && retries < 3) {
+  while (!_feedSatisfiesFixtureContract(agendaController) && retries < 5) {
     try {
-      await agendaController.fetchAgendaBigData(initial: true);
+      if (retries == 0) {
+        await agendaController.refreshAgenda();
+      } else {
+        await agendaController.fetchAgendaBigData(initial: true);
+      }
     } catch (error) {
       debugPrint(
-        '[integration-smoke] feed: fetch retry ${retries + 1}/3 failed: $error',
+        '[integration-smoke] feed: fetch retry ${retries + 1}/5 failed: $error',
       );
     }
     await tester.pump(const Duration(milliseconds: 300));
     drainExpectedTesterExceptions(tester, context: 'feed prime');
-    if (agendaController.agendaList.isNotEmpty) {
+    if (_feedSatisfiesFixtureContract(agendaController)) {
       break;
     }
     retries++;
-    if (retries < 3) {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (retries < 5) {
+      await Future<void>.delayed(const Duration(milliseconds: 800));
     }
   }
 
   debugPrint(
     '[integration-smoke] feed: primed count=${agendaController.agendaList.length}',
   );
+}
+
+bool _feedSatisfiesFixtureContract(AgendaController controller) {
+  final posts = controller.agendaList;
+  final contract = IntegrationTestFixtureContract.current.surface('feed');
+  if (contract == null || !contract.isConfigured) {
+    return posts.isNotEmpty;
+  }
+
+  if (contract.minCount != null && posts.length < contract.minCount!) {
+    return false;
+  }
+
+  if (contract.requiredDocIds.isEmpty) {
+    return posts.isNotEmpty;
+  }
+
+  final docIds = posts.map((post) => post.docID).toSet();
+  for (final docId in contract.requiredDocIds) {
+    if (!docIds.contains(docId)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {
