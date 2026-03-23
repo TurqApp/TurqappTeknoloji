@@ -7,8 +7,7 @@ extension AccountCenterViewContactDetailsCardBodyPart on _ContactDetailsView {
     required bool emailVerified,
     required bool phoneVerified,
   }) {
-    return Container(
-      decoration: _buildAccountCenterCardDecoration(),
+    return _buildAccountCenterCard(
       child: _buildContactDetailsRows(
         email: email,
         phone: phone,

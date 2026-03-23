@@ -5,8 +5,7 @@ extension AccountCenterViewAccountsCardPart on AccountCenterView {
     BuildContext context,
     List<StoredAccount> items,
   ) {
-    return Container(
-      decoration: _buildAccountCenterCardDecoration(),
+    return _buildAccountCenterCard(
       child: items.isEmpty
           ? _buildAccountsEmptyState()
           : _buildAccountsList(context, items),
