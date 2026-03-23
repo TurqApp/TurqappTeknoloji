@@ -13,13 +13,9 @@ extension AccountCenterViewContactStatusVerifiedPart on _ContactStatusRow {
           size: 18,
         ),
         const SizedBox(width: 6),
-        Text(
-          statusText,
-          style: TextStyle(
-            color: statusColor,
-            fontSize: 14,
-            fontFamily: 'MontserratMedium',
-          ),
+        _buildVerifiedStatusText(
+          statusColor: statusColor,
+          statusText: statusText,
         ),
       ],
     );
