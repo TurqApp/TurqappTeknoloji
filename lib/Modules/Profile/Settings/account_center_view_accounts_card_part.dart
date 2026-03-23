@@ -8,7 +8,15 @@ extension AccountCenterViewAccountsCardPart on AccountCenterView {
     return _buildAccountCenterCard(
       child: items.isEmpty
           ? _buildAccountsEmptyState()
-          : Column(children: _buildAccountsListChildren(context, items)),
+          : Column(
+              children: [
+                for (var i = 0; i < items.length; i++) ...[
+                  _buildAccountsListItem(context, items[i]),
+                  if (i != items.length - 1) _buildAccountsListDivider(),
+                ],
+                _buildAddAccountAction(),
+              ],
+            ),
     );
   }
 }
