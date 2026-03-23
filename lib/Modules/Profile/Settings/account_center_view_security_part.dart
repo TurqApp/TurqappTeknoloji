@@ -35,7 +35,42 @@ class _SessionSecuritySection extends StatelessWidget {
               final enabled =
                   (snapshot.data?['singleDeviceSessionEnabled'] ?? false) ==
                       true;
-              return _buildSecurityToggle(enabled);
+              return SwitchListTile.adaptive(
+                key: const ValueKey<String>(
+                  IntegrationTestKeys.actionAccountCenterSingleDeviceToggle,
+                ),
+                value: enabled,
+                title: Text(
+                  'account_center.single_device_title'.tr,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontFamily: 'MontserratBold',
+                  ),
+                ),
+                subtitle: Text(
+                  'account_center.single_device_desc'.tr,
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontFamily: 'MontserratMedium',
+                    height: 1.35,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                onChanged: (value) async {
+                  await accountCenter.setSingleDeviceSessionEnabled(value);
+                  AppSnackbar(
+                    'settings.account_center'.tr,
+                    value
+                        ? 'account_center.single_device_enabled'.tr
+                        : 'account_center.single_device_disabled'.tr,
+                  );
+                },
+              );
             },
           ),
         ),

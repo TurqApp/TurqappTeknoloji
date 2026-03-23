@@ -40,7 +40,6 @@ part 'account_center_view_personal_row_part.dart';
 part 'account_center_view_personal_section_part.dart';
 part 'account_center_view_remove_part.dart';
 part 'account_center_view_security_part.dart';
-part 'account_center_view_security_toggle_part.dart';
 
 class AccountCenterView extends StatelessWidget {
   AccountCenterView({super.key});
