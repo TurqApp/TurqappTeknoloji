@@ -8,31 +8,7 @@ extension AccountCenterViewAccountsPart on AccountCenterView {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'account_center.header_title'.tr,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 26,
-                  fontFamily: 'MontserratBold',
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'account_center.accounts'.tr,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 14,
-                  fontFamily: 'MontserratBold',
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildAccountsHeader(),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
