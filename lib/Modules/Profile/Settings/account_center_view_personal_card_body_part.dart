@@ -8,15 +8,7 @@ extension AccountCenterViewPersonalCardBodyPart on _PersonalDetailsCard {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black12),
       ),
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            rows[i],
-            if (i != rows.length - 1)
-              const Divider(height: 1, indent: 18, endIndent: 18),
-          ],
-        ],
-      ),
+      child: _buildPersonalRowsList(rows),
     );
   }
 }
