@@ -33,6 +33,7 @@ part 'account_center_view_accounts_body_part.dart';
 part 'account_center_view_accounts_section_label_part.dart';
 part 'account_center_view_accounts_title_part.dart';
 part 'account_center_view_accounts_list_part.dart';
+part 'account_center_view_accounts_list_children_part.dart';
 part 'account_center_view_avatar_part.dart';
 part 'account_center_view_body_part.dart';
 part 'account_center_view_body_content_part.dart';
