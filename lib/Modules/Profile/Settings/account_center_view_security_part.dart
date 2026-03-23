@@ -29,7 +29,15 @@ class _SessionSecuritySection extends StatelessWidget {
           ),
         ),
         _buildAccountCenterCard(
-          child: _buildSecurityStream(uid),
+          child: StreamBuilder<Map<String, dynamic>?>(
+            stream: UserRepository.ensure().watchUserRaw(uid),
+            builder: (context, snapshot) {
+              final enabled =
+                  (snapshot.data?['singleDeviceSessionEnabled'] ?? false) ==
+                      true;
+              return _buildSecurityToggle(enabled);
+            },
+          ),
         ),
       ],
     );
