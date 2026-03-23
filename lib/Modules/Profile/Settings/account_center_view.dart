@@ -17,7 +17,6 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'account_center_view_actions_part.dart';
-part 'account_center_view_body_part.dart';
 part 'account_center_view_body_content_part.dart';
 part 'account_center_view_card_shell_part.dart';
 
@@ -34,6 +33,19 @@ class AccountCenterView extends StatelessWidget {
   CurrentUserService get _currentUserService => CurrentUserService.instance;
 
   String get _currentUid => _currentUserService.effectiveUserId;
+
+  Widget _buildBody(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+
+        return _buildBodyContent(context);
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
