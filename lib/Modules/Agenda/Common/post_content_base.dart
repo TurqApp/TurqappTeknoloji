@@ -240,7 +240,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void didPopNext() => _handleDidPopNext();
 
   @override
-  void didPush() {}
+  void didPush() {
+    _resumePlaybackIfEligible();
+  }
 
   @override
   void didPop() {}

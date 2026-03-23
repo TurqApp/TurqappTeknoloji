@@ -292,6 +292,19 @@ class VideoStateManager extends GetxController {
   /// Şu anda çalan video ID'sini döndür
   String? get currentPlayingDocID => _currentPlayingDocID;
 
+  Map<String, dynamic> debugSnapshot() {
+    return <String, dynamic>{
+      'currentPlayingDocID': _currentPlayingDocID ?? '',
+      'exclusiveMode': _exclusiveMode,
+      'exclusiveDocID': _exclusiveDocID ?? '',
+      'registeredHandleCount': _allVideoControllers.length,
+      'registeredHandleKeys':
+          _allVideoControllers.keys.take(24).toList(growable: false),
+      'savedStateCount': _videoStates.length,
+      'savedStateKeys': _videoStates.keys.take(24).toList(growable: false),
+    };
+  }
+
   @override
   void onClose() {
     _pendingPlayTimer?.cancel();

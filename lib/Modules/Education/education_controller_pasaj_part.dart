@@ -237,11 +237,18 @@ extension EducationControllerPasajPart on EducationController {
   }
 
   void _suppressBackgroundFeedMedia() {
+    final nav = NavBarController.maybeFind();
+    final hasEducation = settingsController.educationScreenIsOn.value;
+    final educationIndex = hasEducation ? 3 : -1;
+    if (nav?.selectedIndex.value != educationIndex) {
+      return;
+    }
+
     try {
       AgendaController.maybeFind()?.suspendPlaybackForOverlay();
     } catch (_) {}
     try {
-      NavBarController.maybeFind()?.pauseGlobalTabMedia();
+      nav?.pauseGlobalTabMedia();
     } catch (_) {}
   }
 

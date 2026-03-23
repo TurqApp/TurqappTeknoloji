@@ -4,6 +4,7 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
+import '../core/helpers/test_state_probe.dart';
 
 void main() {
   ensureIntegrationBinding();
@@ -87,6 +88,7 @@ Future<void> _waitForCurrentPlayingDoc(
 
   throw TestFailure(
     'Feed did not start expected autoplay doc '
-    '(expected=$expectedDocId, current=${manager.currentPlayingDocID}).',
+    '(expected=$expectedDocId, current=${manager.currentPlayingDocID}, '
+    'probe=${readIntegrationProbe()}).',
   );
 }

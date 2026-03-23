@@ -20,6 +20,7 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 
 class IntegrationTestStateProbe {
   const IntegrationTestStateProbe._();
@@ -60,6 +61,7 @@ class IntegrationTestStateProbe {
       'testHarnesses': _testHarnessSnapshot(),
       'snackbar': readLastSnackbarDebugState(),
       'navBar': _navBarSnapshot(),
+      'videoPlayback': _videoPlaybackSnapshot(),
       'currentRoute': Get.currentRoute,
       'previousRoute': routing.previous,
       'isBack': routing.isBack,
@@ -97,6 +99,21 @@ class IntegrationTestStateProbe {
       'docIds':
           items.take(24).map((item) => item.docID).toList(growable: false),
       'lastCenteredIndex': controller.lastCenteredIndex,
+      'playbackSuspended': controller.playbackSuspended.value,
+      'pauseAll': controller.pauseAll.value,
+      'canClaimPlaybackNow': controller.canClaimPlaybackNow,
+      'feedViewMode': controller.feedViewMode.value.name,
+    };
+  }
+
+  static Map<String, dynamic> _videoPlaybackSnapshot() {
+    final manager = VideoStateManager.maybeFind();
+    if (manager == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    return <String, dynamic>{
+      'registered': true,
+      ...manager.debugSnapshot(),
     };
   }
 
