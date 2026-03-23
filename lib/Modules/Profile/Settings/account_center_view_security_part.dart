@@ -14,6 +14,12 @@ class _SessionSecuritySection extends StatelessWidget {
     final uid = _currentUid;
     if (uid.isEmpty) return const SizedBox.shrink();
 
-    return _buildSecuritySectionBody(uid);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSecurityHeader(),
+        _buildSecurityContent(uid),
+      ],
+    );
   }
 }
