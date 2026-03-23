@@ -1,6 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../core/bootstrap/test_app_bootstrap.dart';
 import '../core/helpers/contract_waiters.dart';
@@ -73,15 +71,11 @@ void main() {
           );
           expect(signedOut['currentUserLoaded'], isFalse);
 
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+          await performSmokeReauth(
+            tester,
             email: kIntegrationLoginEmail,
             password: kIntegrationLoginPassword,
           );
-          await tester.pump(const Duration(milliseconds: 300));
-          drainExpectedTesterExceptions(tester, context: 'auth churn reauth');
-          await CurrentUserService.instance.initialize();
-          await tester.pump(const Duration(milliseconds: 300));
-          drainExpectedTesterExceptions(tester, context: 'auth churn init');
 
           final afterAuth = await waitForSurfaceProbeContract(
             tester,

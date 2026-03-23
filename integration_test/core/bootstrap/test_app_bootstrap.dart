@@ -204,6 +204,43 @@ Future<void> performSmokeSignOut(WidgetTester tester) async {
   drainExpectedTesterExceptions(tester, context: 'smoke sign-out');
 }
 
+Future<void> performSmokeReauth(
+  WidgetTester tester, {
+  required String email,
+  required String password,
+}) async {
+  await FirebaseAuth.instance.signInWithEmailAndPassword(
+    email: email,
+    password: password,
+  );
+  await tester.pump(const Duration(milliseconds: 300));
+  drainExpectedTesterExceptions(tester, context: 'smoke reauth login');
+
+  await CurrentUserService.instance.initialize();
+  await tester.pump(const Duration(milliseconds: 300));
+  drainExpectedTesterExceptions(tester, context: 'smoke reauth init');
+
+  final accountCenter = AccountCenterService.ensure();
+  await accountCenter.init();
+  final firebaseUser = FirebaseAuth.instance.currentUser;
+  if (firebaseUser != null) {
+    await _refreshAccountCenterMetadataForSmoke(
+      accountCenter,
+      firebaseUser,
+    );
+    try {
+      await accountCenter.registerCurrentDeviceSessionIfEnabled();
+    } catch (error) {
+      debugPrint(
+        '[integration-smoke] auth: session register skipped after reauth: $error',
+      );
+    }
+  }
+
+  await tester.pump(const Duration(milliseconds: 300));
+  drainExpectedTesterExceptions(tester, context: 'smoke reauth settle');
+}
+
 Future<void> _resetSmokeSessionForDeterministicSignIn(
   WidgetTester tester,
 ) async {
