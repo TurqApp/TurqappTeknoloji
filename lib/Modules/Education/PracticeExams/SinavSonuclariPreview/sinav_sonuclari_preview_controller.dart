@@ -5,6 +5,9 @@ import 'package:turqappv2/Modules/Education/PracticeExams/ders_ve_sonuclar_model
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
+part 'sinav_sonuclari_preview_controller_data_part.dart';
+part 'sinav_sonuclari_preview_controller_actions_part.dart';
+
 class SinavSonuclariPreviewController extends GetxController {
   static SinavSonuclariPreviewController ensure({
     required String tag,
@@ -48,78 +51,11 @@ class SinavSonuclariPreviewController extends GetxController {
     getYanitlar();
   }
 
-  Future<void> getYanitlar() async {
-    isLoading.value = true;
-    try {
-      final snapshot = await _practiceExamRepository.fetchAnswers(
-        model.docID,
-        preferCache: true,
-      );
+  Future<void> getYanitlar() => _getYanitlarImpl();
 
-      if (snapshot.isNotEmpty) {
-        snapshot.sort(
-          (a, b) => ((a['timeStamp'] ?? 0) as num)
-              .compareTo((b['timeStamp'] ?? 0) as num),
-        );
-        final latest = snapshot.last;
-        final yanitlarData = List<String>.from(latest['yanitlar'] ?? const []);
-        final timeStampData = (latest["timeStamp"] ?? 0) as num;
-        final yanitIDData = (latest["_docId"] ?? latest["id"] ?? "").toString();
+  Future<void> getSorular() => _getSorularImpl();
 
-        yanitlar.assignAll(yanitlarData);
-        timeStamp.value = timeStampData;
-        yanitID.value = yanitIDData;
+  Future<void> getDersVeSonuclar(String docID) => _getDersVeSonuclarImpl(docID);
 
-        await getSorular();
-      } else {
-        isLoading.value = false;
-        isInitialized.value = true;
-      }
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'practice.answers_load_failed'.tr);
-      isLoading.value = false;
-      isInitialized.value = true;
-    }
-  }
-
-  Future<void> getSorular() async {
-    try {
-      final questions = await _practiceExamRepository.fetchQuestions(
-        model.docID,
-        preferCache: true,
-      );
-
-      if (questions.isNotEmpty) {
-        for (final question in questions) {
-          if (!expandedCategories.containsKey(question.ders)) {
-            expandedCategories[question.ders] = false;
-          }
-        }
-        soruList.assignAll(questions);
-        await getDersVeSonuclar(yanitID.value);
-      }
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
-    } finally {
-      isLoading.value = false;
-      isInitialized.value = true;
-    }
-  }
-
-  Future<void> getDersVeSonuclar(String docID) async {
-    try {
-      final results = await _practiceExamRepository.fetchLessonResults(
-        model.docID,
-        docID,
-        model.dersler,
-      );
-      dersVeSonuclar.assignAll(results);
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'practice.lesson_results_load_failed'.tr);
-    }
-  }
-
-  void toggleCategory(String ders) {
-    expandedCategories[ders] = !expandedCategories[ders]!;
-  }
+  void toggleCategory(String ders) => _toggleCategoryImpl(ders);
 }

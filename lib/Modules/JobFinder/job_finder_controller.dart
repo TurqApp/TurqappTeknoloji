@@ -23,6 +23,8 @@ import '../../Themes/app_assets.dart';
 
 part 'job_finder_controller_data_part.dart';
 part 'job_finder_controller_sheet_part.dart';
+part 'job_finder_controller_lifecycle_part.dart';
+part 'job_finder_controller_actions_part.dart';
 
 class JobFinderController extends GetxController {
   static JobFinderController ensure({bool permanent = false}) {
@@ -135,89 +137,15 @@ class JobFinderController extends GetxController {
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
-  Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      listingSelection.value = 0;
-      listingSelectionReady.value = true;
-      return;
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
-      listingSelection.value = stored == 1 ? 1 : 0;
-    } catch (_) {
-      listingSelection.value = 0;
-    } finally {
-      listingSelectionReady.value = true;
-    }
-  }
-
-  Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        _listingSelectionKeyFor(uid),
-        listingSelection.value == 1 ? 1 : 0,
-      );
-    } catch (_) {}
-  }
-
   @override
   void onInit() {
     super.onInit();
-    unawaited(_restoreListingSelection());
-    loadSehirler();
-    unawaited(bootstrapStartData());
-    search.addListener(_searchListener);
+    _handleOnInit();
   }
 
   @override
   void onClose() {
-    _homeSnapshotSub?.cancel();
-    _deferredLocationTimer?.cancel();
-    innerPageController.dispose();
-    search.dispose();
+    _handleOnClose();
     super.onClose();
-  }
-
-  void onInnerTabTap(int index) {
-    innerTabIndex.value = index;
-    innerPageController.jumpToPage(index);
-  }
-
-  void onInnerPageChanged(int index) {
-    innerTabIndex.value = index;
-  }
-
-  void toggleListingSelection() {
-    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
-    unawaited(_persistListingSelection());
-  }
-
-  Future<void> refreshJob(String docID) async {
-    try {
-      final updatedJob = await _jobRepository.fetchById(docID,
-          preferCache: false, forceRefresh: true);
-      if (updatedJob != null) {
-        final index = list.indexWhere((e) => e.docID == docID);
-        if (index != -1) {
-          list[index] = _attachDistance(updatedJob);
-          list.refresh();
-        }
-      }
-    } catch (_) {}
-  }
-
-  void _searchListener() {
-    final query = search.text.trim();
-    if (query.length >= 2) {
-      searchFromTypesense(query);
-    } else {
-      _searchRequestId++;
-      aramaSonucu.clear();
-    }
   }
 }

@@ -14,6 +14,9 @@ import 'package:turqappv2/Modules/JobFinder/MyJobAds/my_job_ads_controller.dart'
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'job_content_controller_saved_part.dart';
+part 'job_content_controller_actions_part.dart';
+
 class JobContentController extends GetxController {
   static JobContentController ensure({
     String? tag,
@@ -42,23 +45,7 @@ class JobContentController extends GetxController {
   var saved = false.obs;
   String _initializedSavedDocId = '';
 
-  Future<Set<String>> _loadSavedIds(String uid) {
-    final cached = _savedIdsByUser[uid];
-    if (cached != null) return Future<Set<String>>.value(cached);
-    return _savedIdsLoaders.putIfAbsent(uid, () async {
-      try {
-        final records = await JobSavedStore.getSavedJobs(
-          uid,
-          preferCache: true,
-        );
-        final ids = records.map((record) => record.jobId).toSet();
-        _savedIdsByUser[uid] = ids;
-        return ids;
-      } finally {
-        _savedIdsLoaders.remove(uid);
-      }
-    });
-  }
+  Future<Set<String>> _loadSavedIds(String uid) => _loadSavedIdsImpl(uid);
 
   static Future<void> warmSavedIdsForCurrentUser() async {
     final uid = CurrentUserService.instance.effectiveUserId;
@@ -72,124 +59,12 @@ class JobContentController extends GetxController {
     _savedIdsByUser[uid] = records.map((record) => record.jobId).toSet();
   }
 
-  Future<void> primeSavedState(String docId) async {
-    final normalizedDocId = docId.trim();
-    if (normalizedDocId.isEmpty || _initializedSavedDocId == normalizedDocId) {
-      return;
-    }
-    _initializedSavedDocId = normalizedDocId;
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final savedIds = await _loadSavedIds(uid);
-      saved.value = savedIds.contains(normalizedDocId);
-    } catch (_) {
-      saved.value = false;
-    }
-  }
+  Future<void> primeSavedState(String docId) => _primeSavedStateImpl(docId);
 
-  Future<void> toggleSave(String docId) async {
-    if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveJob)) {
-      return;
-    }
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
+  Future<void> toggleSave(String docId) => _toggleSaveImpl(docId);
 
-    try {
-      final savedIds = await _loadSavedIds(uid);
-      final isAlreadySaved = savedIds.contains(docId);
-      if (isAlreadySaved) {
-        await JobSavedStore.unsave(uid, docId);
-        savedIds.remove(docId);
-        saved.value = false;
-      } else {
-        await JobSavedStore.save(uid, docId);
-        savedIds.add(docId);
-        saved.value = true;
-      }
-    } catch (_) {}
-  }
+  Future<void> reactivateEndedJob(JobModel model) =>
+      _reactivateEndedJobImpl(model);
 
-  Future<void> reactivateEndedJob(JobModel model) async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    if (model.userID != uid || !model.ended) return;
-
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final existing = await _jobRepository.fetchById(model.docID,
-        preferCache: false, forceRefresh: true);
-    if (existing == null) {
-      AppSnackbar(
-        "common.info".tr,
-        "pasaj.job_finder.listing_not_found".tr,
-      );
-      return;
-    }
-
-    final ref = FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(model.docID);
-    await ref.update({
-      "ended": false,
-      "timeStamp": now,
-    });
-
-    final myJobAdsController = MyJobAdsController.maybeFind();
-    if (myJobAdsController != null) {
-      await myJobAdsController.getActive();
-    }
-    final finder = JobFinderController.maybeFind();
-    if (finder != null) {
-      await finder.getStartData();
-      await finder.refreshJob(model.docID);
-
-      final idx = finder.list.indexWhere((e) => e.docID == model.docID);
-      if (idx > 0) {
-        final item = finder.list.removeAt(idx);
-        finder.list.insert(0, item);
-        finder.list.refresh();
-      }
-    }
-    AppSnackbar(
-      "common.success".tr,
-      "pasaj.job_finder.reactivated".tr,
-    );
-  }
-
-  Future<void> shareJob(JobModel model) async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    final canShare =
-        AdminAccessService.isKnownAdminSync() || uid == model.userID;
-    if (!canShare) {
-      AppSnackbar(
-        "common.info".tr,
-        "pasaj.job_finder.share_auth_required".tr,
-      );
-      return;
-    }
-    await ShareActionGuard.run(() async {
-      var shortUrl = '';
-      try {
-        shortUrl = await ShortLinkService().getJobPublicUrl(
-          jobId: model.docID,
-          title:
-              model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
-          desc: model.about.isNotEmpty ? model.about : model.isTanimi,
-          imageUrl: model.logo,
-        );
-      } catch (_) {}
-
-      if (shortUrl.trim().isEmpty) {
-        shortUrl = 'https://turqapp.com/i/job:${model.docID}';
-      }
-
-      final title =
-          model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek;
-      await ShareLinkService.shareUrl(
-        url: shortUrl,
-        title: title,
-        subject: title,
-      );
-    });
-  }
+  Future<void> shareJob(JobModel model) => _shareJobImpl(model);
 }

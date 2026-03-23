@@ -9,6 +9,8 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'my_practice_exams_controller_data_part.dart';
+
 class MyPracticeExamsController extends GetxController {
   static MyPracticeExamsController ensure({bool permanent = false}) {
     final existing = maybeFind();
@@ -63,69 +65,15 @@ class MyPracticeExamsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapExams());
-  }
-
-  Future<void> _bootstrapExams() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      exams.clear();
-      isLoading.value = false;
-      return;
-    }
-
-    try {
-      final cached = await _practiceExamRepository.fetchByOwner(uid);
-      if (cached.isNotEmpty) {
-        if (!_sameExamEntries(exams, cached)) {
-          exams.assignAll(cached);
-        }
-        isLoading.value = false;
-        if (SilentRefreshGate.shouldRefresh(
-          'practice_exams:owner:$uid',
-          minInterval: _silentRefreshInterval,
-        )) {
-          unawaited(fetchExams(silent: true, forceRefresh: true));
-        }
-        return;
-      }
-    } catch (_) {}
-
-    await fetchExams();
+    unawaited(_bootstrapExamsImpl());
   }
 
   Future<void> fetchExams({
     bool forceRefresh = false,
     bool silent = false,
-  }) async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      exams.clear();
-      isLoading.value = false;
-      return;
-    }
-
-    final shouldShowLoader = !silent && exams.isEmpty;
-    if (shouldShowLoader) {
-      isLoading.value = true;
-    }
-    try {
-      final items = await _practiceExamRepository.fetchByOwner(
-        uid,
-        preferCache: !forceRefresh,
+  }) =>
+      _fetchExamsImpl(
         forceRefresh: forceRefresh,
+        silent: silent,
       );
-      if (!_sameExamEntries(exams, items)) {
-        exams.assignAll(items);
-      }
-      SilentRefreshGate.markRefreshed('practice_exams:owner:$uid');
-    } catch (e) {
-      log('MyPracticeExamsController.fetchExams error: $e');
-      AppSnackbar('common.error'.tr, 'tests.exams_load_failed'.tr);
-    } finally {
-      if (shouldShowLoader || exams.isEmpty) {
-        isLoading.value = false;
-      }
-    }
-  }
 }

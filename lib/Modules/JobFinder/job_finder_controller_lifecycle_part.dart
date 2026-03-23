@@ -1,0 +1,57 @@
+part of 'job_finder_controller.dart';
+
+extension JobFinderControllerLifecyclePart on JobFinderController {
+  void _handleOnInit() {
+    unawaited(_restoreListingSelection());
+    loadSehirler();
+    unawaited(bootstrapStartData());
+    search.addListener(_searchListener);
+  }
+
+  void _handleOnClose() {
+    _homeSnapshotSub?.cancel();
+    _deferredLocationTimer?.cancel();
+    innerPageController.dispose();
+    search.dispose();
+  }
+
+  Future<void> _restoreListingSelection() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      listingSelectionReady.value = true;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
+      listingSelection.value = stored == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
+    }
+  }
+
+  Future<void> _persistListingSelection() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
+
+  void _searchListener() {
+    final query = search.text.trim();
+    if (query.length >= 2) {
+      searchFromTypesense(query);
+    } else {
+      _searchRequestId++;
+      aramaSonucu.clear();
+    }
+  }
+}
