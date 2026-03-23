@@ -6,7 +6,7 @@ extension AccountCenterViewAccountsAddPart on AccountCenterView {
       borderRadius: const BorderRadius.vertical(
         bottom: Radius.circular(18),
       ),
-      onTap: () => Get.to(() => SignIn()),
+      onTap: _handleAddAccountTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: 18,
