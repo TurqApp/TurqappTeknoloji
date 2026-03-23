@@ -9,16 +9,7 @@ extension AccountCenterViewAccountDisplayNamePart on _AccountRow {
 
     return <Widget>[
       const SizedBox(height: 2),
-      Text(
-        account.displayName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.black54,
-          fontSize: 12,
-          fontFamily: 'MontserratMedium',
-        ),
-      ),
+      _buildAccountDisplayNameText(),
     ];
   }
 }

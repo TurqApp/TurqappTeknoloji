@@ -21,6 +21,7 @@ part 'account_center_view_active_account_part.dart';
 part 'account_center_view_account_row_part.dart';
 part 'account_center_view_account_row_body_part.dart';
 part 'account_center_view_account_display_name_part.dart';
+part 'account_center_view_account_display_name_text_part.dart';
 part 'account_center_view_account_identity_part.dart';
 part 'account_center_view_account_name_row_part.dart';
 part 'account_center_view_account_username_part.dart';
