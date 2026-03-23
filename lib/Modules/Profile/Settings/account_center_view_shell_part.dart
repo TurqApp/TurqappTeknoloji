@@ -5,7 +5,17 @@ extension AccountCenterViewShellPart on AccountCenterView {
     return Scaffold(
       key: const ValueKey<String>(IntegrationTestKeys.screenAccountCenter),
       backgroundColor: const Color(0xFFFAFAFA),
-      body: _buildPageShellBody(context),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'settings.account_center'.tr),
+            Expanded(
+              child: _buildBody(context),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

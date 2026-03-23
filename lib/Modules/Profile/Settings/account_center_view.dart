@@ -118,7 +118,6 @@ part 'account_center_view_security_toggle_action_part.dart';
 part 'account_center_view_security_stream_part.dart';
 part 'account_center_view_security_toggle_part.dart';
 part 'account_center_view_shell_part.dart';
-part 'account_center_view_shell_body_part.dart';
 
 class AccountCenterView extends StatelessWidget {
   AccountCenterView({super.key});
