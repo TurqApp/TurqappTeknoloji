@@ -38,16 +38,4 @@ extension MyAdminApprovalResultsViewShellPart on MyAdminApprovalResultsView {
       ),
     );
   }
-
-  Widget _buildMessageState(String text) {
-    return Center(
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontFamily: 'MontserratMedium',
-          fontSize: 13,
-        ),
-      ),
-    );
-  }
 }
