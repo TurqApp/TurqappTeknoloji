@@ -46,18 +46,7 @@ extension AccountCenterViewActionsPart on AccountCenterView {
     }
 
     if (currentUid.isNotEmpty) {
-      try {
-        await accountCenter.markSessionState(
-          uid: currentUid,
-          isSessionValid: false,
-        );
-        await _userRepository.updateUserFields(currentUid, {'token': ''});
-      } catch (_) {}
-
-      try {
-        await CurrentUserService.instance.logout();
-        await FirebaseAuth.instance.signOut();
-      } catch (_) {}
+      await _clearCurrentSession(currentUid);
     }
 
     await Get.offAll(
