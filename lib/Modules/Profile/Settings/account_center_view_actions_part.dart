@@ -10,7 +10,12 @@ extension AccountCenterViewActionsPart on AccountCenterView {
       return;
     }
 
-    await _continueWithAccountBranch(
+    if (_hasPasswordProvider(account)) {
+      await _continueWithPasswordProviderAccount(account);
+      return;
+    }
+
+    await _continueWithNonPasswordProviderAccount(
       currentUid: currentUid,
       account: account,
     );
