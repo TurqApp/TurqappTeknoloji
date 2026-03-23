@@ -11,14 +11,7 @@ class _PersonalDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = <Widget>[
-      if (contactDetails != null)
-        _PersonalDetailRow(
-          title: 'account_center.contact_info'.tr,
-          value: contactDetails!,
-          onTap: onContactTap,
-        ),
-    ];
+    final rows = _buildPersonalRows();
 
     if (rows.isEmpty) {
       return _buildPersonalEmptyState();
