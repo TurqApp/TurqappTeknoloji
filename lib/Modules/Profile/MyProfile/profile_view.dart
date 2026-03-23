@@ -71,7 +71,6 @@ import '../../../Models/social_media_model.dart';
 
 part 'profile_view_sections_part.dart';
 part 'profile_view_header_part.dart';
-part 'profile_view_grids_part.dart';
 part 'profile_view_lifecycle_part.dart';
 part 'profile_view_shell_part.dart';
 part 'profile_view_profile_part.dart';
@@ -81,6 +80,11 @@ part 'profile_view_actions_part.dart';
 part 'profile_view_navigation_part.dart';
 part 'profile_view_social_part.dart';
 part 'profile_view_market_part.dart';
+part 'profile_view_photo_part.dart';
+part 'profile_view_video_part.dart';
+part 'profile_view_scheduled_part.dart';
+part 'profile_view_archive_part.dart';
+part 'profile_view_reshare_part.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});

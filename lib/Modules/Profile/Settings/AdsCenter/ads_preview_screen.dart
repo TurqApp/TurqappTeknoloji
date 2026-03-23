@@ -6,6 +6,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'ads_preview_screen_lifecycle_part.dart';
 part 'ads_preview_screen_content_part.dart';
+part 'ads_preview_screen_result_part.dart';
+part 'ads_preview_screen_form_part.dart';
 
 class AdsPreviewScreen extends StatefulWidget {
   const AdsPreviewScreen({super.key});

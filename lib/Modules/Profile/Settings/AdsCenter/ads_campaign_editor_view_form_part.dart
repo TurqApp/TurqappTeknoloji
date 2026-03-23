@@ -1,0 +1,131 @@
+part of 'ads_campaign_editor_view.dart';
+
+extension _AdsCampaignEditorViewFormPart on _AdsCampaignEditorViewState {
+  Widget _section(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontFamily: 'MontserratBold',
+          fontSize: 15,
+        ),
+      ),
+    );
+  }
+
+  Widget _switch(String title, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontFamily: 'MontserratMedium',
+          fontSize: 13,
+        ),
+      ),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _placementSelector() {
+    return Wrap(
+      spacing: 8,
+      children: AdPlacementType.values.map((p) {
+        final selected = _placements.contains(p);
+        return FilterChip(
+          label: Text(p.name),
+          selected: selected,
+          onSelected: (v) => _updateViewState(() {
+            if (v) {
+              _placements.add(p);
+            } else {
+              _placements.remove(p);
+              if (_placements.isEmpty) {
+                _placements.add(AdPlacementType.feed);
+              }
+            }
+          }),
+        );
+      }).toList(growable: false),
+    );
+  }
+
+  Widget _advertiserDropdown() {
+    return Obx(() {
+      final items = _controller.advertisers;
+      return DropdownButtonFormField<String>(
+        initialValue: _advertiserId.isEmpty ? null : _advertiserId,
+        decoration: _d('ads_center.advertiser'.tr),
+        items: items
+            .map((a) => DropdownMenuItem(value: a.id, child: Text(a.name)))
+            .toList(growable: false),
+        onChanged: (v) => _updateViewState(() => _advertiserId = v ?? ''),
+      );
+    });
+  }
+
+  Widget _dateRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: _pickStartDate,
+            child: InputDecorator(
+              decoration: _d('ads_center.start_date'.tr),
+              child: Text(_formatDate(_startAt)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: InkWell(
+            onTap: _pickEndDate,
+            child: InputDecorator(
+              decoration: _d('ads_center.end_date'.tr),
+              child: Text(_formatDate(_endAt)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _txt(TextEditingController c, String hint, {bool numOnly = false}) {
+    return TextField(
+      controller: c,
+      keyboardType: numOnly ? TextInputType.number : TextInputType.text,
+      decoration: _d(hint),
+    );
+  }
+
+  Widget _enumDropdown<T>({
+    required String label,
+    required T value,
+    required List<T> values,
+    required ValueChanged<T> onChanged,
+  }) {
+    return DropdownButtonFormField<T>(
+      initialValue: value,
+      decoration: _d(label),
+      items: values
+          .map(
+            (e) => DropdownMenuItem(
+              value: e,
+              child: Text((e as dynamic).name.toString()),
+            ),
+          )
+          .toList(growable: false),
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
+    );
+  }
+
+  InputDecoration _d(String label) => InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      );
+}

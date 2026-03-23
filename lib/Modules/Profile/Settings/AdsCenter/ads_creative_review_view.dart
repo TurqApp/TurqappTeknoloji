@@ -4,6 +4,8 @@ import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 
 part 'ads_creative_review_view_content_part.dart';
+part 'ads_creative_review_view_dialog_part.dart';
+part 'ads_creative_review_view_tile_part.dart';
 
 class AdsCreativeReviewView extends StatelessWidget {
   const AdsCreativeReviewView({super.key});

@@ -6,6 +6,7 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controll
 
 part 'ads_campaign_list_view_filters_part.dart';
 part 'ads_campaign_list_view_content_part.dart';
+part 'ads_campaign_list_view_tile_part.dart';
 
 class AdsCampaignListView extends StatelessWidget {
   const AdsCampaignListView({super.key});

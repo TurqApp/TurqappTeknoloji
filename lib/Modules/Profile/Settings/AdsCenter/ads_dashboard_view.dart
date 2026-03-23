@@ -5,6 +5,8 @@ import 'package:turqappv2/Models/Ads/ad_feature_flags.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 
 part 'ads_dashboard_view_content_part.dart';
+part 'ads_dashboard_view_helpers_part.dart';
+part 'ads_dashboard_view_sections_part.dart';
 
 class AdsDashboardView extends StatelessWidget {
   const AdsDashboardView({super.key});
