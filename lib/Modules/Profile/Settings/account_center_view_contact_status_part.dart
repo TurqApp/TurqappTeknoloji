@@ -25,17 +25,7 @@ class _ContactStatusRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            children: [
-              _buildContactStatusIcon(),
-              const SizedBox(width: 12),
-              Expanded(child: _buildContactStatusContent()),
-              _buildStatusBadge(),
-            ],
-          ),
-        ),
+        child: _buildContactStatusRowBody(),
       ),
     );
   }

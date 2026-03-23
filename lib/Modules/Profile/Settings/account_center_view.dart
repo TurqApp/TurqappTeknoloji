@@ -55,6 +55,7 @@ part 'account_center_view_contact_status_part.dart';
 part 'account_center_view_contact_status_icon_part.dart';
 part 'account_center_view_contact_status_badge_part.dart';
 part 'account_center_view_contact_status_content_part.dart';
+part 'account_center_view_contact_status_row_body_part.dart';
 part 'account_center_view_contact_status_pending_part.dart';
 part 'account_center_view_contact_status_verified_part.dart';
 part 'account_center_view_content_part.dart';
