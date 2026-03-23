@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -86,7 +87,7 @@ class DeviceSessionService {
     if (secureExisting.isNotEmpty) return secureExisting;
 
     final generated = await _generateDeviceScopedKey();
-    await _storage.write(key: _secureKeyV2, value: generated);
+    await _writeSecureKeyWithRecovery(generated);
     await _clearLegacyKeys();
     _freshKeyGeneratedThisLaunch = true;
     return generated;
@@ -167,5 +168,23 @@ class DeviceSessionService {
     await _storage.delete(key: _secureKey);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_deviceKeyPref);
+  }
+
+  Future<void> _writeSecureKeyWithRecovery(String generated) async {
+    try {
+      await _storage.write(key: _secureKeyV2, value: generated);
+      return;
+    } on PlatformException catch (error) {
+      final message = (error.message ?? '').toLowerCase();
+      final isDuplicateKeychainItem =
+          error.code == '-25299' || message.contains('already exists');
+      if (!isDuplicateKeychainItem) rethrow;
+
+      final existing = (await _storage.read(key: _secureKeyV2) ?? '').trim();
+      if (existing.isNotEmpty) return;
+
+      await _storage.delete(key: _secureKeyV2);
+      await _storage.write(key: _secureKeyV2, value: generated);
+    }
   }
 }
