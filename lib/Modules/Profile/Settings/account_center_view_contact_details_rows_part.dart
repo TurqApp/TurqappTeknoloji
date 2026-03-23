@@ -8,17 +8,12 @@ extension AccountCenterViewContactDetailsRowsPart on _ContactDetailsView {
     required bool phoneVerified,
   }) {
     return Column(
-      children: [
-        _buildEmailContactStatusRow(
-          email: email,
-          emailVerified: emailVerified,
-        ),
-        _buildContactDetailsDivider(),
-        _buildPhoneContactStatusRow(
-          phone: phone,
-          phoneVerified: phoneVerified,
-        ),
-      ],
+      children: _buildContactDetailsRowsChildren(
+        email: email,
+        phone: phone,
+        emailVerified: emailVerified,
+        phoneVerified: phoneVerified,
+      ),
     );
   }
 }
