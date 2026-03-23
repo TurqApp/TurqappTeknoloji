@@ -16,9 +16,32 @@ class _ContactDetailsView extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Obx(
-                  () => _buildResolvedContactDetails(currentUserService),
-                ),
+                child: Obx(() {
+                  final email = currentUserService.email.trim();
+                  final phone = currentUserService.phoneNumber.trim();
+                  final emailVerified =
+                      currentUserService.emailVerifiedRx.value;
+                  final phoneVerified = phone.isNotEmpty;
+                  return _buildAccountCenterCard(
+                    child: Column(
+                      children: [
+                        _buildEmailContactStatusRow(
+                          email: email,
+                          emailVerified: emailVerified,
+                        ),
+                        const Divider(
+                          height: 1,
+                          indent: 18,
+                          endIndent: 18,
+                        ),
+                        _buildPhoneContactStatusRow(
+                          phone: phone,
+                          phoneVerified: phoneVerified,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ),
             ),
           ],

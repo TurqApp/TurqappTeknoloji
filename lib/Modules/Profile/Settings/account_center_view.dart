@@ -33,7 +33,6 @@ part 'account_center_view_row_shell_part.dart';
 part 'account_center_view_contact_details_part.dart';
 part 'account_center_view_contact_details_email_part.dart';
 part 'account_center_view_contact_details_phone_part.dart';
-part 'account_center_view_contact_details_state_part.dart';
 part 'account_center_view_contact_status_part.dart';
 part 'account_center_view_info_content_part.dart';
 part 'account_center_view_personal_data_part.dart';
