@@ -15,7 +15,7 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
               accountCenter: accountCenter,
             ),
             const SizedBox(height: 18),
-            _buildPersonalDetailsContent(),
+            _buildPersonalDetailsBody(),
             if (!_isLoggedIn) const SizedBox(height: 0),
           ],
         );
