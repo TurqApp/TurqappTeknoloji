@@ -17,11 +17,6 @@ extension AccountCenterViewRemovePart on AccountCenterView {
     final shouldRemove = await _showRemoveAccountDialog(context, account);
 
     if (!shouldRemove) return;
-    await accountCenter.removeAccount(account.uid);
-    AppSnackbar(
-      'common.success'.tr,
-      'account_center.account_removed'
-          .trParams(<String, String>{'username': account.username}),
-    );
+    await _removeAccount(account);
   }
 }
