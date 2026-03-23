@@ -18,7 +18,17 @@ class _AccountRow extends StatelessWidget {
     return _buildAccountCenterRowShell(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: _buildAccountRowBody(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            avatar,
+            const SizedBox(width: 14),
+            Expanded(child: _buildAccountIdentity()),
+            _buildAccountCenterChevron(),
+          ],
+        ),
+      ),
     );
   }
 }
