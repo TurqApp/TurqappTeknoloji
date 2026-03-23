@@ -10,7 +10,7 @@ extension SocialMediaControllerDataPart on SocialMediaController {
   Future<void> _bootstrapDataImpl() async {
     if (currentUid.isEmpty) {
       isLoading.value = false;
-      list.clear();
+      list.value = <SocialMediaModel>[];
       return;
     }
     final cached = await _linksRepository.getLinks(
@@ -19,7 +19,7 @@ extension SocialMediaControllerDataPart on SocialMediaController {
       cacheOnly: true,
     );
     if (cached.isNotEmpty) {
-      list.value = cached;
+      list.value = List<SocialMediaModel>.from(cached);
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'profile:social_media:$currentUid',
@@ -38,7 +38,7 @@ extension SocialMediaControllerDataPart on SocialMediaController {
   }) async {
     final uid = currentUid;
     if (uid.isEmpty) {
-      list.clear();
+      list.value = <SocialMediaModel>[];
       isLoading.value = false;
       return;
     }
@@ -46,10 +46,12 @@ extension SocialMediaControllerDataPart on SocialMediaController {
       isLoading.value = true;
     }
     try {
-      list.value = await _linksRepository.getLinks(
-        uid,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
+      list.value = List<SocialMediaModel>.from(
+        await _linksRepository.getLinks(
+          uid,
+          preferCache: !forceRefresh,
+          forceRefresh: forceRefresh,
+        ),
       );
       SilentRefreshGate.markRefreshed('profile:social_media:$uid');
     } finally {

@@ -200,6 +200,47 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         'sample=${visible.take(5).map((post) => post.docID).join(',')}',
       );
     }
+
+    if (visible.isEmpty && startAfter == null) {
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedSnapshot] uid=$normalizedUserId fallback=personal '
+          'reason=visible_empty refs=${refs.length} merged=${merged.length}',
+        );
+      }
+      final personalFallback = await _loadPersonalFallbackPage(
+        currentUserId: normalizedUserId,
+        followingIds: followingIds,
+        hiddenPostIds: hiddenPostIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      if (personalFallback.items.isNotEmpty) {
+        return personalFallback;
+      }
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedSnapshot] uid=$normalizedUserId fallback=legacy '
+          'reason=visible_empty_personal_empty refs=${refs.length} '
+          'merged=${merged.length}',
+        );
+      }
+      return _loadLegacyPage(
+        currentUserId: normalizedUserId,
+        followingIds: followingIds,
+        hiddenPostIds: hiddenPostIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        startAfter: null,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+    }
+
     _invariantGuard.assertNotEmptyAfterRefresh(
       surface: 'feed',
       invariantKey: 'snapshot_visible_after_filter',

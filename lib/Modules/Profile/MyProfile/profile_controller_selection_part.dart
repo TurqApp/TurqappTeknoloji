@@ -141,7 +141,7 @@ extension ProfileControllerSelectionPart on ProfileController {
         lastCenteredIndex! < mergedPosts.length) {
       return lastCenteredIndex!;
     }
-    return -1;
+    return 0;
   }
 
   bool _performCanAutoplayMergedEntry(Map<String, dynamic> entry) {

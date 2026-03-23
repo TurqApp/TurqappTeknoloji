@@ -102,6 +102,7 @@ jobs:
           INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
           INTEGRATION_AUTO_SEED: "1"
           INTEGRATION_REQUIRE_SEED: "1"
+          INTEGRATION_TEST_MANIFEST: config/test_suites/release_gate_e2e.txt
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -190,6 +191,7 @@ jobs:
           INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
           INTEGRATION_AUTO_SEED: "1"
           INTEGRATION_REQUIRE_SEED: "1"
+          INTEGRATION_TEST_MANIFEST: config/test_suites/release_gate_e2e.txt
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: bash scripts/run_turqapp_test_smoke.sh
 

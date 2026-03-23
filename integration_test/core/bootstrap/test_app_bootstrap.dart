@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/stored_account.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
@@ -174,6 +175,8 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
       debugPrint('[integration-smoke] auth: route to NavBar skipped: $error');
     }
   }
+
+  await _primeFeedForSmoke(tester);
 }
 
 Future<void> _resetSmokeSessionForDeterministicSignIn(
@@ -266,6 +269,54 @@ Future<void> _refreshAccountCenterMetadataForSmoke(
     }
     Error.throwWithStackTrace(error, stackTrace);
   }
+}
+
+Future<void> _primeFeedForSmoke(WidgetTester tester) async {
+  final agendaController =
+      AgendaController.maybeFind() ?? AgendaController.ensure();
+  if (agendaController.agendaList.isNotEmpty) {
+    debugPrint(
+      '[integration-smoke] feed: already primed '
+      '(count=${agendaController.agendaList.length})',
+    );
+    return;
+  }
+
+  try {
+    await Future.any([
+      agendaController.refreshAgenda(),
+      Future<void>.delayed(const Duration(seconds: 4)),
+    ]);
+  } catch (error) {
+    debugPrint('[integration-smoke] feed: refresh warmup skipped: $error');
+  }
+
+  int retries = 0;
+  while (agendaController.agendaList.isEmpty && retries < 3) {
+    try {
+      await agendaController.fetchAgendaBigData(initial: true);
+    } catch (error) {
+      debugPrint(
+        '[integration-smoke] feed: fetch retry ${retries + 1}/3 failed: $error',
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+    final error = tester.takeException();
+    if (error != null) {
+      throw TestFailure('Integration smoke feed prime exception: $error');
+    }
+    if (agendaController.agendaList.isNotEmpty) {
+      break;
+    }
+    retries++;
+    if (retries < 3) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  debugPrint(
+    '[integration-smoke] feed: primed count=${agendaController.agendaList.length}',
+  );
 }
 
 Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {
