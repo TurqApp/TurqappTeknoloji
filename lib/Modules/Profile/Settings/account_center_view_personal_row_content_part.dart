@@ -5,23 +5,9 @@ extension AccountCenterViewPersonalRowContentPart on _PersonalDetailRow {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 14,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
+        _buildPersonalRowTitle(),
         const SizedBox(height: 3),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 13,
-            fontFamily: 'MontserratMedium',
-          ),
-        ),
+        _buildPersonalRowValue(),
       ],
     );
   }
