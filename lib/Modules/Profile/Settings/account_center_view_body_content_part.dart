@@ -17,7 +17,14 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildAccountsTitle(),
+                      Text(
+                        'account_center.header_title'.tr,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 26,
+                          fontFamily: 'MontserratBold',
+                        ),
+                      ),
                       const SizedBox(height: 18),
                       _buildAccountsSectionLabel(),
                     ],
