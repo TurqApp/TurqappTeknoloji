@@ -28,6 +28,16 @@ class _PersonalDetailsCard extends StatelessWidget {
       );
     }
 
-    return _buildPersonalCardBody(rows);
+    return _buildAccountCenterCard(
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            rows[i],
+            if (i != rows.length - 1)
+              const Divider(height: 1, indent: 18, endIndent: 18),
+          ],
+        ],
+      ),
+    );
   }
 }
