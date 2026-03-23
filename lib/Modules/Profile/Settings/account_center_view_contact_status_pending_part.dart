@@ -5,13 +5,9 @@ extension AccountCenterViewContactStatusPendingPart on _ContactStatusRow {
     required Color statusColor,
     required String statusText,
   }) {
-    return Text(
-      statusText,
-      style: TextStyle(
-        color: statusColor,
-        fontSize: 14,
-        fontFamily: 'MontserratMedium',
-      ),
+    return _buildContactStatusText(
+      statusColor: statusColor,
+      statusText: statusText,
     );
   }
 }

@@ -71,7 +71,7 @@ part 'account_center_view_contact_status_content_part.dart';
 part 'account_center_view_contact_status_row_body_part.dart';
 part 'account_center_view_contact_status_pending_part.dart';
 part 'account_center_view_contact_status_verified_part.dart';
-part 'account_center_view_contact_status_verified_text_part.dart';
+part 'account_center_view_contact_status_text_part.dart';
 part 'account_center_view_content_part.dart';
 part 'account_center_view_content_sections_part.dart';
 part 'account_center_view_info_content_part.dart';

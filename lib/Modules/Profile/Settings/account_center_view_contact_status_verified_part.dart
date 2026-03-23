@@ -13,7 +13,7 @@ extension AccountCenterViewContactStatusVerifiedPart on _ContactStatusRow {
           size: 18,
         ),
         const SizedBox(width: 6),
-        _buildVerifiedStatusText(
+        _buildContactStatusText(
           statusColor: statusColor,
           statusText: statusText,
         ),
