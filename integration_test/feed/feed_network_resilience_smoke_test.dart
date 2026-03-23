@@ -138,6 +138,7 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
   const timeout = Duration(seconds: 8);
   const step = Duration(milliseconds: 200);
   final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
+  var recoveryAttempts = 0;
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
@@ -153,6 +154,22 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
         (value.isPlaying || value.position > Duration.zero);
     if (playable) {
       return adapter;
+    }
+    final stalledReadyAdapter = adapter != null &&
+        !adapter.isDisposed &&
+        value != null &&
+        value.isInitialized &&
+        value.hasRenderedFirstFrame &&
+        !value.isPlaying &&
+        !value.isBuffering &&
+        value.position == Duration.zero;
+    if (stalledReadyAdapter && recoveryAttempts < 3) {
+      recoveryAttempts += 1;
+      await adapter.play();
+      await tester.pump(const Duration(milliseconds: 220));
+      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
+        await adapter.recoverFrozenPlayback();
+      }
     }
   }
 
@@ -206,6 +223,13 @@ Future<void> _waitForPlaybackAdvance(
         position >= duration - const Duration(milliseconds: 250);
     if (value.isCompleted || nearEnd) {
       return;
+    }
+    if (!value.isPlaying &&
+        !value.isBuffering &&
+        position == baseline &&
+        i > 4) {
+      await adapter.recoverFrozenPlayback();
+      await tester.pump(const Duration(milliseconds: 320));
     }
   }
 
