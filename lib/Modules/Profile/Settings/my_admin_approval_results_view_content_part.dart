@@ -18,10 +18,10 @@ extension MyAdminApprovalResultsViewContentPart on MyAdminApprovalResultsView {
             (data['resolvedByNickname'] ?? '').toString().trim();
         final rejectionReason =
             (data['rejectionReason'] ?? '').toString().trim();
-        final createdAt = MyAdminApprovalResultsView._formatTimestamp(
+        final createdAt = MyAdminApprovalResultsViewFormatPart.formatTimestamp(
           data['createdAt'],
         );
-        final resolvedAt = MyAdminApprovalResultsView._formatTimestamp(
+        final resolvedAt = MyAdminApprovalResultsViewFormatPart.formatTimestamp(
           data['resolvedAt'],
         );
         return Container(
