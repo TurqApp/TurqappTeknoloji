@@ -22,6 +22,13 @@ extension ErrorHandlingServiceProcessingPart on ErrorHandlingService {
     );
 
     await _logError(appError);
+    recordQALabHandledError(
+      code: appError.code,
+      message: appError.message,
+      severity: appError.severity.name,
+      metadata: appError.metadata,
+      stackTrace: appError.stackTrace,
+    );
 
     var shouldShow = showToUser;
     if (appError.category == ErrorCategory.network) {

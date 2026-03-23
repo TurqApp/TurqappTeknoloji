@@ -80,6 +80,15 @@ extension _SettingsViewDiagnosticsMenuPart on _SettingsViewState {
                   Get.to(() => const ErrorReportWidget());
                 },
               ),
+              if (QALabMode.enabled)
+                ListTile(
+                  leading: const Icon(CupertinoIcons.waveform_path_ecg),
+                  title: Text("settings.diagnostics.qa_lab".tr),
+                  onTap: () {
+                    Get.back();
+                    Get.to(() => const QALabView());
+                  },
+                ),
             ],
           ),
         ),

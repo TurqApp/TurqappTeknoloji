@@ -49,6 +49,8 @@ import 'package:turqappv2/Core/Widgets/error_report_widget.dart';
 import 'package:turqappv2/Core/Services/error_handling_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
+import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Services/upload_queue_service.dart';
 import 'package:turqappv2/Core/Services/draft_service.dart';
 import 'package:turqappv2/Core/Services/post_editing_service.dart';
@@ -61,6 +63,7 @@ import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
+import 'package:turqappv2/Modules/Profile/Settings/qa_lab_view.dart';
 
 part 'settings_sections_admin_part.dart';
 part 'settings_sections_account_part.dart';

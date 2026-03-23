@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class VideoSessionMetrics {
@@ -123,21 +124,44 @@ class VideoTelemetryService {
   void startSession(String videoId, String videoUrl) {
     _activeSessions[videoId] =
         VideoSessionMetrics(videoId: videoId, videoUrl: videoUrl);
+    recordQALabVideoEvent(
+      code: 'video_session_started',
+      message: 'Video session started',
+      metadata: <String, dynamic>{
+        'videoId': videoId,
+        'videoUrl': videoUrl,
+      },
+    );
   }
 
   /// Record first frame rendered (TTFF).
   void onFirstFrame(String videoId) {
     _activeSessions[videoId]?.markFirstFrame();
+    recordQALabVideoEvent(
+      code: 'video_first_frame',
+      message: 'Video rendered first frame',
+      metadata: <String, dynamic>{'videoId': videoId},
+    );
   }
 
   /// Record buffering start.
   void onBufferingStart(String videoId) {
     _activeSessions[videoId]?.onBufferingStart();
+    recordQALabVideoEvent(
+      code: 'video_buffering_started',
+      message: 'Video buffering started',
+      metadata: <String, dynamic>{'videoId': videoId},
+    );
   }
 
   /// Record buffering end.
   void onBufferingEnd(String videoId) {
     _activeSessions[videoId]?.onBufferingEnd();
+    recordQALabVideoEvent(
+      code: 'video_buffering_ended',
+      message: 'Video buffering ended',
+      metadata: <String, dynamic>{'videoId': videoId},
+    );
   }
 
   /// Record position update.
@@ -158,6 +182,11 @@ class VideoTelemetryService {
   /// Record error.
   void onError(String videoId, String message) {
     _activeSessions[videoId]?.onError(message);
+    recordQALabVideoEvent(
+      code: 'video_error',
+      message: message,
+      metadata: <String, dynamic>{'videoId': videoId},
+    );
   }
 
   void updateRuntimeHints(
@@ -192,6 +221,20 @@ class VideoTelemetryService {
   Future<void> endSession(String videoId) async {
     final session = _activeSessions.remove(videoId);
     if (session == null) return;
+    recordQALabVideoEvent(
+      code: 'video_session_ended',
+      message: 'Video session ended',
+      metadata: <String, dynamic>{
+        'videoId': videoId,
+        'ttffMs': session.ttffMs,
+        'rebufferCount': session.rebufferCount,
+        'totalRebufferMs': session.totalRebufferMs,
+        'completionRate': session.completionRate,
+        'completed': session.completed,
+        'isAudible': session.isAudible,
+        'hasStableFocus': session.hasStableFocus,
+      },
+    );
     await _flush(session);
   }
 

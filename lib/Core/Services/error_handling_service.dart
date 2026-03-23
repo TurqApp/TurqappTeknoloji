@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 
 part 'error_handling_service_processing_part.dart';
 part 'error_handling_service_history_part.dart';

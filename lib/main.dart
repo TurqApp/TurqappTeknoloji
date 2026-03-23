@@ -11,6 +11,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 import 'package:turqappv2/Core/Localization/app_translations.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
@@ -41,6 +42,7 @@ Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ensureQALabIfEnabled();
   ErrorWidget.builder = (FlutterErrorDetails details) {
     _reportStartupFallbackError(details);
     return Material(
@@ -111,6 +113,11 @@ Future<void> main() async {
 
 void _reportStartupFallbackError(FlutterErrorDetails details) {
   final error = details.exception;
+  recordQALabFlutterError(
+    details,
+    suppressed: _isExpectedNonFatalNoise(error),
+    sourceLabel: 'startup_fallback',
+  );
   if (_isExpectedNonFatalNoise(error)) {
     debugPrint('Suppressed fallback error: $error');
     return;
@@ -182,6 +189,11 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   FlutterError.onError = (FlutterErrorDetails details) {
     final error = details.exception;
     final stack = details.stack;
+    recordQALabFlutterError(
+      details,
+      suppressed: _isExpectedNonFatalNoise(error),
+      sourceLabel: 'flutter_on_error',
+    );
     if (_isExpectedNonFatalNoise(error)) {
       debugPrint('Suppressed non-fatal: $error');
       return;
@@ -196,6 +208,12 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
     }
   };
   PlatformDispatcher.instance.onError = (error, stack) {
+    recordQALabPlatformError(
+      error,
+      stack,
+      suppressed: _isExpectedNonFatalNoise(error),
+      sourceLabel: 'platform_dispatcher',
+    );
     if (_isExpectedNonFatalNoise(error)) {
       debugPrint('Platform suppressed non-fatal: $error');
       return true;
@@ -268,10 +286,15 @@ class MyApp extends StatelessWidget {
         final current = routing.current;
         final previous = routing.previous;
         if (current == previous) return;
+        recordQALabRouteChange(
+          current: current,
+          previous: previous,
+        );
       },
       defaultTransition: Transition.fade,
       translations: AppTranslations(),
-      locale: languageService?.currentLocale ?? AppLanguageService.fallbackLocale,
+      locale:
+          languageService?.currentLocale ?? AppLanguageService.fallbackLocale,
       fallbackLocale: AppLanguageService.fallbackLocale,
       supportedLocales: AppLanguageService.supportedLocales,
       localizationsDelegates: const [

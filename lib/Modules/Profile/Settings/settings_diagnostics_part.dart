@@ -11,5 +11,6 @@ extension _SettingsViewDiagnosticsPart on _SettingsViewState {
     PostEditingService.ensure();
     MediaEnhancementService.ensure();
     OfflineModeService.ensure();
+    ensureQALabIfEnabled();
   }
 }
