@@ -171,6 +171,38 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   await _primeFeedForSmoke(tester);
 }
 
+Future<void> performSmokeSignOut(WidgetTester tester) async {
+  final currentUid = CurrentUserService.instance.effectiveUserId.trim();
+  final accountCenter = AccountCenterService.ensure();
+
+  if (currentUid.isNotEmpty) {
+    try {
+      await accountCenter.markSessionState(
+        uid: currentUid,
+        isSessionValid: false,
+      );
+    } catch (error) {
+      debugPrint(
+        '[integration-smoke] auth: markSessionState skipped during sign-out: $error',
+      );
+    }
+  }
+
+  await CurrentUserService.instance.logout();
+  await FirebaseAuth.instance.signOut();
+
+  try {
+    await accountCenter.reconcileWithAuthSession();
+  } catch (error) {
+    debugPrint(
+      '[integration-smoke] auth: reconcileWithAuthSession skipped during sign-out: $error',
+    );
+  }
+
+  await tester.pump(const Duration(milliseconds: 300));
+  drainExpectedTesterExceptions(tester, context: 'smoke sign-out');
+}
+
 Future<void> _resetSmokeSessionForDeterministicSignIn(
   WidgetTester tester,
 ) async {

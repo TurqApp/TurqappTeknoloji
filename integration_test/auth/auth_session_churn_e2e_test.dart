@@ -58,9 +58,7 @@ void main() {
           );
           expect(accountCenterAuth['activeSessionValid'], isTrue);
 
-          await CurrentUserService.instance.logout();
-          await FirebaseAuth.instance.signOut();
-          await tester.pump(const Duration(milliseconds: 300));
+          await performSmokeSignOut(tester);
           _drainExpectedChurnExceptions(tester);
 
           final signedOut = await waitForSurfaceProbeContract(
