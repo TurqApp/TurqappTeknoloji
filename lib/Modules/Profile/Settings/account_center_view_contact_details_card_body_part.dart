@@ -8,11 +8,7 @@ extension AccountCenterViewContactDetailsCardBodyPart on _ContactDetailsView {
     required bool phoneVerified,
   }) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black12),
-      ),
+      decoration: _buildContactDetailsCardDecoration(),
       child: _buildContactDetailsRows(
         email: email,
         phone: phone,
