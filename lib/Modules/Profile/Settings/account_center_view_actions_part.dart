@@ -10,7 +10,7 @@ extension AccountCenterViewActionsPart on AccountCenterView {
       return;
     }
 
-    if (_hasPasswordProvider(account)) {
+    if (account.hasPasswordProvider) {
       await _continueWithPasswordProviderAccount(account);
       return;
     }
