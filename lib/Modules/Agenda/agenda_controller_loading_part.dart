@@ -24,7 +24,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           unawaited(fetchAgendaBigData(initial: true));
           return;
         }
-        unawaited(fetchAgendaBigData());
+        unawaited(fetchAgendaBigData(pageLimit: 24));
       },
     );
   }
@@ -77,7 +77,10 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
-  Future<void> fetchAgendaBigData({bool initial = false}) async {
+  Future<void> fetchAgendaBigData({
+    bool initial = false,
+    int? pageLimit,
+  }) async {
     _cancelDeferredInitialNetworkBootstrap();
     final previousAgenda = agendaList.toList(growable: false);
     final previousReshares = publicReshareEvents.toList(growable: false);
@@ -158,7 +161,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      final loadLimit = initial ? 30 : fetchLimit;
+      final loadLimit = initial ? 30 : (pageLimit ?? fetchLimit);
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
