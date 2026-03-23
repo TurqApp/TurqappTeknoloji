@@ -9,6 +9,7 @@ part 'support_contact_view_shell_part.dart';
 part 'support_contact_view_card_part.dart';
 part 'support_contact_view_form_part.dart';
 part 'support_contact_view_submit_part.dart';
+part 'support_contact_view_lifecycle_part.dart';
 part 'support_contact_view_topics_part.dart';
 part 'support_contact_view_topics_catalog_part.dart';
 part 'support_contact_view_actions_part.dart';
@@ -27,17 +28,6 @@ class _SupportContactViewState extends State<SupportContactView> {
       SupportMessageRepository.ensure();
   bool _sending = false;
   String _selectedTopicKey = _supportTopicKeys.first;
-
-  void _updateViewState(VoidCallback fn) {
-    if (!mounted) return;
-    setState(fn);
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
