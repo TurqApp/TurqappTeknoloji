@@ -4,7 +4,13 @@ extension AccountCenterViewBodyPart on AccountCenterView {
   Widget _buildBody(BuildContext context) {
     return FutureBuilder<void>(
       future: _initFuture,
-      builder: (context, snapshot) => _buildBodySnapshot(context, snapshot),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return _buildBodyLoadingState();
+        }
+
+        return _buildBodyContent(context);
+      },
     );
   }
 }
