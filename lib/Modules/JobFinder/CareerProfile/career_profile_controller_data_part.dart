@@ -18,7 +18,7 @@ extension CareerProfileControllerDataPart on CareerProfileController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'jobs:career_profile:$uid',
-        minInterval: _silentRefreshInterval,
+        minInterval: CareerProfileController._silentRefreshInterval,
       )) {
         unawaited(loadCvData(silent: true, forceRefresh: true));
       }

@@ -5,9 +5,10 @@ extension FollowerControllerDataPart on FollowerController {
     if (isLoaded.value) return;
     _pruneUserCache();
 
-    final cached = _userCacheById[userID];
+    final cached = FollowerController._userCacheById[userID];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _userCacheTtl) {
+        DateTime.now().difference(cached.cachedAt) <=
+            FollowerController._userCacheTtl) {
       avatarUrl.value = cached.avatarUrl;
       nickname.value = cached.nickname;
       fullname.value = cached.fullname;
@@ -26,7 +27,7 @@ extension FollowerControllerDataPart on FollowerController {
       avatarUrl.value = resolvedAvatar;
       nickname.value = resolvedNickname;
       fullname.value = resolvedFullname;
-      _userCacheById[userID] = _FollowerUserCacheEntry(
+      FollowerController._userCacheById[userID] = _FollowerUserCacheEntry(
         avatarUrl: resolvedAvatar,
         nickname: resolvedNickname,
         fullname: resolvedFullname,
@@ -39,15 +40,21 @@ extension FollowerControllerDataPart on FollowerController {
 
   void _pruneUserCache() {
     final now = DateTime.now();
-    _userCacheById.removeWhere(
-      (_, entry) => now.difference(entry.cachedAt) > _userCacheStaleRetention,
+    FollowerController._userCacheById.removeWhere(
+      (_, entry) =>
+          now.difference(entry.cachedAt) >
+          FollowerController._userCacheStaleRetention,
     );
-    if (_userCacheById.length <= _maxUserCacheEntries) return;
-    final entries = _userCacheById.entries.toList()
+    if (FollowerController._userCacheById.length <=
+        FollowerController._maxUserCacheEntries) {
+      return;
+    }
+    final entries = FollowerController._userCacheById.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount = _userCacheById.length - _maxUserCacheEntries;
+    final removeCount = FollowerController._userCacheById.length -
+        FollowerController._maxUserCacheEntries;
     for (var i = 0; i < removeCount; i++) {
-      _userCacheById.remove(entries[i].key);
+      FollowerController._userCacheById.remove(entries[i].key);
     }
   }
 
@@ -57,9 +64,10 @@ extension FollowerControllerDataPart on FollowerController {
     _pruneFollowStateCache();
 
     final cacheKey = '$myUid:$userID';
-    final cached = _followStateCacheByUser[cacheKey];
+    final cached = FollowerController._followStateCacheByUser[cacheKey];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _followStateCacheTtl) {
+        DateTime.now().difference(cached.cachedAt) <=
+            FollowerController._followStateCacheTtl) {
       isFollowed.value = cached.isFollowed;
       return;
     }
@@ -70,7 +78,8 @@ extension FollowerControllerDataPart on FollowerController {
       preferCache: true,
     );
     isFollowed.value = exists;
-    _followStateCacheByUser[cacheKey] = _FollowStateCacheEntry(
+    FollowerController._followStateCacheByUser[cacheKey] =
+        _FollowStateCacheEntry(
       isFollowed: exists,
       cachedAt: DateTime.now(),
     );
@@ -78,16 +87,21 @@ extension FollowerControllerDataPart on FollowerController {
 
   void _pruneFollowStateCache() {
     final now = DateTime.now();
-    _followStateCacheByUser.removeWhere(
-      (_, entry) => now.difference(entry.cachedAt) > _followStateStaleRetention,
+    FollowerController._followStateCacheByUser.removeWhere(
+      (_, entry) =>
+          now.difference(entry.cachedAt) >
+          FollowerController._followStateStaleRetention,
     );
-    if (_followStateCacheByUser.length <= _maxFollowStateCacheEntries) return;
-    final entries = _followStateCacheByUser.entries.toList()
+    if (FollowerController._followStateCacheByUser.length <=
+        FollowerController._maxFollowStateCacheEntries) {
+      return;
+    }
+    final entries = FollowerController._followStateCacheByUser.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount =
-        _followStateCacheByUser.length - _maxFollowStateCacheEntries;
+    final removeCount = FollowerController._followStateCacheByUser.length -
+        FollowerController._maxFollowStateCacheEntries;
     for (var i = 0; i < removeCount; i++) {
-      _followStateCacheByUser.remove(entries[i].key);
+      FollowerController._followStateCacheByUser.remove(entries[i].key);
     }
   }
 }

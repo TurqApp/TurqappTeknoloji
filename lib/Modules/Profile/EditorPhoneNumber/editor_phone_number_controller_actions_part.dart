@@ -1,6 +1,6 @@
 part of 'editor_phone_number_controller.dart';
 
-extension _EditorPhoneNumberControllerActionsPart
+extension EditorPhoneNumberControllerActionsPart
     on EditorPhoneNumberController {
   Future<void> sendEmailApproval() async {
     if (isBusy.value) return;

@@ -23,7 +23,8 @@ extension FollowerControllerActionsPart on FollowerController {
     final myUid = _currentUid;
     if (myUid.isNotEmpty) {
       try {
-        _followStateCacheByUser['$myUid:$otherUserID'] = _FollowStateCacheEntry(
+        FollowerController._followStateCacheByUser['$myUid:$otherUserID'] =
+            _FollowStateCacheEntry(
           isFollowed: outcome.nowFollowing,
           cachedAt: DateTime.now(),
         );

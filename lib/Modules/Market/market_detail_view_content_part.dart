@@ -280,7 +280,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
         Expanded(
           child: _primaryButton(
             label: 'common.message'.tr,
-            onTap: () => _contactService.openChat(item),
+            onTap: () => _MarketDetailViewState._contactService.openChat(item),
           ),
         ),
         const SizedBox(width: 8),
@@ -295,7 +295,8 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
           Expanded(
             child: _secondaryButton(
               label: 'common.phone'.tr,
-              onTap: () => _contactService.showPhoneSheet(context, item),
+              onTap: () => _MarketDetailViewState._contactService
+                  .showPhoneSheet(context, item),
             ),
           ),
         ],
@@ -305,7 +306,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
 
   Widget _buildRelatedSection() {
     return FutureBuilder<List<MarketItemModel>>(
-      future: _typesense.searchItems(
+      future: _MarketDetailViewState._typesense.searchItems(
         query: '*',
         limit: 30,
         categoryKey: item.categoryKey,

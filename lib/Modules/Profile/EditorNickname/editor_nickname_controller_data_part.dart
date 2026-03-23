@@ -91,7 +91,7 @@ extension EditorNicknameControllerDataPart on EditorNicknameController {
 
     if (lastChangeMs != null) {
       final elapsed = nowMs - lastChangeMs;
-      if (elapsed <= _graceWindow.inMilliseconds) {
+      if (elapsed <= EditorNicknameController._graceWindow.inMilliseconds) {
         final graceCount = _extractGraceCount(data);
         if (graceCount >= 3) {
           isCooldownActive.value = true;
@@ -102,9 +102,11 @@ extension EditorNicknameControllerDataPart on EditorNicknameController {
         cooldownText.value = '';
         return;
       }
-      if (elapsed < _changeCooldown.inMilliseconds) {
-        final left =
-            Duration(milliseconds: _changeCooldown.inMilliseconds - elapsed);
+      if (elapsed < EditorNicknameController._changeCooldown.inMilliseconds) {
+        final left = Duration(
+          milliseconds:
+              EditorNicknameController._changeCooldown.inMilliseconds - elapsed,
+        );
         final days = left.inDays;
         final hours = left.inHours % 24;
         isCooldownActive.value = true;
@@ -123,7 +125,8 @@ extension EditorNicknameControllerDataPart on EditorNicknameController {
     }
 
     final withinSignupGrace = createdAtMs != null &&
-        (nowMs - createdAtMs) <= _graceWindow.inMilliseconds;
+        (nowMs - createdAtMs) <=
+            EditorNicknameController._graceWindow.inMilliseconds;
     if (withinSignupGrace) {
       isCooldownActive.value = false;
       cooldownText.value = '';
