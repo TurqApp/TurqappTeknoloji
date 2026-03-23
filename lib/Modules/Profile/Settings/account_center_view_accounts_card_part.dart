@@ -12,7 +12,12 @@ extension AccountCenterViewAccountsCardPart on AccountCenterView {
               children: [
                 for (var i = 0; i < items.length; i++) ...[
                   _buildAccountsListItem(context, items[i]),
-                  if (i != items.length - 1) _buildAccountsListDivider(),
+                  if (i != items.length - 1)
+                    const Divider(
+                      height: 1,
+                      indent: 84,
+                      endIndent: 16,
+                    ),
                 ],
                 _buildAddAccountAction(),
               ],

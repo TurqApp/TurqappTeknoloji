@@ -23,7 +23,6 @@ part 'account_center_view_accounts_card_part.dart';
 part 'account_center_view_accounts_add_part.dart';
 part 'account_center_view_accounts_empty_part.dart';
 part 'account_center_view_empty_text_part.dart';
-part 'account_center_view_accounts_list_divider_part.dart';
 part 'account_center_view_accounts_list_item_part.dart';
 part 'account_center_view_avatar_part.dart';
 part 'account_center_view_avatar_fallback_part.dart';
