@@ -113,13 +113,15 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
     final grouped = <int, _CikmisSoruSessionOption>{};
     for (final doc in filtered) {
       final sira = (doc['sira'] as num?)?.toInt() ?? 0;
-      grouped.putIfAbsent(
-        sira,
-        () => _CikmisSoruSessionOption(
-          sira: sira,
-          yil: (doc['yil'] ?? '').toString(),
-        ),
-      );
+      final yil = (doc['yil'] ?? '').toString().trim();
+      final existing = grouped[sira];
+      if (existing == null) {
+        grouped[sira] = _CikmisSoruSessionOption(sira: sira, yil: yil);
+        continue;
+      }
+      if (existing.yil.isEmpty && yil.isNotEmpty) {
+        grouped[sira] = existing.copyWith(yil: yil);
+      }
     }
     final items = grouped.values.toList(growable: false)
       ..sort((a, b) => a.sira.compareTo(b.sira));
@@ -159,4 +161,14 @@ class _CikmisSoruSessionOption {
 
   final int sira;
   final String yil;
+
+  _CikmisSoruSessionOption copyWith({
+    int? sira,
+    String? yil,
+  }) {
+    return _CikmisSoruSessionOption(
+      sira: sira ?? this.sira,
+      yil: yil ?? this.yil,
+    );
+  }
 }
