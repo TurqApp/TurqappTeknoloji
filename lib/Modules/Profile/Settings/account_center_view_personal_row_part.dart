@@ -19,7 +19,12 @@ class _PersonalDetailRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Expanded(child: _buildPersonalRowContent()),
+            Expanded(
+              child: _buildAccountCenterInfoContent(
+                title: title,
+                value: value,
+              ),
+            ),
             _buildAccountCenterChevron(),
           ],
         ),

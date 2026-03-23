@@ -71,7 +71,6 @@ part 'account_center_view_personal_section_label_part.dart';
 part 'account_center_view_personal_loading_part.dart';
 part 'account_center_view_personal_rows_list_part.dart';
 part 'account_center_view_personal_row_part.dart';
-part 'account_center_view_personal_row_content_part.dart';
 part 'account_center_view_personal_rows_part.dart';
 part 'account_center_view_personal_section_part.dart';
 part 'account_center_view_password_provider_part.dart';
