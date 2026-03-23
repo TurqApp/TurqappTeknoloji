@@ -5,13 +5,9 @@ extension AccountCenterViewContactStatusBadgePart on _ContactStatusRow {
     final statusColor = isVerified ? Colors.green : Colors.blueAccent;
     final statusText = isVerified ? verifiedLabel : pendingLabel;
     if (!isVerified) {
-      return Text(
-        statusText,
-        style: TextStyle(
-          color: statusColor,
-          fontSize: 14,
-          fontFamily: 'MontserratMedium',
-        ),
+      return _buildPendingStatusBadge(
+        statusColor: statusColor,
+        statusText: statusText,
       );
     }
 
