@@ -36,7 +36,7 @@ extension MarketFilterSheetActionsPart on _MarketFilterSheetState {
       searchHintText: 'pasaj.market.filter.search_city'.tr,
       selectedItem: selectedCity,
       onSelect: (value) {
-        setState(() {
+        _updateSheetState(() {
           selectedCity = value?.toString() ?? '';
         });
       },
@@ -66,7 +66,7 @@ extension MarketFilterSheetActionsPart on _MarketFilterSheetState {
     final selected = selectedSort == value;
     return GestureDetector(
       onTap: () {
-        setState(() {
+        _updateSheetState(() {
           selectedSort = value;
         });
       },

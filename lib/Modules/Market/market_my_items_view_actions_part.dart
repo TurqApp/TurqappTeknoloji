@@ -21,7 +21,7 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
                   onTap: () async {
                     await Get.to(() => MarketDetailView(item: item));
                     if (!mounted) return;
-                    setState(() => _reload(force: true));
+                    _updateViewState(() => _reload(force: true));
                   },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +123,7 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
     if (action == 'edit') {
       final result = await Get.to(() => MarketCreateView(initialItem: item));
       if (result != null && mounted) {
-        setState(() => _reload(force: true));
+        _updateViewState(() => _reload(force: true));
       }
       return;
     }
@@ -132,7 +132,7 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
       return;
     }
 
-    setState(() {
+    _updateViewState(() {
       _busyIds.add(item.id);
     });
     try {
@@ -142,14 +142,14 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
         status: action,
       );
       if (!mounted) return;
-      setState(() {
+      _updateViewState(() {
         _busyIds.remove(item.id);
         _reload(force: true);
       });
       AppSnackbar('common.success'.tr, _actionSuccessText(action));
     } catch (_) {
       if (!mounted) return;
-      setState(() {
+      _updateViewState(() {
         _busyIds.remove(item.id);
       });
       AppSnackbar(

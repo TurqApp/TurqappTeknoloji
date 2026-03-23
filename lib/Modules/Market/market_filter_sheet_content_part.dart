@@ -26,6 +26,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
     super.dispose();
   }
 
+  void _updateSheetState(VoidCallback updates) {
+    if (!mounted) return;
+    setState(updates);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(

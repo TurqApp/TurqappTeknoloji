@@ -32,6 +32,7 @@ trap 'reset_integration_fixture_if_enabled' EXIT
 COMMON_ARGS=(
   test
   --no-pub
+  --reporter=expanded
   --dart-define=RUN_INTEGRATION_SMOKE=true
   --dart-define=INTEGRATION_DETERMINISTIC_STARTUP=true
   --dart-define=INTEGRATION_SUPPRESS_PERIODIC_SIDE_EFFECTS=true
@@ -47,7 +48,18 @@ echo "[turqapp-test] device=${DEVICE_ID}"
 echo "[turqapp-test] manifest=${MANIFEST} count=${#suite_tests[@]}"
 for test_file in "${suite_tests[@]}"; do
   echo "[turqapp-test] suite=$(basename "$test_file" .dart)"
-  flutter "${COMMON_ARGS[@]}" "$test_file"
+  if ! flutter "${COMMON_ARGS[@]}" "$test_file"; then
+    if [[ -d "artifacts/integration_smoke" ]]; then
+      echo "[turqapp-test] failure artifacts:"
+      find "artifacts/integration_smoke" -maxdepth 1 -type f \
+        \( -name '*.json' -o -name '*.png' \) -print | sort
+      while IFS= read -r artifact_json; do
+        echo "[turqapp-test] artifact_json=${artifact_json}"
+        sed -n '1,220p' "$artifact_json"
+      done < <(find "artifacts/integration_smoke" -maxdepth 1 -type f -name '*.json' | sort)
+    fi
+    exit 1
+  fi
 done
 
 echo "[turqapp-test] all suites passed"

@@ -5,7 +5,8 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     _pruneStaleLookups();
     final cached = _postLookupCache[postID];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _postLookupTtl) {
+        DateTime.now().difference(cached.cachedAt) <=
+            NotifyLookupRepository._postLookupTtl) {
       return cached;
     }
 
@@ -25,7 +26,8 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     final cacheKey = '${currentUid}_$chatID';
     final cached = _chatLookupCache[cacheKey];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _chatLookupTtl) {
+        DateTime.now().difference(cached.cachedAt) <=
+            NotifyLookupRepository._chatLookupTtl) {
       return cached;
     }
     if (currentUid.isEmpty) {
@@ -68,7 +70,8 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     _pruneStaleLookups();
     final cached = _jobLookupCache[jobID];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _jobLookupTtl) {
+        DateTime.now().difference(cached.cachedAt) <=
+            NotifyLookupRepository._jobLookupTtl) {
       return cached;
     }
     final doc = await _firestore.collection('isBul').doc(jobID).get();
@@ -85,7 +88,8 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     _pruneStaleLookups();
     final cached = _tutoringLookupCache[tutoringID];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _tutoringLookupTtl) {
+        DateTime.now().difference(cached.cachedAt) <=
+            NotifyLookupRepository._tutoringLookupTtl) {
       return cached;
     }
     final doc = await _firestore.collection('educators').doc(tutoringID).get();
@@ -102,7 +106,8 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     _pruneStaleLookups();
     final cached = _marketLookupCache[itemId];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _marketLookupTtl) {
+        DateTime.now().difference(cached.cachedAt) <=
+            NotifyLookupRepository._marketLookupTtl) {
       return cached;
     }
     final model = await MarketRepository.ensure().fetchById(

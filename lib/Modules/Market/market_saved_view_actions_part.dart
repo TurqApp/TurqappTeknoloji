@@ -7,7 +7,7 @@ extension MarketSavedViewActionsPart on _MarketSavedViewState {
       onTap: () async {
         await Get.to(() => MarketDetailView(item: item));
         if (!mounted) return;
-        setState(() => _reload(force: true));
+        _updateViewState(() => _reload(force: true));
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -97,20 +97,20 @@ extension MarketSavedViewActionsPart on _MarketSavedViewState {
   }
 
   Future<void> _unsave(MarketItemModel item) async {
-    setState(() {
+    _updateViewState(() {
       _busyIds.add(item.id);
     });
     try {
       await MarketSavedStore.unsave(uid, item.id);
       if (!mounted) return;
-      setState(() {
+      _updateViewState(() {
         _busyIds.remove(item.id);
         _reload(force: true);
       });
       AppSnackbar('common.success'.tr, 'pasaj.market.removed_saved'.tr);
     } catch (_) {
       if (!mounted) return;
-      setState(() {
+      _updateViewState(() {
         _busyIds.remove(item.id);
       });
       AppSnackbar('common.error'.tr, 'pasaj.market.unsave_failed'.tr);

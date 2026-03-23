@@ -62,7 +62,10 @@ extension AdminPushRepositoryQueryPart on AdminPushRepository {
     const pageSize = 350;
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance
         .collection('users')
-        .where('createdDate', isGreaterThanOrEqualTo: pushTargetCutoffMs)
+        .where(
+          'createdDate',
+          isGreaterThanOrEqualTo: AdminPushRepository.pushTargetCutoffMs,
+        )
         .orderBy('createdDate')
         .limit(pageSize);
 
@@ -81,7 +84,10 @@ extension AdminPushRepositoryQueryPart on AdminPushRepository {
       if (users.docs.length < pageSize) break;
       query = FirebaseFirestore.instance
           .collection('users')
-          .where('createdDate', isGreaterThanOrEqualTo: pushTargetCutoffMs)
+          .where(
+            'createdDate',
+            isGreaterThanOrEqualTo: AdminPushRepository.pushTargetCutoffMs,
+          )
           .orderBy('createdDate')
           .startAfterDocument(users.docs.last)
           .limit(pageSize);

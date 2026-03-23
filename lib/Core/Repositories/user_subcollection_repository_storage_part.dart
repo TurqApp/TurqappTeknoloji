@@ -47,7 +47,8 @@ extension UserSubcollectionRepositoryStoragePart
   }) {
     final entry = _memory[key];
     if (entry == null) return null;
-    final fresh = DateTime.now().difference(entry.cachedAt) <= _ttl;
+    final fresh = DateTime.now().difference(entry.cachedAt) <=
+        UserSubcollectionRepository._ttl;
     if (!fresh && !allowStale) return null;
     return entry.items
         .map(
@@ -73,7 +74,8 @@ extension UserSubcollectionRepositoryStoragePart
           (decoded['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
       if (ts <= 0) return null;
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
-      final fresh = DateTime.now().difference(cachedAt) <= _ttl;
+      final fresh = DateTime.now().difference(cachedAt) <=
+          UserSubcollectionRepository._ttl;
       if (!fresh && !allowStale) return null;
       return items
           .map(

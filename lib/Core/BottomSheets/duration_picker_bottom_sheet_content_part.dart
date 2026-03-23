@@ -23,7 +23,7 @@ extension DurationPickerBottomSheetContentPart on DurationPickerBottomSheet {
               child: Align(
                 alignment: Alignment.center,
                 child: CupertinoTheme(
-                  data: const CupertinoThemeData(
+                  data: CupertinoThemeData(
                     brightness: Brightness.light,
                     textTheme: CupertinoTextThemeData(
                       pickerTextStyle: TextStyles.bold20Black,

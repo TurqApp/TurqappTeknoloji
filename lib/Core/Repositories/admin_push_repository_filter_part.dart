@@ -54,6 +54,7 @@ extension AdminPushRepositoryFilterPart on AdminPushRepository {
     final createdAtMs = rawCreatedDate is num
         ? rawCreatedDate.toInt()
         : int.tryParse(rawCreatedDate?.toString() ?? '') ?? 0;
-    return userId.isNotEmpty && createdAtMs >= pushTargetCutoffMs;
+    return userId.isNotEmpty &&
+        createdAtMs >= AdminPushRepository.pushTargetCutoffMs;
   }
 }

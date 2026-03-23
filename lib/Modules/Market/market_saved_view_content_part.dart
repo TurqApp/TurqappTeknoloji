@@ -21,6 +21,11 @@ class _MarketSavedViewState extends State<MarketSavedView> {
     );
   }
 
+  void _updateViewState(VoidCallback updates) {
+    if (!mounted) return;
+    setState(updates);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +48,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
           final items = snapshot.data ?? const <MarketItemModel>[];
           return RefreshIndicator(
             onRefresh: () async {
-              setState(() => _reload(force: true));
+              _updateViewState(() => _reload(force: true));
             },
             child: items.isEmpty
                 ? _buildEmptyState()
