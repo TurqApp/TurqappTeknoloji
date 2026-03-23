@@ -14,7 +14,7 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
 
     if (cacheOnly) return const <Map<String, dynamic>>[];
 
-    final docs = await _fetchRootDocsFromTypesense();
+    final docs = await _fetchRootDocsFromFirestore();
     await _writeList(cacheKey, docs);
     return docs;
   }
@@ -65,24 +65,14 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
     }
 
     final missing = wanted.where((id) => !resolved.containsKey(id)).toList();
-    for (var i = 0; i < missing.length; i += 50) {
-      final end = (i + 50 > missing.length) ? missing.length : i + 50;
-      final chunk = missing.sublist(i, end);
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.pastQuestion,
-        query: '*',
-        limit: chunk.length,
-        page: 1,
-        filterBy: TypesenseEducationSearchService.filterIn('docId', chunk),
-        sortBy: 'seq:asc,timeStamp:desc',
-      );
-      for (final hit in result.hits) {
-        final mapped = _rootDocFromHit(hit);
-        final docId = (mapped['_docId'] ?? '').toString();
-        if (docId.isNotEmpty) {
-          resolved[docId] = mapped;
-        }
-      }
+    for (final id in missing) {
+      final doc = await _firestore
+          .collection('questions')
+          .doc(id)
+          .get(const GetOptions(source: Source.serverAndCache));
+      if (!doc.exists) continue;
+      final mapped = _normalizeRootDoc(doc.id, doc.data() ?? const {});
+      resolved[doc.id] = mapped;
     }
 
     return wanted
@@ -136,6 +126,7 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
     required String yil,
     required String baslik2,
     required String baslik3,
+    int? sira,
   }) async {
     final docs = await fetchRootDocs();
     for (final doc in docs) {
@@ -143,7 +134,8 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
           (doc['sinavTuru'] ?? '').toString() == sinavTuru &&
           (doc['yil'] ?? '').toString() == yil &&
           (doc['baslik2'] ?? '').toString() == baslik2 &&
-          (doc['baslik3'] ?? '').toString() == baslik3) {
+          (doc['baslik3'] ?? '').toString() == baslik3 &&
+          (sira == null || ((doc['sira'] as num?)?.toInt() ?? 0) == sira)) {
         return (doc['_docId'] ?? '').toString();
       }
     }

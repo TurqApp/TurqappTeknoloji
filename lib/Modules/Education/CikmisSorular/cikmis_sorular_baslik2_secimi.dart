@@ -10,12 +10,14 @@ class CikmisSorularBaslik2Secimi extends StatefulWidget {
   final String anaBaslik;
   final String sinavTuru;
   final String yil;
+  final int? sira;
 
   const CikmisSorularBaslik2Secimi({
     super.key,
     required this.anaBaslik,
     required this.sinavTuru,
     required this.yil,
+    this.sira,
   });
 
   @override
@@ -57,12 +59,14 @@ class _CikmisSorularBaslik2SecimiState
     super.initState();
     _repository
         .distinctValues(
-          where: (doc) =>
-              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
-              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
-              (doc['yil'] ?? '').toString() == widget.yil,
-          field: 'baslik2',
-        )
+      where: (doc) =>
+          (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+          (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
+          (doc['yil'] ?? '').toString() == widget.yil &&
+          (widget.sira == null ||
+              ((doc['sira'] as num?)?.toInt() ?? 0) == widget.sira),
+      field: 'baslik2',
+    )
         .then((basliklarList) {
       if (mounted) {
         setState(() {
@@ -115,6 +119,7 @@ class _CikmisSorularBaslik2SecimiState
                                       sinavTuru: widget.sinavTuru,
                                       yil: widget.yil,
                                       baslik2: basliklar[index],
+                                      sira: widget.sira,
                                     ),
                                   ),
                                 );
@@ -128,6 +133,7 @@ class _CikmisSorularBaslik2SecimiState
                                       yil: widget.yil,
                                       baslik2: basliklar[index],
                                       baslik3: widget.sinavTuru,
+                                      sira: widget.sira,
                                     ),
                                   ),
                                 );

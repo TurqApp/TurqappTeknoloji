@@ -2,7 +2,7 @@ part of 'cikmis_sorular_yil_sectirme.dart';
 
 extension CikmisSorularYilSectirmeActionsPart
     on _CikmisSorularYilSectirmeState {
-  void _openYear(BuildContext context, String yil) {
+  void _openSession(BuildContext context, _CikmisSoruSessionOption session) {
     if (_isLanguageOrDirectBranch(widget.sinavTuru)) {
       Navigator.push(
         context,
@@ -10,7 +10,8 @@ extension CikmisSorularYilSectirmeActionsPart
           builder: (context) => CikmisSorularBaslik2Secimi(
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
-            yil: yil,
+            yil: session.yil,
+            sira: session.sira,
           ),
         ),
       );
@@ -25,8 +26,9 @@ extension CikmisSorularYilSectirmeActionsPart
           builder: (context) => CikmisSorularBaslik3Secimi(
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
-            yil: yil,
+            yil: session.yil,
             baslik2: widget.baslik2,
+            sira: session.sira,
           ),
         ),
       );
@@ -39,9 +41,10 @@ extension CikmisSorularYilSectirmeActionsPart
         builder: (context) => CikmisSorularPreview(
           anaBaslik: widget.anaBaslik,
           sinavTuru: widget.sinavTuru,
-          yil: yil,
+          yil: session.yil,
           baslik2: _resolvePreviewBaslik2(),
           baslik3: _resolvePreviewBaslik3(),
+          sira: session.sira,
         ),
       ),
     );

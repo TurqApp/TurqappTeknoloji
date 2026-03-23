@@ -121,6 +121,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
                 yil: yil,
                 baslik2: baslik2,
                 baslik3: baslik3,
+                sira: (item['sira'] as num?)?.toInt(),
               ),
             );
           },

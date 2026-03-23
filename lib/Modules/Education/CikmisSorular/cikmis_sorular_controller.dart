@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_cover_model.dart';
@@ -22,6 +23,7 @@ class CikmisSorularController extends GetxController {
 
   final CikmisSorularSnapshotRepository _snapshotRepository =
       CikmisSorularSnapshotRepository.ensure();
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
 
   final covers = <Map<String, dynamic>>[].obs;
   final searchResults = <Map<String, dynamic>>[].obs;
@@ -130,21 +132,32 @@ class CikmisSorularController extends GetxController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final resource = await _snapshotRepository.search(
-        query: normalized,
-        userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
-        forceSync: true,
+      final docs = await _repository.fetchRootDocs(
+        preferCache: true,
+        forceRefresh: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
         return;
       }
-
-      final docs = resource.data ?? const <Map<String, dynamic>>[];
+      final lowered = normalized.toLowerCase();
+      final filtered = docs.where((doc) {
+        final haystack = <String>[
+          (doc['title'] ?? '').toString(),
+          (doc['subtitle'] ?? '').toString(),
+          (doc['description'] ?? '').toString(),
+          (doc['anaBaslik'] ?? '').toString(),
+          (doc['sinavTuru'] ?? '').toString(),
+          (doc['yil'] ?? '').toString(),
+          (doc['baslik2'] ?? '').toString(),
+          (doc['baslik3'] ?? '').toString(),
+          (doc['dil'] ?? '').toString(),
+        ].join(' ').toLowerCase();
+        return haystack.contains(lowered);
+      }).toList(growable: false);
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
         return;
       }
-      searchResults.assignAll(docs);
+      searchResults.assignAll(filtered);
     } catch (e) {
       debugPrint('Past question typesense search error: $e');
       if (token == _searchToken) {

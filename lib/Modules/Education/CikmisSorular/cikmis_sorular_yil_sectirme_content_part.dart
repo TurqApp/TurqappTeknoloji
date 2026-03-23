@@ -29,10 +29,10 @@ extension CikmisSorularYilSectirmeContentPart
                           mainAxisSpacing: 8,
                           childAspectRatio: 0.78,
                         ),
-                        itemCount: yillar.length,
+                        itemCount: sessions.length,
                         itemBuilder: (context, index) {
                           return GestureDetector(
-                            onTap: () => _openYear(context, yillar[index]),
+                            onTap: () => _openSession(context, sessions[index]),
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 2),
                               child: _buildYearCard(index),
@@ -112,7 +112,7 @@ extension CikmisSorularYilSectirmeContentPart
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          _denemeLabel(index),
+                          _denemeLabel(sessions[index].sira),
                           textScaler: TextScaler.noScaling,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -123,6 +123,25 @@ extension CikmisSorularYilSectirmeContentPart
                         ),
                       ),
                     ),
+                    if (sessions[index].yil.isNotEmpty) ...[
+                      SizedBox(height: compact ? 2 : 4),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            sessions[index].yil,
+                            textScaler: TextScaler.noScaling,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               );

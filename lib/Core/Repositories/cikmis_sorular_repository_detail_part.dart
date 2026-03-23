@@ -39,46 +39,54 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
     await _writeList(cacheKey, raw);
   }
 
-  Future<List<Map<String, dynamic>>> _fetchRootDocsFromTypesense() async {
-    final docs = <Map<String, dynamic>>[];
-    var page = 1;
-    const limit = 250;
-    while (true) {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.pastQuestion,
-        query: '*',
-        limit: limit,
-        page: page,
-        filterBy: 'active:=true',
-        sortBy: 'seq:asc,timeStamp:desc',
-      );
-      final chunk = result.hits
-          .map(_rootDocFromHit)
-          .where((doc) => (doc['_docId'] ?? '').toString().isNotEmpty)
-          .toList(growable: false);
-      docs.addAll(chunk);
-      if ((page * limit) >= result.found || chunk.isEmpty) break;
-      page++;
-    }
+  Future<List<Map<String, dynamic>>> _fetchRootDocsFromFirestore() async {
+    final snap = await _firestore
+        .collection('questions')
+        .get(const GetOptions(source: Source.serverAndCache));
+    final docs = snap.docs
+        .map((doc) => _normalizeRootDoc(doc.id, doc.data()))
+        .where(_isActiveRootDoc)
+        .toList(growable: true);
+    docs.sort((a, b) {
+      final seqA = (a['sira'] as num?)?.toInt() ?? 0;
+      final seqB = (b['sira'] as num?)?.toInt() ?? 0;
+      final bySeq = seqA.compareTo(seqB);
+      if (bySeq != 0) return bySeq;
+      final tsA = (a['timeStamp'] as num?)?.toInt() ?? 0;
+      final tsB = (b['timeStamp'] as num?)?.toInt() ?? 0;
+      return tsB.compareTo(tsA);
+    });
     return docs;
   }
 
-  Map<String, dynamic> _rootDocFromHit(Map<String, dynamic> hit) {
+  Map<String, dynamic> _normalizeRootDoc(
+    String docId,
+    Map<String, dynamic> data,
+  ) {
     return <String, dynamic>{
-      '_docId': (hit['docId'] ?? hit['id'] ?? '').toString(),
-      'anaBaslik': (hit['anaBaslik'] ?? '').toString(),
-      'sinavTuru': (hit['sinavTuru'] ?? '').toString(),
-      'yil': (hit['yil'] ?? '').toString(),
-      'baslik2': (hit['baslik2'] ?? '').toString(),
-      'baslik3': (hit['baslik3'] ?? '').toString(),
-      'dil': (hit['dil'] ?? '').toString(),
-      'sira': (hit['seq'] as num?)?.toInt() ?? 0,
-      'title': (hit['title'] ?? '').toString(),
-      'subtitle': (hit['subtitle'] ?? '').toString(),
-      'description': (hit['description'] ?? '').toString(),
-      'cover': (hit['cover'] ?? '').toString(),
-      'timeStamp': hit['timeStamp'] ?? 0,
+      '_docId': docId,
+      'anaBaslik': (data['anaBaslik'] ?? '').toString(),
+      'sinavTuru': (data['sinavTuru'] ?? '').toString(),
+      'yil': (data['yil'] ?? '').toString(),
+      'baslik2': (data['baslik2'] ?? '').toString(),
+      'baslik3': (data['baslik3'] ?? '').toString(),
+      'dil': (data['dil'] ?? '').toString(),
+      'sira': (data['sira'] as num?)?.toInt() ?? 0,
+      'title': (data['title'] ?? '').toString(),
+      'subtitle': (data['subtitle'] ?? '').toString(),
+      'description': (data['description'] ?? '').toString(),
+      'cover': (data['cover'] ?? data['soru'] ?? data['img'] ?? '').toString(),
+      'timeStamp': data['timeStamp'] ?? 0,
+      'active': data['active'],
+      'iptal': data['iptal'],
+      'deleted': data['deleted'],
     };
+  }
+
+  bool _isActiveRootDoc(Map<String, dynamic> doc) {
+    final active = doc['active'];
+    if (active is bool) return active;
+    return doc['iptal'] != true && doc['deleted'] != true;
   }
 
   CikmisSorularinModeli _questionItemFromMap(Map<String, dynamic> doc) {

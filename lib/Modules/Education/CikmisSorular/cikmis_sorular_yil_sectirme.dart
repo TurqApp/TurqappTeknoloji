@@ -30,7 +30,7 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
-  List<String> yillar = [];
+  List<_CikmisSoruSessionOption> sessions = [];
   static const _english = 'İngilizce';
   static const _german = 'Almanca';
   static const _arabic = 'Arapça';
@@ -53,8 +53,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   static const _ales = 'ALES';
   static const _yks = 'YKS';
 
-  String _denemeLabel(int index) =>
-      'past_questions.mock_label'.trParams({'index': '${index + 1}'});
+  String _denemeLabel(int sira) =>
+      'past_questions.mock_label'.trParams({'index': '${sira + 1}'});
 
   String _localizedExamType(String raw) {
     switch (raw) {
@@ -107,38 +107,56 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
     getData();
   }
 
-  void getData() {
-    _repository
-        .distinctValues(
-      where: (doc) {
-        if ((doc['anaBaslik'] ?? '').toString() != widget.anaBaslik ||
-            (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {
-          return false;
-        }
-        if (_isLanguageOrDirectBranch(widget.baslik2)) {
-          return true;
-        }
-        if (widget.baslik3.isNotEmpty) {
-          return (doc['baslik3'] ?? '').toString() == widget.baslik3 &&
-              (doc['baslik2'] ?? '').toString() == widget.baslik2;
-        }
-        if (widget.baslik2.isNotEmpty) {
-          return (doc['baslik2'] ?? '').toString() == widget.baslik2;
-        }
-        return true;
-      },
-      field: 'yil',
-      descendingNumeric: true,
-    )
-        .then((items) {
-      if (mounted) {
-        setState(() {
-          yillar = items;
-        });
-      }
+  Future<void> getData() async {
+    final docs = await _repository.fetchRootDocs();
+    final filtered = docs.where(_matchesSessionDoc).toList(growable: false);
+    final grouped = <int, _CikmisSoruSessionOption>{};
+    for (final doc in filtered) {
+      final sira = (doc['sira'] as num?)?.toInt() ?? 0;
+      grouped.putIfAbsent(
+        sira,
+        () => _CikmisSoruSessionOption(
+          sira: sira,
+          yil: (doc['yil'] ?? '').toString(),
+        ),
+      );
+    }
+    final items = grouped.values.toList(growable: false)
+      ..sort((a, b) => a.sira.compareTo(b.sira));
+    if (!mounted) return;
+    setState(() {
+      sessions = items;
     });
+  }
+
+  bool _matchesSessionDoc(Map<String, dynamic> doc) {
+    if ((doc['anaBaslik'] ?? '').toString() != widget.anaBaslik ||
+        (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {
+      return false;
+    }
+    if (_isLanguageOrDirectBranch(widget.baslik2)) {
+      return true;
+    }
+    if (widget.baslik3.isNotEmpty) {
+      return (doc['baslik3'] ?? '').toString() == widget.baslik3 &&
+          (doc['baslik2'] ?? '').toString() == widget.baslik2;
+    }
+    if (widget.baslik2.isNotEmpty) {
+      return (doc['baslik2'] ?? '').toString() == widget.baslik2;
+    }
+    return true;
   }
 
   @override
   Widget build(BuildContext context) => _buildPage(context);
+}
+
+class _CikmisSoruSessionOption {
+  const _CikmisSoruSessionOption({
+    required this.sira,
+    required this.yil,
+  });
+
+  final int sira;
+  final String yil;
 }
