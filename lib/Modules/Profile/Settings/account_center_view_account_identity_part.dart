@@ -5,7 +5,16 @@ extension AccountCenterViewAccountIdentityPart on _AccountRow {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildAccountNameRow(),
+        Row(
+          children: [
+            _buildAccountUsername(),
+            RozetContent(
+              size: 17,
+              userID: account.uid,
+              rozetValue: account.rozet,
+            ),
+          ],
+        ),
         ..._buildAccountDisplayName(),
       ],
     );
