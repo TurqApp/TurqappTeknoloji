@@ -9,7 +9,14 @@ extension AccountCenterViewContactDetailsShellPart on _ContactDetailsView {
         child: Column(
           children: [
             _buildContactDetailsHeader(),
-            _buildContactDetailsBody(currentUserService),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Obx(
+                  () => _buildResolvedContactDetails(currentUserService),
+                ),
+              ),
+            ),
           ],
         ),
       ),
