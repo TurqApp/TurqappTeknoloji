@@ -24,8 +24,10 @@ import '../../../Services/user_post_link_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'profile_controller_header_part.dart';
+part 'profile_controller_account_part.dart';
 part 'profile_controller_feed_part.dart';
 part 'profile_controller_lifecycle_part.dart';
+part 'profile_controller_selection_part.dart';
 
 class ProfileController extends GetxController {
   static ProfileController ensure() {

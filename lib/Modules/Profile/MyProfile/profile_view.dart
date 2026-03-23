@@ -76,9 +76,11 @@ part 'profile_view_lifecycle_part.dart';
 part 'profile_view_shell_part.dart';
 part 'profile_view_profile_part.dart';
 part 'profile_view_metrics_part.dart';
+part 'profile_view_tabs_part.dart';
 part 'profile_view_actions_part.dart';
 part 'profile_view_navigation_part.dart';
 part 'profile_view_social_part.dart';
+part 'profile_view_market_part.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
