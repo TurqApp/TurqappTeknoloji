@@ -7,15 +7,7 @@ extension AccountCenterViewAccountsListChildrenPart on AccountCenterView {
   ) {
     return [
       for (var i = 0; i < items.length; i++) ...[
-        _AccountRow(
-          account: items[i],
-          avatar: _avatar(items[i]),
-          onTap: () => _continueWithAccount(items[i]),
-          onLongPress: () => _confirmRemoveAccount(
-            context,
-            items[i],
-          ),
-        ),
+        _buildAccountsListItem(context, items[i]),
         if (i != items.length - 1)
           const Divider(
             height: 1,
