@@ -21,7 +21,17 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
               accountCenter: accountCenter,
             ),
             const SizedBox(height: 18),
-            _buildPersonalDetailsBody(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildPersonalDetailsHeader(),
+                _PersonalDetailsSection(
+                  currentUserService: _currentUserService,
+                  userRepository: _userRepository,
+                  onContactTap: () => Get.to(() => const _ContactDetailsView()),
+                ),
+              ],
+            ),
             if (!_isLoggedIn) const SizedBox(height: 0),
           ],
         );
