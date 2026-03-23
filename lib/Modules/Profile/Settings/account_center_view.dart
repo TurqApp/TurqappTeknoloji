@@ -96,6 +96,7 @@ part 'account_center_view_personal_row_value_part.dart';
 part 'account_center_view_personal_rows_part.dart';
 part 'account_center_view_personal_section_part.dart';
 part 'account_center_view_password_provider_part.dart';
+part 'account_center_view_password_provider_branch_part.dart';
 part 'account_center_view_password_reauth_part.dart';
 part 'account_center_view_password_switch_part.dart';
 part 'account_center_view_session_cleanup_part.dart';
