@@ -21,6 +21,9 @@ class _ContactStatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = accountCenterStatusColor;
+    final statusText = accountCenterStatusText;
+
     return _buildAccountCenterRowShell(
       onTap: onTap,
       child: Padding(
@@ -30,7 +33,34 @@ class _ContactStatusRow extends StatelessWidget {
             _buildContactStatusIcon(),
             const SizedBox(width: 12),
             Expanded(child: _buildContactStatusContent()),
-            _buildStatusBadge(),
+            if (!isVerified)
+              Text(
+                statusText,
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 14,
+                  fontFamily: 'MontserratMedium',
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.checkmark_seal_fill,
+                    color: statusColor,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 14,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
