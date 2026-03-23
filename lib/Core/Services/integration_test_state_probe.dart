@@ -226,6 +226,7 @@ class IntegrationTestStateProbe {
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     return <String, dynamic>{
       'registered': true,
       'count': controller.list.length,
@@ -233,6 +234,13 @@ class IntegrationTestStateProbe {
           .take(24)
           .map((item) => item.docID)
           .toList(growable: false),
+      'likedByMeDocIds': currentUid.isEmpty
+          ? const <String>[]
+          : controller.list
+              .where((item) => item.likes.contains(currentUid))
+              .take(24)
+              .map((item) => item.docID)
+              .toList(growable: false),
       'replyingToCommentId': controller.replyingToCommentId.value,
       'replyingToNickname': controller.replyingToNickname.value,
       'selectedGifUrl': controller.selectedGifUrl.value,

@@ -256,6 +256,42 @@ service cloud.firestore {
         && request.resource.data.deletedTimeStamp is int
         && request.resource.data.deletedTimeStamp >= resource.data.deletedTimeStamp;
     }
+    function canToggleOwnCommentLikeMembership() {
+      return isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['likes'])
+        && request.resource.data.likes is list
+        && resource.data.likes is list
+        && (
+          (
+            request.resource.data.likes.size() == resource.data.likes.size() + 1
+            && request.resource.data.likes.hasAll(resource.data.likes)
+            && request.resource.data.likes.hasAll([request.auth.uid])
+            && !resource.data.likes.hasAny([request.auth.uid])
+          )
+          || (
+            request.resource.data.likes.size() + 1 == resource.data.likes.size()
+            && resource.data.likes.hasAll(request.resource.data.likes)
+            && resource.data.likes.hasAll([request.auth.uid])
+            && !request.resource.data.likes.hasAny([request.auth.uid])
+          )
+        );
+    }
+    function canAdjustCommentReplyCounters() {
+      return isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['hasReplies', 'repliesCount'])
+        && request.resource.data.hasReplies is bool
+        && request.resource.data.repliesCount is int
+        && request.resource.data.repliesCount >= 0
+        && resource.data.repliesCount is int
+        && (
+          request.resource.data.repliesCount == resource.data.repliesCount + 1
+          || request.resource.data.repliesCount + 1 == resource.data.repliesCount
+        )
+        && request.resource.data.hasReplies
+             == (request.resource.data.repliesCount > 0);
+    }
     function isValidStoryCommentCreatePayload() {
       return isAuth()
         && request.resource.data.keys().hasOnly([
@@ -1257,6 +1293,8 @@ service cloud.firestore {
         allow read: if isAuth();
         allow create: if isValidPostCommentCreatePayload();
         allow update: if canSoftDeleteOwnedComment();
+        allow update: if canToggleOwnCommentLikeMembership();
+        allow update: if canAdjustCommentReplyCounters();
         allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
         // Sub-comments (replies)
@@ -1264,6 +1302,7 @@ service cloud.firestore {
           allow read: if isAuth();
           allow create: if isValidSubCommentCreatePayload();
           allow update: if canSoftDeleteOwnedComment();
+          allow update: if canToggleOwnCommentLikeMembership();
           allow delete: if isAuth() && resource.data.userID == request.auth.uid;
         }
       }
