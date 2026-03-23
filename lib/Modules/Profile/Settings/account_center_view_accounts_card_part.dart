@@ -7,7 +7,15 @@ extension AccountCenterViewAccountsCardPart on AccountCenterView {
   ) {
     return _buildAccountCenterCard(
       child: items.isEmpty
-          ? _buildAccountsEmptyState()
+          ? Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 22,
+              ),
+              child: _buildAccountCenterEmptyText(
+                'account_center.no_accounts'.tr,
+              ),
+            )
           : Column(
               children: [
                 for (var i = 0; i < items.length; i++) ...[
