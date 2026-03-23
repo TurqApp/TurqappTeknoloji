@@ -33,6 +33,11 @@ extension AccountCenterViewRemovePart on AccountCenterView {
         false;
 
     if (!shouldRemove) return;
-    await _removeAccount(account);
+    await accountCenter.removeAccount(account.uid);
+    AppSnackbar(
+      'common.success'.tr,
+      'account_center.account_removed'
+          .trParams(<String, String>{'username': account.username}),
+    );
   }
 }
