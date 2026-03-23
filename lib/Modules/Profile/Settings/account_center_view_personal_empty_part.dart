@@ -4,13 +4,8 @@ extension AccountCenterViewPersonalEmptyPart on _PersonalDetailsCard {
   Widget _buildPersonalEmptyState() {
     return _buildAccountCenterCard(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-      child: Text(
+      child: _buildAccountCenterEmptyText(
         'account_center.no_personal_detail'.tr,
-        style: TextStyle(
-          color: Colors.black54,
-          fontSize: 14,
-          fontFamily: 'MontserratMedium',
-        ),
       ),
     );
   }

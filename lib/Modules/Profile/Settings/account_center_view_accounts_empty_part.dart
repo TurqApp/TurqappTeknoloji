@@ -7,14 +7,7 @@ extension AccountCenterViewAccountsEmptyPart on AccountCenterView {
         horizontal: 18,
         vertical: 22,
       ),
-      child: Text(
-        'account_center.no_accounts'.tr,
-        style: const TextStyle(
-          color: Colors.black54,
-          fontSize: 14,
-          fontFamily: 'MontserratMedium',
-        ),
-      ),
+      child: _buildAccountCenterEmptyText('account_center.no_accounts'.tr),
     );
   }
 }
