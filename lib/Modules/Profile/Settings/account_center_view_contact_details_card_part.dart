@@ -15,14 +15,9 @@ extension AccountCenterViewContactDetailsCardPart on _ContactDetailsView {
       ),
       child: Column(
         children: [
-          _ContactStatusRow(
-            icon: CupertinoIcons.mail,
-            title: 'account_center.email'.tr,
-            value: email.isNotEmpty ? email : 'account_center.email_missing'.tr,
-            isVerified: emailVerified,
-            verifiedLabel: 'account_center.verified'.tr,
-            pendingLabel: 'account_center.verify'.tr,
-            onTap: () => Get.to(() => EditorEmail()),
+          _buildEmailContactStatusRow(
+            email: email,
+            emailVerified: emailVerified,
           ),
           const Divider(height: 1, indent: 18, endIndent: 18),
           _ContactStatusRow(
