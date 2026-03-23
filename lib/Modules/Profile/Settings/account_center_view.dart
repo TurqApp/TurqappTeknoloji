@@ -18,7 +18,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'account_center_view_actions_part.dart';
 part 'account_center_view_body_content_part.dart';
-part 'account_center_view_card_shell_part.dart';
 
 class AccountCenterView extends StatelessWidget {
   AccountCenterView({super.key});
