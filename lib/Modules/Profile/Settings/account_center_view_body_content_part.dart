@@ -26,7 +26,14 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      _buildAccountsSectionLabel(),
+                      Text(
+                        'account_center.accounts'.tr,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontFamily: 'MontserratBold',
+                        ),
+                      ),
                     ],
                   ),
                 ),
