@@ -240,6 +240,14 @@ Widget _buildAccountCenterInfoContent({
   );
 }
 
+Widget _buildAccountCenterChevron() {
+  return const Icon(
+    CupertinoIcons.chevron_right,
+    color: Colors.black38,
+    size: 18,
+  );
+}
+
 class _AccountRow extends StatelessWidget {
   const _AccountRow({
     required this.account,
