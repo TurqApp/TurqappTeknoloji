@@ -41,6 +41,8 @@ class _QALabViewState extends State<QALabView> {
             const SizedBox(height: 16),
             _buildActionsCard(),
             const SizedBox(height: 16),
+            _buildPrioritySurfacesCard(),
+            const SizedBox(height: 16),
             _buildCatalogCard(),
             const SizedBox(height: 16),
             _buildFindingsCard(),
@@ -181,6 +183,10 @@ class _QALabViewState extends State<QALabView> {
         const <String, dynamic>{};
     final byTag =
         summary['byTag'] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    final focusCoverage = summary['focusCoverage'] as Map<String, dynamic>? ??
+        const <String, dynamic>{};
+    final focusSurfaces =
+        focusCoverage['surfaces'] as List<dynamic>? ?? const <dynamic>[];
 
     return Card(
       child: Padding(
@@ -203,8 +209,34 @@ class _QALabViewState extends State<QALabView> {
               '${'settings.diagnostics.qa_runnable'.tr}: ${summary['runnableInAppCount'] ?? 0}',
             ),
             const SizedBox(height: 8),
+            Text(
+              'focus coverage: ${focusCoverage['completeCount'] ?? 0}/${focusCoverage['surfaceCount'] ?? 0} complete',
+            ),
+            Text(
+              'focus avg coverage: ${(((focusCoverage['averageCoverage'] ?? 0.0) as num) * 100).toStringAsFixed(0)}%',
+            ),
+            const SizedBox(height: 8),
             Text('origin: $byOrigin'),
             Text('tags: $byTag'),
+            const SizedBox(height: 8),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Critical Surface Coverage'),
+              children:
+                  focusSurfaces.whereType<Map<String, dynamic>>().map((item) {
+                final missingTags =
+                    item['missingTags'] as List<dynamic>? ?? const <dynamic>[];
+                final missingLabel =
+                    missingTags.isEmpty ? '-' : missingTags.join(', ');
+                return ListTile(
+                  dense: true,
+                  title: Text(
+                    '${item['surface']} • ${(((item['coverageRatio'] ?? 0.0) as num) * 100).toStringAsFixed(0)}%',
+                  ),
+                  subtitle: Text('missing: $missingLabel'),
+                );
+              }).toList(growable: false),
+            ),
             const SizedBox(height: 8),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
@@ -259,6 +291,50 @@ class _QALabViewState extends State<QALabView> {
                       ),
                     ),
                   ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildPrioritySurfacesCard() {
+    return Obx(() {
+      final diagnostics = _recorder.buildFocusSurfaceDiagnostics();
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Critical Surfaces',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...diagnostics.map(
+                (item) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    '${item.surface} • health ${item.healthScore}/100',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    'route=${item.latestRoute.isEmpty ? '-' : item.latestRoute}\n'
+                    'coverage=${(item.coverage.coverageRatio * 100).toStringAsFixed(0)}% '
+                    'missing=${item.coverage.missingTags.isEmpty ? "-" : item.coverage.missingTags.join(", ")}\n'
+                    'checkpoints=${item.runtime['checkpointCount'] ?? 0} '
+                    'videoStarts=${item.runtime['videoSessionStartCount'] ?? 0} '
+                    'firstFrames=${item.runtime['videoFirstFrameCount'] ?? 0} '
+                    'cacheFails=${item.runtime['cacheFailureCount'] ?? 0} '
+                    'findings=${item.findings.length}',
+                  ),
+                ),
+              ),
             ],
           ),
         ),

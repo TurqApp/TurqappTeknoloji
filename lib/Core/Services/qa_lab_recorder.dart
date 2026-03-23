@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/runtime_health_exporter.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/telemetry_threshold_policy_adapter.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 
@@ -160,6 +161,38 @@ class QALabPinpointFinding {
   }
 }
 
+class QALabSurfaceDiagnostic {
+  const QALabSurfaceDiagnostic({
+    required this.surface,
+    required this.latestRoute,
+    required this.healthScore,
+    required this.issueCounts,
+    required this.coverage,
+    required this.runtime,
+    required this.findings,
+  });
+
+  final String surface;
+  final String latestRoute;
+  final int healthScore;
+  final Map<String, int> issueCounts;
+  final QALabSurfaceCoverageReport coverage;
+  final Map<String, dynamic> runtime;
+  final List<QALabPinpointFinding> findings;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'surface': surface,
+      'latestRoute': latestRoute,
+      'healthScore': healthScore,
+      'issueCounts': issueCounts,
+      'coverage': coverage.toJson(),
+      'runtime': runtime,
+      'findings': findings.map((item) => item.toJson()).toList(growable: false),
+    };
+  }
+}
+
 class QALabRecorder extends GetxService {
   static QALabRecorder ensure() {
     final existing = maybeFind();
@@ -249,6 +282,16 @@ class QALabRecorder extends GetxService {
       ),
     );
     _trimList(routes, QALabMode.maxRoutes);
+    if (_isPrioritySurface(surface)) {
+      captureCheckpoint(
+        label: 'route_change',
+        surface: surface,
+        extra: <String, dynamic>{
+          'current': current,
+          'previous': previous,
+        },
+      );
+    }
   }
 
   void recordFlutterError(
@@ -438,32 +481,47 @@ class QALabRecorder extends GetxService {
   }
 
   List<QALabPinpointFinding> buildPinpointFindings() {
-    return issues
-        .where((issue) => issue.severity != QALabIssueSeverity.info)
-        .map(
-          (issue) => QALabPinpointFinding(
-            severity: issue.severity,
-            code: issue.code,
-            message: issue.message,
-            route: issue.route,
-            surface: issue.surface,
-            timestamp: issue.timestamp,
-            context: <String, dynamic>{
-              'source': issue.source.name,
-              'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
-            },
+    final findings = <QALabPinpointFinding>[
+      ...issues.where((issue) => issue.severity != QALabIssueSeverity.info).map(
+            (issue) => QALabPinpointFinding(
+              severity: issue.severity,
+              code: issue.code,
+              message: issue.message,
+              route: issue.route,
+              surface: issue.surface,
+              timestamp: issue.timestamp,
+              context: <String, dynamic>{
+                'source': issue.source.name,
+                'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
+              },
+            ),
           ),
-        )
+      ..._buildPrioritySurfaceFindings(),
+      ..._buildTelemetryThresholdFindings(),
+    ];
+    findings.sort(_compareFindings);
+    return _dedupeFindings(findings);
+  }
+
+  List<QALabSurfaceDiagnostic> buildFocusSurfaceDiagnostics() {
+    return QALabCatalog.focusSurfaces
+        .map(_buildSurfaceDiagnostic)
         .toList(growable: false);
   }
 
   Map<String, dynamic> buildExportJson() {
     final currentSnapshot = IntegrationTestStateProbe.snapshot();
     final playbackKpi = PlaybackKpiService.maybeFind();
-    final thresholdReport = playbackKpi == null
+    final runtimeHealthExport = playbackKpi == null
         ? const <String, dynamic>{}
-        : TelemetryThresholdPolicyAdapter.evaluateKpiService(playbackKpi)
-            .toJson();
+        : RuntimeHealthExporter.exportFromKpiService(playbackKpi);
+    final thresholdReport = runtimeHealthExport['thresholdReport']
+            as Map<String, dynamic>? ??
+        (playbackKpi == null
+            ? const <String, dynamic>{}
+            : TelemetryThresholdPolicyAdapter.evaluateKpiService(playbackKpi)
+                .toJson());
+    final surfaceDiagnostics = buildFocusSurfaceDiagnostics();
 
     return <String, dynamic>{
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -496,10 +554,14 @@ class QALabRecorder extends GetxService {
       'pinpointFindings': buildPinpointFindings()
           .map((item) => item.toJson())
           .toList(growable: false),
+      'surfaceDiagnostics': surfaceDiagnostics
+          .map((item) => item.toJson())
+          .toList(growable: false),
       'checkpoints': checkpoints
           .map((checkpoint) => checkpoint.toJson())
           .toList(growable: false),
       'telemetryThresholdReport': thresholdReport,
+      'runtimeHealthExport': runtimeHealthExport,
     };
   }
 
@@ -614,6 +676,577 @@ class QALabRecorder extends GetxService {
     if (surfaceKey.startsWith('notifications_')) return 'notifications';
     if (surfaceKey.startsWith('profile_')) return 'profile';
     return 'cache';
+  }
+
+  List<QALabPinpointFinding> _buildPrioritySurfaceFindings() {
+    return QALabCatalog.focusSurfaces
+        .expand(
+          (surface) => _buildSurfaceRuntimeFindings(
+            surface,
+            _surfaceIssues(surface),
+            _surfaceCheckpoints(surface),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  List<QALabPinpointFinding> _buildTelemetryThresholdFindings() {
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return const <QALabPinpointFinding>[];
+    final report = TelemetryThresholdPolicyAdapter.evaluateKpiService(
+      playbackKpi,
+    );
+    return report.issues
+        .map(
+          (issue) => QALabPinpointFinding(
+            severity: issue.severity.name == 'blocking'
+                ? QALabIssueSeverity.blocking
+                : QALabIssueSeverity.warning,
+            code: 'telemetry_${issue.code}',
+            message: issue.message,
+            route: _latestRouteForSurface(issue.surface),
+            surface: issue.surface,
+            timestamp: DateTime.now(),
+            context: issue.metrics,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  QALabSurfaceDiagnostic _buildSurfaceDiagnostic(String surface) {
+    final surfaceIssues = _surfaceIssues(surface);
+    final surfaceCheckpoints = _surfaceCheckpoints(surface);
+    final runtimeFindings = _buildSurfaceRuntimeFindings(
+      surface,
+      surfaceIssues,
+      surfaceCheckpoints,
+    );
+    final warningCount = surfaceIssues
+        .where((issue) => issue.severity == QALabIssueSeverity.warning)
+        .length;
+    final errorCount = surfaceIssues
+        .where((issue) => issue.severity == QALabIssueSeverity.error)
+        .length;
+    final blockingCount = surfaceIssues
+        .where((issue) => issue.severity == QALabIssueSeverity.blocking)
+        .length;
+    final healthScore = (100 -
+            (runtimeFindings
+                    .where(
+                      (item) => item.severity == QALabIssueSeverity.blocking,
+                    )
+                    .length *
+                22) -
+            (runtimeFindings
+                    .where((item) => item.severity == QALabIssueSeverity.error)
+                    .length *
+                10) -
+            (runtimeFindings
+                    .where(
+                      (item) => item.severity == QALabIssueSeverity.warning,
+                    )
+                    .length *
+                4))
+        .clamp(0, 100)
+        .toInt();
+
+    return QALabSurfaceDiagnostic(
+      surface: surface,
+      latestRoute: _latestRouteForSurface(surface),
+      healthScore: healthScore,
+      issueCounts: <String, int>{
+        'blocking': blockingCount,
+        'error': errorCount,
+        'warning': warningCount,
+        'info':
+            surfaceIssues.length - blockingCount - errorCount - warningCount,
+      },
+      coverage: QALabCatalog.surfaceCoverage(surface),
+      runtime:
+          _surfaceRuntimeSummary(surface, surfaceIssues, surfaceCheckpoints),
+      findings: runtimeFindings,
+    );
+  }
+
+  List<QALabIssue> _surfaceIssues(String surface) {
+    return issues
+        .where((issue) => _matchesSurface(issue.surface, surface))
+        .toList(growable: false);
+  }
+
+  List<QALabCheckpoint> _surfaceCheckpoints(String surface) {
+    return checkpoints
+        .where((checkpoint) => _matchesSurface(checkpoint.surface, surface))
+        .toList(growable: false);
+  }
+
+  List<QALabPinpointFinding> _buildSurfaceRuntimeFindings(
+    String surface,
+    List<QALabIssue> surfaceIssues,
+    List<QALabCheckpoint> surfaceCheckpoints,
+  ) {
+    final findings = <QALabPinpointFinding>[];
+    final latestCheckpoint =
+        surfaceCheckpoints.isEmpty ? null : surfaceCheckpoints.last;
+    final latestProbe =
+        latestCheckpoint?.probe[surface] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final authProbe =
+        latestCheckpoint?.probe['auth'] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final referenceTime = latestCheckpoint?.timestamp ?? DateTime.now();
+    final route = latestCheckpoint?.route.isNotEmpty == true
+        ? latestCheckpoint!.route
+        : _latestRouteForSurface(surface);
+
+    if ((surface == 'feed' || surface == 'short') &&
+        _hasAuthenticatedUser(authProbe)) {
+      final count = _asInt(latestProbe['count']);
+      if (count == 0 && latestProbe['registered'] == true) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: QALabIssueSeverity.blocking,
+            code: '${surface}_blank_surface',
+            message:
+                '$surface surface is registered but returned zero items while authenticated.',
+            route: route,
+            surface: surface,
+            timestamp: referenceTime,
+            context: <String, dynamic>{
+              'checkpoint': latestCheckpoint?.label ?? '',
+            },
+          ),
+        );
+      }
+    }
+
+    if (surface == 'feed') {
+      final count = _asInt(latestProbe['count']);
+      final centeredIndex = _asInt(latestProbe['centeredIndex']);
+      if (count > 0 && (centeredIndex < 0 || centeredIndex >= count)) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: QALabIssueSeverity.error,
+            code: 'feed_centered_index_invalid',
+            message:
+                'Feed has visible items but centered index is outside valid bounds.',
+            route: route,
+            surface: surface,
+            timestamp: referenceTime,
+            context: <String, dynamic>{
+              'count': count,
+              'centeredIndex': centeredIndex,
+            },
+          ),
+        );
+      }
+      final playbackSuspended = latestProbe['playbackSuspended'] == true;
+      final pauseAll = latestProbe['pauseAll'] == true;
+      final canClaimPlaybackNow = latestProbe['canClaimPlaybackNow'] == true;
+      if (count > 0 &&
+          (playbackSuspended || pauseAll || !canClaimPlaybackNow)) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: QALabIssueSeverity.warning,
+            code: 'feed_playback_gate_blocked',
+            message:
+                'Feed has content but playback gate is not eligible for autoplay.',
+            route: route,
+            surface: surface,
+            timestamp: referenceTime,
+            context: <String, dynamic>{
+              'playbackSuspended': playbackSuspended,
+              'pauseAll': pauseAll,
+              'canClaimPlaybackNow': canClaimPlaybackNow,
+            },
+          ),
+        );
+      }
+    } else if (surface == 'short') {
+      final count = _asInt(latestProbe['count']);
+      final activeIndex = _asInt(latestProbe['activeIndex']);
+      if (count > 0 && (activeIndex < 0 || activeIndex >= count)) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: QALabIssueSeverity.error,
+            code: 'short_active_index_invalid',
+            message:
+                'Short surface has items but active index is outside valid bounds.',
+            route: route,
+            surface: surface,
+            timestamp: referenceTime,
+            context: <String, dynamic>{
+              'count': count,
+              'activeIndex': activeIndex,
+            },
+          ),
+        );
+      }
+    } else if (surface == 'chat') {
+      final conversationProbe = latestCheckpoint?.probe['chatConversation']
+              as Map<String, dynamic>? ??
+          const <String, dynamic>{};
+      final lastMediaFailureCode =
+          (conversationProbe['lastMediaFailureCode'] ?? '').toString();
+      if (lastMediaFailureCode.isNotEmpty) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: QALabIssueSeverity.error,
+            code: 'chat_media_failure',
+            message: 'Chat media pipeline reported a failure code.',
+            route: route,
+            surface: surface,
+            timestamp: referenceTime,
+            context: <String, dynamic>{
+              'lastMediaFailureCode': lastMediaFailureCode,
+              'lastMediaFailureDetail':
+                  (conversationProbe['lastMediaFailureDetail'] ?? '')
+                      .toString(),
+              'lastMediaAction':
+                  (conversationProbe['lastMediaAction'] ?? '').toString(),
+            },
+          ),
+        );
+      }
+    } else if (surface == 'notifications') {
+      final lastOpenedNotificationId =
+          (latestProbe['lastOpenedNotificationId'] ?? '').toString();
+      final lastOpenedRouteKind =
+          (latestProbe['lastOpenedRouteKind'] ?? '').toString();
+      if (lastOpenedNotificationId.isNotEmpty && lastOpenedRouteKind.isEmpty) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: QALabIssueSeverity.warning,
+            code: 'notifications_route_resolution_missing',
+            message:
+                'A notification was opened but route resolution metadata stayed empty.',
+            route: route,
+            surface: surface,
+            timestamp: referenceTime,
+            context: <String, dynamic>{
+              'notificationId': lastOpenedNotificationId,
+            },
+          ),
+        );
+      }
+    }
+
+    findings.addAll(
+      _buildVideoSurfaceFindings(
+        surface: surface,
+        surfaceIssues: surfaceIssues,
+        referenceTime: referenceTime,
+        route: route,
+      ),
+    );
+    findings.addAll(
+      _buildCacheSurfaceFindings(
+        surface: surface,
+        surfaceIssues: surfaceIssues,
+        referenceTime: referenceTime,
+        route: route,
+      ),
+    );
+    return findings;
+  }
+
+  Map<String, dynamic> _surfaceRuntimeSummary(
+    String surface,
+    List<QALabIssue> surfaceIssues,
+    List<QALabCheckpoint> surfaceCheckpoints,
+  ) {
+    final videoStarts = surfaceIssues
+        .where((issue) => issue.code == 'video_session_started')
+        .length;
+    final videoFirstFrames = surfaceIssues
+        .where((issue) => issue.code == 'video_first_frame')
+        .length;
+    final videoErrors =
+        surfaceIssues.where((issue) => issue.code == 'video_error').length;
+    final cacheFailures = surfaceIssues
+        .where((issue) => issue.code == 'cache_first_failed')
+        .length;
+    final blankSnapshots = surfaceCheckpoints.where((checkpoint) {
+      final probe = checkpoint.probe[surface] as Map<String, dynamic>? ??
+          const <String, dynamic>{};
+      return probe['registered'] == true && _asInt(probe['count']) == 0;
+    }).length;
+    final runtimeFindings = _buildSurfaceRuntimeFindings(
+      surface,
+      surfaceIssues,
+      surfaceCheckpoints,
+    );
+
+    return <String, dynamic>{
+      'checkpointCount': surfaceCheckpoints.length,
+      'videoSessionStartCount': videoStarts,
+      'videoFirstFrameCount': videoFirstFrames,
+      'videoErrorCount': videoErrors,
+      'cacheFailureCount': cacheFailures,
+      'blankSnapshotCount': blankSnapshots,
+      'runtimeFindingCount': runtimeFindings.length,
+    };
+  }
+
+  List<QALabPinpointFinding> _buildVideoSurfaceFindings({
+    required String surface,
+    required List<QALabIssue> surfaceIssues,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    final findings = <QALabPinpointFinding>[];
+    final firstFrameIds = surfaceIssues
+        .where((issue) => issue.code == 'video_first_frame')
+        .map(_videoIdOf)
+        .where((value) => value.isNotEmpty)
+        .toSet();
+    final endedByVideoId = <String, QALabIssue>{};
+    final bufferingEndedByVideoId = <String, QALabIssue>{};
+
+    for (final issue in surfaceIssues) {
+      final videoId = _videoIdOf(issue);
+      if (videoId.isEmpty) continue;
+      if (issue.code == 'video_session_ended') {
+        endedByVideoId[videoId] = issue;
+      } else if (issue.code == 'video_buffering_ended') {
+        bufferingEndedByVideoId[videoId] = issue;
+      }
+    }
+
+    for (final issue in surfaceIssues) {
+      final videoId = _videoIdOf(issue);
+      if (videoId.isEmpty) continue;
+      if (issue.code == 'video_session_started' &&
+          !firstFrameIds.contains(videoId)) {
+        final ended = endedByVideoId[videoId];
+        final ttffMs = _asInt(ended?.metadata['ttffMs']);
+        final elapsedMs =
+            referenceTime.difference(issue.timestamp).inMilliseconds;
+        if ((ended == null || ttffMs < 0) && elapsedMs >= 8000) {
+          findings.add(
+            QALabPinpointFinding(
+              severity: QALabIssueSeverity.blocking,
+              code: '${surface}_first_frame_timeout',
+              message:
+                  'Video session started on $surface but no first frame was confirmed within 8 seconds.',
+              route: route,
+              surface: surface,
+              timestamp: issue.timestamp,
+              context: <String, dynamic>{
+                'videoId': videoId,
+                'elapsedMs': elapsedMs,
+              },
+            ),
+          );
+        }
+      }
+
+      if (issue.code == 'video_buffering_started') {
+        final ended = bufferingEndedByVideoId[videoId];
+        final stillBuffering =
+            ended == null || ended.timestamp.isBefore(issue.timestamp);
+        final elapsedMs =
+            referenceTime.difference(issue.timestamp).inMilliseconds;
+        if (stillBuffering && elapsedMs >= 6000) {
+          findings.add(
+            QALabPinpointFinding(
+              severity: QALabIssueSeverity.error,
+              code: '${surface}_buffer_stall',
+              message:
+                  'Video buffering started on $surface and never recovered within 6 seconds.',
+              route: route,
+              surface: surface,
+              timestamp: issue.timestamp,
+              context: <String, dynamic>{
+                'videoId': videoId,
+                'elapsedMs': elapsedMs,
+              },
+            ),
+          );
+        }
+      }
+
+      if (issue.code == 'video_session_ended') {
+        final ttffMs = _asInt(issue.metadata['ttffMs']);
+        final rebufferCount = _asInt(issue.metadata['rebufferCount']);
+        final totalRebufferMs = _asInt(issue.metadata['totalRebufferMs']);
+        if (ttffMs >= 12000) {
+          findings.add(
+            QALabPinpointFinding(
+              severity: QALabIssueSeverity.blocking,
+              code: '${surface}_first_frame_too_slow',
+              message:
+                  'Video first frame latency on $surface exceeded 12 seconds.',
+              route: route,
+              surface: surface,
+              timestamp: issue.timestamp,
+              context: <String, dynamic>{
+                'videoId': videoId,
+                'ttffMs': ttffMs,
+              },
+            ),
+          );
+        } else if (ttffMs >= 6000) {
+          findings.add(
+            QALabPinpointFinding(
+              severity: QALabIssueSeverity.warning,
+              code: '${surface}_first_frame_slow',
+              message:
+                  'Video first frame latency on $surface is above warning threshold.',
+              route: route,
+              surface: surface,
+              timestamp: issue.timestamp,
+              context: <String, dynamic>{
+                'videoId': videoId,
+                'ttffMs': ttffMs,
+              },
+            ),
+          );
+        }
+
+        if (rebufferCount >= 6 || totalRebufferMs >= 8000) {
+          findings.add(
+            QALabPinpointFinding(
+              severity: QALabIssueSeverity.error,
+              code: '${surface}_rebuffer_spike',
+              message: 'Video playback on $surface spent too long buffering.',
+              route: route,
+              surface: surface,
+              timestamp: issue.timestamp,
+              context: <String, dynamic>{
+                'videoId': videoId,
+                'rebufferCount': rebufferCount,
+                'totalRebufferMs': totalRebufferMs,
+              },
+            ),
+          );
+        } else if (rebufferCount >= 3 || totalRebufferMs >= 4000) {
+          findings.add(
+            QALabPinpointFinding(
+              severity: QALabIssueSeverity.warning,
+              code: '${surface}_rebuffer_warning',
+              message:
+                  'Video playback on $surface showed noticeable rebuffering.',
+              route: route,
+              surface: surface,
+              timestamp: issue.timestamp,
+              context: <String, dynamic>{
+                'videoId': videoId,
+                'rebufferCount': rebufferCount,
+                'totalRebufferMs': totalRebufferMs,
+              },
+            ),
+          );
+        }
+      }
+    }
+
+    return findings;
+  }
+
+  List<QALabPinpointFinding> _buildCacheSurfaceFindings({
+    required String surface,
+    required List<QALabIssue> surfaceIssues,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    final cacheFailures = surfaceIssues
+        .where((issue) => issue.code == 'cache_first_failed')
+        .toList(growable: false);
+    if (cacheFailures.isEmpty) return const <QALabPinpointFinding>[];
+    final severity = cacheFailures.length >= 3
+        ? QALabIssueSeverity.error
+        : QALabIssueSeverity.warning;
+    return <QALabPinpointFinding>[
+      QALabPinpointFinding(
+        severity: severity,
+        code: '${surface}_cache_live_failures',
+        message:
+            'Cache-first live sync failures were detected on $surface during this session.',
+        route: route,
+        surface: surface,
+        timestamp: referenceTime,
+        context: <String, dynamic>{
+          'failureCount': cacheFailures.length,
+        },
+      ),
+    ];
+  }
+
+  bool _matchesSurface(String actualSurface, String targetSurface) {
+    if (actualSurface == targetSurface) return true;
+    if (targetSurface == 'chat' && actualSurface == 'chat_conversation') {
+      return true;
+    }
+    return false;
+  }
+
+  String _latestRouteForSurface(String surface) {
+    for (final event in routes.reversed) {
+      if (_matchesSurface(event.surface, surface)) {
+        return event.current;
+      }
+    }
+    return surface == lastSurface.value ? lastRoute.value : '';
+  }
+
+  bool _hasAuthenticatedUser(Map<String, dynamic> authProbe) {
+    final currentUid = (authProbe['currentUid'] ?? '').toString();
+    final firebaseSignedIn = authProbe['isFirebaseSignedIn'] == true;
+    final currentUserLoaded = authProbe['currentUserLoaded'] == true;
+    return currentUid.isNotEmpty || firebaseSignedIn || currentUserLoaded;
+  }
+
+  bool _isPrioritySurface(String surface) {
+    return QALabCatalog.focusSurfaces.contains(surface);
+  }
+
+  String _videoIdOf(QALabIssue issue) {
+    return (issue.metadata['videoId'] ?? '').toString();
+  }
+
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse('$value') ?? 0;
+  }
+
+  int _compareFindings(QALabPinpointFinding a, QALabPinpointFinding b) {
+    final severityCompare =
+        _severityRank(b.severity) - _severityRank(a.severity);
+    if (severityCompare != 0) return severityCompare;
+    return b.timestamp.compareTo(a.timestamp);
+  }
+
+  int _severityRank(QALabIssueSeverity severity) {
+    switch (severity) {
+      case QALabIssueSeverity.blocking:
+        return 4;
+      case QALabIssueSeverity.error:
+        return 3;
+      case QALabIssueSeverity.warning:
+        return 2;
+      case QALabIssueSeverity.info:
+        return 1;
+    }
+  }
+
+  List<QALabPinpointFinding> _dedupeFindings(
+    List<QALabPinpointFinding> findings,
+  ) {
+    final seen = <String>{};
+    final deduped = <QALabPinpointFinding>[];
+    for (final finding in findings) {
+      final key = [
+        finding.surface,
+        finding.route,
+        finding.code,
+        finding.message,
+      ].join('|');
+      if (!seen.add(key)) continue;
+      deduped.add(finding);
+    }
+    return deduped;
   }
 
   String _inferSurfaceFromSnapshot(Map<String, dynamic> snapshot) {

@@ -6,6 +6,56 @@ enum QALabTestOrigin {
   backend,
 }
 
+class QALabSurfaceCoverageReport {
+  const QALabSurfaceCoverageReport({
+    required this.surface,
+    required this.requiredTags,
+    required this.coveredTags,
+    required this.missingTags,
+    required this.integrationCount,
+    required this.runnableInAppCount,
+    required this.suiteCount,
+    required this.unitCount,
+    required this.widgetCount,
+    required this.backendCount,
+  });
+
+  final String surface;
+  final List<String> requiredTags;
+  final List<String> coveredTags;
+  final List<String> missingTags;
+  final int integrationCount;
+  final int runnableInAppCount;
+  final int suiteCount;
+  final int unitCount;
+  final int widgetCount;
+  final int backendCount;
+
+  double get coverageRatio {
+    if (requiredTags.isEmpty) return 1;
+    return coveredTags.length / requiredTags.length;
+  }
+
+  bool get complete => missingTags.isEmpty;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'surface': surface,
+      'requiredTags': requiredTags,
+      'coveredTags': coveredTags,
+      'missingTags': missingTags,
+      'integrationCount': integrationCount,
+      'runnableInAppCount': runnableInAppCount,
+      'suiteCount': suiteCount,
+      'unitCount': unitCount,
+      'widgetCount': widgetCount,
+      'backendCount': backendCount,
+      'coverageRatio': coverageRatio,
+      'complete': complete,
+    };
+  }
+}
+
 class QALabCatalogEntry {
   const QALabCatalogEntry({
     required this.path,
@@ -44,6 +94,51 @@ class QALabCatalogEntry {
 
 class QALabCatalog {
   const QALabCatalog._();
+
+  static const List<String> focusSurfaces = <String>[
+    'feed',
+    'short',
+    'chat',
+    'notifications',
+    'auth',
+  ];
+
+  static const Map<String, List<String>> focusSurfaceRequirements =
+      <String, List<String>>{
+    'feed': <String>[
+      'feed',
+      'video',
+      'autoplay',
+      'playback',
+      'hls',
+      'scroll',
+      'audio',
+      'network',
+      'resume',
+    ],
+    'short': <String>[
+      'short',
+      'video',
+      'playback',
+      'scroll',
+      'audio',
+      'resume',
+    ],
+    'chat': <String>[
+      'chat',
+      'message',
+      'upload',
+    ],
+    'notifications': <String>[
+      'notifications',
+      'route',
+    ],
+    'auth': <String>[
+      'auth',
+      'login',
+      'splash',
+    ],
+  };
 
   static const List<QALabCatalogEntry> entries = <QALabCatalogEntry>[
     QALabCatalogEntry(
@@ -404,6 +499,16 @@ class QALabCatalog {
       runnableInApp: false,
     ),
     QALabCatalogEntry(
+      path: 'test/unit/services/qa_lab_catalog_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/unit/services/qa_lab_recorder_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
       path: 'test/unit/services/playback_signal_engine_test.dart',
       origin: QALabTestOrigin.unit,
       runnableInApp: false,
@@ -567,6 +672,7 @@ class QALabCatalog {
     }
     if (lower.contains('/short') || lower.contains('/shorts/')) {
       add('short');
+      add('scroll');
     }
     if (lower.contains('/chat/') || lower.contains('message')) {
       add('chat');
@@ -620,6 +726,12 @@ class QALabCatalog {
         lower.contains('fullscreen')) {
       add('video');
     }
+    if (lower.contains('autoplay')) {
+      add('autoplay');
+    }
+    if (lower.contains('playback')) {
+      add('playback');
+    }
     if (lower.contains('audio') || lower.contains('mute')) {
       add('audio');
     }
@@ -635,6 +747,9 @@ class QALabCatalog {
     if (lower.contains('sign_in')) {
       add('login');
     }
+    if (lower.contains('route') || lower.contains('deeplink')) {
+      add('route');
+    }
     if (lower.contains('rules')) {
       add('backend_rules');
     }
@@ -645,6 +760,95 @@ class QALabCatalog {
       add('general');
     }
     return tags.toList(growable: false);
+  }
+
+  static List<QALabCatalogEntry> entriesForSurface(String surface) {
+    final normalized = surface.trim().toLowerCase();
+    return entries
+        .where((entry) => entry.tags.contains(normalized))
+        .toList(growable: false);
+  }
+
+  static QALabSurfaceCoverageReport surfaceCoverage(String surface) {
+    final normalized = surface.trim().toLowerCase();
+    final requiredTags = List<String>.from(
+      focusSurfaceRequirements[normalized] ?? <String>[normalized],
+    );
+    final relevantEntries = entriesForSurface(normalized);
+    final coveredTags = requiredTags
+        .where(
+          (tag) => relevantEntries.any((entry) => entry.tags.contains(tag)),
+        )
+        .toList(growable: false);
+    final missingTags = requiredTags
+        .where((tag) => !coveredTags.contains(tag))
+        .toList(growable: false);
+
+    var integrationCount = 0;
+    var runnableInAppCount = 0;
+    var suiteCount = 0;
+    var unitCount = 0;
+    var widgetCount = 0;
+    var backendCount = 0;
+
+    for (final entry in relevantEntries) {
+      switch (entry.origin) {
+        case QALabTestOrigin.integration:
+          integrationCount += 1;
+          break;
+        case QALabTestOrigin.suite:
+          suiteCount += 1;
+          break;
+        case QALabTestOrigin.unit:
+          unitCount += 1;
+          break;
+        case QALabTestOrigin.widget:
+          widgetCount += 1;
+          break;
+        case QALabTestOrigin.backend:
+          backendCount += 1;
+          break;
+      }
+      if (entry.runnableInApp) {
+        runnableInAppCount += 1;
+      }
+    }
+
+    return QALabSurfaceCoverageReport(
+      surface: normalized,
+      requiredTags: requiredTags,
+      coveredTags: coveredTags,
+      missingTags: missingTags,
+      integrationCount: integrationCount,
+      runnableInAppCount: runnableInAppCount,
+      suiteCount: suiteCount,
+      unitCount: unitCount,
+      widgetCount: widgetCount,
+      backendCount: backendCount,
+    );
+  }
+
+  static List<QALabSurfaceCoverageReport> focusCoverageReports() {
+    return focusSurfaces.map(surfaceCoverage).toList(growable: false);
+  }
+
+  static Map<String, dynamic> focusCoverageJson() {
+    final reports = focusCoverageReports();
+    final completeCount = reports.where((report) => report.complete).length;
+    final averageCoverage = reports.isEmpty
+        ? 1.0
+        : reports
+                .map((report) => report.coverageRatio)
+                .fold<double>(0, (sum, ratio) => sum + ratio) /
+            reports.length;
+    return <String, dynamic>{
+      'completeCount': completeCount,
+      'surfaceCount': reports.length,
+      'averageCoverage': averageCoverage,
+      'surfaces': reports.map((report) => report.toJson()).toList(
+            growable: false,
+          ),
+    };
   }
 
   static Map<String, dynamic> summaryJson() {
@@ -666,6 +870,7 @@ class QALabCatalog {
       'runnableInAppCount': runnableInAppCount,
       'byOrigin': byOrigin,
       'byTag': byTag,
+      'focusCoverage': focusCoverageJson(),
     };
   }
 }
