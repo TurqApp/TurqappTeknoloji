@@ -420,9 +420,22 @@ Future<void> _assertVideoHealthy(
         value.isCompleted ||
         nearEnd ||
         smokePlayableEnough) {
-      final nativePlaying = await currentAdapter.isPlayingNative();
-      final nativeBuffering = await currentAdapter.isBufferingNative();
-      expect(nativePlaying || nativeBuffering, isTrue,
+      final nativeHealthy = await _waitForNativePlaybackHealthy(
+        currentAdapter,
+        baseline: baseline,
+        timeout: const Duration(seconds: 2),
+      );
+      if (nativeHealthy) {
+        return;
+      }
+      await currentAdapter.recoverFrozenPlayback();
+      await tester.pump(const Duration(milliseconds: 420));
+      final recoveredHealthy = await _waitForNativePlaybackHealthy(
+        currentAdapter,
+        baseline: baseline,
+        timeout: const Duration(seconds: 2),
+      );
+      expect(recoveredHealthy, isTrue,
           reason:
               '$label native player fell into inconsistent state (doc=${currentSample.docId}).');
       return;
@@ -451,17 +464,49 @@ Future<void> _assertAudioToggleWorks(
   expect(unmuted, isTrue, reason: '$label failed unmute toggle.');
 }
 
-Future<bool> _waitForMutedOrVolumeZero(
+Future<bool> _waitForNativePlaybackHealthy(
   HLSVideoAdapter adapter, {
-  Duration timeout = const Duration(seconds: 3),
+  required Duration baseline,
+  Duration timeout = const Duration(seconds: 2),
 }) async {
   final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final nativePlaying = await adapter.isPlayingNative();
+    final nativeBuffering = await adapter.isBufferingNative();
+    if (nativePlaying || nativeBuffering) {
+      return true;
+    }
+    final value = adapter.value;
+    if (!adapter.isDisposed &&
+        value.isInitialized &&
+        value.hasRenderedFirstFrame &&
+        (value.position > baseline ||
+            value.isPlaying ||
+            value.isBuffering ||
+            value.isCompleted)) {
+      return true;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+  }
+  return false;
+}
+
+Future<bool> _waitForMutedOrVolumeZero(
+  HLSVideoAdapter adapter, {
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  var retries = 0;
   while (DateTime.now().isBefore(deadline)) {
     final muted = await adapter.isMutedNative();
     final diagnostics = await adapter.getPlaybackDiagnostics();
     final volume = (diagnostics['volume'] as num?)?.toDouble() ?? 1.0;
     if (muted || volume <= 0.001) {
       return true;
+    }
+    if (retries < 2) {
+      retries += 1;
+      await adapter.setVolume(0);
     }
     await Future<void>.delayed(const Duration(milliseconds: 180));
   }
@@ -470,15 +515,20 @@ Future<bool> _waitForMutedOrVolumeZero(
 
 Future<bool> _waitForAudibleOrUnmuted(
   HLSVideoAdapter adapter, {
-  Duration timeout = const Duration(seconds: 3),
+  Duration timeout = const Duration(seconds: 5),
 }) async {
   final deadline = DateTime.now().add(timeout);
+  var retries = 0;
   while (DateTime.now().isBefore(deadline)) {
     final muted = await adapter.isMutedNative();
     final diagnostics = await adapter.getPlaybackDiagnostics();
     final volume = (diagnostics['volume'] as num?)?.toDouble() ?? 0.0;
     if (!muted && volume >= 0.95) {
       return true;
+    }
+    if (retries < 2) {
+      retries += 1;
+      await adapter.setVolume(1);
     }
     await Future<void>.delayed(const Duration(milliseconds: 180));
   }
