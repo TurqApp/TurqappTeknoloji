@@ -20,6 +20,7 @@ part 'account_center_view_actions_part.dart';
 part 'account_center_view_accounts_part.dart';
 part 'account_center_view_accounts_card_part.dart';
 part 'account_center_view_accounts_header_part.dart';
+part 'account_center_view_body_part.dart';
 part 'account_center_view_sections_part.dart';
 part 'account_center_view_shell_part.dart';
 
