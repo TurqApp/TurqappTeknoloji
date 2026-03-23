@@ -7,6 +7,9 @@ extension AccountCenterViewPersonalSnapshotPart on _PersonalDetailsSection {
       return _buildPersonalLoadingState();
     }
 
-    return _buildPersonalLoadedState(snapshot.data);
+    return _PersonalDetailsCard(
+      contactDetails: snapshot.data,
+      onContactTap: onContactTap,
+    );
   }
 }
