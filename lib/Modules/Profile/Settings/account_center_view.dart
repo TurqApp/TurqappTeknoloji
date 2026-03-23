@@ -55,7 +55,6 @@ part 'account_center_view_personal_card_body_part.dart';
 part 'account_center_view_personal_card_part.dart';
 part 'account_center_view_personal_card_state_part.dart';
 part 'account_center_view_personal_empty_part.dart';
-part 'account_center_view_personal_section_label_part.dart';
 part 'account_center_view_personal_loading_part.dart';
 part 'account_center_view_personal_rows_list_part.dart';
 part 'account_center_view_personal_row_part.dart';
