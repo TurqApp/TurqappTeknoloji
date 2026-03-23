@@ -13,16 +13,7 @@ extension AccountCenterViewActionsPart on AccountCenterView {
     }
 
     if (account.hasPasswordProvider) {
-      final switched = await _continueWithPasswordAccount(account);
-      if (switched) {
-        return;
-      }
-      if (!account.requiresReauth) {
-        AppSnackbar(
-          'account_center.switch_failed_title'.tr,
-          'account_center.switch_failed_body'.tr,
-        );
-      }
+      await _continueWithPasswordProviderAccount(account);
       return;
     }
 
