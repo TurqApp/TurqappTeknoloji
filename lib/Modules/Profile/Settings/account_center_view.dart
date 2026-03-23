@@ -44,7 +44,6 @@ part 'account_center_view_personal_section_part.dart';
 part 'account_center_view_remove_part.dart';
 part 'account_center_view_security_part.dart';
 part 'account_center_view_security_toggle_part.dart';
-part 'account_center_view_shell_part.dart';
 
 class AccountCenterView extends StatelessWidget {
   AccountCenterView({super.key});
@@ -61,5 +60,21 @@ class AccountCenterView extends StatelessWidget {
   String get _currentUid => _currentUserService.effectiveUserId;
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: const ValueKey<String>(IntegrationTestKeys.screenAccountCenter),
+      backgroundColor: const Color(0xFFFAFAFA),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'settings.account_center'.tr),
+            Expanded(
+              child: _buildBody(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
