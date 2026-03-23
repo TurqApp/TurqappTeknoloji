@@ -48,6 +48,7 @@ part 'account_center_view_contact_status_verified_part.dart';
 part 'account_center_view_content_part.dart';
 part 'account_center_view_non_password_provider_part.dart';
 part 'account_center_view_personal_data_part.dart';
+part 'account_center_view_personal_data_fallback_part.dart';
 part 'account_center_view_personal_details_part.dart';
 part 'account_center_view_personal_card_body_part.dart';
 part 'account_center_view_personal_card_part.dart';

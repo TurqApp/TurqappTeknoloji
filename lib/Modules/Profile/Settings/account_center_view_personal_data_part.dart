@@ -14,16 +14,8 @@ Future<String?> _loadPersonalContactDetails({
   if (directPhone.isNotEmpty) parts.add(directPhone);
   if (parts.isNotEmpty) return parts.join(', ');
 
-  final uid = currentUserService.effectiveUserId;
-  if (uid.isEmpty) return null;
-  final raw = await userRepository.getUserRaw(uid, preferCache: true);
-  if (raw == null) return null;
-
-  final fallbackParts = <String>[];
-  final email = (raw['email'] ?? '').toString().trim();
-  final phone = (raw['phoneNumber'] ?? '').toString().trim();
-  if (email.isNotEmpty) fallbackParts.add(email);
-  if (phone.isNotEmpty) fallbackParts.add(phone);
-  if (fallbackParts.isEmpty) return null;
-  return fallbackParts.join(', ');
+  return _loadFallbackPersonalContactDetails(
+    currentUserService: currentUserService,
+    userRepository: userRepository,
+  );
 }
