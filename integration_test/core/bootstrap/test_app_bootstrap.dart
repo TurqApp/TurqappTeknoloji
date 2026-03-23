@@ -96,32 +96,32 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
 
   var signedInThisRun = false;
   if (FirebaseAuth.instance.currentUser == null) {
-  if (credentials == null) {
-    throw TestFailure(
-      'Integration smoke requires an authenticated session. '
-      'Provide INTEGRATION_LOGIN_EMAIL/INTEGRATION_LOGIN_PASSWORD or keep a stored account session on device.',
-    );
-  }
-
-  try {
-    debugPrint(
-      '[integration-smoke] auth: sign-in start for ${_redactEmail(credentials.email)}',
-    );
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: credentials.email,
-      password: credentials.password,
-    );
-    final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    if (signedUid.isNotEmpty) {
-      DeviceSessionService.instance.beginSessionClaim(signedUid);
+    if (credentials == null) {
+      throw TestFailure(
+        'Integration smoke requires an authenticated session. '
+        'Provide INTEGRATION_LOGIN_EMAIL/INTEGRATION_LOGIN_PASSWORD or keep a stored account session on device.',
+      );
     }
-    debugPrint('[integration-smoke] auth: sign-in success');
+
+    try {
+      debugPrint(
+        '[integration-smoke] auth: sign-in start for ${_redactEmail(credentials.email)}',
+      );
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: credentials.email,
+        password: credentials.password,
+      );
+      final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (signedUid.isNotEmpty) {
+        DeviceSessionService.instance.beginSessionClaim(signedUid);
+      }
+      debugPrint('[integration-smoke] auth: sign-in success');
       signedInThisRun = true;
-  } on FirebaseAuthException catch (error) {
-    throw TestFailure(
-      'Integration smoke sign-in failed for ${_redactEmail(credentials.email)}: ${error.code}',
-    );
-  }
+    } on FirebaseAuthException catch (error) {
+      throw TestFailure(
+        'Integration smoke sign-in failed for ${_redactEmail(credentials.email)}: ${error.code}',
+      );
+    }
   } else {
     debugPrint('[integration-smoke] auth: already signed in');
   }
@@ -151,7 +151,6 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   }
   final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
   if (signedUid.isNotEmpty) {
-    await accountCenter.markSuccessfulSignIn(signedUid);
     try {
       await accountCenter.registerCurrentDeviceSessionIfEnabled();
     } catch (error) {
@@ -190,7 +189,8 @@ Future<void> _resetSmokeSessionForDeterministicSignIn(
   try {
     await FirebaseAuth.instance.signOut();
   } catch (error) {
-    debugPrint('[integration-smoke] auth: FirebaseAuth sign-out skipped: $error');
+    debugPrint(
+        '[integration-smoke] auth: FirebaseAuth sign-out skipped: $error');
   }
 
   try {
@@ -232,7 +232,9 @@ Future<void> _refreshAccountCenterMetadataForSmoke(
       await Future<void>.delayed(delay);
     }
     try {
-      await accountCenter.refreshCurrentAccountMetadata();
+      await accountCenter.refreshCurrentAccountMetadata(
+        markSuccessfulSignIn: true,
+      );
       return;
     } catch (error, stackTrace) {
       if (!_isTransientFirestoreUnavailable(error)) {
@@ -256,6 +258,7 @@ Future<void> _refreshAccountCenterMetadataForSmoke(
   try {
     await accountCenter.addOrUpdateAccount(
       StoredAccount.fromFirebaseUser(firebaseUser),
+      markSuccessfulSignIn: true,
     );
   } catch (error, stackTrace) {
     if (lastError != null && lastStackTrace != null) {

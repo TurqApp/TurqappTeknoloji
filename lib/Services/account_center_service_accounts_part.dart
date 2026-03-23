@@ -4,28 +4,44 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
   Future<void> addOrUpdateAccount(
     StoredAccount account, {
     bool promoteActiveUid = true,
+    bool markSuccessfulSignIn = false,
   }) async {
     await _ensurePrefs();
+    final now =
+        markSuccessfulSignIn ? DateTime.now().millisecondsSinceEpoch : 0;
+    final normalizedAccount = markSuccessfulSignIn
+        ? account.copyWith(
+            isSessionValid: true,
+            requiresReauth: false,
+            lastUsedAt: now,
+            lastSuccessfulSignInAt: now,
+          )
+        : account;
     if (kDebugMode) {
       debugPrint(
-        '[AccountCenter] addOrUpdate uid=${account.uid} username=${account.username} '
-        'sessionValid=${account.isSessionValid} promote=$promoteActiveUid before=${accounts.length}',
+        '[AccountCenter] addOrUpdate uid=${normalizedAccount.uid} '
+        'username=${normalizedAccount.username} '
+        'sessionValid=${normalizedAccount.isSessionValid} '
+        'promote=$promoteActiveUid before=${accounts.length}',
       );
     }
     final current = accounts.toList(growable: true);
-    final index = current.indexWhere((item) => item.uid == account.uid);
+    final index =
+        current.indexWhere((item) => item.uid == normalizedAccount.uid);
     var shouldPromoteActiveUid = promoteActiveUid;
     if (index >= 0) {
       final existing = current[index];
-      current[index] = account.copyWith(
-        isPinned: account.isPinned,
-        sortOrder:
-            account.sortOrder == 0 ? existing.sortOrder : account.sortOrder,
-        lastSuccessfulSignInAt: account.lastSuccessfulSignInAt == 0
+      current[index] = normalizedAccount.copyWith(
+        isPinned: normalizedAccount.isPinned,
+        sortOrder: normalizedAccount.sortOrder == 0
+            ? existing.sortOrder
+            : normalizedAccount.sortOrder,
+        lastSuccessfulSignInAt: normalizedAccount.lastSuccessfulSignInAt == 0
             ? existing.lastSuccessfulSignInAt
-            : account.lastSuccessfulSignInAt,
+            : normalizedAccount.lastSuccessfulSignInAt,
       );
-      shouldPromoteActiveUid = promoteActiveUid && account.isSessionValid;
+      shouldPromoteActiveUid =
+          promoteActiveUid && normalizedAccount.isSessionValid;
     } else {
       final nextSortOrder = current.isEmpty
           ? 1
@@ -33,17 +49,20 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
                   (value, element) => value > element ? value : element) +
               1;
       current.add(
-        account.copyWith(
-          sortOrder: account.sortOrder == 0 ? nextSortOrder : account.sortOrder,
+        normalizedAccount.copyWith(
+          sortOrder: normalizedAccount.sortOrder == 0
+              ? nextSortOrder
+              : normalizedAccount.sortOrder,
         ),
       );
-      shouldPromoteActiveUid = promoteActiveUid && account.isSessionValid;
+      shouldPromoteActiveUid =
+          promoteActiveUid && normalizedAccount.isSessionValid;
     }
     final deduped = _dedupeAccounts(current)..sort(_compareAccounts);
     accounts.assignAll(deduped);
     if (shouldPromoteActiveUid) {
-      activeUid.value = account.uid;
-      lastUsedUid.value = account.uid;
+      activeUid.value = normalizedAccount.uid;
+      lastUsedUid.value = normalizedAccount.uid;
     }
     await _persist();
     if (kDebugMode) {
@@ -57,6 +76,7 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
   Future<void> addCurrentAccount({
     required CurrentUserModel currentUser,
     required User firebaseUser,
+    bool markSuccessfulSignIn = false,
   }) async {
     final existing = accountByUid(currentUser.userID);
     final account = StoredAccount.fromCurrentUser(
@@ -68,10 +88,13 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
         lastSuccessfulSignInAt:
             existing?.lastSuccessfulSignInAt ?? account.lastSuccessfulSignInAt,
       ),
+      markSuccessfulSignIn: markSuccessfulSignIn,
     );
   }
 
-  Future<void> refreshCurrentAccountMetadata() async {
+  Future<void> refreshCurrentAccountMetadata({
+    bool markSuccessfulSignIn = false,
+  }) async {
     final firebaseUser = CurrentUserService.instance.currentAuthUser;
     if (firebaseUser == null) return;
 
@@ -80,6 +103,7 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
       await addCurrentAccount(
         currentUser: currentUser,
         firebaseUser: firebaseUser,
+        markSuccessfulSignIn: markSuccessfulSignIn,
       );
       return;
     }
@@ -94,12 +118,14 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
           user: summary,
           firebaseUser: firebaseUser,
         ),
+        markSuccessfulSignIn: markSuccessfulSignIn,
       );
       return;
     }
 
     await addOrUpdateAccount(
       StoredAccount.fromFirebaseUser(firebaseUser),
+      markSuccessfulSignIn: markSuccessfulSignIn,
     );
   }
 

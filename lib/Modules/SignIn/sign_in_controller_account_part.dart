@@ -22,6 +22,7 @@ extension SignInControllerAccountPart on SignInController {
       await service.addCurrentAccount(
         currentUser: currentUser,
         firebaseUser: firebaseUser,
+        markSuccessfulSignIn: true,
       );
     } else {
       final summary = await _userRepository.getUser(
@@ -39,6 +40,7 @@ extension SignInControllerAccountPart on SignInController {
             user: summary,
             firebaseUser: firebaseUser,
           ),
+          markSuccessfulSignIn: true,
         );
       } else {
         if (kDebugMode) {
@@ -48,10 +50,10 @@ extension SignInControllerAccountPart on SignInController {
         }
         await service.addOrUpdateAccount(
           StoredAccount.fromFirebaseUser(firebaseUser),
+          markSuccessfulSignIn: true,
         );
       }
     }
-    await service.markSuccessfulSignIn(firebaseUser.uid);
     if (kDebugMode) {
       debugPrint(
         '[AccountCenterTrack] done uid=${firebaseUser.uid} accounts=${service.accounts.map((e) => e.uid).toList()}',
