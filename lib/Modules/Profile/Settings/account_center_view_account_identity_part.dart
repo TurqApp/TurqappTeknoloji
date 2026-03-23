@@ -17,7 +17,16 @@ extension AccountCenterViewAccountIdentityPart on _AccountRow {
         ),
         if (account.hasDistinctAccountCenterDisplayName) ...<Widget>[
           const SizedBox(height: 2),
-          _buildAccountDisplayNameText(),
+          Text(
+            account.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
         ],
       ],
     );
