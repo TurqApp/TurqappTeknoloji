@@ -5,7 +5,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (playbackSuspended.value) return;
       if (agendaList.isEmpty && !isLoading.value) {
-        unawaited(fetchAgendaBigData(initial: true));
+        unawaited(ensureInitialFeedLoaded());
       }
     });
     scrollController.addListener(_onScroll);
@@ -35,6 +35,8 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _feedPrefetchDebounce?.cancel();
     _scrollIdleDebounce?.cancel();
     _playbackReassertTimer?.cancel();
+    _reshareWarmupTimer?.cancel();
+    _resharePostsFetchTimer?.cancel();
     _agendaRetryTimer?.cancel();
     unawaited(persistWarmLaunchCache());
     scrollController.removeListener(_onScroll);

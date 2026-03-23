@@ -276,7 +276,13 @@ extension _SplashViewWarmPart on _SplashViewState {
       while (agendaController.agendaList.length < minPosts &&
           agendaController.hasMore.value &&
           extra < maxExtraFetch) {
-        await agendaController.fetchAgendaBigData();
+        if (agendaController.isLoading.value) {
+          await Future<void>.delayed(const Duration(milliseconds: 120));
+          continue;
+        }
+        await agendaController.fetchAgendaBigData(
+          initial: agendaController.agendaList.isEmpty,
+        );
         extra++;
       }
     } catch (_) {}

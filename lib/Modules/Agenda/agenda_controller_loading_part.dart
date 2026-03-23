@@ -71,8 +71,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         // print("quick cache fill error: $e");
       }
 
-      // İlk yüklemede reshare eventlerini arka planda getir (feed'i bloklamasın)
-      unawaited(_fetchAndMergeReshareEvents(eventLimit: 200));
+      // Reshare yüklemelerini ilk render sonrasına ertele; launch jank'i azaltır.
+      _scheduleInitialReshareMerge();
 
       if (agendaList.isNotEmpty &&
           !ContentPolicy.shouldBootstrapNetwork(
@@ -150,9 +150,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
         if (toAdd.isNotEmpty) {
           _addUniqueToAgenda(toAdd);
-          // Fetch recent reshare events for these posts (followers or public users)
-          // Fire and forget
-          fetchResharesForPosts(toAdd, perPostLimit: 1);
+          _scheduleReshareFetchForPosts(toAdd, perPostLimit: 1);
         }
       }
 
@@ -192,9 +190,15 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> ensureInitialFeedLoaded() async {
-    if (agendaList.isNotEmpty ||
-        isLoading.value ||
-        _ensureInitialLoadInFlight) {
+    if (agendaList.isNotEmpty) {
+      return;
+    }
+    final inFlight = _ensureInitialLoadFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+    if (isLoading.value || _ensureInitialLoadInFlight) {
       return;
     }
 
@@ -206,10 +210,15 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
     _lastEnsureInitialLoadAt = now;
     _ensureInitialLoadInFlight = true;
+    final future = fetchAgendaBigData(initial: true);
+    _ensureInitialLoadFuture = future;
     try {
-      await fetchAgendaBigData(initial: true);
+      await future;
     } finally {
       _ensureInitialLoadInFlight = false;
+      if (identical(_ensureInitialLoadFuture, future)) {
+        _ensureInitialLoadFuture = null;
+      }
     }
   }
 
@@ -236,10 +245,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (toAdd.isNotEmpty) {
       _addUniqueToAgenda(toAdd);
       unawaited(_revalidateQuickFilledAgenda(toAdd));
-      // Reshare'leri gecikmeli getir (açılışta bant genişliğini kritik sorgulara bırak)
-      Future.delayed(const Duration(seconds: 2), () {
-        fetchResharesForPosts(toAdd, perPostLimit: 1);
-      });
+      _scheduleReshareFetchForPosts(toAdd, perPostLimit: 1);
 
       // 🎯 INSTAGRAM STYLE: Cache'den yüklendiğinde de ilk videoyu centered yap
       if (agendaList.isNotEmpty) {
@@ -351,10 +357,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         agendaList.removeWhere((p) => toRemove.contains(p.docID));
       }
 
-      // Reshare'leri gecikmeli getir (bant genişliği çakışmasını önle)
-      Future.delayed(const Duration(seconds: 2), () {
-        fetchResharesForPosts(agendaList.take(10).toList(), perPostLimit: 1);
-      });
+      _scheduleReshareFetchForPosts(agendaList, perPostLimit: 1);
     } catch (_) {}
   }
 

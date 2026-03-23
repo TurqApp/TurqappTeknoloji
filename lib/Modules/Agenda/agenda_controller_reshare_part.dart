@@ -94,19 +94,48 @@ extension AgendaControllerResharePart on AgendaController {
 
       await _warmPrivacyCacheForUsers(maybeUnknownUsers.toList());
 
+      final visibleEventsToAdd = <Map<String, dynamic>>[];
       for (final event in buffered) {
         final rid = (event['userID'] ?? '').toString();
         if (rid.isEmpty) continue;
         if (followingIDs.contains(rid)) {
-          publicReshareEvents.add(event);
+          visibleEventsToAdd.add(event);
           continue;
         }
         final isPrivate = _userPrivacyCache[rid] ?? false;
         if (!isPrivate) {
-          publicReshareEvents.add(event);
+          visibleEventsToAdd.add(event);
         }
       }
+      if (visibleEventsToAdd.isNotEmpty) {
+        publicReshareEvents.addAll(visibleEventsToAdd);
+      }
     } catch (_) {}
+  }
+
+  void _scheduleReshareFetchForPosts(
+    List<PostsModel> posts, {
+    int perPostLimit = 1,
+    Duration delay = const Duration(milliseconds: 1400),
+  }) {
+    final targetPosts = posts.take(6).toList(growable: false);
+    if (targetPosts.isEmpty) return;
+    _resharePostsFetchTimer?.cancel();
+    _resharePostsFetchTimer = Timer(delay, () {
+      if (isClosed || targetPosts.isEmpty) return;
+      unawaited(fetchResharesForPosts(targetPosts, perPostLimit: perPostLimit));
+    });
+  }
+
+  void _scheduleInitialReshareMerge({
+    int eventLimit = 120,
+    Duration delay = const Duration(milliseconds: 2200),
+  }) {
+    _reshareWarmupTimer?.cancel();
+    _reshareWarmupTimer = Timer(delay, () {
+      if (isClosed || agendaList.isEmpty) return;
+      unawaited(_fetchAndMergeReshareEvents(eventLimit: eventLimit));
+    });
   }
 
   void _addUniqueToAgenda(List<PostsModel> items) {
@@ -400,6 +429,8 @@ extension AgendaControllerResharePart on AgendaController {
         }
       }
 
+      final feedEntriesToAdd = <Map<String, dynamic>>[];
+      final metaEventsToAdd = <Map<String, dynamic>>[];
       for (final event in visibleEvents) {
         final postId = (event['postID'] ?? '').toString();
         final post = postsById[postId];
@@ -422,7 +453,7 @@ extension AgendaControllerResharePart on AgendaController {
           return existingId == entryId;
         });
         if (!exists) {
-          feedReshareEntries.add(feedEntry);
+          feedEntriesToAdd.add(feedEntry);
         }
 
         final metaKey = '${event['postID']}::${event['userID']}';
@@ -431,8 +462,14 @@ extension AgendaControllerResharePart on AgendaController {
               '${existing['postID']}::${existing['userID']}' == metaKey,
         );
         if (!metaExists) {
-          publicReshareEvents.add(event);
+          metaEventsToAdd.add(event);
         }
+      }
+      if (feedEntriesToAdd.isNotEmpty) {
+        feedReshareEntries.addAll(feedEntriesToAdd);
+      }
+      if (metaEventsToAdd.isNotEmpty) {
+        publicReshareEvents.addAll(metaEventsToAdd);
       }
     } catch (e) {
       print('_fetchAndMergeReshareEvents error: $e');

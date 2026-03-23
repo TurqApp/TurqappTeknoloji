@@ -105,6 +105,8 @@ class AgendaController extends GetxController {
   Timer? _feedPrefetchDebounce;
   Timer? _scrollIdleDebounce;
   Timer? _playbackReassertTimer;
+  Timer? _reshareWarmupTimer;
+  Timer? _resharePostsFetchTimer;
   Timer? _agendaRetryTimer;
   int _agendaRetryCount = 0;
   Worker? _mergedFeedWorker;
@@ -182,6 +184,7 @@ class AgendaController extends GetxController {
   AgendaShuffleCacheService get _shuffleCache =>
       AgendaShuffleCacheService.ensure();
   bool _ensureInitialLoadInFlight = false;
+  Future<void>? _ensureInitialLoadFuture;
   DateTime? _lastEnsureInitialLoadAt;
   DateTime? _lastPlaybackCommandAt;
   String? _lastPlaybackCommandDocId;
