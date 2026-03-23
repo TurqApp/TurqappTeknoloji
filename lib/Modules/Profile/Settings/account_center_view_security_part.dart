@@ -17,17 +17,7 @@ class _SessionSecuritySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
-          child: Text(
-            'account_center.security'.tr,
-            style: TextStyle(
-              color: Colors.black87,
-              fontSize: 14,
-              fontFamily: 'MontserratBold',
-            ),
-          ),
-        ),
+        _buildSecurityHeader(),
         _buildSecurityContent(uid),
       ],
     );

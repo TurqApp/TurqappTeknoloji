@@ -41,6 +41,7 @@ part 'account_center_view_username_switch_part.dart';
 part 'account_center_view_remove_part.dart';
 part 'account_center_view_security_part.dart';
 part 'account_center_view_security_content_part.dart';
+part 'account_center_view_security_header_part.dart';
 part 'account_center_view_shell_part.dart';
 
 class AccountCenterView extends StatelessWidget {
