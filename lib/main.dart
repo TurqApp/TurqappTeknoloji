@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 import 'package:turqappv2/Core/Localization/app_translations.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
@@ -29,6 +30,14 @@ final int appLaunchEpochMs = DateTime.now().millisecondsSinceEpoch;
 late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
+
+Duration get _startupBootstrapWait => IntegrationTestMode.enabled
+    ? const Duration(seconds: 20)
+    : const Duration(seconds: 5);
+
+Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
+    ? const Duration(seconds: 18)
+    : const Duration(seconds: 4);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +79,7 @@ Future<void> main() async {
   // cagrilip startup fallback ekranina dusuyordu.
   firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
   await firebaseBootstrapFuture.timeout(
-    const Duration(seconds: 5),
+    _startupBootstrapWait,
     onTimeout: () {
       debugPrint('[bootstrap] startup timed out before runApp; continuing.');
     },
@@ -149,7 +158,7 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(const Duration(seconds: 4));
+    ).timeout(_firebaseInitTimeout);
     firebaseReady = true;
   } catch (e, st) {
     debugPrint('[bootstrap] Firebase.initializeApp failed: $e');

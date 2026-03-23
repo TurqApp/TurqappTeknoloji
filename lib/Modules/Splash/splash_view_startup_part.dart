@@ -1,6 +1,10 @@
 part of 'splash_view.dart';
 
 extension _SplashViewStartupPart on _SplashViewState {
+  Duration get _firebaseStartupWait => IntegrationTestMode.enabled
+      ? const Duration(seconds: 18)
+      : const Duration(seconds: 3);
+
   Future<void> _performInitApp() async {
     final startupStopwatch = Stopwatch()..start();
     try {
@@ -8,7 +12,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       await Future.wait([
         (() async {
           await firebaseBootstrapFuture.timeout(
-            const Duration(seconds: 3),
+            _firebaseStartupWait,
             onTimeout: () {},
           );
           await FirestoreConfig.initialize().timeout(
