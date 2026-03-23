@@ -10,6 +10,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'admin_push_view_actions_part.dart';
 part 'admin_push_view_content_part.dart';
+part 'admin_push_view_shell_part.dart';
 
 class AdminPushView extends StatefulWidget {
   const AdminPushView({super.key});
@@ -70,7 +71,5 @@ class _AdminPushViewState extends State<AdminPushView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return _buildPage(context);
-  }
+  Widget build(BuildContext context) => _buildPage(context);
 }

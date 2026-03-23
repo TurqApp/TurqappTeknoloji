@@ -8,6 +8,9 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
+part 'archives_controller_data_part.dart';
+part 'archives_controller_lifecycle_part.dart';
+
 class ArchiveController extends GetxController {
   static ArchiveController ensure() {
     final existing = maybeFind();
@@ -41,15 +44,12 @@ class ArchiveController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    scrollController.addListener(_onScroll);
-    _bindAuth();
+    _onInitArchiveController();
   }
 
   @override
   void onClose() {
-    scrollController.removeListener(_onScroll);
-    scrollController.dispose();
-    _authSub?.cancel();
+    _onCloseArchiveController();
     super.onClose();
   }
 
@@ -60,40 +60,6 @@ class ArchiveController extends GetxController {
       docId,
       () => GlobalObjectKey(agendaInstanceTag(docId)),
     );
-  }
-
-  void _onScroll() {
-    if (!scrollController.hasClients) return;
-    final position = scrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 300) {
-      fetchData();
-    }
-    if (list.isEmpty) return;
-    if (position.pixels <= 0) {
-      centeredIndex.value = 0;
-      currentVisibleIndex.value = 0;
-      lastCenteredIndex = 0;
-      capturePendingCenteredEntry(preferredIndex: 0);
-      return;
-    }
-    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
-      320.0,
-      680.0,
-    );
-    final nextIndex = (((position.pixels + position.viewportDimension * 0.25) /
-                estimatedItemExtent)
-            .floor())
-        .clamp(0, list.length - 1);
-    if (centeredIndex.value != nextIndex) {
-      if (lastCenteredIndex != null && lastCenteredIndex != nextIndex) {
-        final prevModel = list[lastCenteredIndex!];
-        disposeAgendaContentController(prevModel.docID);
-      }
-      centeredIndex.value = nextIndex;
-      currentVisibleIndex.value = nextIndex;
-      lastCenteredIndex = nextIndex;
-      capturePendingCenteredEntry(preferredIndex: nextIndex);
-    }
   }
 
   void disposeAgendaContentController(String docID) {
@@ -148,60 +114,5 @@ class ArchiveController extends GetxController {
     }
     final docId = list[candidateIndex].docID.trim();
     _pendingCenteredDocId = docId.isEmpty ? null : docId;
-  }
-
-  void _bindAuth() {
-    _authSub = FirebaseAuth.instance.userChanges().listen((user) {
-      final nextUserId = user?.uid;
-      if (_currentUserId != nextUserId) {
-        _currentUserId = nextUserId;
-        list.clear();
-      }
-      if (nextUserId == null) {
-        isLoading.value = false;
-        return;
-      }
-      unawaited(_bootstrapArchive(nextUserId));
-    });
-  }
-
-  Future<void> _bootstrapArchive(String uid) async {
-    final cached = await _profileRepository.readCachedArchive(uid);
-    if (cached.isNotEmpty) {
-      list.assignAll(cached);
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'archive:$uid',
-        minInterval: _silentRefreshInterval,
-      )) {
-        unawaited(fetchData(silent: true));
-      }
-      return;
-    }
-    await fetchData();
-  }
-
-  Future<void> fetchData({bool silent = false}) async {
-    final uid = _resolvedCurrentUid;
-    if (uid.isEmpty) return;
-    if (!silent) {
-      isLoading.value = true;
-    }
-    final currentCentered = centeredIndex.value;
-    if (currentCentered >= 0 && currentCentered < list.length) {
-      _pendingCenteredDocId = list[currentCentered].docID;
-    } else if (lastCenteredIndex != null &&
-        lastCenteredIndex! >= 0 &&
-        lastCenteredIndex! < list.length) {
-      _pendingCenteredDocId = list[lastCenteredIndex!].docID;
-    }
-    try {
-      final posts = await _profileRepository.fetchArchive(uid);
-      list.assignAll(posts);
-      _restoreCenteredPost();
-      SilentRefreshGate.markRefreshed('archive:$uid');
-    } finally {
-      isLoading.value = false;
-    }
   }
 }

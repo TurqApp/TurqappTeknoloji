@@ -1,81 +1,34 @@
 part of 'support_admin_view.dart';
 
 extension _SupportAdminViewContentPart on _SupportAdminViewState {
-  Widget _buildPage(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _accessFuture,
-      builder: (context, accessSnap) {
-        if (accessSnap.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: SafeArea(
-              child: Center(child: CupertinoActivityIndicator()),
-            ),
+  Widget _buildSupportAdminContent(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _repository.watchInbox(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CupertinoActivityIndicator(),
           );
         }
-        if (accessSnap.data != true) {
-          return Scaffold(
-            body: SafeArea(
-              child: Column(
-                children: [
-                  BackButtons(text: 'admin.support.title'.tr),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'admin.no_access'.tr,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 15,
-                          fontFamily: 'MontserratMedium',
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+        final docs = snapshot.data?.docs ?? const [];
+        if (docs.isEmpty) {
+          return Center(
+            child: Text(
+              'admin.support.empty'.tr,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 15,
+                fontFamily: 'MontserratMedium',
               ),
             ),
           );
         }
-        return Scaffold(
-          body: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                BackButtons(text: 'admin.support.title'.tr),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _repository.watchInbox(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CupertinoActivityIndicator(),
-                        );
-                      }
-                      final docs = snapshot.data?.docs ?? const [];
-                      if (docs.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'admin.support.empty'.tr,
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontSize: 15,
-                              fontFamily: 'MontserratMedium',
-                            ),
-                          ),
-                        );
-                      }
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        itemCount: docs.length,
-                        itemBuilder: (context, index) {
-                          return _buildInboxCard(context, docs[index]);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            return _buildInboxCard(context, docs[index]);
+          },
         );
       },
     );

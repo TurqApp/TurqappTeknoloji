@@ -15,6 +15,7 @@ import 'package:turqappv2/Models/moderation_config_model.dart';
 
 part 'moderation_settings_view_content_part.dart';
 part 'moderation_settings_view_ban_part.dart';
+part 'moderation_settings_view_shell_part.dart';
 
 class ModerationSettingsView extends StatefulWidget {
   const ModerationSettingsView({super.key});
@@ -38,9 +39,7 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return _buildModerationSettingsScaffold(context);
-  }
+  Widget build(BuildContext context) => _buildPage(context);
 
   void _updateModerationSettingsState(VoidCallback fn) {
     if (!mounted) return;

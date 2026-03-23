@@ -1,6 +1,6 @@
 part of 'become_verified_account_controller.dart';
 
-extension _BecomeVerifiedAccountControllerFormPart
+extension BecomeVerifiedAccountControllerFormPart
     on BecomeVerifiedAccountController {
   void _bindFormListeners() {
     for (final controller in [

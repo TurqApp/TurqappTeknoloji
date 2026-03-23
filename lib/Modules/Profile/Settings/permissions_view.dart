@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 part 'permissions_view_main_part.dart';
 part 'permissions_view_detail_part.dart';
+part 'permissions_view_shell_part.dart';
 
 class _PermissionItem {
   final String title;
@@ -135,9 +136,7 @@ class _PermissionsViewState extends State<PermissionsView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return _buildPermissionsScaffold(context);
-  }
+  Widget build(BuildContext context) => _buildPage(context);
 }
 
 String _permissionId(Permission permission) {

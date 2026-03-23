@@ -1,98 +1,60 @@
 part of 'reports_admin_view.dart';
 
 extension _ReportsAdminViewContentPart on _ReportsAdminViewState {
-  Widget _buildPage(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: 'admin.reports.title'.tr),
-            Expanded(
-              child: FutureBuilder<bool>(
-                future: _canAccessFuture,
-                builder: (context, accessSnap) {
-                  if (accessSnap.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (accessSnap.data != true) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'admin.no_access'.tr,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'MontserratMedium',
-                            fontSize: 14,
-                          ),
-                        ),
+  Widget _buildReportsAdminContent(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Column(
+        children: [
+          _buildConfigCard(),
+          const SizedBox(height: 8),
+          Expanded(
+            child: StreamBuilder<List<ReportAggregateItem>>(
+              stream: _reportRepository.watchAggregates(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                if (snap.hasError) {
+                  return Center(
+                    child: Text(
+                      'admin.reports.data_failed'.tr,
+                      style: const TextStyle(
+                        fontFamily: 'MontserratMedium',
                       ),
-                    );
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Column(
-                      children: [
-                        _buildConfigCard(),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: StreamBuilder<List<ReportAggregateItem>>(
-                            stream: _reportRepository.watchAggregates(),
-                            builder: (context, snap) {
-                              if (snap.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              if (snap.hasError) {
-                                return Center(
-                                  child: Text(
-                                    'admin.reports.data_failed'.tr,
-                                    style: const TextStyle(
-                                      fontFamily: 'MontserratMedium',
-                                    ),
-                                  ),
-                                );
-                              }
-                              final items =
-                                  snap.data ?? const <ReportAggregateItem>[];
-                              if (items.isEmpty) {
-                                return Center(
-                                  child: Text(
-                                    'admin.reports.empty'.tr,
-                                    style: const TextStyle(
-                                      fontFamily: 'MontserratMedium',
-                                    ),
-                                  ),
-                                );
-                              }
-                              return ListView.separated(
-                                itemCount: items.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 10),
-                                itemBuilder: (context, index) {
-                                  final item = items[index];
-                                  return _ReportAggregateCard(
-                                    item: item,
-                                    busy: _busyAggregateId == item.id,
-                                    repository: _reportRepository,
-                                    onReview: _handleReview,
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                      ],
                     ),
                   );
-                },
-              ),
+                }
+                final items = snap.data ?? const <ReportAggregateItem>[];
+                if (items.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'admin.reports.empty'.tr,
+                      style: const TextStyle(
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _ReportAggregateCard(
+                      item: item,
+                      busy: _busyAggregateId == item.id,
+                      repository: _reportRepository,
+                      onReview: _handleReview,
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

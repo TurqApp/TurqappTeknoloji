@@ -1,6 +1,6 @@
 part of 'become_verified_account_controller.dart';
 
-extension _BecomeVerifiedAccountControllerSubmissionPart
+extension BecomeVerifiedAccountControllerSubmissionPart
     on BecomeVerifiedAccountController {
   Future<bool> submitApplication() async {
     if (isSubmitting.value) return false;

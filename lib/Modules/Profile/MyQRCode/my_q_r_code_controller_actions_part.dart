@@ -1,6 +1,6 @@
 part of 'my_q_r_code_controller.dart';
 
-extension _MyQrCodeControllerActionsPart on MyQRCodeController {
+extension MyQrCodeControllerActionsPart on MyQRCodeController {
   void showQrScannerModal() {
     Get.bottomSheet(
       QrScannerView(),

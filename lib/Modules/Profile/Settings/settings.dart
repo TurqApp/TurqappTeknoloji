@@ -64,6 +64,7 @@ import 'package:turqappv2/Core/Localization/app_language_service.dart';
 
 part 'settings_sections_part.dart';
 part 'settings_diagnostics_part.dart';
+part 'settings_shell_part.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -125,131 +126,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      key: const ValueKey(IntegrationTestKeys.screenSettings),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: 'settings.title'.tr),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      ..._buildPrimarySections(),
-                      _buildAssignedTasksSection(),
-                      _buildAdminSection(),
-                      ..._buildSessionSection(),
-                      15.ph,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildRow(String text, IconData icon, VoidCallback onTap,
-      {bool isNew = false,
-      bool usePasajIcon = false,
-      bool showLanguageLabel = false,
-      Key? valueKey}) {
-    return TextButton(
-      key: valueKey,
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            usePasajIcon
-                ? SvgPicture.asset(
-                    "assets/icons/sinav.svg",
-                    height: 25,
-                    colorFilter:
-                        const ColorFilter.mode(Colors.black, BlendMode.srcIn),
-                  )
-                : Icon(icon, size: 25, color: Colors.black),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-            ),
-
-            // Sağ taraf
-            if (showLanguageLabel)
-              Text(
-                _languageService.currentLanguageLabel,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium",
-                ),
-              )
-            else ...[
-              if (isNew) ...[
-                SizedBox(width: 6),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent,
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: Text(
-                    "Yeni",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: "MontserratMedium",
-                    ),
-                  ),
-                ),
-              ],
-              Icon(CupertinoIcons.chevron_right, color: Colors.grey, size: 20),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildSectionTitle(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 14, bottom: 2),
-      child: Row(
-        children: [
-          Text(
-            text,
-            style: const TextStyle(
-              color: Colors.black45,
-              fontSize: 13,
-              fontFamily: "MontserratBold",
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildPage(context);
 }
 
 class _AdminPushMenuTile extends StatefulWidget {

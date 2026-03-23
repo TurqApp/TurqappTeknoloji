@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'reports_admin_view_actions_part.dart';
 part 'reports_admin_view_content_part.dart';
+part 'reports_admin_view_shell_part.dart';
 
 class ReportsAdminView extends StatefulWidget {
   const ReportsAdminView({super.key});

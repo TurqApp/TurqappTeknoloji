@@ -18,6 +18,7 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 part 'badge_admin_view_actions_part.dart';
 part 'badge_admin_view_applications_part.dart';
 part 'badge_admin_view_content_part.dart';
+part 'badge_admin_view_shell_part.dart';
 
 class BadgeAdminView extends StatefulWidget {
   const BadgeAdminView({super.key});
@@ -145,7 +146,5 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return _buildBadgeAdminScaffold(context);
-  }
+  Widget build(BuildContext context) => _buildPage(context);
 }
