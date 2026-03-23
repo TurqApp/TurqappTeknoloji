@@ -5,6 +5,8 @@ import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
+part 'duration_picker_bottom_sheet_content_part.dart';
+
 class DurationPickerBottomSheet extends StatelessWidget {
   final int initialDuration;
   final Function(int) onSelected;
@@ -77,104 +79,14 @@ class DurationPickerBottomSheet extends StatelessWidget {
     int tempPicked =
         durations.contains(initialDuration) ? initialDuration : durations[0];
 
-    return ClipRRect(
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(20),
-        topRight: Radius.circular(20),
-      ),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        height: MediaQuery.of(context).size.height / 2.5,
-        color: Colors.white,
-        child: Column(
-          children: [
-            AppSheetHeader(title: title),
-            Expanded(
-              child: Align(
-                alignment: Alignment.center,
-                child: CupertinoTheme(
-                  data: CupertinoThemeData(
-                    brightness: Brightness.light,
-                    textTheme: CupertinoTextThemeData(
-                      pickerTextStyle: TextStyles.bold20Black,
-                    ),
-                  ),
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    onSelectedItemChanged: (int index) {
-                      tempPicked = durations[index];
-                    },
-                    scrollController: FixedExtentScrollController(
-                      initialItem: durations.indexOf(tempPicked),
-                    ),
-                    children: durations
-                        .map(
-                          (duration) => Center(
-                            child: Text(
-                              '$duration dk',
-                              style: TextStyles.bold20Black,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'common.cancel'.tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                8.pw,
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      onSelected(tempPicked);
-                      Get.back();
-                    },
-                    child: Container(
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'common.ok'.tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return _buildSheetContent(
+      context,
+      initialPicked: tempPicked,
+      onDurationChanged: (index) => tempPicked = durations[index],
+      onConfirm: () {
+        onSelected(tempPicked);
+        Get.back();
+      },
     );
   }
 }

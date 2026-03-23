@@ -32,6 +32,7 @@ import 'package:turqappv2/Services/device_session_service.dart';
 import '../Models/current_user_model.dart';
 
 part 'current_user_service_cache_part.dart';
+part 'current_user_service_access_part.dart';
 part 'current_user_service_account_part.dart';
 part 'current_user_service_auth_part.dart';
 part 'current_user_service_lifecycle_part.dart';
@@ -196,26 +197,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   String get adres => _currentUser?.adres ?? '';
 
-  String get preferredLocationCityOrEmpty {
-    final candidates = [
-      _currentUser?.locationSehir,
-      _currentUser?.city,
-      _currentUser?.ikametSehir,
-      _currentUser?.il,
-      _currentUser?.ulke,
-    ];
-    for (final raw in candidates) {
-      final value = (raw ?? '').trim();
-      if (value.isNotEmpty) return value;
-    }
-    return '';
-  }
-
-  String get preferredLocationCity {
-    final value = preferredLocationCityOrEmpty;
-    return value.isNotEmpty ? value : 'common.country_turkey'.tr;
-  }
-
   int get counterOfPosts => _currentUser?.counterOfPosts ?? 0;
 
   int get counterOfLikes => _currentUser?.counterOfLikes ?? 0;
@@ -368,9 +349,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     return _currentUser?.blockedUsers.contains(userId) ?? false;
   }
 
-  List<String> get blockedUserIds =>
-      List<String>.from(_currentUser?.blockedUsers ?? const <String>[]);
-
   bool hasReadStory(String storyId) {
     return _currentUser?.readStories.contains(storyId) ?? false;
   }
@@ -382,12 +360,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   bool get isVerified => _currentUser?.isVerified ?? false;
 
   bool get isEmailVerified => emailVerifiedRx.value;
-
-  /// Is private account
-  bool get isPrivate => _currentUser?.isPrivate ?? false;
-
-  /// Is banned
-  bool get isBanned => _currentUser?.isBanned ?? false;
 
   // Email verification state (Firebase Auth)
   final RxBool emailVerifiedRx = true.obs;
@@ -421,29 +393,4 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔍 Debug Info
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Get debug info
-  Map<String, dynamic> getDebugInfo() {
-    return {
-      'isInitialized': _isInitialized,
-      'isLoggedIn': isLoggedIn,
-      'isSyncing': _isSyncing,
-      'userId': userId,
-      'nickname': nickname,
-      'cacheExists': userId.isNotEmpty
-          ? (_prefs?.containsKey(_cacheKey(userId)) ?? false)
-          : false,
-    };
-  }
-
-  /// Print debug info
-  void printDebugInfo() {
-    if (!kDebugMode) return;
-    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    debugPrint('CurrentUserService Debug Info:');
-    getDebugInfo().forEach((key, value) {
-      debugPrint('  $key: $value');
-    });
-    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  }
 }

@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
+part 'future_date_picker_bottom_sheet_content_part.dart';
+
 class FutureDatePickerBottomSheet extends StatelessWidget {
   final DateTime initialDate;
   final DateTime? maximumDate;
@@ -50,104 +52,19 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
 
     DateTime tempPicked = effectiveInitial;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(20),
-        topRight: Radius.circular(20),
-      ),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        height: MediaQuery.of(context).size.height / 2.5,
-        color: Colors.white,
-        child: Column(
-          children: [
-            AppSheetHeader(title: title),
-            Expanded(
-              child: Align(
-                alignment: Alignment.center,
-                child: CupertinoTheme(
-                  data: CupertinoThemeData(
-                    brightness: Brightness.light,
-                    textTheme: CupertinoTextThemeData(
-                      pickerTextStyle: TextStyle(
-                        fontSize: 18,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  child: CupertinoDatePicker(
-                    mode: withTime
-                        ? CupertinoDatePickerMode.dateAndTime
-                        : CupertinoDatePickerMode.date,
-                    initialDateTime: effectiveInitial,
-                    minimumDate: withTime ? now : today,
-                    maximumDate: resolvedMaximumDate,
-                    onDateTimeChanged: (DateTime date) {
-                      tempPicked =
-                          withTime ? _clampPickedDate(date, now) : date;
-                    },
-                    use24hFormat: true,
-                    dateOrder: DatePickerDateOrder.dmy,
-                  ),
-                ),
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'common.cancel'.tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                8.pw,
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      onSelected(withTime
-                          ? _clampPickedDate(tempPicked, now)
-                          : tempPicked);
-                      Get.back();
-                    },
-                    child: Container(
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'common.ok'.tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return _buildSheetContent(
+      context,
+      now: now,
+      today: today,
+      effectiveInitial: effectiveInitial,
+      resolvedMaximumDate: resolvedMaximumDate,
+      onDateChanged: (date) {
+        tempPicked = withTime ? _clampPickedDate(date, now) : date;
+      },
+      onConfirm: () {
+        onSelected(withTime ? _clampPickedDate(tempPicked, now) : tempPicked);
+        Get.back();
+      },
     );
   }
 }

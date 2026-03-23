@@ -10,6 +10,9 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
+part 'short_snapshot_repository_query_part.dart';
+part 'short_snapshot_repository_visibility_part.dart';
+
 class ShortSnapshotQuery {
   const ShortSnapshotQuery({
     required this.userId,
@@ -97,248 +100,90 @@ class ShortSnapshotRepository extends GetxService {
     required String userId,
     int limit = _defaultPersistLimit,
     bool forceSync = false,
-  }) {
-    return _homePipeline.open(
-      ShortSnapshotQuery(
+  }) =>
+      _openHome(
+        this,
         userId: userId,
         limit: limit,
-      ),
-      forceSync: forceSync,
-    );
-  }
+        forceSync: forceSync,
+      );
 
   Future<CachedResource<List<PostsModel>>> bootstrapHome({
     required String userId,
     int limit = _defaultPersistLimit,
-  }) {
-    final query = ShortSnapshotQuery(
-      userId: userId,
-      limit: limit,
-    );
-    return _coordinator.bootstrap(
-      ScopedSnapshotKey(
-        surfaceKey: _homeSurfaceKey,
-        userId: query.userId.trim(),
-        scopeId: query.scopeId,
-      ),
-      loadWarmSnapshot: () => _loadWarmSnapshot(query),
-    );
-  }
+  }) =>
+      _bootstrapHome(
+        this,
+        userId: userId,
+        limit: limit,
+      );
 
   Future<CachedResource<List<PostsModel>>> loadHome({
     required String userId,
     int limit = _defaultPersistLimit,
     bool forceSync = false,
-  }) {
-    return openHome(
-      userId: userId,
-      limit: limit,
-      forceSync: forceSync,
-    ).last;
-  }
+  }) =>
+      _loadHome(
+        this,
+        userId: userId,
+        limit: limit,
+        forceSync: forceSync,
+      );
 
   Future<void> persistHomeSnapshot({
     required String userId,
     required List<PostsModel> posts,
     int limit = _defaultPersistLimit,
     CachedResourceSource source = CachedResourceSource.server,
-  }) async {
-    final normalized =
-        _normalizePosts(posts).take(limit).toList(growable: false);
-    if (normalized.isEmpty) return;
-    final key = ScopedSnapshotKey(
-      surfaceKey: _homeSurfaceKey,
-      userId: userId.trim(),
-      scopeId: ShortSnapshotQuery(
+  }) =>
+      _persistHomeSnapshot(
+        this,
         userId: userId,
+        posts: posts,
         limit: limit,
-      ).scopeId,
-    );
-    final record = ScopedSnapshotRecord<List<PostsModel>>(
-      data: normalized,
-      snapshotAt: DateTime.now(),
-      schemaVersion: 1,
-      generationId: 'manual:${DateTime.now().millisecondsSinceEpoch}',
-      source: source,
-    );
-    await Future.wait(<Future<void>>[
-      _memoryStore.write(key, record),
-      _snapshotStore.write(key, record),
-      _warmLaunchPool.savePosts(IndexPoolKind.shortFullscreen, normalized),
-    ]);
-  }
+        source: source,
+      );
 
   Future<List<PostsModel>> _fetchEligibleSnapshot(
     ShortSnapshotQuery query,
-  ) async {
-    final followingIds = await _loadFollowingIds(query.userId);
-    final me = query.userId.trim();
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    QueryDocumentSnapshot<Map<String, dynamic>>? cursor;
-    final collected = <PostsModel>[];
-    final seen = <String>{};
-
-    for (int attempt = 0; attempt < _maxPageSkips; attempt++) {
-      final page = await _shortRepository.fetchReadyPage(
-        startAfter: cursor,
-        pageSize: query.limit,
-        nowMs: nowMs,
+  ) =>
+      _performFetchEligibleSnapshot(
+        this,
+        query,
       );
-      if (page.posts.isEmpty) break;
-
-      final eligible = await _filterEligiblePosts(
-        page.posts,
-        currentUserId: me,
-        followingIds: followingIds,
-      );
-      for (final post in eligible) {
-        if (seen.add(post.docID)) {
-          collected.add(post);
-        }
-      }
-      if (collected.length >= query.limit) break;
-      if (!page.hasMore || page.lastDoc == null) break;
-      cursor = page.lastDoc;
-    }
-
-    return collected.take(query.limit).toList(growable: false);
-  }
 
   Future<List<PostsModel>?> _loadWarmSnapshot(
     ShortSnapshotQuery query,
-  ) async {
-    final posts = await _warmLaunchPool.loadPosts(
-      IndexPoolKind.shortFullscreen,
-      limit: query.limit,
-      allowStale: false,
-    );
-    if (posts.isEmpty) return null;
-    final eligible = await _filterEligiblePosts(
-      posts,
-      currentUserId: query.userId.trim(),
-      followingIds: await _loadFollowingIds(query.userId),
-    );
-    final normalized = eligible.take(query.limit).toList(growable: false);
-    if (normalized.length != posts.length) {
-      final validIds = normalized.map((post) => post.docID).toSet();
-      final invalidIds = posts
-          .where((post) => !validIds.contains(post.docID))
-          .map((post) => post.docID)
-          .toList(growable: false);
-      if (invalidIds.isNotEmpty) {
-        await _warmLaunchPool.removePosts(
-          IndexPoolKind.shortFullscreen,
-          invalidIds,
-        );
-      }
-    }
-    return normalized.isEmpty ? null : normalized;
-  }
+  ) =>
+      _performLoadWarmSnapshot(
+        this,
+        query,
+      );
 
-  Future<Set<String>> _loadFollowingIds(String userId) async {
-    return VisibilityPolicyService.ensure().loadViewerFollowingIds(
-      viewerUserId: userId,
-      preferCache: true,
-    );
-  }
+  Future<Set<String>> _loadFollowingIds(String userId) =>
+      _performLoadFollowingIds(
+        this,
+        userId,
+      );
 
   Future<List<PostsModel>> _filterEligiblePosts(
     List<PostsModel> posts, {
     required String currentUserId,
     required Set<String> followingIds,
-  }) async {
-    if (posts.isEmpty) return const <PostsModel>[];
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final normalized = _normalizePosts(posts)
-        .where((post) => post.timeStamp <= nowMs)
-        .where((post) => post.deletedPost != true)
-        .where((post) => post.arsiv == false)
-        .where((post) => post.hasPlayableVideo)
-        .toList(growable: false);
-    if (normalized.isEmpty) return const <PostsModel>[];
-
-    final authorIds = normalized
-        .map((post) => post.userID)
-        .where((id) => id.isNotEmpty)
-        .toSet();
-    final summaries = await _userSummaryResolver.resolveMany(
-      authorIds.toList(growable: false),
-      preferCache: true,
-    );
-
-    final visible = <PostsModel>[];
-    for (final post in normalized) {
-      final summary = summaries[post.userID];
-      if (summary == null) continue;
-      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
-        authorUserId: post.userID,
+  }) =>
+      _performFilterEligiblePosts(
+        this,
+        posts,
+        currentUserId: currentUserId,
         followingIds: followingIds,
-        isPrivate: summary.isPrivate,
-        isDeleted: summary.isDeleted,
       );
-      if (!canSeeAuthor) {
-        continue;
-      }
-      visible.add(
-        post.copyWith(
-          authorNickname: post.authorNickname.isNotEmpty
-              ? post.authorNickname
-              : summary.nickname,
-          authorDisplayName: post.authorDisplayName.isNotEmpty
-              ? post.authorDisplayName
-              : summary.displayName,
-          authorAvatarUrl: post.authorAvatarUrl.isNotEmpty
-              ? post.authorAvatarUrl
-              : summary.avatarUrl,
-          rozet: post.rozet.isNotEmpty ? post.rozet : summary.rozet,
-        ),
-      );
-    }
-    _invariantGuard.assertNotEmptyAfterRefresh(
-      surface: 'short',
-      invariantKey: 'eligible_visible_after_filter',
-      hadSnapshot: normalized.isNotEmpty,
-      previousCount: normalized.length,
-      nextCount: visible.length,
-      payload: <String, dynamic>{
-        'currentUserId': currentUserId,
-        'followingCount': followingIds.length,
-      },
-    );
-    return visible;
-  }
 
-  List<PostsModel> _normalizePosts(List<PostsModel> posts) {
-    final seen = <String>{};
-    final normalized = <PostsModel>[];
-    for (final post in posts) {
-      if (post.docID.isEmpty || !seen.add(post.docID)) continue;
-      normalized.add(post);
-    }
-    return normalized;
-  }
+  List<PostsModel> _normalizePosts(List<PostsModel> posts) =>
+      _performNormalizePosts(posts);
 
-  Map<String, dynamic> _encodePosts(List<PostsModel> posts) {
-    return <String, dynamic>{
-      'items': posts
-          .map((post) => <String, dynamic>{
-                'docID': post.docID,
-                ...post.toMap(),
-              })
-          .toList(growable: false),
-    };
-  }
+  Map<String, dynamic> _encodePosts(List<PostsModel> posts) =>
+      _performEncodePosts(posts);
 
-  List<PostsModel> _decodePosts(Map<String, dynamic> json) {
-    final rawItems = (json['items'] as List<dynamic>?) ?? const <dynamic>[];
-    return rawItems
-        .whereType<Map>()
-        .map((raw) {
-          final item = Map<String, dynamic>.from(raw.cast<dynamic, dynamic>());
-          final docId = (item.remove('docID') ?? '').toString();
-          return PostsModel.fromMap(item, docId);
-        })
-        .where((post) => post.docID.isNotEmpty)
-        .toList(growable: false);
-  }
+  List<PostsModel> _decodePosts(Map<String, dynamic> json) =>
+      _performDecodePosts(json);
 }

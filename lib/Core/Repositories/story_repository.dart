@@ -20,6 +20,7 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'story_repository_helpers_part.dart';
+part 'story_repository_foundation_part.dart';
 part 'story_repository_cache_part.dart';
 part 'story_repository_deleted_part.dart';
 part 'story_repository_engagement_part.dart';
@@ -68,9 +69,7 @@ class StoryRepository extends GetxService {
   Duration get deletedStoriesCacheTtlInternal => _deletedStoriesCacheTtl;
   int get deletedStoriesCacheLimitInternal => _deletedStoriesCacheLimit;
 
-  UserProfileCacheService get _userCache {
-    return UserProfileCacheService.ensure();
-  }
+  UserProfileCacheService get _userCache => _resolveUserCache();
 
   final UserRepository _userRepository = UserRepository.ensure();
   final VisibilityPolicyService _visibilityPolicy =
@@ -80,38 +79,14 @@ class StoryRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static DateTime get _storyExpiryCutoff =>
-      DateTime.now().subtract(const Duration(hours: 24));
+      _storyRepositoryResolveStoryExpiryCutoff();
   DateTime get storyExpiryCutoffInternal => _storyExpiryCutoff;
 
-  int _asEpochMillis(dynamic value, {int fallback = 0}) {
-    if (value is Timestamp) return value.millisecondsSinceEpoch;
-    if (value is DateTime) return value.millisecondsSinceEpoch;
-    if (value is num) return value.toInt();
-    if (value is String) {
-      final numeric = int.tryParse(value);
-      if (numeric != null) return numeric;
-      final parsed = DateTime.tryParse(value);
-      if (parsed != null) return parsed.millisecondsSinceEpoch;
-    }
-    return fallback;
-  }
+  int _asEpochMillis(dynamic value, {int fallback = 0}) =>
+      _performAsEpochMillis(value, fallback: fallback);
 
-  List<Map<String, dynamic>> _normalizeStoryElements(dynamic raw) {
-    if (raw is! List) return const <Map<String, dynamic>>[];
-    return raw.map<Map<String, dynamic>>((item) {
-      if (item is Map) {
-        final map = Map<String, dynamic>.from(item.cast<dynamic, dynamic>());
-        final positionRaw = map['position'];
-        if (positionRaw is Map) {
-          map['position'] = Map<String, dynamic>.from(
-            positionRaw.cast<dynamic, dynamic>(),
-          );
-        }
-        return map;
-      }
-      return const <String, dynamic>{};
-    }).toList(growable: false);
-  }
+  List<Map<String, dynamic>> _normalizeStoryElements(dynamic raw) =>
+      _performNormalizeStoryElements(raw);
 
   static StoryRepository ensure() {
     final existing = maybeFind();
@@ -125,23 +100,10 @@ class StoryRepository extends GetxService {
     return Get.find<StoryRepository>();
   }
 
-  Future<void> _ensureInitialized() async {
-    _prefs ??= await SharedPreferences.getInstance();
-    if (_storyRowCacheDirectoryPath != null) return;
-    final dir = await getApplicationSupportDirectory();
-    final storyDir = Directory('${dir.path}/story_mini_cache');
-    if (!await storyDir.exists()) {
-      await storyDir.create(recursive: true);
-    }
-    _storyRowCacheDirectoryPath = storyDir.path;
-  }
+  Future<void> _ensureInitialized() => _performEnsureInitialized();
 
-  String? _storyRowCachePathForOwner(String ownerUid) {
-    final dir = _storyRowCacheDirectoryPath;
-    final normalizedUid = ownerUid.trim();
-    if (dir == null || normalizedUid.isEmpty) return null;
-    return '$dir/story_row_v2_$normalizedUid.json';
-  }
+  String? _storyRowCachePathForOwner(String ownerUid) =>
+      _performStoryRowCachePathForOwner(ownerUid);
 
   Future<StoryFetchResult> fetchStoryUsers({
     required int limit,

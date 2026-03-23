@@ -5,6 +5,9 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
+part 'support_contact_view_content_part.dart';
+part 'support_contact_view_actions_part.dart';
+
 class SupportContactView extends StatefulWidget {
   const SupportContactView({super.key});
 
@@ -27,195 +30,19 @@ class _SupportContactViewState extends State<SupportContactView> {
   bool _sending = false;
   String _selectedTopicKey = _topicKeys.first;
 
+  void _updateViewState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (_sending) return;
-    final message = _messageController.text.trim();
-    if (message.isEmpty) {
-      AppSnackbar('support.empty_title'.tr, 'support.empty_body'.tr);
-      return;
-    }
-    setState(() => _sending = true);
-    try {
-      await _repository.createMessage(
-        topic: _selectedTopicKey.tr,
-        message: message,
-      );
-      _messageController.clear();
-      AppSnackbar('support.sent_title'.tr, 'support.sent_body'.tr);
-    } catch (e) {
-      AppSnackbar('support.error_title'.tr, _friendlyErrorMessage(e));
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
-  }
-
-  String _friendlyErrorMessage(Object error) {
-    final raw = error.toString();
-    if (raw.contains('not_authenticated')) {
-      return 'support.error_not_authenticated'.tr;
-    }
-    if (raw.contains('empty_topic')) {
-      return 'support.error_empty_topic'.tr;
-    }
-    if (raw.contains('empty_message')) {
-      return 'support.empty_body'.tr;
-    }
-    return '${'support.error_body'.tr} $error';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: 'support.title'.tr),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF6F6F6),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'support.card_title'.tr,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontFamily: 'MontserratSemiBold',
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'support.direct_admin'.tr,
-                          style: const TextStyle(
-                            color: Colors.black45,
-                            fontSize: 13,
-                            fontFamily: 'MontserratMedium',
-                            height: 1.35,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'support.topic'.tr,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            fontFamily: 'MontserratSemiBold',
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _topicKeys.map((topicKey) {
-                            final selected = topicKey == _selectedTopicKey;
-                            return InkWell(
-                              borderRadius: BorderRadius.circular(999),
-                              onTap: () {
-                                setState(() => _selectedTopicKey = topicKey);
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 140),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: selected ? Colors.black : Colors.white,
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: selected
-                                        ? Colors.black
-                                        : Colors.black12,
-                                  ),
-                                ),
-                                child: Text(
-                                  topicKey.tr,
-                                  style: TextStyle(
-                                    color:
-                                        selected ? Colors.white : Colors.black,
-                                    fontSize: 13,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _messageController,
-                          maxLines: 7,
-                          minLines: 5,
-                          decoration: InputDecoration(
-                            hintText: 'support.message_hint'.tr,
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: Colors.black12),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: Colors.black12),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide:
-                                  const BorderSide(color: Colors.black54),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _sending ? null : _submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: _sending
-                                ? const CupertinoActivityIndicator(
-                                    color: Colors.white,
-                                  )
-                                : Text(
-                                    'support.send'.tr,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontFamily: 'MontserratSemiBold',
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildContent(context);
   }
 }
