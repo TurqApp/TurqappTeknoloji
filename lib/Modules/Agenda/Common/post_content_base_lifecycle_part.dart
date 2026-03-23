@@ -87,15 +87,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (oldWidget.shouldPlay != widget.shouldPlay) {
       if (widget.shouldPlay) {
         _lazyInitTimer?.cancel();
-        if (_videoAdapter == null && widget.model.hasPlayableVideo) {
-          _initVideoController();
-        }
         if (isStandalonePostInstance) {
           videoStateManager.enterExclusiveMode(playbackHandleKey);
         }
-        if (_videoAdapter?.value.isInitialized == true) {
-          _startPlayback();
-        }
+        _resumePlaybackIfEligible();
       } else {
         _lazyInitTimer?.cancel();
         if (_blockPause) return;
@@ -122,9 +117,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       if (isStandalonePostInstance) {
         videoStateManager.enterExclusiveMode(playbackHandleKey);
       }
-      if (_videoAdapter!.value.isInitialized) {
-        _startPlayback();
-      }
+      _resumePlaybackIfEligible();
     }
   }
 

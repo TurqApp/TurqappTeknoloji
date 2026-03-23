@@ -182,6 +182,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       _pauseAllWorker = ever(agendaController.pauseAll, (value) {
         if (value == true) {
           _safePauseVideo();
+        } else {
+          _resumePlaybackIfEligible();
         }
       });
 
@@ -190,6 +192,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         (suspended) {
           if (suspended || !_isSurfacePlaybackAllowed) {
             _safePauseVideo();
+          } else {
+            _resumePlaybackIfEligible();
           }
         },
       );
@@ -199,6 +203,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         _navSelectionWorker = ever<int>(nav.selectedIndex, (_) {
           if (!_isSurfacePlaybackAllowed) {
             _safePauseVideo();
+          } else {
+            _resumePlaybackIfEligible();
           }
         });
       }
@@ -293,6 +299,26 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           : (agendaController.isMuted.value ? 0.0 : 1.0),
     );
     _syncRuntimeHints(isAudible: _currentIsAudible());
+  }
+
+  void _resumePlaybackIfEligible() {
+    if (!widget.model.hasPlayableVideo || !widget.shouldPlay) return;
+    if (!_isSurfacePlaybackAllowed) return;
+
+    final adapter = _videoAdapter;
+    if (adapter == null) {
+      _initVideoController();
+      return;
+    }
+
+    _applyPlaybackVolume();
+    if (adapter.value.isInitialized) {
+      _startPlayback();
+      return;
+    }
+
+    unawaited(adapter.setLooping(shouldLoopVideo));
+    unawaited(adapter.play());
   }
 
   void _startPlayback() {
