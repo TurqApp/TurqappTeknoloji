@@ -21,12 +21,9 @@ class _ContactStatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: _buildContactStatusRowBody(),
-      ),
+    return _buildAccountCenterRowShell(
+      onTap: onTap,
+      child: _buildContactStatusRowBody(),
     );
   }
 }

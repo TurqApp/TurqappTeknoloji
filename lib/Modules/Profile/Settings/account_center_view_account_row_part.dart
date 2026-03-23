@@ -15,13 +15,10 @@ class _AccountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: _buildAccountRowBody(),
-      ),
+    return _buildAccountCenterRowShell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: _buildAccountRowBody(),
     );
   }
 }

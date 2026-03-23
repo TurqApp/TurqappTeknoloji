@@ -13,12 +13,9 @@ class _PersonalDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: _buildPersonalRowBody(),
-      ),
+    return _buildAccountCenterRowShell(
+      onTap: onTap,
+      child: _buildPersonalRowBody(),
     );
   }
 }
