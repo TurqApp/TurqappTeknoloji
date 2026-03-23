@@ -6,7 +6,19 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Obx(() {
         final items = accountCenter.accounts.toList(growable: false);
-        return _buildContent(context, items);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildAccountsSection(context, items),
+            const SizedBox(height: 18),
+            _SessionSecuritySection(
+              accountCenter: accountCenter,
+            ),
+            const SizedBox(height: 18),
+            _buildPersonalDetailsContent(),
+            if (!_isLoggedIn) const SizedBox(height: 0),
+          ],
+        );
       }),
     );
   }
