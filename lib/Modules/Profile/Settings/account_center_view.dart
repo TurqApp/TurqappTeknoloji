@@ -37,6 +37,7 @@ part 'account_center_view_chevron_part.dart';
 part 'account_center_view_contact_details_part.dart';
 part 'account_center_view_contact_details_card_body_part.dart';
 part 'account_center_view_contact_details_card_part.dart';
+part 'account_center_view_contact_details_body_part.dart';
 part 'account_center_view_contact_details_content_part.dart';
 part 'account_center_view_contact_details_data_part.dart';
 part 'account_center_view_contact_details_email_part.dart';
