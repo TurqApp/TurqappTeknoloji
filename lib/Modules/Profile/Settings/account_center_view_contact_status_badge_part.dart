@@ -5,9 +5,13 @@ extension AccountCenterViewContactStatusBadgePart on _ContactStatusRow {
     final statusColor = accountCenterStatusColor;
     final statusText = accountCenterStatusText;
     if (!isVerified) {
-      return _buildContactStatusText(
-        statusColor: statusColor,
-        statusText: statusText,
+      return Text(
+        statusText,
+        style: TextStyle(
+          color: statusColor,
+          fontSize: 14,
+          fontFamily: 'MontserratMedium',
+        ),
       );
     }
 
@@ -19,9 +23,13 @@ extension AccountCenterViewContactStatusBadgePart on _ContactStatusRow {
           size: 18,
         ),
         const SizedBox(width: 6),
-        _buildContactStatusText(
-          statusColor: statusColor,
-          statusText: statusText,
+        Text(
+          statusText,
+          style: TextStyle(
+            color: statusColor,
+            fontSize: 14,
+            fontFamily: 'MontserratMedium',
+          ),
         ),
       ],
     );
