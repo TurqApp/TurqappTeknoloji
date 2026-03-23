@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/extension.dart';
 
 part 'become_verified_account_steps_part.dart';
 part 'become_verified_account_fields_part.dart';
+part 'become_verified_account_flow_part.dart';
 
 class BecomeVerifiedAccount extends StatefulWidget {
   const BecomeVerifiedAccount({super.key});
