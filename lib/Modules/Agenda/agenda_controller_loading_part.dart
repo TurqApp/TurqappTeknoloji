@@ -274,10 +274,13 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   // Cache-first: başlangıçta cache'te varsa hızlıca ilk 10 gönderiyi doldur
   Future<void> _tryQuickFillFromCache() async {
-    await _tryQuickFillFromPool();
+    final hadWarmSnapshot = await _tryQuickFillFromPool();
     if (agendaList.isNotEmpty) return;
 
     if (ContentPolicy.isConnected) {
+      if (!hadWarmSnapshot) {
+        return;
+      }
       final me = CurrentUserService.instance.effectiveUserId;
       if (me.isEmpty) return;
       final quickFallback =
@@ -340,15 +343,16 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
-  Future<void> _tryQuickFillFromPool() async {
+  Future<bool> _tryQuickFillFromPool() async {
     final me = CurrentUserService.instance.effectiveUserId;
-    if (me.isEmpty) return;
+    if (me.isEmpty) return false;
     final snapshot = await _feedSnapshotRepository.bootstrapHome(
       userId: me,
       limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
     );
+    final hadWarmSnapshot = snapshot.hasLocalSnapshot;
     final quickFiltered = snapshot.data ?? const <PostsModel>[];
-    if (quickFiltered.isEmpty) return;
+    if (quickFiltered.isEmpty) return hadWarmSnapshot;
 
     _addUniqueToAgenda(quickFiltered);
     unawaited(_revalidateQuickFilledAgenda(quickFiltered));
@@ -360,6 +364,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
       });
     }
+    return hadWarmSnapshot;
   }
 
   Future<void> _revalidateQuickFilledAgenda(List<PostsModel> shown) async {
