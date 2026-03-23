@@ -14,6 +14,13 @@ class _PersonalDetailsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUid = currentUserService.effectiveUserId;
-    return _buildPersonalFuture(currentUid);
+    return FutureBuilder<String?>(
+      key: ValueKey(currentUid),
+      future: _loadPersonalContactDetails(
+        currentUserService: currentUserService,
+        userRepository: userRepository,
+      ),
+      builder: (context, snapshot) => _buildPersonalSnapshotState(snapshot),
+    );
   }
 }
