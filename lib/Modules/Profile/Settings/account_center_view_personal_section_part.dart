@@ -25,10 +25,7 @@ class _PersonalDetailsSection extends StatelessWidget {
             !(snapshot.hasData && (snapshot.data?.isNotEmpty ?? false))) {
           return _buildPersonalLoadingState();
         }
-        return _PersonalDetailsCard(
-          contactDetails: snapshot.data,
-          onContactTap: onContactTap,
-        );
+        return _buildPersonalLoadedState(snapshot.data);
       },
     );
   }
