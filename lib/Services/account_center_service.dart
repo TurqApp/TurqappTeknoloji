@@ -27,6 +27,8 @@ class AccountCenterService extends GetxService {
   final RxString lastUsedUid = ''.obs;
   SharedPreferences? _prefs;
   bool _initScheduled = false;
+  bool _initialized = false;
+  Future<void>? _initFuture;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   @override

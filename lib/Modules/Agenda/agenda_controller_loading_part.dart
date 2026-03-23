@@ -227,6 +227,38 @@ extension AgendaControllerLoadingPart on AgendaController {
     await _tryQuickFillFromPool();
     if (agendaList.isNotEmpty) return;
 
+    if (ContentPolicy.isConnected) {
+      final me = CurrentUserService.instance.effectiveUserId;
+      if (me.isEmpty) return;
+      final quickFallback =
+          await _feedSnapshotRepository.loadQuickCachedPersonalFallback(
+        userId: me,
+        followingIds: followingIDs.toSet(),
+        hiddenPostIds: hiddenPosts.toSet(),
+        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
+      );
+      if (quickFallback.isEmpty) return;
+
+      final existingIDs = agendaList.map((e) => e.docID).toSet();
+      final toAdd = quickFallback
+          .where((p) => !existingIDs.contains(p.docID))
+          .toList(growable: false);
+      if (toAdd.isEmpty) return;
+
+      _addUniqueToAgenda(toAdd);
+      unawaited(_revalidateQuickFilledAgenda(toAdd));
+      _scheduleReshareFetchForPosts(toAdd, perPostLimit: 1);
+
+      if (agendaList.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+            primeInitialCenteredPost();
+          }
+        });
+      }
+      return;
+    }
+
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cutoffMs = _agendaCutoffMs(nowMs);
     final page = await _loadAgendaSourcePage(

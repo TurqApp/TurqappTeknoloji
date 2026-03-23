@@ -236,28 +236,34 @@ extension _AgendaViewFeedPart on AgendaView {
       });
     }
 
-    return Obx(() {
-      final isCentered = controller.centeredIndex.value == agendaIndex;
-      final viewSelection = CurrentUserService.instance.effectiveViewSelection;
-      if (viewSelection == 1) {
-        return AgendaContent(
-          key: ValueKey(stableKeyString),
-          model: model,
-          isPreview: false,
-          shouldPlay: isCentered,
-          isYenidenPaylasilanPost: isReshare,
-          reshareUserID: reshareUserID,
-        );
-      }
-      return ClassicContent(
-        key: ValueKey(stableKeyString),
-        model: model,
-        isPreview: false,
-        shouldPlay: isCentered,
-        isYenidenPaylasilanPost: isReshare,
-        reshareUserID: reshareUserID,
-      );
-    });
+    return GetBuilder<AgendaController>(
+      id: controller.feedPlaybackRowUpdateId(agendaIndex),
+      builder: (agendaController) {
+        final isCentered = agendaController.centeredIndex.value == agendaIndex;
+        return Obx(() {
+          final viewSelection =
+              CurrentUserService.instance.effectiveViewSelection;
+          if (viewSelection == 1) {
+            return AgendaContent(
+              key: ValueKey(stableKeyString),
+              model: model,
+              isPreview: false,
+              shouldPlay: isCentered,
+              isYenidenPaylasilanPost: isReshare,
+              reshareUserID: reshareUserID,
+            );
+          }
+          return ClassicContent(
+            key: ValueKey(stableKeyString),
+            model: model,
+            isPreview: false,
+            shouldPlay: isCentered,
+            isYenidenPaylasilanPost: isReshare,
+            reshareUserID: reshareUserID,
+          );
+        });
+      },
+    );
   }
 
   Widget _buildPromoSlot(Map<String, dynamic> entry) {

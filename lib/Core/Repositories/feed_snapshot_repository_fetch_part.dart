@@ -1,6 +1,27 @@
 part of 'feed_snapshot_repository.dart';
 
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
+  Future<List<PostsModel>> loadQuickCachedPersonalFallback({
+    required String userId,
+    required Set<String> followingIds,
+    required Set<String> hiddenPostIds,
+    required int limit,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return const <PostsModel>[];
+    final page = await _loadPersonalFallbackPage(
+      currentUserId: normalizedUserId,
+      followingIds: followingIds,
+      hiddenPostIds: hiddenPostIds,
+      nowMs: DateTime.now().millisecondsSinceEpoch,
+      cutoffMs: 0,
+      limit: limit,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    return page.items;
+  }
+
   Future<FeedSourcePage> fetchHomePage({
     required String userId,
     required Set<String> followingIds,

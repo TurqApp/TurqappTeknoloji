@@ -32,6 +32,7 @@ extension AgendaControllerFeedPart on AgendaController {
   void _bindCenteredIndexListener() {
     ever<int>(centeredIndex, (newIndex) {
       final videoManager = VideoStateManager.instance;
+      _notifyPlaybackRowUpdates(newIndex);
 
       if (playbackSuspended.value) {
         _cancelPendingPlaybackReassert();
@@ -296,6 +297,22 @@ extension AgendaControllerFeedPart on AgendaController {
     _playbackReassertTimer = null;
   }
 
+  String feedPlaybackRowUpdateId(int index) => 'feed-playback-row-$index';
+
+  void _notifyPlaybackRowUpdates(int newIndex) {
+    final ids = <String>{};
+    if (_lastPlaybackRowUpdateIndex >= 0) {
+      ids.add(feedPlaybackRowUpdateId(_lastPlaybackRowUpdateIndex));
+    }
+    if (newIndex >= 0) {
+      ids.add(feedPlaybackRowUpdateId(newIndex));
+    }
+    _lastPlaybackRowUpdateIndex = newIndex;
+    if (ids.isNotEmpty) {
+      update(ids.toList(growable: false));
+    }
+  }
+
   bool _isPlaybackTargetCurrent(int index) {
     if (index < 0 || index >= agendaList.length) return false;
     return VideoStateManager.instance.currentPlayingDocID ==
@@ -329,8 +346,10 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     lastOffset = currentOffset;
 
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent - 300) {
+    if (agendaList.isNotEmpty &&
+        scrollController.position.hasContentDimensions &&
+        scrollController.position.pixels >=
+            scrollController.position.maxScrollExtent - 300) {
       fetchAgendaBigData();
     }
 

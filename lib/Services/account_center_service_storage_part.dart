@@ -17,6 +17,25 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
   }
 
   Future<void> init() async {
+    if (_initialized) return;
+    final inFlight = _initFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+    final future = _performInit();
+    _initFuture = future;
+    try {
+      await future;
+      _initialized = true;
+    } finally {
+      if (identical(_initFuture, future)) {
+        _initFuture = null;
+      }
+    }
+  }
+
+  Future<void> _performInit() async {
     await _ensurePrefs();
     final raw = _prefs?.getString(_accountCenterAccountsStorageKey) ?? '';
     final restored = _dedupeAccounts(

@@ -92,6 +92,7 @@ class AgendaController extends GetxController {
   final RxInt centeredIndex = 0.obs;
   final RxBool playbackSuspended = false.obs;
   int? lastCenteredIndex;
+  int _lastPlaybackRowUpdateIndex = -1;
   var isMuted = false.obs;
   DocumentSnapshot? lastDoc;
   bool _usePrimaryFeedPaging = true;
