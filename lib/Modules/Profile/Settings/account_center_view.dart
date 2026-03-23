@@ -45,6 +45,7 @@ part 'account_center_view_body_part.dart';
 part 'account_center_view_body_content_part.dart';
 part 'account_center_view_body_loading_part.dart';
 part 'account_center_view_body_snapshot_part.dart';
+part 'account_center_view_card_decoration_part.dart';
 part 'account_center_view_chevron_part.dart';
 part 'account_center_view_contact_details_part.dart';
 part 'account_center_view_contact_details_card_body_part.dart';

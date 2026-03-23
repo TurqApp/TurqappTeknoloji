@@ -6,11 +6,7 @@ extension AccountCenterViewAccountsCardPart on AccountCenterView {
     List<StoredAccount> items,
   ) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black12),
-      ),
+      decoration: _buildAccountCenterCardDecoration(),
       child: items.isEmpty
           ? _buildAccountsEmptyState()
           : _buildAccountsList(context, items),
