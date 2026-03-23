@@ -411,7 +411,11 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     if (preferCache) {
       try {
-        return await query.get(const GetOptions(source: Source.cache));
+        final cached = await query.get(const GetOptions(source: Source.cache));
+        if (cacheOnly || cached.docs.isNotEmpty) {
+          return cached;
+        }
+        return query.get(const GetOptions(source: Source.server));
       } catch (_) {
         if (cacheOnly) rethrow;
         return query.get(const GetOptions(source: Source.server));
