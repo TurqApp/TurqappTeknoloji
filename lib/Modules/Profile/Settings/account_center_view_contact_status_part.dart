@@ -21,8 +21,6 @@ class _ContactStatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = isVerified ? Colors.green : Colors.blueAccent;
-    final statusText = isVerified ? verifiedLabel : pendingLabel;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -57,34 +55,7 @@ class _ContactStatusRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (isVerified)
-                Row(
-                  children: [
-                    const Icon(
-                      CupertinoIcons.checkmark_seal_fill,
-                      color: Colors.green,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      statusText,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 14,
-                        fontFamily: 'MontserratMedium',
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 14,
-                    fontFamily: 'MontserratMedium',
-                  ),
-                ),
+              _buildStatusBadge(),
             ],
           ),
         ),
