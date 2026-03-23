@@ -6,7 +6,16 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 
 part 'notification_settings_view_main_part.dart';
+part 'notification_settings_view_instant_part.dart';
+part 'notification_settings_view_categories_part.dart';
+part 'notification_settings_view_data_part.dart';
+part 'notification_settings_view_notice_part.dart';
 part 'notification_settings_view_category_part.dart';
+part 'notification_settings_view_category_catalog_part.dart';
+part 'notification_settings_view_category_shell_part.dart';
+part 'notification_settings_view_category_data_part.dart';
+part 'notification_settings_view_model_part.dart';
+part 'notification_settings_view_components_part.dart';
 
 class NotificationSettingsView extends StatefulWidget {
   const NotificationSettingsView({super.key});

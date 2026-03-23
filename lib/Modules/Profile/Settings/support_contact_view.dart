@@ -5,8 +5,14 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
-part 'support_contact_view_content_part.dart';
+part 'support_contact_view_shell_part.dart';
+part 'support_contact_view_card_part.dart';
+part 'support_contact_view_form_part.dart';
+part 'support_contact_view_submit_part.dart';
+part 'support_contact_view_topics_part.dart';
+part 'support_contact_view_topics_catalog_part.dart';
 part 'support_contact_view_actions_part.dart';
+part 'support_contact_view_error_part.dart';
 
 class SupportContactView extends StatefulWidget {
   const SupportContactView({super.key});
@@ -16,19 +22,11 @@ class SupportContactView extends StatefulWidget {
 }
 
 class _SupportContactViewState extends State<SupportContactView> {
-  static const List<String> _topicKeys = <String>[
-    'support.topic.account',
-    'support.topic.payment',
-    'support.topic.technical',
-    'support.topic.content',
-    'support.topic.suggestion',
-  ];
-
   final TextEditingController _messageController = TextEditingController();
   final SupportMessageRepository _repository =
       SupportMessageRepository.ensure();
   bool _sending = false;
-  String _selectedTopicKey = _topicKeys.first;
+  String _selectedTopicKey = _supportTopicKeys.first;
 
   void _updateViewState(VoidCallback fn) {
     if (!mounted) return;

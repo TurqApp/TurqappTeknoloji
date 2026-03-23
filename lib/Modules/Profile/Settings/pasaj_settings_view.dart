@@ -7,6 +7,9 @@ import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
 part 'pasaj_settings_view_shell_part.dart';
 part 'pasaj_settings_view_content_part.dart';
+part 'pasaj_settings_view_data_part.dart';
+part 'pasaj_settings_view_labels_part.dart';
+part 'pasaj_settings_view_tile_part.dart';
 
 class PasajSettingsView extends StatefulWidget {
   const PasajSettingsView({super.key});
