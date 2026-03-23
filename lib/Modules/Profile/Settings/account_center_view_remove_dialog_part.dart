@@ -7,23 +7,8 @@ extension AccountCenterViewRemoveDialogPart on AccountCenterView {
   ) async {
     return await showCupertinoDialog<bool>(
           context: context,
-          builder: (dialogContext) => CupertinoAlertDialog(
-            title: Text('account_center.remove_account_title'.tr),
-            content: Text(
-              'account_center.remove_account_body'
-                  .trParams(<String, String>{'username': account.username}),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text('common.cancel'.tr),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text('common.delete'.tr),
-              ),
-            ],
+          builder: (dialogContext) => _RemoveAccountDialog(
+            account: account,
           ),
         ) ??
         false;
