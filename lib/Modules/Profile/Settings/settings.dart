@@ -62,9 +62,19 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 
-part 'settings_sections_part.dart';
+part 'settings_sections_admin_part.dart';
+part 'settings_sections_account_part.dart';
+part 'settings_sections_session_part.dart';
+part 'settings_sections_tasks_part.dart';
 part 'settings_diagnostics_part.dart';
+part 'settings_diagnostics_actions_part.dart';
+part 'settings_diagnostics_cache_part.dart';
+part 'settings_diagnostics_detail_part.dart';
+part 'settings_diagnostics_menu_part.dart';
+part 'settings_diagnostics_usage_part.dart';
+part 'settings_admin_push_menu_tile_part.dart';
 part 'settings_shell_part.dart';
+part 'settings_shell_helpers_part.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -127,55 +137,5 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) => _buildPage(context);
-}
-
-class _AdminPushMenuTile extends StatefulWidget {
-  const _AdminPushMenuTile({required this.buildRow});
-
-  final Widget Function(String, IconData, VoidCallback, {bool isNew}) buildRow;
-
-  @override
-  State<_AdminPushMenuTile> createState() => _AdminPushMenuTileState();
-}
-
-class _AdminPushMenuTileState extends State<_AdminPushMenuTile> {
-  late final Future<bool> _canShowFuture;
-
-  Future<bool> _canShowAdminPushMenu() async {
-    if (CurrentUserService.instance.effectiveUserId.isEmpty) return false;
-
-    final isAdmin = await AdminAccessService.canManageSliders();
-    if (!isAdmin) return false;
-
-    final data = await ConfigRepository.ensure().getAdminConfigDoc(
-          'admin',
-          preferCache: true,
-        ) ??
-        <String, dynamic>{};
-    return data["pushSend"] == true;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _canShowFuture = _canShowAdminPushMenu();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _canShowFuture,
-      builder: (context, snapshot) {
-        if (snapshot.data != true) {
-          return const SizedBox.shrink();
-        }
-        return widget.buildRow(
-          "settings.admin_push".tr,
-          CupertinoIcons.paperplane,
-          () => Get.to(() => const AdminPushView()),
-        );
-      },
-    );
-  }
 }
 // ignore_for_file: file_names
