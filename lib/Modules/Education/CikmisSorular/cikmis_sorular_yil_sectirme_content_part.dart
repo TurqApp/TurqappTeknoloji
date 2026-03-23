@@ -24,18 +24,18 @@ extension CikmisSorularYilSectirmeContentPart
                         shrinkWrap: true,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 0.78,
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 4,
+                          mainAxisSpacing: 4,
+                          childAspectRatio: 1,
                         ),
-                        itemCount: sessions.length,
+                        itemCount: yillar.length,
                         itemBuilder: (context, index) {
                           return GestureDetector(
-                            onTap: () => _openSession(context, sessions[index]),
+                            onTap: () => _openYear(context, yillar[index]),
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 2),
-                              child: _buildYearCard(index),
+                              child: _buildYearCard(yillar[index]),
                             ),
                           );
                         },
@@ -51,110 +51,37 @@ extension CikmisSorularYilSectirmeContentPart
     );
   }
 
-  Widget _buildYearCard(int index) {
-    return Stack(
+  Widget _buildYearCard(String yil) {
+    return Column(
       children: [
-        Container(
-          decoration: const BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.all(Radius.circular(4)),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.cyan,
-                Colors.black.withValues(alpha: 0.9),
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: const BorderRadius.all(Radius.circular(4)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.3),
-                blurRadius: 6,
-                offset: const Offset(0, 0),
-              ),
-            ],
-          ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxHeight < 110;
-              return Padding(
-                padding: EdgeInsets.all(compact ? 12 : 16),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              _localizedExamType(widget.sinavTuru),
-                              textScaler: TextScaler.noScaling,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontFamily: 'MontserratBold',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: compact ? 4 : 6),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          _denemeLabel(sessions[index].sira),
-                          textScaler: TextScaler.noScaling,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                            fontFamily: 'MontserratBold',
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (sessions[index].yil.isNotEmpty) ...[
-                      SizedBox(height: compact ? 2 : 4),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            sessions[index].yil,
-                            textScaler: TextScaler.noScaling,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontFamily: 'MontserratMedium',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(10),
+        Expanded(
           child: Container(
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              border: Border.all(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.cyan,
+                  Colors.black.withValues(alpha: 0.9),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 0),
+                ),
+              ],
+            ),
+            child: Text(
+              yil,
+              textScaler: TextScaler.noScaling,
+              style: const TextStyle(
                 color: Colors.white,
-                width: 0.5,
+                fontSize: 25,
+                fontFamily: "MontserratBold",
               ),
             ),
           ),

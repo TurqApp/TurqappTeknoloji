@@ -2,16 +2,15 @@ part of 'cikmis_sorular_yil_sectirme.dart';
 
 extension CikmisSorularYilSectirmeActionsPart
     on _CikmisSorularYilSectirmeState {
-  void _openSession(BuildContext context, _CikmisSoruSessionOption session) {
-    if (_isLanguageOrDirectBranch(widget.sinavTuru)) {
+  void _openYear(BuildContext context, String yil) {
+    if (_isLanguageOrDirectBranch(widget.baslik2)) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => CikmisSorularBaslik2Secimi(
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
-            yil: session.yil,
-            sira: session.sira,
+            yil: yil,
           ),
         ),
       );
@@ -26,9 +25,44 @@ extension CikmisSorularYilSectirmeActionsPart
           builder: (context) => CikmisSorularBaslik3Secimi(
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
-            yil: session.yil,
+            yil: yil,
             baslik2: widget.baslik2,
-            sira: session.sira,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.sinavTuru == _CikmisSorularYilSectirmeState._undergraduate &&
+        widget.baslik2 ==
+            _CikmisSorularYilSectirmeState._fieldKnowledge) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CikmisSorularPreview(
+            anaBaslik: widget.anaBaslik,
+            sinavTuru: widget.sinavTuru,
+            yil: yil,
+            baslik2: widget.baslik2,
+            baslik3: widget.baslik3,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.sinavTuru == _CikmisSorularYilSectirmeState._undergraduate &&
+        widget.baslik2 ==
+            _CikmisSorularYilSectirmeState._educationSciences) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CikmisSorularPreview(
+            anaBaslik: widget.anaBaslik,
+            sinavTuru: widget.sinavTuru,
+            yil: yil,
+            baslik2: widget.baslik2,
+            baslik3: widget.baslik3,
           ),
         ),
       );
@@ -41,10 +75,9 @@ extension CikmisSorularYilSectirmeActionsPart
         builder: (context) => CikmisSorularPreview(
           anaBaslik: widget.anaBaslik,
           sinavTuru: widget.sinavTuru,
-          yil: session.yil,
+          yil: yil,
           baslik2: _resolvePreviewBaslik2(),
           baslik3: _resolvePreviewBaslik3(),
-          sira: session.sira,
         ),
       ),
     );

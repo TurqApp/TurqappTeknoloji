@@ -30,7 +30,7 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
-  List<_CikmisSoruSessionOption> sessions = [];
+  List<String> yillar = [];
   static const _english = 'İngilizce';
   static const _german = 'Almanca';
   static const _arabic = 'Arapça';
@@ -52,9 +52,6 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   static const _ttbt = 'TTBT';
   static const _ales = 'ALES';
   static const _yks = 'YKS';
-
-  String _denemeLabel(int sira) =>
-      'past_questions.mock_label'.trParams({'index': '${sira + 1}'});
 
   String _localizedExamType(String raw) {
     switch (raw) {
@@ -110,24 +107,20 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   Future<void> getData() async {
     final docs = await _repository.fetchRootDocs();
     final filtered = docs.where(_matchesSessionDoc).toList(growable: false);
-    final grouped = <int, _CikmisSoruSessionOption>{};
+    final years = <String>[];
     for (final doc in filtered) {
-      final sira = (doc['sira'] as num?)?.toInt() ?? 0;
       final yil = (doc['yil'] ?? '').toString().trim();
-      final existing = grouped[sira];
-      if (existing == null) {
-        grouped[sira] = _CikmisSoruSessionOption(sira: sira, yil: yil);
-        continue;
-      }
-      if (existing.yil.isEmpty && yil.isNotEmpty) {
-        grouped[sira] = existing.copyWith(yil: yil);
-      }
+      if (yil.isEmpty || years.contains(yil)) continue;
+      years.add(yil);
     }
-    final items = grouped.values.toList(growable: false)
-      ..sort((a, b) => a.sira.compareTo(b.sira));
+    years.sort((a, b) {
+      final left = int.tryParse(a) ?? -1;
+      final right = int.tryParse(b) ?? -1;
+      return right.compareTo(left);
+    });
     if (!mounted) return;
     setState(() {
-      sessions = items;
+      yillar = years;
     });
   }
 
@@ -151,24 +144,4 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
 
   @override
   Widget build(BuildContext context) => _buildPage(context);
-}
-
-class _CikmisSoruSessionOption {
-  const _CikmisSoruSessionOption({
-    required this.sira,
-    required this.yil,
-  });
-
-  final int sira;
-  final String yil;
-
-  _CikmisSoruSessionOption copyWith({
-    int? sira,
-    String? yil,
-  }) {
-    return _CikmisSoruSessionOption(
-      sira: sira ?? this.sira,
-      yil: yil ?? this.yil,
-    );
-  }
 }
