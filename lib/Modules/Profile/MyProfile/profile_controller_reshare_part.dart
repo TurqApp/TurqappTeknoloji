@@ -8,6 +8,8 @@ extension ProfileControllerResharePart on ProfileController {
     _resharesSub = _linkService.listenResharedPosts(uid).listen((refs) {
       _latestReshareRefs = refs;
       _hydrateReshares(uid, refs);
+    }, onError: (error) {
+      print('ProfileController reshares listener error: $error');
     });
   }
 

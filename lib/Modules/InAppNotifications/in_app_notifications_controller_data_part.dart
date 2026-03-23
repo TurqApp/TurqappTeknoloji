@@ -10,6 +10,8 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
       _preferences =
           NotificationPreferencesService.mergeWithDefaults(snapshot.data());
       _applyFilters();
+    }, onError: (error) {
+      debugPrint('🔔 InApp notification settings listener error: $error');
     });
   }
 

@@ -226,6 +226,8 @@ extension PostRepositoryInteractionPart on PostRepository {
       _countManager.getStatsCount(state.postId).value =
           ((stats['statsCount'] ?? data['statsCount'] ?? 0) as num).toInt();
       state.latestPostData.value = Map<String, dynamic>.from(data);
+    }, onError: (error) {
+      debugPrint('PostRepository post stream error (${state.postId}): $error');
     });
   }
 
@@ -246,6 +248,11 @@ extension PostRepositoryInteractionPart on PostRepository {
         .snapshots()
         .listen((snap) {
       state.commented.value = snap.docs.isNotEmpty;
+    }, onError: (error) {
+      state.commented.value = false;
+      debugPrint(
+        'PostRepository comments membership stream error (${state.postId}): $error',
+      );
     });
   }
 
