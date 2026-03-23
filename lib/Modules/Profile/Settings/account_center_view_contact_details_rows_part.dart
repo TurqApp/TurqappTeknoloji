@@ -13,7 +13,7 @@ extension AccountCenterViewContactDetailsRowsPart on _ContactDetailsView {
           email: email,
           emailVerified: emailVerified,
         ),
-        const Divider(height: 1, indent: 18, endIndent: 18),
+        _buildContactDetailsDivider(),
         _buildPhoneContactStatusRow(
           phone: phone,
           phoneVerified: phoneVerified,
