@@ -7,9 +7,9 @@ extension AccountCenterViewContactStatusVerifiedPart on _ContactStatusRow {
   }) {
     return Row(
       children: [
-        const Icon(
+        Icon(
           CupertinoIcons.checkmark_seal_fill,
-          color: Colors.green,
+          color: statusColor,
           size: 18,
         ),
         const SizedBox(width: 6),
