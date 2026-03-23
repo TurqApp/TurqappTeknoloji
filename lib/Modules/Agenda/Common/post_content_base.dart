@@ -85,6 +85,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
   final ValueNotifier<HLSVideoValue> videoValueNotifier =
       ValueNotifier(const HLSVideoValue());
+  static const Duration _stableFramePositionThreshold =
+      Duration(milliseconds: 180);
 
   AgendaController _resolveAgendaController() {
     return AgendaController.ensure();
@@ -238,6 +240,34 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void didPop() {}
 
   void _onVideoUpdate() => _handleVideoUpdate();
+
+  bool _hasStableVideoFrame(HLSVideoValue value) {
+    return value.hasRenderedFirstFrame &&
+        !value.isCompleted &&
+        (value.isPlaying || value.position > _stableFramePositionThreshold);
+  }
+
+  int _remainingSecondsBucket(HLSVideoValue value) {
+    if (value.duration <= Duration.zero) return -1;
+    final remaining = value.duration - value.position;
+    final safeRemaining = remaining.isNegative ? Duration.zero : remaining;
+    return safeRemaining.inSeconds;
+  }
+
+  bool _shouldSyncVideoNotifier(HLSVideoValue next) {
+    final previous = videoValueNotifier.value;
+    if (previous.isInitialized != next.isInitialized ||
+        previous.isPlaying != next.isPlaying ||
+        previous.isBuffering != next.isBuffering ||
+        previous.isCompleted != next.isCompleted ||
+        previous.hasRenderedFirstFrame != next.hasRenderedFirstFrame) {
+      return true;
+    }
+    if (_hasStableVideoFrame(previous) != _hasStableVideoFrame(next)) {
+      return true;
+    }
+    return _remainingSecondsBucket(previous) != _remainingSecondsBucket(next);
+  }
 
   void _markPostContentDirty() {
     if (!mounted) return;

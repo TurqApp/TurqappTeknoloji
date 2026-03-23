@@ -222,6 +222,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       }
     }
 
-    videoValueNotifier.value = v;
+    if (_shouldSyncVideoNotifier(v)) {
+      videoValueNotifier.value = v;
+    }
   }
 }
