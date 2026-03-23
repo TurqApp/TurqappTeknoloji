@@ -109,6 +109,7 @@ class AgendaController extends GetxController {
   Timer? _reshareWarmupTimer;
   Timer? _resharePostsFetchTimer;
   Timer? _agendaRetryTimer;
+  Timer? _deferredInitialNetworkBootstrapTimer;
   int _agendaRetryCount = 0;
   Worker? _mergedFeedWorker;
   Worker? _filteredFeedWorker;
@@ -187,6 +188,7 @@ class AgendaController extends GetxController {
   bool _ensureInitialLoadInFlight = false;
   Future<void>? _ensureInitialLoadFuture;
   DateTime? _lastEnsureInitialLoadAt;
+  DateTime? _lastDeferredInitialNetworkBootstrapAt;
   DateTime? _lastPlaybackCommandAt;
   String? _lastPlaybackCommandDocId;
   bool _feedModeFallbackQueued = false;

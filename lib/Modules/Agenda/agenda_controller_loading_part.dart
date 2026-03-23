@@ -1,6 +1,42 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
+  void _cancelDeferredInitialNetworkBootstrap() {
+    _deferredInitialNetworkBootstrapTimer?.cancel();
+    _deferredInitialNetworkBootstrapTimer = null;
+  }
+
+  void _scheduleDeferredInitialNetworkBootstrap() {
+    if (_deferredInitialNetworkBootstrapTimer?.isActive == true) return;
+    final now = DateTime.now();
+    if (_lastDeferredInitialNetworkBootstrapAt != null &&
+        now.difference(_lastDeferredInitialNetworkBootstrapAt!) <
+            const Duration(seconds: 8)) {
+      return;
+    }
+    _lastDeferredInitialNetworkBootstrapAt = now;
+    _deferredInitialNetworkBootstrapTimer = Timer(
+      const Duration(milliseconds: 3200),
+      () {
+        _deferredInitialNetworkBootstrapTimer = null;
+        if (isClosed || isLoading.value || !hasMore.value) return;
+        if (agendaList.isEmpty) {
+          unawaited(fetchAgendaBigData(initial: true));
+          return;
+        }
+        unawaited(fetchAgendaBigData());
+      },
+    );
+  }
+
+  bool _shouldDeferInitialNetworkBootstrap() {
+    if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
+      return false;
+    }
+    if (agendaList.length < 8) return false;
+    return agendaList.any(_canAutoplayVideoPost);
+  }
+
   bool _isTransientAgendaUnavailable(Object error) {
     if (error is FirebaseException && error.code == 'unavailable') {
       return true;
@@ -42,6 +78,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> fetchAgendaBigData({bool initial = false}) async {
+    _cancelDeferredInitialNetworkBootstrap();
     final previousAgenda = agendaList.toList(growable: false);
     final previousReshares = publicReshareEvents.toList(growable: false);
     final previousFeedReshares = feedReshareEntries.toList(growable: false);
@@ -79,6 +116,16 @@ extension AgendaControllerLoadingPart on AgendaController {
             ContentScreenKind.feed,
             hasLocalContent: true,
           )) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+            primeInitialCenteredPost();
+          }
+        });
+        return;
+      }
+
+      if (agendaList.isNotEmpty && _shouldDeferInitialNetworkBootstrap()) {
+        _scheduleDeferredInitialNetworkBootstrap();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (agendaList.isNotEmpty && centeredIndex.value == -1) {
             primeInitialCenteredPost();
@@ -581,6 +628,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   Future<void> refreshAgenda() async {
     try {
+      _cancelDeferredInitialNetworkBootstrap();
       // Refresh başlarken tüm oynatımları kesin durdur.
       pauseAll.value = true;
       final currentCentered = centeredIndex.value;
