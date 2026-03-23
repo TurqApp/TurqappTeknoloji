@@ -33,6 +33,7 @@ import 'market_schema_service.dart';
 part 'market_controller_filter_part.dart';
 part 'market_controller_home_part.dart';
 part 'market_controller_actions_part.dart';
+part 'market_controller_lifecycle_part.dart';
 
 class MarketController extends GetxController {
   static MarketController ensure({bool permanent = false}) {
@@ -170,9 +171,6 @@ class MarketController extends GetxController {
     return _sameMarketEntries(visibleItems, next);
   }
 
-  String _listingSelectionKeyFor(String uid) =>
-      '${_listingSelectionPrefKeyPrefix}_$uid';
-
   Future<void> _restoreListingSelection() => _performRestoreListingSelection();
 
   Future<void> _persistListingSelection() => _performPersistListingSelection();
@@ -180,19 +178,12 @@ class MarketController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_restoreListingSelection());
-    scrollController.addListener(_onScroll);
-    unawaited(_loadRecentSearches());
-    unawaited(_bootstrapHomeData());
+    _handleLifecycleInit();
   }
 
   @override
   void onClose() {
-    _homeSnapshotSub?.cancel();
-    _searchDebounce?.cancel();
-    scrollController.removeListener(_onScroll);
-    scrollController.dispose();
-    search.dispose();
+    _handleLifecycleClose();
     super.onClose();
   }
 
@@ -295,11 +286,6 @@ class MarketController extends GetxController {
 
   Future<void> focusNearbyItems() => _performFocusNearbyItems();
 
-  void _onScroll() {
-    if (!scrollController.hasClients) return;
-    scrollOffset.value = scrollController.offset;
-  }
-
   void _applyFilters() => _performApplyFilters();
 
   bool _matchesCategory(MarketItemModel item, String categoryKey) =>
@@ -370,6 +356,8 @@ class MarketController extends GetxController {
     MarketItemModel local,
   ) =>
       _performIsSyncedWithPending(remote, local);
+
+  void _onScroll() => _performOnScroll();
 
   String get _currentUid {
     return CurrentUserService.instance.effectiveUserId;

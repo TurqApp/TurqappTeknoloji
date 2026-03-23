@@ -30,6 +30,7 @@ import '../Story/StoryRow/story_user_model.dart';
 
 part 'social_profile_controller_profile_part.dart';
 part 'social_profile_controller_feed_part.dart';
+part 'social_profile_controller_lifecycle_part.dart';
 
 class SocialProfileController extends GetxController {
   static SocialProfileController ensure({
@@ -118,29 +119,6 @@ class SocialProfileController extends GetxController {
   final RxList<PostsModel> photos = <PostsModel>[].obs;
   final RxList<PostsModel> scheduledPosts = <PostsModel>[].obs;
 
-  bool isPrivateContentBlockedFor(String? viewerUserId) {
-    return gizliHesap.value &&
-        takipEdiyorum.value == false &&
-        viewerUserId != userID;
-  }
-
-  bool isBlockedByCurrentViewer(String? otherUserId) {
-    final other = (otherUserId ?? '').trim();
-    if (other.isEmpty) return false;
-    final currentBlocked = CurrentUserService.instance.blockedUserIds;
-    return currentBlocked.contains(other);
-  }
-
-  String displayCounterValue({
-    required String? viewerUserId,
-    required num value,
-  }) {
-    if (isBlockedByCurrentViewer(viewerUserId)) {
-      return "0";
-    }
-    return NumberFormatter.format(value.toInt());
-  }
-
   final RxBool isLoadingPosts = false.obs;
   final RxBool hasMorePosts = true.obs;
   DocumentSnapshot? lastPostDoc;
@@ -189,28 +167,30 @@ class SocialProfileController extends GetxController {
 
   @override
   void onInit() {
-    UserAnalyticsService.instance.trackFeatureUsage('social_profile_open');
-    getUserData();
-    getCounters();
-    getUserStoryUserModelAndPrint(userID);
-    getSocialMediaLinks();
-    isFollowingCheck();
-    _logProfileVisitIfNeeded();
     super.onInit();
-    unawaited(_restoreCachedBuckets());
-    _fetchPrimaryBuckets(initial: true);
-    getReshares();
+    _handleLifecycleInit();
   }
-
-  Future<void> _logProfileVisitIfNeeded() => _performLogProfileVisitIfNeeded();
 
   @override
   void onClose() {
-    scrollController.dispose();
-    _userDocSub?.cancel();
-    _resharesSub?.cancel();
+    _handleLifecycleClose();
     super.onClose();
   }
+
+  bool isPrivateContentBlockedFor(String? viewerUserId) =>
+      _performIsPrivateContentBlockedFor(viewerUserId);
+
+  bool isBlockedByCurrentViewer(String? otherUserId) =>
+      _performIsBlockedByCurrentViewer(otherUserId);
+
+  String displayCounterValue({
+    required String? viewerUserId,
+    required num value,
+  }) =>
+      _performDisplayCounterValue(
+        viewerUserId: viewerUserId,
+        value: value,
+      );
 
   Future<void> getCounters() => _performGetCounters();
 

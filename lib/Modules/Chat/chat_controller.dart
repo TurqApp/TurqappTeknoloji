@@ -40,6 +40,7 @@ import '../../Core/Services/optimized_nsfw_service.dart';
 import '../../Models/message_model.dart';
 
 part 'chat_controller_conversation.dart';
+part 'chat_controller_conversation_sync_part.dart';
 part 'chat_controller_actions_part.dart';
 part 'chat_controller_composer_part.dart';
 part 'chat_controller_forwarding_part.dart';
@@ -273,14 +274,14 @@ class ChatController extends GetxController {
       _ChatControllerConversationX(this).setChatBackgroundPreference(index);
 
   Future<void> _syncMessages({required bool forceServer}) =>
-      _ChatControllerConversationX(this)
+      _ChatControllerConversationSyncX(this)
           ._syncMessages(forceServer: forceServer);
 
   Future<void> loadOlderMessages() =>
-      _ChatControllerConversationX(this).loadOlderMessages();
+      _ChatControllerConversationSyncX(this).loadOlderMessages();
 
   Future<void> jumpToMessageByRawId(String rawId) =>
-      _ChatControllerConversationX(this).jumpToMessageByRawId(rawId);
+      _ChatControllerConversationSyncX(this).jumpToMessageByRawId(rawId);
 
   Future<void> archiveCurrentChat() async {
     final uid = CurrentUserService.instance.effectiveUserId;
