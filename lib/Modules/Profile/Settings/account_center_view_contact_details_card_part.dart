@@ -20,14 +20,9 @@ extension AccountCenterViewContactDetailsCardPart on _ContactDetailsView {
             emailVerified: emailVerified,
           ),
           const Divider(height: 1, indent: 18, endIndent: 18),
-          _ContactStatusRow(
-            icon: CupertinoIcons.phone,
-            title: 'account_center.phone'.tr,
-            value: phone.isNotEmpty ? phone : 'account_center.phone_missing'.tr,
-            isVerified: phoneVerified,
-            verifiedLabel: 'account_center.verified'.tr,
-            pendingLabel: 'account_center.unverified'.tr,
-            onTap: () => Get.to(() => EditorPhoneNumber()),
+          _buildPhoneContactStatusRow(
+            phone: phone,
+            phoneVerified: phoneVerified,
           ),
         ],
       ),
