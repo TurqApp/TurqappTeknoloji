@@ -23,7 +23,10 @@ class _PersonalDetailsSection extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done &&
             !(snapshot.hasData && (snapshot.data?.isNotEmpty ?? false))) {
-          return _buildPersonalLoadingState();
+          return _buildAccountCenterCard(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+            child: const CupertinoActivityIndicator(),
+          );
         }
 
         return _PersonalDetailsCard(
