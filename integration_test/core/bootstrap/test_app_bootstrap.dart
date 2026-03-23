@@ -86,13 +86,16 @@ Future<void> expectNoFlutterException(WidgetTester tester) async {
 
 Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   if (!kRunIntegrationSmoke) return;
-  if (FirebaseAuth.instance.currentUser != null) {
-    debugPrint('[integration-smoke] auth: already signed in');
-    return;
-  }
-
   final credentials =
       _cachedIntegrationCredential ??= await _resolveIntegrationCredentials();
+  final explicitEnvCredentials = kIntegrationLoginEmail.trim().isNotEmpty &&
+      kIntegrationLoginPassword.isNotEmpty;
+  if (explicitEnvCredentials) {
+    await _resetSmokeSessionForDeterministicSignIn(tester);
+  }
+
+  var signedInThisRun = false;
+  if (FirebaseAuth.instance.currentUser == null) {
   if (credentials == null) {
     throw TestFailure(
       'Integration smoke requires an authenticated session. '
@@ -113,10 +116,14 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
       DeviceSessionService.instance.beginSessionClaim(signedUid);
     }
     debugPrint('[integration-smoke] auth: sign-in success');
+      signedInThisRun = true;
   } on FirebaseAuthException catch (error) {
     throw TestFailure(
       'Integration smoke sign-in failed for ${_redactEmail(credentials.email)}: ${error.code}',
     );
+  }
+  } else {
+    debugPrint('[integration-smoke] auth: already signed in');
   }
 
   await tester.pump(const Duration(milliseconds: 300));
@@ -124,7 +131,11 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   if (signInError != null) {
     throw TestFailure('Integration smoke post-sign-in exception: $signInError');
   }
-  debugPrint('[integration-smoke] auth: immediate post-sign-in pump complete');
+  debugPrint(
+    signedInThisRun
+        ? '[integration-smoke] auth: immediate post-sign-in pump complete'
+        : '[integration-smoke] auth: existing session pump complete',
+  );
 
   await CurrentUserService.instance.initialize();
   debugPrint('[integration-smoke] auth: current user initialized');
@@ -163,6 +174,37 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
     } catch (error) {
       debugPrint('[integration-smoke] auth: route to NavBar skipped: $error');
     }
+  }
+}
+
+Future<void> _resetSmokeSessionForDeterministicSignIn(
+  WidgetTester tester,
+) async {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) return;
+
+  debugPrint(
+    '[integration-smoke] auth: clearing existing session for deterministic sign-in '
+    '(${_redactEmail(currentUser.email ?? '')})',
+  );
+  try {
+    await FirebaseAuth.instance.signOut();
+  } catch (error) {
+    debugPrint('[integration-smoke] auth: FirebaseAuth sign-out skipped: $error');
+  }
+
+  try {
+    await AccountCenterService.ensure().signOutAllLocal();
+  } catch (error) {
+    debugPrint('[integration-smoke] auth: AccountCenter reset skipped: $error');
+  }
+
+  await tester.pump(const Duration(milliseconds: 250));
+  final postResetError = tester.takeException();
+  if (postResetError != null) {
+    throw TestFailure(
+      'Integration smoke sign-out reset exception: $postResetError',
+    );
   }
 }
 
