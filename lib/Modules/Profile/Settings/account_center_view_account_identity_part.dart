@@ -15,7 +15,10 @@ extension AccountCenterViewAccountIdentityPart on _AccountRow {
             ),
           ],
         ),
-        ..._buildAccountDisplayName(),
+        if (account.hasDistinctAccountCenterDisplayName) ...<Widget>[
+          const SizedBox(height: 2),
+          _buildAccountDisplayNameText(),
+        ],
       ],
     );
   }
