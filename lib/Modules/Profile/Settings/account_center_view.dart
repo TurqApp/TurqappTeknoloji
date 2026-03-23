@@ -85,6 +85,7 @@ part 'account_center_view_password_reauth_part.dart';
 part 'account_center_view_password_switch_part.dart';
 part 'account_center_view_session_cleanup_part.dart';
 part 'account_center_view_username_switch_part.dart';
+part 'account_center_view_remove_dialog_actions_part.dart';
 part 'account_center_view_remove_dialog_part.dart';
 part 'account_center_view_remove_dialog_content_part.dart';
 part 'account_center_view_remove_execute_part.dart';
