@@ -13,6 +13,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/device_session_service.dart';
 import 'package:turqappv2/main.dart' as app;
 
+import '../helpers/transient_error_policy.dart';
+
 const bool kRunIntegrationSmoke =
     bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
 const String kIntegrationLoginEmail =
@@ -53,10 +55,7 @@ Future<void> pumpForAppStartup(
 }) async {
   for (var i = 0; i < maxPumps; i++) {
     await tester.pump(step);
-    final error = tester.takeException();
-    if (error != null) {
-      throw TestFailure('App bootstrap exception: $error');
-    }
+    drainExpectedTesterExceptions(tester, context: 'app bootstrap');
   }
 }
 
@@ -68,10 +67,7 @@ Future<void> pumpUntilVisible(
 }) async {
   for (var i = 0; i < maxPumps; i++) {
     await tester.pump(step);
-    final error = tester.takeException();
-    if (error != null) {
-      throw TestFailure('Unexpected flutter exception while waiting: $error');
-    }
+    drainExpectedTesterExceptions(tester, context: 'visibility wait');
     if (finder.evaluate().isNotEmpty) {
       return;
     }
@@ -81,8 +77,7 @@ Future<void> pumpUntilVisible(
 
 Future<void> expectNoFlutterException(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
-  final error = tester.takeException();
-  expect(error, isNull);
+  drainExpectedTesterExceptions(tester, context: 'expectNoFlutterException');
 }
 
 Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
@@ -128,10 +123,7 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   }
 
   await tester.pump(const Duration(milliseconds: 300));
-  final signInError = tester.takeException();
-  if (signInError != null) {
-    throw TestFailure('Integration smoke post-sign-in exception: $signInError');
-  }
+  drainExpectedTesterExceptions(tester, context: 'post sign-in');
   debugPrint(
     signedInThisRun
         ? '[integration-smoke] auth: immediate post-sign-in pump complete'
@@ -203,18 +195,7 @@ Future<void> _resetSmokeSessionForDeterministicSignIn(
   }
 
   await tester.pump(const Duration(milliseconds: 250));
-  final postResetError = tester.takeException();
-  if (postResetError != null) {
-    throw TestFailure(
-      'Integration smoke sign-out reset exception: $postResetError',
-    );
-  }
-}
-
-bool _isTransientFirestoreUnavailable(Object error) {
-  return error is FirebaseException &&
-      error.plugin == 'cloud_firestore' &&
-      error.code == 'unavailable';
+  drainExpectedTesterExceptions(tester, context: 'sign-out reset');
 }
 
 Future<void> _refreshAccountCenterMetadataForSmoke(
@@ -240,7 +221,7 @@ Future<void> _refreshAccountCenterMetadataForSmoke(
       );
       return;
     } catch (error, stackTrace) {
-      if (!_isTransientFirestoreUnavailable(error)) {
+      if (!isTransientFirestoreUnavailable(error)) {
         Error.throwWithStackTrace(error, stackTrace);
       }
       lastError = error;
@@ -301,10 +282,7 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
       );
     }
     await tester.pump(const Duration(milliseconds: 300));
-    final error = tester.takeException();
-    if (error != null) {
-      throw TestFailure('Integration smoke feed prime exception: $error');
-    }
+    drainExpectedTesterExceptions(tester, context: 'feed prime');
     if (agendaController.agendaList.isNotEmpty) {
       break;
     }

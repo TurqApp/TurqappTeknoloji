@@ -1,12 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../core/bootstrap/test_app_bootstrap.dart';
+import '../core/helpers/contract_waiters.dart';
 import '../core/helpers/deep_flow_helpers.dart';
 import '../core/helpers/smoke_artifact_collector.dart';
-import '../core/helpers/test_state_probe.dart';
+import '../core/helpers/transient_error_policy.dart';
 
 void main() {
   ensureIntegrationBinding();
@@ -14,16 +14,7 @@ void main() {
   testWidgets(
     'Auth session churn signs out and reauthenticates cleanly',
     (tester) async {
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (details) {
-        final text = details.exceptionAsString();
-        if (text.contains('cloud_firestore/permission-denied') ||
-            text.contains('Invalid statusCode: 503')) {
-          debugPrint('Suppressed non-fatal: $text');
-          return;
-        }
-        originalOnError?.call(details);
-      };
+      final originalOnError = installTransientFlutterErrorPolicy();
 
       try {
         await SmokeArtifactCollector.runScenario(
@@ -72,7 +63,7 @@ void main() {
           await tester.pump(const Duration(milliseconds: 300));
           _drainExpectedChurnExceptions(tester);
 
-          final signedOut = await _waitForSurfaceProbeAllowingExpectedErrors(
+          final signedOut = await waitForSurfaceProbeContract(
             tester,
             'auth',
             (payload) =>
@@ -80,6 +71,7 @@ void main() {
                 payload['isFirebaseSignedIn'] == false &&
                 (payload['currentUid'] as String? ?? '').isEmpty,
             reason: 'Sign-out did not clear the auth snapshot cleanly.',
+            context: 'auth sign-out contract',
           );
           expect(signedOut['currentUserLoaded'], isFalse);
 
@@ -88,12 +80,12 @@ void main() {
             password: kIntegrationLoginPassword,
           );
           await tester.pump(const Duration(milliseconds: 300));
-          _drainExpectedChurnExceptions(tester);
+          drainExpectedTesterExceptions(tester, context: 'auth churn reauth');
           await CurrentUserService.instance.initialize();
           await tester.pump(const Duration(milliseconds: 300));
-          _drainExpectedChurnExceptions(tester);
+          drainExpectedTesterExceptions(tester, context: 'auth churn init');
 
-          final afterAuth = await _waitForSurfaceProbeAllowingExpectedErrors(
+          final afterAuth = await waitForSurfaceProbeContract(
             tester,
             'auth',
             (payload) =>
@@ -102,54 +94,19 @@ void main() {
                 (payload['currentUid'] as String? ?? '').isNotEmpty &&
                 payload['activeUid'] == payload['currentUid'],
             reason: 'Reauth did not restore an active signed-in session.',
+            context: 'auth reauth contract',
           );
           expect(afterAuth['currentUid'], beforeAuth['currentUid']);
         },
       );
       } finally {
-        FlutterError.onError = originalOnError;
+        restoreTransientFlutterErrorPolicy(originalOnError);
       }
     },
     skip: !kRunIntegrationSmoke,
   );
 }
 
-Future<Map<String, dynamic>> _waitForSurfaceProbeAllowingExpectedErrors(
-  WidgetTester tester,
-  String surface,
-  bool Function(Map<String, dynamic>) predicate, {
-  int maxPumps = 16,
-  Duration step = const Duration(milliseconds: 250),
-  String? reason,
-}) async {
-  for (var i = 0; i < maxPumps; i++) {
-    final payload = readSurfaceProbe(surface);
-    if (predicate(payload)) {
-      return payload;
-    }
-    await tester.pump(step);
-    _drainExpectedChurnExceptions(tester);
-  }
-  final payload = readSurfaceProbe(surface);
-  if (predicate(payload)) {
-    return payload;
-  }
-  throw TestFailure(
-    reason ?? 'Surface probe did not reach expected state: $surface',
-  );
-}
-
 void _drainExpectedChurnExceptions(WidgetTester tester) {
-  while (true) {
-    final error = tester.takeException();
-    if (error == null) {
-      return;
-    }
-    final text = error.toString();
-    if (text.contains('cloud_firestore/permission-denied')) {
-      debugPrint('Suppressed non-fatal: $text');
-      continue;
-    }
-    throw TestFailure('Unexpected flutter exception during auth churn: $error');
-  }
+  drainExpectedTesterExceptions(tester, context: 'auth churn');
 }
