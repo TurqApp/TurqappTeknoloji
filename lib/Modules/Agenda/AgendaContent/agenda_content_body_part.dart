@@ -464,7 +464,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
         Padding(
           padding: EdgeInsets.only(top: actionTopSpacing),
           child: Obx(() {
-            final me = _currentUid;
+            final currentUser = controller.userService.currentUserRx.value;
+            final me = currentUser?.userID ??
+                controller.userService.currentAuthUser?.uid ??
+                '';
             if (me.isEmpty) return const SizedBox.shrink();
             return Transform.translate(
               offset: const Offset(17, 0),
