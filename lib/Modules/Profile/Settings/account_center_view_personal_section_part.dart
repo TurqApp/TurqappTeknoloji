@@ -38,6 +38,20 @@ class _PersonalDetailsSection extends StatelessWidget {
   }
 }
 
+Future<String?> _loadPersonalContactDetails({
+  required CurrentUserService currentUserService,
+  required UserRepository userRepository,
+}) async {
+  final directContactDetails =
+      _loadDirectPersonalContactDetails(currentUserService);
+  if (directContactDetails != null) return directContactDetails;
+
+  return _loadFallbackPersonalContactDetails(
+    currentUserService: currentUserService,
+    userRepository: userRepository,
+  );
+}
+
 class _PersonalDetailsCard extends StatelessWidget {
   const _PersonalDetailsCard({
     required this.contactDetails,
