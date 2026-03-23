@@ -12,7 +12,7 @@ extension AccountCenterViewContactDetailsPhonePart on _ContactDetailsView {
       isVerified: phoneVerified,
       verifiedLabel: 'account_center.verified'.tr,
       pendingLabel: 'account_center.unverified'.tr,
-      onTap: _handlePhoneContactTap,
+      onTap: () => Get.to(() => EditorPhoneNumber()),
     );
   }
 }
