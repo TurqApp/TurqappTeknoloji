@@ -6,6 +6,22 @@
 
 ## 📖 İçindekiler
 
+### 0️⃣ [TurqApp Test Strategy And Matrix](./TURQAPP_TEST_STRATEGY_AND_MATRIX_2026-03-23.md)
+**Kanonik test katmanlari, CI matriksi, fixture plani ve dosya bazli sertlestirme backlog'u**
+
+**Icerik:**
+- 🧪 Test katmanlari: auth, feed, profile, network, full smoke
+- 🧱 Unit/widget/integration/release gate ayrimi
+- 📊 Ortam matriksi: lokal, simulator, emulator, CI, nightly, release
+- 🧰 Transient hata politikasi ve contract assertion standardi
+- 🗂️ Dosya bazli uygulanacak ilk 5 is
+- 🚦 Required check ve release gate eslestirmesi
+
+**Kimler icin:**
+- Flutter developers
+- QA / release owners
+- Tech leads
+
 ### 0️⃣ [Hesap Merkezi Implementation Plan](./HESAP_MERKEZI_IMPLEMENTATION_PLAN_2026-03-15.md)
 **Ayni cihazda birden fazla hesap arasinda login ekranina donmeden guvenli gecis tasarimi**
 
