@@ -23,7 +23,17 @@ class _ContactStatusRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return _buildAccountCenterRowShell(
       onTap: onTap,
-      child: _buildContactStatusRowBody(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            _buildContactStatusIcon(),
+            const SizedBox(width: 12),
+            Expanded(child: _buildContactStatusContent()),
+            _buildStatusBadge(),
+          ],
+        ),
+      ),
     );
   }
 }
