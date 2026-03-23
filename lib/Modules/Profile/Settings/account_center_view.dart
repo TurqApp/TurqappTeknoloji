@@ -25,6 +25,7 @@ part 'account_center_view_body_part.dart';
 part 'account_center_view_contact_details_part.dart';
 part 'account_center_view_contact_status_part.dart';
 part 'account_center_view_content_part.dart';
+part 'account_center_view_personal_data_part.dart';
 part 'account_center_view_personal_details_part.dart';
 part 'account_center_view_personal_card_part.dart';
 part 'account_center_view_personal_row_part.dart';
