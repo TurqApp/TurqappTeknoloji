@@ -9,7 +9,13 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildAccountsSectionBody(context, items),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildAccountsHeader(),
+                _buildAccountsCard(context, items),
+              ],
+            ),
             const SizedBox(height: 18),
             _SessionSecuritySection(
               accountCenter: accountCenter,
