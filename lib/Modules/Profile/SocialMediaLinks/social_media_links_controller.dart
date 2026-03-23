@@ -13,6 +13,9 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
+part 'social_media_links_controller_data_part.dart';
+part 'social_media_links_controller_actions_part.dart';
+
 class SocialMediaController extends GetxController {
   static SocialMediaController ensure() {
     final existing = maybeFind();
@@ -47,131 +50,7 @@ class SocialMediaController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapData());
-    selected.listen((_) => updateEnableSave());
-    textController.addListener(updateEnableSave);
-    urlController.addListener(updateEnableSave);
-  }
-
-  Future<void> pickImage(BuildContext context) async {
-    final file = await AppImagePickerService.pickSingleImage(context);
-    imageFile.value = file;
-  }
-
-  void updateEnableSave() {
-    enableSave.value = textController.text.trim().isNotEmpty &&
-        urlController.text.trim().isNotEmpty &&
-        (selected.value.isNotEmpty || imageFile.value != null);
-  }
-
-  Future<void> _bootstrapData() async {
-    if (currentUid.isEmpty) {
-      isLoading.value = false;
-      list.clear();
-      return;
-    }
-    final cached = await _linksRepository.getLinks(
-      currentUid,
-      preferCache: true,
-      cacheOnly: true,
-    );
-    if (cached.isNotEmpty) {
-      list.value = cached;
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'profile:social_media:$currentUid',
-        minInterval: _silentRefreshInterval,
-      )) {
-        unawaited(getData(silent: true, forceRefresh: true));
-      }
-      return;
-    }
-    await getData();
-  }
-
-  Future<void> getData({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) async {
-    final uid = currentUid;
-    if (uid.isEmpty) {
-      list.clear();
-      isLoading.value = false;
-      return;
-    }
-    if (!silent) {
-      isLoading.value = true;
-    }
-    try {
-      list.value = await _linksRepository.getLinks(
-        uid,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
-      SilentRefreshGate.markRefreshed('profile:social_media:$uid');
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void resetFields() {
-    selected.value = "";
-    textController.clear();
-    urlController.clear();
-    imageFile.value = null;
-  }
-
-  void showAddBottomSheet() {
-    Get.bottomSheet(
-      AddSocialMediaBottomSheet(),
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-    ).then((_) {
-      unawaited(getData(silent: true, forceRefresh: true));
-    });
-  }
-
-  Future<void> updateAllSira() async {
-    await _linksRepository.reorderLinks(
-      currentUid,
-      List<SocialMediaModel>.from(list),
-    );
-  }
-
-  Future<void> updateItemOrder(int oldIndex, int newIndex) async {
-    final item = list.removeAt(oldIndex);
-    list.insert(newIndex, item);
-
-    await _linksRepository.reorderLinks(
-      currentUid,
-      List<SocialMediaModel>.from(list),
-    );
-  }
-
-  Future<String> uploadFileImage(File file, String docID) async {
-    isUploading.value = true;
-    final nsfw = await OptimizedNSFWService.checkImage(file);
-    if (nsfw.errorMessage != null) {
-      throw Exception('NSFW görsel kontrolü başarısız');
-    }
-    if (nsfw.isNSFW) {
-      throw Exception('Uygunsuz görsel tespit edildi');
-    }
-    return WebpUploadService.uploadFileAsWebp(
-      storage: FirebaseStorage.instance,
-      file: file,
-      storagePathWithoutExt: "users/$currentUid/social_links/$docID",
-    );
-  }
-
-  Future<void> deleteLink(String docId) async {
-    await _linksRepository.deleteLink(currentUid, docId);
-  }
-
-  Future<void> saveLink(SocialMediaModel model) async {
-    await _linksRepository.saveLink(currentUid, model: model);
+    _bindFormListeners();
+    unawaited(_bootstrapDataImpl());
   }
 }

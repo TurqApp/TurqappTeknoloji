@@ -4,6 +4,9 @@ import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 
+part 'explore_repository_query_part.dart';
+part 'explore_repository_page_part.dart';
+
 class ExploreQueryPage {
   const ExploreQueryPage({
     required this.items,
@@ -38,167 +41,76 @@ class ExploreRepository extends GetxService {
     DocumentSnapshot? startAfter,
     int pageLimit = 20,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('Posts')
-        .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: ts)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageLimit * 3);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    return _runPageQuery(
-      query,
-      excludeSeriesRoots: true,
-      pageLimit: pageLimit,
-      feedMode: 'explore_posts',
-    );
-  }
+  }) =>
+      _fetchExplorePostsPageImpl(
+        startAfter: startAfter,
+        pageLimit: pageLimit,
+        nowMs: nowMs,
+      );
 
   Future<ExploreQueryPage> fetchVideoReadyPage({
     DocumentSnapshot? startAfter,
     int pageLimit = 30,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('Posts')
-        .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
-        .where('hlsStatus', isEqualTo: 'ready')
-        .where('timeStamp', isLessThanOrEqualTo: ts)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageLimit * 3);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    return _runPageQuery(
-      query,
-      excludeSeriesRoots: true,
-      pageLimit: pageLimit,
-      feedMode: 'explore_video',
-    );
-  }
+  }) =>
+      _fetchVideoReadyPageImpl(
+        startAfter: startAfter,
+        pageLimit: pageLimit,
+        nowMs: nowMs,
+      );
 
   Future<ExploreQueryPage> fetchVideoFallbackPage({
     DocumentSnapshot? startAfter,
     int pageLimit = 30,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('Posts')
-        .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: ts)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageLimit * 3);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    return _runPageQuery(
-      query,
-      excludeSeriesRoots: true,
-      pageLimit: pageLimit,
-      feedMode: 'explore_video_fallback',
-    );
-  }
+  }) =>
+      _fetchVideoFallbackPageImpl(
+        startAfter: startAfter,
+        pageLimit: pageLimit,
+        nowMs: nowMs,
+      );
 
   Future<ExploreQueryPage> fetchVideoBroadPage({
     DocumentSnapshot? startAfter,
     int pageLimit = 30,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('Posts')
-        .where('arsiv', isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: ts)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageLimit * 3);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    return _runPageQuery(
-      query,
-      excludeSeriesRoots: true,
-      pageLimit: pageLimit,
-      feedMode: 'explore_video_broad',
-    );
-  }
+  }) =>
+      _fetchVideoBroadPageImpl(
+        startAfter: startAfter,
+        pageLimit: pageLimit,
+        nowMs: nowMs,
+      );
 
   Future<ExploreQueryPage> fetchPhotoPage({
     DocumentSnapshot? startAfter,
     int pageLimit = 20,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('Posts')
-        .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
-        .where('video', isEqualTo: '')
-        .where('timeStamp', isLessThanOrEqualTo: ts)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageLimit * 3);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    return _runPageQuery(
-      query,
-      excludeSeriesRoots: true,
-      pageLimit: pageLimit,
-      feedMode: 'explore_photo',
-    );
-  }
+  }) =>
+      _fetchPhotoPageImpl(
+        startAfter: startAfter,
+        pageLimit: pageLimit,
+        nowMs: nowMs,
+      );
 
   Future<ExploreQueryPage> fetchFloodServerPage({
     DocumentSnapshot? startAfter,
     int pageLimit = 60,
-  }) async {
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('Posts')
-        .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
-        .where('floodCount', isGreaterThan: 1)
-        .orderBy('floodCount')
-        .orderBy('timeStamp', descending: true)
-        .limit(pageLimit);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    return _runPageQuery(
-      query,
-      pageLimit: pageLimit,
-      feedMode: 'explore_flood',
-    );
-  }
+  }) =>
+      _fetchFloodServerPageImpl(
+        startAfter: startAfter,
+        pageLimit: pageLimit,
+      );
 
   Future<ExploreQueryPage> fetchFloodFallbackPage({
     DocumentSnapshot? startAfter,
     int pageLimit = 60,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('Posts')
-        .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: ts)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageLimit);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    return _runPageQuery(
-      query,
-      pageLimit: pageLimit,
-      feedMode: 'explore_flood_fallback',
-    );
-  }
+  }) =>
+      _fetchFloodFallbackPageImpl(
+        startAfter: startAfter,
+        pageLimit: pageLimit,
+        nowMs: nowMs,
+      );
 
   Future<Map<String, PostsModel>> fetchPostsByIds(
     List<String> postIds, {
@@ -207,32 +119,6 @@ class ExploreRepository extends GetxService {
     return PostRepository.ensure().fetchPostCardsByIds(
       postIds,
       preferCache: preferCache,
-    );
-  }
-
-  Future<ExploreQueryPage> _runPageQuery(
-    Query<Map<String, dynamic>> query, {
-    bool excludeSeriesRoots = false,
-    required int pageLimit,
-    required String feedMode,
-  }) async {
-    final snap = await PerformanceService.traceFeedLoad(
-      () => query.get(),
-      feedMode: feedMode,
-    );
-    final postIds = snap.docs.map((doc) => doc.id).toList(growable: false);
-    final byId = await fetchPostsByIds(postIds, preferCache: true);
-    final items = postIds
-        .map((id) => byId[id])
-        .whereType<PostsModel>()
-        .where((item) => !excludeSeriesRoots || item.floodCount <= 1)
-        .take(pageLimit)
-        .toList(growable: false);
-    return ExploreQueryPage(
-      items: items,
-      lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
-      hasMore:
-          snap.docs.length >= (excludeSeriesRoots ? pageLimit * 3 : pageLimit),
     );
   }
 }

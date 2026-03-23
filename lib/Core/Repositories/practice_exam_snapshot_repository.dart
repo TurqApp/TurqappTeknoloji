@@ -4,6 +4,9 @@ import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
+part 'practice_exam_snapshot_repository_query_part.dart';
+part 'practice_exam_snapshot_repository_codec_part.dart';
+
 class PracticeExamSnapshotRepository extends GetxService {
   PracticeExamSnapshotRepository();
 
@@ -70,159 +73,47 @@ class PracticeExamSnapshotRepository extends GetxService {
     required String userId,
     int limit = 30,
     bool forceSync = false,
-  }) {
-    return _homeAdapter.open(
-      EducationTypesenseDocIdQuery(
-        entity: EducationTypesenseEntity.practiceExam,
-        query: '*',
-        limit: limit,
-        page: 1,
+  }) =>
+      _openHomeImpl(
         userId: userId,
-        scopeTag: 'home',
-      ),
-      forceSync: forceSync,
-    );
-  }
+        limit: limit,
+        forceSync: forceSync,
+      );
 
   Future<CachedResource<List<SinavModel>>> loadHome({
     required String userId,
     int limit = 30,
     bool forceSync = false,
-  }) {
-    return openHome(
-      userId: userId,
-      limit: limit,
-      forceSync: forceSync,
-    ).last;
-  }
+  }) =>
+      _loadHomeImpl(
+        userId: userId,
+        limit: limit,
+        forceSync: forceSync,
+      );
 
   Stream<CachedResource<List<SinavModel>>> openSearch({
     required String query,
     required String userId,
     int limit = 40,
     bool forceSync = false,
-  }) {
-    return _searchAdapter.open(
-      EducationTypesenseDocIdQuery(
-        entity: EducationTypesenseEntity.practiceExam,
+  }) =>
+      _openSearchImpl(
         query: query,
-        limit: limit,
-        page: 1,
         userId: userId,
-        scopeTag: 'search',
-      ),
-      forceSync: forceSync,
-    );
-  }
+        limit: limit,
+        forceSync: forceSync,
+      );
 
   Future<CachedResource<List<SinavModel>>> search({
     required String query,
     required String userId,
     int limit = 40,
     bool forceSync = false,
-  }) {
-    return openSearch(
-      query: query,
-      userId: userId,
-      limit: limit,
-      forceSync: forceSync,
-    ).last;
-  }
-
-  Future<List<SinavModel>?> _loadWarmSnapshot(
-    EducationTypesenseDocIdQuery query,
-  ) async {
-    final raw = await TypesenseEducationSearchService.instance.searchHits(
-      entity: query.entity,
-      query: query.query,
-      limit: query.limit,
-      page: query.page,
-      filterBy: query.filterBy,
-      sortBy: query.sortBy,
-      cacheOnly: true,
-    );
-    final docIds = raw.hits
-        .map((hit) => (hit['docId'] ?? hit['id'] ?? '').toString().trim())
-        .where((id) => id.isNotEmpty)
-        .toList(growable: false);
-    if (docIds.isEmpty) return null;
-    final items = await _practiceExamRepository.fetchByIds(
-      docIds,
-      cacheOnly: true,
-    );
-    return items.isEmpty ? null : items;
-  }
-
-  Map<String, dynamic> _encodeItems(List<SinavModel> items) {
-    return <String, dynamic>{
-      'items': items
-          .map(
-            (item) => <String, dynamic>{
-              'docID': item.docID,
-              'cover': item.cover,
-              'sinavTuru': item.sinavTuru,
-              'timeStamp': item.timeStamp,
-              'sinavAciklama': item.sinavAciklama,
-              'sinavAdi': item.sinavAdi,
-              'kpssSecilenLisans': item.kpssSecilenLisans,
-              'dersler': item.dersler,
-              'taslak': item.taslak,
-              'public': item.public,
-              'userID': item.userID,
-              'soruSayilari': item.soruSayilari,
-              'bitis': item.bitis,
-              'bitisDk': item.bitisDk,
-              'participantCount': item.participantCount,
-            },
-          )
-          .toList(growable: false),
-    };
-  }
-
-  List<SinavModel> _decodeItems(Map<String, dynamic> json) {
-    final rawItems = (json['items'] as List<dynamic>?) ?? const <dynamic>[];
-    return rawItems
-        .whereType<Map>()
-        .map((raw) {
-          final item = Map<String, dynamic>.from(raw.cast<dynamic, dynamic>());
-          return SinavModel(
-            docID: (item['docID'] ?? '').toString(),
-            cover: (item['cover'] ?? '').toString(),
-            sinavTuru: (item['sinavTuru'] ?? '').toString(),
-            timeStamp: item['timeStamp'] is num
-                ? item['timeStamp'] as num
-                : num.tryParse((item['timeStamp'] ?? '0').toString()) ?? 0,
-            sinavAciklama: (item['sinavAciklama'] ?? '').toString(),
-            sinavAdi: (item['sinavAdi'] ?? '').toString(),
-            kpssSecilenLisans: (item['kpssSecilenLisans'] ?? '').toString(),
-            dersler: (item['dersler'] is List)
-                ? (item['dersler'] as List)
-                    .map((value) => value.toString())
-                    .toList(growable: false)
-                : const <String>[],
-            taslak: item['taslak'] == true,
-            public: item['public'] != false,
-            userID: (item['userID'] ?? '').toString(),
-            soruSayilari: (item['soruSayilari'] is List)
-                ? (item['soruSayilari'] as List)
-                    .map((value) => value.toString())
-                    .toList(growable: false)
-                : const <String>[],
-            bitis: item['bitis'] is num
-                ? item['bitis'] as num
-                : num.tryParse((item['bitis'] ?? '0').toString()) ?? 0,
-            bitisDk: item['bitisDk'] is num
-                ? item['bitisDk'] as num
-                : num.tryParse((item['bitisDk'] ?? '0').toString()) ?? 0,
-            participantCount: item['participantCount'] is num
-                ? item['participantCount'] as num
-                : num.tryParse(
-                      (item['participantCount'] ?? '0').toString(),
-                    ) ??
-                    0,
-          );
-        })
-        .where((item) => item.docID.isNotEmpty)
-        .toList(growable: false);
-  }
+  }) =>
+      _searchImpl(
+        query: query,
+        userId: userId,
+        limit: limit,
+        forceSync: forceSync,
+      );
 }
