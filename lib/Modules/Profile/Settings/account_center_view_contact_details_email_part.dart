@@ -12,7 +12,7 @@ extension AccountCenterViewContactDetailsEmailPart on _ContactDetailsView {
       isVerified: emailVerified,
       verifiedLabel: 'account_center.verified'.tr,
       pendingLabel: 'account_center.verify'.tr,
-      onTap: () => _handleEmailContactTap(),
+      onTap: () => Get.to(() => EditorEmail()),
     );
   }
 }
