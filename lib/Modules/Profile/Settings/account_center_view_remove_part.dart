@@ -5,7 +5,11 @@ extension AccountCenterViewRemovePart on AccountCenterView {
     BuildContext context,
     StoredAccount account,
   ) async {
-    if (_handleRemoveActiveAccountGuard(account: account)) {
+    if (_currentUid == account.uid) {
+      AppSnackbar(
+        'account_center.active_account_title'.tr,
+        'account_center.remove_active_forbidden'.tr,
+      );
       return;
     }
 
