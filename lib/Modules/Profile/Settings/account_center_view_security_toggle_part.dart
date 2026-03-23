@@ -16,7 +16,15 @@ extension AccountCenterViewSecurityTogglePart on _SessionSecuritySection {
           fontFamily: 'MontserratBold',
         ),
       ),
-      subtitle: _buildSingleDeviceSubtitle(),
+      subtitle: Text(
+        'account_center.single_device_desc'.tr,
+        style: TextStyle(
+          color: Colors.black54,
+          fontSize: 12,
+          fontFamily: 'MontserratMedium',
+          height: 1.35,
+        ),
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
