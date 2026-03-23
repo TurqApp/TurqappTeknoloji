@@ -263,6 +263,17 @@ Widget _buildAccountCenterRowShell({
   );
 }
 
+Widget _buildAccountCenterEmptyText(String text) {
+  return Text(
+    text,
+    style: const TextStyle(
+      color: Colors.black54,
+      fontSize: 14,
+      fontFamily: 'MontserratMedium',
+    ),
+  );
+}
+
 class _AccountRow extends StatelessWidget {
   const _AccountRow({
     required this.account,
