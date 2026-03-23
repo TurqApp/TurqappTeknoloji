@@ -38,6 +38,7 @@ part 'account_center_view_content_part.dart';
 part 'account_center_view_personal_data_part.dart';
 part 'account_center_view_personal_details_part.dart';
 part 'account_center_view_personal_card_part.dart';
+part 'account_center_view_personal_empty_part.dart';
 part 'account_center_view_personal_header_part.dart';
 part 'account_center_view_personal_loading_part.dart';
 part 'account_center_view_personal_row_part.dart';
