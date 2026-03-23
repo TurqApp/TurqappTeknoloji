@@ -551,9 +551,6 @@ class HLSController {
               _telemetry.onPositionUpdate(
                   _telemetryVideoId!, position, duration);
             }
-            if (!_hasRenderedFirstFrame && position > 0) {
-              _markFirstFrameRendered();
-            }
             if (_state != PlayerState.completed &&
                 duration.isFinite &&
                 duration > 0 &&
@@ -597,8 +594,7 @@ class HLSController {
             break;
 
           case 'error':
-            final message =
-                event['message'] as String? ??
+            final message = event['message'] as String? ??
                 'error_handling.category_unknown'.tr;
             if (_telemetryVideoId != null) {
               _telemetry.onError(_telemetryVideoId!, message);
