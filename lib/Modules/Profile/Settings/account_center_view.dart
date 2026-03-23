@@ -79,6 +79,7 @@ part 'account_center_view_remove_dialog_part.dart';
 part 'account_center_view_remove_execute_part.dart';
 part 'account_center_view_remove_part.dart';
 part 'account_center_view_security_part.dart';
+part 'account_center_view_security_body_part.dart';
 part 'account_center_view_security_content_part.dart';
 part 'account_center_view_security_header_part.dart';
 part 'account_center_view_security_section_label_part.dart';
