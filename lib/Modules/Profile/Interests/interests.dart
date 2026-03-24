@@ -6,8 +6,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/interests_list.dart';
 import 'package:turqappv2/Modules/Profile/Interests/interest_controller.dart';
-
-part 'interests_shell_part.dart';
 part 'interests_content_part.dart';
 
 class Interests extends StatefulWidget {
@@ -51,6 +49,24 @@ class _InterestsState extends State<Interests> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildInterestsShell(context);
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: "settings.interests".tr),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: _buildInterestsContent(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
