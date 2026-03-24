@@ -37,23 +37,32 @@ class AdminAccessService {
 
   static Future<bool> canManageSliders() async {
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    final effectiveUid = CurrentUserService.instance.effectiveUserId.trim();
+    final resolvedUid = (currentUser?.uid ?? effectiveUid).trim();
+    if (resolvedUid.isEmpty) {
       _cachedUid = '';
       _adminCached = false;
       _hasRefreshed = false;
       return false;
     }
 
-    if (_cachedUid != currentUser.uid) {
-      _cachedUid = currentUser.uid;
+    if (_cachedUid != resolvedUid) {
+      _cachedUid = resolvedUid;
       _adminCached = false;
     }
 
-    final token = await currentUser.getIdTokenResult(true);
-    var allowed = token.claims?["admin"] == true;
+    var allowed = false;
+    if (currentUser != null) {
+      try {
+        final token = await currentUser.getIdTokenResult(true);
+        allowed = token.claims?["admin"] == true;
+      } catch (_) {
+        allowed = false;
+      }
+    }
     if (!allowed) {
       final allowlist = await _loadAllowlist();
-      allowed = allowlist.contains(currentUser.uid);
+      allowed = allowlist.contains(resolvedUid);
     }
     _adminCached = allowed;
     _hasRefreshed = true;
