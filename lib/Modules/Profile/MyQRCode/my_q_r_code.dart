@@ -11,7 +11,6 @@ import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'my_q_r_code_controller.dart';
 
-part 'my_q_r_code_shell_part.dart';
 part 'my_q_r_code_content_part.dart';
 
 class MyQRCode extends StatefulWidget {
@@ -47,6 +46,60 @@ class _MyQRCodeState extends State<MyQRCode> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildMyQrCodeShell(context);
+    return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenMyQr),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primaryColor,
+              AppColors.secondColor,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Get.back();
+                    },
+                    icon: const Icon(
+                      CupertinoIcons.xmark,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  ),
+                  Text(
+                    'qr.title'.tr,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: FontSizes.size18,
+                      fontFamily: AppFontFamilies.mbold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      controller.showQrScannerModal();
+                    },
+                    icon: const Icon(
+                      CupertinoIcons.camera,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  ),
+                ],
+              ),
+              Expanded(child: _buildMyQrCodeContent()),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
