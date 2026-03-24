@@ -5,7 +5,7 @@ part of 'package:turqappv2/Modules/Profile/Settings/settings.dart';
 extension _SettingsViewSectionsAdminPart on _SettingsViewState {
   Widget _buildAdminSection() {
     return FutureBuilder<bool>(
-      future: AdminAccessService.isPrimaryAdmin(),
+      future: AdminAccessService.canManageSliders(),
       builder: (context, adminSnap) {
         if (adminSnap.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
