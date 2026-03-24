@@ -1053,7 +1053,10 @@ class QALabRecorder extends GetxService {
       final playbackSuspended = latestProbe['playbackSuspended'] == true;
       final pauseAll = latestProbe['pauseAll'] == true;
       final canClaimPlaybackNow = latestProbe['canClaimPlaybackNow'] == true;
+      final centeredHasPlayableVideo =
+          latestProbe['centeredHasPlayableVideo'] == true;
       if (isFeedForeground &&
+          centeredHasPlayableVideo &&
           count > 0 &&
           (playbackSuspended || pauseAll || !canClaimPlaybackNow)) {
         findings.add(
@@ -1066,6 +1069,7 @@ class QALabRecorder extends GetxService {
             surface: surface,
             timestamp: referenceTime,
             context: <String, dynamic>{
+              'centeredHasPlayableVideo': centeredHasPlayableVideo,
               'playbackSuspended': playbackSuspended,
               'pauseAll': pauseAll,
               'canClaimPlaybackNow': canClaimPlaybackNow,
@@ -1395,11 +1399,14 @@ class QALabRecorder extends GetxService {
     }
     if (surface == 'feed') {
       final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
+      final centeredHasPlayableVideo =
+          surfaceProbe['centeredHasPlayableVideo'] == true;
       final playbackSuspended = surfaceProbe['playbackSuspended'] == true;
       final pauseAll = surfaceProbe['pauseAll'] == true;
       final canClaimPlaybackNow = surfaceProbe['canClaimPlaybackNow'] == true;
       if (centeredIndex < 0 ||
           centeredIndex >= count ||
+          !centeredHasPlayableVideo ||
           playbackSuspended ||
           pauseAll ||
           !canClaimPlaybackNow) {

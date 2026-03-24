@@ -605,6 +605,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
       return centeredIndex >= 0 &&
           centeredIndex < count &&
+          surfaceProbe['centeredHasPlayableVideo'] == true &&
           surfaceProbe['playbackSuspended'] != true &&
           surfaceProbe['pauseAll'] != true &&
           surfaceProbe['canClaimPlaybackNow'] == true &&

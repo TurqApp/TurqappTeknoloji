@@ -89,13 +89,18 @@ class IntegrationTestStateProbe {
     }
     final centeredIndex = controller.centeredIndex.value;
     final items = controller.agendaList;
+    final centeredItem =
+        centeredIndex >= 0 && centeredIndex < items.length
+            ? items[centeredIndex]
+            : null;
     return <String, dynamic>{
       'registered': true,
       'count': items.length,
       'centeredIndex': centeredIndex,
-      'centeredDocId': centeredIndex >= 0 && centeredIndex < items.length
-          ? items[centeredIndex].docID
-          : '',
+      'centeredDocId': centeredItem?.docID ?? '',
+      'centeredHasPlayableVideo': centeredItem?.hasPlayableVideo == true,
+      'centeredHasRenderableVideoCard':
+          centeredItem?.hasRenderableVideoCard == true,
       'docIds':
           items.take(24).map((item) => item.docID).toList(growable: false),
       'lastCenteredIndex': controller.lastCenteredIndex,
