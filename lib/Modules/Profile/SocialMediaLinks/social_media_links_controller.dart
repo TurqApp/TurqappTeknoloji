@@ -13,7 +13,6 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
-part 'social_media_links_controller_data_part.dart';
 part 'social_media_links_controller_actions_part.dart';
 
 class SocialMediaController extends GetxController {
@@ -46,6 +45,64 @@ class SocialMediaController extends GetxController {
   List<String> sosyal = List<String>.from(kSocialMediaEmbeddedKeys);
 
   bool isKnownEmbeddedKey(String key) => sosyal.contains(key);
+
+  void _bindFormListeners() {
+    selected.listen((_) => updateEnableSave());
+    textController.addListener(updateEnableSave);
+    urlController.addListener(updateEnableSave);
+  }
+
+  Future<void> _bootstrapDataImpl() async {
+    if (currentUid.isEmpty) {
+      isLoading.value = false;
+      list.value = <SocialMediaModel>[];
+      return;
+    }
+    final cached = await _linksRepository.getLinks(
+      currentUid,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      list.value = List<SocialMediaModel>.from(cached);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'profile:social_media:$currentUid',
+        minInterval: SocialMediaController._silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final uid = currentUid;
+    if (uid.isEmpty) {
+      list.value = <SocialMediaModel>[];
+      isLoading.value = false;
+      return;
+    }
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      list.value = List<SocialMediaModel>.from(
+        await _linksRepository.getLinks(
+          uid,
+          preferCache: !forceRefresh,
+          forceRefresh: forceRefresh,
+        ),
+      );
+      SilentRefreshGate.markRefreshed('profile:social_media:$uid');
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   @override
   void onInit() {
