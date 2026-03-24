@@ -60,3 +60,5 @@ coverage/
 artifacts/
 .runlogs/
 android/.kotlin/
+.idea/
+functions/node_modules/
