@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 
 import 'qa_lab_mode.dart';
 
@@ -35,10 +36,13 @@ class QALabRemoteUploader extends GetxService {
   final RxString lastSyncError = ''.obs;
   final RxString lastSyncReason = ''.obs;
   final Rxn<DateTime> lastSyncedAt = Rxn<DateTime>();
+  final Rxn<DateTime> lastGateCheckedAt = Rxn<DateTime>();
+  final RxBool remoteCollectionEnabled = false.obs;
   final RxInt uploadCount = 0.obs;
   final RxInt uploadedOccurrenceCount = 0.obs;
 
   Timer? _debounceTimer;
+  StreamSubscription<Map<String, dynamic>>? _adminConfigSubscription;
   bool _syncInFlight = false;
   Map<String, dynamic>? _pendingSessionDocument;
   String _pendingReason = '';
@@ -46,6 +50,7 @@ class QALabRemoteUploader extends GetxService {
       <String, Map<String, dynamic>>{};
   final Set<String> _uploadedOccurrenceIds = <String>{};
   String _activeSessionId = '';
+  DateTime? _lastGateRefreshAt;
 
   Future<void> scheduleUpload({
     required Map<String, dynamic> sessionDocument,
@@ -103,6 +108,9 @@ class QALabRemoteUploader extends GetxService {
     final user = auth.currentUser;
     if (user == null) {
       lastSyncState.value = 'awaiting_auth';
+      return;
+    }
+    if (!await _isRemoteGateEnabled()) {
       return;
     }
 
@@ -297,6 +305,84 @@ class QALabRemoteUploader extends GetxService {
     };
   }
 
+  Future<bool> _isRemoteGateEnabled() async {
+    _ensureAdminConfigSubscription();
+    final now = DateTime.now();
+    if (_lastGateRefreshAt != null &&
+        now.difference(_lastGateRefreshAt!) < const Duration(seconds: 20)) {
+      return remoteCollectionEnabled.value;
+    }
+    _lastGateRefreshAt = now;
+    try {
+      final doc = await ConfigRepository.ensure().getAdminConfigDoc(
+        'admin',
+        preferCache: true,
+        forceRefresh: false,
+        ttl: const Duration(seconds: 20),
+      );
+      final enabled = doc?['qaCollectionEnabled'] == true;
+      _applyRemoteGate(
+        enabled,
+        source: 'config_fetch',
+      );
+      return enabled;
+    } catch (error, stackTrace) {
+      lastGateCheckedAt.value = DateTime.now();
+      lastSyncState.value = 'gate_error';
+      lastSyncError.value = '$error';
+      debugPrint(
+        '[QA_LAB][REMOTE_GATE_ERROR] ${error.runtimeType}: $error\n$stackTrace',
+      );
+      return false;
+    }
+  }
+
+  void _ensureAdminConfigSubscription() {
+    if (_adminConfigSubscription != null || Firebase.apps.isEmpty) {
+      return;
+    }
+    _adminConfigSubscription = ConfigRepository.ensure()
+        .watchAdminConfigDoc(
+      'admin',
+      ttl: const Duration(seconds: 20),
+    ).listen(
+      (doc) {
+        _applyRemoteGate(
+          doc['qaCollectionEnabled'] == true,
+          source: 'config_watch',
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        lastGateCheckedAt.value = DateTime.now();
+        lastSyncState.value = 'gate_error';
+        lastSyncError.value = '$error';
+        debugPrint(
+          '[QA_LAB][REMOTE_GATE_WATCH_ERROR] ${error.runtimeType}: $error\n$stackTrace',
+        );
+      },
+    );
+  }
+
+  void _applyRemoteGate(
+    bool enabled, {
+    required String source,
+  }) {
+    remoteCollectionEnabled.value = enabled;
+    lastGateCheckedAt.value = DateTime.now();
+    if (enabled) {
+      if (lastSyncState.value == 'disabled_by_admin') {
+        lastSyncState.value = 'idle';
+        lastSyncError.value = '';
+      }
+      return;
+    }
+    _pendingSessionDocument = null;
+    _pendingOccurrences.clear();
+    lastSyncState.value = 'disabled_by_admin';
+    lastSyncReason.value = source;
+    lastSyncError.value = '';
+  }
+
   Map<String, dynamic> _sanitizeMap(Map<String, dynamic> input) {
     return input.map(
       (key, value) => MapEntry(
@@ -344,6 +430,7 @@ class QALabRemoteUploader extends GetxService {
   @override
   void onClose() {
     _debounceTimer?.cancel();
+    _adminConfigSubscription?.cancel();
     super.onClose();
   }
 }

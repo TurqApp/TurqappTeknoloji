@@ -139,6 +139,10 @@ service cloud.firestore {
     function canUseAdminPushBypass() {
       return isAdmin() || isAllowlistedPushSender();
     }
+    function isQATelemetryEnabled() {
+      return exists(/databases/$(database)/documents/adminConfig/admin)
+        && get(/databases/$(database)/documents/adminConfig/admin).data.qaCollectionEnabled == true;
+    }
     function isFollowerEdgeWrite(followerId) {
       return isAuth()
         && request.auth.uid == followerId
@@ -2058,12 +2062,13 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /qa/{scopeId} {
       allow read: if canManageAdminPanels();
-      allow create, update: if isAuth();
+      allow create, update: if isAuth() && isQATelemetryEnabled();
       allow delete: if false;
 
       match /sessions/{sessionId} {
         allow read: if canManageAdminPanels();
         allow create, update: if isAuth()
+          && isQATelemetryEnabled()
           && request.resource.data.sessionId is string
           && request.resource.data.sessionId == sessionId;
         allow delete: if false;
@@ -2071,12 +2076,13 @@ service cloud.firestore {
 
       match /issues/{signature} {
         allow read: if canManageAdminPanels();
-        allow create, update: if isAuth();
+        allow create, update: if isAuth() && isQATelemetryEnabled();
         allow delete: if false;
 
         match /occurrences/{occurrenceId} {
           allow read: if canManageAdminPanels();
           allow create, update: if isAuth()
+            && isQATelemetryEnabled()
             && request.resource.data.occurrenceId is string
             && request.resource.data.occurrenceId == occurrenceId;
           allow delete: if false;

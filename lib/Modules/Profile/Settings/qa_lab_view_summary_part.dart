@@ -10,6 +10,8 @@ extension _QALabViewSummaryPart on _QALabViewState {
       final remoteState = _remoteUploader.lastSyncState.value;
       final remoteError = _remoteUploader.lastSyncError.value;
       final remoteSyncAt = _remoteUploader.lastSyncedAt.value;
+      final remoteGateCheckedAt = _remoteUploader.lastGateCheckedAt.value;
+      final remoteGateEnabled = _remoteUploader.remoteCollectionEnabled.value;
       final nativeErrors =
           (nativePlayback['errors'] as List<dynamic>? ?? const <dynamic>[])
               .map((item) => item.toString())
@@ -46,6 +48,11 @@ extension _QALabViewSummaryPart on _QALabViewState {
                 'scope=${QALabMode.remoteUploadScope} '
                 'uploads=${_remoteUploader.uploadCount.value} '
                 'occurrences=${_remoteUploader.uploadedOccurrenceCount.value}',
+              ),
+              Text(
+                'remoteGate=${remoteGateEnabled ? "enabled" : "disabled"} '
+                'checkedAt=${remoteGateCheckedAt == null ? "-" : remoteGateCheckedAt.toUtc().toIso8601String()} '
+                'collection=${QALabMode.remoteCollectionName}',
               ),
               Text(
                 'remoteLastSync=${remoteSyncAt == null ? "-" : remoteSyncAt.toUtc().toIso8601String()}',
