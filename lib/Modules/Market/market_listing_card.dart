@@ -197,7 +197,7 @@ class MarketListingCard extends StatelessWidget {
                             ),
                             height: metrics.ctaHeight,
                             padding: EdgeInsets.symmetric(
-                              horizontal: compact ? 14 : 16,
+                              horizontal: compact ? 10 : 12,
                             ),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
@@ -206,12 +206,17 @@ class MarketListingCard extends StatelessWidget {
                                 Radius.circular(10),
                               ),
                             ),
-                            child: Text(
-                              buttonText,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: metrics.ctaFontSize,
-                                fontFamily: 'MontserratMedium',
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                buttonText,
+                                maxLines: 1,
+                                softWrap: false,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: metrics.ctaFontSize,
+                                  fontFamily: 'MontserratMedium',
+                                ),
                               ),
                             ),
                           ),
