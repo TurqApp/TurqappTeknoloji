@@ -106,16 +106,6 @@ class _SupportContactViewState extends State<SupportContactView> {
               fontFamily: 'MontserratSemiBold',
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'support.direct_admin'.tr,
-            style: const TextStyle(
-              color: Colors.black45,
-              fontSize: 13,
-              fontFamily: 'MontserratMedium',
-              height: 1.35,
-            ),
-          ),
           const SizedBox(height: 14),
           Text(
             'support.topic'.tr,
@@ -126,7 +116,7 @@ class _SupportContactViewState extends State<SupportContactView> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildTopicChips(),
+          _buildTopicSelector(),
           const SizedBox(height: 14),
           _buildMessageField(),
           const SizedBox(height: 14),
@@ -161,39 +151,51 @@ class _SupportContactViewState extends State<SupportContactView> {
     );
   }
 
-  Widget _buildTopicChips() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _supportTopicKeys.map((topicKey) {
-        final selected = topicKey == _selectedTopicKey;
-        return InkWell(
-          borderRadius: BorderRadius.circular(999),
-          onTap: () => _updateViewState(() => _selectedTopicKey = topicKey),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 10,
-            ),
-            decoration: BoxDecoration(
-              color: selected ? Colors.black : Colors.white,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: selected ? Colors.black : Colors.black12,
-              ),
-            ),
-            child: Text(
-              topicKey.tr,
-              style: TextStyle(
-                color: selected ? Colors.white : Colors.black,
-                fontSize: 13,
-                fontFamily: 'MontserratMedium',
-              ),
+  Widget _buildTopicSelector() {
+    return DropdownButtonFormField<String>(
+      initialValue: _selectedTopicKey,
+      isExpanded: true,
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Colors.black54,
+      ),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.black54),
+        ),
+      ),
+      items: _supportTopicKeys.map((topicKey) {
+        return DropdownMenuItem<String>(
+          value: topicKey,
+          child: Text(
+            topicKey.tr,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontFamily: 'MontserratMedium',
             ),
           ),
         );
       }).toList(),
+      onChanged: (value) {
+        if (value == null) return;
+        _updateViewState(() => _selectedTopicKey = value);
+      },
     );
   }
 
@@ -227,8 +229,8 @@ class _SupportContactViewState extends State<SupportContactView> {
 }
 
 const List<String> _supportTopicKeys = <String>[
+  'support.topic.general',
   'support.topic.account',
-  'support.topic.payment',
   'support.topic.technical',
   'support.topic.content',
   'support.topic.suggestion',

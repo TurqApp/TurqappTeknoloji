@@ -932,6 +932,7 @@ class AppTranslations extends Translations {
         'support.card_title': 'Destek Mesajı',
         'support.direct_admin': 'Mesajın doğrudan admine iletilir.',
         'support.topic': 'Konu',
+        'support.topic.general': 'Genel',
         'support.topic.account': 'Hesap',
         'support.topic.payment': 'Ödeme',
         'support.topic.technical': 'Teknik Sorun',
@@ -4761,6 +4762,7 @@ class AppTranslations extends Translations {
         'support.card_title': 'Support Message',
         'support.direct_admin': 'Your message is sent directly to the admin.',
         'support.topic': 'Topic',
+        'support.topic.general': 'General',
         'support.topic.account': 'Account',
         'support.topic.payment': 'Payment',
         'support.topic.technical': 'Technical Issue',
@@ -8674,6 +8676,7 @@ class AppTranslations extends Translations {
         'support.direct_admin':
             'Deine Nachricht wird direkt an den Admin gesendet.',
         'support.topic': 'Thema',
+        'support.topic.general': 'Allgemein',
         'support.topic.account': 'Konto',
         'support.topic.payment': 'Zahlung',
         'support.topic.technical': 'Technisches Problem',
@@ -13824,6 +13827,7 @@ class AppTranslations extends Translations {
         'support.direct_admin':
             'Votre message est transmis directement a l admin.',
         'support.topic': 'Sujet',
+        'support.topic.general': 'General',
         'support.topic.account': 'Compte',
         'support.topic.payment': 'Paiement',
         'support.topic.technical': 'Probleme technique',
@@ -16517,6 +16521,7 @@ class AppTranslations extends Translations {
         'support.direct_admin':
             'Il tuo messaggio viene inviato direttamente all admin.',
         'support.topic': 'Argomento',
+        'support.topic.general': 'Generale',
         'support.topic.account': 'Account',
         'support.topic.payment': 'Pagamento',
         'support.topic.technical': 'Problema tecnico',
@@ -19153,6 +19158,7 @@ class AppTranslations extends Translations {
         'support.card_title': 'Сообщение в поддержку',
         'support.direct_admin': 'Ваше сообщение отправляется напрямую админу.',
         'support.topic': 'Тема',
+        'support.topic.general': 'Общее',
         'support.topic.account': 'Аккаунт',
         'support.topic.payment': 'Оплата',
         'support.topic.technical': 'Техническая проблема',
