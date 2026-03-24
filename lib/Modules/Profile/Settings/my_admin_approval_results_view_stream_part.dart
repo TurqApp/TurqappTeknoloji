@@ -6,6 +6,18 @@ extension MyAdminApprovalResultsViewStreamPart on MyAdminApprovalResultsView {
     return repo.watchOwnApprovals(uid);
   }
 
+  Widget _buildMessageState(String text) {
+    return Center(
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: 'MontserratMedium',
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
   Widget _buildApprovalStream(String uid) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: _watchOwnApprovals(uid),
