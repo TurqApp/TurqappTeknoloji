@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
@@ -65,14 +66,11 @@ class _MyQRCodeState extends State<MyQRCode> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    onPressed: () {
-                      Get.back();
-                    },
-                    icon: const Icon(
-                      CupertinoIcons.xmark,
-                      color: Colors.white,
-                      size: 25,
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: AppBackButton(
+                      iconColor: Colors.white,
+                      surfaceColor: Color(0x1FFFFFFF),
                     ),
                   ),
                   Text(
