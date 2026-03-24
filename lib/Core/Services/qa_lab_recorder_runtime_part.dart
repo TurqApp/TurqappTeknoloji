@@ -393,20 +393,66 @@ extension QALabRecorderRuntimePart on QALabRecorder {
               _activeIssueLookback(issue.severity),
         )
         .map(
-          (issue) => QALabPinpointFinding(
-            severity: issue.severity,
-            code: issue.code,
-            message: issue.message,
-            route: issue.route,
-            surface: issue.surface,
-            timestamp: issue.timestamp,
-            context: <String, dynamic>{
-              'source': issue.source.name,
-              'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
-            },
-          ),
+          (issue) =>
+              _specializedActiveIssueFinding(issue) ??
+              QALabPinpointFinding(
+                severity: issue.severity,
+                code: issue.code,
+                message: issue.message,
+                route: issue.route,
+                surface: issue.surface,
+                timestamp: issue.timestamp,
+                context: <String, dynamic>{
+                  'source': issue.source.name,
+                  'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
+                },
+              ),
         )
         .toList(growable: false);
+  }
+
+  QALabPinpointFinding? _specializedActiveIssueFinding(QALabIssue issue) {
+    if (issue.code != 'platform_error') {
+      return null;
+    }
+    final surface = issue.surface.isEmpty ? 'app' : issue.surface;
+    final lowerMessage = issue.message.toLowerCase();
+    final baseContext = <String, dynamic>{
+      'source': issue.source.name,
+      'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
+    };
+
+    if (_isHostLookupErrorMessage(issue.message)) {
+      return QALabPinpointFinding(
+        severity: issue.severity,
+        code: '${surface}_host_lookup_failed',
+        message:
+            '$surface hit hostname resolution failures while loading remote dependencies.',
+        route: issue.route,
+        surface: issue.surface,
+        timestamp: issue.timestamp,
+        context: <String, dynamic>{
+          ...baseContext,
+          'host': _firstQuotedValue(issue.message),
+        },
+      );
+    }
+
+    if (lowerMessage.contains('cloud_firestore/unavailable') ||
+        lowerMessage.contains('service is currently unavailable')) {
+      return QALabPinpointFinding(
+        severity: issue.severity,
+        code: '${surface}_backend_unavailable',
+        message:
+            '$surface hit a transient backend availability failure while loading live data.',
+        route: issue.route,
+        surface: issue.surface,
+        timestamp: issue.timestamp,
+        context: baseContext,
+      );
+    }
+
+    return null;
   }
 
   bool _isSpecializedIssueCode(String code) {
@@ -427,6 +473,16 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     );
     final status = lastPermissionStatuses[rawKey];
     return status == 'granted' || status == 'limited';
+  }
+
+  bool _isHostLookupErrorMessage(String message) {
+    return message.contains('Failed host lookup') ||
+        message.contains('No address associated with hostname');
+  }
+
+  String _firstQuotedValue(String message) {
+    final match = RegExp(r"'([^']+)'").firstMatch(message);
+    return match?.group(1) ?? '';
   }
 
   Duration _activeIssueLookback(QALabIssueSeverity severity) {
@@ -824,6 +880,18 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       return (
         'data_absent',
         '${diagnostic.surface} loaded as an empty authenticated surface.',
+      );
+    }
+    if (code.contains('host_lookup_failed')) {
+      return (
+        'network_dns_failure',
+        '${diagnostic.surface} could not resolve one or more required remote hosts during runtime.',
+      );
+    }
+    if (code.contains('backend_unavailable')) {
+      return (
+        'backend_unavailable',
+        '${diagnostic.surface} hit a transient backend availability failure while loading live data.',
       );
     }
     if (code.contains('autoplay') || code.contains('playback_gate')) {

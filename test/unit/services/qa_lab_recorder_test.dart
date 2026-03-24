@@ -246,6 +246,33 @@ void main() {
     );
   });
 
+  test('qa recorder specializes platform host lookup failures', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.issues.add(
+      QALabIssue(
+        id: 'feed_host_lookup_specialized',
+        source: QALabIssueSource.platform,
+        severity: QALabIssueSeverity.error,
+        code: 'platform_error',
+        message:
+            "ClientException with SocketException: Failed host lookup: 'firebasestorage.googleapis.com'",
+        timestamp: now,
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+    final finding = findings.firstWhere(
+      (item) => item.code == 'feed_host_lookup_failed',
+    );
+
+    expect(finding.message, contains('hostname resolution'));
+    expect(finding.context['host'], 'firebasestorage.googleapis.com');
+  });
+
   test('qa recorder flags authenticated short blank surface', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -675,6 +702,62 @@ void main() {
       findings.any((item) => item.code == 'feed_centered_index_invalid'),
       isFalse,
     );
+  });
+
+  test('qa recorder maps backend unavailable findings to summary root cause', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'feed_backend_cp',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.issues.add(
+      QALabIssue(
+        id: 'feed_backend_unavailable',
+        source: QALabIssueSource.platform,
+        severity: QALabIssueSeverity.error,
+        code: 'platform_error',
+        message:
+            '[cloud_firestore/unavailable] The service is currently unavailable. This is a most likely a transient condition and may be corrected by retrying with a backoff.',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+    final summaries = recorder.buildSurfaceAlertSummaries();
+    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
+
+    expect(
+      findings.any((item) => item.code == 'feed_backend_unavailable'),
+      isTrue,
+    );
+    expect(feedSummary.headlineCode, 'feed_backend_unavailable');
+    expect(feedSummary.primaryRootCauseCategory, 'backend_unavailable');
   });
 
   test('qa recorder maps autoplay findings to autoplay root cause', () {
