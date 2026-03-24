@@ -157,32 +157,30 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       return const <QALabPinpointFinding>[];
     }
 
-    var audibleCount = 0;
-    var mutedCount = 0;
     var unstableFocusCount = 0;
+    var stableAudibleCount = 0;
+    var stableMutedCount = 0;
     for (final issue in endedSessions) {
       final isAudible = issue.metadata['isAudible'] == true;
       final hasStableFocus = issue.metadata['hasStableFocus'] == true;
-      if (isAudible) {
-        audibleCount += 1;
-      } else {
-        mutedCount += 1;
-      }
       if (!hasStableFocus) {
         unstableFocusCount += 1;
+        continue;
+      }
+      if (isAudible) {
+        stableAudibleCount += 1;
+      } else {
+        stableMutedCount += 1;
       }
     }
 
-    if (audibleCount == 0 || mutedCount == 0) {
+    if (stableAudibleCount == 0 || stableMutedCount == 0) {
       return const <QALabPinpointFinding>[];
     }
 
-    final severity = unstableFocusCount > 0
-        ? QALabIssueSeverity.error
-        : QALabIssueSeverity.warning;
     return <QALabPinpointFinding>[
       QALabPinpointFinding(
-        severity: severity,
+        severity: QALabIssueSeverity.warning,
         code: '${surface}_audio_state_inconsistent',
         message:
             'Videos on $surface finished with mixed audible and muted states during the same session.',
@@ -190,8 +188,8 @@ extension QALabRecorderRuntimePart on QALabRecorder {
         surface: surface,
         timestamp: referenceTime,
         context: <String, dynamic>{
-          'audibleSessionCount': audibleCount,
-          'mutedSessionCount': mutedCount,
+          'audibleSessionCount': stableAudibleCount,
+          'mutedSessionCount': stableMutedCount,
           'unstableFocusCount': unstableFocusCount,
         },
       ),
@@ -231,18 +229,16 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     final isBuffering = lastNativePlaybackSnapshot['isBuffering'] == true;
     final stallCount = _asInt(lastNativePlaybackSnapshot['stallCount']);
     final surfaceEligibleForAutoplay = switch (surface) {
-      'feed' =>
-        _asInt(latestProbe['centeredIndex']) >= 0 &&
-            _asInt(latestProbe['centeredIndex']) < count &&
-            latestProbe['centeredHasPlayableVideo'] == true &&
-            latestProbe['playbackSuspended'] != true &&
-            latestProbe['pauseAll'] != true &&
-            latestProbe['canClaimPlaybackNow'] == true &&
-            (latestProbe['centeredDocId'] ?? '').toString().isNotEmpty,
-      'short' =>
-        _asInt(latestProbe['activeIndex']) >= 0 &&
-            _asInt(latestProbe['activeIndex']) < count &&
-            (latestProbe['activeDocId'] ?? '').toString().isNotEmpty,
+      'feed' => _asInt(latestProbe['centeredIndex']) >= 0 &&
+          _asInt(latestProbe['centeredIndex']) < count &&
+          latestProbe['centeredHasPlayableVideo'] == true &&
+          latestProbe['playbackSuspended'] != true &&
+          latestProbe['pauseAll'] != true &&
+          latestProbe['canClaimPlaybackNow'] == true &&
+          (latestProbe['centeredDocId'] ?? '').toString().isNotEmpty,
+      'short' => _asInt(latestProbe['activeIndex']) >= 0 &&
+          _asInt(latestProbe['activeIndex']) < count &&
+          (latestProbe['activeDocId'] ?? '').toString().isNotEmpty,
       _ => false,
     };
     final sampledAt =

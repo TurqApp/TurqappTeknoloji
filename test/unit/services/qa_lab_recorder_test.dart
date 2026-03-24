@@ -474,7 +474,8 @@ void main() {
     );
   });
 
-  test('qa recorder ignores feed autoplay missing after recent host lookup error',
+  test(
+      'qa recorder ignores feed autoplay missing after recent host lookup error',
       () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -862,7 +863,8 @@ void main() {
     );
   });
 
-  test('qa recorder maps backend unavailable findings to summary root cause', () {
+  test('qa recorder maps backend unavailable findings to summary root cause',
+      () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
@@ -972,7 +974,7 @@ void main() {
     expect(feedSummary.primaryRootCauseDetail, contains('autoplay'));
   });
 
-  test('qa recorder flags inconsistent feed audio state across sessions', () {
+  test('qa recorder ignores unstable focus when checking audio drift', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
@@ -1030,6 +1032,76 @@ void main() {
           'videoId': 'post-2',
           'isAudible': false,
           'hasStableFocus': false,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+    expect(
+      findings.any((item) => item.code == 'feed_audio_state_inconsistent'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder flags inconsistent feed audio state for stable sessions',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp10b',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': 1,
+            'centeredDocId': 'post-2',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'audio_stable_1',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_ended',
+        message: 'Video session ended',
+        timestamp: now.subtract(const Duration(seconds: 4)),
+        route: '/NavBar',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'post-1',
+          'isAudible': true,
+          'hasStableFocus': true,
+        },
+      ),
+      QALabIssue(
+        id: 'audio_stable_2',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_ended',
+        message: 'Video session ended',
+        timestamp: now.subtract(const Duration(seconds: 2)),
+        route: '/NavBar',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'post-2',
+          'isAudible': false,
+          'hasStableFocus': true,
         },
       ),
     ]);
