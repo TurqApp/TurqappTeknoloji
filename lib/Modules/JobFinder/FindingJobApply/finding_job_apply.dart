@@ -7,7 +7,6 @@ import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 
 import 'finding_job_apply_controller.dart';
 
-part 'finding_job_apply_shell_part.dart';
 part 'finding_job_apply_content_part.dart';
 
 class FindingJobApply extends StatefulWidget {
@@ -45,6 +44,42 @@ class _FindingJobApplyState extends State<FindingJobApply> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _buildFindingJobApplyBody());
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Row(
+                    children: [
+                      BackButtons(text: "pasaj.job_finder.finding_platform".tr),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: _buildFindingJobApplyContent(),
+                ),
+              ],
+            ),
+            Opacity(
+              opacity: 0.5,
+              child: Transform.translate(
+                offset: const Offset(40, 10),
+                child: Image.asset(
+                  "assets/images/cv.webp",
+                  height: Get.height / 4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
