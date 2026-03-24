@@ -27,20 +27,28 @@ String pasajLegacyTitleToId(String value) {
       return PasajTabIds.market;
     case 'İş Bul':
     case 'İş Veren':
+    case 'Is Bul':
+    case 'Is Veren':
       return PasajTabIds.jobFinder;
     case 'Burslar':
       return PasajTabIds.scholarships;
     case 'Soru Bankası':
+    case 'Soru Bankasi':
       return PasajTabIds.questionBank;
     case 'Deneme Sınavı':
     case 'Deneme Sınavları':
+    case 'Deneme Sinavi':
+    case 'Deneme Sinavlari':
     case 'Denemeler':
       return PasajTabIds.practiceExams;
     case 'Online Sınav':
+    case 'Online Sinav':
       return PasajTabIds.onlineExam;
     case 'Cevap Anahtarı':
+    case 'Cevap Anahtari':
       return PasajTabIds.answerKey;
     case 'Özel Ders':
+    case 'Ozel Ders':
       return PasajTabIds.tutoring;
     default:
       return value;
