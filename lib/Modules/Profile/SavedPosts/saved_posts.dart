@@ -70,6 +70,9 @@ class _SavedPostsState extends State<SavedPosts> {
                 "pasaj.tabs.job_finder".tr,
                 "pasaj.tabs.scholarships".tr,
               ],
+              isScrollable: true,
+              scrollablePadding: const EdgeInsets.symmetric(horizontal: 4),
+              scrollableTabHorizontalPadding: 18,
               pageName: _pageLineBarTag,
               pageController: controller.pageController,
             ),
@@ -276,8 +279,7 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                     SizedBox(
                       height: MediaQuery.of(context).size.height * 0.45,
                       child: Center(
-                        child:
-                            EmptyRow(text: 'pasaj.market.saved_empty'.tr),
+                        child: EmptyRow(text: 'pasaj.market.saved_empty'.tr),
                       ),
                     ),
                   ],
@@ -312,8 +314,7 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                                     ? Image.network(
                                         item.coverImageUrl,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            Container(
+                                        errorBuilder: (_, __, ___) => Container(
                                           color: const Color(0xFFF3F4F6),
                                         ),
                                       )
@@ -457,8 +458,7 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
     _controllerTag = 'saved_scholarships_embedded_${identityHashCode(this)}';
     final existing = SavedItemsController.maybeFind(tag: _controllerTag);
     _ownsController = existing == null;
-    _controller =
-        existing ?? SavedItemsController.ensure(tag: _controllerTag);
+    _controller = existing ?? SavedItemsController.ensure(tag: _controllerTag);
   }
 
   @override

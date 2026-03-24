@@ -31,6 +31,9 @@ class PageLineBar extends StatefulWidget {
   final String pageName;
   final int initialIndex;
   final double fontSize;
+  final bool isScrollable;
+  final EdgeInsetsGeometry scrollablePadding;
+  final double scrollableTabHorizontalPadding;
   final PageController? pageController; // optional: direct control of PageView
 
   const PageLineBar({
@@ -39,6 +42,9 @@ class PageLineBar extends StatefulWidget {
     required this.pageName,
     this.initialIndex = 0,
     this.fontSize = 15,
+    this.isScrollable = false,
+    this.scrollablePadding = EdgeInsets.zero,
+    this.scrollableTabHorizontalPadding = 14,
     this.pageController,
   });
 
@@ -119,60 +125,98 @@ class _PageLineBarState extends State<PageLineBar> {
   @override
   Widget build(BuildContext context) {
     return Obx(
-      () => Row(
-        children: List.generate(widget.barList.length, (index) {
-          final item = widget.barList[index];
-          return Expanded(
-            child: GestureDetector(
-              key: ValueKey(
-                IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
-              ),
-              onTap: () {
-                controller.selection.value = index;
-                _syncExternalPageController(index, animate: true);
-              },
-              child: Container(
-                height: 40,
-                color: Colors.white,
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            item,
-                            maxLines: 1,
-                            softWrap: false,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: widget.fontSize,
-                              fontFamily: controller.selection.value == index
-                                  ? AppFontFamilies.mbold
-                                  : AppFontFamilies.mmedium,
-                            ),
+      () {
+        final items = List.generate(
+          widget.barList.length,
+          (index) => _buildTabItem(index, scrollable: widget.isScrollable),
+        );
+        if (widget.isScrollable) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: widget.scrollablePadding,
+              child: Row(children: items),
+            ),
+          );
+        }
+        return Row(children: items);
+      },
+    );
+  }
+
+  Widget _buildTabItem(
+    int index, {
+    required bool scrollable,
+  }) {
+    final item = widget.barList[index];
+    final content = GestureDetector(
+      key: ValueKey(
+        IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
+      ),
+      onTap: () {
+        controller.selection.value = index;
+        _syncExternalPageController(index, animate: true);
+      },
+      child: Container(
+        height: 40,
+        color: Colors.white,
+        padding: scrollable
+            ? EdgeInsets.symmetric(
+                horizontal: widget.scrollableTabHorizontalPadding,
+              )
+            : null,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: scrollable
+                    ? Text(
+                        item,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: widget.fontSize,
+                          fontFamily: controller.selection.value == index
+                              ? AppFontFamilies.mbold
+                              : AppFontFamilies.mmedium,
+                        ),
+                      )
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          item,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: widget.fontSize,
+                            fontFamily: controller.selection.value == index
+                                ? AppFontFamilies.mbold
+                                : AppFontFamilies.mmedium,
                           ),
                         ),
                       ),
-                    ),
-                    if (controller.selection.value == index)
-                      Container(
-                        height: 3,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.all(Radius.circular(50)),
-                        ),
-                      ),
-                  ],
-                ),
               ),
             ),
-          );
-        }),
+            if (controller.selection.value == index)
+              Container(
+                height: 3,
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.all(Radius.circular(50)),
+                ),
+              ),
+          ],
+        ),
       ),
     );
+    if (scrollable) {
+      return content;
+    }
+    return Expanded(child: content);
   }
 }
 
