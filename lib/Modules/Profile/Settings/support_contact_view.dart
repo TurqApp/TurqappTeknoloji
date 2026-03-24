@@ -11,7 +11,6 @@ part 'support_contact_view_form_part.dart';
 part 'support_contact_view_submit_part.dart';
 part 'support_contact_view_topics_part.dart';
 part 'support_contact_view_actions_part.dart';
-part 'support_contact_view_error_part.dart';
 
 class SupportContactView extends StatefulWidget {
   const SupportContactView({super.key});
