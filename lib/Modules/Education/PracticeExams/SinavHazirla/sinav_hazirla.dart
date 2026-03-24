@@ -14,9 +14,10 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_view.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-part 'sinav_hazirla_body_part.dart';
 part 'sinav_hazirla_shell_part.dart';
 part 'sinav_hazirla_content_part.dart';
+
+const _sinavHazirlaKpssType = 'KPSS';
 
 class SinavHazirla extends StatefulWidget {
   final SinavModel? sinavModel;
@@ -61,5 +62,5 @@ class _SinavHazirlaState extends State<SinavHazirla> {
   }
 
   @override
-  Widget build(BuildContext context) => buildContent(context);
+  Widget build(BuildContext context) => _buildSinavHazirlaPage(context);
 }
