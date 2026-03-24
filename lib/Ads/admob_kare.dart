@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -31,9 +32,11 @@ class _AdmobKareState extends State<AdmobKare> {
   static final List<BannerAd> _readyPool = <BannerAd>[];
   static int _loadingCount = 0;
   static DateTime? _globalCooldownUntil;
+  static DateTime? _lastWarmupAttemptAt;
   static int _globalFailureBurstCount = 0;
   static const int _defaultWarmupCount = 3;
   static const int _maxPoolSize = 8;
+  static const Duration _warmupAttemptMinInterval = Duration(seconds: 8);
   static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
     'DEBUG_RENDER_ADMOB',
     defaultValue: false,
@@ -78,14 +81,9 @@ class _AdmobKareState extends State<AdmobKare> {
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
-    const String androidTestAdUnit = "ca-app-pub-3940256099942544/6300978111";
-    const String iosTestAdUnit = "ca-app-pub-3940256099942544/2934735716";
-    const String androidLiveAdUnit = "ca-app-pub-4558422035199571/2790203845";
-    const String iosLiveAdUnit = "ca-app-pub-4558422035199571/8122867409";
-
-    return isTestMode
-        ? (Platform.isAndroid ? androidTestAdUnit : iosTestAdUnit)
-        : (Platform.isAndroid ? androidLiveAdUnit : iosLiveAdUnit);
+    return AdmobUnitConfigService.ensure().nextSquareAdUnitId(
+      isTestMode: isTestMode,
+    );
   }
 
   static Future<void> warmupPool(
@@ -93,11 +91,21 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_usePlaceholderOnly) return;
     if (!_supportsSharedPool) return;
     if (targetCount <= 0) return;
+    if (_globalCooldownRemaining() > Duration.zero) return;
+
+    final now = DateTime.now();
+    final lastAttempt = _lastWarmupAttemptAt;
+    if (lastAttempt != null &&
+        now.difference(lastAttempt) < _warmupAttemptMinInterval) {
+      return;
+    }
+    _lastWarmupAttemptAt = now;
 
     final missing = targetCount - (_readyPool.length + _loadingCount);
     if (missing <= 0) return;
 
-    for (int i = 0; i < missing; i++) {
+    final requestCount = missing.clamp(0, 1);
+    for (int i = 0; i < requestCount; i++) {
       _loadingCount++;
       _createAndLoadBannerForPool();
     }
@@ -112,6 +120,8 @@ class _AdmobKareState extends State<AdmobKare> {
       listener: BannerAdListener(
         onAdLoaded: (Ad loadedAd) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
+          _globalFailureBurstCount = 0;
+          _globalCooldownUntil = null;
           _log(
               'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
           if (_readyPool.length < _maxPoolSize) {
@@ -122,6 +132,16 @@ class _AdmobKareState extends State<AdmobKare> {
         },
         onAdFailedToLoad: (Ad failedAd, LoadAdError error) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
+          final isNoFill = error.code == 3;
+          final isRetryThrottled = error.code == 1 &&
+              error.message.contains('Too many recently failed requests');
+          _globalFailureBurstCount =
+              (_globalFailureBurstCount + 1).clamp(1, 99);
+          if (isNoFill || isRetryThrottled || _globalFailureBurstCount >= 2) {
+            _globalCooldownUntil = DateTime.now().add(_cooldownRetryDelay);
+            _log(
+                'warmup cooldown in ${_cooldownRetryDelay.inMilliseconds}ms after code=${error.code} unit=$adUnitId platform=${Platform.operatingSystem}');
+          }
           _log(
               'warmup failed: code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
           failedAd.dispose();

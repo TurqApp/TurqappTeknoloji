@@ -9,6 +9,7 @@ class AdsCollections {
   static const deliveryLogs = 'ads_delivery_logs';
   static const adminConfig = 'adminConfig';
   static const adsFlagsDoc = 'adsFlags';
+  static const admobUnitsDoc = 'reklam';
 
   static const legacySystemFlags = 'system_flags';
   static const systemFlagsGlobalDoc = 'global';

@@ -1,33 +1,20 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
 
 /// Tam ekran interstitial reklam gösterir
 /// Debug modda otomatik olarak test reklamları kullanır
 /// Production modda gerçek reklamları kullanır
 Future<void> showUnskippableInterstitialAd() async {
-  // 🎯 Otomatik mod seçimi: Debug modda test reklamları, production'da gerçek reklamlar
-  // Bu sayede AdMob politikalarına uygun olarak kendi reklamlarımıza tıklamayız
   final bool isTestMode = kDebugMode;
-
-  String adUnitId;
-  if (isTestMode) {
-    // Debug mode - Test reklamları
-    adUnitId = Platform.isIOS
-        ? 'ca-app-pub-3940256099942544/4411468910'
-        : 'ca-app-pub-3940256099942544/1033173712';
-    if (kDebugMode) {
-      print('🧪 InterstitialAd: Test mode - Loading test ad: $adUnitId');
-    }
-  } else {
-    // Production mode - Gerçek reklamlar
-    adUnitId = Platform.isIOS
-        ? 'ca-app-pub-4558422035199571/5999655265'
-        : 'ca-app-pub-4558422035199571/8183250889';
-    if (kDebugMode) {
-      print('🚀 InterstitialAd: Production mode - Loading live ad: $adUnitId');
-    }
+  final adUnitId = AdmobUnitConfigService.ensure().nextInterstitialAdUnitId(
+    isTestMode: isTestMode,
+  );
+  if (kDebugMode) {
+    print(
+      '${isTestMode ? '🧪' : '🚀'} InterstitialAd: ${isTestMode ? 'Test' : 'Production'} mode - Loading ad: $adUnitId',
+    );
   }
 
   try {

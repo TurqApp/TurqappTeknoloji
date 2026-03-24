@@ -10,12 +10,14 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 /// We treat banner inventory as an app-wide warm pool instead of creating
 /// independent speculative warmups on every page.
 class AdmobBannerWarmupService extends GetxService {
-  static const int splashFirstLaunchTarget = 6;
-  static const int splashDefaultTarget = 5;
-  static const int feedEntryTarget = 4;
-  static const int pasajEntryTarget = 5;
+  // Shared pool upper bound is 8, so startup primes most of the inventory
+  // without saturating the pool or triggering rate limiting on low-fill sessions.
+  static const int splashFirstLaunchTarget = 3;
+  static const int splashDefaultTarget = 2;
+  static const int feedEntryTarget = 1;
+  static const int pasajEntryTarget = 2;
   static const Duration _entryWarmupMinInterval = Duration(seconds: 20);
-  static const Duration _secondaryTopUpDelay = Duration(seconds: 2);
+  static const Duration _secondaryTopUpDelay = Duration(milliseconds: 2500);
 
   Future<void>? _initFuture;
   bool _sdkReady = false;
@@ -59,11 +61,13 @@ class AdmobBannerWarmupService extends GetxService {
     final target =
         isFirstLaunch ? splashFirstLaunchTarget : splashDefaultTarget;
     await AdmobKare.warmupPool(targetCount: target);
-    Future<void>.delayed(_secondaryTopUpDelay, () async {
-      try {
-        await AdmobKare.warmupPool(targetCount: target);
-      } catch (_) {}
-    });
+    if (target >= 3) {
+      Future<void>.delayed(_secondaryTopUpDelay, () async {
+        try {
+          await AdmobKare.warmupPool(targetCount: target);
+        } catch (_) {}
+      });
+    }
   }
 
   Future<void> warmForFeedEntry() async {

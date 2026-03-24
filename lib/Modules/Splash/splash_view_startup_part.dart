@@ -42,6 +42,8 @@ extension _SplashViewStartupPart on _SplashViewState {
       }
 
       _registerDependencies();
+      unawaited(_requestTrackingPermission());
+      unawaited(_initAdMob(isFirstLaunch: isFirstLaunch));
 
       if (userService.effectiveUserId.isNotEmpty) {
         unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
@@ -228,11 +230,6 @@ extension _SplashViewStartupPart on _SplashViewState {
       Future.delayed(const Duration(milliseconds: 900), () {
         unawaited(NotificationService.instance.initialize());
       });
-
-      Future.delayed(Duration(seconds: isFirstLaunch ? 2 : 4), () {
-        unawaited(_requestTrackingPermission());
-        unawaited(_initAdMob(targetCount: isFirstLaunch ? 6 : 5));
-      });
     } catch (_) {}
   }
 
@@ -303,11 +300,11 @@ extension _SplashViewStartupPart on _SplashViewState {
     } catch (_) {}
   }
 
-  Future<void> _initAdMob({int targetCount = 4}) async {
+  Future<void> _initAdMob({required bool isFirstLaunch}) async {
     try {
+      await AdmobUnitConfigService.ensure().init();
       await AdmobBannerWarmupService.ensure().warmFromSplash(
-        isFirstLaunch:
-            targetCount >= AdmobBannerWarmupService.splashFirstLaunchTarget,
+        isFirstLaunch: isFirstLaunch,
       );
     } catch (_) {}
   }
@@ -318,6 +315,7 @@ extension _SplashViewStartupPart on _SplashViewState {
 
     GlobalLoaderController.ensure();
     AdmobBannerWarmupService.ensure();
+    AdmobUnitConfigService.ensure(permanent: true);
     StoryInteractionOptimizer.ensure();
     Get.lazyPut(() => UnreadMessagesController());
     Get.lazyPut(() => NavBarController());
