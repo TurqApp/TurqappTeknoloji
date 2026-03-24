@@ -288,9 +288,11 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(15),
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, __) => const SizedBox.shrink(),
                   itemBuilder: (context, index) {
                     final item = items[index];
+                    final category = item.categoryLabel.trim();
+                    final location = item.locationText.trim();
                     return GestureDetector(
                       onTap: () async {
                         await Get.to(() => MarketDetailView(item: item));
@@ -298,23 +300,23 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                         setState(() => _reload(force: true));
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x14000000)),
-                        ),
+                        margin: const EdgeInsets.only(bottom: 16),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(6),
                               child: SizedBox(
-                                width: 65,
-                                height: 65,
+                                width: 104,
+                                height: 78,
                                 child: item.coverImageUrl.trim().isNotEmpty
-                                    ? Image.network(
-                                        item.coverImageUrl,
+                                    ? CachedNetworkImage(
+                                        imageUrl: item.coverImageUrl,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
+                                        placeholder: (_, __) => Container(
+                                          color: const Color(0xFFF3F4F6),
+                                        ),
+                                        errorWidget: (_, __, ___) => Container(
                                           color: const Color(0xFFF3F4F6),
                                         ),
                                       )
@@ -333,20 +335,35 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
+                                      fontSize: 16,
                                       fontFamily: 'MontserratBold',
+                                      color: Colors.black,
                                     ),
                                   ),
+                                  if (category.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      category,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontFamily: 'MontserratMedium',
+                                        color: Colors.blue.shade900,
+                                      ),
+                                    ),
+                                  ],
                                   const SizedBox(height: 4),
                                   Text(
-                                    item.locationText.isEmpty
+                                    location.isEmpty
                                         ? 'pasaj.market.location_missing'.tr
-                                        : item.locationText,
+                                        : location,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      color: Colors.black54,
-                                      fontSize: 12,
-                                      fontFamily: 'MontserratMedium',
+                                      fontSize: 13,
+                                      fontFamily: 'Montserrat',
+                                      color: Colors.black,
                                     ),
                                   ),
                                 ],
