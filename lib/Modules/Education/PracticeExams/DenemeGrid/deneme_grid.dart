@@ -25,6 +25,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'deneme_grid_actions_part.dart';
 part 'deneme_grid_content_part.dart';
+part 'deneme_grid_list_part.dart';
 
 class DenemeGrid extends StatelessWidget {
   const DenemeGrid({
