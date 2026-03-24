@@ -680,6 +680,8 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
               )
             : CachedNetworkImage(
                 imageUrl: clean,
+                width: width,
+                height: height,
                 fit: BoxFit.contain,
                 placeholder: (_, __) => const Center(
                   child: CupertinoActivityIndicator(),
