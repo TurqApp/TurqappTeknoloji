@@ -42,6 +42,16 @@ class LikedPostControllers extends GetxController {
   List<UserPostReference> _latestRefs = const [];
   final isLoading = false.obs;
 
+  List<PostsModel> get likedAll => all;
+
+  List<PostsModel> get likedPostsOnly =>
+      all.where((post) => !isSeriesPost(post)).toList(growable: false);
+
+  List<PostsModel> get likedSeries =>
+      all.where(isSeriesPost).toList(growable: false);
+
+  static bool isSeriesPost(PostsModel post) => post.floodCount > 1;
+
   @override
   void onInit() {
     super.onInit();
