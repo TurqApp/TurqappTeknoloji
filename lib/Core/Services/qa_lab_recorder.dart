@@ -1198,6 +1198,7 @@ class QALabRecorder extends GetxService {
       _buildVideoSurfaceFindings(
         surface: surface,
         surfaceIssues: surfaceIssues,
+        surfaceCheckpoints: surfaceCheckpoints,
         referenceTime: referenceTime,
         route: route,
       ),
@@ -1442,6 +1443,17 @@ class QALabRecorder extends GetxService {
         _asInt(playbackProbe['registeredHandleCount']);
     final savedStateCount = _asInt(playbackProbe['savedStateCount']);
     final wrongTarget = currentPlayingDocId.isNotEmpty;
+    if (wrongTarget &&
+        !_hasPersistentAutoplayMismatch(
+          surface: surface,
+          surfaceCheckpoints: surfaceCheckpoints,
+          route: route,
+          expectedDocId: expectedDocId,
+          currentPlayingDocId: currentPlayingDocId,
+          referenceTime: referenceTime,
+        )) {
+      return null;
+    }
     return QALabPinpointFinding(
       severity: registeredHandleCount > 0
           ? QALabIssueSeverity.error
@@ -1468,6 +1480,7 @@ class QALabRecorder extends GetxService {
   List<QALabPinpointFinding> _buildVideoSurfaceFindings({
     required String surface,
     required List<QALabIssue> surfaceIssues,
+    required List<QALabCheckpoint> surfaceCheckpoints,
     required DateTime referenceTime,
     required String route,
   }) {
@@ -1493,6 +1506,15 @@ class QALabRecorder extends GetxService {
     for (final issue in surfaceIssues) {
       final videoId = _videoIdOf(issue);
       if (videoId.isEmpty) continue;
+      if (!_isRelevantSurfaceVideoIssue(
+        surface: surface,
+        videoId: videoId,
+        issueTimestamp: issue.timestamp,
+        surfaceCheckpoints: surfaceCheckpoints,
+        route: route,
+      )) {
+        continue;
+      }
       if (issue.code == 'video_session_started' &&
           !firstFrameIds.contains(videoId)) {
         final ended = endedByVideoId[videoId];

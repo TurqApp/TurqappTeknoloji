@@ -641,6 +641,99 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     return observedSince;
   }
 
+  bool _hasPersistentAutoplayMismatch({
+    required String surface,
+    required List<QALabCheckpoint> surfaceCheckpoints,
+    required String route,
+    required String expectedDocId,
+    required String currentPlayingDocId,
+    required DateTime referenceTime,
+  }) {
+    if (expectedDocId.isEmpty || currentPlayingDocId.isEmpty) {
+      return false;
+    }
+    var mismatchCount = 0;
+    DateTime? oldestMismatchAt;
+    for (final checkpoint in surfaceCheckpoints.reversed) {
+      if (checkpoint.route != route) {
+        break;
+      }
+      final surfaceProbe = checkpoint.probe[surface] as Map<String, dynamic>? ??
+          const <String, dynamic>{};
+      final checkpointExpectedDocId = surface == 'feed'
+          ? (surfaceProbe['centeredDocId'] ?? '').toString()
+          : (surfaceProbe['activeDocId'] ?? '').toString();
+      if (checkpointExpectedDocId != expectedDocId) {
+        break;
+      }
+      final playbackProbe =
+          checkpoint.probe['videoPlayback'] as Map<String, dynamic>? ??
+              const <String, dynamic>{};
+      final checkpointCurrentPlayingDocId =
+          (playbackProbe['currentPlayingDocID'] ?? '').toString();
+      if (checkpointCurrentPlayingDocId == currentPlayingDocId) {
+        mismatchCount += 1;
+        oldestMismatchAt = checkpoint.timestamp;
+        continue;
+      }
+      if (checkpointCurrentPlayingDocId == expectedDocId) {
+        break;
+      }
+    }
+    if (mismatchCount >= 2) {
+      return true;
+    }
+    if (oldestMismatchAt == null) {
+      return false;
+    }
+    return referenceTime.difference(oldestMismatchAt).inMilliseconds >=
+        QALabMode.autoplayDetectionGraceMs * 2;
+  }
+
+  bool _isRelevantSurfaceVideoIssue({
+    required String surface,
+    required String videoId,
+    required DateTime issueTimestamp,
+    required List<QALabCheckpoint> surfaceCheckpoints,
+    required String route,
+  }) {
+    if ((surface != 'feed' && surface != 'short') ||
+        surfaceCheckpoints.isEmpty) {
+      return true;
+    }
+    final latestCheckpoint = surfaceCheckpoints.last;
+    final surfaceProbe =
+        latestCheckpoint.probe[surface] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final expectedDocId = surface == 'feed'
+        ? (surfaceProbe['centeredDocId'] ?? '').toString()
+        : (surfaceProbe['activeDocId'] ?? '').toString();
+    final playbackProbe =
+        latestCheckpoint.probe['videoPlayback'] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final currentPlayingDocId =
+        (playbackProbe['currentPlayingDocID'] ?? '').toString();
+
+    if (expectedDocId.isEmpty && currentPlayingDocId.isEmpty) {
+      return true;
+    }
+    if (videoId != expectedDocId && videoId != currentPlayingDocId) {
+      return false;
+    }
+    if (videoId == expectedDocId && expectedDocId.isNotEmpty) {
+      final observedSince = _playbackObservationStart(
+        surfaceCheckpoints: surfaceCheckpoints,
+        route: route,
+        surface: surface,
+        expectedDocId: expectedDocId,
+      );
+      if (issueTimestamp.isBefore(observedSince)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   String _videoIdOf(QALabIssue issue) {
     return (issue.metadata['videoId'] ?? '').toString();
   }

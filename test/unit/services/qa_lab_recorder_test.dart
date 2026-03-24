@@ -16,30 +16,47 @@ void main() {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
-    recorder.checkpoints.add(
+    final probe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 1,
+        'centeredIndex': 0,
+        'centeredDocId': 'video-1',
+        'centeredHasPlayableVideo': true,
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': 'video-1',
+        'registeredHandleCount': 1,
+        'savedStateCount': 0,
+      },
+    };
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
       QALabCheckpoint(
-        id: 'cp1',
+        id: 'cp1a',
         label: 'feed_visible',
         surface: 'feed',
         route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 1,
-            'centeredIndex': 0,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
+        timestamp: now.subtract(const Duration(seconds: 12)),
+        probe: probe,
       ),
-    );
+      QALabCheckpoint(
+        id: 'cp1b',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
     recorder.issues.add(
       QALabIssue(
         id: 'issue1',
@@ -61,6 +78,66 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_first_frame_timeout'),
       isTrue,
+    );
+  });
+
+  test('qa recorder ignores stale feed video timeout for non-active doc', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp1b',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'centeredDocId': 'video-2',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'video-2',
+            'registeredHandleCount': 1,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+    );
+    recorder.issues.add(
+      QALabIssue(
+        id: 'issue1b',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_started',
+        message: 'Video session started',
+        timestamp: now.subtract(const Duration(seconds: 10)),
+        route: '/NavBar',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'video-1',
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_first_frame_timeout'),
+      isFalse,
     );
   });
 
@@ -262,6 +339,82 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_autoplay_missing'),
       isTrue,
+    );
+  });
+
+  test('qa recorder requires persistent feed wrong-target autoplay mismatch',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp5a',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'post-1',
+            'registeredHandleCount': 1,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+      QALabCheckpoint(
+        id: 'cp5b',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'post-2',
+            'registeredHandleCount': 1,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_autoplay_wrong_target'),
+      isFalse,
     );
   });
 
