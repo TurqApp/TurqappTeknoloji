@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -40,6 +41,9 @@ Future<FeedVisibleVideoSample> waitForFeedVisibleAutoplayVideo(
     if (docId.isEmpty) {
       continue;
     }
+    if (!_hasMountedFeedMediaSurface(tester, docId)) {
+      continue;
+    }
     return FeedVisibleVideoSample(
       index: centered,
       docId: docId,
@@ -54,6 +58,16 @@ Future<FeedVisibleVideoSample> waitForFeedVisibleAutoplayVideo(
   );
 }
 
+bool _hasMountedFeedMediaSurface(WidgetTester tester, String docId) {
+  final agendaSurface = find.byKey(Key('agenda-media-$docId'));
+  if (agendaSurface.evaluate().isNotEmpty) {
+    return true;
+  }
+
+  final classicSurface = find.byKey(Key('classic-media-$docId'));
+  return classicSurface.evaluate().isNotEmpty;
+}
+
 Future<HLSVideoAdapter> waitForPoolAdapterExists(
   WidgetTester tester, {
   required String cacheKey,
@@ -65,14 +79,20 @@ Future<HLSVideoAdapter> waitForPoolAdapterExists(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(cacheKey);
-    if (adapter != null && !adapter.isDisposed) {
-      return adapter;
+    final candidates = _resolvePlaybackCacheKeyCandidates(cacheKey);
+    for (final candidate in candidates) {
+      final adapter =
+          GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+      if (adapter != null && !adapter.isDisposed) {
+        return adapter;
+      }
     }
   }
 
   throw TestFailure(
-    '$label did not expose a player adapter (cacheKey=$cacheKey).',
+    '$label did not expose a player adapter '
+    '(cacheKey=$cacheKey, feed=${readSurfaceProbe('feed')}, '
+    'videoPlayback=${readSurfaceProbe('videoPlayback')}).',
   );
 }
 
@@ -87,21 +107,28 @@ Future<HLSVideoAdapter> waitForPlayerInitialized(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(cacheKey);
-    final value = adapter?.value;
-    if (adapter != null &&
-        !adapter.isDisposed &&
-        value != null &&
-        value.isInitialized) {
-      return adapter;
+    final candidates = _resolvePlaybackCacheKeyCandidates(cacheKey);
+    for (final candidate in candidates) {
+      final adapter =
+          GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+      final value = adapter?.value;
+      if (adapter != null &&
+          !adapter.isDisposed &&
+          value != null &&
+          value.isInitialized) {
+        return adapter;
+      }
     }
   }
 
-  final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(cacheKey);
+  final adapter = _adapterForCandidates(_resolvePlaybackCacheKeyCandidates(
+    cacheKey,
+  ));
   throw TestFailure(
     '$label did not reach initialized player state '
     '(cacheKey=$cacheKey, exists=${adapter != null}, disposed=${adapter?.isDisposed}, '
-    'initialized=${adapter?.value.isInitialized}).',
+    'initialized=${adapter?.value.isInitialized}, feed=${readSurfaceProbe('feed')}, '
+    'videoPlayback=${readSurfaceProbe('videoPlayback')}).',
   );
 }
 
@@ -116,23 +143,30 @@ Future<HLSVideoAdapter> waitForPlayerFirstFrame(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(cacheKey);
-    final value = adapter?.value;
-    if (adapter != null &&
-        !adapter.isDisposed &&
-        value != null &&
-        value.isInitialized &&
-        value.hasRenderedFirstFrame) {
-      return adapter;
+    final candidates = _resolvePlaybackCacheKeyCandidates(cacheKey);
+    for (final candidate in candidates) {
+      final adapter =
+          GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+      final value = adapter?.value;
+      if (adapter != null &&
+          !adapter.isDisposed &&
+          value != null &&
+          value.isInitialized &&
+          value.hasRenderedFirstFrame) {
+        return adapter;
+      }
     }
   }
 
-  final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(cacheKey);
+  final adapter = _adapterForCandidates(_resolvePlaybackCacheKeyCandidates(
+    cacheKey,
+  ));
   final value = adapter?.value;
   throw TestFailure(
     '$label did not render first frame '
     '(cacheKey=$cacheKey, exists=${adapter != null}, disposed=${adapter?.isDisposed}, '
-    'initialized=${value?.isInitialized}, firstFrame=${value?.hasRenderedFirstFrame}).',
+    'initialized=${value?.isInitialized}, firstFrame=${value?.hasRenderedFirstFrame}, '
+    'feed=${readSurfaceProbe('feed')}, videoPlayback=${readSurfaceProbe('videoPlayback')}).',
   );
 }
 
@@ -149,7 +183,9 @@ Future<void> waitForPlayerPositionAdvanced(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(cacheKey);
+    final adapter = _adapterForCandidates(
+      _resolvePlaybackCacheKeyCandidates(cacheKey),
+    );
     final value = adapter?.value;
     if (adapter == null ||
         adapter.isDisposed ||
@@ -177,12 +213,58 @@ Future<void> waitForPlayerPositionAdvanced(
     }
   }
 
-  final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(cacheKey);
+  final adapter = _adapterForCandidates(_resolvePlaybackCacheKeyCandidates(
+    cacheKey,
+  ));
   final value = adapter?.value;
   throw TestFailure(
     '$label did not advance playback '
     '(cacheKey=$cacheKey, exists=${adapter != null}, disposed=${adapter?.isDisposed}, '
     'initialized=${value?.isInitialized}, firstFrame=${value?.hasRenderedFirstFrame}, '
-    'playing=${value?.isPlaying}, position=${value?.position}, duration=${value?.duration}).',
+    'playing=${value?.isPlaying}, position=${value?.position}, duration=${value?.duration}, '
+    'feed=${readSurfaceProbe('feed')}, videoPlayback=${readSurfaceProbe('videoPlayback')}).',
   );
+}
+
+List<String> _resolvePlaybackCacheKeyCandidates(String cacheKey) {
+  final candidates = <String>{cacheKey};
+  final probe = readIntegrationProbe();
+  final playback = Map<String, dynamic>.from(
+    (probe['videoPlayback'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{},
+  );
+
+  final current = (playback['currentPlayingDocID'] as String?)?.trim() ?? '';
+  if (_matchesPlaybackKey(cacheKey, current)) {
+    candidates.add(current);
+  }
+
+  final registered = (playback['registeredHandleKeys'] as List?)
+          ?.map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList() ??
+      const <String>[];
+  for (final key in registered) {
+    if (_matchesPlaybackKey(cacheKey, key)) {
+      candidates.add(key);
+    }
+  }
+
+  return candidates.toList(growable: false);
+}
+
+bool _matchesPlaybackKey(String cacheKey, String candidate) {
+  if (candidate.isEmpty) return false;
+  if (candidate == cacheKey) return true;
+  return candidate.startsWith('${cacheKey}_');
+}
+
+HLSVideoAdapter? _adapterForCandidates(List<String> candidates) {
+  for (final candidate in candidates) {
+    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+    if (adapter != null) {
+      return adapter;
+    }
+  }
+  return null;
 }
