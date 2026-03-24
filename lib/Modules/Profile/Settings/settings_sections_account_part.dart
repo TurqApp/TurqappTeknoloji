@@ -67,6 +67,15 @@ extension _SettingsViewSectionsAccountPart on _SettingsViewState {
         valueKey:
             const ValueKey(IntegrationTestKeys.actionSettingsOpenPermissions),
       ),
+      if (QALabMode.enabled)
+        buildRow(
+          'settings.diagnostics.qa_lab'.tr,
+          CupertinoIcons.waveform_path_ecg,
+          () {
+            _ensureDiagnosticsServices();
+            Get.to(() => const QALabView());
+          },
+        ),
       buildRow(
         'settings.pasaj'.tr,
         CupertinoIcons.nosign,
