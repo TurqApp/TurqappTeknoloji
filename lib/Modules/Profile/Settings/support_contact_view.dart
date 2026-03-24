@@ -6,7 +6,6 @@ import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'support_contact_view_card_part.dart';
-part 'support_contact_view_topics_part.dart';
 part 'support_contact_view_actions_part.dart';
 
 class SupportContactView extends StatefulWidget {
@@ -56,3 +55,11 @@ class _SupportContactViewState extends State<SupportContactView> {
     );
   }
 }
+
+const List<String> _supportTopicKeys = <String>[
+  'support.topic.account',
+  'support.topic.payment',
+  'support.topic.technical',
+  'support.topic.content',
+  'support.topic.suggestion',
+];
