@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'editor_nickname_shell_part.dart';
 part 'editor_nickname_content_part.dart';
 
 class EditorNickname extends StatefulWidget {
@@ -47,6 +46,23 @@ class _EditorNicknameState extends State<EditorNickname> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildEditorNicknameShell(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'editor_nickname.title'.tr),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Obx(() => _buildEditorNicknameContent()),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
