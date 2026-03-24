@@ -353,6 +353,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return;
     }
 
+    if (!shouldLoopVideo && adapter.value.isCompleted) {
+      _recordPlaybackDispatch(
+        'feed_card_completion_blocked',
+        metadata: <String, dynamic>{
+          'positionMs': adapter.value.position.inMilliseconds,
+          'durationMs': adapter.value.duration.inMilliseconds,
+        },
+      );
+      return;
+    }
+
     _applyPlaybackVolume();
     if (adapter.value.isInitialized) {
       _recordPlaybackDispatch(
@@ -380,6 +391,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final adapter = _videoAdapter;
     if (adapter == null) return;
     if (!_isSurfacePlaybackAllowed) return;
+    if (!shouldLoopVideo && adapter.value.isCompleted) {
+      _recordPlaybackDispatch(
+        'feed_card_start_blocked_completed',
+        metadata: <String, dynamic>{
+          'positionMs': adapter.value.position.inMilliseconds,
+          'durationMs': adapter.value.duration.inMilliseconds,
+        },
+      );
+      return;
+    }
     _recordPlaybackDispatch(
       'feed_card_start_playback',
       metadata: <String, dynamic>{
