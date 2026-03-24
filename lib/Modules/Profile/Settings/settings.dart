@@ -67,7 +67,6 @@ import 'package:turqappv2/Modules/Profile/Settings/qa_lab_view.dart';
 
 part 'settings_sections_admin_part.dart';
 part 'settings_sections_account_part.dart';
-part 'settings_sections_session_part.dart';
 part 'settings_sections_tasks_part.dart';
 part 'settings_diagnostics_actions_part.dart';
 part 'settings_diagnostics_detail_part.dart';
