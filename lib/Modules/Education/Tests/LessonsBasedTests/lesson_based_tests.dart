@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Tests/LessonsBasedTests/lesson_based_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
-part 'lesson_based_tests_shell_part.dart';
 part 'lesson_based_tests_content_part.dart';
 
 class LessonBasedTests extends StatefulWidget {
@@ -52,5 +51,31 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
   @override
   Widget build(BuildContext context) {
     return _buildPage();
+  }
+
+  Widget _buildPage() {
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            BackButtons(
+              text: 'tests.lesson_based_title'.trParams({'type': testTuru}),
+            ),
+            Expanded(
+              child: Container(
+                color: Colors.white,
+                alignment: Alignment.center,
+                child: RefreshIndicator(
+                  color: Colors.white,
+                  backgroundColor: Colors.black,
+                  onRefresh: controller.getData,
+                  child: Obx(() => _buildContent()),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
