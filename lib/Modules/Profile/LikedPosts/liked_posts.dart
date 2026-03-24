@@ -10,7 +10,6 @@ import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import '../../Agenda/AgendaContent/agenda_content.dart';
 import 'liked_posts_controller.dart';
 
-part 'liked_posts_shell_part.dart';
 part 'liked_posts_content_part.dart';
 
 class LikedPosts extends StatefulWidget {
@@ -92,6 +91,39 @@ class _LikedPostsState extends State<LikedPosts> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildLikedPostsShell(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: "settings.liked_posts".tr),
+            PageLineBar(
+              barList: [
+                "common.all".tr,
+                "common.videos".tr,
+                "common.photos".tr,
+              ],
+              pageName: _pageLineBarTag,
+              pageController: controller.pageController,
+            ),
+            Expanded(
+              child: Obx(() {
+                return PageView(
+                  controller: controller.pageController,
+                  onPageChanged: (v) {
+                    syncPageLineBarSelection(_pageLineBarTag, v);
+                  },
+                  children: [
+                    _buildPostsTab(),
+                    _buildVideosTab(),
+                    _buildPhotosTab(),
+                  ],
+                );
+              }),
+            )
+          ],
+        ),
+      ),
+    );
   }
 }
