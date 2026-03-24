@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Debug
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.os.PowerManager
 import android.view.LayoutInflater
 import android.view.View
@@ -73,6 +74,8 @@ class ExoPlayerView(
     private var stableSurfacePasses = 0
     private var isBufferingDispatched = false
     private var lastVideoFrameAtMs = 0L
+    private var lastSmokeFrameSignalAtMs = 0L
+    private var lastSmokeAutoplayRequestAtMs = 0L
     private var firstVideoFrameAtMs = 0L
     private var lastWatchdogPositionMs = 0L
     private var stallRecoveries = 0
@@ -226,6 +229,13 @@ class ExoPlayerView(
                     setVideoFrameMetadataListener(
                         VideoFrameMetadataListener { _, _, _, _ ->
                             lastVideoFrameAtMs = System.currentTimeMillis()
+                            val now = SystemClock.elapsedRealtime()
+                            if (isSmokeRegistryActive &&
+                                now - lastSmokeFrameSignalAtMs >= 450L
+                            ) {
+                                lastSmokeFrameSignalAtMs = now
+                                smokeMonitor.onFrameRendered()
+                            }
                         }
                     )
                 }
@@ -253,6 +263,8 @@ class ExoPlayerView(
         stableSurfacePasses = 0
         isBufferingDispatched = false
         lastVideoFrameAtMs = 0L
+        lastSmokeFrameSignalAtMs = 0L
+        lastSmokeAutoplayRequestAtMs = 0L
         firstVideoFrameAtMs = 0L
         lastWatchdogPositionMs = 0L
         stallRecoveries = 0
@@ -340,6 +352,7 @@ class ExoPlayerView(
             override fun onRenderedFirstFrame() {
                 didRenderFirstFrame = true
                 lastVideoFrameAtMs = System.currentTimeMillis()
+                lastSmokeFrameSignalAtMs = SystemClock.elapsedRealtime()
                 if (firstVideoFrameAtMs == 0L) {
                     firstVideoFrameAtMs = lastVideoFrameAtMs
                 }
@@ -408,15 +421,13 @@ class ExoPlayerView(
         player = activePlayer
         currentUrl = url
         if (autoPlay) {
-            smokeMonitor.resetForNewPlaybackSession()
-            smokeProbe?.onAutoplayRequested()
+            requestSmokeAutoplay(forceNewSession = true)
         }
     }
 
     fun play() {
         player?.let { p ->
-            smokeMonitor.resetForNewPlaybackSession()
-            smokeProbe?.onAutoplayRequested()
+            requestSmokeAutoplay(forceNewSession = false)
             if (isSoftHeld) {
                 p.volume = heldVolume
                 isSoftHeld = false
@@ -582,6 +593,32 @@ class ExoPlayerView(
         positionRunnable = null
     }
 
+    private fun requestSmokeAutoplay(forceNewSession: Boolean) {
+        val probe = smokeProbe ?: return
+        val activePlayer = player ?: return
+        val now = SystemClock.elapsedRealtime()
+        val alreadyTrackingActivePlayback =
+            smokeMonitor.isPlaybackExpected &&
+                (activePlayer.isPlaying ||
+                    activePlayer.playWhenReady ||
+                    smokeMonitor.hasRenderedFirstFrame)
+
+        if (!forceNewSession) {
+            if (alreadyTrackingActivePlayback) {
+                return
+            }
+            if (lastSmokeAutoplayRequestAtMs > 0L &&
+                now - lastSmokeAutoplayRequestAtMs < 900L
+            ) {
+                return
+            }
+        }
+
+        smokeMonitor.resetForNewPlaybackSession()
+        lastSmokeAutoplayRequestAtMs = now
+        probe.onAutoplayRequested()
+    }
+
     private fun startStallWatchdog() {
         stopStallWatchdog()
         val runnable = object : Runnable {
@@ -663,6 +700,7 @@ class ExoPlayerView(
                 p.playWhenReady = true
                 p.play()
                 lastVideoFrameAtMs = System.currentTimeMillis()
+                lastSmokeFrameSignalAtMs = SystemClock.elapsedRealtime()
                 lastWatchdogPositionMs = p.currentPosition
             } catch (_: Throwable) {
             }

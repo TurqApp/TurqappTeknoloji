@@ -230,6 +230,21 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     final isPlaying = lastNativePlaybackSnapshot['isPlaying'] == true;
     final isBuffering = lastNativePlaybackSnapshot['isBuffering'] == true;
     final stallCount = _asInt(lastNativePlaybackSnapshot['stallCount']);
+    final surfaceEligibleForAutoplay = switch (surface) {
+      'feed' =>
+        _asInt(latestProbe['centeredIndex']) >= 0 &&
+            _asInt(latestProbe['centeredIndex']) < count &&
+            latestProbe['centeredHasPlayableVideo'] == true &&
+            latestProbe['playbackSuspended'] != true &&
+            latestProbe['pauseAll'] != true &&
+            latestProbe['canClaimPlaybackNow'] == true &&
+            (latestProbe['centeredDocId'] ?? '').toString().isNotEmpty,
+      'short' =>
+        _asInt(latestProbe['activeIndex']) >= 0 &&
+            _asInt(latestProbe['activeIndex']) < count &&
+            (latestProbe['activeDocId'] ?? '').toString().isNotEmpty,
+      _ => false,
+    };
     final sampledAt =
         _parseTimestamp(lastNativePlaybackSnapshot['sampledAt']) ??
             referenceTime;
@@ -248,6 +263,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
           _asDouble(lastNativePlaybackSnapshot['lastKnownPlaybackTime']),
       'layerAttachCount':
           _asInt(lastNativePlaybackSnapshot['layerAttachCount']),
+      'surfaceEligibleForAutoplay': surfaceEligibleForAutoplay,
     };
 
     const firstFrameCodes = <String>{
@@ -255,7 +271,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       'READY_WITHOUT_FRAME',
       'PLAYBACK_NOT_STARTED',
     };
-    if (errors.any(firstFrameCodes.contains)) {
+    if (surfaceEligibleForAutoplay && errors.any(firstFrameCodes.contains)) {
       findings.add(
         QALabPinpointFinding(
           severity: errors.contains('FIRST_FRAME_TIMEOUT') ||

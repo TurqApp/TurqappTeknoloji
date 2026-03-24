@@ -81,6 +81,64 @@ void main() {
     );
   });
 
+  test('qa recorder ignores native feed first-frame timeout while gate blocked',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_gate_blocked',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'centeredDocId': 'video-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': false,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'android',
+        'status': 'FIRST_FRAME_TIMEOUT|PLAYBACK_NOT_STARTED',
+        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'PLAYBACK_NOT_STARTED'],
+        'active': true,
+        'firstFrameRendered': false,
+        'isPlaybackExpected': true,
+        'isPlaying': false,
+        'isBuffering': false,
+        'stallCount': 0,
+        'layerAttachCount': 1,
+        'lastKnownPlaybackTime': 0.0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+      });
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_native_first_frame_timeout'),
+      isFalse,
+    );
+  });
+
   test('qa recorder ignores stale feed video timeout for non-active doc', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -623,6 +681,7 @@ void main() {
             'count': 2,
             'centeredIndex': 0,
             'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
             'playbackSuspended': false,
             'pauseAll': false,
             'canClaimPlaybackNow': true,
