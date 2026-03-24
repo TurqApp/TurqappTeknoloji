@@ -818,12 +818,12 @@ void main() {
       },
     );
 
-    final device = remote['device'] as Map<String, dynamic>? ??
-        <String, dynamic>{};
+    final device =
+        remote['device'] as Map<String, dynamic>? ?? <String, dynamic>{};
     final surfaces = remote['surfaceSummaries'] as Map<String, dynamic>? ??
         <String, dynamic>{};
-    final feed = surfaces['feed'] as Map<String, dynamic>? ??
-        <String, dynamic>{};
+    final feed =
+        surfaces['feed'] as Map<String, dynamic>? ?? <String, dynamic>{};
 
     expect(remote['sessionId'], 'session-1');
     expect(device['model'], 'SM-N986B');

@@ -107,7 +107,8 @@ class QALabRemoteUploader extends GetxService {
     }
 
     final reason = _pendingReason;
-    final pendingOccurrences = _pendingOccurrences.values.toList(growable: false);
+    final pendingOccurrences =
+        _pendingOccurrences.values.toList(growable: false);
     _pendingSessionDocument = null;
     _pendingOccurrences.clear();
 
@@ -117,12 +118,10 @@ class QALabRemoteUploader extends GetxService {
     lastSyncReason.value = reason;
 
     try {
-      final sessionId = (sessionDocument['sessionId'] ?? '')
-          .toString()
-          .trim()
-          .isEmpty
-          ? DateTime.now().millisecondsSinceEpoch.toString()
-          : (sessionDocument['sessionId'] ?? '').toString().trim();
+      final sessionId =
+          (sessionDocument['sessionId'] ?? '').toString().trim().isEmpty
+              ? DateTime.now().millisecondsSinceEpoch.toString()
+              : (sessionDocument['sessionId'] ?? '').toString().trim();
       final firestore = _firestoreOverride ?? FirebaseFirestore.instance;
       final scopeRef = firestore
           .collection(QALabMode.remoteCollectionName)
@@ -131,8 +130,8 @@ class QALabRemoteUploader extends GetxService {
       final batch = firestore.batch();
       final platform = (sessionDocument['platform'] ?? '').toString();
       final buildMode = (sessionDocument['buildMode'] ?? '').toString();
-      final surface = ((sessionDocument['route'] as Map?)?['lastSurface'] ?? '')
-          .toString();
+      final surface =
+          ((sessionDocument['route'] as Map?)?['lastSurface'] ?? '').toString();
 
       batch.set(
         scopeRef,
@@ -232,7 +231,8 @@ class QALabRemoteUploader extends GetxService {
     } catch (error, stackTrace) {
       _pendingSessionDocument ??= sessionDocument;
       for (final occurrence in pendingOccurrences) {
-        final occurrenceId = (occurrence['occurrenceId'] ?? '').toString().trim();
+        final occurrenceId =
+            (occurrence['occurrenceId'] ?? '').toString().trim();
         if (occurrenceId.isEmpty) {
           continue;
         }
@@ -252,8 +252,9 @@ class QALabRemoteUploader extends GetxService {
     required Map<String, dynamic> sessionDocument,
     required Map<String, dynamic> occurrence,
   }) {
-    final platform = (occurrence['platform'] ?? sessionDocument['platform'] ?? '')
-        .toString();
+    final platform =
+        (occurrence['platform'] ?? sessionDocument['platform'] ?? '')
+            .toString();
     final buildMode =
         (occurrence['buildMode'] ?? sessionDocument['buildMode'] ?? '')
             .toString();
@@ -286,8 +287,7 @@ class QALabRemoteUploader extends GetxService {
         'counters.bySeverity.${_safeFieldKey(severity)}':
             FieldValue.increment(1),
       if (surface.isNotEmpty)
-        'counters.bySurface.${_safeFieldKey(surface)}':
-            FieldValue.increment(1),
+        'counters.bySurface.${_safeFieldKey(surface)}': FieldValue.increment(1),
       if (platform.isNotEmpty)
         'counters.byPlatform.${_safeFieldKey(platform)}':
             FieldValue.increment(1),
@@ -307,10 +307,7 @@ class QALabRemoteUploader extends GetxService {
   }
 
   Object? _sanitizeValue(Object? value) {
-    if (value == null ||
-        value is num ||
-        value is bool ||
-        value is String) {
+    if (value == null || value is num || value is bool || value is String) {
       return value;
     }
     if (value is DateTime) {

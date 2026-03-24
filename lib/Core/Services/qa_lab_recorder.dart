@@ -1147,7 +1147,8 @@ class QALabRecorder extends GetxService {
     );
     await QALabRemoteUploader.ensure().scheduleUpload(
       sessionDocument: Map<String, dynamic>.from(
-        payload['session'] as Map<String, dynamic>? ?? const <String, dynamic>{},
+        payload['session'] as Map<String, dynamic>? ??
+            const <String, dynamic>{},
       ),
       occurrences:
           (payload['occurrences'] as List<dynamic>? ?? const <dynamic>[])
@@ -1183,8 +1184,8 @@ class QALabRecorder extends GetxService {
     }
     final now = DateTime.now();
     final currentSnapshot = IntegrationTestStateProbe.snapshot();
-    final extendedDeviceInfo = extendedDeviceInfoOverride ??
-        await _getCachedExtendedDeviceInfo();
+    final extendedDeviceInfo =
+        extendedDeviceInfoOverride ?? await _getCachedExtendedDeviceInfo();
     final packageInfo =
         (extendedDeviceInfo['package'] as Map?)?.cast<String, dynamic>() ??
             const <String, dynamic>{};
@@ -1261,10 +1262,10 @@ class QALabRecorder extends GetxService {
             'headlineMessage':
                 (alertsBySurface[diagnostic.surface]?.headlineMessage ?? '')
                     .toString(),
-            'primaryRootCauseCategory':
-                (alertsBySurface[diagnostic.surface]?.primaryRootCauseCategory ??
-                        '')
-                    .toString(),
+            'primaryRootCauseCategory': (alertsBySurface[diagnostic.surface]
+                        ?.primaryRootCauseCategory ??
+                    '')
+                .toString(),
             'primaryRootCauseDetail':
                 (alertsBySurface[diagnostic.surface]?.primaryRootCauseDetail ??
                         '')
@@ -1282,7 +1283,8 @@ class QALabRecorder extends GetxService {
       'timelineHighlights': _remoteTimelineHighlights(
         limit: QALabMode.remoteUploadMaxTimelineEvents,
       ),
-      'nativePlayback': _compactNativePlaybackSnapshot(lastNativePlaybackSnapshot),
+      'nativePlayback':
+          _compactNativePlaybackSnapshot(lastNativePlaybackSnapshot),
       'snapshotDigest': _remoteSnapshotDigest(currentSnapshot),
     };
   }
@@ -1303,19 +1305,19 @@ class QALabRecorder extends GetxService {
         .toList(growable: false);
     final device = (session['device'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
-    final app =
-        (session['app'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
-    final platform = (session['platform'] ?? defaultTargetPlatform.name).toString();
-    final buildMode = (session['buildMode'] ?? _deviceInfoSnapshot()['buildMode'])
-        .toString();
+    final app = (session['app'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
+    final platform =
+        (session['platform'] ?? defaultTargetPlatform.name).toString();
+    final buildMode =
+        (session['buildMode'] ?? _deviceInfoSnapshot()['buildMode']).toString();
 
     return findings.map((finding) {
       final surfaceAlert = alertsBySurface[finding.surface];
       final signature = _remoteIssueSignature(
         surface: finding.surface,
         code: finding.code,
-        rootCauseCategory:
-            surfaceAlert?.primaryRootCauseCategory ?? 'unknown',
+        rootCauseCategory: surfaceAlert?.primaryRootCauseCategory ?? 'unknown',
         platform: platform,
         buildMode: buildMode,
       );
