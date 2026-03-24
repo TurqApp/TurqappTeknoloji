@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
@@ -27,6 +28,9 @@ part 'scholarships_controller_data_part.dart';
 part 'scholarships_controller_actions_part.dart';
 
 class ScholarshipsController extends GetxController {
+  static const String _listingSelectionPrefKeyPrefix =
+      'scholarship_listing_selection';
+
   static ScholarshipsController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
@@ -68,6 +72,8 @@ class ScholarshipsController extends GetxController {
   DateTime? lastRefresh;
   final RxMap<int, RxInt> pageIndices = <int, RxInt>{}.obs;
   final RxDouble scrollOffset = 0.0.obs;
+  final RxBool listingSelectionReady = false.obs;
+  final RxInt listingSelection = 0.obs;
   final int initialBatchSize = 30;
   final int batchSize = 30;
   final RxBool hasMoreData = true.obs;
@@ -88,6 +94,7 @@ class ScholarshipsController extends GetxController {
       persistenceEnabled: true,
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
+    unawaited(_restoreListingSelection());
     unawaited(_bootstrapScholarships());
   }
 
@@ -111,6 +118,12 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> refreshTotalCount() => _refreshTotalCountImpl();
+
+  Future<void> _restoreListingSelection() => _restoreListingSelectionImpl();
+
+  Future<void> _persistListingSelection() => _persistListingSelectionImpl();
+
+  void toggleListingSelection() => _toggleListingSelectionImpl();
 
   void setSearchQuery(String q) => _setSearchQueryImpl(q);
 

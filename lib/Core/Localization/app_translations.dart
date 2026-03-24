@@ -4498,7 +4498,7 @@ class AppTranslations extends Translations {
         'common.saved': 'Saved',
         'common.unknown_category': 'Unknown Category',
         'common.clear': 'Clear',
-        'common.details': 'Detailed Info',
+        'common.details': 'Details',
         'common.share': 'Share',
         'common.share_external': 'Share externally',
         'common.show_more': 'Show More',

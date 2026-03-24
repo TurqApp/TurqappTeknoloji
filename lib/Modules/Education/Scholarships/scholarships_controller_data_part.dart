@@ -1,6 +1,44 @@
 part of 'scholarships_controller.dart';
 
 extension _ScholarshipsControllerDataPart on ScholarshipsController {
+  String _listingSelectionKeyFor(String uid) =>
+      '${ScholarshipsController._listingSelectionPrefKeyPrefix}_$uid';
+
+  Future<void> _restoreListingSelectionImpl() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      listingSelectionReady.value = true;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
+      listingSelection.value = stored == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
+    }
+  }
+
+  Future<void> _persistListingSelectionImpl() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
+
+  void _toggleListingSelectionImpl() {
+    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
+    unawaited(_persistListingSelection());
+  }
+
   Future<void> _refreshTotalCountImpl() async {
     if (allScholarships.isNotEmpty) {
       totalCount.value = totalCount.value < allScholarships.length

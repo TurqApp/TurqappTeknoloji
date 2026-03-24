@@ -573,7 +573,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
 
   String _getMainActionButtonText(String type, bool isOwnScholarship) {
     if (isOwnScholarship) return 'common.view'.tr;
-    return 'common.details'.tr;
+    return 'pasaj.market.inspect'.tr;
   }
 
   Widget _buildInteractionButtons(
