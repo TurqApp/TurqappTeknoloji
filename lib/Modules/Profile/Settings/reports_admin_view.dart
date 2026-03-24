@@ -6,7 +6,6 @@ import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
-part 'reports_admin_view_actions_part.dart';
 part 'reports_admin_view_content_part.dart';
 
 class ReportsAdminView extends StatefulWidget {
