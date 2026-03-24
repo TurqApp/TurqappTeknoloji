@@ -8,7 +8,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'ads_campaign_editor_view_actions_part.dart';
 part 'ads_campaign_editor_view_creative_part.dart';
-part 'ads_campaign_editor_view_content_part.dart';
 part 'ads_campaign_editor_view_form_part.dart';
 part 'ads_campaign_editor_view_sections_part.dart';
 part 'ads_campaign_editor_view_targeting_part.dart';
@@ -144,7 +143,21 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.white,
+        body: Obx(
+          () => ListView(
+            padding: const EdgeInsets.all(14),
+            children: [
+              _buildCampaignSection(),
+              _buildTargetingSection(),
+              _buildCreativeSection(),
+              _buildSubmitActions(),
+              const SizedBox(height: 28),
+            ],
+          ),
+        ),
+      );
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
