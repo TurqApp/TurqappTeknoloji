@@ -35,6 +35,7 @@ import 'short_content_controller.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
 part 'short_content_body_part.dart';
+part 'short_content_actions_part.dart';
 
 class ShortsContent extends StatefulWidget {
   final PostsModel model;
