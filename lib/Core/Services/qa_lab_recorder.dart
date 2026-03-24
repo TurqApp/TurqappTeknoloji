@@ -1283,6 +1283,14 @@ class QALabRecorder extends GetxService {
       ),
     );
     findings.addAll(
+      _buildAudioSurfaceFindings(
+        surface: surface,
+        surfaceIssues: surfaceIssues,
+        referenceTime: referenceTime,
+        route: route,
+      ),
+    );
+    findings.addAll(
       _buildCacheSurfaceFindings(
         surface: surface,
         surfaceIssues: surfaceIssues,
@@ -1643,6 +1651,63 @@ class QALabRecorder extends GetxService {
     ];
   }
 
+  List<QALabPinpointFinding> _buildAudioSurfaceFindings({
+    required String surface,
+    required List<QALabIssue> surfaceIssues,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    if (surface != 'feed' && surface != 'short') {
+      return const <QALabPinpointFinding>[];
+    }
+    final endedSessions = surfaceIssues
+        .where((issue) => issue.code == 'video_session_ended')
+        .toList(growable: false);
+    if (endedSessions.length < 2) {
+      return const <QALabPinpointFinding>[];
+    }
+
+    var audibleCount = 0;
+    var mutedCount = 0;
+    var unstableFocusCount = 0;
+    for (final issue in endedSessions) {
+      final isAudible = issue.metadata['isAudible'] == true;
+      final hasStableFocus = issue.metadata['hasStableFocus'] == true;
+      if (isAudible) {
+        audibleCount += 1;
+      } else {
+        mutedCount += 1;
+      }
+      if (!hasStableFocus) {
+        unstableFocusCount += 1;
+      }
+    }
+
+    if (audibleCount == 0 || mutedCount == 0) {
+      return const <QALabPinpointFinding>[];
+    }
+
+    final severity = unstableFocusCount > 0
+        ? QALabIssueSeverity.error
+        : QALabIssueSeverity.warning;
+    return <QALabPinpointFinding>[
+      QALabPinpointFinding(
+        severity: severity,
+        code: '${surface}_audio_state_inconsistent',
+        message:
+            'Videos on $surface finished with mixed audible and muted states during the same session.',
+        route: route,
+        surface: surface,
+        timestamp: referenceTime,
+        context: <String, dynamic>{
+          'audibleSessionCount': audibleCount,
+          'mutedSessionCount': mutedCount,
+          'unstableFocusCount': unstableFocusCount,
+        },
+      ),
+    ];
+  }
+
   void _recordCriticalPermissionIfBlocked({
     required String permissionKey,
     required PermissionStatus? status,
@@ -1934,6 +1999,12 @@ class QALabRecorder extends GetxService {
       return (
         'buffering_instability',
         '${diagnostic.surface} playback spent too long buffering or repeatedly rebuffered.',
+      );
+    }
+    if (code.contains('audio_state') || code.contains('mute')) {
+      return (
+        'audio_state_drift',
+        '${diagnostic.surface} produced inconsistent audible state across video sessions.',
       );
     }
     if (code.contains('cache_live_failures') ||

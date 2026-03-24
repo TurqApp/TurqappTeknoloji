@@ -329,4 +329,77 @@ void main() {
     expect(feedSummary.primaryRootCauseCategory, 'autoplay_dispatch');
     expect(feedSummary.primaryRootCauseDetail, contains('autoplay'));
   });
+
+  test('qa recorder flags inconsistent feed audio state across sessions', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp10',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': 1,
+            'centeredDocId': 'post-2',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'audio_1',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_ended',
+        message: 'Video session ended',
+        timestamp: now.subtract(const Duration(seconds: 4)),
+        route: '/NavBar',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'post-1',
+          'isAudible': true,
+          'hasStableFocus': true,
+        },
+      ),
+      QALabIssue(
+        id: 'audio_2',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_ended',
+        message: 'Video session ended',
+        timestamp: now.subtract(const Duration(seconds: 2)),
+        route: '/NavBar',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'post-2',
+          'isAudible': false,
+          'hasStableFocus': false,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+    final summaries = recorder.buildSurfaceAlertSummaries();
+    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
+
+    expect(
+      findings.any((item) => item.code == 'feed_audio_state_inconsistent'),
+      isTrue,
+    );
+    expect(feedSummary.primaryRootCauseCategory, 'audio_state_drift');
+  });
 }
