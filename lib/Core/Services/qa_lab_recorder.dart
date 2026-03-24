@@ -1023,6 +1023,7 @@ class QALabRecorder extends GetxService {
 
     final autoplayFinding = _buildAutoplaySurfaceFinding(
       surface: surface,
+      surfaceIssues: surfaceIssues,
       surfaceCheckpoints: surfaceCheckpoints,
       referenceTime: referenceTime,
       route: route,
@@ -1392,6 +1393,7 @@ class QALabRecorder extends GetxService {
 
   QALabPinpointFinding? _buildAutoplaySurfaceFinding({
     required String surface,
+    required List<QALabIssue> surfaceIssues,
     required List<QALabCheckpoint> surfaceCheckpoints,
     required DateTime referenceTime,
     required String route,
@@ -1409,6 +1411,16 @@ class QALabRecorder extends GetxService {
     final authProbe = latestCheckpoint.probe['auth'] as Map<String, dynamic>? ??
         const <String, dynamic>{};
     if (!_hasAuthenticatedUser(authProbe)) {
+      return null;
+    }
+    if (_hasRecentHostLookupFailure(
+          surfaceIssues: surfaceIssues,
+          referenceTime: referenceTime,
+        ) ||
+        _hasRecentBackendUnavailableFailure(
+          surfaceIssues: surfaceIssues,
+          referenceTime: referenceTime,
+        )) {
       return null;
     }
 
@@ -1516,6 +1528,24 @@ class QALabRecorder extends GetxService {
       }
       final message = issue.message;
       return markers.any(message.contains);
+    });
+  }
+
+  bool _hasRecentBackendUnavailableFailure({
+    required List<QALabIssue> surfaceIssues,
+    required DateTime referenceTime,
+  }) {
+    return surfaceIssues.any((issue) {
+      if (issue.source != QALabIssueSource.platform) {
+        return false;
+      }
+      if (referenceTime.difference(issue.timestamp) >
+          const Duration(seconds: 20)) {
+        return false;
+      }
+      final message = issue.message.toLowerCase();
+      return message.contains('cloud_firestore/unavailable') ||
+          message.contains('service is currently unavailable');
     });
   }
 

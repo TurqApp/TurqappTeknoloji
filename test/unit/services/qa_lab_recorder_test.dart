@@ -474,6 +474,74 @@ void main() {
     );
   });
 
+  test('qa recorder ignores feed autoplay missing after recent host lookup error',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'centeredHasPlayableVideo': true,
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': '',
+        'registeredHandleCount': 1,
+        'savedStateCount': 0,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp4a',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp4b',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+    recorder.issues.add(
+      QALabIssue(
+        id: 'feed_autoplay_host_lookup',
+        source: QALabIssueSource.platform,
+        severity: QALabIssueSeverity.error,
+        code: 'platform_error',
+        message:
+            "ClientException with SocketException: Failed host lookup: 'cdn.turqapp.com'",
+        timestamp: now.subtract(const Duration(seconds: 2)),
+        route: '/NavBar',
+        surface: 'feed',
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_autoplay_missing'),
+      isFalse,
+    );
+  });
+
   test('qa recorder requires persistent feed wrong-target autoplay mismatch',
       () {
     final recorder = QALabRecorder();
@@ -541,6 +609,96 @@ void main() {
         },
       ),
     ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_autoplay_wrong_target'),
+      isFalse,
+    );
+  });
+
+  test(
+      'qa recorder ignores feed wrong-target autoplay during backend unavailable failures',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp5c',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'post-2',
+            'registeredHandleCount': 1,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+      QALabCheckpoint(
+        id: 'cp5d',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'post-2',
+            'registeredHandleCount': 1,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+    ]);
+    recorder.issues.add(
+      QALabIssue(
+        id: 'feed_autoplay_backend_unavailable',
+        source: QALabIssueSource.platform,
+        severity: QALabIssueSeverity.error,
+        code: 'platform_error',
+        message:
+            '[cloud_firestore/unavailable] The service is currently unavailable. This is a most likely a transient condition and may be corrected by retrying with a backoff.',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+        route: '/NavBar',
+        surface: 'feed',
+      ),
+    );
 
     final findings = recorder.buildPinpointFindings();
 
