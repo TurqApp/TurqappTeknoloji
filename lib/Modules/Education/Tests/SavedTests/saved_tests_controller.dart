@@ -6,9 +6,6 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'saved_tests_controller_bootstrap_part.dart';
-part 'saved_tests_controller_data_part.dart';
-
 class SavedTestsController extends GetxController {
   static SavedTestsController ensure({
     String? tag,
@@ -38,5 +35,51 @@ class SavedTestsController extends GetxController {
   void onInit() {
     super.onInit();
     _handleControllerInit();
+  }
+
+  void _handleControllerInit() {
+    unawaited(_bootstrapData());
+  }
+
+  Future<void> _bootstrapData() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    final cached = await _testRepository.fetchFavorites(
+      uid,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      list.assignAll(cached);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:saved:$uid',
+        minInterval: SavedTestsController._silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
+    try {
+      final uid = CurrentUserService.instance.effectiveUserId;
+      final items = await _testRepository.fetchFavorites(
+        uid,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      list.assignAll(items);
+      SilentRefreshGate.markRefreshed('tests:saved:$uid');
+    } catch (_) {
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
