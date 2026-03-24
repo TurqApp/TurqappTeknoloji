@@ -9,7 +9,6 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'saved_practice_exams_controller_data_part.dart';
-part 'saved_practice_exams_controller_actions_part.dart';
 
 class SavedPracticeExamsController extends GetxController {
   static SavedPracticeExamsController ensure({bool permanent = false}) {
@@ -82,6 +81,32 @@ class SavedPracticeExamsController extends GetxController {
         silent: silent,
         forceRefresh: forceRefresh,
       );
+
+  Future<void> _toggleSavedExamImpl(String docId) async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
+
+    if (savedExamIds.contains(docId)) {
+      savedExamIds.remove(docId);
+      savedExams.removeWhere((exam) => exam.docID == docId);
+      await _subcollectionRepository.deleteEntry(
+        uid,
+        subcollection: 'saved_practice_exams',
+        docId: docId,
+      );
+      return;
+    }
+
+    savedExamIds.add(docId);
+    await _subcollectionRepository.upsertEntry(
+      uid,
+      subcollection: 'saved_practice_exams',
+      docId: docId,
+      data: {
+        'timeStamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    );
+  }
 
   Future<void> toggleSavedExam(String docId) => _toggleSavedExamImpl(docId);
 }
