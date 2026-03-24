@@ -639,6 +639,21 @@ class QALabCatalog {
       runnableInApp: false,
     ),
     QALabCatalogEntry(
+      path: 'test/widget/p0/full_screen_image_viewer_widget_test.dart',
+      origin: QALabTestOrigin.widget,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/widget/p0/post_state_messages_widget_test.dart',
+      origin: QALabTestOrigin.widget,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/widget/p0/reshare_attribution_widget_test.dart',
+      origin: QALabTestOrigin.widget,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
       path: 'test/widget/flows/accessibility_semantics_smoke_test.dart',
       origin: QALabTestOrigin.widget,
       runnableInApp: false,

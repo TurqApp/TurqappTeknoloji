@@ -7,8 +7,8 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 - Total widget classes: 409
 - Public widget classes: 347
 - Private widget classes: 62
-- Directly referenced by current widget tests: 14
-- Planned / not yet directly covered: 395
+- Directly referenced by current widget tests: 15
+- Planned / not yet directly covered: 394
 
 ## Tier Definitions
 
@@ -39,7 +39,7 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 | planned | P0 | `PostLikeListing` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/PostLikeListing/post_like_listing.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `PostReshareContent` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/PostReshareListing/PostReshareContent/post_reshare_content.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `PostReshareListing` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/PostReshareListing/post_reshare_listing.dart` | — | render, semantics, interaction, textScale, platform |
-| planned | P0 | `ReshareAttribution` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/Common/reshare_attribution.dart` | — | render, semantics, interaction, textScale, platform |
+| covered | P0 | `ReshareAttribution` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/Common/reshare_attribution.dart` | `test/widget/p0/reshare_attribution_widget_test.dart` | render, semantics, interaction, textScale, platform |
 | planned | P0 | `SinglePost` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/SinglePost/single_post.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `SmartMiniVideoPlayer` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/TagPosts/tag_media_widgets.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `TagPosts` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/TagPosts/tag_posts.dart` | — | render, semantics, interaction, textScale, platform |
