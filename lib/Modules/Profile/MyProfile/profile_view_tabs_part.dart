@@ -13,8 +13,13 @@ extension _ProfileViewTabsPart on _ProfileViewState {
         label: "profile.followers".tr,
         onTap: () {
           _suspendProfileFeedForRoute();
-          Get.to(() => FollowingFollowers(selection: 0, userId: _myUserId))
-              ?.then((_) {
+          Get.to(
+            () => FollowingFollowers(
+              selection: 0,
+              userId: _myUserId,
+              nickname: _myIosSafeNickname,
+            ),
+          )?.then((_) {
             _resumeProfileFeedAfterRoute();
           });
         },
@@ -26,8 +31,13 @@ extension _ProfileViewTabsPart on _ProfileViewState {
         label: "profile.following".tr,
         onTap: () {
           _suspendProfileFeedForRoute();
-          Get.to(() => FollowingFollowers(selection: 1, userId: _myUserId))
-              ?.then((_) {
+          Get.to(
+            () => FollowingFollowers(
+              selection: 1,
+              userId: _myUserId,
+              nickname: _myIosSafeNickname,
+            ),
+          )?.then((_) {
             _resumeProfileFeedAfterRoute();
           });
         },

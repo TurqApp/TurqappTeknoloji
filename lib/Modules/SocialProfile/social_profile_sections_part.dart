@@ -765,9 +765,13 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           child: GestureDetector(
             onTap: () {
               _setCenteredIndex(-1);
-              Get.to(() =>
-                      FollowingFollowers(selection: 0, userId: widget.userID))
-                  ?.then((_) {
+              Get.to(
+                () => FollowingFollowers(
+                  selection: 0,
+                  userId: widget.userID,
+                  nickname: controller.nickname.value,
+                ),
+              )?.then((_) {
                 controller.resumeCenteredPost();
               });
             },
@@ -807,9 +811,13 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           child: GestureDetector(
             onTap: () {
               _setCenteredIndex(-1);
-              Get.to(() =>
-                      FollowingFollowers(selection: 1, userId: widget.userID))
-                  ?.then((_) {
+              Get.to(
+                () => FollowingFollowers(
+                  selection: 1,
+                  userId: widget.userID,
+                  nickname: controller.nickname.value,
+                ),
+              )?.then((_) {
                 controller.resumeCenteredPost();
               });
             },

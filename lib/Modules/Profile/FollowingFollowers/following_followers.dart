@@ -11,11 +11,13 @@ import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers
 class FollowingFollowers extends StatefulWidget {
   final int selection;
   final String userId;
+  final String nickname;
 
   const FollowingFollowers({
     super.key,
     required this.selection,
     required this.userId,
+    this.nickname = '',
   });
 
   @override
@@ -30,6 +32,14 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
   late int _currentPage;
 
   String get _pageLineBarTag => '${kFollowersPageLineBarTag}_${widget.userId}';
+
+  String get _headerNickname {
+    final direct = widget.nickname.trim();
+    if (direct.isNotEmpty) return direct;
+    final resolved = controller.nickname.value.trim();
+    if (resolved.isNotEmpty) return resolved;
+    return '';
+  }
 
   @override
   void initState() {
@@ -79,7 +89,7 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
             Column(
               children: [
                 Obx(
-                  () => BackButtons(text: controller.nickname.value),
+                  () => BackButtons(text: _headerNickname),
                 ),
                 PageLineBar(
                   barList: [

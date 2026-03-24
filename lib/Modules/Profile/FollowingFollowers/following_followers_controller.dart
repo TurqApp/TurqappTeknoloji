@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
@@ -181,14 +183,38 @@ class FollowingFollowersController extends GetxController {
 
   void _handleOnInit() {
     _loadNicknameCached();
-    getCounters();
     final followersCached = _restoreRelationListCache(isFollowers: true);
     final followingsCached = _restoreRelationListCache(isFollowers: false);
     if (!followersCached) {
-      getFollowers(initial: true);
+      unawaited(getFollowers(initial: true));
     }
     if (!followingsCached) {
-      getFollowing(initial: true);
+      unawaited(getFollowing(initial: true));
+    }
+    unawaited(
+      _reconcileInitialRelations(
+        followersCached: followersCached,
+        followingsCached: followingsCached,
+      ),
+    );
+  }
+
+  Future<void> _reconcileInitialRelations({
+    required bool followersCached,
+    required bool followingsCached,
+  }) async {
+    await getCounters();
+    if (followersCached &&
+        takipciCounter.value > 0 &&
+        takipciler.isEmpty &&
+        !isLoadingFollowers) {
+      await getFollowers(initial: true, forceServer: true);
+    }
+    if (followingsCached &&
+        takipedilenCounter.value > 0 &&
+        takipEdilenler.isEmpty &&
+        !isLoadingFollowing) {
+      await getFollowing(initial: true, forceServer: true);
     }
   }
 
