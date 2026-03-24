@@ -1,15 +1,6 @@
 part of 'admin_push_view.dart';
 
 extension AdminPushViewActionsPart on _AdminPushViewState {
-  Future<void> _checkAdminAccess() async {
-    final allowed = await AdminAccessService.canAccessTask('admin_push');
-    if (!mounted) return;
-    _updateViewState(() {
-      _canManagePush = allowed;
-      _checkingAccess = false;
-    });
-  }
-
   Future<void> _showMeslekSelector() async {
     await Get.bottomSheet(
       ListBottomSheet(

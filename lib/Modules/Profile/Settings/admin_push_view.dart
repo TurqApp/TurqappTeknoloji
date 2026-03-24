@@ -52,6 +52,15 @@ class _AdminPushViewState extends State<AdminPushView> {
     _checkAdminAccess();
   }
 
+  Future<void> _checkAdminAccess() async {
+    final allowed = await AdminAccessService.canAccessTask('admin_push');
+    if (!mounted) return;
+    _updateViewState(() {
+      _canManagePush = allowed;
+      _checkingAccess = false;
+    });
+  }
+
   @override
   void dispose() {
     _uidController.dispose();
