@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-03-24T03:21:06.675993Z",
+  "generatedAt": "2026-03-24T03:31:14.388507Z",
   "summary": {
     "totalWidgets": 409,
     "publicWidgets": 347,
     "privateWidgets": 62,
-    "coveredWidgets": 15,
-    "plannedWidgets": 394,
+    "coveredWidgets": 18,
+    "plannedWidgets": 391,
     "tiers": {
       "P0": 288,
       "P1": 72,
@@ -3223,8 +3223,10 @@
         "textScale",
         "platform"
       ],
-      "coveredByWidgetTests": [],
-      "status": "planned"
+      "coveredByWidgetTests": [
+        "test/widget/p0/language_selector_widget_test.dart"
+      ],
+      "status": "covered"
     },
     {
       "widget": "LanguageSettingsView",
@@ -3240,8 +3242,10 @@
         "textScale",
         "platform"
       ],
-      "coveredByWidgetTests": [],
-      "status": "planned"
+      "coveredByWidgetTests": [
+        "test/widget/p0/language_selector_widget_test.dart"
+      ],
+      "status": "covered"
     },
     {
       "widget": "LikedPosts",
@@ -3512,8 +3516,10 @@
         "textScale",
         "platform"
       ],
-      "coveredByWidgetTests": [],
-      "status": "planned"
+      "coveredByWidgetTests": [
+        "test/widget/p0/language_selector_widget_test.dart"
+      ],
+      "status": "covered"
     },
     {
       "widget": "SocialMediaContent",

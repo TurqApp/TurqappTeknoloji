@@ -644,6 +644,11 @@ class QALabCatalog {
       runnableInApp: false,
     ),
     QALabCatalogEntry(
+      path: 'test/widget/p0/language_selector_widget_test.dart',
+      origin: QALabTestOrigin.widget,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
       path: 'test/widget/p0/post_state_messages_widget_test.dart',
       origin: QALabTestOrigin.widget,
       runnableInApp: false,

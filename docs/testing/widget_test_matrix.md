@@ -7,8 +7,8 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 - Total widget classes: 409
 - Public widget classes: 347
 - Private widget classes: 62
-- Directly referenced by current widget tests: 15
-- Planned / not yet directly covered: 394
+- Directly referenced by current widget tests: 18
+- Planned / not yet directly covered: 391
 
 ## Tier Definitions
 
@@ -212,8 +212,8 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 | planned | P0 | `FollowingFollowers` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/FollowingFollowers/following_followers.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `Interests` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/Interests/interests.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `JobSelector` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/JobSelector/job_selector.dart` | — | render, semantics, interaction, textScale, platform |
-| planned | P0 | `LangSelector` | StatelessWidget | Modules/Profile | `lib/Modules/Profile/LangSelector/lang_selector.dart` | — | render, semantics, interaction, textScale, platform |
-| planned | P0 | `LanguageSettingsView` | StatelessWidget | Modules/Profile | `lib/Modules/Profile/Settings/language_settings_view.dart` | — | render, semantics, interaction, textScale, platform |
+| covered | P0 | `LangSelector` | StatelessWidget | Modules/Profile | `lib/Modules/Profile/LangSelector/lang_selector.dart` | `test/widget/p0/language_selector_widget_test.dart` | render, semantics, interaction, textScale, platform |
+| covered | P0 | `LanguageSettingsView` | StatelessWidget | Modules/Profile | `lib/Modules/Profile/Settings/language_settings_view.dart` | `test/widget/p0/language_selector_widget_test.dart` | render, semantics, interaction, textScale, platform |
 | planned | P0 | `LikedPosts` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/LikedPosts/liked_posts.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `ModerationSettingsView` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/Settings/moderation_settings_view.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `MyAdminApprovalResultsView` | StatelessWidget | Modules/Profile | `lib/Modules/Profile/Settings/my_admin_approval_results_view.dart` | — | render, semantics, interaction, textScale, platform |
@@ -229,7 +229,7 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 | planned | P0 | `QALabView` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/Settings/qa_lab_view.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `ReportsAdminView` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/Settings/reports_admin_view.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `SavedPosts` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/SavedPosts/saved_posts.dart` | — | render, semantics, interaction, textScale, platform |
-| planned | P0 | `SettingsView` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/Settings/settings.dart` | — | render, semantics, interaction, textScale, platform |
+| covered | P0 | `SettingsView` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/Settings/settings.dart` | `test/widget/p0/language_selector_widget_test.dart` | render, semantics, interaction, textScale, platform |
 | planned | P0 | `SocialMediaContent` | StatelessWidget | Modules/Profile | `lib/Modules/Profile/SocialMediaLinks/social_media_content.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `SocialMediaLinks` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/SocialMediaLinks/social_media_links.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `StoryMusicAdminView` | StatefulWidget | Modules/Profile | `lib/Modules/Profile/Settings/story_music_admin_view.dart` | — | render, semantics, interaction, textScale, platform |
