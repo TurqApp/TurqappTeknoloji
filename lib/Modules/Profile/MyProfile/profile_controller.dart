@@ -28,7 +28,6 @@ part 'profile_controller_account_part.dart';
 part 'profile_controller_reshare_part.dart';
 part 'profile_controller_primary_part.dart';
 part 'profile_controller_cache_part.dart';
-part 'profile_controller_refresh_part.dart';
 part 'profile_controller_lifecycle_part.dart';
 part 'profile_controller_selection_part.dart';
 
