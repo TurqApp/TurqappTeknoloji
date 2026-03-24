@@ -573,9 +573,6 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
 
   String _getMainActionButtonText(String type, bool isOwnScholarship) {
     if (isOwnScholarship) return 'common.view'.tr;
-    if (isIndividualScholarshipType(type)) {
-      return 'pasaj.job_finder.apply'.tr;
-    }
     return 'common.details'.tr;
   }
 
