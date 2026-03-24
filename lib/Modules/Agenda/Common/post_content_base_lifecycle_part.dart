@@ -130,7 +130,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     final replayAdWarmupTarget =
         Theme.of(context).platform == TargetPlatform.iOS ? 4 : 3;
 
-    if (!isStandalonePostInstance &&
+    if (_isReplayOverlayEnabled &&
         !_replayAdPrewarmed &&
         remaining != null &&
         remaining <= replayAdWarmupLead &&
@@ -139,7 +139,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
     }
 
-    if (v.isCompleted) {
+    if (_isReplayOverlayEnabled && v.isCompleted) {
       if (!_replayOverlayLatched) {
         _replayOverlayLatched = true;
         _replayAdHideTimer?.cancel();
@@ -159,7 +159,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
         _markPostContentDirty();
       }
-    } else if (_replayOverlayLatched &&
+    } else if (_isReplayOverlayEnabled &&
+        _replayOverlayLatched &&
         (v.isPlaying || v.position == Duration.zero)) {
       _replayOverlayLatched = false;
       _replayAdPrewarmed = false;
@@ -177,7 +178,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       }
     }
 
-    final shouldRecoverPlayback = widget.shouldPlay &&
+    final shouldRecoverPlayback = !_useLegacyIosFeedBehavior &&
+        widget.shouldPlay &&
         _isSurfacePlaybackAllowed &&
         v.isInitialized &&
         !v.isPlaying &&

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -125,6 +126,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isProfileSurfaceInstance =>
       (widget.instanceTag ?? '').startsWith('profile_');
 
+  bool get _useLegacyIosFeedBehavior =>
+      defaultTargetPlatform == TargetPlatform.iOS && !isStandalonePostInstance;
+
+  bool get _isReplayOverlayEnabled =>
+      !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
+
   bool get _isSurfacePlaybackAllowed {
     if (isStandalonePostInstance) return true;
     if (!_isProfileSurfaceInstance) {
@@ -137,7 +144,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return nav?.selectedIndex.value == profileIndex;
   }
 
-  bool get shouldLoopVideo => isStandalonePostInstance;
+  bool get shouldLoopVideo =>
+      isStandalonePostInstance || _useLegacyIosFeedBehavior;
 
   @override
   void initState() {
@@ -150,10 +158,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _videoAdapter = adapterPool.acquire(
       cacheKey: playbackHandleKey,
       url: widget.model.playbackUrl,
-      // Feed/SinglePost playback tek yerden (_startPlayback) yönetilsin.
-      // Native autoPlay + sonradan gelen play() dalgası Android'de
-      // ses sürerken görüntü freeze davranışı üretebiliyor.
-      autoPlay: false,
+      // iOS feed, eski daha akıcı davranışı korusun; Android ise manual
+      // dispatch ile çift-play dalgasından kaçınsın.
+      autoPlay: _useLegacyIosFeedBehavior ? widget.shouldPlay : false,
       loop: shouldLoopVideo,
     );
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
@@ -319,6 +326,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return;
     }
 
+    if (_useLegacyIosFeedBehavior) {
+      unawaited(adapter.setLooping(shouldLoopVideo));
+      return;
+    }
+
     unawaited(adapter.setLooping(shouldLoopVideo));
     unawaited(adapter.play());
   }
@@ -330,7 +342,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
     _hasAutoPlayed = true;
-    unawaited(adapter.play());
+    if (!_useLegacyIosFeedBehavior || !adapter.value.isPlaying) {
+      unawaited(adapter.play());
+    }
     if (isStandalonePostInstance) {
       videoStateManager.playOnlyThis(playbackHandleKey);
     } else {
@@ -398,7 +412,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   Widget buildFeedReplayOverlay(HLSVideoValue value) {
-    if (isStandalonePostInstance) return const SizedBox.shrink();
+    if (!_isReplayOverlayEnabled) return const SizedBox.shrink();
     if (!_replayOverlayLatched && !_replayAdVisible && !_replayButtonVisible) {
       return const SizedBox.shrink();
     }
