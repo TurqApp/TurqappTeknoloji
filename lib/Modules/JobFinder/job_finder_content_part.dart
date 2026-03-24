@@ -3,6 +3,7 @@ part of 'job_finder.dart';
 extension JobFinderContentPart on JobFinder {
   Widget _kesfetTab(BuildContext context) {
     return Obx(() {
+      final bottomInset = AdminAccessService.isKnownAdminSync() ? 104.0 : 24.0;
       if (!controller.listingSelectionReady.value) {
         return const Center(child: CupertinoActivityIndicator());
       }
@@ -56,6 +57,7 @@ extension JobFinderContentPart on JobFinder {
           );
         }
         return ListView(
+          padding: EdgeInsets.only(bottom: bottomInset),
           children: [
             _kesfetHeader(isSearching: isSearching, context: context),
             ...PasajListingAdLayout.buildListChildren(
@@ -91,6 +93,7 @@ extension JobFinderContentPart on JobFinder {
       }
 
       return SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: bottomInset),
         child: Column(
           children: [
             _kesfetHeader(isSearching: isSearching, context: context),
