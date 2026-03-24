@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-03-24T02:49:55.269695Z",
+  "generatedAt": "2026-03-24T03:02:41.968757Z",
   "summary": {
     "totalWidgets": 409,
     "publicWidgets": 347,
     "privateWidgets": 62,
-    "coveredWidgets": 10,
-    "plannedWidgets": 399,
+    "coveredWidgets": 14,
+    "plannedWidgets": 395,
     "tiers": {
       "P0": 288,
       "P1": 72,
@@ -161,8 +161,10 @@
         "render",
         "semantics"
       ],
-      "coveredByWidgetTests": [],
-      "status": "planned"
+      "coveredByWidgetTests": [
+        "test/widget/p0/full_screen_image_viewer_widget_test.dart"
+      ],
+      "status": "covered"
     },
     {
       "widget": "AgendaView",
@@ -251,8 +253,10 @@
         "textScale",
         "platform"
       ],
-      "coveredByWidgetTests": [],
-      "status": "planned"
+      "coveredByWidgetTests": [
+        "test/widget/p0/post_state_messages_widget_test.dart"
+      ],
+      "status": "covered"
     },
     {
       "widget": "PostContentBase",
@@ -285,8 +289,10 @@
         "textScale",
         "platform"
       ],
-      "coveredByWidgetTests": [],
-      "status": "planned"
+      "coveredByWidgetTests": [
+        "test/widget/p0/post_state_messages_widget_test.dart"
+      ],
+      "status": "covered"
     },
     {
       "widget": "PostHiddenMessage",
@@ -302,8 +308,10 @@
         "textScale",
         "platform"
       ],
-      "coveredByWidgetTests": [],
-      "status": "planned"
+      "coveredByWidgetTests": [
+        "test/widget/p0/post_state_messages_widget_test.dart"
+      ],
+      "status": "covered"
     },
     {
       "widget": "PostLikeContent",

@@ -7,8 +7,8 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 - Total widget classes: 409
 - Public widget classes: 347
 - Private widget classes: 62
-- Directly referenced by current widget tests: 10
-- Planned / not yet directly covered: 399
+- Directly referenced by current widget tests: 14
+- Planned / not yet directly covered: 395
 
 ## Tier Definitions
 
@@ -26,15 +26,15 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 | planned | P0 | `LocationFinderView` | StatefulWidget | Core/LocationFinderView | `lib/Core/LocationFinderView/location_finder_view.dart` | — | render, semantics, interaction |
 | planned | P0 | `SliderAdminView` | StatefulWidget | Core/Slider | `lib/Core/Slider/slider_admin_view.dart` | — | render, semantics, interaction |
 | planned | P0 | `PostViewTracker` | StatefulWidget | Core/Widgets | `lib/Core/Widgets/post_interaction_widget.dart` | — | render, semantics, interaction, textScale |
-| planned | P0 | `FullScreenImageViewer` | StatelessWidget | Core/full_screen_image_viewer.dart | `lib/Core/full_screen_image_viewer.dart` | — | render, semantics |
+| covered | P0 | `FullScreenImageViewer` | StatelessWidget | Core/full_screen_image_viewer.dart | `lib/Core/full_screen_image_viewer.dart` | `test/widget/p0/full_screen_image_viewer_widget_test.dart` | render, semantics |
 | planned | P0 | `AgendaView` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/agenda_view.dart` | — | render, semantics, interaction, textScale, platform |
 | covered | P0 | `FeedCreateFab` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/widgets/feed_create_fab.dart` | `test/widget/components/feed_header_actions_widget_test.dart` | render, semantics, interaction, textScale, platform |
 | covered | P0 | `FeedInboxActionsRow` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/widgets/feed_inbox_actions_row.dart` | `test/widget/components/feed_header_actions_widget_test.dart`<br>`test/widget/flows/accessibility_semantics_smoke_test.dart` | render, semantics, interaction, textScale, platform |
 | planned | P0 | `FloodListing` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/FloodListing/flood_listing.dart` | — | render, semantics, interaction, textScale, platform |
-| planned | P0 | `PostArchivedMessage` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/Components/post_state_messages.dart` | — | render, semantics, interaction, textScale, platform |
+| covered | P0 | `PostArchivedMessage` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/Components/post_state_messages.dart` | `test/widget/p0/post_state_messages_widget_test.dart` | render, semantics, interaction, textScale, platform |
 | planned | P0 | `PostContentBase` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/Common/post_content_base.dart` | — | render, semantics, interaction, textScale, platform |
-| planned | P0 | `PostDeletedMessage` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/Components/post_state_messages.dart` | — | render, semantics, interaction, textScale, platform |
-| planned | P0 | `PostHiddenMessage` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/Components/post_state_messages.dart` | — | render, semantics, interaction, textScale, platform |
+| covered | P0 | `PostDeletedMessage` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/Components/post_state_messages.dart` | `test/widget/p0/post_state_messages_widget_test.dart` | render, semantics, interaction, textScale, platform |
+| covered | P0 | `PostHiddenMessage` | StatelessWidget | Modules/Agenda | `lib/Modules/Agenda/Components/post_state_messages.dart` | `test/widget/p0/post_state_messages_widget_test.dart` | render, semantics, interaction, textScale, platform |
 | planned | P0 | `PostLikeContent` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/PostLikeListing/PostLikeContent/post_like_content.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `PostLikeListing` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/PostLikeListing/post_like_listing.dart` | — | render, semantics, interaction, textScale, platform |
 | planned | P0 | `PostReshareContent` | StatefulWidget | Modules/Agenda | `lib/Modules/Agenda/PostReshareListing/PostReshareContent/post_reshare_content.dart` | — | render, semantics, interaction, textScale, platform |
