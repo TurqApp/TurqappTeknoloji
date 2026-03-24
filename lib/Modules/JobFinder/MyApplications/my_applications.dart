@@ -7,7 +7,6 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'my_applications_controller.dart';
 
-part 'my_applications_shell_part.dart';
 part 'my_applications_card_part.dart';
 
 class MyApplications extends StatefulWidget {
@@ -56,7 +55,27 @@ class _MyApplicationsState extends State<MyApplications> {
         leading: const AppBackButton(),
         title: AppPageTitle('pasaj.job_finder.my_applications'.tr),
       ),
-      body: Obx(_buildApplicationsBody),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+
+        return RefreshIndicator(
+          onRefresh: controller.loadApplications,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
+            children: [
+              if (controller.applications.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 60),
+                  child: EmptyRow(text: "pasaj.job_finder.no_applications".tr),
+                )
+              else
+                ...controller.applications.map(_applicationCard),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
