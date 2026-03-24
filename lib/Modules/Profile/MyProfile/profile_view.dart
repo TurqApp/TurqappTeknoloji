@@ -70,7 +70,6 @@ import '../SocialMediaLinks/social_media_links_controller.dart';
 import '../../../Models/social_media_model.dart';
 
 part 'profile_view_sections_part.dart';
-part 'profile_view_header_part.dart';
 part 'profile_view_lifecycle_part.dart';
 part 'profile_view_shell_part.dart';
 part 'profile_view_profile_part.dart';
@@ -125,5 +124,29 @@ class _ProfileViewState extends State<ProfileView> {
   void _updateViewState(VoidCallback callback) {
     if (!mounted) return;
     setState(callback);
+  }
+
+  Widget header() {
+    return Obx(() {
+      return Column(
+        children: [
+          _buildTopHeaderRow(),
+          _buildImageAndButtonsRow(),
+          12.ph,
+          textInfoBody(),
+          _buildLinksAndHighlightsRow(),
+          Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: postButtons(context),
+          ),
+          Divider(
+            height: 0,
+            color: Colors.grey.withAlpha(50),
+          ),
+          4.ph,
+        ],
+      );
+    });
   }
 }
