@@ -16,6 +16,10 @@ QA_FLAGS=(
   "--dart-define=QA_LAB_FRESH_START=true"
 )
 
+trim() {
+  printf '%s' "$1" | awk '{$1=$1; print}'
+}
+
 if [[ -z "$ANDROID_ID" || -z "$IOS_ID" ]]; then
   DEVICES_OUTPUT="$(flutter devices)"
 
@@ -27,6 +31,9 @@ if [[ -z "$ANDROID_ID" || -z "$IOS_ID" ]]; then
     IOS_ID="$(printf '%s\n' "$DEVICES_OUTPUT" | awk -F ' • ' '/• ios/ {print $2; exit}')"
   fi
 fi
+
+ANDROID_ID="$(trim "$ANDROID_ID")"
+IOS_ID="$(trim "$IOS_ID")"
 
 if [[ -z "$ANDROID_ID" ]]; then
   echo "Android cihaz bulunamadi."
