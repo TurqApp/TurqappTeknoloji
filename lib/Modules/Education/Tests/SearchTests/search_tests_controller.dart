@@ -7,9 +7,6 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
-part 'search_tests_controller_data_part.dart';
-part 'search_tests_controller_filter_part.dart';
-
 class SearchTestsController extends GetxController {
   static SearchTestsController ensure({
     String? tag,
@@ -44,9 +41,73 @@ class SearchTestsController extends GetxController {
     _handleControllerInit();
   }
 
+  void filterSearchResults(String query) {
+    final normalizedQuery = normalizeSearchText(query);
+    if (normalizedQuery.isEmpty) {
+      filteredList.assignAll(list);
+    } else {
+      filteredList.assignAll(
+        list.where(
+          (test) =>
+              normalizeSearchText(test.aciklama).contains(normalizedQuery) ||
+              normalizeSearchText(test.testTuru).contains(normalizedQuery) ||
+              test.dersler.any(
+                (ders) => normalizeSearchText(ders).contains(normalizedQuery),
+              ),
+        ),
+      );
+    }
+  }
+
+  void _handleControllerInit() {
+    unawaited(_bootstrapData());
+    Future.delayed(const Duration(milliseconds: 100), () {
+      Get.focusScope?.requestFocus(focusNode);
+    });
+  }
+
   @override
   void onClose() {
     _handleControllerClose();
     super.onClose();
+  }
+
+  void _handleControllerClose() {
+    searchController.dispose();
+    focusNode.dispose();
+  }
+
+  Future<void> _bootstrapData() async {
+    final cached = await _testRepository.fetchAll(cacheOnly: true);
+    if (cached.isNotEmpty) {
+      list.assignAll(cached);
+      filteredList.assignAll(cached);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:search_all',
+        minInterval: SearchTestsController._silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
+    final items = await _testRepository.fetchAll(
+      preferCache: !forceRefresh,
+      forceRefresh: forceRefresh,
+    );
+    list.assignAll(items);
+    filterSearchResults(searchController.text);
+    SilentRefreshGate.markRefreshed('tests:search_all');
+    isLoading.value = false;
   }
 }
