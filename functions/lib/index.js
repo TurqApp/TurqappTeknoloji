@@ -21,6 +21,7 @@ const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
 const hybridFeed_1 = require("./hybridFeed");
 const notificationInbox_1 = require("./notificationInbox");
+const notificationPushPolicy_1 = require("./notificationPushPolicy");
 var storyArchive_1 = require("./storyArchive");
 Object.defineProperty(exports, "archiveOnStoryDelete", { enumerable: true, get: function () { return storyArchive_1.archiveOnStoryDelete; } });
 Object.defineProperty(exports, "cleanupExpiredStories", { enumerable: true, get: function () { return storyArchive_1.cleanupExpiredStories; } });
@@ -376,12 +377,20 @@ exports.onUserNotificationCreate = functions.firestore
         const fromUserID = String(data.fromUserID || "");
         const targetDocID = String(data.postID || data.chatID || data.userID || "");
         const cfg = await _loadNotificationPushConfig();
+        const userPrefs = await _loadUserNotificationPreferences(uid);
         // Self-notification push göndermeyelim.
         if (fromUserID && fromUserID === uid)
             return;
         // Global veya tür bazlı kapalıysa push gönderme.
-        if (!cfg.enabled || !_isNotificationTypeEnabled(type, cfg.types))
+        if (!cfg.enabled || !(0, notificationPushPolicy_1.isNotificationTypeEnabled)(type, cfg.types))
             return;
+        if (!(0, notificationPushPolicy_1.isUserNotificationTypeEnabled)(type, userPrefs)) {
+            console.log("onUserNotificationCreate skip:user_pref_disabled", {
+                uid,
+                type,
+            });
+            return;
+        }
         const userDoc = await db.collection("users").doc(uid).get();
         const userData = (userDoc.data() || {});
         const token = String(userData.fcmToken || "");
@@ -392,8 +401,22 @@ exports.onUserNotificationCreate = functions.firestore
             });
             return;
         }
+        const canSendPush = await _claimInteractionPushWindow({
+            uid,
+            type,
+            postId: targetDocID,
+            fromUserID,
+        });
+        if (!canSendPush) {
+            console.log("onUserNotificationCreate skip:rate_limited", {
+                uid,
+                type,
+                targetPresent: targetDocID.length > 0,
+            });
+            return;
+        }
         const title = String(data.title || "TurqApp");
-        const body = String(data.body || _notificationBodyFromType(type));
+        const body = String(data.body || (0, notificationPushPolicy_1.notificationBodyFromType)(type));
         const imageUrl = String(data.imageUrl || "");
         await admin.messaging().send({
             token,
@@ -674,15 +697,42 @@ exports.resetMonthlyAntPoint = functions.pubsub
     });
     return null;
 });
-const _defaultPushTypes = {
-    follow: true,
-    comment: true,
-    message: true,
-    like: true,
-    reshared_posts: true,
-    shared_as_posts: true,
-    posts: true,
-};
+function _pushThrottleRef(uid) {
+    return db
+        .collection("users")
+        .doc(uid.trim())
+        .collection("_runtime")
+        .doc("pushThrottle");
+}
+async function _claimInteractionPushWindow(args) {
+    const uid = args.uid.trim();
+    const type = (0, notificationPushPolicy_1.interactionThrottleType)(args.type);
+    const quietWindowMs = (0, notificationPushPolicy_1.interactionQuietWindowMs)(type);
+    if (!uid || !quietWindowMs)
+        return true;
+    const ref = _pushThrottleRef(uid);
+    const now = Date.now();
+    return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const data = (snap.data() || {});
+        const lastSentAt = Number(data[`${type}LastSentAt`] ?? 0);
+        if (lastSentAt > 0 && now - lastSentAt < quietWindowMs) {
+            tx.set(ref, {
+                [`${type}SuppressedCount`]: admin.firestore.FieldValue.increment(1),
+                [`${type}LastSuppressedAt`]: now,
+                updatedAt: now,
+            }, { merge: true });
+            return false;
+        }
+        tx.set(ref, {
+            [`${type}LastSentAt`]: now,
+            [`${type}LastPostID`]: String(args.postId || ""),
+            [`${type}LastFromUserID`]: String(args.fromUserID || ""),
+            updatedAt: now,
+        }, { merge: true });
+        return true;
+    });
+}
 async function _loadNotificationPushConfig() {
     try {
         const pushSnap = await db.doc("adminConfig/push").get();
@@ -706,62 +756,34 @@ async function _loadNotificationPushConfig() {
         return {
             enabled: normalizeBool(primaryEnabledRaw, normalizeBool(fallbackEnabledRaw, true)),
             types: {
-                follow: normalizeBool(primaryTypesRaw.follow, normalizeBool(fallbackTypesRaw.follow, _defaultPushTypes.follow)),
-                comment: normalizeBool(primaryTypesRaw.comment, normalizeBool(fallbackTypesRaw.comment, _defaultPushTypes.comment)),
-                message: normalizeBool(primaryTypesRaw.message, normalizeBool(fallbackTypesRaw.message, _defaultPushTypes.message)),
-                like: normalizeBool(primaryTypesRaw.like, normalizeBool(fallbackTypesRaw.like, _defaultPushTypes.like)),
-                reshared_posts: normalizeBool(primaryTypesRaw.reshared_posts, normalizeBool(fallbackTypesRaw.reshared_posts, _defaultPushTypes.reshared_posts)),
-                shared_as_posts: normalizeBool(primaryTypesRaw.shared_as_posts, normalizeBool(fallbackTypesRaw.shared_as_posts, _defaultPushTypes.shared_as_posts)),
-                posts: normalizeBool(primaryTypesRaw.posts, normalizeBool(fallbackTypesRaw.posts, _defaultPushTypes.posts)),
+                follow: normalizeBool(primaryTypesRaw.follow, normalizeBool(fallbackTypesRaw.follow, notificationPushPolicy_1.defaultPushTypes.follow)),
+                comment: normalizeBool(primaryTypesRaw.comment, normalizeBool(fallbackTypesRaw.comment, notificationPushPolicy_1.defaultPushTypes.comment)),
+                message: normalizeBool(primaryTypesRaw.message, normalizeBool(fallbackTypesRaw.message, notificationPushPolicy_1.defaultPushTypes.message)),
+                like: normalizeBool(primaryTypesRaw.like, normalizeBool(fallbackTypesRaw.like, notificationPushPolicy_1.defaultPushTypes.like)),
+                reshared_posts: normalizeBool(primaryTypesRaw.reshared_posts, normalizeBool(fallbackTypesRaw.reshared_posts, notificationPushPolicy_1.defaultPushTypes.reshared_posts)),
+                shared_as_posts: normalizeBool(primaryTypesRaw.shared_as_posts, normalizeBool(fallbackTypesRaw.shared_as_posts, notificationPushPolicy_1.defaultPushTypes.shared_as_posts)),
+                posts: normalizeBool(primaryTypesRaw.posts, normalizeBool(fallbackTypesRaw.posts, notificationPushPolicy_1.defaultPushTypes.posts)),
             },
         };
     }
     catch (e) {
         console.error("_loadNotificationPushConfig error", e);
-        return { enabled: true, types: _defaultPushTypes };
+        return { enabled: true, types: notificationPushPolicy_1.defaultPushTypes };
     }
 }
-function _isNotificationTypeEnabled(type, types) {
-    const t = String(type || "").toLowerCase();
-    switch (t) {
-        case "user":
-        case "follow":
-            return types.follow;
-        case "comment":
-            return types.comment;
-        case "chat":
-        case "message":
-            return types.message;
-        case "like":
-            return types.like;
-        case "reshared_posts":
-            return types.reshared_posts;
-        case "shared_as_posts":
-            return types.shared_as_posts;
-        case "posts":
-            return types.posts;
-        default:
-            // Tanınmayan tipleri güvenli tarafta bırak: push açık
-            return true;
+async function _loadUserNotificationPreferences(uid) {
+    try {
+        const settingsSnap = await db
+            .collection("users")
+            .doc(uid.trim())
+            .collection("settings")
+            .doc("notifications")
+            .get();
+        return (settingsSnap.data() || {});
     }
-}
-function _notificationBodyFromType(type) {
-    switch (type) {
-        case "User":
-        case "follow":
-            return "seni takip etmeye başladı";
-        case "Chat":
-        case "message":
-            return "sana mesaj gönderdi";
-        case "Comment":
-        case "comment":
-            return "gönderine yorum yaptı";
-        case "Posts":
-        case "like":
-        case "reshared_posts":
-        case "shared_as_posts":
-        default:
-            return "gönderinle etkileşime geçti";
+    catch (e) {
+        console.error("_loadUserNotificationPreferences error", e);
+        return {};
     }
 }
 // ADMIN UTILITY: Backfill phoneAccounts from existing users

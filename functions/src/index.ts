@@ -4,6 +4,15 @@ import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
 import { upsertPostIntoHybridFeed } from "./hybridFeed";
 import { buildInboxPayload } from "./notificationInbox";
+import {
+  defaultPushTypes,
+  interactionQuietWindowMs,
+  interactionThrottleType,
+  isNotificationTypeEnabled,
+  isUserNotificationTypeEnabled,
+  notificationBodyFromType,
+  type PushTypeMap,
+} from "./notificationPushPolicy";
 export { archiveOnStoryDelete, cleanupExpiredStories } from "./storyArchive";
 import {
   normalizeAvatarUrl,
@@ -358,11 +367,19 @@ export const onUserNotificationCreate = functions.firestore
         data.postID || data.chatID || data.userID || ""
       );
       const cfg = await _loadNotificationPushConfig();
+      const userPrefs = await _loadUserNotificationPreferences(uid);
 
       // Self-notification push göndermeyelim.
       if (fromUserID && fromUserID === uid) return;
       // Global veya tür bazlı kapalıysa push gönderme.
-      if (!cfg.enabled || !_isNotificationTypeEnabled(type, cfg.types)) return;
+      if (!cfg.enabled || !isNotificationTypeEnabled(type, cfg.types)) return;
+      if (!isUserNotificationTypeEnabled(type, userPrefs)) {
+        console.log("onUserNotificationCreate skip:user_pref_disabled", {
+          uid,
+          type,
+        });
+        return;
+      }
 
       const userDoc = await db.collection("users").doc(uid).get();
       const userData = (userDoc.data() || {}) as any;
@@ -391,7 +408,7 @@ export const onUserNotificationCreate = functions.firestore
       }
 
       const title = String(data.title || "TurqApp");
-      const body = String(data.body || _notificationBodyFromType(type));
+      const body = String(data.body || notificationBodyFromType(type));
       const imageUrl = String(data.imageUrl || "");
 
       await admin.messaging().send({
@@ -737,31 +754,6 @@ export const resetMonthlyAntPoint = functions.pubsub
     return null;
   });
 
-type PushTypeMap = {
-  follow: boolean;
-  comment: boolean;
-  message: boolean;
-  like: boolean;
-  reshared_posts: boolean;
-  shared_as_posts: boolean;
-  posts: boolean;
-};
-
-const _defaultPushTypes: PushTypeMap = {
-  follow: true,
-  comment: true,
-  message: true,
-  like: true,
-  reshared_posts: true,
-  shared_as_posts: true,
-  posts: true,
-};
-
-const _interactionPushQuietWindowsMs: Record<string, number> = {
-  like: 30 * 60 * 1000,
-  comment: 2 * 60 * 1000,
-};
-
 function _pushThrottleRef(uid: string) {
   return db
     .collection("users")
@@ -777,8 +769,8 @@ async function _claimInteractionPushWindow(args: {
   fromUserID?: string;
 }): Promise<boolean> {
   const uid = args.uid.trim();
-  const type = String(args.type || "").trim().toLowerCase();
-  const quietWindowMs = _interactionPushQuietWindowsMs[type];
+  const type = interactionThrottleType(args.type);
+  const quietWindowMs = interactionQuietWindowMs(type);
   if (!uid || !quietWindowMs) return true;
 
   const ref = _pushThrottleRef(uid);
@@ -848,88 +840,58 @@ async function _loadNotificationPushConfig(): Promise<{
       types: {
         follow: normalizeBool(
           primaryTypesRaw.follow,
-          normalizeBool(fallbackTypesRaw.follow, _defaultPushTypes.follow)
+          normalizeBool(fallbackTypesRaw.follow, defaultPushTypes.follow)
         ),
         comment: normalizeBool(
           primaryTypesRaw.comment,
-          normalizeBool(fallbackTypesRaw.comment, _defaultPushTypes.comment)
+          normalizeBool(fallbackTypesRaw.comment, defaultPushTypes.comment)
         ),
         message: normalizeBool(
           primaryTypesRaw.message,
-          normalizeBool(fallbackTypesRaw.message, _defaultPushTypes.message)
+          normalizeBool(fallbackTypesRaw.message, defaultPushTypes.message)
         ),
         like: normalizeBool(
           primaryTypesRaw.like,
-          normalizeBool(fallbackTypesRaw.like, _defaultPushTypes.like)
+          normalizeBool(fallbackTypesRaw.like, defaultPushTypes.like)
         ),
         reshared_posts: normalizeBool(
           primaryTypesRaw.reshared_posts,
           normalizeBool(
             fallbackTypesRaw.reshared_posts,
-            _defaultPushTypes.reshared_posts
+            defaultPushTypes.reshared_posts
           )
         ),
         shared_as_posts: normalizeBool(
           primaryTypesRaw.shared_as_posts,
           normalizeBool(
             fallbackTypesRaw.shared_as_posts,
-            _defaultPushTypes.shared_as_posts
+            defaultPushTypes.shared_as_posts
           )
         ),
         posts: normalizeBool(
           primaryTypesRaw.posts,
-          normalizeBool(fallbackTypesRaw.posts, _defaultPushTypes.posts)
+          normalizeBool(fallbackTypesRaw.posts, defaultPushTypes.posts)
         ),
       },
     };
   } catch (e) {
     console.error("_loadNotificationPushConfig error", e);
-    return { enabled: true, types: _defaultPushTypes };
+    return { enabled: true, types: defaultPushTypes };
   }
 }
 
-function _isNotificationTypeEnabled(type: string, types: PushTypeMap): boolean {
-  const t = String(type || "").toLowerCase();
-  switch (t) {
-    case "user":
-    case "follow":
-      return types.follow;
-    case "comment":
-      return types.comment;
-    case "chat":
-    case "message":
-      return types.message;
-    case "like":
-      return types.like;
-    case "reshared_posts":
-      return types.reshared_posts;
-    case "shared_as_posts":
-      return types.shared_as_posts;
-    case "posts":
-      return types.posts;
-    default:
-      // Tanınmayan tipleri güvenli tarafta bırak: push açık
-      return true;
-  }
-}
-
-function _notificationBodyFromType(type: string): string {
-  switch (type) {
-    case "User":
-    case "follow":
-      return "seni takip etmeye başladı";
-    case "Chat":
-    case "message":
-      return "sana mesaj gönderdi";
-    case "Comment":
-    case "comment":
-      return "gönderine yorum yaptı";
-    case "Posts":
-    case "like":
-    case "reshared_posts":
-    case "shared_as_posts":
-    default:
-      return "gönderinle etkileşime geçti";
+async function _loadUserNotificationPreferences(uid: string) {
+  try {
+    const settingsSnap = await db
+      .collection("users")
+      .doc(uid.trim())
+      .collection("settings")
+      .doc("notifications")
+      .get();
+    return (settingsSnap.data() || {}) as Record<string, unknown>;
+  } catch (e) {
+    console.error("_loadUserNotificationPreferences error", e);
+    return {};
   }
 }
 
