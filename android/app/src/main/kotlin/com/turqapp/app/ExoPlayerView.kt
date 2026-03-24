@@ -85,9 +85,13 @@ class ExoPlayerView(
     private var selectedVideoWidth = 0
     private val smokeMonitor = PlaybackHealthMonitor(tag = "PlaybackHealthMonitor#$viewId")
     private var smokeProbe: ExoPlayerPlaybackProbe? = null
+    private var isSmokeRegistryActive = false
 
     init {
-        smokeMonitor.stateListener = {
+        smokeMonitor.stateListener = monitor@{
+            if (!isSmokeRegistryActive) {
+                return@monitor
+            }
             val probeSnapshot = smokeProbe?.debugSnapshot().orEmpty()
             val runtimeSnapshot = mapOf(
                 "viewId" to viewId,
@@ -149,6 +153,7 @@ class ExoPlayerView(
                         playerView.player = existing
                     }
                 }
+                isSmokeRegistryActive = true
                 smokeProbe?.onSurfaceAttached()
                 ExoPlayerSmokeRegistry.register(context, smokeMonitor)
             }
@@ -157,6 +162,7 @@ class ExoPlayerView(
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
                 smokeProbe?.onSurfaceDetached()
+                isSmokeRegistryActive = false
                 ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
                 softHold()
             }
@@ -745,6 +751,7 @@ class ExoPlayerView(
         stopStallWatchdog()
         player?.pause()
         resetSurfaceVisibility()
+        isSmokeRegistryActive = false
         ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
         if (fully) {
             smokeProbe?.detach()
