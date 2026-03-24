@@ -9,7 +9,6 @@ part 'notification_settings_view_categories_part.dart';
 part 'notification_settings_view_data_part.dart';
 part 'notification_settings_view_category_part.dart';
 part 'notification_settings_view_category_catalog_part.dart';
-part 'notification_settings_view_category_data_part.dart';
 part 'notification_settings_view_components_part.dart';
 
 class NotificationSettingsView extends StatefulWidget {
