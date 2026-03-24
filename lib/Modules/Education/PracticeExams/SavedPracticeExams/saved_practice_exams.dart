@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 
-part 'saved_practice_exams_shell_part.dart';
 part 'saved_practice_exams_content_part.dart';
 
 class SavedPracticeExams extends StatefulWidget {
@@ -39,5 +38,17 @@ class _SavedPracticeExamsState extends State<SavedPracticeExams> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: _buildSavedPracticeExamsBody());
+  }
+
+  Widget _buildSavedPracticeExamsBody() {
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          BackButtons(text: 'common.saved'.tr),
+          Expanded(child: _buildSavedPracticeExamsContent()),
+        ],
+      ),
+    );
   }
 }
