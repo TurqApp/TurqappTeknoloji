@@ -6,6 +6,17 @@ extension MyAdminApprovalResultsViewStreamPart on MyAdminApprovalResultsView {
     return repo.watchOwnApprovals(uid);
   }
 
+  Widget _buildApprovalList(
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+      itemCount: docs.length,
+      itemBuilder: (context, index) {
+        return _ApprovalResultTile(data: docs[index].data());
+      },
+    );
+  }
+
   Widget _buildMessageState(String text) {
     return Center(
       child: Text(
