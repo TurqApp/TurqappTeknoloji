@@ -180,14 +180,22 @@ extension PostContentControllerActionsPart on PostContentController {
 
   Future<void> reshare() async {
     final targetPostId = reshareTargetPostId;
+    final isDirectTarget = targetPostId == model.docID;
     final bool wasReshared = yenidenPaylasildiMi.value;
 
     try {
-      final status = targetPostId == model.docID
+      final status = isDirectTarget
           ? await _postRepository.toggleReshare(model)
           : await _interactionService.toggleReshare(targetPostId);
 
       final uid = _currentUid;
+      if (!isDirectTarget) {
+        _syncIndirectReshareCountLocally(
+          targetPostId: targetPostId,
+          nowReshared: status,
+          wasReshared: wasReshared,
+        );
+      }
 
       if (status) {
         yenidenPaylasildiMi.value = true;
@@ -219,6 +227,21 @@ extension PostContentControllerActionsPart on PostContentController {
       yenidenPaylasildiMi.value = wasReshared;
       AppSnackbar('common.error'.tr, 'post.reshare_failed'.tr);
     }
+  }
+
+  void _syncIndirectReshareCountLocally({
+    required String targetPostId,
+    required bool nowReshared,
+    required bool wasReshared,
+  }) {
+    if (targetPostId.isEmpty || nowReshared == wasReshared) return;
+    final delta = nowReshared ? 1 : -1;
+    final next = (countManager.getRetryCount(targetPostId).value + delta)
+        .clamp(0, 1 << 30);
+    countManager.getRetryCount(targetPostId).value = next;
+    countManager.getRetryCount(model.docID).value = next;
+    model.stats.retryCount = next;
+    currentModel.value = model;
   }
 
   Future<void> followCheck() async {

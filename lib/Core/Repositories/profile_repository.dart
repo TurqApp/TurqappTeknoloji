@@ -89,6 +89,11 @@ class ProfileRepository extends GetxService {
   Future<PostsModel?> fetchLatestResharePost(String uid) =>
       _fetchLatestResharePostImpl(uid);
 
+  void invalidateLatestResharePost(String uid) {
+    if (uid.isEmpty) return;
+    _latestResharePostMemory.remove(uid);
+  }
+
   Future<void> removePostFromCaches({
     required String uid,
     required String docId,

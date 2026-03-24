@@ -44,6 +44,7 @@ extension ProfileControllerPrimaryPart on ProfileController {
     final uid = _resolvedActiveUid;
     if (uid == null) return;
 
+    _profileRepository.invalidateLatestResharePost(uid);
     final post = await _profileRepository.fetchLatestResharePost(uid);
     if (post == null) {
       reshares.clear();
@@ -62,6 +63,10 @@ extension ProfileControllerPrimaryPart on ProfileController {
   }
 
   void _performRemoveReshare(String postId) {
+    final uid = _resolvedActiveUid;
+    if (uid != null) {
+      _profileRepository.invalidateLatestResharePost(uid);
+    }
     reshares.removeWhere((post) => post.docID == postId);
   }
 

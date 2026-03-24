@@ -7,7 +7,6 @@ import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 part 'search_tests_shell_part.dart';
-part 'search_tests_content_part.dart';
 
 class SearchTests extends StatefulWidget {
   const SearchTests({super.key});
@@ -45,5 +44,31 @@ class _SearchTestsState extends State<SearchTests> {
   @override
   Widget build(BuildContext context) {
     return _buildPage();
+  }
+
+  Widget _buildGridContent() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Obx(
+        () => controller.isLoading.value && controller.filteredList.isEmpty
+            ? const EducationGridSkeleton(itemCount: 4)
+            : GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 5.0,
+                  mainAxisSpacing: 5.0,
+                  childAspectRatio: 2 / 4,
+                ),
+                itemCount: controller.filteredList.length,
+                itemBuilder: (context, index) {
+                  return TestsGrid(
+                    model: controller.filteredList[index],
+                  );
+                },
+              ),
+      ),
+    );
   }
 }
