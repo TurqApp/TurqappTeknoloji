@@ -946,7 +946,6 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       enabled: true,
       semanticsLabel: 'common.share_external'.tr,
       onTap: _shareExternally,
-      padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
       child: SizedBox(
         width: 20,
         height: AnimatedActionButton.actionHeight,

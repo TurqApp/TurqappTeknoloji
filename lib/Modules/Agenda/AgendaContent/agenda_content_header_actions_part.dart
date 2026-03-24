@@ -1078,7 +1078,6 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       enabled: true,
       semanticsLabel: 'common.share_external'.tr,
       onTap: _shareExternally,
-      padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
       showTapArea: _AgendaContentState._showActionTapAreas,
       child: SizedBox(
         width: 20,

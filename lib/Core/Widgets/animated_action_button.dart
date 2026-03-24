@@ -21,10 +21,10 @@ class AnimatedActionButton extends StatefulWidget {
     this.onLongPress,
     required this.enabled,
     required this.semanticsLabel,
-    this.padding = const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
+    this.padding = const EdgeInsets.symmetric(vertical: 3.0, horizontal: 4.0),
     this.showTapArea = false,
     this.longPressDuration,
-    this.hitTestBehavior = HitTestBehavior.deferToChild,
+    this.hitTestBehavior = HitTestBehavior.translucent,
   });
 
   @override
