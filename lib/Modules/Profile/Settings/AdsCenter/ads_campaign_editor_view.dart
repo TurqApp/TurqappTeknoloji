@@ -10,7 +10,6 @@ part 'ads_campaign_editor_view_actions_part.dart';
 part 'ads_campaign_editor_view_creative_part.dart';
 part 'ads_campaign_editor_view_form_part.dart';
 part 'ads_campaign_editor_view_sections_part.dart';
-part 'ads_campaign_editor_view_targeting_part.dart';
 
 class AdsCampaignEditorView extends StatefulWidget {
   const AdsCampaignEditorView({super.key, this.initialCampaign});
