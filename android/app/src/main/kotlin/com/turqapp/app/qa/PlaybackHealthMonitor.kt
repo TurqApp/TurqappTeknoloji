@@ -164,6 +164,7 @@ class PlaybackHealthMonitor(
         isPlaying = true
         isPlaybackExpected = true
         isBuffering = false
+        clearErrors("PLAYBACK_NOT_STARTED")
         publish("playbackStarted")
     }
 
@@ -181,6 +182,11 @@ class PlaybackHealthMonitor(
         lastFrameRenderedAt = timestamp
         awaitingFullscreenRecovery = false
         awaitingBackgroundRecovery = false
+        clearErrors(
+            "FIRST_FRAME_TIMEOUT",
+            "READY_WITHOUT_FRAME",
+            "PLAYBACK_NOT_STARTED",
+        )
         log("firstFrameRendered ttffMs=${deltaFrom(playbackRequestedAt, timestamp)}")
         publish("firstFrameRendered")
     }
@@ -381,6 +387,15 @@ class PlaybackHealthMonitor(
         if (!inserted) return
         Log.e(tag, "error=$code snapshot=${snapshot()}")
         publish("error=$code")
+    }
+
+    private fun clearErrors(vararg codes: String) {
+        if (codes.isEmpty()) return
+        val changed = synchronized(errorLock) {
+            recordedErrors.removeAll(codes.toSet())
+        }
+        if (!changed) return
+        publish("clear=${codes.joinToString(",")}")
     }
 
     private fun publish(event: String) {
