@@ -10,7 +10,6 @@ import 'package:turqappv2/Modules/Profile/BecomeVerifiedAccount/become_verified_
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Core/extension.dart';
 
-part 'become_verified_account_steps_part.dart';
 part 'become_verified_account_fields_part.dart';
 part 'become_verified_account_flow_part.dart';
 
@@ -48,5 +47,53 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
   @override
   Widget build(BuildContext context) {
     return _buildVerifiedScaffold(context);
+  }
+
+  Widget _buildVerifiedScaffold(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                AppBackButton(
+                  onTap: () {
+                    if (controller.bodySelection.value != 0) {
+                      controller.bodySelection--;
+                    } else {
+                      Get.back();
+                    }
+                  },
+                  icon: CupertinoIcons.arrow_left,
+                  iconSize: 20,
+                ),
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Obx(
+                  () => Padding(
+                    padding:
+                        const EdgeInsets.only(left: 15, right: 15, bottom: 15),
+                    child: _buildStepBody(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepBody() {
+    return switch (controller.bodySelection.value) {
+      0 => build1(),
+      1 => build2(),
+      2 => build3(),
+      3 => build4(),
+      _ => const SizedBox.shrink(),
+    };
   }
 }
