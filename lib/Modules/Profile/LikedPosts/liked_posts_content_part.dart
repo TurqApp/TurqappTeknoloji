@@ -18,7 +18,10 @@ extension _LikedPostsContentPart on _LikedPostsState {
             ? RefreshIndicator(
                 backgroundColor: Colors.black,
                 color: Colors.white,
-                onRefresh: controller.refresh,
+                onRefresh: () async {
+                  await resetPlaybackForSurfaceRefresh();
+                  await controller.refresh();
+                },
                 child: NotificationListener<ScrollNotification>(
                   onNotification: (notification) {
                     WidgetsBinding.instance.addPostFrameCallback(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 
 import '../../Agenda/AgendaContent/agenda_content.dart';
 import 'archives_controller.dart';
@@ -71,7 +72,10 @@ class _ArchivesState extends State<Archives> {
     return RefreshIndicator(
       backgroundColor: Colors.black,
       color: Colors.white,
-      onRefresh: controller.fetchData,
+      onRefresh: () async {
+        await resetPlaybackForSurfaceRefresh();
+        await controller.fetchData();
+      },
       child: ListView.builder(
         controller: controller.scrollController,
         itemCount: controller.list.length + 1,

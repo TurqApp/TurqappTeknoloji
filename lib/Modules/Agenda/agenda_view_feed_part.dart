@@ -6,6 +6,7 @@ extension _AgendaViewFeedPart on AgendaView {
       backgroundColor: Colors.black,
       color: Colors.white,
       onRefresh: () async {
+        await resetPlaybackForSurfaceRefresh();
         await controller.refreshAgenda();
         try {
           await unreadController.refreshUnreadCount();

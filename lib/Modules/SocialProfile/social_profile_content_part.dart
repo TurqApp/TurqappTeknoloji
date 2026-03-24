@@ -12,7 +12,10 @@ extension _SocialProfileContentPart on _SocialProfileState {
               RefreshIndicator(
                 backgroundColor: Colors.black,
                 color: Colors.white,
-                onRefresh: controller.refreshAll,
+                onRefresh: () async {
+                  await resetPlaybackForSurfaceRefresh();
+                  await controller.refreshAll();
+                },
                 child: Column(
                   children: [
                     if (!controller.isBlockedByCurrentViewer(widget.userID))

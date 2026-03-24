@@ -210,6 +210,12 @@ class GlobalVideoAdapterPool extends GetxService {
   }
 }
 
+Future<void> resetPlaybackForSurfaceRefresh() async {
+  VideoStateManager.instance.pauseAllVideos(force: true);
+  VideoStateManager.instance.clearAllStates();
+  await GlobalVideoAdapterPool.ensure().clear();
+}
+
 class _WarmAdapterEntry {
   const _WarmAdapterEntry({
     required this.adapter,

@@ -13,6 +13,7 @@ extension _ProfileViewShellPart on _ProfileViewState {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
+                      await resetPlaybackForSurfaceRefresh();
                       await controller.refreshAll(forceSync: true);
                       await _loadMarketItems(force: true);
                       socialMediaController.getData();

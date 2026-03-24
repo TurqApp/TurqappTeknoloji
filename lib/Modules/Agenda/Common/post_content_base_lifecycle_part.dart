@@ -161,7 +161,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       }
     } else if (_isReplayOverlayEnabled &&
         _replayOverlayLatched &&
-        (v.isPlaying || v.position == Duration.zero)) {
+        v.isPlaying) {
       _replayOverlayLatched = false;
       _replayAdPrewarmed = false;
       _replayAdVisible = false;
