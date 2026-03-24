@@ -4,7 +4,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorEmail/editor_email_controller.dart';
 
-part 'editor_email_shell_part.dart';
 part 'editor_email_content_part.dart';
 
 class EditorEmail extends StatefulWidget {
@@ -42,6 +41,16 @@ class _EditorEmailState extends State<EditorEmail> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildEditorEmailShell(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Obx(() => _buildEditorEmailContent()),
+          ),
+        ),
+      ),
+    );
   }
 }
