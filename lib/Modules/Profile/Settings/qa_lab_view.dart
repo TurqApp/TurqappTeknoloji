@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'qa_lab_view_summary_part.dart';
 part 'qa_lab_view_actions_part.dart';
+part 'qa_lab_view_findings_part.dart';
 part 'qa_lab_view_routes_part.dart';
 
 class QALabView extends StatefulWidget {
@@ -138,45 +139,6 @@ class _QALabViewState extends State<QALabView> {
         ),
       ),
     );
-  }
-
-  Widget _buildFindingsCard() {
-    return Obx(() {
-      final findings = _recorder.buildPinpointFindings();
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'settings.diagnostics.qa_findings'.tr,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (findings.isEmpty)
-                Text('settings.diagnostics.qa_no_findings'.tr),
-              ...findings.take(20).map(
-                    (finding) => ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        '[${finding.severity.name}] ${finding.code}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        '${finding.surface} • ${finding.route}\n${finding.message}',
-                      ),
-                    ),
-                  ),
-            ],
-          ),
-        ),
-      );
-    });
   }
 
   Widget _buildPrioritySurfacesCard() {
