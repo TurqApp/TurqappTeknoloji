@@ -508,7 +508,7 @@ class AppTranslations extends Translations {
         'ads_center.update_campaign': 'Kampanyayı Güncelle',
         'ads_center.save_creative': 'Kreatif Kaydet',
         'ads_center.campaign_saved_title': 'Kampanya Kaydedildi',
-        'ads_center.campaign_saved_body': 'Kampanya kimliği: {id}',
+        'ads_center.campaign_saved_body': 'Kampanya kimliği: @id',
         'ads_center.save_campaign_first': 'Lütfen önce kampanyayı kaydedin.',
         'ads_center.creative_saved_title': 'Kreatif Kaydedildi',
         'ads_center.creative_saved_body':
@@ -690,11 +690,11 @@ class AppTranslations extends Translations {
         'common.load_failed_try_again':
             '@title yüklenemedi. Lütfen tekrar deneyin.',
         'login.selected_account_password':
-            '{username} seçildi. Giriş bilgilerini tamamlayıp devam edebilirsin.',
+            '@username seçildi. Giriş bilgilerini tamamlayıp devam edebilirsin.',
         'login.selected_account_phone':
-            '{username} telefon ile kayıtlı görünüyor. Bu hesap için manuel yeniden giriş yapman gerekiyor.',
+            '@username telefon ile kayıtlı görünüyor. Bu hesap için manuel yeniden giriş yapman gerekiyor.',
         'login.selected_account_manual':
-            '{username} için manuel yeniden giriş yapman gerekiyor.',
+            '@username için manuel yeniden giriş yapman gerekiyor.',
         'login.reset_password_title': 'Şifreni Sıfırla',
         'login.reset_password_help':
             'Mail adresinizi girerek hesabınızı bulmamızda yardımcı olun. Hesabınızda kayıt olan telefon numaranıza bir doğrulama kodu göndereceğiz',
@@ -707,7 +707,7 @@ class AppTranslations extends Translations {
         'login.new_password_hint': 'Yeni şifre oluşturun',
         'login.repeat_new_password': 'Yeni Şifre (Tekrar)',
         'login.repeat_new_password_hint': 'Yeni şifrenizi tekrar edin',
-        'signup.step': 'Adım {current}/3',
+        'signup.step': 'Adım @current/3',
         'signup.create_account_title': 'Hesabınızı Oluşturun',
         'signup.policy_intro': 'Hesap oluşturarak ve devam ederek ',
         'signup.policy_outro': ' metinlerini kabul ediyorum.',
@@ -728,7 +728,7 @@ class AppTranslations extends Translations {
         'signup.next': 'İleri',
         'signup.verification_title': 'Doğrulama',
         'signup.verification_message':
-            '+90{phone} telefon numaranıza bir doğrulama kodu gönderdik. Bu doğrulama kodunu girerek devam edebilirsiniz.',
+            '+90@phone telefon numaranıza bir doğrulama kodu gönderdik. Bu doğrulama kodunu girerek devam edebilirsiniz.',
         'signup.code_hint': '6 haneli kod',
         'signup.code_sent_body': 'SMS gönderildi. Kod 120 saniye geçerli.',
         'signup.otp_invalid_input': 'Girilen bilgiler geçerli değil.',
@@ -794,7 +794,7 @@ class AppTranslations extends Translations {
         'sign_in.reset_account_not_found':
             'Bu e-posta ile kayıtlı hesap bulunamadı.',
         'sign_in.reset_code_already_sent':
-            'Kod zaten gönderildi. Tekrar göndermek için {time} bekleyin.',
+            'Kod zaten gönderildi. Tekrar göndermek için @time bekleyin.',
         'sign_in.reset_phone_missing':
             'Bu hesap için kayıtlı telefon bulunamadı.',
         'sign_in.reset_code_expired':
@@ -817,7 +817,7 @@ class AppTranslations extends Translations {
         'post.undo_reshare': 'Yeniden paylaşımı geri al',
         'share_grid.select_user_first': 'Önce bir kullanıcı seçin.',
         'share_grid.post_forwarded': 'Gönderi iletildi.',
-        'share_grid.forward_failed': 'Gönderilemedi: {error}',
+        'share_grid.forward_failed': 'Gönderilemedi: @error',
         'story.placeholder_nickname': '@kullanici',
         'story.fetch_session_missing': 'Kullanıcı oturumu bulunamadı.',
         'story.fetch_not_found': 'Hikaye bulunamadı: @id',
@@ -906,13 +906,13 @@ class AppTranslations extends Translations {
         'notifications.today': 'Gündem',
         'notifications.yesterday': 'Dün',
         'notifications.older': 'Daha eski',
-        'notifications.count_items': '{count} adet',
-        'notifications.and_more': '{base} ve {count} bildirim daha',
+        'notifications.count_items': '@count adet',
+        'notifications.and_more': '@base ve @count bildirim daha',
         'notification.item.default_interaction':
             'senin gönderinle etkileşime geçti.',
         'notification.hint.profile': 'Profil',
         'notification.hint.chat': 'Sohbet',
-        'notification.hint.listing_named': 'İlan: {label}',
+        'notification.hint.listing_named': 'İlan: @label',
         'notification.hint.listing': 'İlan',
         'notification.hint.tutoring': 'Özel ders ilanı',
         'notification.hint.comments': 'Yorumlar',
@@ -958,8 +958,8 @@ class AppTranslations extends Translations {
         'blocked_users.unblock': 'Engeli Kaldır',
         'blocked_users.unblock_confirm_title': 'Engeli Kaldır',
         'blocked_users.unblock_confirm_body':
-            '{nickname} kullanıcısının engelini kaldırmak istediğinizden emin misin?',
-        'blocked_users.unblock_success': '{nickname} engelden çıkarıldı.',
+            '@nickname kullanıcısının engelini kaldırmak istediğinizden emin misin?',
+        'blocked_users.unblock_success': '@nickname engelden çıkarıldı.',
         'blocked_users.unblock_failed': 'Engel kaldırılamadı.',
         'profile_contact.title': 'İletişim',
         'profile_contact.call': 'Arama',
@@ -967,12 +967,12 @@ class AppTranslations extends Translations {
         'editor_email.title': 'E-posta Onayı',
         'editor_email.email_hint': 'Hesap e-posta adresiniz',
         'editor_email.send_code': 'Onay Kodu Gönder',
-        'editor_email.resend_in': 'Yeniden gönderim için {seconds}s',
+        'editor_email.resend_in': 'Yeniden gönderim için @secondss',
         'editor_email.note':
             'Bu onay güvenlik amaçlıdır. Onaylamasanız da uygulamayı kullanmaya devam edebilirsiniz.',
         'editor_email.code_hint': '6 haneli onay kodu',
         'editor_email.verify_confirm': 'Kodu Doğrula ve Onayla',
-        'editor_email.wait': 'Lütfen {seconds} saniye bekleyin.',
+        'editor_email.wait': 'Lütfen @seconds saniye bekleyin.',
         'editor_email.session_missing':
             'Oturum bulunamadı. Lütfen tekrar giriş yapın.',
         'editor_email.email_missing': 'Hesabınızda e-posta bulunamadı.',
@@ -990,10 +990,10 @@ class AppTranslations extends Translations {
         'editor_phone.title': 'Telefon Numarası',
         'editor_phone.phone_hint': 'Telefon Numarası',
         'editor_phone.send_approval': 'Onay E-postası Gönder',
-        'editor_phone.resend_in': 'Yeniden gönderim için {seconds}s',
+        'editor_phone.resend_in': 'Yeniden gönderim için @secondss',
         'editor_phone.code_hint': '6 haneli onay kodu',
         'editor_phone.verify_update': 'Kodu Doğrula ve Güncelle',
-        'editor_phone.wait': 'Lütfen {seconds} saniye bekleyin.',
+        'editor_phone.wait': 'Lütfen @seconds saniye bekleyin.',
         'editor_phone.invalid_phone':
             'Lütfen 5 ile başlayan 10 haneli telefon numarası girin.',
         'editor_phone.session_missing':
@@ -1014,7 +1014,7 @@ class AppTranslations extends Translations {
             'Kategorin, profilinin keşfedilmesini kolaylaştırır.',
         'job_selector.search_hint': 'Ara',
         'legacy_language.title': 'Uygulama Dili',
-        'policy_detail.last_updated': 'Son güncelleme: {date}',
+        'policy_detail.last_updated': 'Son güncelleme: @date',
         'statistics.title': 'İstatistikler',
         'statistics.you': 'Siz',
         'statistics.notice':
@@ -1028,18 +1028,18 @@ class AppTranslations extends Translations {
         'statistics.follower_growth': 'Takipçi Artışı',
         'interests.personalize_feed': 'Akışını kişiselleştir',
         'interests.selection_range':
-            'En az {min}, en fazla {max} ilgi alanı seç.',
-        'interests.selected_count': '{selected}/{max} seçildi',
+            'En az @min, en fazla @max ilgi alanı seç.',
+        'interests.selected_count': '@selected/@max seçildi',
         'interests.ready': 'Hazır',
         'interests.search_hint': 'İlgi alanı ara',
         'interests.limit_title': 'Seçim Sınırı',
-        'interests.limit_body': 'En fazla {max} ilgi alanı seçebilirsiniz.',
+        'interests.limit_body': 'En fazla @max ilgi alanı seçebilirsiniz.',
         'interests.min_title': 'Eksik Seçim',
-        'interests.min_body': 'En az {min} ilgi alanı seçmelisiniz.',
+        'interests.min_body': 'En az @min ilgi alanı seçmelisiniz.',
         'view_changer.title': 'Görünüm',
         'view_changer.classic': 'Klasik Görünüm',
         'view_changer.modern': 'Modern Görünüm',
-        'social_links.title': 'Bağlantılar ({count})',
+        'social_links.title': 'Bağlantılar (@count)',
         'social_links.add': 'Ekle',
         'social_links.add_title': 'Bağlantı Ekle',
         'social_links.label_title': 'Başlık',
@@ -1190,7 +1190,7 @@ class AppTranslations extends Translations {
         'pasaj.job_finder.unpublish_body':
             'Bu ilanı yayından kaldırmak istediğinizden emin misiniz?',
         'pasaj.job_finder.unpublished': 'İlan yayından kaldırıldı.',
-        'pasaj.job_finder.unpublish_failed': 'İlan kaldırılamadı: {error}',
+        'pasaj.job_finder.unpublish_failed': 'İlan kaldırılamadı: @error',
         'pasaj.job_finder.already_applied': 'Bu ilana zaten başvuru yaptınız.',
         'pasaj.job_finder.cv_required': 'Özgeçmiş Gerekli',
         'pasaj.job_finder.cv_required_body':
@@ -1347,8 +1347,8 @@ class AppTranslations extends Translations {
         'pasaj.market.title': 'Market',
         'pasaj.market.contact_phone': 'Telefon',
         'pasaj.market.contact_message': 'Mesaj',
-        'pasaj.market.min_price': 'Min {value}',
-        'pasaj.market.max_price': 'Max {value}',
+        'pasaj.market.min_price': 'Min @value',
+        'pasaj.market.max_price': 'Max @value',
         'pasaj.market.sort_price_asc': 'Fiyat Artan',
         'pasaj.market.sort_price_desc': 'Fiyat Azalan',
         'pasaj.market.all_listings': 'Tüm İlanlar',
@@ -1403,7 +1403,7 @@ class AppTranslations extends Translations {
             'Bir günde en fazla 20 teklif yapabilirsin.',
         'pasaj.market.offer_failed': 'Teklif gönderilemedi.',
         'pasaj.market.custom_offer': 'Teklifini Kendin Belirle',
-        'pasaj.market.discount': '{value}% indirim',
+        'pasaj.market.discount': '@value% indirim',
         'pasaj.market.reviews': 'Değerlendirmeler',
         'pasaj.market.rate': 'Değerlendir',
         'pasaj.market.review_edit': 'Düzenle',
@@ -1448,8 +1448,8 @@ class AppTranslations extends Translations {
         'pasaj.market.create.subcategory': 'Alt kategori',
         'pasaj.market.create.subgroup': 'Alt grup',
         'pasaj.market.create.product_type': 'Ürün tipi',
-        'pasaj.market.create.level': '{value}. kademe',
-        'pasaj.market.create.select_image': 'Görsel Seç ({current}/{max})',
+        'pasaj.market.create.level': '@value. kademe',
+        'pasaj.market.create.select_image': 'Görsel Seç (@current/@max)',
         'pasaj.market.create.cover': 'Kapak',
         'pasaj.market.empty_my_listings': 'Bu durumda ilan bulunamadı.',
         'pasaj.market.status_update_failed': 'İlan durumu güncellenemedi.',
@@ -1463,7 +1463,7 @@ class AppTranslations extends Translations {
         'pasaj.market.received_tab': 'Aldığım',
         'pasaj.market.sent_offer': 'Verdiğim teklif',
         'pasaj.market.received_offer': 'Aldığım teklif',
-        'pasaj.market.offer_empty': '{subtitle} bulunamadı.',
+        'pasaj.market.offer_empty': '@subtitle bulunamadı.',
         'pasaj.market.offer_accepted': 'Teklif kabul edildi.',
         'pasaj.market.offer_rejected': 'Teklif reddedildi.',
         'pasaj.market.offer_already_processed':
@@ -1483,7 +1483,7 @@ class AppTranslations extends Translations {
         'pasaj.market.filter.apply': 'Uygula',
         'pasaj.market.search_hint': 'İlan ara',
         'pasaj.market.search.no_results_body': 'Aramana uygun ilan bulunmuyor.',
-        'pasaj.market.search.result_count': '{count} sonuç',
+        'pasaj.market.search.result_count': '@count sonuç',
         'pasaj.market.search.start_title': 'İlan aramaya başla',
         'pasaj.market.search.start_body': 'Son aramaların burada görünecek.',
         'pasaj.market.search.recent': 'Son Aramalar',
@@ -1493,27 +1493,27 @@ class AppTranslations extends Translations {
         'pasaj.market.unsaved': 'Kayıt kaldırıldı.',
         'pasaj.market.save_failed': 'Kaydetme işlemi tamamlanamadı.',
         'pasaj.market.coming_soon_title': 'Yakında',
-        'pasaj.market.coming_soon_body': '{title} yakında eklenecek.',
+        'pasaj.market.coming_soon_body': '@title yakında eklenecek.',
         'pasaj.market.permission_required_title': 'İzin Gerekli',
         'pasaj.market.nearby_permission_required':
             'Yakınındaki ilanlar için konum izni gerekli.',
         'pasaj.market.location_not_found_title': 'Konum Bulunamadı',
         'pasaj.market.city_not_found': 'Şehir bilgisi alınamadı.',
         'pasaj.market.limited_results_title': 'Sınırlı Sonuç',
-        'pasaj.market.no_city_results': '{city} için ilan bulunamadı.',
+        'pasaj.market.no_city_results': '@city için ilan bulunamadı.',
         'pasaj.market.nearby_ready':
-            '{city} için yakınındaki ilanlar gösteriliyor.',
+            '@city için yakınındaki ilanlar gösteriliyor.',
         'pasaj.market.nearby_failed': 'Yakınındaki ilanlar yüklenemedi.',
         'pasaj.market.limit_title': 'Sınır',
-        'pasaj.market.image_limit': 'En fazla {max} görsel ekleyebilirsin.',
+        'pasaj.market.image_limit': 'En fazla @max görsel ekleyebilirsin.',
         'pasaj.market.create.need_image':
             'Yayınlamak için en az bir görsel ekle.',
         'pasaj.market.create.invalid_price': 'Geçerli bir fiyat gir.',
         'pasaj.market.create.city_district_required_short':
             'Şehir ve ilçe seçimi gerekli.',
-        'pasaj.market.create.field_required': '{field} alanı gerekli.',
+        'pasaj.market.create.field_required': '@field alanı gerekli.',
         'pasaj.market.user_session_not_found': 'Kullanıcı oturumu bulunamadı.',
-        'pasaj.market.create.save_failed': 'İlan kaydedilemedi: {error}',
+        'pasaj.market.create.save_failed': 'İlan kaydedilemedi: @error',
         'pasaj.market.image_security_failed':
             'Görsel güvenlik kontrolü tamamlanamadı',
         'pasaj.market.image_nsfw_detected': 'Uygunsuz görsel tespit edildi',
@@ -1531,10 +1531,10 @@ class AppTranslations extends Translations {
         'account_center.personal_details': 'Kişisel detaylar',
         'account_center.security': 'Güvenlik',
         'account_center.active_account_title': 'Aktif Hesap',
-        'account_center.active_account_body': '@{username} zaten aktif.',
+        'account_center.active_account_body': '@@username zaten aktif.',
         'account_center.reauth_title': 'Tekrar Giriş Gerekli',
         'account_center.reauth_body':
-            '@{username} hesabı için şifrenle yeniden giriş yapman gerekiyor.',
+            '@@username hesabı için şifrenle yeniden giriş yapman gerekiyor.',
         'account_center.switch_failed_title': 'Geçiş yapılamadı',
         'account_center.switch_failed_body':
             'Bu hesap için önce bir kez normal giriş yapılması gerekiyor.',
@@ -1542,8 +1542,8 @@ class AppTranslations extends Translations {
             'Aktif hesabı burada silemezsin. Önce başka hesaba geç.',
         'account_center.remove_account_title': 'Hesabı Kaldır',
         'account_center.remove_account_body':
-            '@{username} hesabını bu cihazdaki kayıtlı hesaplardan kaldırmak istiyor musun?',
-        'account_center.account_removed': '@{username} kaldırıldı.',
+            '@@username hesabını bu cihazdaki kayıtlı hesaplardan kaldırmak istiyor musun?',
+        'account_center.account_removed': '@@username kaldırıldı.',
         'account_center.single_device_title':
             'Yeni girişte diğer telefonlardan çıkış yap',
         'account_center.single_device_desc':
@@ -1566,11 +1566,11 @@ class AppTranslations extends Translations {
         'about_profile.title': 'Bu Hesap Hakkında',
         'about_profile.description':
             'Topluluğumuzun güvenilirliğini artırmak için TurqApp\'taki hesaplarla ilgili bilgileri şeffaf bir şekilde paylaşıyoruz.',
-        'about_profile.joined_on': '{date} tarihinde katıldı',
+        'about_profile.joined_on': '@date tarihinde katıldı',
         'policies.center_title': 'Politika Merkezi',
         'policies.center_desc':
             'Sözleşme, gizlilik, topluluk ve güvenlik metinleri burada yer alır.',
-        'policies.last_updated': 'Son güncelleme: {date}',
+        'policies.last_updated': 'Son güncelleme: @date',
         'permissions.title': 'Cihaz İzinleri',
         'permissions.preferences': 'Tercihlerin',
         'permissions.offline_space': 'Çevrimdışı İzleme Alanı',
@@ -1584,7 +1584,7 @@ class AppTranslations extends Translations {
         'permissions.dialog.update_device_settings':
             'Cihaz ayarlarını güncelle',
         'permissions.dialog.update_body':
-            'Cihaz ayarlarını aç, "{title}" iznini dilediğin zaman güncelleyebilirsin.',
+            'Cihaz ayarlarını aç, "@title" iznini dilediğin zaman güncelleyebilirsin.',
         'permissions.dialog.open_settings': 'Cihaz ayarlarını aç',
         'permissions.dialog.not_now': 'Şimdi değil',
         'permissions.quota.media_cache': 'Medya cache',
@@ -1592,11 +1592,11 @@ class AppTranslations extends Translations {
         'permissions.quota.metadata': 'Metadata',
         'permissions.quota.reserve': 'Yedek alan',
         'permissions.quota.os_safety': 'OS güvenlik payı',
-        'permissions.quota.plan_distribution': '{gb} GB plan dağılımı',
+        'permissions.quota.plan_distribution': '@gb GB plan dağılımı',
         'permissions.quota.soft_stop': 'Stream cache soft stop',
         'permissions.quota.hard_stop': 'Stream cache hard stop',
         'permissions.quota.recent_window':
-            'Yakın video koruma penceresi: {count} içerik',
+            'Yakın video koruma penceresi: @count içerik',
         'permissions.quota.active_stream': 'Aktif stream kullanım',
         'permissions.quota.soft_remaining': 'Soft stop kalan',
         'permissions.quota.hard_remaining': 'Hard stop kalan',
@@ -1614,12 +1614,12 @@ class AppTranslations extends Translations {
             'Wi-Fi full sırasında startup ve ahead window davranışının ne kadar geniş olacağını belirler.',
         'permissions.detail.set_preferences': 'Tercihlerini belirle',
         'permissions.detail.preference_body':
-            'TurqApp\'ın {access} izin verip vermeyeceğine karar verebilirsin. Tercihini daha sonra dilediğin zaman değiştirebilirsin. {title} uygulamanın bazı özelliklerini iyileştirir.',
+            'TurqApp\'ın @access izin verip vermeyeceğine karar verebilirsin. Tercihini daha sonra dilediğin zaman değiştirebilirsin. @title uygulamanın bazı özelliklerini iyileştirir.',
         'permissions.detail.device_setting': 'Cihaz ayarın:',
         'permissions.detail.other_option': 'Diğer seçenek',
-        'permissions.detail.allowed_desc': 'TurqApp\'a {access} izin verilmiş.',
+        'permissions.detail.allowed_desc': 'TurqApp\'a @access izin verilmiş.',
         'permissions.detail.denied_desc':
-            'TurqApp\'a {access} izin verilmemiş.',
+            'TurqApp\'a @access izin verilmemiş.',
         'permissions.detail.go_device_settings':
             'İzinlerini güncellemek için cihaz ayarlarına git.',
         'permissions.item.camera.title': 'Kamera',
@@ -1739,10 +1739,10 @@ class AppTranslations extends Translations {
         'admin.tasks.load_failed': 'Kullanıcı yüklenemedi:',
         'admin.tasks.load_user_first': 'Önce kullanıcıyı yükle.',
         'admin.tasks.assignment_removed':
-            '@{nickname} için görev ataması kaldırıldı.',
-        'admin.tasks.saved': '@{nickname} için görevler kaydedildi.',
+            '@@nickname için görev ataması kaldırıldı.',
+        'admin.tasks.saved': '@@nickname için görevler kaydedildi.',
         'admin.tasks.save_failed': 'Görevler kaydedilemedi:',
-        'admin.tasks.cleared': '@{nickname} için görevler temizlendi.',
+        'admin.tasks.cleared': '@@nickname için görevler temizlendi.',
         'admin.tasks.clear_failed': 'Görevler temizlenemedi:',
         'admin.tasks.updated_at': 'Güncelleme',
         'admin.task.moderation.title': 'Moderasyon',
@@ -1774,10 +1774,10 @@ class AppTranslations extends Translations {
             'Kullanıcı taleplerini ve geri bildirimleri takip eder.',
         'admin.moderation.title': 'Moderasyon',
         'admin.moderation.config_updated':
-            'Config güncellendi. Eşik: {threshold}',
+            'Config güncellendi. Eşik: @threshold',
         'admin.moderation.config_failed': 'Config güncellenemedi',
         'admin.moderation.threshold_posts':
-            'Eşik Değeri Aşan Postlar (≥ {threshold})',
+            'Eşik Değeri Aşan Postlar (≥ @threshold)',
         'admin.moderation.list_failed': 'Moderasyon listesi alınamadı.',
         'admin.moderation.no_threshold_posts': 'Eşiği aşan post bulunmuyor.',
         'admin.moderation.no_text': 'Metin yok',
@@ -1793,24 +1793,24 @@ class AppTranslations extends Translations {
         'admin.moderation.no_active_bans': 'Aktif banlı kullanıcı yok.',
         'admin.moderation.permanent': 'Kalıcı',
         'admin.moderation.expired': 'Süresi Doldu',
-        'admin.moderation.level': 'Seviye {level}',
-        'admin.moderation.strike_status': 'Strike: {count} • Durum: {status}',
-        'admin.moderation.ends_at': 'Bitiş: {date}',
+        'admin.moderation.level': 'Seviye @level',
+        'admin.moderation.strike_status': 'Strike: @count • Durum: @status',
+        'admin.moderation.ends_at': 'Bitiş: @date',
         'admin.moderation.next_penalty': 'Bir Sonraki Ceza',
         'admin.moderation.clear_ban': 'Banı Kaldır',
         'admin.moderation.clear_ban_approval': 'Ban kaldırma onayı',
         'admin.moderation.ban_approval': 'Ban işlemi onayı',
         'admin.moderation.clear_ban_summary':
-            '@{nickname} için ban kaldırma talebi oluşturuldu.',
+            '@@nickname için ban kaldırma talebi oluşturuldu.',
         'admin.moderation.advance_penalty_summary':
-            '@{nickname} için sonraki ceza talebi oluşturuldu.',
+            '@@nickname için sonraki ceza talebi oluşturuldu.',
         'admin.moderation.sent_for_approval':
             'İşlem admin onay kuyruğuna gönderildi.',
-        'admin.moderation.ban_removed': '@{nickname} için ban kaldırıldı.',
+        'admin.moderation.ban_removed': '@@nickname için ban kaldırıldı.',
         'admin.moderation.permanent_applied':
-            '@{nickname} için kalıcı yasak uygulandı.',
+            '@@nickname için kalıcı yasak uygulandı.',
         'admin.moderation.level_applied':
-            '@{nickname} için seviye {level} ceza uygulandı.',
+            '@@nickname için seviye @level ceza uygulandı.',
         'admin.moderation.action_failed': 'Ban işlemi tamamlanamadı.',
         'admin.badges.title': 'Rozet Yönetimi',
         'admin.badges.manage_by_username': 'Kullanıcı adı ile rozet yönet',
@@ -1823,14 +1823,14 @@ class AppTranslations extends Translations {
             'Seçilen kullanıcının mevcut rozeti kaldırılır.',
         'admin.badges.change_approval_title': 'Rozet değişikliği onayı',
         'admin.badges.remove_badge_summary':
-            '@{nickname} için rozet kaldırma talebi oluşturuldu.',
+            '@@nickname için rozet kaldırma talebi oluşturuldu.',
         'admin.badges.give_badge_summary':
-            '@{nickname} için {badge} rozeti verme talebi oluşturuldu.',
+            '@@nickname için @badge rozeti verme talebi oluşturuldu.',
         'admin.badges.sent_for_approval':
             'İşlem admin onay kuyruğuna gönderildi.',
-        'admin.badges.badge_removed': '@{nickname} için rozet kaldırıldı.',
+        'admin.badges.badge_removed': '@@nickname için rozet kaldırıldı.',
         'admin.badges.badge_saved':
-            '@{nickname} için {badge} rozeti kaydedildi.',
+            '@@nickname için @badge rozeti kaydedildi.',
         'admin.badges.permission_required':
             'Bu işlem için admin yetkisi gerekli.',
         'admin.badges.invalid_input': 'Girilen bilgi geçersiz.',
@@ -1842,11 +1842,11 @@ class AppTranslations extends Translations {
             'Başvurular ayarlardan gelir. Sosyal medya ve TurqApp profil linkleri aşağıda açılır.',
         'admin.badges.no_applications': 'Henüz başvuru yok.',
         'admin.badges.no_badge_selected': 'Rozet seçilmedi',
-        'admin.badges.status': 'Durum: {status}',
+        'admin.badges.status': 'Durum: @status',
         'admin.badges.approve_and_assign': 'Onayla ve Rozet Ver',
         'admin.badges.application_approval_title': 'Rozet başvurusu onayı',
         'admin.badges.application_approval_summary':
-            '@{nickname} için {badge} rozeti onaya gönderildi.',
+            '@@nickname için @badge rozeti onaya gönderildi.',
         'admin.badges.application_sent_for_approval':
             'Başvuru admin onay kuyruğuna gönderildi.',
         'admin.badges.application_approved':
@@ -1875,7 +1875,7 @@ class AppTranslations extends Translations {
         'admin.push.age': 'Yaş',
         'admin.push.started_title': 'Gönderim Başlatıldı',
         'admin.push.started_body':
-            '{count} kullanıcı için bildirim kuyruğa alındı.',
+            '@count kullanıcı için bildirim kuyruğa alındı.',
         'admin.push.send_failed': 'Bildirim gönderimi tamamlanamadı',
         'admin.push.help':
             'Başlık ve mesaj zorunlu. Filtreleri boş bırakırsan herkese gider.',
@@ -1904,7 +1904,7 @@ class AppTranslations extends Translations {
         'admin.reports.restored': 'İçerik tekrar yayına alındı.',
         'admin.reports.kept_hidden': 'İçerik kapalı tutuldu.',
         'admin.reports.action_failed': 'Admin işlemi başarısız',
-        'admin.reports.total_status': 'Toplam: {count} • Durum: {status}',
+        'admin.reports.total_status': 'Toplam: @count • Durum: @status',
         'admin.reports.category_counts': 'Kategori Sayaçları',
         'admin.reports.report_reasons': 'Neden Şikayet Edildi',
         'admin.reports.no_category_data': 'Kategori verisi yok.',
@@ -1936,7 +1936,7 @@ class AppTranslations extends Translations {
         'admin.story_music.save_update': 'Güncellemeyi Kaydet',
         'admin.story_music.no_tracks': 'Henüz parça yok',
         'admin.story_music.untitled': 'İsimsiz Parça',
-        'admin.story_music.order_usage': 'Sıra {order} • Kullanım {count}',
+        'admin.story_music.order_usage': 'Sıra @order • Kullanım @count',
         'common.cancel': 'Vazgeç',
         'common.save': 'Kaydet',
         'common.last_day': 'Son gün',
@@ -2157,8 +2157,8 @@ class AppTranslations extends Translations {
         'slider_admin.restored': 'Varsayılan görsel geri açıldı',
         'slider_admin.restore_failed': 'Varsayılan görsel açılamadı: @error',
         'slider_admin.sort_failed': 'Sıralama güncellenemedi: @error',
-        'slider_admin.title': '{title} Slider',
-        'slider_admin.image_label': 'Slider görseli {index}',
+        'slider_admin.title': '@title Slider',
+        'slider_admin.image_label': 'Slider görseli @index',
         'slider_admin.live': 'Canlı görsel',
         'slider_admin.hidden_default': 'Gizli varsayılan',
         'slider_admin.default_image': 'Varsayılan görsel',
@@ -2333,7 +2333,7 @@ class AppTranslations extends Translations {
         'following.following': 'Takip Ediyorsun',
         'following.unfollow_title': 'Takipten Çık',
         'following.unfollow_body':
-            '@{nickname} kullanıcısını takipten çıkmak istediğinizden emin misiniz?',
+            '@@nickname kullanıcısını takipten çıkmak istediğinizden emin misiniz?',
         'following.update_failed': 'Takip durumu güncellenemedi.',
         'following.limit_title': 'Takip Limiti',
         'following.limit_body': 'Günlük daha fazla kişi takip edilemiyor.',
@@ -2352,13 +2352,13 @@ class AppTranslations extends Translations {
         'profile.listings': 'İlan',
         'profile.copy_profile_link': 'Profil linkini kopyala',
         'profile.profile_share_title': 'TurqApp Profili',
-        'profile.profile_link_title': '@{nickname} - {app}',
+        'profile.profile_link_title': '@@nickname - @app',
         'profile.private_account_title': 'Gizli hesap',
         'profile.private_story_follow_required':
             'Hikayeleri görmek için önce takip etmeniz gerekir.',
         'profile.unfollow_title': 'Takipten Çık',
         'profile.unfollow_body':
-            '@{nickname} kullanıcısını takipten çıkmak istediğinizden emin misiniz ?',
+            '@@nickname kullanıcısını takipten çıkmak istediğinizden emin misiniz ?',
         'profile.unfollow_confirm': 'Takipten Çık',
         'profile.following_status': 'Takiptesin',
         'profile.follow_button': 'Takip Et',
@@ -2504,7 +2504,7 @@ class AppTranslations extends Translations {
         'common.published': 'Yayınlandı',
         'permission.required_title': 'İzin Gerekli',
         'permission.rozet_required_body':
-            '{feature} için {badge} rozet ve üstü hesap gerekli.',
+            '@feature için @badge rozet ve üstü hesap gerekli.',
         'common.weekday_full.monday': 'Pazartesi',
         'common.weekday_full.tuesday': 'Salı',
         'common.weekday_full.wednesday': 'Çarşamba',
@@ -3016,15 +3016,15 @@ class AppTranslations extends Translations {
         'tutoring.expired_listings_empty':
             'Süresi dolmuş özel ders ilanı bulunmuyor.',
         'tutoring.user_id_missing': 'Kullanıcı kimliği bulunamadı.',
-        'tutoring.load_failed': 'İlanlar yüklenirken hata oluştu: {error}',
+        'tutoring.load_failed': 'İlanlar yüklenirken hata oluştu: @error',
         'tutoring.reactivated_title': 'İlan Yenilendi',
         'tutoring.reactivated_body': 'İlan tekrar yayına alındı.',
         'tutoring.user_load_failed':
-            'Kullanıcı bilgileri yüklenirken hata oluştu: {error}',
+            'Kullanıcı bilgileri yüklenirken hata oluştu: @error',
         'tutoring.location_missing': 'Konum Bulunamadı',
         'tutoring.no_listings_in_region': 'Bu bölgede ders ilanı bulunmuyor.',
         'tutoring.no_lessons_in_category':
-            '{category} alanında ders bulunamadı.',
+            '@category alanında ders bulunamadı.',
         'tutoring.search_empty': 'Aramana uygun ilan bulunamadı',
         'tutoring.search_empty_info': 'Eşleşen özel ders bulunmuyor!',
         'tutoring.similar_listings': 'Benzer İlanlar',
@@ -3551,7 +3551,7 @@ class AppTranslations extends Translations {
         'personal_info.select_disability_title': 'Engel Durumu Seç',
         'personal_info.select_work_status_title': 'Çalışma Durumu Seç',
         'edit_profile.update_success': 'Profil bilgilerin güncellendi!',
-        'edit_profile.update_failed': 'Güncelleme hatası: {error}',
+        'edit_profile.update_failed': 'Güncelleme hatası: @error',
         'edit_profile.remove_photo_title': 'Profil Fotoğrafını Kaldır',
         'edit_profile.remove_photo_message':
             'Profil fotoğrafın kaldırılacak ve varsayılan avatar kullanılacak. Emin misin?',
@@ -3571,7 +3571,7 @@ class AppTranslations extends Translations {
         'delete_account.resend': 'Tekrar Gönder',
         'delete_account.send_code': 'Kod Gönder',
         'delete_account.validity_notice':
-            'Kodun geçerlilik süresi 1 saattir. Silme talebiniz {days} gün sonra kalıcı olarak işlenir.',
+            'Kodun geçerlilik süresi 1 saattir. Silme talebiniz @days gün sonra kalıcı olarak işlenir.',
         'delete_account.processing': 'İşleniyor...',
         'delete_account.delete_my_account': 'Hesabımı Sil',
         'delete_account.no_email_title': 'Uyarı',
@@ -3588,7 +3588,7 @@ class AppTranslations extends Translations {
         'delete_account.verify_failed': 'Kod doğrulanamadı.',
         'delete_account.request_received_title': 'Talep Alındı',
         'delete_account.request_received_body':
-            'Hesabınız {days} gün sonunda kalıcı olarak silinecektir.',
+            'Hesabınız @days gün sonunda kalıcı olarak silinecektir.',
         'delete_account.request_failed':
             'Hesabınız silinirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.',
         'editor_nickname.title': 'Kullanıcı Adı',
@@ -3609,9 +3609,9 @@ class AppTranslations extends Translations {
         'editor_nickname.cooldown_limit':
             'İlk 1 saatte en fazla 3 kez değiştirilebilir',
         'editor_nickname.change_after_days':
-            'Kullanıcı adı tekrar değiştirilebilir: {days}g {hours}s sonra',
+            'Kullanıcı adı tekrar değiştirilebilir: @daysg @hourss sonra',
         'editor_nickname.change_after_hours':
-            'Kullanıcı adı tekrar değiştirilebilir: {hours}s sonra',
+            'Kullanıcı adı tekrar değiştirilebilir: @hourss sonra',
         'editor_nickname.error_min_length':
             'Kullanıcı adı en az 8 karakter olmalıdır.',
         'editor_nickname.error_taken': 'Bu kullanıcı adı zaten alınmış.',
@@ -3758,7 +3758,7 @@ class AppTranslations extends Translations {
         'post_creator.poll_option_1d': '1 g',
         'post_creator.poll_option_3d': '3 g',
         'post_creator.poll_option_7d': '7 g',
-        'post_creator.poll_option': 'Seçenek {index}',
+        'post_creator.poll_option': 'Seçenek @index',
         'post_creator.poll_add_option': '+ Bir seçenek daha ekle',
         'post_creator.poll_min_options': 'En az iki seçenek zorunlu.',
         'post_creator.poll_requirement':
@@ -3778,7 +3778,7 @@ class AppTranslations extends Translations {
             'Sadece takipçilerim yeniden paylaşabilir.',
         'post_creator.reshare_closed_desc': 'Paylaşıma kapalı.',
         'post_creator.schedule_title': 'İz Bırak Yayın Tarihi',
-        'post_creator.publish_item': 'Gönderi {index}',
+        'post_creator.publish_item': 'Gönderi @index',
         'post_creator.preparing_posts': 'Gönderiler hazırlanıyor...',
         'post_creator.uploading_media': 'Medya dosyaları yükleniyor...',
         'post_creator.saving_to_database': 'Veritabanına kaydediliyor...',
@@ -3800,25 +3800,25 @@ class AppTranslations extends Translations {
         'post_creator.photo_with_video_forbidden':
             'Video seçiliyken fotoğraf ekleyemezsiniz. En fazla 1 video seçilebilir.',
         'post_creator.max_photo_count':
-            'Maksimum {count} fotoğraf seçilebilir.',
+            'Maksimum @count fotoğraf seçilebilir.',
         'post_creator.max_photo_add':
-            'Maksimum {count} fotoğraf ekleyebilirsiniz. Mevcut: {current}, Eklenmek istenen: {adding}',
-        'post_creator.photo_validation_prefix': 'Fotoğraf {index}: {error}',
+            'Maksimum @count fotoğraf ekleyebilirsiniz. Mevcut: @current, Eklenmek istenen: @adding',
+        'post_creator.photo_validation_prefix': 'Fotoğraf @index: @error',
         'post_creator.photos_compression_failed':
             'Fotoğraflar eklendi ancak sıkıştırma başarısız oldu.',
         'post_creator.warning_title': 'Uyarı',
         'post_creator.success_title': 'Başarılı!',
-        'post_creator.photo_added': 'Fotoğraf eklendi. {saved}',
+        'post_creator.photo_added': 'Fotoğraf eklendi. @saved',
         'post_creator.photo_added_no_compress':
             'Fotoğraf eklendi ancak sıkıştırma başarısız oldu.',
         'post_creator.max_video_count':
-            'En fazla {count} video seçebilirsiniz.',
+            'En fazla @count video seçebilirsiniz.',
         'post_creator.no_post_uploaded': 'Hiçbir gönderi yüklenemedi',
-        'post_creator.image_upload_failed': 'Resim {index} yüklenemedi',
+        'post_creator.image_upload_failed': 'Resim @index yüklenemedi',
         'post_creator.video_reduce_failed':
             'Video 35MB altına indirilemedi. 35MB altı direkt, 60MB üstü desteklenmez.',
         'post_creator.video_upload_failed': 'Video yüklenemedi',
-        'post_creator.post_upload_failed': 'Gönderi {index} yüklenemedi',
+        'post_creator.post_upload_failed': 'Gönderi @index yüklenemedi',
         'post_creator.upload_success': 'Gönderiler başarıyla yayınlandı!',
         'post_creator.upload_error': 'Gönderi yüklenirken hata oluştu.',
         'post_creator.upload_process_failed': 'Yükleme işlemi başarısız',
@@ -4332,7 +4332,7 @@ class AppTranslations extends Translations {
         'ads_center.update_campaign': 'Update Campaign',
         'ads_center.save_creative': 'Save Creative',
         'ads_center.campaign_saved_title': 'Campaign Saved',
-        'ads_center.campaign_saved_body': 'Campaign ID: {id}',
+        'ads_center.campaign_saved_body': 'Campaign ID: @id',
         'ads_center.save_campaign_first': 'Please save the campaign first.',
         'ads_center.creative_saved_title': 'Creative Saved',
         'ads_center.creative_saved_body':
@@ -4513,11 +4513,11 @@ class AppTranslations extends Translations {
         'common.load_failed_try_again':
             '@title could not be loaded. Please try again.',
         'login.selected_account_password':
-            '{username} selected. Complete your sign-in details to continue.',
+            '@username selected. Complete your sign-in details to continue.',
         'login.selected_account_phone':
-            '{username} is registered with a phone number. You need to sign in manually for this account.',
+            '@username is registered with a phone number. You need to sign in manually for this account.',
         'login.selected_account_manual':
-            'You need to sign in manually for {username}.',
+            'You need to sign in manually for @username.',
         'login.reset_password_title': 'Reset Your Password',
         'login.reset_password_help':
             'Enter your email address so we can find your account. We will send a verification code to the phone number registered on your account.',
@@ -4530,7 +4530,7 @@ class AppTranslations extends Translations {
         'login.new_password_hint': 'Create a new password',
         'login.repeat_new_password': 'New Password (Repeat)',
         'login.repeat_new_password_hint': 'Repeat your new password',
-        'signup.step': 'Step {current}/3',
+        'signup.step': 'Step @current/3',
         'signup.create_account_title': 'Create Your Account',
         'signup.policy_intro':
             'By creating an account and continuing, I accept the ',
@@ -4552,7 +4552,7 @@ class AppTranslations extends Translations {
         'signup.next': 'Next',
         'signup.verification_title': 'Verification',
         'signup.verification_message':
-            'We sent a verification code to +90{phone}. Enter the code to continue.',
+            'We sent a verification code to +90@phone. Enter the code to continue.',
         'signup.code_hint': '6-digit code',
         'signup.code_sent_body': 'SMS sent. The code is valid for 120 seconds.',
         'signup.otp_invalid_input': 'The entered information is invalid.',
@@ -4625,7 +4625,7 @@ class AppTranslations extends Translations {
         'sign_in.reset_account_not_found':
             'No account was found for this email address.',
         'sign_in.reset_code_already_sent':
-            'The code was already sent. Wait {time} before requesting it again.',
+            'The code was already sent. Wait @time before requesting it again.',
         'sign_in.reset_phone_missing':
             'No phone number is registered for this account.',
         'sign_in.reset_code_expired':
@@ -4648,7 +4648,7 @@ class AppTranslations extends Translations {
         'post.undo_reshare': 'Undo reshare',
         'share_grid.select_user_first': 'Select a user first.',
         'share_grid.post_forwarded': 'Post forwarded.',
-        'share_grid.forward_failed': 'Could not send: {error}',
+        'share_grid.forward_failed': 'Could not send: @error',
         'story.placeholder_nickname': '@user',
         'story.fetch_session_missing': 'User session could not be found.',
         'story.fetch_not_found': 'Story could not be found: @id',
@@ -4737,12 +4737,12 @@ class AppTranslations extends Translations {
         'notifications.today': 'Today',
         'notifications.yesterday': 'Yesterday',
         'notifications.older': 'Older',
-        'notifications.count_items': '{count} items',
-        'notifications.and_more': '{base} and {count} more notifications',
+        'notifications.count_items': '@count items',
+        'notifications.and_more': '@base and @count more notifications',
         'notification.item.default_interaction': 'interacted with your post.',
         'notification.hint.profile': 'Profile',
         'notification.hint.chat': 'Chat',
-        'notification.hint.listing_named': 'Listing: {label}',
+        'notification.hint.listing_named': 'Listing: @label',
         'notification.hint.listing': 'Listing',
         'notification.hint.tutoring': 'Tutoring listing',
         'notification.hint.comments': 'Comments',
@@ -4785,9 +4785,9 @@ class AppTranslations extends Translations {
         'blocked_users.unblock': 'Remove Block',
         'blocked_users.unblock_confirm_title': 'Remove Block',
         'blocked_users.unblock_confirm_body':
-            'Are you sure you want to remove the block for {nickname}?',
+            'Are you sure you want to remove the block for @nickname?',
         'blocked_users.unblock_success':
-            '{nickname} has been removed from blocked users.',
+            '@nickname has been removed from blocked users.',
         'blocked_users.unblock_failed': 'Block could not be removed.',
         'profile_contact.title': 'Contact',
         'profile_contact.call': 'Call',
@@ -4795,12 +4795,12 @@ class AppTranslations extends Translations {
         'editor_email.title': 'Email Verification',
         'editor_email.email_hint': 'Your account email address',
         'editor_email.send_code': 'Send Verification Code',
-        'editor_email.resend_in': 'Resend available in {seconds}s',
+        'editor_email.resend_in': 'Resend available in @secondss',
         'editor_email.note':
             'This verification is for security purposes. You can continue using the app even if you do not verify it.',
         'editor_email.code_hint': '6-digit verification code',
         'editor_email.verify_confirm': 'Verify Code and Confirm',
-        'editor_email.wait': 'Please wait {seconds} seconds.',
+        'editor_email.wait': 'Please wait @seconds seconds.',
         'editor_email.session_missing':
             'Session not found. Please sign in again.',
         'editor_email.email_missing':
@@ -4822,10 +4822,10 @@ class AppTranslations extends Translations {
         'editor_phone.title': 'Phone Number',
         'editor_phone.phone_hint': 'Phone Number',
         'editor_phone.send_approval': 'Send Approval Email',
-        'editor_phone.resend_in': 'Resend available in {seconds}s',
+        'editor_phone.resend_in': 'Resend available in @secondss',
         'editor_phone.code_hint': '6-digit verification code',
         'editor_phone.verify_update': 'Verify Code and Update',
-        'editor_phone.wait': 'Please wait {seconds} seconds.',
+        'editor_phone.wait': 'Please wait @seconds seconds.',
         'editor_phone.invalid_phone':
             'Please enter a 10-digit phone number starting with 5.',
         'editor_phone.session_missing':
@@ -4849,7 +4849,7 @@ class AppTranslations extends Translations {
             'Your category makes your profile easier to discover.',
         'job_selector.search_hint': 'Search',
         'legacy_language.title': 'App Language',
-        'policy_detail.last_updated': 'Last updated: {date}',
+        'policy_detail.last_updated': 'Last updated: @date',
         'statistics.title': 'Statistics',
         'statistics.you': 'You',
         'statistics.notice':
@@ -4863,18 +4863,18 @@ class AppTranslations extends Translations {
         'statistics.follower_growth': 'Follower Growth',
         'interests.personalize_feed': 'Personalize your feed',
         'interests.selection_range':
-            'Select at least {min} and at most {max} interests.',
-        'interests.selected_count': '{selected}/{max} selected',
+            'Select at least @min and at most @max interests.',
+        'interests.selected_count': '@selected/@max selected',
         'interests.ready': 'Ready',
         'interests.search_hint': 'Search interests',
         'interests.limit_title': 'Selection Limit',
-        'interests.limit_body': 'You can select up to {max} interests.',
+        'interests.limit_body': 'You can select up to @max interests.',
         'interests.min_title': 'Incomplete Selection',
-        'interests.min_body': 'You must select at least {min} interests.',
+        'interests.min_body': 'You must select at least @min interests.',
         'view_changer.title': 'View',
         'view_changer.classic': 'Classic View',
         'view_changer.modern': 'Modern View',
-        'social_links.title': 'Links ({count})',
+        'social_links.title': 'Links (@count)',
         'social_links.add': 'Add',
         'social_links.add_title': 'Add Link',
         'social_links.label_title': 'Title',
@@ -5030,7 +5030,7 @@ class AppTranslations extends Translations {
         'pasaj.job_finder.unpublished':
             'The listing has been removed from publication.',
         'pasaj.job_finder.unpublish_failed':
-            'The listing could not be removed: {error}',
+            'The listing could not be removed: @error',
         'pasaj.job_finder.already_applied':
             'You have already applied to this listing.',
         'pasaj.job_finder.cv_required': 'CV Required',
@@ -5192,8 +5192,8 @@ class AppTranslations extends Translations {
         'pasaj.market.title': 'Market',
         'pasaj.market.contact_phone': 'Phone',
         'pasaj.market.contact_message': 'Message',
-        'pasaj.market.min_price': 'Min {value}',
-        'pasaj.market.max_price': 'Max {value}',
+        'pasaj.market.min_price': 'Min @value',
+        'pasaj.market.max_price': 'Max @value',
         'pasaj.market.sort_price_asc': 'Price Low to High',
         'pasaj.market.sort_price_desc': 'Price High to Low',
         'pasaj.market.all_listings': 'All Listings',
@@ -5252,7 +5252,7 @@ class AppTranslations extends Translations {
             'You can make at most 20 offers per day.',
         'pasaj.market.offer_failed': 'Offer could not be sent.',
         'pasaj.market.custom_offer': 'Set Your Own Offer',
-        'pasaj.market.discount': '{value}% discount',
+        'pasaj.market.discount': '@value% discount',
         'pasaj.market.reviews': 'Reviews',
         'pasaj.market.rate': 'Rate',
         'pasaj.market.review_edit': 'Edit',
@@ -5296,8 +5296,8 @@ class AppTranslations extends Translations {
         'pasaj.market.create.subcategory': 'Subcategory',
         'pasaj.market.create.subgroup': 'Subgroup',
         'pasaj.market.create.product_type': 'Product type',
-        'pasaj.market.create.level': 'Level {value}',
-        'pasaj.market.create.select_image': 'Select Image ({current}/{max})',
+        'pasaj.market.create.level': 'Level @value',
+        'pasaj.market.create.select_image': 'Select Image (@current/@max)',
         'pasaj.market.create.cover': 'Cover',
         'pasaj.market.empty_my_listings':
             'No listings were found for this state.',
@@ -5313,7 +5313,7 @@ class AppTranslations extends Translations {
         'pasaj.market.received_tab': 'Received',
         'pasaj.market.sent_offer': 'Offer sent',
         'pasaj.market.received_offer': 'Offer received',
-        'pasaj.market.offer_empty': 'No {subtitle} found.',
+        'pasaj.market.offer_empty': 'No @subtitle found.',
         'pasaj.market.offer_accepted': 'Offer accepted.',
         'pasaj.market.offer_rejected': 'Offer rejected.',
         'pasaj.market.offer_already_processed':
@@ -5334,7 +5334,7 @@ class AppTranslations extends Translations {
         'pasaj.market.filter.apply': 'Apply',
         'pasaj.market.search_hint': 'Search listing',
         'pasaj.market.search.no_results_body': 'No listings match your search.',
-        'pasaj.market.search.result_count': '{count} results',
+        'pasaj.market.search.result_count': '@count results',
         'pasaj.market.search.start_title': 'Start searching listings',
         'pasaj.market.search.start_body':
             'Your recent searches will appear here.',
@@ -5345,7 +5345,7 @@ class AppTranslations extends Translations {
         'pasaj.market.unsaved': 'Saved item removed.',
         'pasaj.market.save_failed': 'The save action could not be completed.',
         'pasaj.market.coming_soon_title': 'Coming Soon',
-        'pasaj.market.coming_soon_body': '{title} will be added soon.',
+        'pasaj.market.coming_soon_body': '@title will be added soon.',
         'pasaj.market.permission_required_title': 'Permission Required',
         'pasaj.market.nearby_permission_required':
             'Location permission is required for nearby listings.',
@@ -5353,21 +5353,21 @@ class AppTranslations extends Translations {
         'pasaj.market.city_not_found':
             'City information could not be retrieved.',
         'pasaj.market.limited_results_title': 'Limited Results',
-        'pasaj.market.no_city_results': 'No listings were found for {city}.',
+        'pasaj.market.no_city_results': 'No listings were found for @city.',
         'pasaj.market.nearby_ready':
-            'Nearby listings for {city} are now shown.',
+            'Nearby listings for @city are now shown.',
         'pasaj.market.nearby_failed': 'Nearby listings could not be loaded.',
         'pasaj.market.limit_title': 'Limit',
-        'pasaj.market.image_limit': 'You can add up to {max} images.',
+        'pasaj.market.image_limit': 'You can add up to @max images.',
         'pasaj.market.create.need_image': 'Add at least one image to publish.',
         'pasaj.market.create.invalid_price': 'Enter a valid price.',
         'pasaj.market.create.city_district_required_short':
             'City and district selection is required.',
-        'pasaj.market.create.field_required': '{field} field is required.',
+        'pasaj.market.create.field_required': '@field field is required.',
         'pasaj.market.user_session_not_found':
             'User session could not be found.',
         'pasaj.market.create.save_failed':
-            'Listing could not be saved: {error}',
+            'Listing could not be saved: @error',
         'pasaj.market.image_security_failed':
             'Image safety check could not be completed',
         'pasaj.market.image_nsfw_detected': 'Inappropriate image detected',
@@ -5386,10 +5386,10 @@ class AppTranslations extends Translations {
         'account_center.personal_details': 'Personal details',
         'account_center.security': 'Security',
         'account_center.active_account_title': 'Active Account',
-        'account_center.active_account_body': '@{username} is already active.',
+        'account_center.active_account_body': '@@username is already active.',
         'account_center.reauth_title': 'Re-authentication Required',
         'account_center.reauth_body':
-            'You need to sign in again with your password for @{username}.',
+            'You need to sign in again with your password for @@username.',
         'account_center.switch_failed_title': 'Switch failed',
         'account_center.switch_failed_body':
             'You need to sign in normally once for this account first.',
@@ -5397,8 +5397,8 @@ class AppTranslations extends Translations {
             'You cannot remove the active account here. Switch to another account first.',
         'account_center.remove_account_title': 'Remove Account',
         'account_center.remove_account_body':
-            'Do you want to remove @{username} from the saved accounts on this device?',
-        'account_center.account_removed': '@{username} was removed.',
+            'Do you want to remove @@username from the saved accounts on this device?',
+        'account_center.account_removed': '@@username was removed.',
         'account_center.single_device_title':
             'Sign out other phones on new sign-in',
         'account_center.single_device_desc':
@@ -5421,11 +5421,11 @@ class AppTranslations extends Translations {
         'about_profile.title': 'About This Account',
         'about_profile.description':
             'We share information about accounts on TurqApp transparently to improve the trust of our community.',
-        'about_profile.joined_on': 'Joined on {date}',
+        'about_profile.joined_on': 'Joined on @date',
         'policies.center_title': 'Policy Center',
         'policies.center_desc':
             'Agreement, privacy, community and safety texts are available here.',
-        'policies.last_updated': 'Last updated: {date}',
+        'policies.last_updated': 'Last updated: @date',
         'admin.no_access': 'This area is only available to admins.',
         'admin.support.title': 'User Support',
         'admin.support.close_message': 'Close Message',
@@ -5483,10 +5483,10 @@ class AppTranslations extends Translations {
         'admin.tasks.load_failed': 'User could not be loaded:',
         'admin.tasks.load_user_first': 'Load the user first.',
         'admin.tasks.assignment_removed':
-            'Task assignment removed for @{nickname}.',
-        'admin.tasks.saved': 'Tasks saved for @{nickname}.',
+            'Task assignment removed for @@nickname.',
+        'admin.tasks.saved': 'Tasks saved for @@nickname.',
         'admin.tasks.save_failed': 'Tasks could not be saved:',
-        'admin.tasks.cleared': 'Tasks cleared for @{nickname}.',
+        'admin.tasks.cleared': 'Tasks cleared for @@nickname.',
         'admin.tasks.clear_failed': 'Tasks could not be cleared:',
         'admin.tasks.updated_at': 'Updated',
         'admin.task.moderation.title': 'Moderation',
@@ -5516,10 +5516,10 @@ class AppTranslations extends Translations {
         'admin.task.support.desc': 'Tracks user requests and feedback.',
         'admin.moderation.title': 'Moderation',
         'admin.moderation.config_updated':
-            'Config updated. Threshold: {threshold}',
+            'Config updated. Threshold: @threshold',
         'admin.moderation.config_failed': 'Config could not be updated',
         'admin.moderation.threshold_posts':
-            'Posts Above Threshold (≥ {threshold})',
+            'Posts Above Threshold (≥ @threshold)',
         'admin.moderation.list_failed': 'Moderation list could not be loaded.',
         'admin.moderation.no_threshold_posts': 'No posts exceed the threshold.',
         'admin.moderation.no_text': 'No text',
@@ -5535,24 +5535,24 @@ class AppTranslations extends Translations {
         'admin.moderation.no_active_bans': 'No actively banned users.',
         'admin.moderation.permanent': 'Permanent',
         'admin.moderation.expired': 'Expired',
-        'admin.moderation.level': 'Level {level}',
-        'admin.moderation.strike_status': 'Strike: {count} • Status: {status}',
-        'admin.moderation.ends_at': 'Ends: {date}',
+        'admin.moderation.level': 'Level @level',
+        'admin.moderation.strike_status': 'Strike: @count • Status: @status',
+        'admin.moderation.ends_at': 'Ends: @date',
         'admin.moderation.next_penalty': 'Next Penalty',
         'admin.moderation.clear_ban': 'Remove Ban',
         'admin.moderation.clear_ban_approval': 'Ban removal approval',
         'admin.moderation.ban_approval': 'Ban action approval',
         'admin.moderation.clear_ban_summary':
-            'A ban removal request was created for @{nickname}.',
+            'A ban removal request was created for @@nickname.',
         'admin.moderation.advance_penalty_summary':
-            'A next-penalty request was created for @{nickname}.',
+            'A next-penalty request was created for @@nickname.',
         'admin.moderation.sent_for_approval':
             'Action sent to the admin approval queue.',
-        'admin.moderation.ban_removed': 'Ban removed for @{nickname}.',
+        'admin.moderation.ban_removed': 'Ban removed for @@nickname.',
         'admin.moderation.permanent_applied':
-            'Permanent ban applied for @{nickname}.',
+            'Permanent ban applied for @@nickname.',
         'admin.moderation.level_applied':
-            'Level {level} penalty applied for @{nickname}.',
+            'Level @level penalty applied for @@nickname.',
         'admin.moderation.action_failed': 'Ban action could not be completed.',
         'admin.badges.title': 'Badge Management',
         'admin.badges.manage_by_username': 'Manage badge by username',
@@ -5565,13 +5565,13 @@ class AppTranslations extends Translations {
             'Removes the current badge from the selected user.',
         'admin.badges.change_approval_title': 'Badge change approval',
         'admin.badges.remove_badge_summary':
-            'A badge removal request was created for @{nickname}.',
+            'A badge removal request was created for @@nickname.',
         'admin.badges.give_badge_summary':
-            'A request to assign the {badge} badge was created for @{nickname}.',
+            'A request to assign the @badge badge was created for @@nickname.',
         'admin.badges.sent_for_approval':
             'Action sent to the admin approval queue.',
-        'admin.badges.badge_removed': 'Badge removed for @{nickname}.',
-        'admin.badges.badge_saved': '{badge} badge saved for @{nickname}.',
+        'admin.badges.badge_removed': 'Badge removed for @@nickname.',
+        'admin.badges.badge_saved': '@badge badge saved for @@nickname.',
         'admin.badges.permission_required':
             'Admin permission is required for this action.',
         'admin.badges.invalid_input': 'The provided information is invalid.',
@@ -5583,11 +5583,11 @@ class AppTranslations extends Translations {
             'Applications come from settings. Social media and TurqApp profile links open below.',
         'admin.badges.no_applications': 'There are no applications yet.',
         'admin.badges.no_badge_selected': 'No badge selected',
-        'admin.badges.status': 'Status: {status}',
+        'admin.badges.status': 'Status: @status',
         'admin.badges.approve_and_assign': 'Approve and Assign Badge',
         'admin.badges.application_approval_title': 'Badge application approval',
         'admin.badges.application_approval_summary':
-            'The {badge} badge for @{nickname} was sent for approval.',
+            'The @badge badge for @@nickname was sent for approval.',
         'admin.badges.application_sent_for_approval':
             'Application sent to the admin approval queue.',
         'admin.badges.application_approved':
@@ -5615,7 +5615,7 @@ class AppTranslations extends Translations {
         'admin.push.gender': 'Gender',
         'admin.push.age': 'Age',
         'admin.push.started_title': 'Dispatch Started',
-        'admin.push.started_body': 'Notification queued for {count} users.',
+        'admin.push.started_body': 'Notification queued for @count users.',
         'admin.push.send_failed':
             'Notification dispatch could not be completed',
         'admin.push.help':
@@ -5645,7 +5645,7 @@ class AppTranslations extends Translations {
         'admin.reports.restored': 'Content was restored to publication.',
         'admin.reports.kept_hidden': 'Content was kept hidden.',
         'admin.reports.action_failed': 'Admin action failed',
-        'admin.reports.total_status': 'Total: {count} • Status: {status}',
+        'admin.reports.total_status': 'Total: @count • Status: @status',
         'admin.reports.category_counts': 'Category Counters',
         'admin.reports.report_reasons': 'Reported Reasons',
         'admin.reports.no_category_data': 'No category data.',
@@ -5680,7 +5680,7 @@ class AppTranslations extends Translations {
         'admin.story_music.save_update': 'Save Update',
         'admin.story_music.no_tracks': 'There are no tracks yet',
         'admin.story_music.untitled': 'Untitled Track',
-        'admin.story_music.order_usage': 'Order {order} • Usage {count}',
+        'admin.story_music.order_usage': 'Order @order • Usage @count',
         'common.cancel': 'Cancel',
         'common.save': 'Save',
         'common.last_day': 'Last day',
@@ -5713,7 +5713,7 @@ class AppTranslations extends Translations {
         'common.published': 'Published',
         'permission.required_title': 'Permission Required',
         'permission.rozet_required_body':
-            '{feature} requires an account with a {badge} badge or higher.',
+            '@feature requires an account with a @badge badge or higher.',
         'common.weekday_full.monday': 'Monday',
         'common.weekday_full.tuesday': 'Tuesday',
         'common.weekday_full.wednesday': 'Wednesday',
@@ -5968,8 +5968,8 @@ class AppTranslations extends Translations {
         'slider_admin.restore_failed':
             'Default image could not be restored: @error',
         'slider_admin.sort_failed': 'Order could not be updated: @error',
-        'slider_admin.title': '{title} Slider',
-        'slider_admin.image_label': 'Slider image {index}',
+        'slider_admin.title': '@title Slider',
+        'slider_admin.image_label': 'Slider image @index',
         'slider_admin.live': 'Live image',
         'slider_admin.hidden_default': 'Hidden default',
         'slider_admin.default_image': 'Default image',
@@ -6136,14 +6136,14 @@ class AppTranslations extends Translations {
         'spotify.tab.all': 'All',
         'spotify.untitled_track': 'Untitled Track',
         'spotify.usage_summary': '@storyCount stories • @useCount uses',
-        'following.followers_tab': 'Followers {count}',
-        'following.following_tab': 'Following {count}',
+        'following.followers_tab': 'Followers @count',
+        'following.following_tab': 'Following @count',
         'following.none': 'No users yet',
         'following.follow': 'Follow',
         'following.following': 'Following',
         'following.unfollow_title': 'Unfollow',
         'following.unfollow_body':
-            'Are you sure you want to unfollow @{nickname}?',
+            'Are you sure you want to unfollow @@nickname?',
         'following.update_failed': 'Follow status could not be updated.',
         'following.limit_title': 'Follow Limit',
         'following.limit_body': 'You cannot follow more people today.',
@@ -6162,13 +6162,13 @@ class AppTranslations extends Translations {
         'profile.listings': 'Listings',
         'profile.copy_profile_link': 'Copy profile link',
         'profile.profile_share_title': 'TurqApp Profile',
-        'profile.profile_link_title': '@{nickname} - {app}',
+        'profile.profile_link_title': '@@nickname - @app',
         'profile.private_account_title': 'Private account',
         'profile.private_story_follow_required':
             'You need to follow this account first to view stories.',
         'profile.unfollow_title': 'Unfollow',
         'profile.unfollow_body':
-            'Are you sure you want to unfollow @{nickname}?',
+            'Are you sure you want to unfollow @@nickname?',
         'profile.unfollow_confirm': 'Unfollow',
         'profile.following_status': 'Following',
         'profile.follow_button': 'Follow',
@@ -6783,16 +6783,16 @@ class AppTranslations extends Translations {
             'There are no expired tutoring listings.',
         'tutoring.user_id_missing': 'User identity could not be found.',
         'tutoring.load_failed':
-            'An error occurred while loading listings: {error}',
+            'An error occurred while loading listings: @error',
         'tutoring.reactivated_title': 'Listing Reactivated',
         'tutoring.reactivated_body': 'The listing has been published again.',
         'tutoring.user_load_failed':
-            'An error occurred while loading user information: {error}',
+            'An error occurred while loading user information: @error',
         'tutoring.location_missing': 'Location Not Found',
         'tutoring.no_listings_in_region':
             'There are no tutoring listings in this area.',
         'tutoring.no_lessons_in_category':
-            'There are no lessons in the {category} category.',
+            'There are no lessons in the @category category.',
         'tutoring.search_empty': 'No listing matched your search.',
         'tutoring.search_empty_info': 'No matching tutoring listing found!',
         'tutoring.similar_listings': 'Similar Listings',
@@ -7356,7 +7356,7 @@ class AppTranslations extends Translations {
         'personal_info.select_work_status_title': 'Select Employment Status',
         'edit_profile.update_success':
             'Your profile information has been updated!',
-        'edit_profile.update_failed': 'Update error: {error}',
+        'edit_profile.update_failed': 'Update error: @error',
         'edit_profile.remove_photo_title': 'Remove Profile Photo',
         'edit_profile.remove_photo_message':
             'Your profile photo will be removed and the default avatar will be used. Are you sure?',
@@ -7376,7 +7376,7 @@ class AppTranslations extends Translations {
         'delete_account.resend': 'Resend',
         'delete_account.send_code': 'Send Code',
         'delete_account.validity_notice':
-            'The code is valid for 1 hour. Your deletion request will be processed permanently after {days} days.',
+            'The code is valid for 1 hour. Your deletion request will be processed permanently after @days days.',
         'delete_account.processing': 'Processing...',
         'delete_account.delete_my_account': 'Delete My Account',
         'delete_account.no_email_title': 'Warning',
@@ -7393,7 +7393,7 @@ class AppTranslations extends Translations {
         'delete_account.verify_failed': 'Code could not be verified.',
         'delete_account.request_received_title': 'Request Received',
         'delete_account.request_received_body':
-            'Your account will be permanently deleted after {days} days.',
+            'Your account will be permanently deleted after @days days.',
         'delete_account.request_failed':
             'There was a problem deleting your account. Please try again later.',
         'editor_nickname.title': 'Username',
@@ -7414,9 +7414,9 @@ class AppTranslations extends Translations {
         'editor_nickname.cooldown_limit':
             'It can only be changed 3 times in the first hour',
         'editor_nickname.change_after_days':
-            'Username can be changed again after {days}d {hours}h',
+            'Username can be changed again after @daysd @hoursh',
         'editor_nickname.change_after_hours':
-            'Username can be changed again after {hours}h',
+            'Username can be changed again after @hoursh',
         'editor_nickname.error_min_length':
             'Username must be at least 8 characters.',
         'editor_nickname.error_taken': 'This username is already taken.',
@@ -7564,7 +7564,7 @@ class AppTranslations extends Translations {
         'post_creator.poll_option_1d': '1 d',
         'post_creator.poll_option_3d': '3 d',
         'post_creator.poll_option_7d': '7 d',
-        'post_creator.poll_option': 'Option {index}',
+        'post_creator.poll_option': 'Option @index',
         'post_creator.poll_add_option': '+ Add one more option',
         'post_creator.poll_min_options': 'At least two options are required.',
         'post_creator.poll_requirement':
@@ -7583,7 +7583,7 @@ class AppTranslations extends Translations {
         'post_creator.reshare_followers_desc': 'Only my followers can reshare.',
         'post_creator.reshare_closed_desc': 'Resharing is disabled.',
         'post_creator.schedule_title': 'Scheduled Publish Date',
-        'post_creator.publish_item': 'Post {index}',
+        'post_creator.publish_item': 'Post @index',
         'post_creator.preparing_posts': 'Preparing posts...',
         'post_creator.uploading_media': 'Uploading media files...',
         'post_creator.saving_to_database': 'Saving to the database...',
@@ -7606,26 +7606,26 @@ class AppTranslations extends Translations {
         'post_creator.photo_with_video_forbidden':
             'You cannot add photos while a video is selected. Only 1 video is allowed.',
         'post_creator.max_photo_count':
-            'You can select at most {count} photos.',
+            'You can select at most @count photos.',
         'post_creator.max_photo_add':
-            'You can add at most {count} photos. Current: {current}, Trying to add: {adding}',
-        'post_creator.photo_validation_prefix': 'Photo {index}: {error}',
+            'You can add at most @count photos. Current: @current, Trying to add: @adding',
+        'post_creator.photo_validation_prefix': 'Photo @index: @error',
         'post_creator.photos_compression_failed':
             'Photos were added, but compression failed.',
         'post_creator.warning_title': 'Warning',
         'post_creator.success_title': 'Success!',
-        'post_creator.photo_added': 'Photo added. {saved}',
+        'post_creator.photo_added': 'Photo added. @saved',
         'post_creator.photo_added_no_compress':
             'Photo added, but compression failed.',
         'post_creator.max_video_count':
-            'You can select at most {count} videos.',
+            'You can select at most @count videos.',
         'post_creator.no_post_uploaded': 'No post could be uploaded',
         'post_creator.image_upload_failed':
-            'Image {index} could not be uploaded',
+            'Image @index could not be uploaded',
         'post_creator.video_reduce_failed':
             'The video could not be reduced below 35MB. Under 35MB uploads directly; over 60MB is not supported.',
         'post_creator.video_upload_failed': 'Video could not be uploaded',
-        'post_creator.post_upload_failed': 'Post {index} could not be uploaded',
+        'post_creator.post_upload_failed': 'Post @index could not be uploaded',
         'post_creator.upload_success': 'Posts were published successfully!',
         'post_creator.upload_error': 'An error occurred while uploading.',
         'post_creator.upload_process_failed': 'Upload failed',
@@ -7642,7 +7642,7 @@ class AppTranslations extends Translations {
         'permissions.checking': 'Checking...',
         'permissions.dialog.update_device_settings': 'Update device settings',
         'permissions.dialog.update_body':
-            'Open device settings. You can update the "{title}" permission whenever you want.',
+            'Open device settings. You can update the "@title" permission whenever you want.',
         'permissions.dialog.open_settings': 'Open device settings',
         'permissions.dialog.not_now': 'Not now',
         'permissions.quota.media_cache': 'Media cache',
@@ -7650,11 +7650,11 @@ class AppTranslations extends Translations {
         'permissions.quota.metadata': 'Metadata',
         'permissions.quota.reserve': 'Reserve space',
         'permissions.quota.os_safety': 'OS safety margin',
-        'permissions.quota.plan_distribution': '{gb} GB plan distribution',
+        'permissions.quota.plan_distribution': '@gb GB plan distribution',
         'permissions.quota.soft_stop': 'Stream cache soft stop',
         'permissions.quota.hard_stop': 'Stream cache hard stop',
         'permissions.quota.recent_window':
-            'Recent video protection window: {count} items',
+            'Recent video protection window: @count items',
         'permissions.quota.active_stream': 'Active stream usage',
         'permissions.quota.soft_remaining': 'Soft stop remaining',
         'permissions.quota.hard_remaining': 'Hard stop remaining',
@@ -7673,13 +7673,13 @@ class AppTranslations extends Translations {
             'Determines how wide startup and ahead-window behavior can be on full Wi-Fi.',
         'permissions.detail.set_preferences': 'Set your preferences',
         'permissions.detail.preference_body':
-            'You can decide whether TurqApp is allowed to access your {access}. You can change this choice whenever you want. {title} improves some app features.',
+            'You can decide whether TurqApp is allowed to access your @access. You can change this choice whenever you want. @title improves some app features.',
         'permissions.detail.device_setting': 'Your device setting:',
         'permissions.detail.other_option': 'Other option',
         'permissions.detail.allowed_desc':
-            'TurqApp is allowed to access your {access}.',
+            'TurqApp is allowed to access your @access.',
         'permissions.detail.denied_desc':
-            'TurqApp is not allowed to access your {access}.',
+            'TurqApp is not allowed to access your @access.',
         'permissions.detail.go_device_settings':
             'Go to device settings to update your permissions.',
         'permissions.item.camera.title': 'Camera',
@@ -8239,7 +8239,7 @@ class AppTranslations extends Translations {
         'ads_center.update_campaign': 'Kampagne aktualisieren',
         'ads_center.save_creative': 'Kreativ speichern',
         'ads_center.campaign_saved_title': 'Kampagne gespeichert',
-        'ads_center.campaign_saved_body': 'Kampagnen-ID: {id}',
+        'ads_center.campaign_saved_body': 'Kampagnen-ID: @id',
         'ads_center.save_campaign_first':
             'Bitte speichere zuerst die Kampagne.',
         'ads_center.creative_saved_title': 'Kreativ gespeichert',
@@ -8409,11 +8409,11 @@ class AppTranslations extends Translations {
         'common.load_failed_try_again':
             '@title konnte nicht geladen werden. Bitte versuche es erneut.',
         'login.selected_account_password':
-            '{username} ausgewählt. Vervollständige deine Anmeldedaten, um fortzufahren.',
+            '@username ausgewählt. Vervollständige deine Anmeldedaten, um fortzufahren.',
         'login.selected_account_phone':
-            '{username} ist mit einer Telefonnummer registriert. Für dieses Konto ist eine manuelle Anmeldung erforderlich.',
+            '@username ist mit einer Telefonnummer registriert. Für dieses Konto ist eine manuelle Anmeldung erforderlich.',
         'login.selected_account_manual':
-            'Für {username} ist eine manuelle Anmeldung erforderlich.',
+            'Für @username ist eine manuelle Anmeldung erforderlich.',
         'login.reset_password_title': 'Passwort zurücksetzen',
         'login.reset_password_help':
             'Gib deine E-Mail-Adresse ein, damit wir dein Konto finden können. Wir senden einen Bestätigungscode an die Telefonnummer, die in deinem Konto hinterlegt ist.',
@@ -8426,7 +8426,7 @@ class AppTranslations extends Translations {
         'login.new_password_hint': 'Neues Passwort erstellen',
         'login.repeat_new_password': 'Neues Passwort (Wiederholen)',
         'login.repeat_new_password_hint': 'Neues Passwort wiederholen',
-        'signup.step': 'Schritt {current}/3',
+        'signup.step': 'Schritt @current/3',
         'signup.create_account_title': 'Erstelle dein Konto',
         'signup.policy_intro':
             'Mit der Kontoerstellung und dem Fortfahren akzeptiere ich die ',
@@ -8448,7 +8448,7 @@ class AppTranslations extends Translations {
         'signup.next': 'Weiter',
         'signup.verification_title': 'Bestätigung',
         'signup.verification_message':
-            'Wir haben einen Bestätigungscode an +90{phone} gesendet. Gib den Code ein, um fortzufahren.',
+            'Wir haben einen Bestätigungscode an +90@phone gesendet. Gib den Code ein, um fortzufahren.',
         'signup.code_hint': '6-stelliger Code',
         'signup.code_sent_body':
             'SMS gesendet. Der Code ist 120 Sekunden gültig.',
@@ -8528,7 +8528,7 @@ class AppTranslations extends Translations {
         'sign_in.reset_account_not_found':
             'Für diese E-Mail-Adresse wurde kein Konto gefunden.',
         'sign_in.reset_code_already_sent':
-            'Der Code wurde bereits gesendet. Warte {time}, bevor du ihn erneut anforderst.',
+            'Der Code wurde bereits gesendet. Warte @time, bevor du ihn erneut anforderst.',
         'sign_in.reset_phone_missing':
             'Für dieses Konto ist keine Telefonnummer hinterlegt.',
         'sign_in.reset_code_expired':
@@ -8552,7 +8552,7 @@ class AppTranslations extends Translations {
         'post.undo_reshare': 'Erneutes Teilen zurücknehmen',
         'share_grid.select_user_first': 'Wähle zuerst einen Benutzer aus.',
         'share_grid.post_forwarded': 'Beitrag weitergeleitet.',
-        'share_grid.forward_failed': 'Konnte nicht gesendet werden: {error}',
+        'share_grid.forward_failed': 'Konnte nicht gesendet werden: @error',
         'story.placeholder_nickname': '@nutzer',
         'signup.too_many_attempts':
             'Zu viele fehlgeschlagene Versuche. Bitte fordere einen neuen Code an.',
@@ -8648,14 +8648,14 @@ class AppTranslations extends Translations {
         'notifications.today': 'Heute',
         'notifications.yesterday': 'Gestern',
         'notifications.older': 'Älter',
-        'notifications.count_items': '{count} Einträge',
+        'notifications.count_items': '@count Einträge',
         'notifications.and_more':
-            '{base} und {count} weitere Benachrichtigungen',
+            '@base und @count weitere Benachrichtigungen',
         'notification.item.default_interaction':
             'hat mit deinem Beitrag interagiert.',
         'notification.hint.profile': 'Profil',
         'notification.hint.chat': 'Chat',
-        'notification.hint.listing_named': 'Anzeige: {label}',
+        'notification.hint.listing_named': 'Anzeige: @label',
         'notification.hint.listing': 'Anzeige',
         'notification.hint.tutoring': 'Nachhilfeanzeige',
         'notification.hint.comments': 'Kommentare',
@@ -8700,9 +8700,9 @@ class AppTranslations extends Translations {
         'blocked_users.unblock': 'Blockierung aufheben',
         'blocked_users.unblock_confirm_title': 'Blockierung aufheben',
         'blocked_users.unblock_confirm_body':
-            'Möchtest du die Blockierung für {nickname} wirklich aufheben?',
+            'Möchtest du die Blockierung für @nickname wirklich aufheben?',
         'blocked_users.unblock_success':
-            '{nickname} wurde aus der Blockierliste entfernt.',
+            '@nickname wurde aus der Blockierliste entfernt.',
         'blocked_users.unblock_failed':
             'Die Blockierung konnte nicht aufgehoben werden.',
         'profile_contact.title': 'Kontakt',
@@ -8711,12 +8711,12 @@ class AppTranslations extends Translations {
         'editor_email.title': 'E-Mail-Bestätigung',
         'editor_email.email_hint': 'Deine Konto-E-Mail-Adresse',
         'editor_email.send_code': 'Bestätigungscode senden',
-        'editor_email.resend_in': 'Erneut senden in {seconds}s',
+        'editor_email.resend_in': 'Erneut senden in @secondss',
         'editor_email.note':
             'Diese Bestätigung dient der Sicherheit. Auch ohne Bestätigung kannst du die App weiter nutzen.',
         'editor_email.code_hint': '6-stelliger Bestätigungscode',
         'editor_email.verify_confirm': 'Code bestätigen und freigeben',
-        'editor_email.wait': 'Bitte warte {seconds} Sekunden.',
+        'editor_email.wait': 'Bitte warte @seconds Sekunden.',
         'editor_email.session_missing':
             'Sitzung nicht gefunden. Bitte melde dich erneut an.',
         'editor_email.email_missing':
@@ -8739,10 +8739,10 @@ class AppTranslations extends Translations {
         'editor_phone.title': 'Telefonnummer',
         'editor_phone.phone_hint': 'Telefonnummer',
         'editor_phone.send_approval': 'Bestätigungs-E-Mail senden',
-        'editor_phone.resend_in': 'Erneut senden in {seconds}s',
+        'editor_phone.resend_in': 'Erneut senden in @secondss',
         'editor_phone.code_hint': '6-stelliger Bestätigungscode',
         'editor_phone.verify_update': 'Code bestätigen und aktualisieren',
-        'editor_phone.wait': 'Bitte warte {seconds} Sekunden.',
+        'editor_phone.wait': 'Bitte warte @seconds Sekunden.',
         'editor_phone.invalid_phone':
             'Bitte gib eine 10-stellige Telefonnummer ein, die mit 5 beginnt.',
         'editor_phone.session_missing':
@@ -8767,7 +8767,7 @@ class AppTranslations extends Translations {
             'Deine Kategorie macht dein Profil leichter auffindbar.',
         'job_selector.search_hint': 'Suchen',
         'legacy_language.title': 'App-Sprache',
-        'policy_detail.last_updated': 'Zuletzt aktualisiert: {date}',
+        'policy_detail.last_updated': 'Zuletzt aktualisiert: @date',
         'statistics.title': 'Statistiken',
         'statistics.you': 'Du',
         'statistics.notice':
@@ -8781,19 +8781,19 @@ class AppTranslations extends Translations {
         'statistics.follower_growth': 'Follower-Wachstum',
         'interests.personalize_feed': 'Personalisiere deinen Feed',
         'interests.selection_range':
-            'Wähle mindestens {min} und höchstens {max} Interessen aus.',
-        'interests.selected_count': '{selected}/{max} ausgewählt',
+            'Wähle mindestens @min und höchstens @max Interessen aus.',
+        'interests.selected_count': '@selected/@max ausgewählt',
         'interests.ready': 'Bereit',
         'interests.search_hint': 'Interessen suchen',
         'interests.limit_title': 'Auswahllimit',
         'interests.limit_body':
-            'Du kannst höchstens {max} Interessen auswählen.',
+            'Du kannst höchstens @max Interessen auswählen.',
         'interests.min_title': 'Auswahl unvollständig',
-        'interests.min_body': 'Du musst mindestens {min} Interessen auswählen.',
+        'interests.min_body': 'Du musst mindestens @min Interessen auswählen.',
         'view_changer.title': 'Ansicht',
         'view_changer.classic': 'Klassische Ansicht',
         'view_changer.modern': 'Moderne Ansicht',
-        'social_links.title': 'Links ({count})',
+        'social_links.title': 'Links (@count)',
         'social_links.add': 'Hinzufügen',
         'social_links.add_title': 'Link hinzufügen',
         'social_links.label_title': 'Titel',
@@ -8934,7 +8934,7 @@ class AppTranslations extends Translations {
             'Möchtest du diese Anzeige wirklich offline nehmen?',
         'pasaj.job_finder.unpublished': 'Die Anzeige wurde offline genommen.',
         'pasaj.job_finder.unpublish_failed':
-            'Die Anzeige konnte nicht entfernt werden: {error}',
+            'Die Anzeige konnte nicht entfernt werden: @error',
         'pasaj.job_finder.already_applied':
             'Du hast dich bereits auf diese Anzeige beworben.',
         'pasaj.job_finder.cv_required': 'Lebenslauf erforderlich',
@@ -9102,8 +9102,8 @@ class AppTranslations extends Translations {
         'pasaj.market.title': 'Markt',
         'pasaj.market.contact_phone': 'Telefon',
         'pasaj.market.contact_message': 'Nachricht',
-        'pasaj.market.min_price': 'Min {value}',
-        'pasaj.market.max_price': 'Max {value}',
+        'pasaj.market.min_price': 'Min @value',
+        'pasaj.market.max_price': 'Max @value',
         'pasaj.market.sort_price_asc': 'Preis aufsteigend',
         'pasaj.market.sort_price_desc': 'Preis absteigend',
         'pasaj.market.all_listings': 'Alle Anzeigen',
@@ -9164,7 +9164,7 @@ class AppTranslations extends Translations {
         'pasaj.market.offer_failed':
             'Das Angebot konnte nicht gesendet werden.',
         'pasaj.market.custom_offer': 'Eigenes Angebot festlegen',
-        'pasaj.market.discount': '{value}% Rabatt',
+        'pasaj.market.discount': '@value% Rabatt',
         'pasaj.market.reviews': 'Bewertungen',
         'pasaj.market.rate': 'Bewerten',
         'pasaj.market.review_edit': 'Bearbeiten',
@@ -9212,8 +9212,8 @@ class AppTranslations extends Translations {
         'pasaj.market.create.subcategory': 'Unterkategorie',
         'pasaj.market.create.subgroup': 'Untergruppe',
         'pasaj.market.create.product_type': 'Produkttyp',
-        'pasaj.market.create.level': 'Ebene {value}',
-        'pasaj.market.create.select_image': 'Bild auswählen ({current}/{max})',
+        'pasaj.market.create.level': 'Ebene @value',
+        'pasaj.market.create.select_image': 'Bild auswählen (@current/@max)',
         'pasaj.market.create.cover': 'Titelbild',
         'pasaj.market.empty_my_listings':
             'Für diesen Zustand wurden keine Anzeigen gefunden.',
@@ -9230,7 +9230,7 @@ class AppTranslations extends Translations {
         'pasaj.market.received_tab': 'Erhalten',
         'pasaj.market.sent_offer': 'Gesendetes Angebot',
         'pasaj.market.received_offer': 'Erhaltenes Angebot',
-        'pasaj.market.offer_empty': 'Kein Eintrag für {subtitle} gefunden.',
+        'pasaj.market.offer_empty': 'Kein Eintrag für @subtitle gefunden.',
         'pasaj.market.offer_accepted': 'Angebot angenommen.',
         'pasaj.market.offer_rejected': 'Angebot abgelehnt.',
         'pasaj.market.offer_already_processed':
@@ -9253,7 +9253,7 @@ class AppTranslations extends Translations {
         'pasaj.market.search_hint': 'Anzeige suchen',
         'pasaj.market.search.no_results_body':
             'Keine Anzeigen passend zu deiner Suche gefunden.',
-        'pasaj.market.search.result_count': '{count} Ergebnisse',
+        'pasaj.market.search.result_count': '@count Ergebnisse',
         'pasaj.market.search.start_title': 'Starte deine Anzeigensuche',
         'pasaj.market.search.start_body':
             'Deine letzten Suchen werden hier angezeigt.',
@@ -9266,7 +9266,7 @@ class AppTranslations extends Translations {
         'pasaj.market.save_failed':
             'Der Speichervorgang konnte nicht abgeschlossen werden.',
         'pasaj.market.coming_soon_title': 'Demnächst',
-        'pasaj.market.coming_soon_body': '{title} wird bald hinzugefügt.',
+        'pasaj.market.coming_soon_body': '@title wird bald hinzugefügt.',
         'pasaj.market.permission_required_title': 'Berechtigung erforderlich',
         'pasaj.market.nearby_permission_required':
             'Für Anzeigen in deiner Nähe ist eine Standortberechtigung erforderlich.',
@@ -9275,23 +9275,23 @@ class AppTranslations extends Translations {
             'Stadtinformationen konnten nicht geladen werden.',
         'pasaj.market.limited_results_title': 'Begrenzte Ergebnisse',
         'pasaj.market.no_city_results':
-            'Für {city} wurden keine Anzeigen gefunden.',
+            'Für @city wurden keine Anzeigen gefunden.',
         'pasaj.market.nearby_ready':
-            'Anzeigen in deiner Nähe für {city} werden angezeigt.',
+            'Anzeigen in deiner Nähe für @city werden angezeigt.',
         'pasaj.market.nearby_failed':
             'Anzeigen in deiner Nähe konnten nicht geladen werden.',
         'pasaj.market.limit_title': 'Limit',
-        'pasaj.market.image_limit': 'Du kannst bis zu {max} Bilder hinzufügen.',
+        'pasaj.market.image_limit': 'Du kannst bis zu @max Bilder hinzufügen.',
         'pasaj.market.create.need_image':
             'Füge mindestens ein Bild hinzu, um zu veröffentlichen.',
         'pasaj.market.create.invalid_price': 'Gib einen gültigen Preis ein.',
         'pasaj.market.create.city_district_required_short':
             'Stadt und Bezirk sind erforderlich.',
-        'pasaj.market.create.field_required': 'Feld {field} ist erforderlich.',
+        'pasaj.market.create.field_required': 'Feld @field ist erforderlich.',
         'pasaj.market.user_session_not_found':
             'Benutzersitzung konnte nicht gefunden werden.',
         'pasaj.market.create.save_failed':
-            'Anzeige konnte nicht gespeichert werden: {error}',
+            'Anzeige konnte nicht gespeichert werden: @error',
         'pasaj.market.image_security_failed':
             'Die Bildsicherheitsprüfung konnte nicht abgeschlossen werden',
         'pasaj.market.image_nsfw_detected': 'Unangemessenes Bild erkannt',
@@ -9310,10 +9310,10 @@ class AppTranslations extends Translations {
         'account_center.personal_details': 'Persönliche Details',
         'account_center.security': 'Sicherheit',
         'account_center.active_account_title': 'Aktives Konto',
-        'account_center.active_account_body': '@{username} ist bereits aktiv.',
+        'account_center.active_account_body': '@@username ist bereits aktiv.',
         'account_center.reauth_title': 'Erneute Anmeldung erforderlich',
         'account_center.reauth_body':
-            'Du musst dich für @{username} erneut mit deinem Passwort anmelden.',
+            'Du musst dich für @@username erneut mit deinem Passwort anmelden.',
         'account_center.switch_failed_title': 'Wechsel fehlgeschlagen',
         'account_center.switch_failed_body':
             'Für dieses Konto ist zuerst eine normale Anmeldung erforderlich.',
@@ -9321,8 +9321,8 @@ class AppTranslations extends Translations {
             'Du kannst das aktive Konto hier nicht entfernen. Wechsle zuerst zu einem anderen Konto.',
         'account_center.remove_account_title': 'Konto entfernen',
         'account_center.remove_account_body':
-            'Möchtest du @{username} aus den auf diesem Gerät gespeicherten Konten entfernen?',
-        'account_center.account_removed': '@{username} wurde entfernt.',
+            'Möchtest du @@username aus den auf diesem Gerät gespeicherten Konten entfernen?',
+        'account_center.account_removed': '@@username wurde entfernt.',
         'account_center.single_device_title':
             'Bei neuer Anmeldung andere Telefone abmelden',
         'account_center.single_device_desc':
@@ -9345,11 +9345,11 @@ class AppTranslations extends Translations {
         'about_profile.title': 'Über dieses Konto',
         'about_profile.description':
             'Wir teilen Informationen über Konten auf TurqApp transparent, um das Vertrauen in unsere Community zu stärken.',
-        'about_profile.joined_on': 'Beigetreten am {date}',
+        'about_profile.joined_on': 'Beigetreten am @date',
         'policies.center_title': 'Richtlinienzentrum',
         'policies.center_desc':
             'Vertrags-, Datenschutz-, Community- und Sicherheitstexte findest du hier.',
-        'policies.last_updated': 'Zuletzt aktualisiert: {date}',
+        'policies.last_updated': 'Zuletzt aktualisiert: @date',
         'admin.no_access': 'Dieser Bereich ist nur für Admins zugänglich.',
         'admin.support.title': 'Nutzersupport',
         'admin.support.close_message': 'Nachricht schließen',
@@ -9408,10 +9408,10 @@ class AppTranslations extends Translations {
         'admin.tasks.load_failed': 'Nutzer konnte nicht geladen werden:',
         'admin.tasks.load_user_first': 'Lade zuerst den Nutzer.',
         'admin.tasks.assignment_removed':
-            'Aufgabenzuweisung für @{nickname} entfernt.',
-        'admin.tasks.saved': 'Aufgaben für @{nickname} gespeichert.',
+            'Aufgabenzuweisung für @@nickname entfernt.',
+        'admin.tasks.saved': 'Aufgaben für @@nickname gespeichert.',
         'admin.tasks.save_failed': 'Aufgaben konnten nicht gespeichert werden:',
-        'admin.tasks.cleared': 'Aufgaben für @{nickname} wurden entfernt.',
+        'admin.tasks.cleared': 'Aufgaben für @@nickname wurden entfernt.',
         'admin.tasks.clear_failed': 'Aufgaben konnten nicht entfernt werden:',
         'admin.tasks.updated_at': 'Aktualisiert',
         'admin.task.moderation.title': 'Moderation',
@@ -9440,11 +9440,11 @@ class AppTranslations extends Translations {
         'admin.task.support.desc': 'Verfolgt Nutzeranfragen und Feedback.',
         'admin.moderation.title': 'Moderation',
         'admin.moderation.config_updated':
-            'Konfiguration aktualisiert. Schwelle: {threshold}',
+            'Konfiguration aktualisiert. Schwelle: @threshold',
         'admin.moderation.config_failed':
             'Konfiguration konnte nicht aktualisiert werden',
         'admin.moderation.threshold_posts':
-            'Beiträge über dem Schwellenwert (≥ {threshold})',
+            'Beiträge über dem Schwellenwert (≥ @threshold)',
         'admin.moderation.list_failed':
             'Moderationsliste konnte nicht geladen werden.',
         'admin.moderation.no_threshold_posts':
@@ -9464,25 +9464,25 @@ class AppTranslations extends Translations {
         'admin.moderation.no_active_bans': 'Keine aktiv gesperrten Benutzer.',
         'admin.moderation.permanent': 'Dauerhaft',
         'admin.moderation.expired': 'Abgelaufen',
-        'admin.moderation.level': 'Stufe {level}',
-        'admin.moderation.strike_status': 'Strike: {count} • Status: {status}',
-        'admin.moderation.ends_at': 'Ende: {date}',
+        'admin.moderation.level': 'Stufe @level',
+        'admin.moderation.strike_status': 'Strike: @count • Status: @status',
+        'admin.moderation.ends_at': 'Ende: @date',
         'admin.moderation.next_penalty': 'Nächste Strafe',
         'admin.moderation.clear_ban': 'Sperre aufheben',
         'admin.moderation.clear_ban_approval':
             'Freigabe zur Aufhebung der Sperre',
         'admin.moderation.ban_approval': 'Freigabe für Sperraktion',
         'admin.moderation.clear_ban_summary':
-            'Eine Anfrage zur Aufhebung der Sperre für @{nickname} wurde erstellt.',
+            'Eine Anfrage zur Aufhebung der Sperre für @@nickname wurde erstellt.',
         'admin.moderation.advance_penalty_summary':
-            'Eine Anfrage für die nächste Strafe für @{nickname} wurde erstellt.',
+            'Eine Anfrage für die nächste Strafe für @@nickname wurde erstellt.',
         'admin.moderation.sent_for_approval':
             'Aktion an die Admin-Freigabewarteschlange gesendet.',
-        'admin.moderation.ban_removed': 'Sperre für @{nickname} aufgehoben.',
+        'admin.moderation.ban_removed': 'Sperre für @@nickname aufgehoben.',
         'admin.moderation.permanent_applied':
-            'Dauerhafte Sperre für @{nickname} angewendet.',
+            'Dauerhafte Sperre für @@nickname angewendet.',
         'admin.moderation.level_applied':
-            'Strafe der Stufe {level} für @{nickname} angewendet.',
+            'Strafe der Stufe @level für @@nickname angewendet.',
         'admin.moderation.action_failed':
             'Sperraktion konnte nicht abgeschlossen werden.',
         'admin.badges.title': 'Badge-Verwaltung',
@@ -9496,14 +9496,14 @@ class AppTranslations extends Translations {
             'Entfernt das aktuelle Badge des ausgewählten Benutzers.',
         'admin.badges.change_approval_title': 'Freigabe für Badge-Änderung',
         'admin.badges.remove_badge_summary':
-            'Eine Anfrage zum Entfernen des Badges für @{nickname} wurde erstellt.',
+            'Eine Anfrage zum Entfernen des Badges für @@nickname wurde erstellt.',
         'admin.badges.give_badge_summary':
-            'Eine Anfrage zur Vergabe des Badges {badge} für @{nickname} wurde erstellt.',
+            'Eine Anfrage zur Vergabe des Badges @badge für @@nickname wurde erstellt.',
         'admin.badges.sent_for_approval':
             'Aktion an die Admin-Freigabewarteschlange gesendet.',
-        'admin.badges.badge_removed': 'Badge für @{nickname} entfernt.',
+        'admin.badges.badge_removed': 'Badge für @@nickname entfernt.',
         'admin.badges.badge_saved':
-            'Badge {badge} für @{nickname} gespeichert.',
+            'Badge @badge für @@nickname gespeichert.',
         'admin.badges.permission_required':
             'Für diese Aktion ist Admin-Berechtigung erforderlich.',
         'admin.badges.invalid_input':
@@ -9516,11 +9516,11 @@ class AppTranslations extends Translations {
             'Anträge kommen aus den Einstellungen. Social-Media- und TurqApp-Profillinks werden unten geöffnet.',
         'admin.badges.no_applications': 'Es gibt noch keine Anträge.',
         'admin.badges.no_badge_selected': 'Kein Badge ausgewählt',
-        'admin.badges.status': 'Status: {status}',
+        'admin.badges.status': 'Status: @status',
         'admin.badges.approve_and_assign': 'Freigeben und Badge vergeben',
         'admin.badges.application_approval_title': 'Freigabe für Badge-Antrag',
         'admin.badges.application_approval_summary':
-            'Das Badge {badge} für @{nickname} wurde zur Freigabe gesendet.',
+            'Das Badge @badge für @@nickname wurde zur Freigabe gesendet.',
         'admin.badges.application_sent_for_approval':
             'Antrag an die Admin-Freigabewarteschlange gesendet.',
         'admin.badges.application_approved':
@@ -9550,7 +9550,7 @@ class AppTranslations extends Translations {
         'admin.push.age': 'Alter',
         'admin.push.started_title': 'Versand gestartet',
         'admin.push.started_body':
-            'Benachrichtigung für {count} Benutzer in die Warteschlange gestellt.',
+            'Benachrichtigung für @count Benutzer in die Warteschlange gestellt.',
         'admin.push.send_failed':
             'Benachrichtigungsversand konnte nicht abgeschlossen werden',
         'admin.push.help':
@@ -9583,7 +9583,7 @@ class AppTranslations extends Translations {
         'admin.reports.restored': 'Inhalt wurde wieder veröffentlicht.',
         'admin.reports.kept_hidden': 'Inhalt wurde verborgen gehalten.',
         'admin.reports.action_failed': 'Admin-Aktion fehlgeschlagen',
-        'admin.reports.total_status': 'Gesamt: {count} • Status: {status}',
+        'admin.reports.total_status': 'Gesamt: @count • Status: @status',
         'admin.reports.category_counts': 'Kategoriezähler',
         'admin.reports.report_reasons': 'Meldegründe',
         'admin.reports.no_category_data': 'Keine Kategoriedaten.',
@@ -9621,7 +9621,7 @@ class AppTranslations extends Translations {
         'admin.story_music.no_tracks': 'Es gibt noch keine Tracks',
         'admin.story_music.untitled': 'Unbenannter Track',
         'admin.story_music.order_usage':
-            'Reihenfolge {order} • Nutzung {count}',
+            'Reihenfolge @order • Nutzung @count',
         'common.cancel': 'Abbrechen',
         'common.save': 'Speichern',
         'common.last_day': 'Letzter Tag',
@@ -9653,7 +9653,7 @@ class AppTranslations extends Translations {
         'common.published': 'Veröffentlicht',
         'permission.required_title': 'Berechtigung erforderlich',
         'permission.rozet_required_body':
-            'Für {feature} ist ein Konto mit dem Abzeichen {badge} oder höher erforderlich.',
+            'Für @feature ist ein Konto mit dem Abzeichen @badge oder höher erforderlich.',
         'common.weekday_full.monday': 'Montag',
         'common.weekday_full.tuesday': 'Dienstag',
         'common.weekday_full.wednesday': 'Mittwoch',
@@ -9929,8 +9929,8 @@ class AppTranslations extends Translations {
             'Standardbild konnte nicht wiederhergestellt werden: @error',
         'slider_admin.sort_failed':
             'Reihenfolge konnte nicht aktualisiert werden: @error',
-        'slider_admin.title': '{title} Slider',
-        'slider_admin.image_label': 'Sliderbild {index}',
+        'slider_admin.title': '@title Slider',
+        'slider_admin.image_label': 'Sliderbild @index',
         'slider_admin.live': 'Live-Bild',
         'slider_admin.hidden_default': 'Versteckter Standard',
         'slider_admin.default_image': 'Standardbild',
@@ -10106,14 +10106,14 @@ class AppTranslations extends Translations {
         'spotify.tab.all': 'Alle',
         'spotify.untitled_track': 'Unbenannter Titel',
         'spotify.usage_summary': '@storyCount Storys • @useCount Verwendungen',
-        'following.followers_tab': 'Follower {count}',
-        'following.following_tab': 'Folgt {count}',
+        'following.followers_tab': 'Follower @count',
+        'following.following_tab': 'Folgt @count',
         'following.none': 'Noch keine Nutzer',
         'following.follow': 'Folgen',
         'following.following': 'Du folgst',
         'following.unfollow_title': 'Nicht mehr folgen',
         'following.unfollow_body':
-            'Möchtest du @{nickname} wirklich nicht mehr folgen?',
+            'Möchtest du @@nickname wirklich nicht mehr folgen?',
         'following.update_failed':
             'Der Follow-Status konnte nicht aktualisiert werden.',
         'following.limit_title': 'Follow-Limit',
@@ -10133,12 +10133,12 @@ class AppTranslations extends Translations {
         'profile.listings': 'Anzeigen',
         'profile.copy_profile_link': 'Profil-Link kopieren',
         'profile.profile_share_title': 'TurqApp Profil',
-        'profile.profile_link_title': '@{nickname} - {app}',
+        'profile.profile_link_title': '@@nickname - @app',
         'profile.private_account_title': 'Privates Konto',
         'profile.private_story_follow_required':
             'Du musst diesem Konto zuerst folgen, um Storys zu sehen.',
         'profile.unfollow_title': 'Entfolgen',
-        'profile.unfollow_body': 'Möchtest du @{nickname} wirklich entfolgen?',
+        'profile.unfollow_body': 'Möchtest du @@nickname wirklich entfolgen?',
         'profile.unfollow_confirm': 'Entfolgen',
         'profile.following_status': 'Du folgst',
         'profile.follow_button': 'Folgen',
@@ -10717,16 +10717,16 @@ class AppTranslations extends Translations {
         'tutoring.user_id_missing':
             'Benutzerkennung konnte nicht gefunden werden.',
         'tutoring.load_failed':
-            'Beim Laden der Anzeigen ist ein Fehler aufgetreten: {error}',
+            'Beim Laden der Anzeigen ist ein Fehler aufgetreten: @error',
         'tutoring.reactivated_title': 'Anzeige reaktiviert',
         'tutoring.reactivated_body': 'Die Anzeige wurde erneut veröffentlicht.',
         'tutoring.user_load_failed':
-            'Beim Laden der Benutzerinformationen ist ein Fehler aufgetreten: {error}',
+            'Beim Laden der Benutzerinformationen ist ein Fehler aufgetreten: @error',
         'tutoring.location_missing': 'Standort nicht gefunden',
         'tutoring.no_listings_in_region':
             'In dieser Region gibt es keine Nachhilfeanzeigen.',
         'tutoring.no_lessons_in_category':
-            'In der Kategorie {category} gibt es keine Kurse.',
+            'In der Kategorie @category gibt es keine Kurse.',
         'tutoring.search_empty':
             'Es wurde keine passende Anzeige für deine Suche gefunden.',
         'tutoring.search_empty_info':
@@ -11287,7 +11287,7 @@ class AppTranslations extends Translations {
         'edit_profile.career_profile': 'Karriereprofil',
         'edit_profile.update_success':
             'Deine Profilinformationen wurden aktualisiert!',
-        'edit_profile.update_failed': 'Aktualisierungsfehler: {error}',
+        'edit_profile.update_failed': 'Aktualisierungsfehler: @error',
         'edit_profile.remove_photo_title': 'Profilbild entfernen',
         'edit_profile.remove_photo_message':
             'Dein Profilbild wird entfernt und der Standard-Avatar verwendet. Bist du sicher?',
@@ -11307,7 +11307,7 @@ class AppTranslations extends Translations {
         'delete_account.resend': 'Erneut senden',
         'delete_account.send_code': 'Code senden',
         'delete_account.validity_notice':
-            'Der Code ist 1 Stunde gültig. Deine Löschanfrage wird nach {days} Tagen endgültig verarbeitet.',
+            'Der Code ist 1 Stunde gültig. Deine Löschanfrage wird nach @days Tagen endgültig verarbeitet.',
         'delete_account.processing': 'Wird verarbeitet...',
         'delete_account.delete_my_account': 'Mein Konto löschen',
         'delete_account.no_email_title': 'Warnung',
@@ -11325,7 +11325,7 @@ class AppTranslations extends Translations {
         'delete_account.verify_failed': 'Code konnte nicht bestätigt werden.',
         'delete_account.request_received_title': 'Anfrage erhalten',
         'delete_account.request_received_body':
-            'Dein Konto wird nach {days} Tagen dauerhaft gelöscht.',
+            'Dein Konto wird nach @days Tagen dauerhaft gelöscht.',
         'delete_account.request_failed':
             'Beim Löschen deines Kontos ist ein Problem aufgetreten. Bitte versuche es später erneut.',
         'editor_nickname.title': 'Benutzername',
@@ -11346,9 +11346,9 @@ class AppTranslations extends Translations {
         'editor_nickname.cooldown_limit':
             'In der ersten Stunde kann er nur 3 Mal geändert werden',
         'editor_nickname.change_after_days':
-            'Benutzername kann wieder geändert werden in {days}T {hours}Std',
+            'Benutzername kann wieder geändert werden in @daysT @hoursStd',
         'editor_nickname.change_after_hours':
-            'Benutzername kann wieder geändert werden in {hours}Std',
+            'Benutzername kann wieder geändert werden in @hoursStd',
         'editor_nickname.error_min_length':
             'Der Benutzername muss mindestens 8 Zeichen lang sein.',
         'editor_nickname.error_taken':
@@ -11502,7 +11502,7 @@ class AppTranslations extends Translations {
         'post_creator.poll_option_1d': '1 T',
         'post_creator.poll_option_3d': '3 T',
         'post_creator.poll_option_7d': '7 T',
-        'post_creator.poll_option': 'Option {index}',
+        'post_creator.poll_option': 'Option @index',
         'post_creator.poll_add_option': '+ Noch eine Option hinzufügen',
         'post_creator.poll_min_options':
             'Mindestens zwei Optionen sind erforderlich.',
@@ -11527,7 +11527,7 @@ class AppTranslations extends Translations {
             'Nur meine Follower können erneut teilen.',
         'post_creator.reshare_closed_desc': 'Weiterteilen ist deaktiviert.',
         'post_creator.schedule_title': 'Geplanter Veröffentlichungszeitpunkt',
-        'post_creator.publish_item': 'Beitrag {index}',
+        'post_creator.publish_item': 'Beitrag @index',
         'post_creator.preparing_posts': 'Beiträge werden vorbereitet...',
         'post_creator.uploading_media': 'Mediendateien werden hochgeladen...',
         'post_creator.saving_to_database':
@@ -11557,29 +11557,29 @@ class AppTranslations extends Translations {
         'post_creator.photo_with_video_forbidden':
             'Du kannst keine Fotos hinzufügen, wenn bereits ein Video ausgewählt ist. Es ist nur 1 Video erlaubt.',
         'post_creator.max_photo_count':
-            'Du kannst höchstens {count} Fotos auswählen.',
+            'Du kannst höchstens @count Fotos auswählen.',
         'post_creator.max_photo_add':
-            'Du kannst höchstens {count} Fotos hinzufügen. Aktuell: {current}, Hinzuzufügen: {adding}',
-        'post_creator.photo_validation_prefix': 'Foto {index}: {error}',
+            'Du kannst höchstens @count Fotos hinzufügen. Aktuell: @current, Hinzuzufügen: @adding',
+        'post_creator.photo_validation_prefix': 'Foto @index: @error',
         'post_creator.photos_compression_failed':
             'Fotos wurden hinzugefügt, aber die Komprimierung ist fehlgeschlagen.',
         'post_creator.warning_title': 'Warnung',
         'post_creator.success_title': 'Erfolgreich!',
-        'post_creator.photo_added': 'Foto hinzugefügt. {saved}',
+        'post_creator.photo_added': 'Foto hinzugefügt. @saved',
         'post_creator.photo_added_no_compress':
             'Foto hinzugefügt, aber die Komprimierung ist fehlgeschlagen.',
         'post_creator.max_video_count':
-            'Du kannst höchstens {count} Videos auswählen.',
+            'Du kannst höchstens @count Videos auswählen.',
         'post_creator.no_post_uploaded':
             'Kein Beitrag konnte hochgeladen werden',
         'post_creator.image_upload_failed':
-            'Bild {index} konnte nicht hochgeladen werden',
+            'Bild @index konnte nicht hochgeladen werden',
         'post_creator.video_reduce_failed':
             'Das Video konnte nicht unter 35 MB reduziert werden. Unter 35 MB wird direkt hochgeladen, über 60 MB wird nicht unterstützt.',
         'post_creator.video_upload_failed':
             'Video konnte nicht hochgeladen werden',
         'post_creator.post_upload_failed':
-            'Beitrag {index} konnte nicht hochgeladen werden',
+            'Beitrag @index konnte nicht hochgeladen werden',
         'post_creator.upload_success':
             'Beiträge wurden erfolgreich veröffentlicht!',
         'post_creator.upload_error':
@@ -11599,7 +11599,7 @@ class AppTranslations extends Translations {
         'permissions.dialog.update_device_settings':
             'Geräteeinstellungen aktualisieren',
         'permissions.dialog.update_body':
-            'Öffne die Geräteeinstellungen. Du kannst die Berechtigung "{title}" jederzeit aktualisieren.',
+            'Öffne die Geräteeinstellungen. Du kannst die Berechtigung "@title" jederzeit aktualisieren.',
         'permissions.dialog.open_settings': 'Geräteeinstellungen öffnen',
         'permissions.dialog.not_now': 'Jetzt nicht',
         'permissions.quota.media_cache': 'Medien-Cache',
@@ -11607,11 +11607,11 @@ class AppTranslations extends Translations {
         'permissions.quota.metadata': 'Metadaten',
         'permissions.quota.reserve': 'Reservierter Speicher',
         'permissions.quota.os_safety': 'OS-Sicherheitsreserve',
-        'permissions.quota.plan_distribution': '{gb} GB Planverteilung',
+        'permissions.quota.plan_distribution': '@gb GB Planverteilung',
         'permissions.quota.soft_stop': 'Stream-Cache Soft Stop',
         'permissions.quota.hard_stop': 'Stream-Cache Hard Stop',
         'permissions.quota.recent_window':
-            'Schutzfenster für aktuelle Videos: {count} Inhalte',
+            'Schutzfenster für aktuelle Videos: @count Inhalte',
         'permissions.quota.active_stream': 'Aktive Stream-Nutzung',
         'permissions.quota.soft_remaining': 'Verbleibend bis Soft Stop',
         'permissions.quota.hard_remaining': 'Verbleibend bis Hard Stop',
@@ -11630,13 +11630,13 @@ class AppTranslations extends Translations {
             'Legt fest, wie weit Start- und Vorausladefenster im WLAN gehen dürfen.',
         'permissions.detail.set_preferences': 'Lege deine Einstellungen fest',
         'permissions.detail.preference_body':
-            'Du kannst entscheiden, ob TurqApp auf dein {access} zugreifen darf. Diese Auswahl kannst du jederzeit ändern. {title} verbessert einige App-Funktionen.',
+            'Du kannst entscheiden, ob TurqApp auf dein @access zugreifen darf. Diese Auswahl kannst du jederzeit ändern. @title verbessert einige App-Funktionen.',
         'permissions.detail.device_setting': 'Deine Geräteeinstellung:',
         'permissions.detail.other_option': 'Andere Option',
         'permissions.detail.allowed_desc':
-            'TurqApp darf auf dein {access} zugreifen.',
+            'TurqApp darf auf dein @access zugreifen.',
         'permissions.detail.denied_desc':
-            'TurqApp darf nicht auf dein {access} zugreifen.',
+            'TurqApp darf nicht auf dein @access zugreifen.',
         'permissions.detail.go_device_settings':
             'Gehe in die Geräteeinstellungen, um deine Berechtigungen zu aktualisieren.',
         'permissions.item.camera.title': 'Kamera',
@@ -11852,7 +11852,7 @@ class AppTranslations extends Translations {
         'account_center.personal_details': 'Informations personnelles',
         'account_center.security': 'Securite',
         'account_center.active_account_title': 'Compte actif',
-        'account_center.active_account_body': '@{username} est deja actif.',
+        'account_center.active_account_body': '@@username est deja actif.',
         'account_center.reauth_title': 'Nouvelle connexion requise',
         'account_center.reauth_body':
             'Veuillez entrer de nouveau votre mot de passe pour changer de compte.',
@@ -11863,8 +11863,8 @@ class AppTranslations extends Translations {
             'Vous devez d abord passer a un autre compte.',
         'account_center.remove_account_title': 'Supprimer le compte',
         'account_center.remove_account_body':
-            'Voulez-vous retirer @{username} de cet appareil ?',
-        'account_center.account_removed': '@{username} a ete retire.',
+            'Voulez-vous retirer @@username de cet appareil ?',
+        'account_center.account_removed': '@@username a ete retire.',
         'account_center.single_device_title': 'Connexion sur un seul appareil',
         'account_center.single_device_desc':
             'Lorsqu une connexion est effectuee sur un autre appareil, la session en cours est fermee et un mot de passe sera requis.',
@@ -11886,11 +11886,11 @@ class AppTranslations extends Translations {
         'about_profile.title': 'A propos de ce compte',
         'about_profile.description':
             'Cette page montre les informations publiques essentielles et l historique de ce compte.',
-        'about_profile.joined_on': 'A rejoint le {date}',
+        'about_profile.joined_on': 'A rejoint le @date',
         'policies.center_title': 'Centre des politiques',
         'policies.center_desc':
             'Consultez ici les regles, les conditions et les documents d information de TurqApp.',
-        'policies.last_updated': 'Derniere mise a jour : {date}',
+        'policies.last_updated': 'Derniere mise a jour : @date',
         'language.title': 'Langue',
         'language.subtitle': 'Choisis la langue de l application.',
         'language.note':
@@ -12242,8 +12242,8 @@ class AppTranslations extends Translations {
             'Impossible de restaurer limage par defaut : @error',
         'slider_admin.sort_failed':
             'Impossible de mettre a jour lordre : @error',
-        'slider_admin.title': 'Slider {title}',
-        'slider_admin.image_label': 'Image du slider {index}',
+        'slider_admin.title': 'Slider @title',
+        'slider_admin.image_label': 'Image du slider @index',
         'slider_admin.live': 'Image active',
         'slider_admin.hidden_default': 'Par defaut masquee',
         'slider_admin.default_image': 'Image par defaut',
@@ -12486,7 +12486,7 @@ class AppTranslations extends Translations {
         'common.published': 'Publie',
         'permission.required_title': 'Autorisation requise',
         'permission.rozet_required_body':
-            '{feature} nécessite un compte avec le badge {badge} ou supérieur.',
+            '@feature nécessite un compte avec le badge @badge ou supérieur.',
         'common.weekday_full.monday': 'Lundi',
         'common.weekday_full.tuesday': 'Mardi',
         'common.weekday_full.wednesday': 'Mercredi',
@@ -13038,16 +13038,16 @@ class AppTranslations extends Translations {
             'Il n y a pas d annonces de cours particuliers expirees.',
         'tutoring.user_id_missing': 'Identifiant utilisateur introuvable.',
         'tutoring.load_failed':
-            'Une erreur s est produite lors du chargement des annonces : {error}',
+            'Une erreur s est produite lors du chargement des annonces : @error',
         'tutoring.reactivated_title': 'Annonce reactivee',
         'tutoring.reactivated_body': 'L annonce a ete republiee.',
         'tutoring.user_load_failed':
-            'Une erreur s est produite lors du chargement des informations utilisateur : {error}',
+            'Une erreur s est produite lors du chargement des informations utilisateur : @error',
         'tutoring.location_missing': 'Localisation introuvable',
         'tutoring.no_listings_in_region':
             'Aucune annonce de cours dans cette zone.',
         'tutoring.no_lessons_in_category':
-            'Aucun cours dans la categorie {category}.',
+            'Aucun cours dans la categorie @category.',
         'tutoring.search_empty':
             'Aucune annonce ne correspond a votre recherche.',
         'tutoring.search_empty_info':
@@ -13589,13 +13589,13 @@ class AppTranslations extends Translations {
         'edit_profile.title': 'Informations du profil',
         'profile.copy_profile_link': 'Copier le lien du profil',
         'profile.profile_share_title': 'Profil TurqApp',
-        'profile.profile_link_title': '@{nickname} - {app}',
+        'profile.profile_link_title': '@@nickname - @app',
         'profile.private_account_title': 'Compte prive',
         'profile.private_story_follow_required':
             'Vous devez d abord suivre ce compte pour voir les stories.',
         'profile.unfollow_title': 'Ne plus suivre',
         'profile.unfollow_body':
-            'Voulez-vous vraiment ne plus suivre @{nickname} ?',
+            'Voulez-vous vraiment ne plus suivre @@nickname ?',
         'profile.unfollow_confirm': 'Ne plus suivre',
         'profile.following_status': 'Abonne',
         'profile.follow_button': 'Suivre',
@@ -13621,7 +13621,7 @@ class AppTranslations extends Translations {
         'edit_profile.career_profile': 'Profil de carriere',
         'edit_profile.update_success':
             'Les informations de votre profil ont ete mises a jour !',
-        'edit_profile.update_failed': 'Erreur de mise a jour : {error}',
+        'edit_profile.update_failed': 'Erreur de mise a jour : @error',
         'edit_profile.remove_photo_title': 'Supprimer la photo de profil',
         'edit_profile.remove_photo_message':
             'Votre photo de profil sera supprimee et l avatar par defaut sera utilise. Confirmez-vous ?',
@@ -13641,7 +13641,7 @@ class AppTranslations extends Translations {
         'delete_account.resend': 'Renvoyer',
         'delete_account.send_code': 'Envoyer le code',
         'delete_account.validity_notice':
-            'Le code est valide pendant 1 heure. Votre demande de suppression sera traitee definitivement apres {days} jours.',
+            'Le code est valide pendant 1 heure. Votre demande de suppression sera traitee definitivement apres @days jours.',
         'delete_account.processing': 'Traitement...',
         'delete_account.delete_my_account': 'Supprimer mon compte',
         'delete_account.no_email_title': 'Alerte',
@@ -13675,9 +13675,9 @@ class AppTranslations extends Translations {
         'editor_nickname.cooldown_limit':
             'Il ne peut etre modifie que 3 fois pendant la premiere heure',
         'editor_nickname.change_after_days':
-            'Le nom d utilisateur pourra etre modifie de nouveau dans {days}j {hours}h',
+            'Le nom d utilisateur pourra etre modifie de nouveau dans @daysj @hoursh',
         'editor_nickname.change_after_hours':
-            'Le nom d utilisateur pourra etre modifie de nouveau dans {hours}h',
+            'Le nom d utilisateur pourra etre modifie de nouveau dans @hoursh',
         'editor_nickname.error_min_length':
             'Le nom d utilisateur doit contenir au moins 8 caracteres.',
         'editor_nickname.error_taken': 'Ce nom d utilisateur est deja pris.',
@@ -13845,12 +13845,12 @@ class AppTranslations extends Translations {
         'editor_email.title': 'Verification de l e-mail',
         'editor_email.email_hint': 'Votre adresse e-mail de compte',
         'editor_email.send_code': 'Envoyer le code de verification',
-        'editor_email.resend_in': 'Nouveau renvoi dans {seconds}s',
+        'editor_email.resend_in': 'Nouveau renvoi dans @secondss',
         'editor_email.note':
             'Cette verification est effectuee pour des raisons de securite. Vous pouvez continuer a utiliser l application meme sans la confirmer.',
         'editor_email.code_hint': 'Code de verification a 6 chiffres',
         'editor_email.verify_confirm': 'Verifier le code et confirmer',
-        'editor_email.wait': 'Veuillez patienter {seconds} secondes.',
+        'editor_email.wait': 'Veuillez patienter @seconds secondes.',
         'editor_email.session_missing':
             'Session introuvable. Veuillez vous reconnecter.',
         'editor_email.email_missing':
@@ -13873,10 +13873,10 @@ class AppTranslations extends Translations {
         'editor_phone.title': 'Numero de telephone',
         'editor_phone.phone_hint': 'Numero de telephone',
         'editor_phone.send_approval': 'Envoyer l e-mail de verification',
-        'editor_phone.resend_in': 'Nouveau renvoi dans {seconds}s',
+        'editor_phone.resend_in': 'Nouveau renvoi dans @secondss',
         'editor_phone.code_hint': 'Code de verification a 6 chiffres',
         'editor_phone.verify_update': 'Verifier le code et mettre a jour',
-        'editor_phone.wait': 'Veuillez patienter {seconds} secondes.',
+        'editor_phone.wait': 'Veuillez patienter @seconds secondes.',
         'editor_phone.invalid_phone':
             'Veuillez saisir un numero a 10 chiffres commencant par 5.',
         'editor_phone.session_missing':
@@ -13918,20 +13918,20 @@ class AppTranslations extends Translations {
         'statistics.follower_growth': 'Croissance des abonnes',
         'interests.personalize_feed': 'Personnalise ton fil',
         'interests.selection_range':
-            'Selectionne au moins {min} et au maximum {max} centres d interet.',
-        'interests.selected_count': '{selected}/{max} selectionnes',
+            'Selectionne au moins @min et au maximum @max centres d interet.',
+        'interests.selected_count': '@selected/@max selectionnes',
         'interests.ready': 'Pret',
         'interests.search_hint': 'Rechercher des centres d interet',
         'interests.limit_title': 'Limite de selection',
         'interests.limit_body':
-            'Vous pouvez selectionner au maximum {max} centres d interet.',
+            'Vous pouvez selectionner au maximum @max centres d interet.',
         'interests.min_title': 'Selection incomplete',
         'interests.min_body':
-            'Vous devez selectionner au moins {min} centres d interet.',
+            'Vous devez selectionner au moins @min centres d interet.',
         'view_changer.title': 'Affichage',
         'view_changer.classic': 'Affichage classique',
         'view_changer.modern': 'Affichage moderne',
-        'social_links.title': 'Liens ({count})',
+        'social_links.title': 'Liens (@count)',
         'social_links.add': 'Ajouter',
         'social_links.add_title': 'Ajouter un lien',
         'social_links.label_title': 'Titre',
@@ -14589,7 +14589,7 @@ class AppTranslations extends Translations {
         'account_center.personal_details': 'Dettagli personali',
         'account_center.security': 'Sicurezza',
         'account_center.active_account_title': 'Account attivo',
-        'account_center.active_account_body': '@{username} e gia attivo.',
+        'account_center.active_account_body': '@@username e gia attivo.',
         'account_center.reauth_title': 'Nuovo accesso richiesto',
         'account_center.reauth_body':
             'Inserisci di nuovo la password per cambiare account.',
@@ -14599,8 +14599,8 @@ class AppTranslations extends Translations {
             'Devi prima passare a un altro account.',
         'account_center.remove_account_title': 'Rimuovi account',
         'account_center.remove_account_body':
-            'Vuoi rimuovere @{username} da questo dispositivo?',
-        'account_center.account_removed': '@{username} e stato rimosso.',
+            'Vuoi rimuovere @@username da questo dispositivo?',
+        'account_center.account_removed': '@@username e stato rimosso.',
         'account_center.single_device_title': 'Accesso da un solo dispositivo',
         'account_center.single_device_desc':
             'Quando effettui l accesso da un altro dispositivo, la sessione corrente viene chiusa e sara richiesta la password.',
@@ -14622,11 +14622,11 @@ class AppTranslations extends Translations {
         'about_profile.title': 'Informazioni su questo account',
         'about_profile.description':
             'Questa pagina mostra le informazioni pubbliche essenziali e la cronologia di questo account.',
-        'about_profile.joined_on': 'Iscritto il {date}',
+        'about_profile.joined_on': 'Iscritto il @date',
         'policies.center_title': 'Centro politiche',
         'policies.center_desc':
             'Qui puoi consultare regole, termini e documenti informativi di TurqApp.',
-        'policies.last_updated': 'Ultimo aggiornamento: {date}',
+        'policies.last_updated': 'Ultimo aggiornamento: @date',
         'language.title': 'Lingua',
         'language.subtitle': 'Scegli la lingua dell app.',
         'language.note':
@@ -14978,8 +14978,8 @@ class AppTranslations extends Translations {
         'slider_admin.restore_failed':
             'Impossibile ripristinare limmagine predefinita: @error',
         'slider_admin.sort_failed': 'Impossibile aggiornare l ordine: @error',
-        'slider_admin.title': 'Slider {title}',
-        'slider_admin.image_label': 'Immagine slider {index}',
+        'slider_admin.title': 'Slider @title',
+        'slider_admin.image_label': 'Immagine slider @index',
         'slider_admin.live': 'Immagine live',
         'slider_admin.hidden_default': 'Predefinita nascosta',
         'slider_admin.default_image': 'Immagine predefinita',
@@ -15216,7 +15216,7 @@ class AppTranslations extends Translations {
         'common.published': 'Pubblicato',
         'permission.required_title': 'Autorizzazione richiesta',
         'permission.rozet_required_body':
-            '{feature} richiede un account con badge {badge} o superiore.',
+            '@feature richiede un account con badge @badge o superiore.',
         'common.weekday_full.monday': 'Lunedi',
         'common.weekday_full.tuesday': 'Martedi',
         'common.weekday_full.wednesday': 'Mercoledi',
@@ -15754,16 +15754,16 @@ class AppTranslations extends Translations {
             'Non ci sono annunci di lezioni private scaduti.',
         'tutoring.user_id_missing': 'Impossibile trovare l identita utente.',
         'tutoring.load_failed':
-            'Si e verificato un errore durante il caricamento degli annunci: {error}',
+            'Si e verificato un errore durante il caricamento degli annunci: @error',
         'tutoring.reactivated_title': 'Annuncio riattivato',
         'tutoring.reactivated_body': 'L annuncio e stato pubblicato di nuovo.',
         'tutoring.user_load_failed':
-            'Si e verificato un errore durante il caricamento delle informazioni utente: {error}',
+            'Si e verificato un errore durante il caricamento delle informazioni utente: @error',
         'tutoring.location_missing': 'Posizione non trovata',
         'tutoring.no_listings_in_region':
             'Non ci sono annunci di lezioni in questa zona.',
         'tutoring.no_lessons_in_category':
-            'Non ci sono lezioni nella categoria {category}.',
+            'Non ci sono lezioni nella categoria @category.',
         'tutoring.search_empty':
             'Nessun annuncio corrisponde alla tua ricerca.',
         'tutoring.search_empty_info':
@@ -16289,13 +16289,13 @@ class AppTranslations extends Translations {
         'edit_profile.title': 'Informazioni profilo',
         'profile.copy_profile_link': 'Copia link profilo',
         'profile.profile_share_title': 'Profilo TurqApp',
-        'profile.profile_link_title': '@{nickname} - {app}',
+        'profile.profile_link_title': '@@nickname - @app',
         'profile.private_account_title': 'Account privato',
         'profile.private_story_follow_required':
             'Devi seguire prima questo account per vedere le storie.',
         'profile.unfollow_title': 'Smetti di seguire',
         'profile.unfollow_body':
-            'Vuoi davvero smettere di seguire @{nickname}?',
+            'Vuoi davvero smettere di seguire @@nickname?',
         'profile.unfollow_confirm': 'Smetti di seguire',
         'profile.following_status': 'Lo segui',
         'profile.follow_button': 'Segui',
@@ -16320,7 +16320,7 @@ class AppTranslations extends Translations {
         'edit_profile.career_profile': 'Profilo carriera',
         'edit_profile.update_success':
             'Le informazioni del tuo profilo sono state aggiornate!',
-        'edit_profile.update_failed': 'Errore di aggiornamento: {error}',
+        'edit_profile.update_failed': 'Errore di aggiornamento: @error',
         'edit_profile.remove_photo_title': 'Rimuovi foto profilo',
         'edit_profile.remove_photo_message':
             'La tua foto profilo verra rimossa e verra usato l avatar predefinito. Confermi?',
@@ -16340,7 +16340,7 @@ class AppTranslations extends Translations {
         'delete_account.resend': 'Invia di nuovo',
         'delete_account.send_code': 'Invia codice',
         'delete_account.validity_notice':
-            'Il codice e valido per 1 ora. La tua richiesta di eliminazione verra elaborata in modo definitivo dopo {days} giorni.',
+            'Il codice e valido per 1 ora. La tua richiesta di eliminazione verra elaborata in modo definitivo dopo @days giorni.',
         'delete_account.processing': 'Elaborazione...',
         'delete_account.delete_my_account': 'Elimina il mio account',
         'delete_account.no_email_title': 'Avviso',
@@ -16373,9 +16373,9 @@ class AppTranslations extends Translations {
         'editor_nickname.cooldown_limit':
             'Puo essere cambiato solo 3 volte nella prima ora',
         'editor_nickname.change_after_days':
-            'Il nome utente potra essere cambiato di nuovo tra {days}g {hours}h',
+            'Il nome utente potra essere cambiato di nuovo tra @daysg @hoursh',
         'editor_nickname.change_after_hours':
-            'Il nome utente potra essere cambiato di nuovo tra {hours}h',
+            'Il nome utente potra essere cambiato di nuovo tra @hoursh',
         'editor_nickname.error_min_length':
             'Il nome utente deve contenere almeno 8 caratteri.',
         'editor_nickname.error_taken': 'Questo nome utente e gia in uso.',
@@ -16536,12 +16536,12 @@ class AppTranslations extends Translations {
         'editor_email.title': 'Verifica e-mail',
         'editor_email.email_hint': 'Il tuo indirizzo e-mail del profilo',
         'editor_email.send_code': 'Invia codice di verifica',
-        'editor_email.resend_in': 'Nuovo invio tra {seconds}s',
+        'editor_email.resend_in': 'Nuovo invio tra @secondss',
         'editor_email.note':
             'Questa verifica serve per sicurezza. Puoi continuare a usare l app anche senza confermarla.',
         'editor_email.code_hint': 'Codice di verifica a 6 cifre',
         'editor_email.verify_confirm': 'Verifica il codice e conferma',
-        'editor_email.wait': 'Attendi {seconds} secondi.',
+        'editor_email.wait': 'Attendi @seconds secondi.',
         'editor_email.session_missing':
             'Sessione non trovata. Accedi di nuovo.',
         'editor_email.email_missing':
@@ -16563,10 +16563,10 @@ class AppTranslations extends Translations {
         'editor_phone.title': 'Numero di telefono',
         'editor_phone.phone_hint': 'Numero di telefono',
         'editor_phone.send_approval': 'Invia e-mail di conferma',
-        'editor_phone.resend_in': 'Nuovo invio tra {seconds}s',
+        'editor_phone.resend_in': 'Nuovo invio tra @secondss',
         'editor_phone.code_hint': 'Codice di verifica a 6 cifre',
         'editor_phone.verify_update': 'Verifica il codice e aggiorna',
-        'editor_phone.wait': 'Attendi {seconds} secondi.',
+        'editor_phone.wait': 'Attendi @seconds secondi.',
         'editor_phone.invalid_phone':
             'Inserisci un numero di 10 cifre che inizi con 5.',
         'editor_phone.session_missing':
@@ -16606,18 +16606,18 @@ class AppTranslations extends Translations {
         'statistics.follower_growth': 'Crescita follower',
         'interests.personalize_feed': 'Personalizza il tuo feed',
         'interests.selection_range':
-            'Seleziona almeno {min} e al massimo {max} interessi.',
-        'interests.selected_count': '{selected}/{max} selezionati',
+            'Seleziona almeno @min e al massimo @max interessi.',
+        'interests.selected_count': '@selected/@max selezionati',
         'interests.ready': 'Pronto',
         'interests.search_hint': 'Cerca interessi',
         'interests.limit_title': 'Limite di selezione',
-        'interests.limit_body': 'Puoi selezionare al massimo {max} interessi.',
+        'interests.limit_body': 'Puoi selezionare al massimo @max interessi.',
         'interests.min_title': 'Selezione incompleta',
-        'interests.min_body': 'Devi selezionare almeno {min} interessi.',
+        'interests.min_body': 'Devi selezionare almeno @min interessi.',
         'view_changer.title': 'Vista',
         'view_changer.classic': 'Vista classica',
         'view_changer.modern': 'Vista moderna',
-        'social_links.title': 'Collegamenti ({count})',
+        'social_links.title': 'Collegamenti (@count)',
         'social_links.add': 'Aggiungi',
         'social_links.add_title': 'Aggiungi collegamento',
         'social_links.label_title': 'Titolo',
@@ -17271,7 +17271,7 @@ class AppTranslations extends Translations {
         'account_center.personal_details': 'Личные данные',
         'account_center.security': 'Безопасность',
         'account_center.active_account_title': 'Активный аккаунт',
-        'account_center.active_account_body': '@{username} уже активен.',
+        'account_center.active_account_body': '@@username уже активен.',
         'account_center.reauth_title': 'Требуется повторный вход',
         'account_center.reauth_body':
             'Пожалуйста, снова введите пароль, чтобы переключить аккаунт.',
@@ -17281,8 +17281,8 @@ class AppTranslations extends Translations {
             'Сначала нужно переключиться на другой аккаунт.',
         'account_center.remove_account_title': 'Удалить аккаунт',
         'account_center.remove_account_body':
-            'Удалить @{username} с этого устройства?',
-        'account_center.account_removed': '@{username} удален.',
+            'Удалить @@username с этого устройства?',
+        'account_center.account_removed': '@@username удален.',
         'account_center.single_device_title': 'Вход с одного устройства',
         'account_center.single_device_desc':
             'При входе с другого устройства текущая сессия будет закрыта и потребуется пароль.',
@@ -17303,11 +17303,11 @@ class AppTranslations extends Translations {
         'about_profile.title': 'Об этом аккаунте',
         'about_profile.description':
             'На этой странице показаны основные публичные сведения и история этого аккаунта.',
-        'about_profile.joined_on': 'Присоединился {date}',
+        'about_profile.joined_on': 'Присоединился @date',
         'policies.center_title': 'Центр политик',
         'policies.center_desc':
             'Здесь можно просмотреть правила, условия и информационные документы TurqApp.',
-        'policies.last_updated': 'Последнее обновление: {date}',
+        'policies.last_updated': 'Последнее обновление: @date',
         'language.title': 'Язык',
         'language.subtitle': 'Выберите язык приложения.',
         'language.note':
@@ -17652,8 +17652,8 @@ class AppTranslations extends Translations {
         'slider_admin.restore_failed':
             'Не удалось восстановить стандартное изображение: @error',
         'slider_admin.sort_failed': 'Не удалось обновить порядок: @error',
-        'slider_admin.title': 'Слайдер {title}',
-        'slider_admin.image_label': 'Изображение слайдера {index}',
+        'slider_admin.title': 'Слайдер @title',
+        'slider_admin.image_label': 'Изображение слайдера @index',
         'slider_admin.live': 'Активное изображение',
         'slider_admin.hidden_default': 'Скрытое стандартное',
         'slider_admin.default_image': 'Стандартное изображение',
@@ -17889,7 +17889,7 @@ class AppTranslations extends Translations {
         'common.published': 'Опубликовано',
         'permission.required_title': 'Требуется разрешение',
         'permission.rozet_required_body':
-            'Для {feature} требуется аккаунт со значком {badge} или выше.',
+            'Для @feature требуется аккаунт со значком @badge или выше.',
         'common.weekday_full.monday': 'Понедельник',
         'common.weekday_full.tuesday': 'Вторник',
         'common.weekday_full.wednesday': 'Среда',
@@ -18411,15 +18411,15 @@ class AppTranslations extends Translations {
             'Объявлений о частных уроках с истекшим сроком нет.',
         'tutoring.user_id_missing': 'Не удалось определить пользователя.',
         'tutoring.load_failed':
-            'Произошла ошибка при загрузке объявлений: {error}',
+            'Произошла ошибка при загрузке объявлений: @error',
         'tutoring.reactivated_title': 'Объявление снова активно',
         'tutoring.reactivated_body': 'Объявление снова опубликовано.',
         'tutoring.user_load_failed':
-            'Произошла ошибка при загрузке данных пользователя: {error}',
+            'Произошла ошибка при загрузке данных пользователя: @error',
         'tutoring.location_missing': 'Местоположение не найдено',
         'tutoring.no_listings_in_region':
             'В этом районе нет объявлений о частных уроках.',
-        'tutoring.no_lessons_in_category': 'В категории {category} нет уроков.',
+        'tutoring.no_lessons_in_category': 'В категории @category нет уроков.',
         'tutoring.search_empty':
             'По вашему запросу не найдено ни одного объявления.',
         'tutoring.search_empty_info':
@@ -18924,13 +18924,13 @@ class AppTranslations extends Translations {
         'edit_profile.title': 'Данные профиля',
         'profile.copy_profile_link': 'Скопировать ссылку профиля',
         'profile.profile_share_title': 'Профиль TurqApp',
-        'profile.profile_link_title': '@{nickname} - {app}',
+        'profile.profile_link_title': '@@nickname - @app',
         'profile.private_account_title': 'Закрытый аккаунт',
         'profile.private_story_follow_required':
             'Сначала нужно подписаться на этот аккаунт, чтобы видеть истории.',
         'profile.unfollow_title': 'Отписаться',
         'profile.unfollow_body':
-            'Вы уверены, что хотите отписаться от @{nickname}?',
+            'Вы уверены, что хотите отписаться от @@nickname?',
         'profile.unfollow_confirm': 'Отписаться',
         'profile.following_status': 'Вы подписаны',
         'profile.follow_button': 'Подписаться',
@@ -18955,7 +18955,7 @@ class AppTranslations extends Translations {
         'edit_profile.address_info': 'Информация об адресе',
         'edit_profile.career_profile': 'Карьерный профиль',
         'edit_profile.update_success': 'Данные вашего профиля обновлены!',
-        'edit_profile.update_failed': 'Ошибка обновления: {error}',
+        'edit_profile.update_failed': 'Ошибка обновления: @error',
         'edit_profile.remove_photo_title': 'Удалить фото профиля',
         'edit_profile.remove_photo_message':
             'Фото профиля будет удалено, и будет использован стандартный аватар. Продолжить?',
@@ -18975,7 +18975,7 @@ class AppTranslations extends Translations {
         'delete_account.resend': 'Отправить снова',
         'delete_account.send_code': 'Отправить код',
         'delete_account.validity_notice':
-            'Код действует 1 час. Ваш запрос на удаление будет окончательно обработан через {days} дней.',
+            'Код действует 1 час. Ваш запрос на удаление будет окончательно обработан через @days дней.',
         'delete_account.processing': 'Обработка...',
         'delete_account.delete_my_account': 'Удалить мой аккаунт',
         'delete_account.no_email_title': 'Предупреждение',
@@ -19007,9 +19007,9 @@ class AppTranslations extends Translations {
         'editor_nickname.cooldown_limit':
             'В первый час можно изменить только 3 раза',
         'editor_nickname.change_after_days':
-            'Имя пользователя можно будет изменить снова через {days}д {hours}ч',
+            'Имя пользователя можно будет изменить снова через @daysд @hoursч',
         'editor_nickname.change_after_hours':
-            'Имя пользователя можно будет изменить снова через {hours}ч',
+            'Имя пользователя можно будет изменить снова через @hoursч',
         'editor_nickname.error_min_length':
             'Имя пользователя должно содержать не менее 8 символов.',
         'editor_nickname.error_taken': 'Это имя пользователя уже занято.',
@@ -19169,12 +19169,12 @@ class AppTranslations extends Translations {
         'editor_email.title': 'Подтверждение e-mail',
         'editor_email.email_hint': 'Ваш адрес электронной почты аккаунта',
         'editor_email.send_code': 'Отправить код подтверждения',
-        'editor_email.resend_in': 'Повторная отправка через {seconds}s',
+        'editor_email.resend_in': 'Повторная отправка через @secondss',
         'editor_email.note':
             'Это подтверждение нужно для безопасности. Вы можете продолжать пользоваться приложением даже без подтверждения.',
         'editor_email.code_hint': '6-значный код подтверждения',
         'editor_email.verify_confirm': 'Подтвердить код и подтвердить e-mail',
-        'editor_email.wait': 'Пожалуйста, подождите {seconds} секунд.',
+        'editor_email.wait': 'Пожалуйста, подождите @seconds секунд.',
         'editor_email.session_missing':
             'Сессия не найдена. Пожалуйста, войдите снова.',
         'editor_email.email_missing':
@@ -19194,10 +19194,10 @@ class AppTranslations extends Translations {
         'editor_phone.title': 'Номер телефона',
         'editor_phone.phone_hint': 'Номер телефона',
         'editor_phone.send_approval': 'Отправить письмо подтверждения',
-        'editor_phone.resend_in': 'Повторная отправка через {seconds}s',
+        'editor_phone.resend_in': 'Повторная отправка через @secondss',
         'editor_phone.code_hint': '6-значный код подтверждения',
         'editor_phone.verify_update': 'Подтвердить код и обновить',
-        'editor_phone.wait': 'Пожалуйста, подождите {seconds} секунд.',
+        'editor_phone.wait': 'Пожалуйста, подождите @seconds секунд.',
         'editor_phone.invalid_phone':
             'Введите 10-значный номер телефона, начинающийся с 5.',
         'editor_phone.session_missing':
@@ -19235,18 +19235,18 @@ class AppTranslations extends Translations {
         'statistics.follower_growth': 'Рост подписчиков',
         'interests.personalize_feed': 'Настройте свою ленту',
         'interests.selection_range':
-            'Выберите минимум {min} и максимум {max} интересов.',
-        'interests.selected_count': 'Выбрано {selected}/{max}',
+            'Выберите минимум @min и максимум @max интересов.',
+        'interests.selected_count': 'Выбрано @selected/@max',
         'interests.ready': 'Готово',
         'interests.search_hint': 'Поиск интересов',
         'interests.limit_title': 'Лимит выбора',
-        'interests.limit_body': 'Можно выбрать не более {max} интересов.',
+        'interests.limit_body': 'Можно выбрать не более @max интересов.',
         'interests.min_title': 'Недостаточно выбора',
-        'interests.min_body': 'Нужно выбрать минимум {min} интересов.',
+        'interests.min_body': 'Нужно выбрать минимум @min интересов.',
         'view_changer.title': 'Вид',
         'view_changer.classic': 'Классический вид',
         'view_changer.modern': 'Современный вид',
-        'social_links.title': 'Ссылки ({count})',
+        'social_links.title': 'Ссылки (@count)',
         'social_links.add': 'Добавить',
         'social_links.add_title': 'Добавить ссылку',
         'tests.create_title': 'Создать тест',
