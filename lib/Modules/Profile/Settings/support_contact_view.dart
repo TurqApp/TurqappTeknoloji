@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 part 'support_contact_view_shell_part.dart';
 part 'support_contact_view_card_part.dart';
 part 'support_contact_view_form_part.dart';
-part 'support_contact_view_submit_part.dart';
 part 'support_contact_view_topics_part.dart';
 part 'support_contact_view_actions_part.dart';
 
