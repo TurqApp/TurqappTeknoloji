@@ -26,6 +26,20 @@ extension EducationViewActionsPart on EducationView {
         !controller.isSearchMode.value;
   }
 
+  ScholarshipsController? _activeScholarshipsController() {
+    if (_tabIdForIndex(controller.selectedTab.value) !=
+        PasajTabIds.scholarships) {
+      return null;
+    }
+    return ScholarshipsController.ensure(permanent: true);
+  }
+
+  bool _showInlineScholarshipActions() {
+    return _activeScholarshipsController() != null &&
+        !controller.isKeyboardOpen.value &&
+        !controller.isSearchMode.value;
+  }
+
   JobFinderController? _activeJobFinderController() {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.jobFinder) {
       return null;

@@ -31,6 +31,9 @@ extension EducationViewBodyPart on EducationView {
       final marketController = _activeMarketController();
       final showMarketActions =
           marketController != null && _showInlineMarketActions();
+      final scholarshipController = _activeScholarshipsController();
+      final showScholarshipActions =
+          scholarshipController != null && _showInlineScholarshipActions();
       final jobController = _activeJobFinderController();
       final showJobActions = jobController != null && _showInlineJobActions();
       final practiceExamController = _activePracticeExamController();
@@ -92,6 +95,15 @@ extension EducationViewBodyPart on EducationView {
                 ),
                 builder: (_) => MarketFilterSheet(controller: marketController),
               ),
+            ),
+          ],
+          if (showScholarshipActions) ...[
+            const SizedBox(width: 8),
+            _marketTopActionButton(
+              icon: scholarshipController.listingSelection.value == 1
+                  ? Icons.view_agenda_outlined
+                  : Icons.grid_view_rounded,
+              onTap: scholarshipController.toggleListingSelection,
             ),
           ],
           if (showJobActions) ...[
