@@ -40,8 +40,6 @@ class AdminPushTargetFilters {
 }
 
 class AdminPushRepository extends GetxService {
-  static const int pushTargetCutoffMs = 1772409600000;
-
   static AdminPushRepository? maybeFind() {
     final isRegistered = Get.isRegistered<AdminPushRepository>();
     if (!isRegistered) return null;

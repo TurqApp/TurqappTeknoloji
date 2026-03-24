@@ -1,6 +1,32 @@
 part of 'admin_push_repository.dart';
 
 extension AdminPushRepositoryFilterPart on AdminPushRepository {
+  bool _hasPushTokenImpl(Map<String, dynamic> data) {
+    final candidates = <Object?>[
+      data['fcmToken'],
+      data['pushToken'],
+      data['token'],
+      data['fcm_token'],
+    ];
+    for (final candidate in candidates) {
+      final normalized = (candidate ?? '').toString().trim();
+      if (normalized.isNotEmpty) return true;
+    }
+    return false;
+  }
+
+  bool _isDeletedOrInactiveImpl(Map<String, dynamic> data) {
+    final accountStatus = (data['accountStatus'] ?? '').toString().trim();
+    final statusLc = accountStatus.toLowerCase();
+    return data['isDeleted'] == true ||
+        statusLc == 'deleted' ||
+        statusLc == 'pending_deletion';
+  }
+
+  bool _isBannedImpl(Map<String, dynamic> data) {
+    return data['isBanned'] == true || data['ban'] == true;
+  }
+
   List<String> _collectLocationValuesImpl(Map<String, dynamic> data) {
     final values = <String>[];
     for (final key in const <String>[
@@ -50,11 +76,9 @@ extension AdminPushRepositoryFilterPart on AdminPushRepository {
   }
 
   bool _isEligiblePushTargetImpl(String userId, Map<String, dynamic> data) {
-    final rawCreatedDate = data['createdDate'];
-    final createdAtMs = rawCreatedDate is num
-        ? rawCreatedDate.toInt()
-        : int.tryParse(rawCreatedDate?.toString() ?? '') ?? 0;
-    return userId.isNotEmpty &&
-        createdAtMs >= AdminPushRepository.pushTargetCutoffMs;
+    return userId.trim().isNotEmpty &&
+        !_isDeletedOrInactiveImpl(data) &&
+        !_isBannedImpl(data) &&
+        _hasPushTokenImpl(data);
   }
 }
