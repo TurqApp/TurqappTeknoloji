@@ -127,10 +127,8 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
   void _onScroll() {
     _scrollProbeScheduled = false;
     if (!mounted) return;
-    final activeScrollController = controller.currentScrollController;
-    if (!activeScrollController.hasClients) return;
-
-    final position = activeScrollController.position;
+    final position = controller.currentScrollPosition;
+    if (position == null) return;
     if (position.pixels >= position.maxScrollExtent - 300) {
       controller.fetchPosts();
       controller.fetchPhotos();

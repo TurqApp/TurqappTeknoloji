@@ -34,6 +34,16 @@ extension ProfileControllerLifecyclePart on ProfileController {
     return scrollControllerForSelection(postSelection.value);
   }
 
+  ScrollPosition? _performCurrentScrollPosition() {
+    return _performResolvePrimaryScrollPosition(currentScrollController);
+  }
+
+  double _performCurrentScrollOffset() {
+    return _performResolvePrimaryScrollPosition(currentScrollController)
+            ?.pixels ??
+        0;
+  }
+
   Future<void> _performAnimateCurrentSelectionToTop() async {
     final controller = currentScrollController;
     if (!controller.hasClients) return;
@@ -56,7 +66,7 @@ extension ProfileControllerLifecyclePart on ProfileController {
     _postSelectionWorker = ever<int>(postSelection, (selection) {
       final controller = scrollControllerForSelection(selection);
       _performSyncScrollToTopVisibility(
-        controller.hasClients ? controller.offset : 0,
+        _performResolvePrimaryScrollPosition(controller)?.pixels ?? 0,
       );
       if (selection == 5 &&
           (scheduledPosts.isEmpty || lastScheduledDoc == null)) {
@@ -87,9 +97,32 @@ extension ProfileControllerLifecyclePart on ProfileController {
     final controller = ScrollController();
     controller.addListener(() {
       if (postSelection.value != selection) return;
-      _performSyncScrollToTopVisibility(controller.offset);
+      _performSyncScrollToTopVisibility(
+        _performResolvePrimaryScrollPosition(controller)?.pixels ?? 0,
+      );
     });
     return controller;
+  }
+
+  ScrollPosition? _performResolvePrimaryScrollPosition(
+    ScrollController controller,
+  ) {
+    if (!controller.hasClients) return null;
+    final positions = controller.positions.toList(growable: false);
+    if (positions.isEmpty) return null;
+    if (positions.length > 1) {
+      _invariantGuard.record(
+        surface: 'profile',
+        invariantKey: 'multiple_scroll_positions',
+        message:
+            'Profile scroll controller is attached to more than one scroll position.',
+        payload: <String, dynamic>{
+          'selection': postSelection.value,
+          'positions': positions.length,
+        },
+      );
+    }
+    return positions.last;
   }
 
   void _performSyncScrollToTopVisibility(double offset) {

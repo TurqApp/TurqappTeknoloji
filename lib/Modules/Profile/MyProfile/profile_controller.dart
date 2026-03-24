@@ -140,6 +140,11 @@ class ProfileController extends GetxController {
   ScrollController get currentScrollController =>
       _performCurrentScrollController();
 
+  ScrollPosition? get currentScrollPosition =>
+      _performCurrentScrollPosition();
+
+  double get currentScrollOffset => _performCurrentScrollOffset();
+
   Future<void> animateCurrentSelectionToTop() =>
       _performAnimateCurrentSelectionToTop();
 
