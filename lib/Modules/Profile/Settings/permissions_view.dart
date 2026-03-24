@@ -13,7 +13,6 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
-part 'permissions_view_main_part.dart';
 part 'permissions_view_catalog_part.dart';
 part 'permissions_view_model_part.dart';
 part 'permissions_view_status_part.dart';
@@ -58,6 +57,18 @@ class _PermissionsViewState extends State<PermissionsView> {
   void _updatePermissionsViewState(VoidCallback fn) {
     if (!mounted) return;
     setState(fn);
+  }
+
+  void _initializePermissionsView() {
+    _loadQuota();
+    _loadAdminVisibility();
+    _loadNetworkSettings();
+    _refreshStatuses();
+  }
+
+  Future<void> _loadAdminVisibility() async {
+    final canManage = await AdminAccessService.canManageSliders();
+    _updatePermissionsViewState(() => _showPlaybackPreferences = canManage);
   }
 
   Widget _buildPage(BuildContext context) {
