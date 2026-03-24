@@ -4,7 +4,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorPhoneNumber/editor_phone_number_controller.dart';
 
-part 'editor_phone_number_shell_part.dart';
 part 'editor_phone_number_content_part.dart';
 
 class EditorPhoneNumber extends StatefulWidget {
@@ -42,6 +41,16 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildEditorPhoneNumberShell(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: SingleChildScrollView(
+            child: Obx(() => _buildEditorPhoneNumberContent()),
+          ),
+        ),
+      ),
+    );
   }
 }
