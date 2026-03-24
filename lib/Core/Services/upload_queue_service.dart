@@ -25,6 +25,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'upload_queue_service_persistence_part.dart';
+part 'upload_queue_service_post_shell_part.dart';
 part 'upload_queue_service_processing_part.dart';
 
 enum UploadStatus {
