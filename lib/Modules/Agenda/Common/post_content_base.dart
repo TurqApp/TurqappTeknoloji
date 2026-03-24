@@ -126,8 +126,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isProfileSurfaceInstance =>
       (widget.instanceTag ?? '').startsWith('profile_');
 
+  bool get _isPrimaryFeedSurfaceInstance =>
+      !isStandalonePostInstance && (widget.instanceTag ?? '').isEmpty;
+
   bool get _useLegacyIosFeedBehavior =>
-      defaultTargetPlatform == TargetPlatform.iOS && !isStandalonePostInstance;
+      defaultTargetPlatform == TargetPlatform.iOS &&
+      !isStandalonePostInstance &&
+      !_isPrimaryFeedSurfaceInstance;
 
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
