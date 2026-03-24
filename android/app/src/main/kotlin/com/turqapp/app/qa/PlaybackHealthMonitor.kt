@@ -186,6 +186,10 @@ class PlaybackHealthMonitor(
             "FIRST_FRAME_TIMEOUT",
             "READY_WITHOUT_FRAME",
             "PLAYBACK_NOT_STARTED",
+            "VIDEO_FREEZE",
+            "AUDIO_NOT_STARTED",
+            "FULLSCREEN_INTERRUPTION",
+            "BACKGROUND_RESUME_FAILURE",
         )
         log("firstFrameRendered ttffMs=${deltaFrom(playbackRequestedAt, timestamp)}")
         publish("firstFrameRendered")
@@ -201,6 +205,12 @@ class PlaybackHealthMonitor(
         }
         awaitingFullscreenRecovery = false
         awaitingBackgroundRecovery = false
+        clearErrors(
+            "VIDEO_FREEZE",
+            "AUDIO_NOT_STARTED",
+            "FULLSCREEN_INTERRUPTION",
+            "BACKGROUND_RESUME_FAILURE",
+        )
         publish("frameRendered")
     }
 
@@ -261,6 +271,17 @@ class PlaybackHealthMonitor(
 
     fun onSurfaceDetached() {
         surfaceDetachCount += 1
+        if (!canExpectRenderableFrames()) {
+            clearErrors(
+                "FIRST_FRAME_TIMEOUT",
+                "READY_WITHOUT_FRAME",
+                "PLAYBACK_NOT_STARTED",
+                "VIDEO_FREEZE",
+                "AUDIO_NOT_STARTED",
+                "FULLSCREEN_INTERRUPTION",
+                "BACKGROUND_RESUME_FAILURE",
+            )
+        }
         publish("surfaceDetached")
     }
 
@@ -316,6 +337,10 @@ class PlaybackHealthMonitor(
         return lastFrameRenderedAt >= timestamp && lastFrameRenderedAt > 0L
     }
 
+    fun hasActiveSurface(): Boolean {
+        return surfaceAttachCount > surfaceDetachCount
+    }
+
     fun snapshot(): Map<String, Any> = mapOf(
         "playbackRequestedAt" to playbackRequestedAt,
         "playerReadyAt" to playerReadyAt,
@@ -340,8 +365,10 @@ class PlaybackHealthMonitor(
 
     fun evaluatePassiveTimeouts() {
         val timestamp = now()
+        val expectRenderableFrames = canExpectRenderableFrames()
         if (playbackRequestedAt > 0L &&
             !hasRenderedFirstFrame &&
+            expectRenderableFrames &&
             timestamp - playbackRequestedAt > firstFrameTimeoutMs
         ) {
             onFirstFrameTimeout()
@@ -352,6 +379,7 @@ class PlaybackHealthMonitor(
 
         if (playerReadyAt > 0L &&
             !hasRenderedFirstFrame &&
+            expectRenderableFrames &&
             timestamp - playerReadyAt > firstFrameTimeoutMs
         ) {
             onReadyWithoutFrame()
@@ -379,6 +407,7 @@ class PlaybackHealthMonitor(
     fun shouldFlagVideoFreeze(timestamp: Long = now()): Boolean {
         if (!hasRenderedFirstFrame || lastFrameRenderedAt <= 0L) return false
         if (!(isPlaybackExpected || isPlaying || lastKnownPlaybackAdvanceAt > 0L)) return false
+        if (!canExpectRenderableFrames()) return false
         return timestamp - lastFrameRenderedAt > freezeFrameTimeoutMs
     }
 
@@ -406,6 +435,10 @@ class PlaybackHealthMonitor(
     private fun deltaFrom(start: Long, end: Long): Long {
         if (start <= 0L || end <= 0L || end < start) return 0L
         return end - start
+    }
+
+    private fun canExpectRenderableFrames(): Boolean {
+        return hasActiveSurface() || awaitingFullscreenRecovery || awaitingBackgroundRecovery
     }
 
     private fun log(message: String) {
