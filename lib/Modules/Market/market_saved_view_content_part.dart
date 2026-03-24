@@ -4,7 +4,6 @@ class _MarketSavedViewState extends State<MarketSavedView> {
   final MarketRepository _repository = MarketRepository.ensure();
   late final String uid;
   late Future<List<MarketItemModel>> _savedFuture;
-  final Set<String> _busyIds = <String>{};
 
   @override
   void initState() {
@@ -52,10 +51,9 @@ class _MarketSavedViewState extends State<MarketSavedView> {
             },
             child: items.isEmpty
                 ? _buildEmptyState()
-                : ListView.separated(
-                    padding: const EdgeInsets.all(15),
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) =>
                         _buildItemCard(items[index]),
                   ),

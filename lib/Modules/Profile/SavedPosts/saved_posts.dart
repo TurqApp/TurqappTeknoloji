@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Services/market_saved_store.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/SavedItems/saved_items_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
+import 'package:turqappv2/Modules/Market/market_listing_card.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/SavedJobs/saved_job_controller.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
@@ -284,100 +287,37 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                     ),
                   ],
                 )
-              : ListView.separated(
+              : ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox.shrink(),
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    final category = item.categoryLabel.trim();
-                    final location = item.locationText.trim();
-                    return GestureDetector(
-                      onTap: () async {
+                    return MarketListingCard(
+                      item: item,
+                      isSaved: true,
+                      onOpen: () async {
                         await Get.to(() => MarketDetailView(item: item));
                         if (!mounted) return;
                         setState(() => _reload(force: true));
                       },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: SizedBox(
-                                width: 104,
-                                height: 78,
-                                child: item.coverImageUrl.trim().isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: item.coverImageUrl,
-                                        fit: BoxFit.cover,
-                                        placeholder: (_, __) => Container(
-                                          color: const Color(0xFFF3F4F6),
-                                        ),
-                                        errorWidget: (_, __, ___) => Container(
-                                          color: const Color(0xFFF3F4F6),
-                                        ),
-                                      )
-                                    : Container(
-                                        color: const Color(0xFFF3F4F6),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontFamily: 'MontserratBold',
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  if (category.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      category,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontFamily: 'MontserratMedium',
-                                        color: Colors.blue.shade900,
-                                      ),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    location.isEmpty
-                                        ? 'pasaj.market.location_missing'.tr
-                                        : location,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontFamily: 'Montserrat',
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      onToggleSaved: () => _unsave(item),
                     );
                   },
                 ),
         );
       },
     );
+  }
+
+  Future<void> _unsave(MarketItemModel item) async {
+    try {
+      await MarketSavedStore.unsave(_uid, item.id);
+      if (!mounted) return;
+      setState(() => _reload(force: true));
+    } catch (_) {
+      AppSnackbar('common.error'.tr, 'pasaj.market.unsave_failed'.tr);
+    }
   }
 }
 
