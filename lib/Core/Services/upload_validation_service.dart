@@ -56,11 +56,22 @@ class UploadValidationService {
     required List<File> images,
     required List<File> videos,
     String? text,
+    int? maxTextLength,
   }) =>
       _performValidatePost(
         images: images,
         videos: videos,
         text: text,
+        maxTextLength: maxTextLength,
+      );
+
+  static ValidationResult validateTextLength(
+    String? text, {
+    required int maxLength,
+  }) =>
+      _performValidateTextLength(
+        text,
+        maxLength: maxLength,
       );
 
   /// Show validation error with user-friendly message

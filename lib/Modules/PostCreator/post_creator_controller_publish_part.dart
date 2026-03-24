@@ -203,6 +203,9 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishPost)) {
       return <PostsModel>[];
     }
+    if (!_validateCaptionLengths()) {
+      return <PostsModel>[];
+    }
     final allPosts = <PreparedPostModel>[];
     final uploadedPosts = <PostsModel>[];
     final uuid = const Uuid().v4();

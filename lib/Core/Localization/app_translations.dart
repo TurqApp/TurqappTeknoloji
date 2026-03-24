@@ -43,7 +43,7 @@ class AppTranslations extends Translations {
         'become_verified.feature_scheduled_content':
             'Zamanlanmış İçerik Paylaşımı',
         'become_verified.feature_character_limit': 'Karakter Sınırı',
-        'become_verified.feature_character_limit_value': '1000 Karakter',
+        'become_verified.feature_character_limit_value': '1250 Karakter',
         'become_verified.loss_title': 'Onay Rozetinin Kaybedilmesi',
         'become_verified.loss_body':
             'Ekibimiz, hesabınızı inceledikten sonra gereksinimlerin karşılanmaya devam ettiğine karar verirse onay işareti yeniden gösterilir. TurqApp ayrıca kurallarını ihlal ettiği saptanan hesaplardan onay işaretini kaldırabilir.',
@@ -1618,8 +1618,7 @@ class AppTranslations extends Translations {
         'permissions.detail.device_setting': 'Cihaz ayarın:',
         'permissions.detail.other_option': 'Diğer seçenek',
         'permissions.detail.allowed_desc': 'TurqApp\'a @access izin verilmiş.',
-        'permissions.detail.denied_desc':
-            'TurqApp\'a @access izin verilmemiş.',
+        'permissions.detail.denied_desc': 'TurqApp\'a @access izin verilmemiş.',
         'permissions.detail.go_device_settings':
             'İzinlerini güncellemek için cihaz ayarlarına git.',
         'permissions.item.camera.title': 'Kamera',
@@ -1829,8 +1828,7 @@ class AppTranslations extends Translations {
         'admin.badges.sent_for_approval':
             'İşlem admin onay kuyruğuna gönderildi.',
         'admin.badges.badge_removed': '@@nickname için rozet kaldırıldı.',
-        'admin.badges.badge_saved':
-            '@@nickname için @badge rozeti kaydedildi.',
+        'admin.badges.badge_saved': '@@nickname için @badge rozeti kaydedildi.',
         'admin.badges.permission_required':
             'Bu işlem için admin yetkisi gerekli.',
         'admin.badges.invalid_input': 'Girilen bilgi geçersiz.',
@@ -2109,6 +2107,8 @@ class AppTranslations extends Translations {
             'Yükleme işlemi tekrar başlatılıyor...',
         'upload_validation.empty_post':
             'Gönderi boş olamaz! En az bir fotoğraf, video veya metin ekleyin.',
+        'upload_validation.text_too_long':
+            'Açıklama çok uzun. Rozetsiz hesaplar en fazla 300, rozetli hesaplar en fazla 1250 karakter yazabilir. Mevcut: @current/@max',
         'upload_validation.image_error': 'Fotoğraf @index: @message',
         'upload_validation.video_error': 'Video @index: @message',
         'upload_validation.error_title': 'Yükleme Hatası',
@@ -3799,8 +3799,7 @@ class AppTranslations extends Translations {
         'post_creator.queue_add_failed': 'Kuyruk ekleme başarısız',
         'post_creator.photo_with_video_forbidden':
             'Video seçiliyken fotoğraf ekleyemezsiniz. En fazla 1 video seçilebilir.',
-        'post_creator.max_photo_count':
-            'Maksimum @count fotoğraf seçilebilir.',
+        'post_creator.max_photo_count': 'Maksimum @count fotoğraf seçilebilir.',
         'post_creator.max_photo_add':
             'Maksimum @count fotoğraf ekleyebilirsiniz. Mevcut: @current, Eklenmek istenen: @adding',
         'post_creator.photo_validation_prefix': 'Fotoğraf @index: @error',
@@ -3811,8 +3810,7 @@ class AppTranslations extends Translations {
         'post_creator.photo_added': 'Fotoğraf eklendi. @saved',
         'post_creator.photo_added_no_compress':
             'Fotoğraf eklendi ancak sıkıştırma başarısız oldu.',
-        'post_creator.max_video_count':
-            'En fazla @count video seçebilirsiniz.',
+        'post_creator.max_video_count': 'En fazla @count video seçebilirsiniz.',
         'post_creator.no_post_uploaded': 'Hiçbir gönderi yüklenemedi',
         'post_creator.image_upload_failed': 'Resim @index yüklenemedi',
         'post_creator.video_reduce_failed':
@@ -3864,7 +3862,7 @@ class AppTranslations extends Translations {
         'become_verified.feature_scheduled_content':
             'Scheduled Content Sharing',
         'become_verified.feature_character_limit': 'Character Limit',
-        'become_verified.feature_character_limit_value': '1000 Characters',
+        'become_verified.feature_character_limit_value': '1250 Characters',
         'become_verified.loss_title': 'Loss of Verification Badge',
         'become_verified.loss_body':
             'If our team reviews your account and decides it still meets our requirements, the verification mark may be shown again. TurqApp may also remove the badge from accounts found to violate TurqApp rules.',
@@ -5354,8 +5352,7 @@ class AppTranslations extends Translations {
             'City information could not be retrieved.',
         'pasaj.market.limited_results_title': 'Limited Results',
         'pasaj.market.no_city_results': 'No listings were found for @city.',
-        'pasaj.market.nearby_ready':
-            'Nearby listings for @city are now shown.',
+        'pasaj.market.nearby_ready': 'Nearby listings for @city are now shown.',
         'pasaj.market.nearby_failed': 'Nearby listings could not be loaded.',
         'pasaj.market.limit_title': 'Limit',
         'pasaj.market.image_limit': 'You can add up to @max images.',
@@ -5366,8 +5363,7 @@ class AppTranslations extends Translations {
         'pasaj.market.create.field_required': '@field field is required.',
         'pasaj.market.user_session_not_found':
             'User session could not be found.',
-        'pasaj.market.create.save_failed':
-            'Listing could not be saved: @error',
+        'pasaj.market.create.save_failed': 'Listing could not be saved: @error',
         'pasaj.market.image_security_failed':
             'Image safety check could not be completed',
         'pasaj.market.image_nsfw_detected': 'Inappropriate image detected',
@@ -5918,6 +5914,8 @@ class AppTranslations extends Translations {
         'error_handling.upload_retry_body': 'The upload is being restarted...',
         'upload_validation.empty_post':
             'The post cannot be empty. Add at least one photo, video, or text.',
+        'upload_validation.text_too_long':
+            'Caption is too long. Unbadged accounts can write up to 300 characters, badged accounts up to 1250. Current: @current/@max',
         'upload_validation.image_error': 'Photo @index: @message',
         'upload_validation.video_error': 'Video @index: @message',
         'upload_validation.error_title': 'Upload Error',
@@ -7605,8 +7603,7 @@ class AppTranslations extends Translations {
         'post_creator.queue_add_failed': 'Adding to queue failed',
         'post_creator.photo_with_video_forbidden':
             'You cannot add photos while a video is selected. Only 1 video is allowed.',
-        'post_creator.max_photo_count':
-            'You can select at most @count photos.',
+        'post_creator.max_photo_count': 'You can select at most @count photos.',
         'post_creator.max_photo_add':
             'You can add at most @count photos. Current: @current, Trying to add: @adding',
         'post_creator.photo_validation_prefix': 'Photo @index: @error',
@@ -7617,8 +7614,7 @@ class AppTranslations extends Translations {
         'post_creator.photo_added': 'Photo added. @saved',
         'post_creator.photo_added_no_compress':
             'Photo added, but compression failed.',
-        'post_creator.max_video_count':
-            'You can select at most @count videos.',
+        'post_creator.max_video_count': 'You can select at most @count videos.',
         'post_creator.no_post_uploaded': 'No post could be uploaded',
         'post_creator.image_upload_failed':
             'Image @index could not be uploaded',
@@ -7781,7 +7777,7 @@ class AppTranslations extends Translations {
         'become_verified.feature_assistant': 'Assistent werden',
         'become_verified.feature_scheduled_content': 'Geplante Inhaltsfreigabe',
         'become_verified.feature_character_limit': 'Zeichenlimit',
-        'become_verified.feature_character_limit_value': '1000 Zeichen',
+        'become_verified.feature_character_limit_value': '1250 Zeichen',
         'become_verified.loss_title': 'Verlust des Verifizierungsabzeichens',
         'become_verified.loss_body':
             'Wenn unser Team Ihr Konto überprüft und entscheidet, dass es weiterhin unsere Anforderungen erfüllt, kann das Verifizierungszeichen erneut angezeigt werden. TurqApp kann das Abzeichen auch von Konten entfernen, die gegen die TurqApp-Regeln verstoßen.',
@@ -8649,8 +8645,7 @@ class AppTranslations extends Translations {
         'notifications.yesterday': 'Gestern',
         'notifications.older': 'Älter',
         'notifications.count_items': '@count Einträge',
-        'notifications.and_more':
-            '@base und @count weitere Benachrichtigungen',
+        'notifications.and_more': '@base und @count weitere Benachrichtigungen',
         'notification.item.default_interaction':
             'hat mit deinem Beitrag interagiert.',
         'notification.hint.profile': 'Profil',
@@ -9502,8 +9497,7 @@ class AppTranslations extends Translations {
         'admin.badges.sent_for_approval':
             'Aktion an die Admin-Freigabewarteschlange gesendet.',
         'admin.badges.badge_removed': 'Badge für @@nickname entfernt.',
-        'admin.badges.badge_saved':
-            'Badge @badge für @@nickname gespeichert.',
+        'admin.badges.badge_saved': 'Badge @badge für @@nickname gespeichert.',
         'admin.badges.permission_required':
             'Für diese Aktion ist Admin-Berechtigung erforderlich.',
         'admin.badges.invalid_input':
@@ -9620,8 +9614,7 @@ class AppTranslations extends Translations {
         'admin.story_music.save_update': 'Änderungen speichern',
         'admin.story_music.no_tracks': 'Es gibt noch keine Tracks',
         'admin.story_music.untitled': 'Unbenannter Track',
-        'admin.story_music.order_usage':
-            'Reihenfolge @order • Nutzung @count',
+        'admin.story_music.order_usage': 'Reihenfolge @order • Nutzung @count',
         'common.cancel': 'Abbrechen',
         'common.save': 'Speichern',
         'common.last_day': 'Letzter Tag',
@@ -9870,6 +9863,8 @@ class AppTranslations extends Translations {
         'error_handling.upload_retry_body': 'Der Upload wird neu gestartet...',
         'upload_validation.empty_post':
             'Der Beitrag darf nicht leer sein. Fuege mindestens ein Foto, Video oder Text hinzu.',
+        'upload_validation.text_too_long':
+            'Die Bildunterschrift ist zu lang. Konten ohne Abzeichen koennen bis zu 300 Zeichen schreiben, Konten mit Abzeichen bis zu 1250. Aktuell: @current/@max',
         'upload_validation.image_error': 'Foto @index: @message',
         'upload_validation.video_error': 'Video @index: @message',
         'upload_validation.error_title': 'Upload-Fehler',
@@ -12184,6 +12179,8 @@ class AppTranslations extends Translations {
             'Le televersement est en cours de redemarrage...',
         'upload_validation.empty_post':
             'La publication ne peut pas etre vide. Ajoutez au moins une photo, une video ou du texte.',
+        'upload_validation.text_too_long':
+            'La legende est trop longue. Les comptes sans badge peuvent ecrire jusqu a 300 caracteres, les comptes avec badge jusqu a 1250. Actuel : @current/@max',
         'upload_validation.image_error': 'Photo @index : @message',
         'upload_validation.video_error': 'Video @index : @message',
         'upload_validation.error_title': 'Erreur de televersement',
@@ -14921,6 +14918,8 @@ class AppTranslations extends Translations {
         'error_handling.upload_retry_body': 'Il caricamento viene riavviato...',
         'upload_validation.empty_post':
             'Il post non puo essere vuoto. Aggiungi almeno una foto, un video o del testo.',
+        'upload_validation.text_too_long':
+            'La didascalia e troppo lunga. Gli account senza badge possono scrivere fino a 300 caratteri, quelli con badge fino a 1250. Attuale: @current/@max',
         'upload_validation.image_error': 'Foto @index: @message',
         'upload_validation.video_error': 'Video @index: @message',
         'upload_validation.error_title': 'Errore di caricamento',
@@ -16294,8 +16293,7 @@ class AppTranslations extends Translations {
         'profile.private_story_follow_required':
             'Devi seguire prima questo account per vedere le storie.',
         'profile.unfollow_title': 'Smetti di seguire',
-        'profile.unfollow_body':
-            'Vuoi davvero smettere di seguire @@nickname?',
+        'profile.unfollow_body': 'Vuoi davvero smettere di seguire @@nickname?',
         'profile.unfollow_confirm': 'Smetti di seguire',
         'profile.following_status': 'Lo segui',
         'profile.follow_button': 'Segui',
@@ -17597,6 +17595,8 @@ class AppTranslations extends Translations {
         'error_handling.upload_retry_body': 'Загрузка запускается заново...',
         'upload_validation.empty_post':
             'Пост не может быть пустым. Добавьте хотя бы одно фото, видео или текст.',
+        'upload_validation.text_too_long':
+            'Подпись слишком длинная. Аккаунты без значка могут писать до 300 символов, со значком до 1250. Сейчас: @current/@max',
         'upload_validation.image_error': 'Фото @index: @message',
         'upload_validation.video_error': 'Видео @index: @message',
         'upload_validation.error_title': 'Ошибка загрузки',

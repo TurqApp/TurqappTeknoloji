@@ -101,6 +101,9 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
   /// Upload all posts with comprehensive error handling
   Future<List<PostsModel>> uploadAllPostsWithErrorHandling(
       UploadProgressController progressController) async {
+    if (!_validateCaptionLengths()) {
+      return <PostsModel>[];
+    }
     final allPosts = <PreparedPostModel>[];
     final uploadedPosts = <PostsModel>[];
     final uuid = const Uuid().v4();

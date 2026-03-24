@@ -2,6 +2,10 @@ part of 'post_creator_controller.dart';
 
 extension _PostCreatorControllerUiX on PostCreatorController {
   void _uploadAllPostsInBackground() async {
+    if (!_validateCaptionLengths()) {
+      return;
+    }
+
     final progressController = UploadProgressController.ensure();
     final allImages = <File>[];
     final allVideos = <File>[];
@@ -21,6 +25,7 @@ extension _PostCreatorControllerUiX on PostCreatorController {
                 c.reusedImageUrls.isNotEmpty)
             ? 'media'
             : c.textEdit.text.trim(),
+        maxTextLength: PostCaptionLimits.forCurrentUser(),
       );
 
       if (!validation.isValid) {

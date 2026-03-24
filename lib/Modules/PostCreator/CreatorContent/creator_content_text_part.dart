@@ -3,6 +3,7 @@ part of 'creator_content.dart';
 extension CreatorContentTextPart on CreatorContent {
   Widget textBody() {
     return Obx(() {
+      final maxCaptionLength = PostCaptionLimits.forCurrentUser();
       return Stack(
         children: [
           Row(
@@ -35,7 +36,19 @@ extension CreatorContentTextPart on CreatorContent {
                       textInputAction: TextInputAction.newline,
                       minLines: 1,
                       maxLines: 14,
-                      inputFormatters: [LineLimitingTextInputFormatter(14)],
+                      maxLength: maxCaptionLength,
+                      buildCounter: (
+                        BuildContext context, {
+                        required int currentLength,
+                        required bool isFocused,
+                        required int? maxLength,
+                      }) {
+                        return null;
+                      },
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(maxCaptionLength),
+                        LineLimitingTextInputFormatter(14),
+                      ],
                       readOnly: controller.waitingVideo.value,
                       onChanged: (val) {
                         controller.textChanged.value = val.trim().isNotEmpty;

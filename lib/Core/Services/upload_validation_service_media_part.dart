@@ -138,6 +138,7 @@ Future<ValidationResult> _performValidatePost({
   required List<File> images,
   required List<File> videos,
   String? text,
+  int? maxTextLength,
 }) async {
   final countValidation =
       UploadValidationService.validatePostCounts(images.length, videos.length);
@@ -149,6 +150,16 @@ Future<ValidationResult> _performValidatePost({
       videos.isEmpty &&
       (text == null || text.trim().isEmpty)) {
     return ValidationResult.error('upload_validation.empty_post'.tr);
+  }
+
+  if (maxTextLength != null) {
+    final textValidation = UploadValidationService.validateTextLength(
+      text,
+      maxLength: maxTextLength,
+    );
+    if (!textValidation.isValid) {
+      return textValidation;
+    }
   }
 
   for (var i = 0; i < images.length; i++) {
@@ -184,6 +195,34 @@ Future<ValidationResult> _performValidatePost({
     'videoCount': videos.length,
     'hasText': text != null && text.trim().isNotEmpty,
     'totalSize': totalSizeValidation.metadata?['totalSize'] ?? 0,
+  });
+}
+
+ValidationResult _performValidateTextLength(
+  String? text, {
+  required int maxLength,
+}) {
+  final normalized = (text ?? '').trim();
+  if (normalized.isEmpty) {
+    return ValidationResult.success(metadata: <String, dynamic>{
+      'textLength': 0,
+      'maxTextLength': maxLength,
+    });
+  }
+
+  final currentLength = normalized.characters.length;
+  if (currentLength > maxLength) {
+    return ValidationResult.error(
+      'upload_validation.text_too_long'.trParams(<String, String>{
+        'max': '$maxLength',
+        'current': '$currentLength',
+      }),
+    );
+  }
+
+  return ValidationResult.success(metadata: <String, dynamic>{
+    'textLength': currentLength,
+    'maxTextLength': maxLength,
   });
 }
 

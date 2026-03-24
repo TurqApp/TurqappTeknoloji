@@ -195,6 +195,24 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
     return true;
   }
 
+  bool _validateCaptionLengths() {
+    final maxCaptionLength = PostCaptionLimits.forCurrentUser();
+    for (final postModel in postList) {
+      final controller = ensureComposerControllerFor(postModel.index);
+      final validation = UploadValidationService.validateTextLength(
+        controller.textEdit.text,
+        maxLength: maxCaptionLength,
+      );
+      if (!validation.isValid) {
+        UploadValidationService.showValidationError(
+          validation.errorMessage ?? 'upload_validation.error_title'.tr,
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
   void _startAutoSave() {
     _autoSaveTimer = Timer.periodic(
       Duration(seconds: _draftService.autoSaveInterval),
@@ -242,6 +260,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
     if (isPublishing.value) return;
     isPublishing.value = true;
     try {
+      if (!_validateCaptionLengths()) {
+        return;
+      }
+
       if (!_networkService.isConnected) {
         await _errorService.handleError(
           'No internet connection',
@@ -275,6 +297,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
                   c.reusedImageUrls.isNotEmpty)
               ? 'media'
               : c.textEdit.text.trim(),
+          maxTextLength: PostCaptionLimits.forCurrentUser(),
         );
         if (!perPostValidation.isValid) {
           await _errorService.handleError(
