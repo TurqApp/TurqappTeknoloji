@@ -279,7 +279,7 @@ extension _AntremanViewContentPart on AntremanView2 {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Premium soru akisini bu kategoriden ac.',
+                          'Premium soru akışını bu kategoriden aç.',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.82),
                             fontSize: 13,
