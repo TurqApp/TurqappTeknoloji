@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGecmisSonucContent/deneme_gecmis_sonuc_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSonuclarim/sinav_sonuclarim_controller.dart';
 
-part 'sinav_sonuclarim_shell_part.dart';
 part 'sinav_sonuclarim_content_part.dart';
 
 class SinavSonuclarim extends StatefulWidget {
@@ -39,5 +38,17 @@ class _SinavSonuclarimState extends State<SinavSonuclarim> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: _buildSinavSonuclarimBody());
+  }
+
+  Widget _buildSinavSonuclarimBody() {
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          BackButtons(text: 'practice.results_title'.tr),
+          Expanded(child: _buildSinavSonuclarimContent()),
+        ],
+      ),
+    );
   }
 }
