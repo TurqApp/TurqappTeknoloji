@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'admin_push_view_actions_part.dart';
 part 'admin_push_view_content_part.dart';
 
 class AdminPushView extends StatefulWidget {
