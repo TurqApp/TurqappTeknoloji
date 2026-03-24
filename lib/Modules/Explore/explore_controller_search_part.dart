@@ -1,6 +1,41 @@
 part of 'explore_controller.dart';
 
 extension ExploreControllerSearchPart on ExploreController {
+  void _performResetSurfaceForTabTransition() {
+    _performResetSearchToDefault();
+    floodsVisibleIndex.value = -1;
+    lastFloodVisibleIndex = null;
+    _pendingFloodDocId = null;
+    showScrollToTop.value = false;
+
+    void resetNow(ScrollController controller) {
+      if (!controller.hasClients) return;
+      try {
+        controller.jumpTo(0);
+      } catch (_) {}
+    }
+
+    for (final controller in <ScrollController>[
+      exploreScroll,
+      videoScroll,
+      photoScroll,
+      floodsScroll,
+    ]) {
+      resetNow(controller);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final controller in <ScrollController>[
+        exploreScroll,
+        videoScroll,
+        photoScroll,
+        floodsScroll,
+      ]) {
+        resetNow(controller);
+      }
+    });
+  }
+
   Future<dynamic> _performCallTypesenseCallable(
     String callableName,
     Map<String, dynamic> payload,

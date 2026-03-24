@@ -63,4 +63,7 @@ class EducationController extends GetxController {
     _disposeEducationController();
     super.onClose();
   }
+
+  void resetSurfaceForTabTransition() =>
+      _performResetSurfaceForTabTransition();
 }

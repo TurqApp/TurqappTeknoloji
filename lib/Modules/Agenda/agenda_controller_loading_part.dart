@@ -1,6 +1,33 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
+  void _performResetSurfaceForTabTransition() {
+    _cancelDeferredInitialNetworkBootstrap();
+    _cancelPendingPlaybackReassert();
+    _pendingCenteredDocId = null;
+    lastCenteredIndex = agendaList.isEmpty ? null : 0;
+    centeredIndex.value = -1;
+    _visibleFractions.clear();
+    pauseAll.value = false;
+
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+
+    void resetNow() {
+      if (!scrollController.hasClients) return;
+      try {
+        scrollController.jumpTo(0);
+      } catch (_) {}
+    }
+
+    resetNow();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      resetNow();
+    });
+  }
+
   void _cancelDeferredInitialNetworkBootstrap() {
     _deferredInitialNetworkBootstrapTimer?.cancel();
     _deferredInitialNetworkBootstrapTimer = null;

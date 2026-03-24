@@ -258,6 +258,9 @@ class ExploreController extends GetxController {
 
   void resetSearchToDefault() => _performResetSearchToDefault();
 
+  void resetSurfaceForTabTransition() =>
+      _performResetSurfaceForTabTransition();
+
   @override
   void onClose() {
     _currentUserWorker?.dispose();

@@ -124,6 +124,37 @@ extension EducationControllerPasajPart on EducationController {
     });
   }
 
+  void _performResetSurfaceForTabTransition() {
+    if (titles.isEmpty) return;
+
+    for (final tabIndex in List<int>.from(tabSearchQueries.keys)) {
+      tabSearchQueries[tabIndex] = '';
+      _clearModuleSearch(tabIndex);
+    }
+    searchFocus.unfocus();
+    searchController.clear();
+    searchText.value = '';
+    isKeyboardOpen.value = false;
+    isSearchMode.value = false;
+
+    if (!hasVisibleTabs) return;
+    final firstActual = visibleTabIndexes.first;
+    selectedTab.value = firstActual;
+    _syncTabBarPosition(0);
+    if (pageController.hasClients) {
+      pageController.jumpToPage(0);
+    }
+    _restoreSearchForTab(firstActual);
+    resetActivePasajSurfaceToTop();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (pageController.hasClients) {
+        pageController.jumpToPage(0);
+      }
+      resetActivePasajSurfaceToTop();
+    });
+  }
+
   void resetActivePasajSurfaceToTop() {
     switch (titles[selectedTab.value]) {
       case PasajTabIds.market:

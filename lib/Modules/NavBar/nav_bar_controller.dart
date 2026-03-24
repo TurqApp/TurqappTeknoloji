@@ -15,6 +15,7 @@ import '../Short/short_controller.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Explore/explore_controller.dart';
 import '../Education/education_controller.dart';
+import '../Profile/MyProfile/profile_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../Core/Services/audio_focus_coordinator.dart';

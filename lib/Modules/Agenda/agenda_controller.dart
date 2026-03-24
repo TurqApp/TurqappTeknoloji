@@ -306,6 +306,9 @@ class AgendaController extends GetxController {
 
   void resumePlaybackAfterOverlay() => _performResumePlaybackAfterOverlay();
 
+  void resetSurfaceForTabTransition() =>
+      _performResetSurfaceForTabTransition();
+
   void _scheduleVisibilityEvaluation({
     required double playThreshold,
     required double stopThreshold,

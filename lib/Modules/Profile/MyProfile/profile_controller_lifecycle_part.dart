@@ -1,6 +1,35 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerLifecyclePart on ProfileController {
+  void _performResetSurfaceForTabTransition() {
+    postSelection.value = 0;
+    centeredIndex.value = mergedPosts.isEmpty ? -1 : 0;
+    currentVisibleIndex.value = mergedPosts.isEmpty ? -1 : 0;
+    lastCenteredIndex = mergedPosts.isEmpty ? null : 0;
+    _pendingCenteredIdentity = null;
+    _visibleFractions.clear();
+    pausetheall.value = false;
+    showPfImage.value = false;
+    showScrollToTop.value = false;
+
+    void resetController(ScrollController controller) {
+      if (!controller.hasClients) return;
+      try {
+        controller.jumpTo(0);
+      } catch (_) {}
+    }
+
+    for (final controller in _scrollControllers.values) {
+      resetController(controller);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final controller in _scrollControllers.values) {
+        resetController(controller);
+      }
+    });
+  }
+
   Future<void> _performRefreshAll({bool forceSync = false}) async {
     try {
       await _bootstrapHeaderFromTypesense();

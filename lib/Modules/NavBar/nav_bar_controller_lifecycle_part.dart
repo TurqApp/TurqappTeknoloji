@@ -110,24 +110,35 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     selectedIndex.value = index;
     unawaited(_persistSelectedIndex(index));
 
-    if (index == 0) {
+    if (index != previous) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
-        _resumeFeedIfNeededImpl();
+        _resetPrimaryTabSurfacesForTransitionImpl(
+          educationIndex: educationIndex,
+        );
+        if (index == 0) {
+          _resumeFeedIfNeededImpl();
+        }
       });
     }
+  }
 
-    if (educationIndex >= 0 && index == educationIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_isDisposed) return;
-        try {
-          EducationController.maybeFind()?.resetActivePasajSurfaceToTop();
-        } catch (_) {}
-      });
-    }
-
-    if (previous == 1 && index != 1) {
-      ExploreController.maybeFind()?.resetSearchToDefault();
+  void _resetPrimaryTabSurfacesForTransitionImpl({
+    required int educationIndex,
+  }) {
+    try {
+      AgendaController.maybeFind()?.resetSurfaceForTabTransition();
+    } catch (_) {}
+    try {
+      ExploreController.maybeFind()?.resetSurfaceForTabTransition();
+    } catch (_) {}
+    try {
+      ProfileController.maybeFind()?.resetSurfaceForTabTransition();
+    } catch (_) {}
+    if (educationIndex >= 0) {
+      try {
+        EducationController.maybeFind()?.resetSurfaceForTabTransition();
+      } catch (_) {}
     }
   }
 

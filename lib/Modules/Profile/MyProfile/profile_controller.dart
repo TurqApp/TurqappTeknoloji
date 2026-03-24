@@ -148,6 +148,9 @@ class ProfileController extends GetxController {
   Future<void> animateCurrentSelectionToTop() =>
       _performAnimateCurrentSelectionToTop();
 
+  void resetSurfaceForTabTransition() =>
+      _performResetSurfaceForTabTransition();
+
   @override
   void onInit() {
     super.onInit();
