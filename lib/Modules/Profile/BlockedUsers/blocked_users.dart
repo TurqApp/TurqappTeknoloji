@@ -7,7 +7,6 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/BlockedUsers/blocked_users_controller.dart';
 
-part 'blocked_users_shell_part.dart';
 part 'blocked_users_content_part.dart';
 
 class BlockedUsers extends StatefulWidget {
@@ -47,6 +46,27 @@ class _BlockedUsersState extends State<BlockedUsers> {
       Get.delete<BlockedUsersController>(tag: _controllerTag, force: true);
     }
     super.dispose();
+  }
+
+  Widget _buildBlockedUsersShell(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: "settings.blocked_users".tr),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: _buildBlockedUsersContent(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
