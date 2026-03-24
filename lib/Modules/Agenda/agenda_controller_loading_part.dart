@@ -21,10 +21,20 @@ extension AgendaControllerLoadingPart on AgendaController {
         _deferredInitialNetworkBootstrapTimer = null;
         if (isClosed || isLoading.value || !hasMore.value) return;
         if (agendaList.isEmpty) {
-          unawaited(fetchAgendaBigData(initial: true));
+          unawaited(
+            fetchAgendaBigData(
+              initial: true,
+              trigger: 'deferred_initial_bootstrap',
+            ),
+          );
           return;
         }
-        unawaited(fetchAgendaBigData(pageLimit: 24));
+        unawaited(
+          fetchAgendaBigData(
+            pageLimit: 24,
+            trigger: 'deferred_initial_bootstrap',
+          ),
+        );
       },
     );
   }
@@ -61,7 +71,12 @@ extension AgendaControllerLoadingPart on AgendaController {
     _agendaRetryTimer = Timer(Duration(seconds: delaySeconds), () {
       _agendaRetryTimer = null;
       if (isClosed) return;
-      unawaited(fetchAgendaBigData(initial: initial));
+      unawaited(
+        fetchAgendaBigData(
+          initial: initial,
+          trigger: 'retry_timer',
+        ),
+      );
     });
   }
 
@@ -80,7 +95,19 @@ extension AgendaControllerLoadingPart on AgendaController {
   Future<void> fetchAgendaBigData({
     bool initial = false,
     int? pageLimit,
+    String trigger = 'manual',
   }) async {
+    recordQALabFeedFetchEvent(
+      stage: 'requested',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'initial': initial,
+        'pageLimit': pageLimit ?? 0,
+        'isLoading': isLoading.value,
+        'hasMore': hasMore.value,
+        'currentCount': agendaList.length,
+      },
+    );
     _cancelDeferredInitialNetworkBootstrap();
     final previousAgenda = agendaList.toList(growable: false);
     final previousReshares = publicReshareEvents.toList(growable: false);
@@ -142,6 +169,15 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (_shuffleCache.hasBufferedItems) {
       if (!hasMore.value || isLoading.value) return;
       isLoading.value = true;
+      recordQALabFeedFetchEvent(
+        stage: 'buffered_page',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'currentCount': agendaList.length,
+        },
+      );
 
       try {
         final nextBatch = _shuffleCache.takeNext(fetchLimit);
@@ -155,9 +191,31 @@ extension AgendaControllerLoadingPart on AgendaController {
       return;
     }
 
-    if (!hasMore.value || isLoading.value) return;
+    if (!hasMore.value || isLoading.value) {
+      recordQALabFeedFetchEvent(
+        stage: 'skipped',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'isLoading': isLoading.value,
+          'hasMore': hasMore.value,
+          'currentCount': agendaList.length,
+        },
+      );
+      return;
+    }
 
     isLoading.value = true;
+    recordQALabFeedFetchEvent(
+      stage: 'started',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'initial': initial,
+        'pageLimit': pageLimit ?? 0,
+        'currentCount': agendaList.length,
+      },
+    );
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
@@ -208,8 +266,30 @@ extension AgendaControllerLoadingPart on AgendaController {
         hasMore.value = false;
       }
       _clearAgendaRetry();
+      recordQALabFeedFetchEvent(
+        stage: 'completed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'loadLimit': loadLimit,
+          'visibleItemCount': visibleItems.length,
+          'agendaCount': agendaList.length,
+          'hasMore': hasMore.value,
+          'usesPrimaryFeed': page.usesPrimaryFeed,
+        },
+      );
     } catch (e) {
       print("fetchAgendaBigData error: $e");
+      recordQALabFeedFetchEvent(
+        stage: 'failed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'error': e.toString(),
+          'currentCount': agendaList.length,
+        },
+      );
       if (_isTransientAgendaUnavailable(e)) {
         if (agendaList.isEmpty && previousAgenda.isNotEmpty) {
           agendaList.assignAll(previousAgenda);
@@ -260,7 +340,10 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
     _lastEnsureInitialLoadAt = now;
     _ensureInitialLoadInFlight = true;
-    final future = fetchAgendaBigData(initial: true);
+    final future = fetchAgendaBigData(
+      initial: true,
+      trigger: 'ensure_initial_load',
+    );
     _ensureInitialLoadFuture = future;
     try {
       await future;
@@ -661,7 +744,10 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
       // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.
-      await fetchAgendaBigData(initial: true);
+      await fetchAgendaBigData(
+        initial: true,
+        trigger: 'refresh_agenda',
+      );
       await _fetchAndMergeReshareEvents(eventLimit: 500);
       pauseAll.value = false;
     } catch (e) {

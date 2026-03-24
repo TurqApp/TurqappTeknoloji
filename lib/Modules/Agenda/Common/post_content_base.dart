@@ -8,6 +8,7 @@ import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/SegmentCache/cache_manager.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_state_manager.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
@@ -151,6 +152,32 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get shouldLoopVideo =>
       isStandalonePostInstance || _useLegacyIosFeedBehavior;
+
+  String get _qaSurfaceName {
+    if (isStandalonePostInstance) return 'feed';
+    if (_isProfileSurfaceInstance) return 'profile';
+    return 'feed';
+  }
+
+  void _recordPlaybackDispatch(
+    String stage, {
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    recordQALabPlaybackDispatch(
+      surface: _qaSurfaceName,
+      stage: stage,
+      metadata: <String, dynamic>{
+        'docId': widget.model.docID,
+        'instanceTag': widget.instanceTag ?? '',
+        'shouldPlay': widget.shouldPlay,
+        'isStandalone': isStandalonePostInstance,
+        'isProfileSurface': _isProfileSurfaceInstance,
+        'adapterInitialized': _videoAdapter?.value.isInitialized ?? false,
+        'adapterPlaying': _videoAdapter?.value.isPlaying ?? false,
+        ...metadata,
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -321,21 +348,30 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     final adapter = _videoAdapter;
     if (adapter == null) {
+      _recordPlaybackDispatch('feed_card_init_requested');
       _initVideoController();
       return;
     }
 
     _applyPlaybackVolume();
     if (adapter.value.isInitialized) {
+      _recordPlaybackDispatch(
+        'feed_card_resume_initialized',
+        metadata: <String, dynamic>{
+          'positionMs': adapter.value.position.inMilliseconds,
+        },
+      );
       _startPlayback();
       return;
     }
 
     if (_useLegacyIosFeedBehavior) {
+      _recordPlaybackDispatch('feed_card_legacy_wait_for_init');
       unawaited(adapter.setLooping(shouldLoopVideo));
       return;
     }
 
+    _recordPlaybackDispatch('feed_card_preinit_adapter_play');
     unawaited(adapter.setLooping(shouldLoopVideo));
     unawaited(adapter.play());
   }
@@ -344,18 +380,27 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final adapter = _videoAdapter;
     if (adapter == null) return;
     if (!_isSurfacePlaybackAllowed) return;
+    _recordPlaybackDispatch(
+      'feed_card_start_playback',
+      metadata: <String, dynamic>{
+        'positionMs': adapter.value.position.inMilliseconds,
+      },
+    );
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
     _hasAutoPlayed = true;
     if (!_useLegacyIosFeedBehavior || !adapter.value.isPlaying) {
+      _recordPlaybackDispatch('feed_card_adapter_play');
       unawaited(adapter.play());
     }
     if (isStandalonePostInstance) {
+      _recordPlaybackDispatch('feed_card_exclusive_play_only_this');
       videoStateManager.playOnlyThis(playbackHandleKey);
     } else {
       // Feed card already issues adapter.play() above. Using requestPlayVideo
       // here avoids VideoStateManager's delayed second play wave, which can
       // stall the renderer while audio keeps flowing on some Android devices.
+      _recordPlaybackDispatch('feed_card_video_state_request');
       videoStateManager.requestPlayVideo(
         playbackHandleKey,
         HLSAdapterPlaybackHandle(adapter),
@@ -392,6 +437,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void tryAutoPlayWhenBuffered() {
     // Adapter initialize olmadan çağrı gelirse pending-play kuyruğa alınır.
     if (_videoAdapter != null) {
+      _recordPlaybackDispatch('feed_card_buffer_ready_play');
       unawaited(_videoAdapter!.setLooping(shouldLoopVideo));
       _videoAdapter!.play();
     }
@@ -400,6 +446,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Future<void> replayVideoFromStart() async {
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    _recordPlaybackDispatch('feed_card_replay_from_start');
     _replayOverlayLatched = false;
     _replayAdPrewarmed = false;
     _replayAdVisible = false;

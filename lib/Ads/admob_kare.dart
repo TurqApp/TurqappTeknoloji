@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 
 class AdmobKare extends StatefulWidget {
   const AdmobKare({
@@ -42,6 +43,7 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _impressionReported = false;
   int _retryCount = 0;
   Timer? _retryTimer;
+  DateTime? _qaRequestStartedAt;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
@@ -164,6 +166,16 @@ class _AdmobKareState extends State<AdmobKare> {
     final String adUnitId = _resolveAdUnitId();
     _log(
         'requesting banner unit=$adUnitId platform=${Platform.operatingSystem} debug=$kDebugMode');
+    _qaRequestStartedAt = DateTime.now();
+    recordQALabAdEvent(
+      stage: 'requested',
+      placement: 'medium_rectangle',
+      metadata: <String, dynamic>{
+        'adUnitId': adUnitId,
+        'retryCount': _retryCount,
+        'platform': Platform.operatingSystem,
+      },
+    );
 
     _retryTimer?.cancel();
     final previousAd = _bannerAd;
@@ -190,8 +202,23 @@ class _AdmobKareState extends State<AdmobKare> {
       listener: BannerAdListener(
         onAdLoaded: (Ad ad) {
           _retryCount = 0;
+          final latencyMs = _qaRequestStartedAt == null
+              ? 0
+              : DateTime.now().difference(_qaRequestStartedAt!).inMilliseconds;
           _log(
               'loaded banner source=${ad.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
+          recordQALabAdEvent(
+            stage: 'loaded',
+            placement: 'medium_rectangle',
+            metadata: <String, dynamic>{
+              'adUnitId': adUnitId,
+              'latencyMs': latencyMs,
+              'source':
+                  ad.responseInfo?.loadedAdapterResponseInfo?.adSourceName ??
+                      'unknown',
+              'platform': Platform.operatingSystem,
+            },
+          );
           if (mounted && !_isDisposed) {
             setState(() {
               _isAdLoaded = true;
@@ -203,8 +230,24 @@ class _AdmobKareState extends State<AdmobKare> {
           }
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          final latencyMs = _qaRequestStartedAt == null
+              ? 0
+              : DateTime.now().difference(_qaRequestStartedAt!).inMilliseconds;
           _log(
               'failed banner code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
+          recordQALabAdEvent(
+            stage: 'failed',
+            placement: 'medium_rectangle',
+            metadata: <String, dynamic>{
+              'adUnitId': adUnitId,
+              'latencyMs': latencyMs,
+              'errorCode': error.code,
+              'domain': error.domain,
+              'message': error.message,
+              'retryCount': _retryCount,
+              'platform': Platform.operatingSystem,
+            },
+          );
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
@@ -213,6 +256,16 @@ class _AdmobKareState extends State<AdmobKare> {
             final retryDelay = Duration(milliseconds: 800 * _retryCount);
             _log(
                 'retrying banner in ${retryDelay.inMilliseconds}ms attempt=$_retryCount unit=$adUnitId platform=${Platform.operatingSystem}');
+            recordQALabAdEvent(
+              stage: 'retry_scheduled',
+              placement: 'medium_rectangle',
+              metadata: <String, dynamic>{
+                'adUnitId': adUnitId,
+                'retryCount': _retryCount,
+                'retryDelayMs': retryDelay.inMilliseconds,
+                'platform': Platform.operatingSystem,
+              },
+            );
             if (mounted) {
               setState(() {
                 _loadFailed = false;
@@ -249,6 +302,14 @@ class _AdmobKareState extends State<AdmobKare> {
         onAdImpression: (Ad ad) {
           _log(
               'impression banner unit=$adUnitId platform=${Platform.operatingSystem}');
+          recordQALabAdEvent(
+            stage: 'impression',
+            placement: 'medium_rectangle',
+            metadata: <String, dynamic>{
+              'adUnitId': adUnitId,
+              'platform': Platform.operatingSystem,
+            },
+          );
           if (!_impressionReported) {
             _impressionReported = true;
             widget.onImpression?.call();

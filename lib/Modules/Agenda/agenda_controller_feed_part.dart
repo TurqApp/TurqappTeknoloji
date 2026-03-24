@@ -14,6 +14,17 @@ extension AgendaControllerFeedPart on AgendaController {
             now.difference(_lastPlaybackCommandAt!) >
                 const Duration(milliseconds: 180);
     if (shouldIssueImmediateCommand) {
+      recordQALabPlaybackDispatch(
+        surface: 'feed',
+        stage: manager.currentPlayingDocID == post.docID
+            ? 'feed_reassert_only_this'
+            : 'feed_play_only_this',
+        metadata: <String, dynamic>{
+          'docId': post.docID,
+          'index': index,
+          'currentPlayingDocID': manager.currentPlayingDocID ?? '',
+        },
+      );
       if (manager.currentPlayingDocID == post.docID) {
         manager.reassertOnlyThis(post.docID);
       } else {
@@ -328,6 +339,24 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _onScroll() {
     final currentOffset = scrollController.offset;
+    final now = DateTime.now();
+    if (_qaScrollStartedAt == null) {
+      _qaScrollStartedAt = now;
+      _qaScrollStartOffset = currentOffset;
+      recordQALabScrollEvent(
+        surface: 'feed',
+        phase: 'start',
+        metadata: <String, dynamic>{
+          'offset': currentOffset,
+          'count': agendaList.length,
+          'centeredIndex': centeredIndex.value,
+          'centeredDocId': centeredIndex.value >= 0 &&
+                  centeredIndex.value < agendaList.length
+              ? agendaList[centeredIndex.value].docID
+              : '',
+        },
+      );
+    }
     bool shouldShowNavBar;
 
     if (currentOffset <= 0) {
@@ -350,7 +379,16 @@ extension AgendaControllerFeedPart on AgendaController {
         scrollController.position.hasContentDimensions &&
         scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 300) {
-      fetchAgendaBigData();
+      recordQALabScrollEvent(
+        surface: 'feed',
+        phase: 'near_end',
+        metadata: <String, dynamic>{
+          'offset': currentOffset,
+          'maxScrollExtent': scrollController.position.maxScrollExtent,
+          'count': agendaList.length,
+        },
+      );
+      fetchAgendaBigData(trigger: 'scroll_near_end');
     }
 
     final shouldShowFab = currentOffset <= 1000;
@@ -362,7 +400,31 @@ extension AgendaControllerFeedPart on AgendaController {
     _scrollIdleDebounce = Timer(
       const Duration(milliseconds: 220),
       () {
+        final settledAt = DateTime.now();
         final centered = centeredIndex.value;
+        final centeredDocId = centered >= 0 && centered < agendaList.length
+            ? agendaList[centered].docID
+            : '';
+        recordQALabScrollEvent(
+          surface: 'feed',
+          phase: 'settled',
+          metadata: <String, dynamic>{
+            'offset':
+                scrollController.hasClients ? scrollController.offset : 0.0,
+            'distance': (scrollController.hasClients
+                    ? scrollController.offset
+                    : currentOffset) -
+                _qaScrollStartOffset,
+            'durationMs': settledAt
+                .difference(_qaScrollStartedAt ?? settledAt)
+                .inMilliseconds,
+            'centeredIndex': centered,
+            'docId': centeredDocId,
+            'count': agendaList.length,
+          },
+        );
+        _qaScrollStartedAt = null;
+        _qaScrollStartOffset = 0.0;
         if (centered >= 0 && centered < agendaList.length) {
           _ensureFeedPlaybackForIndex(centered);
         } else {

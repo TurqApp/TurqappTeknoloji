@@ -53,6 +53,19 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _onPageChanged(int page) {
     if (_cachedShorts.isEmpty) return;
     if (page == currentPage) return;
+    final nextDocId = page >= 0 && page < _cachedShorts.length
+        ? _cachedShorts[page].docID
+        : '';
+    recordQALabScrollEvent(
+      surface: 'short',
+      phase: 'settled',
+      metadata: <String, dynamic>{
+        'fromIndex': currentPage,
+        'toIndex': page,
+        'docId': nextDocId,
+        'count': _cachedShorts.length,
+      },
+    );
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
@@ -184,6 +197,19 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _enforceSingleActiveAudio(page);
         final vc = controller.cache[page];
         if (vc == null) return;
+        final docId = page >= 0 && page < _cachedShorts.length
+            ? _cachedShorts[page].docID
+            : '';
+        recordQALabPlaybackDispatch(
+          surface: 'short',
+          stage: 'short_page_play',
+          metadata: <String, dynamic>{
+            'docId': docId,
+            'page': page,
+            'isPlaying': vc.value.isPlaying,
+            'isInitialized': vc.value.isInitialized,
+          },
+        );
         vc.setVolume(volume ? 1 : 0);
         if (!vc.value.isPlaying) {
           vc.play();
@@ -258,6 +284,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
       if (_stallWatchdogRetries >= 2) return;
       _stallWatchdogRetries++;
       try {
+        final docId = page >= 0 && page < _cachedShorts.length
+            ? _cachedShorts[page].docID
+            : '';
+        recordQALabPlaybackDispatch(
+          surface: 'short',
+          stage: 'short_stall_recovery_play',
+          metadata: <String, dynamic>{
+            'docId': docId,
+            'page': page,
+            'retry': _stallWatchdogRetries,
+          },
+        );
         vc.setVolume(volume ? 1 : 0);
         await vc.play();
       } catch (_) {}
@@ -273,8 +311,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _armPlaybackWatchdog(int page, HLSVideoAdapter vc) {
     _playbackWatchdogTimer?.cancel();
-    _playbackWatchdogTimer =
-        Timer(_shortPlayWatchdogDelay, () async {
+    _playbackWatchdogTimer = Timer(_shortPlayWatchdogDelay, () async {
       if (!mounted || page != currentPage || vc.isDisposed) return;
       final value = vc.value;
       final hasStarted = value.isPlaying || value.position > Duration.zero;
@@ -282,6 +319,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
       if (_playWatchdogRetries >= 2) return;
       _playWatchdogRetries++;
       try {
+        final docId = page >= 0 && page < _cachedShorts.length
+            ? _cachedShorts[page].docID
+            : '';
+        recordQALabPlaybackDispatch(
+          surface: 'short',
+          stage: 'short_watchdog_play_retry',
+          metadata: <String, dynamic>{
+            'docId': docId,
+            'page': page,
+            'retry': _playWatchdogRetries,
+          },
+        );
         vc.setVolume(volume ? 1 : 0);
         await vc.play();
       } catch (_) {}
@@ -296,8 +345,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _scheduleEngagementRescore(int page) {
     _engagementRescoreTimer?.cancel();
-    _engagementRescoreTimer =
-        Timer(_shortEngagementRescoreDelay, () {
+    _engagementRescoreTimer = Timer(_shortEngagementRescoreDelay, () {
       if (!mounted || page != currentPage || isManuallyPaused) return;
       if (page < 0 || page >= _cachedShorts.length) return;
       final vc = controller.cache[page];

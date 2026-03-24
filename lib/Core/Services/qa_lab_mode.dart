@@ -39,6 +39,11 @@ class QALabMode {
     defaultValue: 80,
   );
 
+  static const int maxTimelineEvents = int.fromEnvironment(
+    'QA_LAB_MAX_TIMELINE_EVENTS',
+    defaultValue: 320,
+  );
+
   static const int videoFirstFrameTimeoutMs = int.fromEnvironment(
     'QA_LAB_VIDEO_FIRST_FRAME_TIMEOUT_MS',
     defaultValue: 8000,
@@ -102,5 +107,50 @@ class QALabMode {
   static const int nativePlaybackPollSeconds = int.fromEnvironment(
     'QA_LAB_NATIVE_PLAYBACK_POLL_SECONDS',
     defaultValue: 2,
+  );
+
+  static const int activeIssueLookbackSeconds = int.fromEnvironment(
+    'QA_LAB_ACTIVE_ISSUE_LOOKBACK_SECONDS',
+    defaultValue: 45,
+  );
+
+  static const int duplicateFeedTriggerWindowMs = int.fromEnvironment(
+    'QA_LAB_DUPLICATE_FEED_TRIGGER_WINDOW_MS',
+    defaultValue: 1400,
+  );
+
+  static const int duplicatePlaybackDispatchWindowMs = int.fromEnvironment(
+    'QA_LAB_DUPLICATE_PLAYBACK_DISPATCH_WINDOW_MS',
+    defaultValue: 900,
+  );
+
+  static const int scrollAutoplayDispatchWarningMs = int.fromEnvironment(
+    'QA_LAB_SCROLL_AUTOPLAY_DISPATCH_WARNING_MS',
+    defaultValue: 650,
+  );
+
+  static const int scrollAutoplayDispatchBlockingMs = int.fromEnvironment(
+    'QA_LAB_SCROLL_AUTOPLAY_DISPATCH_BLOCKING_MS',
+    defaultValue: 1600,
+  );
+
+  static const int scrollFirstFrameWarningMs = int.fromEnvironment(
+    'QA_LAB_SCROLL_FIRST_FRAME_WARNING_MS',
+    defaultValue: 1800,
+  );
+
+  static const int scrollFirstFrameBlockingMs = int.fromEnvironment(
+    'QA_LAB_SCROLL_FIRST_FRAME_BLOCKING_MS',
+    defaultValue: 3600,
+  );
+
+  static const int adLoadWarningMs = int.fromEnvironment(
+    'QA_LAB_AD_LOAD_WARNING_MS',
+    defaultValue: 1800,
+  );
+
+  static const int adLoadBlockingMs = int.fromEnvironment(
+    'QA_LAB_AD_LOAD_BLOCKING_MS',
+    defaultValue: 4500,
   );
 }

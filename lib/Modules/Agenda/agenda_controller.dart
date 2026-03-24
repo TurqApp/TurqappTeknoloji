@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -190,6 +191,8 @@ class AgendaController extends GetxController {
   DateTime? _lastEnsureInitialLoadAt;
   DateTime? _lastDeferredInitialNetworkBootstrapAt;
   DateTime? _lastPlaybackCommandAt;
+  DateTime? _qaScrollStartedAt;
+  double _qaScrollStartOffset = 0.0;
   String? _lastPlaybackCommandDocId;
   bool _feedModeFallbackQueued = false;
   int _feedModeFallbackEpoch = 0;

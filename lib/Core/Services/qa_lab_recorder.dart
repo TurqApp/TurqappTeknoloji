@@ -135,6 +135,38 @@ class QALabCheckpoint {
   }
 }
 
+class QALabTimelineEvent {
+  const QALabTimelineEvent({
+    required this.id,
+    required this.category,
+    required this.code,
+    required this.route,
+    required this.surface,
+    required this.timestamp,
+    this.metadata = const <String, dynamic>{},
+  });
+
+  final String id;
+  final String category;
+  final String code;
+  final String route;
+  final String surface;
+  final DateTime timestamp;
+  final Map<String, dynamic> metadata;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'category': category,
+      'code': code,
+      'route': route,
+      'surface': surface,
+      'timestamp': timestamp.toUtc().toIso8601String(),
+      'metadata': metadata,
+    };
+  }
+}
+
 class QALabPinpointFinding {
   const QALabPinpointFinding({
     required this.severity,
@@ -266,6 +298,7 @@ class QALabRecorder extends GetxService {
   final RxList<QALabIssue> issues = <QALabIssue>[].obs;
   final RxList<QALabRouteEvent> routes = <QALabRouteEvent>[].obs;
   final RxList<QALabCheckpoint> checkpoints = <QALabCheckpoint>[].obs;
+  final RxList<QALabTimelineEvent> timelineEvents = <QALabTimelineEvent>[].obs;
   final RxMap<String, dynamic> lastNativePlaybackSnapshot =
       <String, dynamic>{}.obs;
   final RxList<Map<String, dynamic>> nativePlaybackSamples =
@@ -297,6 +330,7 @@ class QALabRecorder extends GetxService {
     issues.clear();
     routes.clear();
     checkpoints.clear();
+    timelineEvents.clear();
     lastNativePlaybackSnapshot.clear();
     nativePlaybackSamples.clear();
     lastExportPath.value = '';
@@ -479,6 +513,66 @@ class QALabRecorder extends GetxService {
       code: code,
       severity: severity,
       message: message,
+      metadata: metadata,
+    );
+  }
+
+  void recordScrollEvent({
+    required String surface,
+    required String phase,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    _recordTimelineEvent(
+      category: 'scroll',
+      code: phase,
+      surface: surface,
+      metadata: metadata,
+    );
+  }
+
+  void recordFeedFetchEvent({
+    required String surface,
+    required String stage,
+    required String trigger,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    _recordTimelineEvent(
+      category: 'feed_fetch',
+      code: stage,
+      surface: surface,
+      metadata: <String, dynamic>{
+        'trigger': trigger,
+        ...metadata,
+      },
+    );
+  }
+
+  void recordAdEvent({
+    String? surface,
+    required String stage,
+    required String placement,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    _recordTimelineEvent(
+      category: 'ad',
+      code: stage,
+      surface: (surface ?? '').trim(),
+      metadata: <String, dynamic>{
+        'placement': placement,
+        ...metadata,
+      },
+    );
+  }
+
+  void recordPlaybackDispatch({
+    required String surface,
+    required String stage,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    _recordTimelineEvent(
+      category: 'playback_dispatch',
+      code: stage,
+      surface: surface,
       metadata: metadata,
     );
   }
@@ -765,6 +859,41 @@ class QALabRecorder extends GetxService {
     _maybeEmitAutoSignals();
   }
 
+  void _recordTimelineEvent({
+    required String category,
+    required String code,
+    required String surface,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    if (!QALabMode.enabled) return;
+    if (sessionId.value.isEmpty) {
+      startSession(trigger: 'timeline_event');
+    }
+    final snapshot = IntegrationTestStateProbe.snapshot();
+    final route = (snapshot['currentRoute'] ?? '').toString();
+    final effectiveSurface = surface.trim().isEmpty
+        ? _inferSurfaceFromSnapshot(snapshot)
+        : surface.trim();
+    timelineEvents.add(
+      QALabTimelineEvent(
+        id: '${DateTime.now().microsecondsSinceEpoch}',
+        category: category,
+        code: code,
+        route: route,
+        surface: effectiveSurface,
+        timestamp: DateTime.now(),
+        metadata: <String, dynamic>{
+          ...metadata,
+          'probe': snapshot,
+        },
+      ),
+    );
+    _trimList(timelineEvents, QALabMode.maxTimelineEvents);
+    lastRoute.value = route;
+    lastSurface.value = effectiveSurface;
+    _maybeEmitAutoSignals();
+  }
+
   int get blockingIssueCount => issues
       .where((issue) => issue.severity == QALabIssueSeverity.blocking)
       .length;
@@ -789,20 +918,7 @@ class QALabRecorder extends GetxService {
 
   List<QALabPinpointFinding> buildPinpointFindings() {
     final findings = <QALabPinpointFinding>[
-      ...issues.where((issue) => issue.severity != QALabIssueSeverity.info).map(
-            (issue) => QALabPinpointFinding(
-              severity: issue.severity,
-              code: issue.code,
-              message: issue.message,
-              route: issue.route,
-              surface: issue.surface,
-              timestamp: issue.timestamp,
-              context: <String, dynamic>{
-                'source': issue.source.name,
-                'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
-              },
-            ),
-          ),
+      ..._buildActiveIssueFindings(),
       ..._buildPrioritySurfaceFindings(),
       ..._buildTelemetryThresholdFindings(),
     ];
@@ -890,6 +1006,7 @@ class QALabRecorder extends GetxService {
                 .toJson());
     final surfaceDiagnostics = buildFocusSurfaceDiagnostics();
     final surfaceAlerts = buildSurfaceAlertSummaries();
+    final activeFindings = buildPinpointFindings();
 
     return <String, dynamic>{
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -917,6 +1034,7 @@ class QALabRecorder extends GetxService {
             .toList(growable: false),
       },
       'executiveSummary': <String, dynamic>{
+        'activeFindingCount': activeFindings.length,
         'blockingSurfaceCount':
             surfaceAlerts.where((item) => item.blockingCount > 0).length,
         'errorSurfaceCount':
@@ -935,10 +1053,11 @@ class QALabRecorder extends GetxService {
       },
       'currentSnapshot': currentSnapshot,
       'routes': routes.map((event) => event.toJson()).toList(growable: false),
+      'timeline':
+          timelineEvents.map((event) => event.toJson()).toList(growable: false),
       'issues': issues.map((issue) => issue.toJson()).toList(growable: false),
-      'pinpointFindings': buildPinpointFindings()
-          .map((item) => item.toJson())
-          .toList(growable: false),
+      'pinpointFindings':
+          activeFindings.map((item) => item.toJson()).toList(growable: false),
       'surfaceDiagnostics': surfaceDiagnostics
           .map((item) => item.toJson())
           .toList(growable: false),
@@ -1165,11 +1284,18 @@ class QALabRecorder extends GetxService {
         .toList(growable: false);
   }
 
+  List<QALabTimelineEvent> _surfaceTimelineEvents(String surface) {
+    return timelineEvents
+        .where((event) => _matchesSurface(event.surface, surface))
+        .toList(growable: false);
+  }
+
   List<QALabPinpointFinding> _buildSurfaceRuntimeFindings(
     String surface,
     List<QALabIssue> surfaceIssues,
     List<QALabCheckpoint> surfaceCheckpoints,
   ) {
+    final surfaceTimeline = _surfaceTimelineEvents(surface);
     final findings = <QALabPinpointFinding>[];
     final latestCheckpoint =
         surfaceCheckpoints.isEmpty ? null : surfaceCheckpoints.last;
@@ -1407,6 +1533,31 @@ class QALabRecorder extends GetxService {
         route: route,
       ),
     );
+    findings.addAll(
+      _buildFetchSurfaceFindings(
+        surface: surface,
+        surfaceTimeline: surfaceTimeline,
+        referenceTime: referenceTime,
+        route: route,
+      ),
+    );
+    findings.addAll(
+      _buildScrollSurfaceFindings(
+        surface: surface,
+        surfaceTimeline: surfaceTimeline,
+        surfaceIssues: surfaceIssues,
+        referenceTime: referenceTime,
+        route: route,
+      ),
+    );
+    findings.addAll(
+      _buildAdSurfaceFindings(
+        surface: surface,
+        surfaceTimeline: surfaceTimeline,
+        referenceTime: referenceTime,
+        route: route,
+      ),
+    );
     return findings;
   }
 
@@ -1415,6 +1566,7 @@ class QALabRecorder extends GetxService {
     List<QALabIssue> surfaceIssues,
     List<QALabCheckpoint> surfaceCheckpoints,
   ) {
+    final surfaceTimeline = _surfaceTimelineEvents(surface);
     final videoStarts = surfaceIssues
         .where((issue) => issue.code == 'video_session_started')
         .length;
@@ -1462,6 +1614,19 @@ class QALabRecorder extends GetxService {
     );
     final autoplayFindings =
         runtimeFindings.where((item) => item.code.contains('autoplay_')).length;
+    final duplicateFeedTriggers =
+        _countDuplicateFeedTriggerBursts(surfaceTimeline: surfaceTimeline);
+    final duplicatePlaybackDispatches = _countDuplicatePlaybackDispatchBursts(
+      surfaceTimeline: surfaceTimeline,
+    );
+    final latestScrollLatency = _latestScrollLatencySummary(
+      surfaceTimeline: surfaceTimeline,
+      surfaceIssues: surfaceIssues,
+      referenceTime: surfaceCheckpoints.isEmpty
+          ? DateTime.now()
+          : surfaceCheckpoints.last.timestamp,
+    );
+    final adSummary = _adSummary(surfaceTimeline);
 
     return <String, dynamic>{
       'checkpointCount': surfaceCheckpoints.length,
@@ -1477,6 +1642,15 @@ class QALabRecorder extends GetxService {
       'blankSnapshotCount': blankSnapshots,
       'autoplayFindingCount': autoplayFindings,
       'runtimeFindingCount': runtimeFindings.length,
+      'timelineEventCount': surfaceTimeline.length,
+      'duplicateFeedTriggerCount': duplicateFeedTriggers,
+      'duplicatePlaybackDispatchCount': duplicatePlaybackDispatches,
+      'latestScrollDispatchLatencyMs': latestScrollLatency.$1,
+      'latestScrollFirstFrameLatencyMs': latestScrollLatency.$2,
+      'adRequestCount': adSummary.$1,
+      'adLoadCount': adSummary.$2,
+      'adFailureCount': adSummary.$3,
+      'worstAdLoadMs': adSummary.$4,
       if (surface == 'feed' || surface == 'short')
         'nativePlaybackStatus':
             (lastNativePlaybackSnapshot['status'] ?? '').toString(),
@@ -1751,6 +1925,455 @@ class QALabRecorder extends GetxService {
     return findings;
   }
 
+  List<QALabPinpointFinding> _buildFetchSurfaceFindings({
+    required String surface,
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    if (surface != 'feed') {
+      return const <QALabPinpointFinding>[];
+    }
+    final bursts = _feedTriggerBursts(surfaceTimeline: surfaceTimeline);
+    if (bursts.isEmpty) {
+      return const <QALabPinpointFinding>[];
+    }
+    final strongest = bursts.first;
+    final repeatCount = _asInt(strongest['repeatCount']);
+    return <QALabPinpointFinding>[
+      QALabPinpointFinding(
+        severity: repeatCount >= 3
+            ? QALabIssueSeverity.error
+            : QALabIssueSeverity.warning,
+        code: 'feed_duplicate_fetch_trigger',
+        message:
+            'Feed fetch was triggered repeatedly before the previous request fully settled.',
+        route: route,
+        surface: surface,
+        timestamp: _parseTimestamp(strongest['timestamp']) ?? referenceTime,
+        context: strongest,
+      ),
+    ];
+  }
+
+  List<Map<String, dynamic>> _feedTriggerBursts({
+    required List<QALabTimelineEvent> surfaceTimeline,
+  }) {
+    final feedEvents = surfaceTimeline
+        .where((event) => event.category == 'feed_fetch')
+        .where(
+          (event) =>
+              event.code == 'started' ||
+              event.code == 'skipped' ||
+              event.code == 'requested',
+        )
+        .toList(growable: false);
+    final bursts = <Map<String, dynamic>>[];
+    for (int i = 0; i < feedEvents.length; i++) {
+      final first = feedEvents[i];
+      final trigger = (first.metadata['trigger'] ?? '').toString();
+      if (trigger.isEmpty) continue;
+      var repeatCount = 1;
+      for (int j = i + 1; j < feedEvents.length; j++) {
+        final next = feedEvents[j];
+        if ((next.metadata['trigger'] ?? '').toString() != trigger) {
+          continue;
+        }
+        final deltaMs =
+            next.timestamp.difference(first.timestamp).inMilliseconds;
+        if (deltaMs > QALabMode.duplicateFeedTriggerWindowMs) {
+          break;
+        }
+        repeatCount += 1;
+      }
+      if (repeatCount >= 2) {
+        bursts.add(
+          <String, dynamic>{
+            'timestamp': first.timestamp.toUtc().toIso8601String(),
+            'trigger': trigger,
+            'stage': first.code,
+            'repeatCount': repeatCount,
+            'windowMs': QALabMode.duplicateFeedTriggerWindowMs,
+          },
+        );
+      }
+    }
+    bursts.sort((a, b) => _asInt(b['repeatCount']) - _asInt(a['repeatCount']));
+    return bursts;
+  }
+
+  int _countDuplicateFeedTriggerBursts({
+    required List<QALabTimelineEvent> surfaceTimeline,
+  }) {
+    return _feedTriggerBursts(surfaceTimeline: surfaceTimeline).length;
+  }
+
+  List<QALabPinpointFinding> _buildScrollSurfaceFindings({
+    required String surface,
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required List<QALabIssue> surfaceIssues,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    if (surface != 'feed' && surface != 'short') {
+      return const <QALabPinpointFinding>[];
+    }
+    final latestSettle = _latestScrollSettleEvent(surfaceTimeline);
+    if (latestSettle == null) {
+      return const <QALabPinpointFinding>[];
+    }
+    final expectedDocId = (latestSettle.metadata['docId'] ?? '').toString();
+    if (expectedDocId.isEmpty) {
+      return const <QALabPinpointFinding>[];
+    }
+
+    final findings = <QALabPinpointFinding>[];
+    final dispatch = _firstPlaybackDispatchAfter(
+      surfaceTimeline: surfaceTimeline,
+      after: latestSettle.timestamp,
+      docId: expectedDocId,
+    );
+    final dispatchLatencyMs = dispatch == null
+        ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
+        : dispatch.timestamp.difference(latestSettle.timestamp).inMilliseconds;
+    if (dispatch == null &&
+        dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchBlockingMs) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.blocking,
+          code: '${surface}_scroll_dispatch_timeout',
+          message:
+              'Playback dispatch did not fire after the latest scroll settled on $surface.',
+          route: route,
+          surface: surface,
+          timestamp: latestSettle.timestamp,
+          context: <String, dynamic>{
+            'docId': expectedDocId,
+            'dispatchLatencyMs': dispatchLatencyMs,
+          },
+        ),
+      );
+    } else if (dispatch != null &&
+        dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchWarningMs) {
+      findings.add(
+        QALabPinpointFinding(
+          severity:
+              dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchBlockingMs
+                  ? QALabIssueSeverity.error
+                  : QALabIssueSeverity.warning,
+          code: '${surface}_scroll_dispatch_slow',
+          message:
+              'Playback dispatch arrived late after the latest scroll settled on $surface.',
+          route: route,
+          surface: surface,
+          timestamp: dispatch.timestamp,
+          context: <String, dynamic>{
+            'docId': expectedDocId,
+            'dispatchLatencyMs': dispatchLatencyMs,
+            'dispatchStage': dispatch.code,
+          },
+        ),
+      );
+    }
+
+    final firstFrameIssue = surfaceIssues
+        .where((issue) => issue.code == 'video_first_frame')
+        .where((issue) => _videoIdOf(issue) == expectedDocId)
+        .where((issue) => issue.timestamp.isAfter(latestSettle.timestamp))
+        .toList(growable: false)
+        .firstOrNull;
+    final firstFrameLatencyMs = firstFrameIssue == null
+        ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
+        : firstFrameIssue.timestamp
+            .difference(latestSettle.timestamp)
+            .inMilliseconds;
+    if (dispatch != null &&
+        firstFrameIssue == null &&
+        firstFrameLatencyMs >= QALabMode.scrollFirstFrameBlockingMs) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.blocking,
+          code: '${surface}_scroll_first_frame_missing',
+          message:
+              'Playback dispatch fired on $surface, but the settled item still never rendered a first frame.',
+          route: route,
+          surface: surface,
+          timestamp: latestSettle.timestamp,
+          context: <String, dynamic>{
+            'docId': expectedDocId,
+            'firstFrameLatencyMs': firstFrameLatencyMs,
+          },
+        ),
+      );
+    } else if (firstFrameIssue != null &&
+        firstFrameLatencyMs >= QALabMode.scrollFirstFrameWarningMs) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: firstFrameLatencyMs >= QALabMode.scrollFirstFrameBlockingMs
+              ? QALabIssueSeverity.error
+              : QALabIssueSeverity.warning,
+          code: '${surface}_scroll_first_frame_slow',
+          message:
+              'The settled item on $surface rendered its first frame too late after scroll.',
+          route: route,
+          surface: surface,
+          timestamp: firstFrameIssue.timestamp,
+          context: <String, dynamic>{
+            'docId': expectedDocId,
+            'firstFrameLatencyMs': firstFrameLatencyMs,
+          },
+        ),
+      );
+    }
+
+    final duplicateBursts = _duplicatePlaybackDispatchBursts(
+      surfaceTimeline: surfaceTimeline,
+      docId: expectedDocId,
+    );
+    if (duplicateBursts.isNotEmpty) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: _asInt(duplicateBursts.first['repeatCount']) >= 3
+              ? QALabIssueSeverity.error
+              : QALabIssueSeverity.warning,
+          code: '${surface}_duplicate_playback_dispatch',
+          message:
+              'The same $surface item received repeated playback dispatches in a very short window.',
+          route: route,
+          surface: surface,
+          timestamp: _parseTimestamp(duplicateBursts.first['timestamp']) ??
+              referenceTime,
+          context: duplicateBursts.first,
+        ),
+      );
+    }
+
+    return findings;
+  }
+
+  QALabTimelineEvent? _latestScrollSettleEvent(
+    List<QALabTimelineEvent> surfaceTimeline,
+  ) {
+    return surfaceTimeline
+        .where((event) => event.category == 'scroll' && event.code == 'settled')
+        .toList(growable: false)
+        .lastOrNull;
+  }
+
+  QALabTimelineEvent? _firstPlaybackDispatchAfter({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required DateTime after,
+    required String docId,
+  }) {
+    return surfaceTimeline
+        .where((event) => event.category == 'playback_dispatch')
+        .where((event) => (event.metadata['docId'] ?? '').toString() == docId)
+        .where((event) => !event.timestamp.isBefore(after))
+        .toList(growable: false)
+        .firstOrNull;
+  }
+
+  List<Map<String, dynamic>> _duplicatePlaybackDispatchBursts({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    String? docId,
+  }) {
+    final events = surfaceTimeline
+        .where((event) => event.category == 'playback_dispatch')
+        .where(
+          (event) =>
+              docId == null ||
+              (event.metadata['docId'] ?? '').toString() == docId,
+        )
+        .toList(growable: false);
+    final bursts = <Map<String, dynamic>>[];
+    for (int i = 0; i < events.length; i++) {
+      final first = events[i];
+      final firstDocId = (first.metadata['docId'] ?? '').toString();
+      if (firstDocId.isEmpty) continue;
+      final stages = <String>[first.code];
+      var repeatCount = 1;
+      for (int j = i + 1; j < events.length; j++) {
+        final next = events[j];
+        if ((next.metadata['docId'] ?? '').toString() != firstDocId) {
+          continue;
+        }
+        final deltaMs =
+            next.timestamp.difference(first.timestamp).inMilliseconds;
+        if (deltaMs > QALabMode.duplicatePlaybackDispatchWindowMs) {
+          break;
+        }
+        repeatCount += 1;
+        stages.add(next.code);
+      }
+      if (repeatCount >= 2) {
+        bursts.add(
+          <String, dynamic>{
+            'timestamp': first.timestamp.toUtc().toIso8601String(),
+            'docId': firstDocId,
+            'repeatCount': repeatCount,
+            'stages': stages,
+            'windowMs': QALabMode.duplicatePlaybackDispatchWindowMs,
+          },
+        );
+      }
+    }
+    bursts.sort((a, b) => _asInt(b['repeatCount']) - _asInt(a['repeatCount']));
+    return bursts;
+  }
+
+  int _countDuplicatePlaybackDispatchBursts({
+    required List<QALabTimelineEvent> surfaceTimeline,
+  }) {
+    return _duplicatePlaybackDispatchBursts(surfaceTimeline: surfaceTimeline)
+        .length;
+  }
+
+  (int, int) _latestScrollLatencySummary({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required List<QALabIssue> surfaceIssues,
+    required DateTime referenceTime,
+  }) {
+    final latestSettle = _latestScrollSettleEvent(surfaceTimeline);
+    if (latestSettle == null) {
+      return (0, 0);
+    }
+    final docId = (latestSettle.metadata['docId'] ?? '').toString();
+    if (docId.isEmpty) {
+      return (0, 0);
+    }
+    final dispatch = _firstPlaybackDispatchAfter(
+      surfaceTimeline: surfaceTimeline,
+      after: latestSettle.timestamp,
+      docId: docId,
+    );
+    final firstFrameIssue = surfaceIssues
+        .where((issue) => issue.code == 'video_first_frame')
+        .where((issue) => _videoIdOf(issue) == docId)
+        .where((issue) => issue.timestamp.isAfter(latestSettle.timestamp))
+        .toList(growable: false)
+        .firstOrNull;
+    final dispatchLatencyMs = dispatch == null
+        ? 0
+        : dispatch.timestamp.difference(latestSettle.timestamp).inMilliseconds;
+    final firstFrameLatencyMs = firstFrameIssue == null
+        ? 0
+        : firstFrameIssue.timestamp
+            .difference(latestSettle.timestamp)
+            .inMilliseconds;
+    return (dispatchLatencyMs, firstFrameLatencyMs);
+  }
+
+  List<QALabPinpointFinding> _buildAdSurfaceFindings({
+    required String surface,
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    final adEvents = surfaceTimeline
+        .where((event) => event.category == 'ad')
+        .toList(growable: false);
+    if (adEvents.isEmpty) {
+      return const <QALabPinpointFinding>[];
+    }
+    final latestRequest = adEvents
+        .where((event) => event.code == 'requested')
+        .toList(growable: false)
+        .lastOrNull;
+    final latestLoad = adEvents
+        .where((event) => event.code == 'loaded')
+        .toList(growable: false)
+        .lastOrNull;
+    final failureCount =
+        adEvents.where((event) => event.code == 'failed').length;
+    final retryCount =
+        adEvents.where((event) => event.code == 'retry_scheduled').length;
+    final findings = <QALabPinpointFinding>[];
+
+    if (latestLoad != null) {
+      final latencyMs = _asInt(latestLoad.metadata['latencyMs']);
+      if (latencyMs >= QALabMode.adLoadWarningMs) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: latencyMs >= QALabMode.adLoadBlockingMs
+                ? QALabIssueSeverity.error
+                : QALabIssueSeverity.warning,
+            code: '${surface}_ad_load_slow',
+            message:
+                'An ad on $surface loaded slowly enough to risk visible UI delay.',
+            route: route,
+            surface: surface,
+            timestamp: latestLoad.timestamp,
+            context: <String, dynamic>{
+              'placement': (latestLoad.metadata['placement'] ?? '').toString(),
+              'latencyMs': latencyMs,
+            },
+          ),
+        );
+      }
+    }
+
+    if (latestRequest != null &&
+        latestLoad == null &&
+        referenceTime.difference(latestRequest.timestamp).inMilliseconds >=
+            QALabMode.adLoadBlockingMs) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.warning,
+          code: '${surface}_ad_load_stuck',
+          message:
+              'An ad request on $surface stayed unresolved long enough to risk delayed layout or chrome.',
+          route: route,
+          surface: surface,
+          timestamp: latestRequest.timestamp,
+          context: <String, dynamic>{
+            'placement': (latestRequest.metadata['placement'] ?? '').toString(),
+            'elapsedMs': referenceTime
+                .difference(latestRequest.timestamp)
+                .inMilliseconds,
+          },
+        ),
+      );
+    }
+
+    if (failureCount >= 2 || retryCount >= 2) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: failureCount >= 3 || retryCount >= 3
+              ? QALabIssueSeverity.error
+              : QALabIssueSeverity.warning,
+          code: '${surface}_ad_retry_burst',
+          message:
+              'Ad loading on $surface entered repeated failures or retry bursts.',
+          route: route,
+          surface: surface,
+          timestamp: adEvents.last.timestamp,
+          context: <String, dynamic>{
+            'failureCount': failureCount,
+            'retryCount': retryCount,
+          },
+        ),
+      );
+    }
+
+    return findings;
+  }
+
+  (int, int, int, int) _adSummary(List<QALabTimelineEvent> surfaceTimeline) {
+    final adEvents = surfaceTimeline
+        .where((event) => event.category == 'ad')
+        .toList(growable: false);
+    final requestCount =
+        adEvents.where((event) => event.code == 'requested').length;
+    final loadCount = adEvents.where((event) => event.code == 'loaded').length;
+    final failureCount =
+        adEvents.where((event) => event.code == 'failed').length;
+    final worstLoadMs = adEvents
+        .where((event) => event.code == 'loaded')
+        .map((event) => _asInt(event.metadata['latencyMs']))
+        .fold<int>(0, (left, right) => left > right ? left : right);
+    return (requestCount, loadCount, failureCount, worstLoadMs);
+  }
+
   List<QALabPinpointFinding> _buildCacheSurfaceFindings({
     required String surface,
     required List<QALabIssue> surfaceIssues,
@@ -1979,7 +2602,90 @@ class QALabRecorder extends GetxService {
       );
     }
 
+    if (surface == 'feed' &&
+        isPlaybackExpected &&
+        !hasFirstFrame &&
+        !isPlaying &&
+        _surfaceIssues(surface)
+                .where((issue) => issue.code == 'video_first_frame')
+                .length >=
+            2) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.error,
+          code: 'feed_thumbnail_only_runtime_loss',
+          message:
+              'Feed previously rendered video frames in this session, but the current eligible card stayed on thumbnail state.',
+          route: route,
+          surface: surface,
+          timestamp: sampledAt,
+          context: snapshotContext,
+        ),
+      );
+    }
+
     return findings;
+  }
+
+  List<QALabPinpointFinding> _buildActiveIssueFindings() {
+    final now = DateTime.now();
+    return issues
+        .where((issue) => issue.severity != QALabIssueSeverity.info)
+        .where((issue) => !_isSpecializedIssueCode(issue.code))
+        .where((issue) => !_isResolvedPermissionIssue(issue))
+        .where(
+          (issue) =>
+              now.difference(issue.timestamp) <=
+              _activeIssueLookback(issue.severity),
+        )
+        .map(
+          (issue) => QALabPinpointFinding(
+            severity: issue.severity,
+            code: issue.code,
+            message: issue.message,
+            route: issue.route,
+            surface: issue.surface,
+            timestamp: issue.timestamp,
+            context: <String, dynamic>{
+              'source': issue.source.name,
+              'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
+            },
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  bool _isSpecializedIssueCode(String code) {
+    return code.startsWith('video_') ||
+        code.startsWith('frame_jank_') ||
+        code.startsWith('cache_first_') ||
+        code.startsWith('lifecycle_');
+  }
+
+  bool _isResolvedPermissionIssue(QALabIssue issue) {
+    if (!issue.code.startsWith('permission_') ||
+        !issue.code.endsWith('_blocked')) {
+      return false;
+    }
+    final rawKey = issue.code.substring(
+      'permission_'.length,
+      issue.code.length - '_blocked'.length,
+    );
+    final status = lastPermissionStatuses[rawKey];
+    return status == 'granted' || status == 'limited';
+  }
+
+  Duration _activeIssueLookback(QALabIssueSeverity severity) {
+    switch (severity) {
+      case QALabIssueSeverity.blocking:
+        return const Duration(seconds: 75);
+      case QALabIssueSeverity.error:
+        return const Duration(seconds: 60);
+      case QALabIssueSeverity.warning:
+        return Duration(seconds: QALabMode.activeIssueLookbackSeconds);
+      case QALabIssueSeverity.info:
+        return Duration.zero;
+    }
   }
 
   void _recordCriticalPermissionIfBlocked({
@@ -2277,6 +2983,25 @@ class QALabRecorder extends GetxService {
         '${diagnostic.surface} had eligible content but autoplay did not lock onto the expected video.',
       );
     }
+    if (code.contains('duplicate_fetch')) {
+      return (
+        'feed_trigger_duplication',
+        '${diagnostic.surface} triggered repeated feed loads before a prior fetch settled.',
+      );
+    }
+    if (code.contains('duplicate_playback_dispatch')) {
+      return (
+        'playback_dispatch_duplication',
+        '${diagnostic.surface} issued repeated playback commands against the same item in a tight burst.',
+      );
+    }
+    if (code.contains('scroll_dispatch') ||
+        code.contains('scroll_first_frame')) {
+      return (
+        'scroll_autoplay_latency',
+        '${diagnostic.surface} lost time between scroll settle, playback dispatch, and the first rendered frame.',
+      );
+    }
     if (code.contains('first_frame')) {
       return (
         'first_frame_latency',
@@ -2299,6 +3024,18 @@ class QALabRecorder extends GetxService {
       return (
         'audio_state_drift',
         '${diagnostic.surface} produced inconsistent audible state across video sessions.',
+      );
+    }
+    if (code.contains('thumbnail_only')) {
+      return (
+        'playback_session_loss',
+        '${diagnostic.surface} had prior video success in the session but later regressed to thumbnail-only playback.',
+      );
+    }
+    if (code.contains('ad_load') || code.contains('ad_retry')) {
+      return (
+        'ad_loading_latency',
+        '${diagnostic.surface} ad lifecycle added delay, failure, or retry pressure during rendering.',
       );
     }
     if (code.contains('cache_live_failures') ||

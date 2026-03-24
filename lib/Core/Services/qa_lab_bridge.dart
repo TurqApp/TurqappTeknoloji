@@ -116,3 +116,59 @@ void captureQALabCheckpoint({
     extra: extra,
   );
 }
+
+void recordQALabScrollEvent({
+  required String surface,
+  required String phase,
+  Map<String, dynamic> metadata = const <String, dynamic>{},
+}) {
+  if (!QALabMode.enabled) return;
+  QALabRecorder.ensure().recordScrollEvent(
+    surface: surface,
+    phase: phase,
+    metadata: metadata,
+  );
+}
+
+void recordQALabFeedFetchEvent({
+  required String stage,
+  String surface = 'feed',
+  String trigger = 'manual',
+  Map<String, dynamic> metadata = const <String, dynamic>{},
+}) {
+  if (!QALabMode.enabled) return;
+  QALabRecorder.ensure().recordFeedFetchEvent(
+    surface: surface,
+    stage: stage,
+    trigger: trigger,
+    metadata: metadata,
+  );
+}
+
+void recordQALabAdEvent({
+  required String stage,
+  String? surface,
+  String placement = '',
+  Map<String, dynamic> metadata = const <String, dynamic>{},
+}) {
+  if (!QALabMode.enabled) return;
+  QALabRecorder.ensure().recordAdEvent(
+    surface: surface,
+    stage: stage,
+    placement: placement,
+    metadata: metadata,
+  );
+}
+
+void recordQALabPlaybackDispatch({
+  required String surface,
+  required String stage,
+  Map<String, dynamic> metadata = const <String, dynamic>{},
+}) {
+  if (!QALabMode.enabled) return;
+  QALabRecorder.ensure().recordPlaybackDispatch(
+    surface: surface,
+    stage: stage,
+    metadata: metadata,
+  );
+}
