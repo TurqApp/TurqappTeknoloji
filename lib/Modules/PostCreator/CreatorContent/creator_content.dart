@@ -17,6 +17,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
 import '../post_creator_controller.dart';
 import 'creator_content_controller.dart';
+import 'composer_hashtag_utils.dart';
 import 'post_creator_model.dart';
 
 part 'creator_content_media_part.dart';

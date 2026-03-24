@@ -11,9 +11,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
+import 'package:turqappv2/Models/hashtag_model.dart';
+import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import '../../../Core/LocationFinderView/location_finder_view.dart';
 import '../../../Core/Services/upload_validation_service.dart';
 import '../../../Core/Services/media_compression_service.dart';
@@ -22,13 +25,19 @@ import '../../../Core/Camera/chat_camera_capture_view.dart';
 import '../../../Core/upload_constants.dart';
 import '../../../Themes/app_colors.dart';
 import '../post_creator_controller.dart';
+import 'composer_hashtag_utils.dart';
 
 part 'creator_content_controller_poll_part.dart';
 part 'creator_content_controller_media_part.dart';
 part 'creator_content_controller_video_part.dart';
+part 'creator_content_controller_hashtag_part.dart';
 
 class CreatorContentController extends GetxController
     with WidgetsBindingObserver {
+  void _handleTextEditingChanged() {
+    refreshHashtagSuggestionsFromCursor();
+  }
+
   static CreatorContentController ensure({
     String? tag,
     bool permanent = false,
@@ -72,6 +81,11 @@ class CreatorContentController extends GetxController
   final RxBool contentNotEmpty = false.obs;
   final RxBool textChanged = false.obs;
   final RxBool waitingVideo = false.obs;
+  final RxList<HashtagModel> trendingHashtags = <HashtagModel>[].obs;
+  final RxList<HashtagModel> hashtagSuggestions = <HashtagModel>[].obs;
+  final RxBool showHashtagSuggestions = false.obs;
+  final RxBool hashtagSuggestionsLoading = false.obs;
+  final RxString activeHashtagQuery = ''.obs;
   final RxString reusedVideoUrl = ''.obs;
   final RxString reusedVideoThumbnail = ''.obs;
   final RxDouble reusedVideoAspectRatio = 0.0.obs;
@@ -87,6 +101,7 @@ class CreatorContentController extends GetxController
 
   var adres = "".obs;
   var gif = "".obs;
+  final TopTagsRepository _topTagsRepository = TopTagsRepository.ensure();
 
   Rx<VideoPlayerController?> rxVideoPlayerController =
       Rx<VideoPlayerController?>(null);
@@ -98,11 +113,13 @@ class CreatorContentController extends GetxController
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
+    textEdit.addListener(_handleTextEditingChanged);
   }
 
   @override
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
+    textEdit.removeListener(_handleTextEditingChanged);
     unawaited(_releaseVideoController());
     isPlaying.value = false;
     focus.dispose();
@@ -193,6 +210,15 @@ class CreatorContentController extends GetxController
       _performBindVideoController(controller);
 
   Future<void> _releaseVideoController() => _performReleaseVideoController();
+
+  Future<void> ensureTrendingHashtagsLoaded() =>
+      _performEnsureTrendingHashtagsLoaded();
+
+  void refreshHashtagSuggestionsFromCursor() =>
+      _performRefreshHashtagSuggestionsFromCursor();
+
+  void applyTrendingHashtagSelection(HashtagModel model) =>
+      _performApplyTrendingHashtagSelection(model);
 
   Future<void> resetComposerState() => _performResetComposerState();
 }
