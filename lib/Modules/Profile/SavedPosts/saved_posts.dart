@@ -5,13 +5,19 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
+import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/SavedItems/saved_items_controller.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_listing_card.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_service.dart';
 import 'package:turqappv2/Modules/Market/market_listing_card.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/SavedJobs/saved_job_controller.dart';
@@ -408,6 +414,7 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
   late final SavedItemsController _controller;
   late final String _controllerTag;
   late final bool _ownsController;
+  final ShortLinkService _shortLinkService = ShortLinkService();
 
   @override
   void initState() {
@@ -456,104 +463,103 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
               )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final scholarshipData = items[index];
-                  final burs = scholarshipData['model'];
-                  final title = (burs.baslik ?? '').toString();
-                  final description = (burs.aciklama ?? '').toString();
-                  final imageUrl = (burs.img ?? '').toString();
-                  final userData =
-                      scholarshipData['userData'] as Map<String, dynamic>?;
-                  final subtitle = (userData?['displayName'] ??
-                          userData?['username'] ??
-                          userData?['nickname'] ??
-                          '')
-                      .toString();
-                  return GestureDetector(
-                    onTap: () => Get.to(
-                      () => ScholarshipDetailView(),
-                      arguments: scholarshipData,
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: SizedBox(
-                              width: 104,
-                              height: 78,
-                              child: imageUrl.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: imageUrl,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(
-                                        color: Colors.grey.shade300,
-                                      ),
-                                      errorWidget: (_, __, ___) => Container(
-                                        color: Colors.grey.shade300,
-                                      ),
-                                    )
-                                  : Container(
-                                      color: Colors.grey.shade300,
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontFamily: 'MontserratBold',
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                if (subtitle.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    subtitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontFamily: 'MontserratMedium',
-                                      color: Colors.blue.shade900,
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: 4),
-                                Text(
-                                  description,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontFamily: 'Montserrat',
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  final docId = (scholarshipData['docId'] ?? '').toString();
+                  return ScholarshipListingCard(
+                    scholarshipData: scholarshipData,
+                    isSaved: true,
+                    onOpen: () => _openScholarship(scholarshipData),
+                    onToggleSaved: () => _toggleSavedScholarship(docId),
+                    onShare: () => _shareScholarship(scholarshipData),
                   );
                 },
               ),
       );
     });
+  }
+
+  Future<void> _openScholarship(Map<String, dynamic> scholarshipData) async {
+    await ScholarshipNavigationService.openDetail(scholarshipData);
+    await _controller.fetchSavedItems(silent: true, forceRefresh: true);
+  }
+
+  Future<void> _toggleSavedScholarship(String docId) async {
+    await _controller.toggleBookmark(docId, kIndividualScholarshipType);
+  }
+
+  Future<void> _shareScholarship(Map<String, dynamic> scholarshipData) async {
+    final burs = scholarshipData['model'] as IndividualScholarshipsModel?;
+    if (burs == null) {
+      AppSnackbar('common.error'.tr, 'scholarship.share_failed'.tr);
+      return;
+    }
+
+    final docId =
+        (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
+            .toString();
+    if (docId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'scholarship.share_missing_id'.tr);
+      return;
+    }
+
+    final shareId = 'scholarship:$docId';
+    final shortTail = docId.length >= 8 ? docId.substring(0, 8) : docId;
+    final fallbackUrl = 'https://turqapp.com/e/scholarship-$shortTail';
+    final title = burs.baslik.trim().isNotEmpty
+        ? burs.baslik.trim()
+        : 'scholarship.share_detail_title'.tr;
+
+    var shortUrl = fallbackUrl;
+    try {
+      shortUrl = await _shortLinkService.getEducationPublicUrl(
+        shareId: shareId,
+        title: title,
+        desc: _pickScholarshipShareDesc(burs),
+        imageUrl: _pickScholarshipShareImage(burs),
+      );
+    } catch (_) {}
+
+    if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
+      shortUrl = fallbackUrl;
+    }
+
+    try {
+      await ShareLinkService.shareUrl(
+        url: shortUrl,
+        title: title,
+        subject: title,
+      );
+    } catch (_) {
+      AppSnackbar('common.error'.tr, 'scholarship.share_failed'.tr);
+    }
+  }
+
+  String _pickScholarshipShareDesc(IndividualScholarshipsModel model) {
+    final normalizedTitle = normalizeSearchText(model.baslik);
+    final shortDesc = model.shortDescription.trim();
+    if (shortDesc.isNotEmpty &&
+        normalizeSearchText(shortDesc) != normalizedTitle) {
+      return shortDesc;
+    }
+    final provider = model.bursVeren.trim();
+    if (provider.isNotEmpty &&
+        normalizeSearchText(provider) != normalizedTitle) {
+      return provider;
+    }
+    return 'scholarship.share_fallback_desc'.tr;
+  }
+
+  String? _pickScholarshipShareImage(IndividualScholarshipsModel model) {
+    final img = model.img.trim();
+    if (img.isNotEmpty) return img;
+    final img2 = model.img2.trim();
+    if (img2.isNotEmpty) return img2;
+    final logo = model.logo.trim();
+    if (logo.isNotEmpty) return logo;
+    return null;
   }
 }

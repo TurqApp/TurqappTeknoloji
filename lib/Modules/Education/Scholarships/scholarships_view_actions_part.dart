@@ -5,7 +5,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       Map<String, dynamic> scholarshipData) {
     return GestureDetector(
       onTap: () =>
-          Get.to(() => ScholarshipDetailView(), arguments: scholarshipData),
+          ScholarshipNavigationService.openDetail(scholarshipData),
       onDoubleTap: () => controller.toggleLike(scholarshipData['docId'], type),
       child: _hasMultipleImages(type, burs)
           ? _buildMultipleImagesView(index, burs)
@@ -354,8 +354,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
             CurrentUserService.instance.effectiveUserId;
 
     return GestureDetector(
-      onTap: () =>
-          Get.to(() => ScholarshipDetailView(), arguments: scholarshipData),
+      onTap: () => ScholarshipNavigationService.openDetail(scholarshipData),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(

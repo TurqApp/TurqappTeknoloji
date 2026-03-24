@@ -257,6 +257,18 @@ class AdmobUnitConfigService extends GetxService {
     );
   }
 
+  List<String> squareAdUnitIdsForCurrentPlatform({required bool isTestMode}) {
+    if (isTestMode) {
+      return <String>[
+        Platform.isIOS
+            ? 'ca-app-pub-3940256099942544/2934735716'
+            : 'ca-app-pub-3940256099942544/6300978111',
+      ];
+    }
+    final ids = Platform.isIOS ? _config.ios.squareIds : _config.android.squareIds;
+    return List<String>.from(ids, growable: false);
+  }
+
   String nextInterstitialAdUnitId({required bool isTestMode}) {
     if (isTestMode) {
       return Platform.isIOS
@@ -275,6 +287,21 @@ class AdmobUnitConfigService extends GetxService {
       cursorKey: _androidInterstitialCursorKey,
       fallback: _AdmobUnitConfig.defaultAndroidInterstitialIds.first,
     );
+  }
+
+  List<String> interstitialAdUnitIdsForCurrentPlatform({
+    required bool isTestMode,
+  }) {
+    if (isTestMode) {
+      return <String>[
+        Platform.isIOS
+            ? 'ca-app-pub-3940256099942544/4411468910'
+            : 'ca-app-pub-3940256099942544/1033173712',
+      ];
+    }
+    final ids =
+        Platform.isIOS ? _config.ios.interstitialIds : _config.android.interstitialIds;
+    return List<String>.from(ids, growable: false);
   }
 
   Future<void> _initInternal() async {
