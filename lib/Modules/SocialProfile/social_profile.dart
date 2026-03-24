@@ -55,6 +55,7 @@ import '../../Models/social_media_model.dart';
 part 'social_profile_lifecycle_part.dart';
 part 'social_profile_content_part.dart';
 part 'social_profile_sections_part.dart';
+part 'social_profile_header_part.dart';
 
 class SocialProfile extends StatefulWidget {
   final String userID;
