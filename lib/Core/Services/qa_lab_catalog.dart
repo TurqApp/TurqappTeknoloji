@@ -529,7 +529,28 @@ class QALabCatalog {
       runnableInApp: false,
     ),
     QALabCatalogEntry(
+      path:
+          'test/unit/modules/in_app_notifications/notification_post_types_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/unit/modules/post_creator/composer_hashtag_utils_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/unit/modules/profile/liked_posts_controller_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
       path: 'test/unit/services/playback_kpi_service_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/unit/services/post_caption_limits_test.dart',
       origin: QALabTestOrigin.unit,
       runnableInApp: false,
     ),
@@ -559,6 +580,11 @@ class QALabCatalog {
       runnableInApp: false,
     ),
     QALabCatalogEntry(
+      path: 'test/unit/services/read_budget_contract_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
       path: 'test/unit/services/storage_budget_manager_test.dart',
       origin: QALabTestOrigin.unit,
       runnableInApp: false,
@@ -570,6 +596,16 @@ class QALabCatalog {
     ),
     QALabCatalogEntry(
       path: 'test/unit/services/video_telemetry_service_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/unit/services/upload_validation_service_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/unit/services/visibility_policy_service_test.dart',
       origin: QALabTestOrigin.unit,
       runnableInApp: false,
     ),
@@ -605,6 +641,11 @@ class QALabCatalog {
     ),
     QALabCatalogEntry(
       path: 'test/unit/utils/notifications_invariant_logic_test.dart',
+      origin: QALabTestOrigin.unit,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'test/unit/utils/app_translations_placeholder_style_test.dart',
       origin: QALabTestOrigin.unit,
       runnableInApp: false,
     ),
@@ -690,6 +731,11 @@ class QALabCatalog {
     ),
     QALabCatalogEntry(
       path: 'functions/tests/unit/rateLimiter.test.js',
+      origin: QALabTestOrigin.backend,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
+      path: 'functions/tests/unit/notificationPushPolicy.test.js',
       origin: QALabTestOrigin.backend,
       runnableInApp: false,
     ),
