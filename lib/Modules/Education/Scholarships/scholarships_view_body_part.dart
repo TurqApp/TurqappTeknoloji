@@ -1,6 +1,9 @@
 part of 'scholarships_view.dart';
 
 extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
+  static const int _pasajListAdInterval = 6;
+  static const int _loadMoreTriggerDistance = 10;
+
   Widget _buildHeader() {
     return Row(
       children: [
@@ -176,43 +179,22 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
   ) {
     return ListView.builder(
       controller: _scrollController,
-      itemCount: items.length +
-          ((controller.hasMoreData.value && !isSearching) ? 1 : 0),
+      itemCount: items.length + (controller.isLoadingMore.value ? 1 : 0),
       itemBuilder: (context, index) {
-        // Son eleman (yükleme veya fallback reklam)
         if (index == items.length) {
-          // 3'ten az burs varsa, en sonda reklam göster
-          if (items.length < 3) {
-            return Column(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: AdmobKare(key: ValueKey('scholarship-ad-end')),
-                ),
-                if (controller.hasMoreData.value && !isSearching) ...[
-                  // Yükleme devam ediyorsa loader'ı da göster
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: const CupertinoActivityIndicator(animating: true),
-                    ),
-                  )
-                ],
-              ],
-            );
-          }
-          // 5 veya daha fazla ise yalnızca yükleme göstergesi (varsa)
-          if (controller.hasMoreData.value && !isSearching) {
-            controller.loadMoreScholarships();
-            return Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CupertinoActivityIndicator(animating: true),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CupertinoActivityIndicator(animating: true),
+            ),
+          );
         }
+
+        _maybeLoadMoreForIndex(
+          index: index,
+          totalItems: items.length,
+          isSearching: isSearching,
+        );
 
         if (defaultTargetPlatform == TargetPlatform.iOS) {
           return MediaQuery(
@@ -232,39 +214,77 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
     List<Map<String, dynamic>> items,
     bool isSearching,
   ) {
-    return ListView(
+    final adCount = items.length ~/ _pasajListAdInterval;
+    final contentItemCount = items.length + adCount;
+    final totalItemCount =
+        contentItemCount + (controller.isLoadingMore.value ? 1 : 0);
+
+    return ListView.builder(
       controller: _scrollController,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Column(
-            children:
-                PasajListingAdLayout.buildListChildren<Map<String, dynamic>>(
-              items: items,
-              itemBuilder: (item, index) {
-                if (!isSearching &&
-                    index == 4 &&
-                    controller.hasMoreData.value) {
-                  controller.loadMoreScholarships();
-                }
-                return _buildScholarshipListingCard(item);
-              },
-              adBuilder: (slot) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: AdmobKare(key: ValueKey('scholarship-list-ad-$slot')),
-              ),
-            ),
-          ),
-        ),
-        if (controller.hasMoreData.value && !isSearching)
-          Center(
+      itemCount: totalItemCount,
+      itemBuilder: (context, index) {
+        if (index == contentItemCount) {
+          return const Center(
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: const CupertinoActivityIndicator(animating: true),
+              padding: EdgeInsets.all(16),
+              child: CupertinoActivityIndicator(animating: true),
             ),
-          ),
-      ],
+          );
+        }
+
+        if (_isPasajAdIndex(index)) {
+          final slot = ((index + 1) ~/ (_pasajListAdInterval + 1)) - 1;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            child: AdmobKare(key: ValueKey('scholarship-list-ad-$slot')),
+          );
+        }
+
+        final itemIndex = _pasajItemIndexForBuilderIndex(index);
+        _maybeLoadMoreForIndex(
+          index: itemIndex,
+          totalItems: items.length,
+          isSearching: isSearching,
+        );
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: _buildScholarshipListingCard(items[itemIndex]),
+        );
+      },
     );
+  }
+
+  bool _isPasajAdIndex(int builderIndex) {
+    return (builderIndex + 1) % (_pasajListAdInterval + 1) == 0;
+  }
+
+  int _pasajItemIndexForBuilderIndex(int builderIndex) {
+    return builderIndex - ((builderIndex + 1) ~/ (_pasajListAdInterval + 1));
+  }
+
+  void _maybeLoadMoreForIndex({
+    required int index,
+    required int totalItems,
+    required bool isSearching,
+  }) {
+    if (isSearching ||
+        controller.isLoadingMore.value ||
+        !controller.hasMoreData.value ||
+        totalItems == 0) {
+      return;
+    }
+    final triggerIndex = (totalItems - _loadMoreTriggerDistance).clamp(
+      0,
+      totalItems - 1,
+    );
+    if (index < triggerIndex) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      controller.loadMoreScholarships();
+    });
   }
 
   Widget _buildEmptyState() {
