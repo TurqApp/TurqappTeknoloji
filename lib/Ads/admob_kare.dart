@@ -233,6 +233,9 @@ class _AdmobKareState extends State<AdmobKare> {
           final latencyMs = _qaRequestStartedAt == null
               ? 0
               : DateTime.now().difference(_qaRequestStartedAt!).inMilliseconds;
+          final isNoFill = error.code == 3;
+          final isRetryThrottled = error.code == 1 &&
+              error.message.contains('Too many recently failed requests');
           _log(
               'failed banner code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
           recordQALabAdEvent(
@@ -251,6 +254,34 @@ class _AdmobKareState extends State<AdmobKare> {
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
+          if (isNoFill || isRetryThrottled) {
+            if (mounted && !_isDisposed) {
+              setState(() {
+                _loadFailed = true;
+                _isAdLoaded = false;
+              });
+            }
+            _retryTimer?.cancel();
+            _log(
+                'cooldown retry in ${_cooldownRetryDelay.inMilliseconds}ms after code=${error.code} unit=$adUnitId platform=${Platform.operatingSystem}');
+            recordQALabAdEvent(
+              stage: 'retry_cooldown',
+              placement: 'medium_rectangle',
+              metadata: <String, dynamic>{
+                'adUnitId': adUnitId,
+                'latencyMs': latencyMs,
+                'errorCode': error.code,
+                'retryDelayMs': _cooldownRetryDelay.inMilliseconds,
+                'platform': Platform.operatingSystem,
+              },
+            );
+            _retryTimer = Timer(_cooldownRetryDelay, () {
+              if (_isDisposed) return;
+              _retryCount = 0;
+              _loadBanner();
+            });
+            return;
+          }
           if (_retryCount < _maxRetryCount) {
             _retryCount += 1;
             final retryDelay = Duration(milliseconds: 800 * _retryCount);
