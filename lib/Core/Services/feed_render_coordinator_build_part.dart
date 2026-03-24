@@ -60,6 +60,7 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
     required bool isFollowingMode,
     required bool isCityMode,
     required Set<String> followingIds,
+    required String currentUserId,
     required String city,
   }) {
     if (mergedEntries.isEmpty) {
@@ -71,12 +72,14 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
     if (isFollowingMode && followingIds.isNotEmpty) {
       filtered = filtered.where((item) {
         final model = item['model'] as PostsModel;
-        return followingIds.contains(model.userID);
+        return model.userID == currentUserId ||
+            followingIds.contains(model.userID);
       }).toList(growable: false);
     } else if (isCityMode) {
       final normalizedCity = normalizeLocationText(city);
       filtered = filtered.where((item) {
         final model = item['model'] as PostsModel;
+        if (model.userID == currentUserId) return true;
         return normalizeLocationText(model.locationCity) == normalizedCity;
       }).toList(growable: false);
     }

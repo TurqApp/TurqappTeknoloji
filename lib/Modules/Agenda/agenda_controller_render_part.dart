@@ -62,6 +62,7 @@ extension AgendaControllerRenderPart on AgendaController {
       isFollowingMode: isFollowingMode,
       isCityMode: isCityMode,
       followingIds: followingIDs.toSet(),
+      currentUserId: CurrentUserService.instance.effectiveUserId,
       city: currentUserLocationCity,
     );
     final shouldFallbackToForYou =
@@ -113,6 +114,7 @@ extension AgendaControllerRenderPart on AgendaController {
             isFollowingMode: isFollowingMode,
             isCityMode: isCityMode,
             followingIds: followingIDs.toSet(),
+            currentUserId: CurrentUserService.instance.effectiveUserId,
             city: currentUserLocationCity,
           )
           .isEmpty;

@@ -39,6 +39,8 @@ class MarketFeedPostShareService {
         final postId = const Uuid().v4();
         final now = DateTime.now().millisecondsSinceEpoch;
         final imageUrls = [item.coverImageUrl.trim()];
+        final locationText = item.locationText.trim();
+        final locationCity = item.city.trim();
         final reshareMap = {
           'visibility': 0,
           'ctaLabel': 'education_feed.cta_listing'.tr,
@@ -64,6 +66,7 @@ class MarketFeedPostShareService {
           'isAd': false,
           'ad': false,
           'izBirakYayinTarihi': now,
+          'locationCity': locationCity,
           'stats': {
             'commentCount': 0,
             'likeCount': 0,
@@ -72,7 +75,7 @@ class MarketFeedPostShareService {
             'savedCount': 0,
             'statsCount': 0,
           },
-          'konum': '',
+          'konum': locationText,
           'mainFlood': '',
           'metin': _caption(item),
           'reshareMap': reshareMap,
@@ -113,7 +116,8 @@ class MarketFeedPostShareService {
           img: imageUrls,
           isAd: false,
           izBirakYayinTarihi: now,
-          konum: '',
+          konum: locationText,
+          locationCity: locationCity,
           mainFlood: '',
           metin: _caption(item),
           originalPostID: '',
