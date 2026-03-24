@@ -20,7 +20,6 @@ part 'permissions_view_playback_part.dart';
 part 'permissions_view_quota_part.dart';
 part 'permissions_view_detail_actions_part.dart';
 part 'permissions_view_detail_content_part.dart';
-part 'permissions_view_detail_shell_part.dart';
 
 class PermissionsView extends StatefulWidget {
   const PermissionsView({super.key});
