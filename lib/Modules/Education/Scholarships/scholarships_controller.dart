@@ -74,8 +74,8 @@ class ScholarshipsController extends GetxController {
   final RxDouble scrollOffset = 0.0.obs;
   final RxBool listingSelectionReady = false.obs;
   final RxInt listingSelection = 0.obs;
-  final int initialBatchSize = 30;
-  final int batchSize = 30;
+  final int initialBatchSize = 20;
+  final int batchSize = 20;
   final RxBool hasMoreData = true.obs;
   final RxInt totalCount = 0.obs;
   Timer? _searchDebounce;
