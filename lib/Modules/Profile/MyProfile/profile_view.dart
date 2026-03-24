@@ -80,7 +80,6 @@ part 'profile_view_market_part.dart';
 part 'profile_view_photo_part.dart';
 part 'profile_view_video_part.dart';
 part 'profile_view_scheduled_part.dart';
-part 'profile_view_archive_part.dart';
 part 'profile_view_reshare_part.dart';
 
 class ProfileView extends StatefulWidget {
