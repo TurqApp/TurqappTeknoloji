@@ -495,13 +495,11 @@ Future<_FeedPlaybackCapture> _capturePlayableFeedSample(
   Object? lastError;
 
   for (var attempt = 0; attempt < 3; attempt++) {
-    if (currentSample == null) {
-      currentSample = await _scrollToNextVisibleVideo(
-        tester,
-        controller: controller,
-        deadline: deadline,
-      );
-    }
+    currentSample ??= await _scrollToNextVisibleVideo(
+      tester,
+      controller: controller,
+      deadline: deadline,
+    );
     if (currentSample == null) {
       continue;
     }

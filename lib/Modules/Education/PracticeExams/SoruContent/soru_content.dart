@@ -49,6 +49,11 @@ class _SoruContentState extends State<SoruContent> {
     dogruCevap = widget.model.dogruCevap;
   }
 
+  void _updateSoruContentState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(

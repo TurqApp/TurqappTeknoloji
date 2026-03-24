@@ -154,27 +154,6 @@ extension AgendaControllerResharePart on AgendaController {
     }
   }
 
-  Future<bool> _isUserPrivate(String userID) async {
-    if (_userPrivacyCache.containsKey(userID)) {
-      return _userPrivacyCache[userID]!;
-    }
-    try {
-      final data = await _profileCache.getProfile(
-        userID,
-        preferCache: true,
-        cacheOnly: !ContentPolicy.isConnected,
-      );
-      final gizli = (data?['isPrivate'] ?? false) == true;
-      _userDeactivatedCache[userID] = _isUserMarkedDeactivated(data);
-      _userPrivacyCache[userID] = gizli;
-      return gizli;
-    } catch (_) {
-      _userPrivacyCache[userID] = false;
-      _userDeactivatedCache[userID] = false;
-      return false;
-    }
-  }
-
   bool _isUserMarkedDeactivated(Map<String, dynamic>? data) {
     if (data == null) return false;
     return isDeactivatedAccount(

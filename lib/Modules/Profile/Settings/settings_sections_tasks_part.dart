@@ -90,6 +90,15 @@ extension _SettingsViewSectionsTasksPart on _SettingsViewState {
   List<Widget> _buildSessionSection() {
     return [
       buildSectionTitle('settings.session'.tr),
+      if (QALabMode.enabled)
+        buildRow(
+          'settings.diagnostics.qa_lab'.tr,
+          CupertinoIcons.waveform_path_ecg,
+          () => Get.to(() => const QALabView()),
+          valueKey: const ValueKey(
+            IntegrationTestKeys.actionSettingsOpenQaLab,
+          ),
+        ),
       buildRow(
         'settings.sign_out'.tr,
         CupertinoIcons.square_arrow_right,

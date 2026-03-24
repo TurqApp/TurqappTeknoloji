@@ -51,6 +51,8 @@ class IntegrationTestKeys {
       'it-action-settings-open-account-center';
   static const String actionSettingsOpenPermissions =
       'it-action-settings-open-permissions';
+  static const String actionSettingsOpenQaLab =
+      'it-action-settings-open-qa-lab';
   static const String actionEditProfileUpdate = 'it-action-edit-profile-update';
   static const String actionPostCreatorPublish =
       'it-action-post-creator-publish';

@@ -6,7 +6,7 @@ extension SoruContentActionsPart on _SoruContentState {
     if (ctx == null) return;
     final pickedFile = await AppImagePickerService.pickSingleImage(ctx);
     if (pickedFile != null) {
-      setState(() {
+      _updateSoruContentState(() {
         selectedImage = pickedFile;
         yukle(selectedImage!, widget.mainID);
       });
@@ -16,7 +16,7 @@ extension SoruContentActionsPart on _SoruContentState {
   Future<void> _pickImageFromCamera() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
-      setState(() {
+      _updateSoruContentState(() {
         selectedImage = File(pickedFile.path);
       });
     }
