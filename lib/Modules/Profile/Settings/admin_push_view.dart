@@ -10,7 +10,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'admin_push_view_actions_part.dart';
 part 'admin_push_view_content_part.dart';
-part 'admin_push_view_shell_part.dart';
 
 class AdminPushView extends StatefulWidget {
   const AdminPushView({super.key});
@@ -71,5 +70,58 @@ class _AdminPushViewState extends State<AdminPushView> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    if (_checkingAccess) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_canManagePush) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'admin.push.title'.tr,
+            style: const TextStyle(
+              color: Colors.black,
+              fontFamily: 'MontserratSemiBold',
+              fontSize: 20,
+            ),
+          ),
+        ),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'admin.no_access'.tr,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'MontserratMedium',
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'admin.push.title'.tr,
+          style: const TextStyle(
+            color: Colors.black,
+            fontFamily: 'MontserratSemiBold',
+            fontSize: 20,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: _buildAdminPushContent(context),
+      ),
+    );
+  }
 }
