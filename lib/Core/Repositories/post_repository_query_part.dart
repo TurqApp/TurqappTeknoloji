@@ -586,6 +586,15 @@ extension PostRepositoryQueryPart on PostRepository {
     final thumbnail = (doc['thumbnail'] ?? '').toString();
     final video = (doc['video'] ?? '').toString();
     final hlsMasterUrl = (doc['hlsMasterUrl'] ?? '').toString();
+    final ctaLabel = (doc['ctaLabel'] ?? '').toString().trim();
+    final ctaUrl = (doc['ctaUrl'] ?? '').toString().trim();
+    final ctaType = (doc['ctaType'] ?? '').toString().trim();
+    final ctaDocId = (doc['ctaDocId'] ?? '').toString().trim();
+    final hasCta =
+        ctaLabel.isNotEmpty ||
+        ctaUrl.isNotEmpty ||
+        ctaType.isNotEmpty ||
+        ctaDocId.isNotEmpty;
 
     return <String, dynamic>{
       'metin': (doc['metin'] ?? '').toString(),
@@ -618,7 +627,15 @@ extension PostRepositoryQueryPart on PostRepository {
       'tags': asStringList(doc['hashtags']),
       'yorum': true,
       'yorumMap': const <String, dynamic>{},
-      'reshareMap': const <String, dynamic>{},
+      'reshareMap': hasCta
+          ? <String, dynamic>{
+              'visibility': 0,
+              if (ctaLabel.isNotEmpty) 'ctaLabel': ctaLabel,
+              if (ctaUrl.isNotEmpty) 'ctaUrl': ctaUrl,
+              if (ctaType.isNotEmpty) 'ctaType': ctaType,
+              if (ctaDocId.isNotEmpty) 'ctaDocId': ctaDocId,
+            }
+          : const <String, dynamic>{},
       'poll': const <String, dynamic>{},
       'ad': false,
       'isAd': false,

@@ -182,6 +182,10 @@ async function ensurePostsCollection() {
         { name: "locationCity", type: "string", optional: true },
         { name: "originalPostID", type: "string", optional: true },
         { name: "originalUserID", type: "string", optional: true },
+        { name: "ctaLabel", type: "string", optional: true },
+        { name: "ctaUrl", type: "string", optional: true },
+        { name: "ctaType", type: "string", optional: true },
+        { name: "ctaDocId", type: "string", optional: true },
         { name: "quotedPost", type: "bool", optional: true },
         { name: "mainFlood", type: "string", optional: true },
         { name: "contentType", type: "string", optional: true },
@@ -239,6 +243,10 @@ async function ensurePostsCollection() {
           { name: "locationCity", type: "string", optional: true },
           { name: "originalPostID", type: "string", optional: true },
           { name: "originalUserID", type: "string", optional: true },
+          { name: "ctaLabel", type: "string", optional: true },
+          { name: "ctaUrl", type: "string", optional: true },
+          { name: "ctaType", type: "string", optional: true },
+          { name: "ctaDocId", type: "string", optional: true },
           { name: "quotedPost", type: "bool", optional: true },
           { name: "mainFlood", type: "string", optional: true },
           { name: "contentType", type: "string", optional: true },
@@ -427,6 +435,10 @@ type PostSearchDoc = {
   locationCity: string;
   originalPostID: string;
   originalUserID: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  ctaType: string;
+  ctaDocId: string;
   quotedPost: boolean;
   mainFlood: string;
   contentType: string;
@@ -444,6 +456,8 @@ type AuthorSummary = {
 
 function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSearchDoc {
   const analysis = (data.analysis as Record<string, unknown> | undefined) || {};
+  const reshareMap =
+    ((data as any).reshareMap as Record<string, unknown> | undefined) || {};
   const stats = (data.stats as Record<string, unknown> | undefined) || {};
   const paylas = Number((data as any).paylasGizliligi);
   const paylasGizliligi = Number.isFinite(paylas) ? paylas : 0;
@@ -521,6 +535,10 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
     locationCity: asString((data as any).locationCity) || asString((data as any).konum),
     originalPostID: asString((data as any).originalPostID),
     originalUserID: asString((data as any).originalUserID),
+    ctaLabel: asString(reshareMap.ctaLabel),
+    ctaUrl: asString(reshareMap.ctaUrl),
+    ctaType: asString(reshareMap.ctaType),
+    ctaDocId: asString(reshareMap.ctaDocId),
     quotedPost: asBool((data as any).quotedPost),
     mainFlood: asString((data as any).mainFlood),
     contentType,
