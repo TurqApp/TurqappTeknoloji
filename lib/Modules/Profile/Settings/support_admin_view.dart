@@ -10,7 +10,6 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 part 'support_admin_view_actions_part.dart';
 part 'support_admin_view_content_part.dart';
-part 'support_admin_view_shell_part.dart';
 
 class SupportAdminView extends StatefulWidget {
   const SupportAdminView({super.key});
@@ -31,5 +30,54 @@ class _SupportAdminViewState extends State<SupportAdminView> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _accessFuture,
+      builder: (context, accessSnap) {
+        if (accessSnap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: SafeArea(
+              child: Center(child: CupertinoActivityIndicator()),
+            ),
+          );
+        }
+        if (accessSnap.data != true) {
+          return Scaffold(
+            body: SafeArea(
+              child: Column(
+                children: [
+                  BackButtons(text: 'admin.support.title'.tr),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        'admin.no_access'.tr,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 15,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return Scaffold(
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                BackButtons(text: 'admin.support.title'.tr),
+                Expanded(
+                  child: _buildSupportAdminContent(context),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
