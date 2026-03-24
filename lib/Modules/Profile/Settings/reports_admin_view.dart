@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'reports_admin_view_actions_part.dart';
 part 'reports_admin_view_content_part.dart';
-part 'reports_admin_view_shell_part.dart';
 
 class ReportsAdminView extends StatefulWidget {
   const ReportsAdminView({super.key});
@@ -33,6 +32,45 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
     if (mounted) {
       setState(fn);
     }
+  }
+
+  Widget _buildPage(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'admin.reports.title'.tr),
+            Expanded(
+              child: FutureBuilder<bool>(
+                future: _canAccessFuture,
+                builder: (context, accessSnap) {
+                  if (accessSnap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (accessSnap.data != true) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'admin.no_access'.tr,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'MontserratMedium',
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return _buildReportsAdminContent(context);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
