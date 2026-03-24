@@ -9,6 +9,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
 part 'deneme_sinavi_yap_content_part.dart';
+part 'deneme_sinavi_yap_questions_part.dart';
 
 const _practiceExamLgsType = 'LGS';
 
