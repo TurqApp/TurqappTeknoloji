@@ -6,9 +6,6 @@ import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.da
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'search_deneme_controller_search_part.dart';
-part 'search_deneme_controller_lifecycle_part.dart';
-
 class SearchDenemeController extends GetxController {
   static SearchDenemeController ensure({bool permanent = false}) {
     final existing = maybeFind();
@@ -76,5 +73,51 @@ class SearchDenemeController extends GetxController {
   void onClose() {
     _disposeFocusResourcesImpl();
     super.onClose();
+  }
+
+  Future<void> _getDataImpl() async {
+    await filterSearchResults(searchController.text);
+  }
+
+  Future<void> _filterSearchResultsImpl(String query) async {
+    final normalized = query.trim();
+    final token = ++_searchToken;
+    if (normalized.length < 2) {
+      if (filteredList.isNotEmpty) {
+        filteredList.clear();
+      }
+      isLoading.value = false;
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final resource = await _practiceExamSnapshotRepository.search(
+        query: normalized,
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: 40,
+        forceSync: true,
+      );
+      if (token != _searchToken) return;
+      final results = resource.data ?? const <SinavModel>[];
+      if (!_sameExamEntries(filteredList, results)) {
+        filteredList.assignAll(results);
+      }
+    } finally {
+      if (token == _searchToken) {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  void _scheduleFocusRequestImpl() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      focusNode.requestFocus();
+    });
+  }
+
+  void _disposeFocusResourcesImpl() {
+    searchController.dispose();
+    focusNode.dispose();
   }
 }
