@@ -13,6 +13,7 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_controller.dart';
 
 part 'create_test_body_part.dart';
+part 'create_test_subjects_part.dart';
 part 'create_test_picker_part.dart';
 part 'create_test_shell_part.dart';
 
