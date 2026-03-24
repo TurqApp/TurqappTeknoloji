@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import '../StoryRow/story_user_model.dart';
 import 'user_story_content.dart';
 import '../StoryMaker/story_maker_controller.dart';
@@ -65,6 +66,7 @@ class _StoryViewerState extends State<StoryViewer>
   @override
   void initState() {
     super.initState();
+    AgendaController.maybeFind()?.suspendPlaybackForOverlay();
     VideoStateManager.instance.pauseAllVideos(force: true);
     currentPageIndex = widget.storyOwnerUsers
         .indexWhere((u) => u.userID == widget.startedUser.userID);
@@ -109,6 +111,7 @@ class _StoryViewerState extends State<StoryViewer>
 
   @override
   void dispose() {
+    AgendaController.maybeFind()?.resumePlaybackAfterOverlay();
     _returnController.dispose();
     pageController.dispose();
     _screenshotChannel.setMethodCallHandler(null);
