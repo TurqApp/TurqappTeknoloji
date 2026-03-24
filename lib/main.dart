@@ -44,6 +44,14 @@ Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ensureQALabIfEnabled();
+  if (QALabMode.freshStartOnLaunch && !IntegrationTestMode.enabled) {
+    await prepareQALabFreshStartIfNeeded(trigger: 'app_launch').timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {
+        debugPrint('[qa-lab] fresh-start cleanup timed out; continuing.');
+      },
+    );
+  }
   if (QALabMode.enabled && !IntegrationTestMode.enabled) {
     WidgetsBinding.instance.addTimingsCallback(recordQALabFrameTimings);
   }

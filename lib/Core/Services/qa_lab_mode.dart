@@ -14,6 +14,11 @@ class QALabMode {
     defaultValue: enabled,
   );
 
+  static const bool freshStartOnLaunch = bool.fromEnvironment(
+    'QA_LAB_FRESH_START',
+    defaultValue: enabled && !IntegrationTestMode.enabled,
+  );
+
   static const bool periodicSnapshots = bool.fromEnvironment(
     'QA_LAB_PERIODIC_SNAPSHOTS',
     defaultValue: enabled,

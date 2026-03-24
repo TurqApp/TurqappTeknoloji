@@ -13,6 +13,15 @@ void ensureQALabIfEnabled() {
   unawaited(recorder.refreshPermissionSnapshot(trigger: 'bootstrap'));
 }
 
+Future<void> prepareQALabFreshStartIfNeeded({
+  String trigger = 'launch',
+}) async {
+  if (!QALabMode.enabled || !QALabMode.freshStartOnLaunch) {
+    return;
+  }
+  await QALabRecorder.ensure().prepareFreshStart(trigger: trigger);
+}
+
 void recordQALabRouteChange({
   required String current,
   required String previous,

@@ -96,6 +96,21 @@ class QALabRemoteUploader extends GetxService {
     await _flushPending();
   }
 
+  void resetLocalState() {
+    _debounceTimer?.cancel();
+    _pendingSessionDocument = null;
+    _pendingReason = '';
+    _pendingOccurrences.clear();
+    _uploadedOccurrenceIds.clear();
+    _activeSessionId = '';
+    uploadCount.value = 0;
+    uploadedOccurrenceCount.value = 0;
+    lastSyncState.value = 'idle';
+    lastSyncError.value = '';
+    lastSyncReason.value = '';
+    lastSyncedAt.value = null;
+  }
+
   Future<void> _flushPending() async {
     if (_syncInFlight) {
       return;
