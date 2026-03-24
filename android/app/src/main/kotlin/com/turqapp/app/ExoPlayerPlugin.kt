@@ -4,6 +4,8 @@ import android.content.Context
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import org.json.JSONArray
+import org.json.JSONObject
 
 class ExoPlayerPlugin private constructor(
     private val methodChannel: MethodChannel
@@ -145,7 +147,7 @@ class ExoPlayerPlugin private constructor(
 }
 
 private object ExoPlayerSmokeBridge {
-    fun readActiveSnapshot(): Map<String, Any> {
+    fun readActiveSnapshot(): Map<String, Any?> {
         val snapshot = com.turqapp.app.qa.ExoPlayerSmokeRegistry.readSnapshot(
             ExoPlayerPlugin.appContext()
         )
@@ -161,8 +163,26 @@ private object ExoPlayerSmokeBridge {
             "active" to snapshot.active,
             "firstFrameRendered" to snapshot.firstFrameRendered,
             "errors" to snapshot.errors,
-            "snapshot" to snapshot.snapshot,
+            "snapshot" to snapshot.snapshot.mapValues { (_, value) -> codecSafe(value) },
             "raw" to snapshot.raw,
         )
+    }
+
+    private fun codecSafe(value: Any?): Any? {
+        return when (value) {
+            null -> null
+            is JSONObject -> value.keys().asSequence().associateWith { key ->
+                codecSafe(value.opt(key))
+            }
+            is JSONArray -> List(value.length()) { index ->
+                codecSafe(value.opt(index))
+            }
+            is Map<*, *> -> value.entries.associate { (key, nestedValue) ->
+                key.toString() to codecSafe(nestedValue)
+            }
+            is Iterable<*> -> value.map { nestedValue -> codecSafe(nestedValue) }
+            is Array<*> -> value.map { nestedValue -> codecSafe(nestedValue) }
+            else -> value
+        }
     }
 }
