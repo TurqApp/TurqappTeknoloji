@@ -168,8 +168,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return 'feed';
   }
 
+  String get _qaScrollToken {
+    if (_qaSurfaceName != 'feed') return '';
+    return agendaController.latestQAScrollToken;
+  }
+
   void _recordPlaybackDispatch(
     String stage, {
+    String source = '',
+    bool dispatchIssued = true,
+    String skipReason = '',
     Map<String, dynamic> metadata = const <String, dynamic>{},
   }) {
     recordQALabPlaybackDispatch(
@@ -184,6 +192,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         'isProfileFamilySurface': _isProfileFamilySurfaceInstance,
         'adapterInitialized': _videoAdapter?.value.isInitialized ?? false,
         'adapterPlaying': _videoAdapter?.value.isPlaying ?? false,
+        'dispatchIssued': dispatchIssued,
+        'dispatchSource': source,
+        'callerSignature': source,
+        'skipReason': skipReason,
+        'scrollToken': _qaScrollToken,
+        'currentPlayingDocId': videoStateManager.currentPlayingDocID ?? '',
         ...metadata,
       },
     );
@@ -232,7 +246,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         if (value == true) {
           _safePauseVideo();
         } else {
-          _resumePlaybackIfEligible();
+          _resumePlaybackIfEligible(source: 'pause_all_released');
         }
       });
 
@@ -242,7 +256,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           if (suspended || !_isSurfacePlaybackAllowed) {
             _safePauseVideo();
           } else {
-            _resumePlaybackIfEligible();
+            _resumePlaybackIfEligible(source: 'playback_suspension_released');
           }
         },
       );
@@ -253,7 +267,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           if (!_isSurfacePlaybackAllowed) {
             _safePauseVideo();
           } else {
-            _resumePlaybackIfEligible();
+            _resumePlaybackIfEligible(source: 'nav_selection_changed');
           }
         });
       }
@@ -290,7 +304,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   @override
   void didPush() {
-    _resumePlaybackIfEligible();
+    _resumePlaybackIfEligible(source: 'route_did_push');
   }
 
   @override
@@ -352,13 +366,45 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _syncRuntimeHints(isAudible: _currentIsAudible());
   }
 
-  void _resumePlaybackIfEligible() {
-    if (!widget.model.hasPlayableVideo || !widget.shouldPlay) return;
-    if (!_isSurfacePlaybackAllowed) return;
+  void _resumePlaybackIfEligible({
+    String source = 'resume_unspecified',
+  }) {
+    if (!widget.model.hasPlayableVideo) {
+      _recordPlaybackDispatch(
+        'feed_card_resume_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'no_playable_video',
+      );
+      return;
+    }
+    if (!widget.shouldPlay) {
+      _recordPlaybackDispatch(
+        'feed_card_resume_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'should_play_false',
+      );
+      return;
+    }
+    if (!_isSurfacePlaybackAllowed) {
+      _recordPlaybackDispatch(
+        'feed_card_resume_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'surface_playback_blocked',
+      );
+      return;
+    }
 
     final adapter = _videoAdapter;
     if (adapter == null) {
-      _recordPlaybackDispatch('feed_card_init_requested');
+      _recordPlaybackDispatch(
+        'feed_card_init_requested',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'adapter_missing',
+      );
       _initVideoController();
       return;
     }
@@ -366,6 +412,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!shouldLoopVideo && adapter.value.isCompleted) {
       _recordPlaybackDispatch(
         'feed_card_completion_blocked',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'completed',
         metadata: <String, dynamic>{
           'positionMs': adapter.value.position.inMilliseconds,
           'durationMs': adapter.value.duration.inMilliseconds,
@@ -378,32 +427,64 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (adapter.value.isInitialized) {
       _recordPlaybackDispatch(
         'feed_card_resume_initialized',
+        source: source,
+        dispatchIssued: false,
         metadata: <String, dynamic>{
           'positionMs': adapter.value.position.inMilliseconds,
         },
       );
-      _startPlayback();
+      _startPlayback(source: '$source:resume_initialized');
       return;
     }
 
     if (_useLegacyIosFeedBehavior) {
-      _recordPlaybackDispatch('feed_card_legacy_wait_for_init');
+      _recordPlaybackDispatch(
+        'feed_card_legacy_wait_for_init',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'awaiting_init',
+      );
       unawaited(adapter.setLooping(shouldLoopVideo));
       return;
     }
 
-    _recordPlaybackDispatch('feed_card_preinit_adapter_play');
+    _recordPlaybackDispatch(
+      'feed_card_wait_for_init',
+      source: source,
+      dispatchIssued: false,
+      skipReason: 'adapter_uninitialized',
+    );
     unawaited(adapter.setLooping(shouldLoopVideo));
-    unawaited(adapter.play());
   }
 
-  void _startPlayback() {
+  void _startPlayback({
+    String source = 'start_unspecified',
+  }) {
     final adapter = _videoAdapter;
-    if (adapter == null) return;
-    if (!_isSurfacePlaybackAllowed) return;
+    if (adapter == null) {
+      _recordPlaybackDispatch(
+        'feed_card_start_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'adapter_missing',
+      );
+      return;
+    }
+    if (!_isSurfacePlaybackAllowed) {
+      _recordPlaybackDispatch(
+        'feed_card_start_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'surface_playback_blocked',
+      );
+      return;
+    }
     if (!shouldLoopVideo && adapter.value.isCompleted) {
       _recordPlaybackDispatch(
         'feed_card_start_blocked_completed',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'completed',
         metadata: <String, dynamic>{
           'positionMs': adapter.value.position.inMilliseconds,
           'durationMs': adapter.value.duration.inMilliseconds,
@@ -413,6 +494,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     _recordPlaybackDispatch(
       'feed_card_start_playback',
+      source: source,
+      dispatchIssued: false,
       metadata: <String, dynamic>{
         'positionMs': adapter.value.position.inMilliseconds,
       },
@@ -420,21 +503,44 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
     _hasAutoPlayed = true;
-    if (!_useLegacyIosFeedBehavior || !adapter.value.isPlaying) {
-      _recordPlaybackDispatch('feed_card_adapter_play');
+    if (!adapter.value.isPlaying) {
+      _recordPlaybackDispatch(
+        'feed_card_adapter_play',
+        source: source,
+      );
       unawaited(adapter.play());
+    } else {
+      _recordPlaybackDispatch(
+        'feed_card_adapter_play_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'already_playing',
+      );
     }
     if (isStandalonePostInstance) {
-      _recordPlaybackDispatch('feed_card_exclusive_play_only_this');
+      _recordPlaybackDispatch(
+        'feed_card_exclusive_play_only_this',
+        source: source,
+      );
       videoStateManager.playOnlyThis(playbackHandleKey);
-    } else {
+    } else if (videoStateManager.currentPlayingDocID != playbackHandleKey) {
       // Feed card already issues adapter.play() above. Using requestPlayVideo
       // here avoids VideoStateManager's delayed second play wave, which can
       // stall the renderer while audio keeps flowing on some Android devices.
-      _recordPlaybackDispatch('feed_card_video_state_request');
+      _recordPlaybackDispatch(
+        'feed_card_video_state_request',
+        source: source,
+      );
       videoStateManager.requestPlayVideo(
         playbackHandleKey,
         HLSAdapterPlaybackHandle(adapter),
+      );
+    } else {
+      _recordPlaybackDispatch(
+        'feed_card_video_state_request_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'already_current_playing',
       );
     }
     _syncRuntimeHints(
@@ -468,7 +574,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void tryAutoPlayWhenBuffered() {
     // Adapter initialize olmadan çağrı gelirse pending-play kuyruğa alınır.
     if (_videoAdapter != null) {
-      _recordPlaybackDispatch('feed_card_buffer_ready_play');
+      _recordPlaybackDispatch(
+        'feed_card_buffer_ready_play',
+        source: 'buffer_ready',
+      );
       unawaited(_videoAdapter!.setLooping(shouldLoopVideo));
       _videoAdapter!.play();
     }
@@ -477,7 +586,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Future<void> replayVideoFromStart() async {
     final adapter = _videoAdapter;
     if (adapter == null) return;
-    _recordPlaybackDispatch('feed_card_replay_from_start');
+    _recordPlaybackDispatch(
+      'feed_card_replay_from_start',
+      source: 'replay_button',
+      dispatchIssued: false,
+    );
     _replayOverlayLatched = false;
     _replayAdPrewarmed = false;
     _replayAdVisible = false;
@@ -486,7 +599,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _replayAdHideTimer?.cancel();
     await adapter.setLooping(shouldLoopVideo);
     await adapter.seekTo(Duration.zero);
-    _startPlayback();
+    _startPlayback(source: 'replay_button');
   }
 
   void _onReplayAdImpression() {

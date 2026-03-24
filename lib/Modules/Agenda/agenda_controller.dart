@@ -198,12 +198,17 @@ class AgendaController extends GetxController {
   DateTime? _lastPlaybackCommandAt;
   DateTime? _qaScrollStartedAt;
   double _qaScrollStartOffset = 0.0;
+  int _qaScrollSequence = 0;
+  String _qaActiveScrollToken = '';
+  String _qaLatestScrollToken = '';
   String? _lastPlaybackCommandDocId;
   bool _feedModeFallbackQueued = false;
   int _feedModeFallbackEpoch = 0;
   // null => no time window limit
   static const Duration? _agendaWindow = null;
   static const int _reshareScanPostLimit = 12;
+
+  String get latestQAScrollToken => _qaLatestScrollToken;
 
   bool get isFollowingMode => feedViewMode.value == FeedViewMode.following;
   bool get isCityMode => feedViewMode.value == FeedViewMode.city;

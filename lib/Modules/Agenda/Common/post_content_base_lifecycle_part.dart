@@ -90,7 +90,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         if (isStandalonePostInstance) {
           videoStateManager.enterExclusiveMode(playbackHandleKey);
         }
-        _resumePlaybackIfEligible();
+        _resumePlaybackIfEligible(source: 'widget_should_play_changed');
       } else {
         _lazyInitTimer?.cancel();
         if (_blockPause) return;
@@ -117,7 +117,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       if (isStandalonePostInstance) {
         videoStateManager.enterExclusiveMode(playbackHandleKey);
       }
-      _resumePlaybackIfEligible();
+      _resumePlaybackIfEligible(source: 'route_did_pop_next');
     }
   }
 
@@ -172,7 +172,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
 
     if (v.isInitialized && !_hasAutoPlayed) {
       if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
-        _startPlayback();
+        _startPlayback(source: 'video_initialized');
       } else {
         _applyPlaybackVolume();
       }
@@ -200,7 +200,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             !current.isBuffering &&
             !current.isCompleted;
         if (!stillNeedsRecovery) return;
-        _startPlayback();
+        _startPlayback(source: 'recovery_timer');
       });
     } else {
       _playbackRecoveryTimer?.cancel();

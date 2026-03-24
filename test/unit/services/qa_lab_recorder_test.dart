@@ -740,6 +740,152 @@ void main() {
     expect(findings.any((item) => item.code == 'feed_ad_load_slow'), isTrue);
   });
 
+  test('qa recorder includes skip context for feed scroll dispatch timeout',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp15',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'ts2',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 70)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'scrollToken': 'feed-scroll-1',
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp4',
+        category: 'playback_dispatch',
+        code: 'feed_card_resume_skipped',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 69)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'dispatchIssued': false,
+          'dispatchSource': 'nav_selection_changed',
+          'callerSignature': 'nav_selection_changed',
+          'skipReason': 'surface_playback_blocked',
+          'scrollToken': 'feed-scroll-1',
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+    final finding = findings.firstWhere(
+      (item) => item.code == 'feed_scroll_dispatch_timeout',
+    );
+
+    expect(finding.context['scrollToken'], 'feed-scroll-1');
+    expect(finding.context['lastSkipReason'], 'surface_playback_blocked');
+    expect(finding.context['lastSkipSource'], 'nav_selection_changed');
+    expect(finding.context['lastCallerSignature'], 'nav_selection_changed');
+  });
+
+  test('qa recorder ignores deferred init requests for duplicate dispatches',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp16',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-3',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'ts3',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 500)),
+        metadata: const <String, dynamic>{'docId': 'post-3'},
+      ),
+      QALabTimelineEvent(
+        id: 'tp5',
+        category: 'playback_dispatch',
+        code: 'feed_play_only_this',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 300)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-3',
+          'dispatchIssued': true,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp6',
+        category: 'playback_dispatch',
+        code: 'feed_card_init_requested',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 200)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-3',
+          'dispatchIssued': false,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_duplicate_playback_dispatch'),
+      isFalse,
+    );
+  });
+
   test('qa recorder drops resolved permission blockers from active findings',
       () {
     final recorder = QALabRecorder();

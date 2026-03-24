@@ -2655,6 +2655,12 @@ class QALabRecorder extends GetxService {
       after: latestSettle.timestamp,
       docId: expectedDocId,
     );
+    final latestSkip = _latestPlaybackSkipAfter(
+      surfaceTimeline: surfaceTimeline,
+      after: latestSettle.timestamp,
+      docId: expectedDocId,
+    );
+    final scrollToken = (latestSettle.metadata['scrollToken'] ?? '').toString();
     final dispatchLatencyMs = dispatch == null
         ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
         : dispatch.timestamp.difference(latestSettle.timestamp).inMilliseconds;
@@ -2672,6 +2678,17 @@ class QALabRecorder extends GetxService {
           context: <String, dynamic>{
             'docId': expectedDocId,
             'dispatchLatencyMs': dispatchLatencyMs,
+            'scrollToken': scrollToken,
+            if (latestSkip != null) 'lastSkipStage': latestSkip.code,
+            if (latestSkip != null)
+              'lastSkipReason':
+                  (latestSkip.metadata['skipReason'] ?? '').toString(),
+            if (latestSkip != null)
+              'lastSkipSource':
+                  (latestSkip.metadata['dispatchSource'] ?? '').toString(),
+            if (latestSkip != null)
+              'lastCallerSignature':
+                  (latestSkip.metadata['callerSignature'] ?? '').toString(),
           },
         ),
       );
@@ -2693,6 +2710,11 @@ class QALabRecorder extends GetxService {
             'docId': expectedDocId,
             'dispatchLatencyMs': dispatchLatencyMs,
             'dispatchStage': dispatch.code,
+            'dispatchSource':
+                (dispatch.metadata['dispatchSource'] ?? '').toString(),
+            'callerSignature':
+                (dispatch.metadata['callerSignature'] ?? '').toString(),
+            'scrollToken': scrollToken,
           },
         ),
       );
@@ -2789,10 +2811,25 @@ class QALabRecorder extends GetxService {
   }) {
     return surfaceTimeline
         .where((event) => event.category == 'playback_dispatch')
+        .where(_isIssuedPlaybackDispatch)
         .where((event) => (event.metadata['docId'] ?? '').toString() == docId)
         .where((event) => !event.timestamp.isBefore(after))
         .toList(growable: false)
         .firstOrNull;
+  }
+
+  QALabTimelineEvent? _latestPlaybackSkipAfter({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required DateTime after,
+    required String docId,
+  }) {
+    return surfaceTimeline
+        .where((event) => event.category == 'playback_dispatch')
+        .where((event) => !_isIssuedPlaybackDispatch(event))
+        .where((event) => (event.metadata['docId'] ?? '').toString() == docId)
+        .where((event) => !event.timestamp.isBefore(after))
+        .toList(growable: false)
+        .lastOrNull;
   }
 
   List<Map<String, dynamic>> _duplicatePlaybackDispatchBursts({
@@ -2801,6 +2838,7 @@ class QALabRecorder extends GetxService {
   }) {
     final events = surfaceTimeline
         .where((event) => event.category == 'playback_dispatch')
+        .where(_isIssuedPlaybackDispatch)
         .where(
           (event) =>
               docId == null ||
@@ -2834,6 +2872,35 @@ class QALabRecorder extends GetxService {
             'docId': firstDocId,
             'repeatCount': repeatCount,
             'stages': stages,
+            'sources': <String>[
+              (first.metadata['dispatchSource'] ?? '').toString(),
+              for (int k = i + 1;
+                  k < events.length &&
+                      (events[k].metadata['docId'] ?? '').toString() ==
+                          firstDocId &&
+                      events[k]
+                              .timestamp
+                              .difference(first.timestamp)
+                              .inMilliseconds <=
+                          QALabMode.duplicatePlaybackDispatchWindowMs;
+                  k += 1)
+                (events[k].metadata['dispatchSource'] ?? '').toString(),
+            ].where((item) => item.isNotEmpty).toSet().toList(growable: false),
+            'callerSignatures': <String>[
+              (first.metadata['callerSignature'] ?? '').toString(),
+              for (int k = i + 1;
+                  k < events.length &&
+                      (events[k].metadata['docId'] ?? '').toString() ==
+                          firstDocId &&
+                      events[k]
+                              .timestamp
+                              .difference(first.timestamp)
+                              .inMilliseconds <=
+                          QALabMode.duplicatePlaybackDispatchWindowMs;
+                  k += 1)
+                (events[k].metadata['callerSignature'] ?? '').toString(),
+            ].where((item) => item.isNotEmpty).toSet().toList(growable: false),
+            'scrollToken': (first.metadata['scrollToken'] ?? '').toString(),
             'windowMs': QALabMode.duplicatePlaybackDispatchWindowMs,
           },
         );
@@ -2841,6 +2908,15 @@ class QALabRecorder extends GetxService {
     }
     bursts.sort((a, b) => _asInt(b['repeatCount']) - _asInt(a['repeatCount']));
     return bursts;
+  }
+
+  bool _isIssuedPlaybackDispatch(QALabTimelineEvent event) {
+    final raw = event.metadata['dispatchIssued'];
+    if (raw is bool) return raw;
+    if (raw is String) {
+      return raw.toLowerCase() != 'false';
+    }
+    return true;
   }
 
   int _countDuplicatePlaybackDispatchBursts({

@@ -343,10 +343,13 @@ extension AgendaControllerFeedPart on AgendaController {
     if (_qaScrollStartedAt == null) {
       _qaScrollStartedAt = now;
       _qaScrollStartOffset = currentOffset;
+      _qaActiveScrollToken =
+          'feed-${now.microsecondsSinceEpoch}-${_qaScrollSequence++}';
       recordQALabScrollEvent(
         surface: 'feed',
         phase: 'start',
         metadata: <String, dynamic>{
+          'scrollToken': _qaActiveScrollToken,
           'offset': currentOffset,
           'count': agendaList.length,
           'centeredIndex': centeredIndex.value,
@@ -383,6 +386,7 @@ extension AgendaControllerFeedPart on AgendaController {
         surface: 'feed',
         phase: 'near_end',
         metadata: <String, dynamic>{
+          'scrollToken': _qaActiveScrollToken,
           'offset': currentOffset,
           'maxScrollExtent': scrollController.position.maxScrollExtent,
           'count': agendaList.length,
@@ -409,6 +413,7 @@ extension AgendaControllerFeedPart on AgendaController {
           surface: 'feed',
           phase: 'settled',
           metadata: <String, dynamic>{
+            'scrollToken': _qaActiveScrollToken,
             'offset':
                 scrollController.hasClients ? scrollController.offset : 0.0,
             'distance': (scrollController.hasClients
@@ -423,8 +428,10 @@ extension AgendaControllerFeedPart on AgendaController {
             'count': agendaList.length,
           },
         );
+        _qaLatestScrollToken = _qaActiveScrollToken;
         _qaScrollStartedAt = null;
         _qaScrollStartOffset = 0.0;
+        _qaActiveScrollToken = '';
         if (centered >= 0 && centered < agendaList.length) {
           _ensureFeedPlaybackForIndex(centered);
         } else {
