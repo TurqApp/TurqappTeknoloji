@@ -70,6 +70,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       _initialIndexForSeek = null;
     }
 
+    final hadCurrentController = _videoControllers.containsKey(currentPage);
     _ensureController(currentPage);
     final vp = _videoControllers[currentPage];
 
@@ -82,7 +83,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
     if (vp != null) {
       if (vp.isDisposed) return;
-      _primePlaybackForIndex(currentPage);
+      if (hadCurrentController) {
+        _primePlaybackForIndex(currentPage);
+      }
 
       if (currentPage < shorts.length) {
         try {

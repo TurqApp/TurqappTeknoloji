@@ -428,7 +428,6 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       try {
         VideoStateManager.instance.enterExclusiveMode(list[initial].docID);
       } catch (_) {}
-      _primePlaybackForIndex(initial);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (pageController.hasClients) {
@@ -526,12 +525,15 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       } catch (_) {}
     }
 
-    if (!retained.contains(currentPage)) {
+    final retainedCurrentPage = retained.contains(currentPage);
+    if (!retainedCurrentPage) {
       _ensureController(currentPage);
     }
     _preloadRange(currentPage);
     _disposeOutsideRange(currentPage);
-    _primePlaybackForIndex(currentPage);
+    if (retainedCurrentPage) {
+      _primePlaybackForIndex(currentPage);
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !pageController.hasClients) return;
