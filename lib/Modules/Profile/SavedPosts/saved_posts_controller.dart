@@ -11,7 +11,6 @@ import 'package:turqappv2/Models/user_post_reference.dart';
 import 'package:turqappv2/Services/user_post_link_service.dart';
 
 part 'saved_posts_controller_data_part.dart';
-part 'saved_posts_controller_sorting_part.dart';
 
 class SavedPostsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
