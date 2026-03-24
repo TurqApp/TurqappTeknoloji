@@ -1,6 +1,11 @@
 part of 'my_admin_approval_results_view.dart';
 
 extension MyAdminApprovalResultsViewStreamPart on MyAdminApprovalResultsView {
+  Stream<QuerySnapshot<Map<String, dynamic>>> _watchOwnApprovals(String uid) {
+    final repo = AdminApprovalRepository.ensure();
+    return repo.watchOwnApprovals(uid);
+  }
+
   Widget _buildApprovalStream(String uid) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: _watchOwnApprovals(uid),
