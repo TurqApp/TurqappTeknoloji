@@ -4,7 +4,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import '../../../Core/Buttons/turq_app_button.dart';
 import 'address_selector_controller.dart';
 
-part 'address_selector_shell_part.dart';
 part 'address_selector_content_part.dart';
 
 class AddressSelector extends StatefulWidget {
@@ -41,5 +40,25 @@ class _AddressSelectorState extends State<AddressSelector> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              children: [
+                Row(
+                  children: [BackButtons(text: 'address.title'.tr)],
+                ),
+                const SizedBox(height: 12),
+                _buildContent(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
