@@ -31,6 +31,7 @@ import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 import '../../../Services/post_count_manager.dart';
 
 part 'photo_short_content_body_part.dart';
+part 'photo_short_content_state_part.dart';
 
 class PhotoShortContent extends StatefulWidget {
   final PostsModel model;
