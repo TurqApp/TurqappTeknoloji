@@ -32,12 +32,14 @@ const double _shortManualGestureTriggerDistance = 18.0;
 const double _shortManualGestureTriggerVelocity = 80.0;
 const Duration _shortPlayResumeDelay = Duration(milliseconds: 50);
 const Duration _shortPlayResumeDelayAndroid = Duration.zero;
+const Duration _shortMissingAdapterRetryDelay = Duration(milliseconds: 180);
 const Duration _shortScrollDebounceAndroid = Duration(milliseconds: 24);
 const Duration _shortTierDebounceDelay = Duration(milliseconds: 70);
 const Duration _shortEngagementRescoreDelay = Duration(milliseconds: 2500);
 const Duration _shortPlayWatchdogDelay = Duration(milliseconds: 450);
 const Duration _shortProgressPersistInterval = Duration(seconds: 2);
 const double _shortProgressPersistDelta = 0.10;
+const int _shortMissingAdapterRetryLimit = 4;
 
 class MomentumPageScrollPhysics extends PageScrollPhysics {
   const MomentumPageScrollPhysics({
