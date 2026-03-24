@@ -69,7 +69,6 @@ part 'settings_sections_admin_part.dart';
 part 'settings_sections_account_part.dart';
 part 'settings_sections_session_part.dart';
 part 'settings_sections_tasks_part.dart';
-part 'settings_diagnostics_part.dart';
 part 'settings_diagnostics_actions_part.dart';
 part 'settings_diagnostics_cache_part.dart';
 part 'settings_diagnostics_detail_part.dart';
@@ -165,6 +164,17 @@ class _SettingsViewState extends State<SettingsView> {
         ),
       ),
     );
+  }
+
+  void _ensureDiagnosticsServices() {
+    ErrorHandlingService.ensure();
+    NetworkAwarenessService.ensure();
+    UploadQueueService.ensure();
+    DraftService.ensure();
+    PostEditingService.ensure();
+    MediaEnhancementService.ensure();
+    OfflineModeService.ensure();
+    ensureQALabIfEnabled();
   }
 
   @override
