@@ -192,86 +192,76 @@ extension _ThenSolveQuestionPart on ThenSolve {
 
   Widget _buildQuestionActions(dynamic question) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        Obx(
-          () => Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  controller.likedQuestions[question.docID] ?? false
-                      ? CupertinoIcons.hand_thumbsup_fill
-                      : CupertinoIcons.hand_thumbsup,
-                ),
-                color: Colors.black,
-                onPressed: () => controller.addTolikes(question),
+        Expanded(
+          child: Center(
+            child: Obx(
+              () => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      controller.likedQuestions[question.docID] ?? false
+                          ? CupertinoIcons.hand_thumbsup_fill
+                          : CupertinoIcons.hand_thumbsup,
+                    ),
+                    color: Colors.black,
+                    onPressed: () => controller.addTolikes(question),
+                  ),
+                  Text(
+                    "${question.begeniler.length}",
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
               ),
-              Text(
-                "${question.begeniler.length}",
-                style: const TextStyle(fontSize: 14),
-              ),
-            ],
+            ),
           ),
         ),
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(CupertinoIcons.bubble_left),
-              color: controller.selectedAnswers[question.docID]?.isNotEmpty ??
-                      false
-                  ? Colors.black
-                  : Colors.grey,
-              onPressed: () {
-                if (controller.selectedAnswers[question.docID]?.isNotEmpty ??
-                    false) {
-                  Get.bottomSheet(
-                    AntremanComments(question: question),
-                    isScrollControlled: true,
-                  );
-                } else {
-                  AppSnackbar(
-                    "common.info".tr,
-                    "training.answer_first".tr,
-                  );
-                }
-              },
-            ),
-            StreamBuilder<int>(
-              stream: _antremanRepository.commentCountStream(question.docID),
-              builder: (context, snapshot) {
-                final commentCount = snapshot.data ?? 0;
-                return Text(
-                  "$commentCount",
-                  style: const TextStyle(fontSize: 14),
-                );
-              },
-            ),
-          ],
-        ),
-        Obx(
-          () => Row(
-            children: [
-              IconButton(
-                icon: Image.asset(
-                  'assets/icons/reshare.webp',
-                  width: 24,
-                  height: 24,
-                  color: Colors.black,
+        Expanded(
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(CupertinoIcons.bubble_left),
+                  color: controller.selectedAnswers[question.docID]
+                              ?.isNotEmpty ??
+                          false
+                      ? Colors.black
+                      : Colors.grey,
+                  onPressed: () {
+                    if (controller.selectedAnswers[question.docID]
+                            ?.isNotEmpty ??
+                        false) {
+                      Get.bottomSheet(
+                        AntremanComments(question: question),
+                        isScrollControlled: true,
+                      );
+                    } else {
+                      AppSnackbar(
+                        "common.info".tr,
+                        "training.answer_first".tr,
+                      );
+                    }
+                  },
                 ),
-                color: Colors.black,
-                onPressed:
-                    controller.selectedAnswers[question.docID]?.isNotEmpty ??
-                            false
-                        ? null
-                        : () => _removeFromSolveLater(question),
-              ),
-              Text("pasaj.question_bank.solve_later".tr),
-            ],
+                StreamBuilder<int>(
+                  stream: _antremanRepository.commentCountStream(question.docID),
+                  builder: (context, snapshot) {
+                    final commentCount = snapshot.data ?? 0;
+                    return Text(
+                      "$commentCount",
+                      style: const TextStyle(fontSize: 14),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
-        Row(
-          children: [
-            IconButton(
+        Expanded(
+          child: Center(
+            child: IconButton(
               icon: const Icon(
                 AppIcons.share,
                 size: 20,
@@ -279,8 +269,34 @@ extension _ThenSolveQuestionPart on ThenSolve {
               color: Colors.black,
               onPressed: () => controller.addToPaylasanlar(question),
             ),
-            Text("training.share".tr),
-          ],
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Obx(
+              () => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Image.asset(
+                      'assets/icons/reshare.webp',
+                      width: 24,
+                      height: 24,
+                      color: Colors.black,
+                    ),
+                    color: Colors.black,
+                    onPressed:
+                        controller.selectedAnswers[question.docID]
+                                    ?.isNotEmpty ??
+                                false
+                            ? null
+                            : () => _removeFromSolveLater(question),
+                  ),
+                  Text("pasaj.question_bank.solve_later".tr),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );

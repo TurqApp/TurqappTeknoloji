@@ -169,93 +169,108 @@ extension QuestionContentItemPart on QuestionContent {
   }
 
   Widget _buildQuestionActions(dynamic question) {
-    return Wrap(
-      alignment: WrapAlignment.spaceAround,
-      runSpacing: 4,
-      spacing: 12,
+    return Row(
       children: [
-        Obx(
-          () => Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: Icon(
-                  controller.likedQuestions[question.docID] ?? false
-                      ? CupertinoIcons.hand_thumbsup_fill
-                      : CupertinoIcons.hand_thumbsup,
-                ),
-                color: Colors.black,
-                onPressed: () => controller.addTolikes(question),
+        Expanded(
+          child: Center(
+            child: Obx(
+              () => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      controller.likedQuestions[question.docID] ?? false
+                          ? CupertinoIcons.hand_thumbsup_fill
+                          : CupertinoIcons.hand_thumbsup,
+                    ),
+                    color: Colors.black,
+                    onPressed: () => controller.addTolikes(question),
+                  ),
+                  Text(
+                    '${question.begeniler.length}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
               ),
-              Text('${question.begeniler.length}',
-                  style: TextStyle(fontSize: 14)),
-            ],
+            ),
           ),
         ),
-        Obx(() {
-          final hasAnswered =
-              (controller.selectedAnswers[question.docID] ?? '').isNotEmpty;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: Icon(CupertinoIcons.bubble_left),
-                color: hasAnswered ? Colors.black : Colors.grey,
-                onPressed: () {
-                  if (hasAnswered) {
-                    Get.bottomSheet(
-                      AntremanComments(question: question),
-                      isScrollControlled: true,
-                    );
-                  } else {
-                    AppSnackbar('common.info'.tr, 'training.answer_first'.tr);
-                  }
-                },
-              ),
-              StreamBuilder<int>(
-                stream: _antremanRepository.commentCountStream(question.docID),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Text('${snapshot.data}',
-                        style: TextStyle(fontSize: 14));
-                  }
-                  return Text('0', style: TextStyle(fontSize: 14));
-                },
-              ),
-            ],
-          );
-        }),
-        Obx(
-          () => Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed:
-                    controller.selectedAnswers[question.docID]?.isNotEmpty ??
-                            false
-                        ? null
-                        : () => controller.addToSonraCoz(question),
-                icon: Image.asset(
-                  'assets/icons/reshare.webp',
-                  color: Colors.black,
-                  width: 24,
-                  height: 24,
-                ),
-              ),
-              Text('pasaj.question_bank.solve_later'.tr),
-            ],
+        Expanded(
+          child: Center(
+            child: Obx(() {
+              final hasAnswered =
+                  (controller.selectedAnswers[question.docID] ?? '')
+                      .isNotEmpty;
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.bubble_left),
+                    color: hasAnswered ? Colors.black : Colors.grey,
+                    onPressed: () {
+                      if (hasAnswered) {
+                        Get.bottomSheet(
+                          AntremanComments(question: question),
+                          isScrollControlled: true,
+                        );
+                      } else {
+                        AppSnackbar(
+                          'common.info'.tr,
+                          'training.answer_first'.tr,
+                        );
+                      }
+                    },
+                  ),
+                  StreamBuilder<int>(
+                    stream: _antremanRepository.commentCountStream(
+                      question.docID,
+                    ),
+                    builder: (context, snapshot) {
+                      final commentCount = snapshot.data ?? 0;
+                      return Text(
+                        '$commentCount',
+                        style: const TextStyle(fontSize: 14),
+                      );
+                    },
+                  ),
+                ],
+              );
+            }),
           ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: Icon(AppIcons.share, size: 20),
+        Expanded(
+          child: Center(
+            child: IconButton(
+              icon: const Icon(AppIcons.share, size: 20),
               color: Colors.black,
               onPressed: () => controller.addToPaylasanlar(question),
             ),
-            Text('training.share'.tr),
-          ],
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Obx(
+              () => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed:
+                        controller.selectedAnswers[question.docID]?.isNotEmpty ??
+                                false
+                            ? null
+                            : () => controller.addToSonraCoz(question),
+                    icon: Image.asset(
+                      'assets/icons/reshare.webp',
+                      color: Colors.black,
+                      width: 24,
+                      height: 24,
+                    ),
+                  ),
+                  Text('pasaj.question_bank.solve_later'.tr),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
