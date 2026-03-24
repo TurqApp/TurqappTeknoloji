@@ -6,7 +6,6 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Modules/Education/Tests/SavedTests/saved_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
-part 'saved_tests_shell_part.dart';
 part 'saved_tests_content_part.dart';
 
 class SavedTests extends StatefulWidget {
@@ -46,5 +45,24 @@ class _SavedTestsState extends State<SavedTests> {
   @override
   Widget build(BuildContext context) {
     return _buildPage();
+  }
+
+  Widget _buildPage() {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'common.saved'.tr),
+            Expanded(
+              child: Container(
+                color: Colors.white,
+                child: Obx(() => _buildContent()),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
