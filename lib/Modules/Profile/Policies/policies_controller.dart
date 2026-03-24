@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 
-part 'policies_controller_data_part.dart';
-part 'policies_controller_navigation_part.dart';
-
 class PoliciesController extends GetxController {
   static PoliciesController ensure({
     String? tag,
@@ -31,6 +28,18 @@ class PoliciesController extends GetxController {
 
   var selection = 0.obs;
   PageController pageController = PageController(initialPage: 0);
+
+  Future<void> _loadPolicies() async {
+    final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
+      collection: 'Yönetim',
+      docId: 'Policies',
+      preferCache: true,
+    );
+    if (doc == null) return;
+    privacyPolicy.value = (doc["privacy"] ?? "").toString();
+    eula.value = (doc["eula"] ?? "").toString();
+    ad.value = (doc["ad"] ?? "").toString();
+  }
 
   @override
   void onInit() {
