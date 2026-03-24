@@ -12,8 +12,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/job_model.dart';
 
 part 'my_job_ads_controller_data_part.dart';
-part 'my_job_ads_controller_lifecycle_part.dart';
-part 'my_job_ads_controller_actions_part.dart';
 
 class MyJobAdsController extends GetxController {
   static MyJobAdsController ensure({
@@ -89,6 +87,10 @@ class MyJobAdsController extends GetxController {
     _handleOnInit();
   }
 
+  void _handleOnInit() {
+    unawaited(_bootstrapImpl());
+  }
+
   Future<void> getActive({
     bool silent = false,
     bool forceRefresh = false,
@@ -107,9 +109,21 @@ class MyJobAdsController extends GetxController {
         forceRefresh: forceRefresh,
       );
 
+  void goToPage(int index) {
+    pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   void onClose() {
     _handleOnClose();
     super.onClose();
+  }
+
+  void _handleOnClose() {
+    pageController.dispose();
   }
 }
