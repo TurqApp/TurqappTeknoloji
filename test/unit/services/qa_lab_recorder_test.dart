@@ -199,6 +199,53 @@ void main() {
     );
   });
 
+  test('qa recorder ignores feed blank surface after recent host lookup error',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'feed_blank_cp',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.issues.add(
+      QALabIssue(
+        id: 'feed_host_lookup',
+        source: QALabIssueSource.platform,
+        severity: QALabIssueSeverity.error,
+        code: 'platform_error',
+        message:
+            "ClientException with SocketException: Failed host lookup: 'firebasestorage.googleapis.com'",
+        timestamp: now.subtract(const Duration(seconds: 3)),
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_blank_surface'),
+      isFalse,
+    );
+  });
+
   test('qa recorder flags authenticated short blank surface', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -535,6 +582,99 @@ void main() {
     expect(summaries.first.headlineCode, 'feed_blank_surface');
     expect(summaries.first.primaryRootCauseCategory, 'data_absent');
     expect(summaries.first.primaryRootCauseDetail, contains('empty'));
+  });
+
+  test(
+      'qa recorder ignores feed centered index invalid after recent host lookup error',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'feed_center_invalid_cp',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': -1,
+            'centeredDocId': '',
+            'centeredHasPlayableVideo': false,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': false,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.issues.add(
+      QALabIssue(
+        id: 'feed_center_host_lookup',
+        source: QALabIssueSource.platform,
+        severity: QALabIssueSeverity.error,
+        code: 'platform_error',
+        message:
+            "ClientException with SocketException: Failed host lookup: 'cdn.turqapp.com'",
+        timestamp: now.subtract(const Duration(seconds: 4)),
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_centered_index_invalid'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder waits before flagging feed centered index invalid', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'feed_center_invalid_early',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': -1,
+            'centeredDocId': '',
+            'centeredHasPlayableVideo': false,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': false,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_centered_index_invalid'),
+      isFalse,
+    );
   });
 
   test('qa recorder maps autoplay findings to autoplay root cause', () {

@@ -990,6 +990,10 @@ class QALabRecorder extends GetxService {
         latestCheckpoint?.probe['auth'] as Map<String, dynamic>? ??
             const <String, dynamic>{};
     final referenceTime = latestCheckpoint?.timestamp ?? DateTime.now();
+    final recentHostLookupFailure = _hasRecentHostLookupFailure(
+      surfaceIssues: surfaceIssues,
+      referenceTime: referenceTime,
+    );
     final route = latestCheckpoint?.route.isNotEmpty == true
         ? latestCheckpoint!.route
         : _latestRouteForSurface(surface);
@@ -997,7 +1001,9 @@ class QALabRecorder extends GetxService {
     if ((surface == 'feed' || surface == 'short') &&
         _hasAuthenticatedUser(authProbe)) {
       final count = _asInt(latestProbe['count']);
-      if (count == 0 && latestProbe['registered'] == true) {
+      if (count == 0 &&
+          latestProbe['registered'] == true &&
+          !recentHostLookupFailure) {
         findings.add(
           QALabPinpointFinding(
             severity: QALabIssueSeverity.blocking,
@@ -1033,7 +1039,21 @@ class QALabRecorder extends GetxService {
         rootProbe,
         route: route,
       );
-      if (count > 0 && (centeredIndex < 0 || centeredIndex >= count)) {
+      final hasInvalidCenteredIndex =
+          count > 0 && (centeredIndex < 0 || centeredIndex >= count);
+      final invalidCenteredIndexSince = hasInvalidCenteredIndex
+          ? _feedCenteredIndexInvalidObservedSince(
+              surfaceCheckpoints: surfaceCheckpoints,
+              route: route,
+            )
+          : null;
+      final invalidCenteredIndexElapsedMs = invalidCenteredIndexSince == null
+          ? 0
+          : referenceTime.difference(invalidCenteredIndexSince).inMilliseconds;
+      if (hasInvalidCenteredIndex &&
+          !recentHostLookupFailure &&
+          invalidCenteredIndexElapsedMs >=
+              QALabMode.autoplayDetectionGraceMs) {
         findings.add(
           QALabPinpointFinding(
             severity: QALabIssueSeverity.error,
@@ -1046,6 +1066,7 @@ class QALabRecorder extends GetxService {
             context: <String, dynamic>{
               'count': count,
               'centeredIndex': centeredIndex,
+              'elapsedMs': invalidCenteredIndexElapsedMs,
             },
           ),
         );
@@ -1475,6 +1496,50 @@ class QALabRecorder extends GetxService {
         'elapsedMs': elapsedMs,
       },
     );
+  }
+
+  bool _hasRecentHostLookupFailure({
+    required List<QALabIssue> surfaceIssues,
+    required DateTime referenceTime,
+  }) {
+    const markers = <String>[
+      'Failed host lookup',
+      'No address associated with hostname',
+    ];
+    return surfaceIssues.any((issue) {
+      if (issue.source != QALabIssueSource.platform) {
+        return false;
+      }
+      if (referenceTime.difference(issue.timestamp) >
+          const Duration(seconds: 20)) {
+        return false;
+      }
+      final message = issue.message;
+      return markers.any(message.contains);
+    });
+  }
+
+  DateTime? _feedCenteredIndexInvalidObservedSince({
+    required List<QALabCheckpoint> surfaceCheckpoints,
+    required String route,
+  }) {
+    DateTime? observedSince;
+    for (final checkpoint in surfaceCheckpoints.reversed) {
+      if (checkpoint.route != route) {
+        break;
+      }
+      final feedProbe =
+          checkpoint.probe['feed'] as Map<String, dynamic>? ??
+              const <String, dynamic>{};
+      final count = _asInt(feedProbe['count']);
+      final centeredIndex = _asInt(feedProbe['centeredIndex']);
+      final isInvalid = count > 0 && (centeredIndex < 0 || centeredIndex >= count);
+      if (!isInvalid) {
+        break;
+      }
+      observedSince = checkpoint.timestamp;
+    }
+    return observedSince;
   }
 
   List<QALabPinpointFinding> _buildVideoSurfaceFindings({
