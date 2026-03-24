@@ -402,4 +402,98 @@ void main() {
     );
     expect(feedSummary.primaryRootCauseCategory, 'audio_state_drift');
   });
+
+  test('qa recorder flags native iOS first-frame timeout in feed summary', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp11',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'iOS',
+        'status': 'FIRST_FRAME_TIMEOUT',
+        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'PLAYBACK_NOT_STARTED'],
+        'active': true,
+        'firstFrameRendered': false,
+        'isPlaybackExpected': true,
+        'isPlaying': false,
+        'isBuffering': false,
+        'stallCount': 0,
+        'layerAttachCount': 2,
+        'lastKnownPlaybackTime': 0.0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+      });
+
+    final findings = recorder.buildPinpointFindings();
+    final summaries = recorder.buildSurfaceAlertSummaries();
+    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
+
+    expect(
+      findings.any((item) => item.code == 'feed_native_first_frame_timeout'),
+      isTrue,
+    );
+    expect(feedSummary.primaryRootCauseCategory, 'first_frame_latency');
+  });
+
+  test('qa recorder export includes native playback diagnostics', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'iOS',
+        'status': 'OK',
+        'errors': const <String>[],
+        'active': true,
+        'firstFrameRendered': true,
+        'isPlaybackExpected': true,
+        'isPlaying': true,
+        'isBuffering': false,
+        'stallCount': 0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+      });
+    recorder.nativePlaybackSamples.add(
+      Map<String, dynamic>.from(recorder.lastNativePlaybackSnapshot),
+    );
+
+    final export = recorder.buildExportJson();
+    final nativePlayback = export['nativePlayback'] as Map<String, dynamic>? ??
+        <String, dynamic>{};
+    final latest = nativePlayback['latestSnapshot'] as Map<String, dynamic>? ??
+        <String, dynamic>{};
+
+    expect(nativePlayback['sampleCount'], 1);
+    expect(latest['platform'], 'iOS');
+    expect(latest['firstFrameRendered'], isTrue);
+  });
 }

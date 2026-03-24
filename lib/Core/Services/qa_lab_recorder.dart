@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_servic
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/runtime_health_exporter.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/telemetry_threshold_policy_adapter.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
+import 'package:turqappv2/hls_player/hls_controller.dart';
 
 import 'qa_lab_catalog.dart';
 import 'qa_lab_mode.dart';
@@ -265,12 +266,19 @@ class QALabRecorder extends GetxService {
   final RxList<QALabIssue> issues = <QALabIssue>[].obs;
   final RxList<QALabRouteEvent> routes = <QALabRouteEvent>[].obs;
   final RxList<QALabCheckpoint> checkpoints = <QALabCheckpoint>[].obs;
+  final RxMap<String, dynamic> lastNativePlaybackSnapshot =
+      <String, dynamic>{}.obs;
+  final RxList<Map<String, dynamic>> nativePlaybackSamples =
+      <Map<String, dynamic>>[].obs;
   Timer? _periodicTimer;
+  Timer? _nativePlaybackTimer;
   final Map<String, Timer> _surfaceWatchdogs = <String, Timer>{};
   final Map<String, DateTime> _rateLimitedIssueTimes = <String, DateTime>{};
   final Set<String> _emittedFindingKeys = <String>{};
   DateTime? _lastAutoExportAt;
+  DateTime? _lastNativePlaybackSampleAt;
   bool _autoExportInFlight = false;
+  bool _nativePlaybackSampleInFlight = false;
 
   @override
   void onInit() {
@@ -289,14 +297,19 @@ class QALabRecorder extends GetxService {
     issues.clear();
     routes.clear();
     checkpoints.clear();
+    lastNativePlaybackSnapshot.clear();
+    nativePlaybackSamples.clear();
     lastExportPath.value = '';
     lastLifecycleState.value = '';
     lastPermissionStatuses.clear();
     _rateLimitedIssueTimes.clear();
     _emittedFindingKeys.clear();
     _lastAutoExportAt = null;
+    _lastNativePlaybackSampleAt = null;
     _autoExportInFlight = false;
+    _nativePlaybackSampleInFlight = false;
     _periodicTimer?.cancel();
+    _nativePlaybackTimer?.cancel();
     _cancelAllSurfaceWatchdogs();
     if (QALabMode.periodicSnapshots) {
       _periodicTimer = Timer.periodic(
@@ -307,6 +320,13 @@ class QALabRecorder extends GetxService {
           extra: <String, dynamic>{'trigger': trigger},
         ),
       );
+    }
+    if (_supportsNativePlaybackSampling) {
+      _nativePlaybackTimer = Timer.periodic(
+        Duration(seconds: QALabMode.nativePlaybackPollSeconds),
+        (_) => unawaited(sampleNativePlayback(trigger: 'poll')),
+      );
+      unawaited(sampleNativePlayback(trigger: 'session_started'));
     }
     captureCheckpoint(
       label: 'session_started',
@@ -322,6 +342,8 @@ class QALabRecorder extends GetxService {
   void disposeSession() {
     _periodicTimer?.cancel();
     _periodicTimer = null;
+    _nativePlaybackTimer?.cancel();
+    _nativePlaybackTimer = null;
     _cancelAllSurfaceWatchdogs();
   }
 
@@ -630,6 +652,79 @@ class QALabRecorder extends GetxService {
     if (emitSignals) {
       _maybeEmitAutoSignals();
     }
+    if (_supportsNativePlaybackSampling) {
+      unawaited(
+        sampleNativePlayback(
+          trigger: 'checkpoint:$label',
+          surfaceHint: surface,
+        ),
+      );
+    }
+  }
+
+  Future<void> sampleNativePlayback({
+    String trigger = 'manual',
+    String? surfaceHint,
+  }) async {
+    if (!QALabMode.enabled || !_supportsNativePlaybackSampling) {
+      return;
+    }
+    if (_nativePlaybackSampleInFlight) {
+      return;
+    }
+    final now = DateTime.now();
+    final previousSampleAt = _lastNativePlaybackSampleAt;
+    if (previousSampleAt != null &&
+        now.difference(previousSampleAt) < const Duration(milliseconds: 900)) {
+      return;
+    }
+
+    _nativePlaybackSampleInFlight = true;
+    try {
+      final snapshot = await HLSController.getActiveSmokeSnapshot();
+      if (snapshot.isEmpty) {
+        return;
+      }
+      _lastNativePlaybackSampleAt = now;
+      final normalized = _normalizeNativePlaybackSnapshot(
+        snapshot,
+        trigger: trigger,
+        surfaceHint: surfaceHint,
+        sampledAt: now,
+      );
+      lastNativePlaybackSnapshot
+        ..clear()
+        ..addAll(normalized);
+      if (nativePlaybackSamples.isEmpty ||
+          !_nativePlaybackSampleEquivalent(
+            nativePlaybackSamples.last,
+            normalized,
+          )) {
+        nativePlaybackSamples.add(normalized);
+        _trimList(nativePlaybackSamples, 48);
+      }
+      _maybeEmitAutoSignals();
+    } catch (error, stackTrace) {
+      if (_isRateLimited(
+        'native_playback_sample_failed',
+        const Duration(seconds: 12),
+      )) {
+        return;
+      }
+      recordIssue(
+        source: QALabIssueSource.platform,
+        code: 'native_playback_sample_failed',
+        severity: QALabIssueSeverity.warning,
+        message: 'Native playback snapshot sampling failed.',
+        stackTrace: stackTrace.toString(),
+        metadata: <String, dynamic>{
+          'trigger': trigger,
+          'error': error.toString(),
+        },
+      );
+    } finally {
+      _nativePlaybackSampleInFlight = false;
+    }
   }
 
   void recordIssue({
@@ -833,6 +928,11 @@ class QALabRecorder extends GetxService {
       },
       'device': _deviceInfoSnapshot(),
       'permissions': Map<String, String>.from(lastPermissionStatuses),
+      'nativePlayback': <String, dynamic>{
+        'latestSnapshot': Map<String, dynamic>.from(lastNativePlaybackSnapshot),
+        'sampleCount': nativePlaybackSamples.length,
+        'samples': nativePlaybackSamples.toList(growable: false),
+      },
       'currentSnapshot': currentSnapshot,
       'routes': routes.map((event) => event.toJson()).toList(growable: false),
       'issues': issues.map((issue) => issue.toJson()).toList(growable: false),
@@ -1291,6 +1391,15 @@ class QALabRecorder extends GetxService {
       ),
     );
     findings.addAll(
+      _buildNativePlaybackFindings(
+        surface: surface,
+        latestProbe: latestProbe,
+        authProbe: authProbe,
+        referenceTime: referenceTime,
+        route: route,
+      ),
+    );
+    findings.addAll(
       _buildCacheSurfaceFindings(
         surface: surface,
         surfaceIssues: surfaceIssues,
@@ -1368,6 +1477,26 @@ class QALabRecorder extends GetxService {
       'blankSnapshotCount': blankSnapshots,
       'autoplayFindingCount': autoplayFindings,
       'runtimeFindingCount': runtimeFindings.length,
+      if (surface == 'feed' || surface == 'short')
+        'nativePlaybackStatus':
+            (lastNativePlaybackSnapshot['status'] ?? '').toString(),
+      if (surface == 'feed' || surface == 'short')
+        'nativePlaybackErrorCount':
+            _nativePlaybackErrors(lastNativePlaybackSnapshot).length,
+      if (surface == 'feed' || surface == 'short')
+        'nativePlaybackActive': lastNativePlaybackSnapshot['active'] == true,
+      if (surface == 'feed' || surface == 'short')
+        'nativePlaybackPlaying':
+            lastNativePlaybackSnapshot['isPlaying'] == true,
+      if (surface == 'feed' || surface == 'short')
+        'nativePlaybackBuffering':
+            lastNativePlaybackSnapshot['isBuffering'] == true,
+      if (surface == 'feed' || surface == 'short')
+        'nativePlaybackFirstFrame':
+            lastNativePlaybackSnapshot['firstFrameRendered'] == true,
+      if (surface == 'feed' || surface == 'short')
+        'nativePlaybackStallCount':
+            _asInt(lastNativePlaybackSnapshot['stallCount']),
     };
   }
 
@@ -1708,6 +1837,151 @@ class QALabRecorder extends GetxService {
     ];
   }
 
+  List<QALabPinpointFinding> _buildNativePlaybackFindings({
+    required String surface,
+    required Map<String, dynamic> latestProbe,
+    required Map<String, dynamic> authProbe,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    if (surface != 'feed' && surface != 'short') {
+      return const <QALabPinpointFinding>[];
+    }
+    if (!_hasAuthenticatedUser(authProbe)) {
+      return const <QALabPinpointFinding>[];
+    }
+    if (lastNativePlaybackSnapshot.isEmpty ||
+        lastNativePlaybackSnapshot['supported'] == false) {
+      return const <QALabPinpointFinding>[];
+    }
+
+    final count = _asInt(latestProbe['count']);
+    final errors = _nativePlaybackErrors(lastNativePlaybackSnapshot);
+    final isPlaybackExpected =
+        lastNativePlaybackSnapshot['isPlaybackExpected'] == true;
+    if (count <= 0 && !isPlaybackExpected && errors.isEmpty) {
+      return const <QALabPinpointFinding>[];
+    }
+
+    final findings = <QALabPinpointFinding>[];
+    final hasFirstFrame =
+        lastNativePlaybackSnapshot['firstFrameRendered'] == true;
+    final isPlaying = lastNativePlaybackSnapshot['isPlaying'] == true;
+    final isBuffering = lastNativePlaybackSnapshot['isBuffering'] == true;
+    final stallCount = _asInt(lastNativePlaybackSnapshot['stallCount']);
+    final sampledAt =
+        _parseTimestamp(lastNativePlaybackSnapshot['sampledAt']) ??
+            referenceTime;
+    final snapshotContext = <String, dynamic>{
+      'platform': (lastNativePlaybackSnapshot['platform'] ?? '').toString(),
+      'status': (lastNativePlaybackSnapshot['status'] ?? '').toString(),
+      'errors': errors,
+      'trigger': (lastNativePlaybackSnapshot['trigger'] ?? '').toString(),
+      'active': lastNativePlaybackSnapshot['active'] == true,
+      'isPlaybackExpected': isPlaybackExpected,
+      'isPlaying': isPlaying,
+      'isBuffering': isBuffering,
+      'firstFrameRendered': hasFirstFrame,
+      'stallCount': stallCount,
+      'lastKnownPlaybackTime':
+          _asDouble(lastNativePlaybackSnapshot['lastKnownPlaybackTime']),
+      'layerAttachCount':
+          _asInt(lastNativePlaybackSnapshot['layerAttachCount']),
+    };
+
+    const firstFrameCodes = <String>{
+      'FIRST_FRAME_TIMEOUT',
+      'READY_WITHOUT_FRAME',
+      'PLAYBACK_NOT_STARTED',
+    };
+    if (errors.any(firstFrameCodes.contains)) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: errors.contains('FIRST_FRAME_TIMEOUT') ||
+                  errors.contains('READY_WITHOUT_FRAME')
+              ? QALabIssueSeverity.blocking
+              : QALabIssueSeverity.error,
+          code: '${surface}_native_first_frame_timeout',
+          message:
+              'Native playback health on $surface expected a frame but never confirmed one in time.',
+          route: route,
+          surface: surface,
+          timestamp: sampledAt,
+          context: snapshotContext,
+        ),
+      );
+    }
+
+    if (errors.contains('DOUBLE_BLACK_SCREEN_RISK')) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.error,
+          code: '${surface}_native_black_screen_risk',
+          message:
+              'Native playback health on $surface detected repeated layer attachment before first frame.',
+          route: route,
+          surface: surface,
+          timestamp: sampledAt,
+          context: snapshotContext,
+        ),
+      );
+    }
+
+    if (errors.contains('EXCESSIVE_REBUFFERING') ||
+        (isBuffering && stallCount >= 2)) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: stallCount >= 4
+              ? QALabIssueSeverity.blocking
+              : QALabIssueSeverity.error,
+          code: '${surface}_native_buffer_stall',
+          message:
+              'Native playback health on $surface detected prolonged buffering or excessive rebuffering.',
+          route: route,
+          surface: surface,
+          timestamp: sampledAt,
+          context: snapshotContext,
+        ),
+      );
+    }
+
+    if (errors.contains('VIDEO_FREEZE') ||
+        errors.contains('FULLSCREEN_INTERRUPTION') ||
+        errors.contains('BACKGROUND_RESUME_FAILURE')) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: errors.contains('VIDEO_FREEZE')
+              ? QALabIssueSeverity.blocking
+              : QALabIssueSeverity.error,
+          code: '${surface}_native_playback_interrupted',
+          message:
+              'Native playback health on $surface reported a freeze or failed recovery after an interruption.',
+          route: route,
+          surface: surface,
+          timestamp: sampledAt,
+          context: snapshotContext,
+        ),
+      );
+    }
+
+    if (errors.contains('AUDIO_NOT_STARTED')) {
+      findings.add(
+        QALabPinpointFinding(
+          severity: QALabIssueSeverity.error,
+          code: '${surface}_native_audio_not_started',
+          message:
+              'Native playback health on $surface reported playback without audio start confirmation.',
+          route: route,
+          surface: surface,
+          timestamp: sampledAt,
+          context: snapshotContext,
+        ),
+      );
+    }
+
+    return findings;
+  }
+
   void _recordCriticalPermissionIfBlocked({
     required String permissionKey,
     required PermissionStatus? status,
@@ -1931,6 +2205,20 @@ class QALabRecorder extends GetxService {
     return int.tryParse('$value') ?? 0;
   }
 
+  double _asDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value') ?? 0.0;
+  }
+
+  DateTime? _parseTimestamp(dynamic value) {
+    if (value is DateTime) return value;
+    if (value is String && value.trim().isNotEmpty) {
+      return DateTime.tryParse(value.trim());
+    }
+    return null;
+  }
+
   int _compareFindings(QALabPinpointFinding a, QALabPinpointFinding b) {
     final severityCompare =
         _severityRank(b.severity) - _severityRank(a.severity);
@@ -1995,6 +2283,12 @@ class QALabRecorder extends GetxService {
         '${diagnostic.surface} started playback but first frame confirmation lagged or never arrived.',
       );
     }
+    if (code.contains('black_screen')) {
+      return (
+        'first_frame_latency',
+        '${diagnostic.surface} reattached video layers before a stable first frame and risks blank flashes.',
+      );
+    }
     if (code.contains('buffer_stall') || code.contains('rebuffer')) {
       return (
         'buffering_instability',
@@ -2030,6 +2324,12 @@ class QALabRecorder extends GetxService {
       return (
         'lifecycle_interruption',
         '${diagnostic.surface} was interrupted by app lifecycle transitions.',
+      );
+    }
+    if (code.contains('interrupted')) {
+      return (
+        'lifecycle_interruption',
+        '${diagnostic.surface} failed to recover cleanly after a fullscreen or background interruption.',
       );
     }
     if (code.contains('route_resolution')) {
@@ -2131,6 +2431,78 @@ class QALabRecorder extends GetxService {
     _surfaceWatchdogs.clear();
   }
 
+  bool get _supportsNativePlaybackSampling =>
+      GetPlatform.isIOS || GetPlatform.isAndroid;
+
+  Map<String, dynamic> _normalizeNativePlaybackSnapshot(
+    Map<String, dynamic> snapshot, {
+    required String trigger,
+    required String? surfaceHint,
+    required DateTime sampledAt,
+  }) {
+    final nestedSnapshot = snapshot['snapshot'] is Map
+        ? Map<String, dynamic>.from(snapshot['snapshot'] as Map)
+        : Map<String, dynamic>.from(snapshot);
+    final errors = _nativePlaybackErrors(snapshot);
+    return <String, dynamic>{
+      'platform': defaultTargetPlatform.name,
+      'trigger': trigger,
+      'surfaceHint': surfaceHint ?? '',
+      'sampledAt': sampledAt.toUtc().toIso8601String(),
+      'supported': snapshot['supported'] != false,
+      'active': snapshot['active'] == true,
+      'status': (snapshot['status'] ?? '').toString(),
+      'errors': errors,
+      'firstFrameRendered': snapshot['firstFrameRendered'] == true ||
+          nestedSnapshot['hasRenderedFirstFrame'] == true,
+      'isPlaybackExpected': nestedSnapshot['isPlaybackExpected'] == true,
+      'isPlaying': nestedSnapshot['isPlaying'] == true,
+      'isBuffering': nestedSnapshot['isBuffering'] == true,
+      'stallCount': _asInt(nestedSnapshot['stallCount']),
+      'layerAttachCount': _asInt(nestedSnapshot['layerAttachCount']),
+      'lastKnownPlaybackTime':
+          _asDouble(nestedSnapshot['lastKnownPlaybackTime']),
+      'awaitingFullscreenRecovery':
+          nestedSnapshot['awaitingFullscreenRecovery'] == true,
+      'awaitingBackgroundRecovery':
+          nestedSnapshot['awaitingBackgroundRecovery'] == true,
+      'raw': (snapshot['raw'] ?? '').toString(),
+      'snapshot': nestedSnapshot,
+    };
+  }
+
+  List<String> _nativePlaybackErrors(Map<String, dynamic> snapshot) {
+    final rawErrors = snapshot['errors'];
+    if (rawErrors is! List) {
+      return const <String>[];
+    }
+    return rawErrors
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  bool _nativePlaybackSampleEquivalent(
+    Map<String, dynamic> previous,
+    Map<String, dynamic> current,
+  ) {
+    final previousErrors = _nativePlaybackErrors(previous);
+    final currentErrors = _nativePlaybackErrors(current);
+    return previous['platform'] == current['platform'] &&
+        previous['status'] == current['status'] &&
+        previous['active'] == current['active'] &&
+        previous['firstFrameRendered'] == current['firstFrameRendered'] &&
+        previous['isPlaybackExpected'] == current['isPlaybackExpected'] &&
+        previous['isPlaying'] == current['isPlaying'] &&
+        previous['isBuffering'] == current['isBuffering'] &&
+        _asInt(previous['stallCount']) == _asInt(current['stallCount']) &&
+        _asInt(previous['layerAttachCount']) ==
+            _asInt(current['layerAttachCount']) &&
+        _asDouble(previous['lastKnownPlaybackTime']) ==
+            _asDouble(current['lastKnownPlaybackTime']) &&
+        listEquals(previousErrors, currentErrors);
+  }
+
   void _maybeEmitAutoSignals() {
     if (!QALabMode.enabled) {
       return;
@@ -2195,6 +2567,7 @@ class QALabRecorder extends GetxService {
   @override
   void onClose() {
     _periodicTimer?.cancel();
+    _nativePlaybackTimer?.cancel();
     _cancelAllSurfaceWatchdogs();
     super.onClose();
   }

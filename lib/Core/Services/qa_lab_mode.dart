@@ -98,4 +98,9 @@ class QALabMode {
     'QA_LAB_AUTOPLAY_DETECTION_GRACE_MS',
     defaultValue: 3500,
   );
+
+  static const int nativePlaybackPollSeconds = int.fromEnvironment(
+    'QA_LAB_NATIVE_PLAYBACK_POLL_SECONDS',
+    defaultValue: 2,
+  );
 }

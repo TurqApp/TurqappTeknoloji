@@ -4,6 +4,14 @@ extension _QALabViewSummaryPart on _QALabViewState {
   Widget _buildSummaryCard() {
     return Obx(() {
       final topAlerts = _recorder.buildSurfaceAlertSummaries().take(3).toList();
+      final nativePlayback = Map<String, dynamic>.from(
+        _recorder.lastNativePlaybackSnapshot,
+      );
+      final nativeErrors =
+          (nativePlayback['errors'] as List<dynamic>? ?? const <dynamic>[])
+              .map((item) => item.toString())
+              .where((item) => item.isNotEmpty)
+              .join(', ');
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -43,6 +51,21 @@ extension _QALabViewSummaryPart on _QALabViewState {
               Text(
                 'routes=${_recorder.routes.length} checkpoints=${_recorder.checkpoints.length}',
               ),
+              if (nativePlayback.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'native=${nativePlayback['platform'] ?? '-'} '
+                  'status=${(nativePlayback['status'] ?? '').toString().isEmpty ? 'OK' : nativePlayback['status']} '
+                  'active=${nativePlayback['active'] == true} '
+                  'playing=${nativePlayback['isPlaying'] == true} '
+                  'buffering=${nativePlayback['isBuffering'] == true} '
+                  'firstFrame=${nativePlayback['firstFrameRendered'] == true} '
+                  'stalls=${nativePlayback['stallCount'] ?? 0}',
+                ),
+                Text(
+                  'nativeErrors=${nativeErrors.isEmpty ? '-' : nativeErrors}',
+                ),
+              ],
               if (topAlerts.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 const Text(

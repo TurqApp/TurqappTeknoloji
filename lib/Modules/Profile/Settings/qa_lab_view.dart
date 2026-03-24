@@ -178,7 +178,14 @@ class _QALabViewState extends State<QALabView> {
                     'worstFrame=${item.runtime['worstFrameJankMs'] ?? 0}ms '
                     'noise=${item.runtime['suppressedNoiseCount'] ?? 0} '
                     'permBlocks=${item.runtime['permissionBlockCount'] ?? 0} '
-                    'findings=${item.findings.length}',
+                    'findings=${item.findings.length}'
+                    '${item.surface == 'feed' || item.surface == 'short' ? '\n'
+                        'nativeStatus=${item.runtime['nativePlaybackStatus'] ?? '-'} '
+                        'nativeErrors=${item.runtime['nativePlaybackErrorCount'] ?? 0} '
+                        'nativePlaying=${item.runtime['nativePlaybackPlaying'] ?? false} '
+                        'nativeBuffering=${item.runtime['nativePlaybackBuffering'] ?? false} '
+                        'nativeFirstFrame=${item.runtime['nativePlaybackFirstFrame'] ?? false} '
+                        'nativeStalls=${item.runtime['nativePlaybackStallCount'] ?? 0}' : ''}',
                   ),
                 ),
               ),
