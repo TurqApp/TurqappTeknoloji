@@ -43,7 +43,6 @@ class QALabRemoteUploader extends GetxService {
 
   Timer? _debounceTimer;
   StreamSubscription<Map<String, dynamic>>? _qaConfigSubscription;
-  StreamSubscription<Map<String, dynamic>>? _legacyAdminConfigSubscription;
   bool _syncInFlight = false;
   Map<String, dynamic>? _pendingSessionDocument;
   String _pendingReason = '';
@@ -53,8 +52,6 @@ class QALabRemoteUploader extends GetxService {
   String _activeSessionId = '';
   DateTime? _lastGateRefreshAt;
   DateTime? _permissionDeniedUntil;
-  bool _qaGateEnabled = false;
-  bool _legacyGateEnabled = false;
 
   Future<void> scheduleUpload({
     required Map<String, dynamic> sessionDocument,
@@ -267,8 +264,7 @@ class QALabRemoteUploader extends GetxService {
         _pendingOccurrences.putIfAbsent(occurrenceId, () => occurrence);
       }
       if (error is FirebaseException && error.code == 'permission-denied') {
-        _permissionDeniedUntil =
-            DateTime.now().add(const Duration(minutes: 1));
+        _permissionDeniedUntil = DateTime.now().add(const Duration(minutes: 1));
         remoteCollectionEnabled.value = false;
         lastGateCheckedAt.value = DateTime.now();
         lastSyncState.value = 'permission_denied';
@@ -357,15 +353,8 @@ class QALabRemoteUploader extends GetxService {
         forceRefresh: false,
         ttl: const Duration(seconds: 20),
       );
-      final adminDoc = await ConfigRepository.ensure().getAdminConfigDoc(
-        'admin',
-        preferCache: true,
-        forceRefresh: false,
-        ttl: const Duration(seconds: 20),
-      );
       _applyRemoteGateState(
         qaEnabled: qaDoc?['qaEnabled'] == true,
-        legacyEnabled: adminDoc?['qaCollectionEnabled'] == true,
         source: 'config_fetch',
       );
       return remoteCollectionEnabled.value;
@@ -386,58 +375,32 @@ class QALabRemoteUploader extends GetxService {
     }
     _qaConfigSubscription ??= ConfigRepository.ensure()
         .watchAdminConfigDoc(
-        'qa',
-        ttl: const Duration(seconds: 20),
-      )
+      'qa',
+      ttl: const Duration(seconds: 20),
+    )
         .listen(
-        (doc) {
-          _applyRemoteGateState(
-            qaEnabled: doc['qaEnabled'] == true,
-            legacyEnabled: _legacyGateEnabled,
-            source: 'qa_watch',
-          );
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          lastGateCheckedAt.value = DateTime.now();
-          lastSyncState.value = 'gate_error';
-          lastSyncError.value = '$error';
-          debugPrint(
-            '[QA_LAB][REMOTE_GATE_WATCH_ERROR] ${error.runtimeType}: $error\n$stackTrace',
-          );
-        },
-      );
-    _legacyAdminConfigSubscription ??= ConfigRepository.ensure()
-        .watchAdminConfigDoc(
-        'admin',
-        ttl: const Duration(seconds: 20),
-      )
-        .listen(
-        (doc) {
-          _applyRemoteGateState(
-            qaEnabled: _qaGateEnabled,
-            legacyEnabled: doc['qaCollectionEnabled'] == true,
-            source: 'legacy_admin_watch',
-          );
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          lastGateCheckedAt.value = DateTime.now();
-          lastSyncState.value = 'gate_error';
-          lastSyncError.value = '$error';
-          debugPrint(
-            '[QA_LAB][REMOTE_GATE_WATCH_ERROR] ${error.runtimeType}: $error\n$stackTrace',
-          );
-        },
-      );
+      (doc) {
+        _applyRemoteGateState(
+          qaEnabled: doc['qaEnabled'] == true,
+          source: 'qa_watch',
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        lastGateCheckedAt.value = DateTime.now();
+        lastSyncState.value = 'gate_error';
+        lastSyncError.value = '$error';
+        debugPrint(
+          '[QA_LAB][REMOTE_GATE_WATCH_ERROR] ${error.runtimeType}: $error\n$stackTrace',
+        );
+      },
+    );
   }
 
   void _applyRemoteGateState({
     required bool qaEnabled,
-    required bool legacyEnabled,
     required String source,
   }) {
-    _qaGateEnabled = qaEnabled;
-    _legacyGateEnabled = legacyEnabled;
-    final enabled = qaEnabled || legacyEnabled;
+    final enabled = qaEnabled;
     remoteCollectionEnabled.value = enabled;
     lastGateCheckedAt.value = DateTime.now();
     if (enabled) {
@@ -504,7 +467,6 @@ class QALabRemoteUploader extends GetxService {
   void onClose() {
     _debounceTimer?.cancel();
     _qaConfigSubscription?.cancel();
-    _legacyAdminConfigSubscription?.cancel();
     super.onClose();
   }
 }
