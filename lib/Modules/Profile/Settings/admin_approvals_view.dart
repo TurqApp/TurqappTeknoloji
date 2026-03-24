@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'admin_approvals_view_content_part.dart';
-part 'admin_approvals_view_actions_part.dart';
 
 class AdminApprovalsView extends StatefulWidget {
   const AdminApprovalsView({super.key});
