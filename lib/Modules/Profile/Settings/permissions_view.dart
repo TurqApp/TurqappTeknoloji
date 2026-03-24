@@ -14,7 +14,6 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 part 'permissions_view_catalog_part.dart';
-part 'permissions_view_model_part.dart';
 part 'permissions_view_status_part.dart';
 part 'permissions_view_playback_part.dart';
 part 'permissions_view_quota_part.dart';
