@@ -83,81 +83,15 @@ extension DenemeSinaviPreviewSectionsPart on _DenemeSinaviPreviewState {
   }
 
   Widget _buildAuthorCard(DenemeSinaviPreviewController controller) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: const Color(0xFFF6F7FB),
-      ),
-      child: GestureDetector(
-        onTap: isCurrentUserId(controller.model.userID)
-            ? null
-            : () =>
-                Get.to(() => SocialProfile(userID: controller.model.userID)),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: const Color(0xFFE5E7EB),
-              backgroundImage: controller.avatarUrl.value.trim().isNotEmpty
-                  ? NetworkImage(controller.avatarUrl.value)
-                  : null,
-              child: controller.avatarUrl.value.trim().isEmpty
-                  ? const Icon(
-                      CupertinoIcons.person_fill,
-                      color: Colors.black54,
-                      size: 18,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          controller.nickname.value.isEmpty
-                              ? 'common.user'.tr
-                              : controller.nickname.value,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontSize: 16,
-                            fontFamily: 'MontserratBold',
-                          ),
-                        ),
-                      ),
-                      RozetContent(size: 14, userID: controller.model.userID),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isCurrentUserId(controller.model.userID)
-                        ? 'practice.owner'.tr
-                        : 'social_profile.view_profile'.tr,
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 13,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (!isCurrentUserId(controller.model.userID))
-              const Icon(
-                CupertinoIcons.chevron_right,
-                color: Colors.black45,
-                size: 18,
-              ),
-          ],
-        ),
-      ),
+    final nickname = controller.nickname.value.trim();
+    return PasajOwnerCard(
+      title: nickname.isEmpty ? 'common.user'.tr : nickname,
+      subtitle: nickname.isEmpty ? null : '@$nickname',
+      userId: controller.model.userID,
+      imageUrl: controller.avatarUrl.value.trim(),
+      onTap: isCurrentUserId(controller.model.userID)
+          ? null
+          : () => Get.to(() => SocialProfile(userID: controller.model.userID)),
     );
   }
 

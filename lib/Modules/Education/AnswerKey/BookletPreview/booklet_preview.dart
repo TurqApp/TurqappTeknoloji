@@ -6,7 +6,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
-import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_owner_card.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';

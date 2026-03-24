@@ -462,112 +462,16 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                           )),
                               ],
                               appDivider(),
-                              GestureDetector(
+                              PasajOwnerCard(
                                 onTap: () => _handleProviderCardTap(
                                   website: model.website,
                                   userId: userData['userID']?.toString() ?? '',
                                 ),
-                                child: Container(
-                                  padding: EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: Colors.black, width: 1)),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 35,
-                                        child: userImage.isNotEmpty
-                                            ? ClipOval(
-                                                child: CachedNetworkImage(
-                                                  memCacheHeight: 500,
-                                                  imageUrl: userImage,
-                                                  placeholder: (context, url) =>
-                                                      CupertinoActivityIndicator(),
-                                                  errorWidget:
-                                                      (context, url, error) =>
-                                                          Icon(Icons.error),
-                                                  width: 72,
-                                                  height: 72,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              )
-                                            : Icon(Icons.person, size: 36),
-                                      ),
-                                      12.pw,
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Align(
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    child: Wrap(
-                                                      spacing: 0,
-                                                      crossAxisAlignment:
-                                                          WrapCrossAlignment
-                                                              .center,
-                                                      children: [
-                                                        Text(
-                                                          (userData['userID']
-                                                                          ?.toString() ??
-                                                                      '')
-                                                                  .isNotEmpty
-                                                              ? '${_truncateLabel(userNick, maxChars: 34)} '
-                                                              : _truncateLabel(
-                                                                  userNick,
-                                                                  maxChars: 34,
-                                                                ),
-                                                          style: TextStyle(
-                                                            fontSize: 16,
-                                                            fontFamily:
-                                                                "MontserratBold",
-                                                            color: Colors.black,
-                                                          ),
-                                                          maxLines: 1,
-                                                          overflow:
-                                                              TextOverflow.clip,
-                                                          softWrap: false,
-                                                        ),
-                                                        if ((userData['userID']
-                                                                    ?.toString() ??
-                                                                '')
-                                                            .isNotEmpty)
-                                                          RozetContent(
-                                                            size: 14,
-                                                            userID: userData[
-                                                                        'userID']
-                                                                    ?.toString() ??
-                                                                '',
-                                                            leftSpacing: 0,
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            Text(
-                                              'Web sitesini ziyaret et',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontFamily: "Montserrat",
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                title: _truncateLabel(userNick, maxChars: 34),
+                                userId:
+                                    userData['userID']?.toString().trim() ?? '',
+                                imageUrl: userImage,
+                                subtitle: 'scholarship.visit_website'.tr,
                               ),
                               16.ph,
                               _buildActionSection(
