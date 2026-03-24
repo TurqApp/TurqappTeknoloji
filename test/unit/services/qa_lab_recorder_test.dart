@@ -173,6 +173,44 @@ void main() {
     );
   });
 
+  test('qa recorder emits runtime findings for observed non-focus surfaces',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'market_cp1',
+        label: 'market_runtime',
+        surface: 'market',
+        route: '/MarketView',
+        timestamp: now,
+        probe: const <String, dynamic>{},
+      ),
+    );
+    for (var i = 0; i < 3; i += 1) {
+      recorder.issues.add(
+        QALabIssue(
+          id: 'market_noise_$i',
+          source: QALabIssueSource.platform,
+          severity: QALabIssueSeverity.info,
+          code: 'platform_suppressed',
+          message: 'suppressed noise',
+          timestamp: now.subtract(Duration(seconds: i + 1)),
+          route: '/MarketView',
+          surface: 'market',
+        ),
+      );
+    }
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'market_noise_burst'),
+      isTrue,
+    );
+  });
+
   test('qa recorder flags feed autoplay missing after grace window', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();

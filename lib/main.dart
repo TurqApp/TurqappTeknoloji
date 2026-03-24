@@ -161,6 +161,14 @@ void _handleAppResumeTransition() {
   unawaited(
     refreshQALabPermissionSnapshot(trigger: 'resume'),
   );
+  unawaited(_restorePlaybackAfterAppResume());
+}
+
+Future<void> _restorePlaybackAfterAppResume() async {
+  await Future<void>.delayed(const Duration(milliseconds: 260));
+  try {
+    AgendaController.maybeFind()?.resumeFeedPlayback();
+  } catch (_) {}
 }
 
 void _handleAppBackgroundTransition(String state) {

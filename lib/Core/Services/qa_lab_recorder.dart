@@ -638,6 +638,20 @@ class QALabRecorder extends GetxService {
     required String message,
     Map<String, dynamic> metadata = const <String, dynamic>{},
   }) {
+    final snapshot = IntegrationTestStateProbe.snapshot();
+    final surface = _inferSurfaceFromSnapshot(snapshot);
+    final videoId =
+        ((metadata['videoId'] ?? metadata['docId']) ?? '').toString().trim();
+    if ((code == 'video_buffering_started' ||
+            code == 'video_buffering_ended') &&
+        _isRateLimited(
+          'video_buffering|$surface|$videoId|$code',
+          code == 'video_buffering_started'
+              ? const Duration(seconds: 4)
+              : const Duration(seconds: 2),
+        )) {
+      return;
+    }
     final severity = code.contains('error') || code.contains('timeout')
         ? QALabIssueSeverity.error
         : QALabIssueSeverity.info;
@@ -769,6 +783,14 @@ class QALabRecorder extends GetxService {
 
   void recordLifecycleState(String state) {
     if (!QALabMode.enabled) return;
+    final snapshot = IntegrationTestStateProbe.snapshot();
+    final surface = _inferSurfaceFromSnapshot(snapshot);
+    if (_isRateLimited(
+      'lifecycle|$surface|$state',
+      const Duration(seconds: 3),
+    )) {
+      return;
+    }
     lastLifecycleState.value = state;
     if (sessionId.value.isEmpty) {
       startSession(trigger: 'lifecycle');
@@ -1075,7 +1097,7 @@ class QALabRecorder extends GetxService {
   }
 
   List<QALabSurfaceDiagnostic> buildFocusSurfaceDiagnostics() {
-    return QALabCatalog.focusSurfaces
+    return _observedSurfaces()
         .map(_buildSurfaceDiagnostic)
         .toList(growable: false);
   }
@@ -1805,7 +1827,7 @@ class QALabRecorder extends GetxService {
   }
 
   List<QALabPinpointFinding> _buildPrioritySurfaceFindings() {
-    return QALabCatalog.focusSurfaces
+    return _observedSurfaces()
         .expand(
           (surface) => _buildSurfaceRuntimeFindings(
             surface,
@@ -3493,7 +3515,8 @@ class QALabRecorder extends GetxService {
   }
 
   bool _isPrioritySurface(String surface) {
-    return QALabCatalog.focusSurfaces.contains(surface);
+    final normalized = surface.trim();
+    return normalized.isNotEmpty && normalized != 'app';
   }
 
   void _refreshSurfaceWatchdogs({
@@ -3823,11 +3846,21 @@ class QALabRecorder extends GetxService {
   }
 
   String _inferSurfaceFromSnapshot(Map<String, dynamic> snapshot) {
+    final route = (snapshot['currentRoute'] ?? '').toString();
+    final routeSurface = _inferSurfaceFromRoute(route);
+
     bool registered(String key) =>
         (snapshot[key] as Map<String, dynamic>? ??
             const <String, dynamic>{})['registered'] ==
         true;
 
+    if (routeSurface.isNotEmpty &&
+        routeSurface != 'feed' &&
+        routeSurface != 'explore' &&
+        routeSurface != 'pasaj' &&
+        routeSurface != 'profile') {
+      return routeSurface;
+    }
     if (registered('storyComments')) return 'story_comments';
     if (registered('comments')) return 'comments';
     if (registered('chatConversation')) return 'chat_conversation';
@@ -3845,9 +3878,127 @@ class QALabRecorder extends GetxService {
     if (registered('education')) return 'pasaj';
     if (registered('explore')) return 'explore';
     if (registered('feed')) return 'feed';
-    final route = (snapshot['currentRoute'] ?? '').toString();
-    if (route.isNotEmpty) return route;
+    if (routeSurface.isNotEmpty) return routeSurface;
+    if (route.isNotEmpty) return _sanitizeRouteSurface(route);
     return 'app';
+  }
+
+  List<String> _observedSurfaces() {
+    final ordered = <String>[];
+    final seen = <String>{};
+
+    void addSurface(String value) {
+      final normalized = value.trim();
+      if (normalized.isEmpty || normalized == 'app') return;
+      if (seen.add(normalized)) {
+        ordered.add(normalized);
+      }
+    }
+
+    for (final surface in QALabCatalog.focusSurfaces) {
+      addSurface(surface);
+    }
+    addSurface(lastSurface.value);
+    for (final route in routes) {
+      addSurface(route.surface);
+    }
+    for (final checkpoint in checkpoints) {
+      addSurface(checkpoint.surface);
+    }
+    for (final event in timelineEvents) {
+      addSurface(event.surface);
+    }
+    for (final issue in issues) {
+      addSurface(issue.surface);
+    }
+    return ordered;
+  }
+
+  String _inferSurfaceFromRoute(String route) {
+    final normalized = route.trim().toLowerCase();
+    if (normalized.isEmpty ||
+        normalized == '/' ||
+        normalized == '/navbarview' ||
+        normalized == 'navbarview') {
+      return '';
+    }
+    if (normalized.contains('qalab')) return 'qa_lab';
+    if (normalized.contains('support')) return 'support';
+    if (normalized.contains('notification')) return 'notifications';
+    if (normalized.contains('permission')) return 'permissions';
+    if (normalized.contains('setting')) return 'settings';
+    if (normalized.contains('saved')) return 'saved_posts';
+    if (normalized.contains('liked')) return 'liked_posts';
+    if (normalized.contains('scholarship') || normalized.contains('burs')) {
+      return 'scholarship';
+    }
+    if (normalized.contains('answerkey') ||
+        normalized.contains('booklet') ||
+        normalized.contains('optical') ||
+        normalized.contains('optic')) {
+      return 'answer_key';
+    }
+    if (normalized.contains('deneme') ||
+        normalized.contains('onlineexam') ||
+        normalized.contains('practice')) {
+      return 'online_exam';
+    }
+    if (normalized.contains('tutoring')) return 'tutoring';
+    if (normalized.contains('market')) return 'market';
+    if (normalized.contains('job')) return 'job_finder';
+    if (normalized.contains('questionbank') ||
+        normalized.contains('question_bank') ||
+        normalized.contains('sorubank')) {
+      return 'question_bank';
+    }
+    if (normalized.contains('story')) {
+      return normalized.contains('comment') ? 'story_comments' : 'story';
+    }
+    if (normalized.contains('comment')) return 'comments';
+    if (normalized.contains('chat')) {
+      return normalized.contains('conversation') ? 'chat_conversation' : 'chat';
+    }
+    if (normalized.contains('socialprofile')) return 'social_profile';
+    if (normalized.contains('followingfollowers')) return 'following_followers';
+    if (normalized.contains('profile')) return 'profile';
+    if (normalized.contains('explore')) return 'explore';
+    if (normalized.contains('short')) return 'short';
+    if (normalized.contains('creator') ||
+        normalized.contains('upload') ||
+        normalized.contains('composer')) {
+      return 'upload';
+    }
+    if (normalized.contains('login') ||
+        normalized.contains('signin') ||
+        normalized.contains('signup') ||
+        normalized.contains('splash')) {
+      return 'auth';
+    }
+    if (normalized.contains('education') || normalized.contains('pasaj')) {
+      return 'pasaj';
+    }
+    return _sanitizeRouteSurface(route);
+  }
+
+  String _sanitizeRouteSurface(String route) {
+    final trimmed = route.trim();
+    if (trimmed.isEmpty || trimmed == '/') {
+      return '';
+    }
+    final lastSegment = trimmed
+        .split('/')
+        .where((segment) => segment.trim().isNotEmpty)
+        .lastOrNull;
+    final candidate = (lastSegment ?? trimmed).trim();
+    final withUnderscores = candidate.replaceAllMapped(
+      RegExp(r'([a-z0-9])([A-Z])'),
+      (match) => '${match.group(1)}_${match.group(2)}',
+    );
+    return withUnderscores
+        .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '')
+        .toLowerCase();
   }
 
   void _trimList<T>(RxList<T> list, int maxCount) {
