@@ -20,6 +20,7 @@ import 'package:video_player/video_player.dart';
 import 'LocationShareView/location_share_view_chat.dart';
 
 part 'chat_body_part.dart';
+part 'chat_media_preview_part.dart';
 part 'chat_composer_part.dart';
 part 'chat_input_widgets_part.dart';
 
