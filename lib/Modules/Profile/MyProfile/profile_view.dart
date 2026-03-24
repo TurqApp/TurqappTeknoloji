@@ -69,7 +69,6 @@ import '../../../Core/Services/video_state_manager.dart';
 import '../SocialMediaLinks/social_media_links_controller.dart';
 import '../../../Models/social_media_model.dart';
 
-part 'profile_view_sections_part.dart';
 part 'profile_view_lifecycle_part.dart';
 part 'profile_view_shell_part.dart';
 part 'profile_view_profile_part.dart';
