@@ -31,6 +31,7 @@ import '../Story/StoryRow/story_user_model.dart';
 part 'social_profile_controller_profile_part.dart';
 part 'social_profile_controller_actions_part.dart';
 part 'social_profile_controller_feed_part.dart';
+part 'social_profile_controller_feed_selection_part.dart';
 
 class SocialProfileController extends GetxController {
   static SocialProfileController ensure({
