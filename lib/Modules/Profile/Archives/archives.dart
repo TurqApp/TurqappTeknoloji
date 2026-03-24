@@ -7,7 +7,6 @@ import 'package:turqappv2/Core/empty_row.dart';
 import '../../Agenda/AgendaContent/agenda_content.dart';
 import 'archives_controller.dart';
 
-part 'archives_shell_part.dart';
 part 'archives_content_part.dart';
 
 class Archives extends StatefulWidget {
@@ -43,5 +42,30 @@ class _ArchivesState extends State<Archives> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: Obx(() {
+                final centeredIndex = controller.centeredIndex.value;
+                controller.lastCenteredIndex = centeredIndex;
+                if (controller.isLoading.value && controller.list.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.black),
+                  );
+                }
+                if (controller.list.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return _buildArchiveList();
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
