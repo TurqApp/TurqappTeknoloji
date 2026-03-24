@@ -1369,12 +1369,11 @@ test("questions subcollections allow admin writes and block non-admin writes", a
   );
 });
 
-test("questionsAnswers allows owner-scoped canonical payload", async () => {
+test("questionsAnswers denies client create and read", async () => {
   const uid = "questions-answer-owner";
-  const ctx = testEnv.authenticatedContext(uid);
 
-  await assertSucceeds(
-    addDoc(collection(ctx.firestore(), "questionsAnswers"), {
+  await assertFails(
+    addDoc(collection(testEnv.authenticatedContext(uid).firestore(), "questionsAnswers"), {
       cevaplar: ["A", "B", "C"],
       dogruCevaplar: ["A", "D", "C"],
       timeStamp: Date.now(),
@@ -1387,30 +1386,18 @@ test("questionsAnswers allows owner-scoped canonical payload", async () => {
       userID: uid,
     }),
   );
-});
 
-test("questionsAnswers blocks spoofed owner payload", async () => {
-  const uid = "questions-answer-owner-block";
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "questionsAnswers", "qa-read-blocked"), {
+      userID: uid,
+    });
+  });
+
   const ctx = testEnv.authenticatedContext(uid);
-
-  await assertFails(
-    addDoc(collection(ctx.firestore(), "questionsAnswers"), {
-      cevaplar: ["A"],
-      dogruCevaplar: ["A"],
-      timeStamp: Date.now(),
-      anaBaslik: "TYT",
-      sinavTuru: "Turkce",
-      yil: "2025",
-      baslik2: "Genel",
-      baslik3: "",
-      cikmisSoruID: "cikmis-2",
-      userID: "different-user",
-      extra: true,
-    }),
-  );
+  await assertFails(getDoc(doc(ctx.firestore(), "questionsAnswers", "qa-read-blocked")));
 });
 
-test("questionsAnswers rejects client update and delete after create", async () => {
+test("questionsAnswers rejects client update and delete", async () => {
   const uid = "questions-answer-owner-immutable";
 
   await testEnv.withSecurityRulesDisabled(async (context) => {

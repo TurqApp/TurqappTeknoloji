@@ -337,25 +337,6 @@ service cloud.firestore {
           || request.resource.data.reactions is map
         );
     }
-    function isValidQuestionsAnswersCreatePayload() {
-      return isAuth()
-        && request.resource.data.keys().hasOnly([
-          'cevaplar', 'dogruCevaplar', 'timeStamp', 'anaBaslik',
-          'sinavTuru', 'yil', 'baslik2', 'baslik3', 'cikmisSoruID', 'userID'
-        ])
-        && request.resource.data.userID is string
-        && request.resource.data.userID == request.auth.uid
-        && request.resource.data.cevaplar is list
-        && request.resource.data.dogruCevaplar is list
-        && request.resource.data.timeStamp is int
-        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
-        && request.resource.data.anaBaslik is string
-        && request.resource.data.sinavTuru is string
-        && request.resource.data.yil is string
-        && request.resource.data.baslik2 is string
-        && request.resource.data.baslik3 is string
-        && request.resource.data.cikmisSoruID is string;
-    }
     function isValidOptikFormCreatePayload() {
       return isAuth()
         && request.resource.data.keys().hasOnly([
@@ -1773,11 +1754,9 @@ service cloud.firestore {
       }
     }
 
-    // Soru cevapları - kullanıcı kendi cevabını yazar
+    // Soru cevapları desteği iptal edildi; client bu koleksiyona erişemez.
     match /questionsAnswers/{docId} {
-      allow read: if isAuth();
-      allow create: if isValidQuestionsAnswersCreatePayload();
-      allow update, delete: if false;
+      allow read, write: if false;
     }
 
     // Kitapçık Cevapları
