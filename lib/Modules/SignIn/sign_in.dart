@@ -14,6 +14,9 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import '../../Core/Helpers/custom_nickname_formatter.dart';
 
 part 'sign_in_auth_part.dart';
+part 'sign_in_start_part.dart';
+part 'sign_in_signin_part.dart';
+part 'sign_in_password_reset_part.dart';
 part 'sign_in_signup_part.dart';
 
 class SignIn extends StatefulWidget {
