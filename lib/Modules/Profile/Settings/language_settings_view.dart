@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 
-part 'language_settings_view_shell_part.dart';
 part 'language_settings_view_list_part.dart';
 part 'language_settings_view_option_part.dart';
 
@@ -12,5 +11,23 @@ class LanguageSettingsView extends StatelessWidget {
   const LanguageSettingsView({super.key});
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    final languageService = AppLanguageService.ensure();
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            BackButtons(text: 'language.title'.tr),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: _buildLanguageList(languageService),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
