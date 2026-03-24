@@ -16,6 +16,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'sinav_hazirla_content_part.dart';
 part 'sinav_hazirla_sections_part.dart';
+part 'sinav_hazirla_cover_part.dart';
 part 'sinav_hazirla_types_part.dart';
 part 'sinav_hazirla_setup_part.dart';
 
