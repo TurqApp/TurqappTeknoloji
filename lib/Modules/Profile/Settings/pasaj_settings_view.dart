@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
-part 'pasaj_settings_view_shell_part.dart';
 part 'pasaj_settings_view_content_part.dart';
 part 'pasaj_settings_view_tile_part.dart';
 
@@ -42,5 +41,19 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'settings.pasaj'.tr),
+            Expanded(
+              child: _buildPasajList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
