@@ -16,6 +16,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'sinav_hazirla_shell_part.dart';
 part 'sinav_hazirla_content_part.dart';
+part 'sinav_hazirla_sections_part.dart';
 
 const _sinavHazirlaKpssType = 'KPSS';
 
