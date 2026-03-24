@@ -30,6 +30,7 @@ part 'message_content_body_parts.dart';
 part 'message_content_post_parts.dart';
 part 'message_content_layout_part.dart';
 part 'message_content_media_part.dart';
+part 'message_content_text_part.dart';
 
 class MessageContent extends StatelessWidget {
   final String mainID;
