@@ -76,7 +76,6 @@ part 'settings_diagnostics_detail_part.dart';
 part 'settings_diagnostics_menu_part.dart';
 part 'settings_diagnostics_usage_part.dart';
 part 'settings_admin_push_menu_tile_part.dart';
-part 'settings_shell_part.dart';
 part 'settings_shell_helpers_part.dart';
 
 class SettingsView extends StatefulWidget {
@@ -136,6 +135,36 @@ class _SettingsViewState extends State<SettingsView> {
       Get.delete<SettingsController>(force: true);
     }
     super.dispose();
+  }
+
+  Widget _buildPage(BuildContext context) {
+    return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenSettings),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'settings.title'.tr),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      ..._buildPrimarySections(),
+                      _buildAssignedTasksSection(),
+                      _buildAdminSection(),
+                      ..._buildSessionSection(),
+                      15.ph,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
