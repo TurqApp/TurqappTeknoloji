@@ -8,7 +8,6 @@ import 'package:turqappv2/Models/CVModels/school_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'career_profile_controller_data_part.dart';
-part 'career_profile_controller_actions_part.dart';
 
 class CareerProfileController extends GetxController {
   static CareerProfileController ensure({
@@ -50,5 +49,26 @@ class CareerProfileController extends GetxController {
   void onInit() {
     super.onInit();
     unawaited(_bootstrapCvData());
+  }
+
+  Future<void> toggleFindingJob() async {
+    try {
+      isFindingJob.value = !isFindingJob.value;
+      final uid = CurrentUserService.instance.effectiveUserId;
+      if (uid.isEmpty) return;
+      await FirebaseFirestore.instance
+          .collection('CV')
+          .doc(uid)
+          .update({'findingJob': isFindingJob.value});
+      final current = await _cvRepository.getCv(uid, preferCache: true);
+      if (current != null) {
+        current['findingJob'] = isFindingJob.value;
+        await _cvRepository.setCv(uid, current);
+      } else {
+        await _cvRepository.invalidate(uid);
+      }
+    } catch (_) {
+      isFindingJob.value = !isFindingJob.value;
+    }
   }
 }
