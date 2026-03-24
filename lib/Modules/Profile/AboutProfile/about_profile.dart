@@ -7,7 +7,6 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile_controller.dart';
 
-part 'about_profile_shell_part.dart';
 part 'about_profile_content_part.dart';
 
 class AboutProfile extends StatefulWidget {
@@ -56,6 +55,15 @@ class _AboutProfileState extends State<AboutProfile> {
       Get.delete<AboutProfileController>(tag: _controllerTag);
     }
     super.dispose();
+  }
+
+  Widget _buildAboutProfileShell(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Obx(() => _buildAboutProfileContent()),
+      ),
+    );
   }
 
   @override
