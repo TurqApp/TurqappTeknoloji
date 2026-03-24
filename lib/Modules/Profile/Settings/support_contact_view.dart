@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
-part 'support_contact_view_shell_part.dart';
 part 'support_contact_view_card_part.dart';
 part 'support_contact_view_topics_part.dart';
 part 'support_contact_view_actions_part.dart';
@@ -37,6 +36,23 @@ class _SupportContactViewState extends State<SupportContactView> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildContent(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'support.title'.tr),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  _buildSupportCard(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
