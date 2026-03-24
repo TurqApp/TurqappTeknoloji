@@ -161,6 +161,7 @@ private object ExoPlayerSmokeBridge {
         return mapOf(
             "supported" to true,
             "active" to snapshot.active,
+            "status" to snapshot.status,
             "firstFrameRendered" to snapshot.firstFrameRendered,
             "errors" to snapshot.errors,
             "snapshot" to snapshot.snapshot.mapValues { (_, value) -> codecSafe(value) },
