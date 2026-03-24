@@ -124,16 +124,25 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get isStandalonePostInstance =>
       (widget.instanceTag ?? '').startsWith('single_');
 
+  String get _surfaceInstanceTag => widget.instanceTag ?? '';
+
   bool get _isProfileSurfaceInstance =>
-      (widget.instanceTag ?? '').startsWith('profile_');
+      _surfaceInstanceTag.startsWith('profile_');
+
+  bool get _isProfileFamilySurfaceInstance =>
+      _surfaceInstanceTag.startsWith('profile_') ||
+      _surfaceInstanceTag.startsWith('archives_') ||
+      _surfaceInstanceTag.startsWith('liked_post_') ||
+      _surfaceInstanceTag.startsWith('social_');
 
   bool get _isPrimaryFeedSurfaceInstance =>
-      !isStandalonePostInstance && (widget.instanceTag ?? '').isEmpty;
+      !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
 
   bool get _useLegacyIosFeedBehavior =>
       defaultTargetPlatform == TargetPlatform.iOS &&
       !isStandalonePostInstance &&
-      !_isPrimaryFeedSurfaceInstance;
+      !_isPrimaryFeedSurfaceInstance &&
+      !_isProfileFamilySurfaceInstance;
 
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
@@ -155,7 +164,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   String get _qaSurfaceName {
     if (isStandalonePostInstance) return 'feed';
-    if (_isProfileSurfaceInstance) return 'profile';
+    if (_isProfileFamilySurfaceInstance) return 'profile';
     return 'feed';
   }
 
@@ -172,6 +181,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         'shouldPlay': widget.shouldPlay,
         'isStandalone': isStandalonePostInstance,
         'isProfileSurface': _isProfileSurfaceInstance,
+        'isProfileFamilySurface': _isProfileFamilySurfaceInstance,
         'adapterInitialized': _videoAdapter?.value.isInitialized ?? false,
         'adapterPlaying': _videoAdapter?.value.isPlaying ?? false,
         ...metadata,
