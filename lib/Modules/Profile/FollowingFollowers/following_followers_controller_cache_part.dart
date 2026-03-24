@@ -115,13 +115,13 @@ extension FollowingFollowersControllerCachePart
     }
 
     final fetchLimit = _resolveLimit(initial: initial);
-    final ids = await _followRepository.getFollowerIds(
+    final ids = await _followRepository.getFollowerPreviewIds(
       userId,
+      limit: fetchLimit,
       preferCache: !forceServer,
       forceRefresh: forceServer,
     );
-    takipciler.value =
-        _normalizedIds(ids).take(fetchLimit).toList(growable: false);
+    takipciler.value = _normalizedIds(ids).toList(growable: false);
     hasMoreFollowers = false;
 
     _saveRelationListCache(isFollowers: true);
@@ -147,13 +147,13 @@ extension FollowingFollowersControllerCachePart
     }
 
     final fetchLimit = _resolveLimit(initial: initial);
-    final ids = await _visibilityPolicy.loadViewerFollowingIds(
-      viewerUserId: userId,
+    final ids = await _followRepository.getFollowingPreviewIds(
+      userId,
+      limit: fetchLimit,
       preferCache: !forceServer,
       forceRefresh: forceServer,
     );
-    takipEdilenler.value =
-        _normalizedIds(ids).take(fetchLimit).toList(growable: false);
+    takipEdilenler.value = _normalizedIds(ids).toList(growable: false);
     hasMoreFollowing = false;
 
     _saveRelationListCache(isFollowers: false);

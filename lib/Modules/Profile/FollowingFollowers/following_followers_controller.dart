@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/current_user_utils.dart';
@@ -43,9 +44,12 @@ class FollowingFollowersController extends GetxController {
   RxList<String> takipciler = <String>[].obs;
   RxList<String> takipEdilenler = <String>[].obs;
 
-  static const int _selfInitialLimit = 40;
-  static const int _selfRefreshLimit = 30;
-  static const int _otherUserLimit = 50;
+  static const int _selfInitialLimit =
+      ReadBudgetRegistry.followRelationPreviewInitialLimit;
+  static const int _selfRefreshLimit =
+      ReadBudgetRegistry.followRelationPreviewInitialLimit;
+  static const int _otherUserLimit =
+      ReadBudgetRegistry.followRelationPreviewInitialLimit;
   bool isLoadingFollowers = false;
   bool isLoadingFollowing = false;
   bool hasMoreFollowers = true;
@@ -94,8 +98,10 @@ class FollowingFollowersController extends GetxController {
     return Get.find<FollowingFollowersController>(tag: tag);
   }
 
-  FollowingFollowersController(
-      {required this.userId, required int initialPage}) {
+  FollowingFollowersController({
+    required String userId,
+    required int initialPage,
+  }) : userId = userId.trim() {
     selection.value = initialPage;
   }
 
@@ -204,14 +210,10 @@ class FollowingFollowersController extends GetxController {
     required bool followingsCached,
   }) async {
     await getCounters();
-    if (followersCached &&
-        takipciCounter.value > 0 &&
-        takipciler.isEmpty &&
-        !isLoadingFollowers) {
+    if (takipciCounter.value > 0 && takipciler.isEmpty && !isLoadingFollowers) {
       await getFollowers(initial: true, forceServer: true);
     }
-    if (followingsCached &&
-        takipedilenCounter.value > 0 &&
+    if (takipedilenCounter.value > 0 &&
         takipEdilenler.isEmpty &&
         !isLoadingFollowing) {
       await getFollowing(initial: true, forceServer: true);

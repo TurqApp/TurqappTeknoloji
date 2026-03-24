@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_content.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
@@ -31,7 +31,9 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
   bool _ownsController = false;
   late int _currentPage;
 
-  String get _pageLineBarTag => '${kFollowersPageLineBarTag}_${widget.userId}';
+  String get _normalizedUserId => widget.userId.trim();
+
+  String get _pageLineBarTag => '$kFollowersPageLineBarTag$_normalizedUserId';
 
   String get _headerNickname {
     final direct = widget.nickname.trim();
@@ -44,15 +46,16 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
   @override
   void initState() {
     super.initState();
+    final controllerTag = _normalizedUserId;
     final existingController =
-        FollowingFollowersController.maybeFind(tag: widget.userId);
+        FollowingFollowersController.maybeFind(tag: controllerTag);
     if (existingController != null) {
       controller = existingController;
     } else {
       controller = FollowingFollowersController.ensure(
-        userId: widget.userId,
+        userId: _normalizedUserId,
         initialPage: widget.selection,
-        tag: widget.userId,
+        tag: controllerTag,
       );
       _ownsController = true;
     }
@@ -67,11 +70,11 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
     _followingScrollController.dispose();
     if (_ownsController &&
         identical(
-          FollowingFollowersController.maybeFind(tag: widget.userId),
+          FollowingFollowersController.maybeFind(tag: _normalizedUserId),
           controller,
         )) {
       Get.delete<FollowingFollowersController>(
-        tag: widget.userId,
+        tag: _normalizedUserId,
         force: true,
       );
     }
@@ -80,6 +83,7 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
 
   @override
   Widget build(BuildContext context) {
+    final directNickname = widget.nickname.trim();
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenFollowingFollowers),
       body: SafeArea(
@@ -88,9 +92,11 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
           children: [
             Column(
               children: [
-                Obx(
-                  () => BackButtons(text: _headerNickname),
-                ),
+                directNickname.isNotEmpty
+                    ? _buildHeader(directNickname)
+                    : Obx(
+                        () => _buildHeader(_headerNickname),
+                      ),
                 PageLineBar(
                   barList: [
                     'following.followers_tab'.tr,
@@ -146,6 +152,30 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
             )
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        children: [
+          const AppBackButton(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontFamily: 'MontserratBold',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
