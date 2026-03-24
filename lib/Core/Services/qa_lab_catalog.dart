@@ -654,6 +654,11 @@ class QALabCatalog {
       runnableInApp: false,
     ),
     QALabCatalogEntry(
+      path: 'test/widget/p0/image_preview_widget_test.dart',
+      origin: QALabTestOrigin.widget,
+      runnableInApp: false,
+    ),
+    QALabCatalogEntry(
       path: 'test/widget/p0/reshare_attribution_widget_test.dart',
       origin: QALabTestOrigin.widget,
       runnableInApp: false,

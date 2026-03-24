@@ -7,8 +7,8 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 - Total widget classes: 409
 - Public widget classes: 347
 - Private widget classes: 62
-- Directly referenced by current widget tests: 18
-- Planned / not yet directly covered: 391
+- Directly referenced by current widget tests: 19
+- Planned / not yet directly covered: 390
 
 ## Tier Definitions
 
@@ -21,7 +21,7 @@ Generated from `tool/generate_widget_test_matrix.dart`.
 | Status | Tier | Widget | Type | Module | Path | Existing widget tests | Required checks |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | planned | P0 | `ChatCameraCaptureView` | StatefulWidget | Core/Camera | `lib/Core/Camera/chat_camera_capture_view.dart` | — | render, semantics, interaction |
-| planned | P0 | `ImagePreview` | StatefulWidget | Core/Helpers | `lib/Core/Helpers/ImagePreview/image_preview.dart` | — | render, semantics, interaction |
+| covered | P0 | `ImagePreview` | StatefulWidget | Core/Helpers | `lib/Core/Helpers/ImagePreview/image_preview.dart` | `test/widget/p0/image_preview_widget_test.dart` | render, semantics, interaction |
 | planned | P0 | `QrScannerView` | StatefulWidget | Core/Helpers | `lib/Core/Helpers/QRCode/qr_scanner_view.dart` | — | render, semantics, interaction |
 | planned | P0 | `LocationFinderView` | StatefulWidget | Core/LocationFinderView | `lib/Core/LocationFinderView/location_finder_view.dart` | — | render, semantics, interaction |
 | planned | P0 | `SliderAdminView` | StatefulWidget | Core/Slider | `lib/Core/Slider/slider_admin_view.dart` | — | render, semantics, interaction |
