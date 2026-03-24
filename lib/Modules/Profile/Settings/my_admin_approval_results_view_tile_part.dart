@@ -1,5 +1,17 @@
 part of 'my_admin_approval_results_view.dart';
 
+String? _formatApprovalTimestamp(dynamic raw) {
+  DateTime? date;
+  if (raw is Timestamp) {
+    date = raw.toDate();
+  } else if (raw is int) {
+    date = DateTime.fromMillisecondsSinceEpoch(raw);
+  }
+  if (date == null) return null;
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${two(date.day)}.${two(date.month)}.${date.year} ${two(date.hour)}:${two(date.minute)}';
+}
+
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
 
@@ -52,12 +64,8 @@ class _ApprovalResultTile extends StatelessWidget {
     final resolvedByNickname =
         (data['resolvedByNickname'] ?? '').toString().trim();
     final rejectionReason = (data['rejectionReason'] ?? '').toString().trim();
-    final createdAt = MyAdminApprovalResultsViewFormatPart.formatTimestamp(
-      data['createdAt'],
-    );
-    final resolvedAt = MyAdminApprovalResultsViewFormatPart.formatTimestamp(
-      data['resolvedAt'],
-    );
+    final createdAt = _formatApprovalTimestamp(data['createdAt']);
+    final resolvedAt = _formatApprovalTimestamp(data['resolvedAt']);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
