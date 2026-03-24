@@ -4,7 +4,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'biography_maker_controller.dart';
 
-part 'biography_maker_shell_part.dart';
 part 'biography_maker_content_part.dart';
 
 class BiographyMaker extends StatefulWidget {
@@ -41,5 +40,24 @@ class _BiographyMakerState extends State<BiographyMaker> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'biography.title'.tr),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: _buildContent(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
