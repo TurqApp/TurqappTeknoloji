@@ -22,6 +22,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'deneme_sinavi_preview_actions_part.dart';
 part 'deneme_sinavi_preview_content_part.dart';
+part 'deneme_sinavi_preview_sections_part.dart';
 
 class DenemeSinaviPreview extends StatefulWidget {
   const DenemeSinaviPreview({super.key, required this.model});
