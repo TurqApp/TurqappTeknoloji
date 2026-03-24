@@ -10,7 +10,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-part 'my_statistic_view_shell_part.dart';
 part 'my_statistic_view_content_part.dart';
 
 class MyStatisticView extends StatefulWidget {
@@ -68,6 +67,34 @@ class _MyStatisticViewState extends State<MyStatisticView> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildMyStatisticShell(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Obx(() {
+          return RefreshIndicator(
+            backgroundColor: Colors.black,
+            color: Colors.white,
+            onRefresh: controller.refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  BackButtons(text: 'statistics.title'.tr),
+                  if (controller.isLoading.value)
+                    const Padding(
+                      padding: EdgeInsets.all(15),
+                      child: Center(child: CupertinoActivityIndicator()),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: _buildMyStatisticContent(),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 }
