@@ -9,7 +9,6 @@ import 'package:turqappv2/Modules/Profile/Cv/cv_utils.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'application_review_controller.dart';
 
-part 'application_review_shell_part.dart';
 part 'application_review_content_part.dart';
 part 'application_review_cv_part.dart';
 
@@ -72,7 +71,33 @@ class _ApplicationReviewState extends State<ApplicationReview> {
       body: SafeArea(
         top: false,
         bottom: false,
-        child: _buildApplicationReviewBody(),
+        child: Obx(() {
+          if (controller.isLoading.value && controller.applicants.isEmpty) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
+
+          if (controller.applicants.isEmpty) {
+            return Center(
+              child: Text(
+                "pasaj.job_finder.no_applicants".tr,
+                style: const TextStyle(
+                  fontFamily: "MontserratMedium",
+                  fontSize: 15,
+                  color: Colors.grey,
+                ),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: controller.applicants.length,
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
+            itemBuilder: (context, index) {
+              final app = controller.applicants[index];
+              return _applicantCard(app, context);
+            },
+          );
+        }),
       ),
     );
   }
