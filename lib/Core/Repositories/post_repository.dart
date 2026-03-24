@@ -130,8 +130,7 @@ class PostRepository extends GetxService {
   static const Duration _interactionTtl = Duration(seconds: 30);
   static const Duration _stuckUploadingRepairAge = Duration(seconds: 10);
   static final Set<String> _uploadRepairInFlight = <String>{};
-  bool get _shouldLogDiagnostics =>
-      kDebugMode && !IntegrationTestMode.enabled;
+  bool get _shouldLogDiagnostics => kDebugMode && !IntegrationTestMode.enabled;
   final Map<String, PostRepositoryState> _states =
       <String, PostRepositoryState>{};
   final Map<String, List<PostSharersModel>> _postSharersMemory =
@@ -271,6 +270,23 @@ class PostRepository extends GetxService {
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+
+  Future<List<PostsModel>> fetchRecentGlobalPosts({
+    required int nowMs,
+    required int cutoffMs,
+    int limit = 40,
+    int? maxTimeExclusive,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) =>
+      _performFetchRecentGlobalPosts(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        maxTimeExclusive: maxTimeExclusive,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );

@@ -65,15 +65,17 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
         }
         continue;
       }
-      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final canSeeAuthor =
+          _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: post.userID,
         followingIds: followingIds,
-        isPrivate: summary.isPrivate,
+        rozet: summary.rozet,
+        isApproved: summary.isApproved,
         isDeleted: summary.isDeleted,
       );
       if (!canSeeAuthor) {
         if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:private_not_following:${post.userID}');
+          dropLogs.add('${post.docID}:not_following_unbadged:${post.userID}');
         }
         continue;
       }

@@ -41,10 +41,11 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
     final summary = summaries[post.userID];
     if (summary == null) continue;
     final canSeeAuthor =
-        repository._visibilityPolicy.canViewerSeeAuthorFromSummary(
+        repository._visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
       authorUserId: post.userID,
       followingIds: followingIds,
-      isPrivate: summary.isPrivate,
+      rozet: summary.rozet,
+      isApproved: summary.isApproved,
       isDeleted: summary.isDeleted,
     );
     if (!canSeeAuthor) {

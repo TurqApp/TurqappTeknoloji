@@ -359,6 +359,48 @@ extension PostRepositoryQueryPart on PostRepository {
     return sorted;
   }
 
+  Future<List<PostsModel>> _performFetchRecentGlobalPosts({
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    required int? maxTimeExclusive,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('Posts')
+        .where('arsiv', isEqualTo: false)
+        .where('deletedPost', isEqualTo: false)
+        .where('flood', isEqualTo: false)
+        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
+        .orderBy('timeStamp', descending: true)
+        .limit(limit * 6);
+    if (maxTimeExclusive != null && maxTimeExclusive > 0) {
+      query = query.where('timeStamp', isLessThan: maxTimeExclusive);
+    }
+
+    final snap = await _getQueryWithSource(
+      query,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+
+    final merged = <String, PostsModel>{};
+    for (final doc in snap.docs) {
+      final model = PostsModel.fromMap(doc.data(), doc.id);
+      if (model.shouldHideWhileUploading) continue;
+      if (!_isRenderableCard(model)) continue;
+      final ts = model.timeStamp.toInt();
+      if (ts < cutoffMs || ts > nowMs) continue;
+      merged[model.docID] = model;
+      if (merged.length >= limit) break;
+    }
+
+    final sorted = merged.values.toList()
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    return sorted;
+  }
+
   Future<PostsModel?> _performFetchPostById(
     String postId, {
     required bool preferCache,

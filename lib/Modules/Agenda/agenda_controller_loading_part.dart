@@ -523,7 +523,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           userPrivacy,
           userDeactivated,
           userMeta,
-          includeMeta: false,
+          includeMeta: true,
         );
       }
 
@@ -538,11 +538,16 @@ extension AgendaControllerLoadingPart on AgendaController {
           toRemove.add(post.docID);
           continue;
         }
-        final isPrivate = userPrivacy[post.userID] ?? false;
-        final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        final meta = userMeta[post.userID] ?? const <String, dynamic>{};
+        final rozet =
+            (meta['rozet'] ?? meta['badge'] ?? post.rozet).toString().trim();
+        final isApproved = meta['isApproved'] == true;
+        final canSeeAuthor =
+            _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
           authorUserId: post.userID,
           followingIds: followingIDs,
-          isPrivate: isPrivate,
+          rozet: rozet,
+          isApproved: isApproved,
           isDeleted: false,
         );
         if (!canSeeAuthor) {
@@ -920,21 +925,22 @@ extension AgendaControllerLoadingPart on AgendaController {
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
     Map<String, bool> userPrivacy = {};
     Map<String, bool> userDeactivated = {};
+    final userMeta = <String, Map<String, dynamic>>{};
 
     if (uniqueUserIDs.isNotEmpty) {
       final unresolved = _primeAgendaUserStateFromCaches(
         uniqueUserIDs,
         userPrivacy,
         userDeactivated,
-        <String, Map<String, dynamic>>{},
+        userMeta,
       );
       if (unresolved.isNotEmpty) {
         await _fillAgendaUserStateFromProfiles(
           unresolved,
           userPrivacy,
           userDeactivated,
-          <String, Map<String, dynamic>>{},
-          includeMeta: false,
+          userMeta,
+          includeMeta: true,
         );
       }
     }
@@ -944,11 +950,15 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (post.deletedPost == true) return false;
       if (!_isRenderablePost(post)) return false;
       if (userDeactivated[post.userID] == true) return false;
-      final isPrivate = userPrivacy[post.userID] ?? false;
-      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final meta = userMeta[post.userID] ?? const <String, dynamic>{};
+      final rozet =
+          (meta['rozet'] ?? meta['badge'] ?? post.rozet).toString().trim();
+      final isApproved = meta['isApproved'] == true;
+      return _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: post.userID,
         followingIds: followingIDs,
-        isPrivate: isPrivate,
+        rozet: rozet,
+        isApproved: isApproved,
         isDeleted: false,
       );
     }).toList();

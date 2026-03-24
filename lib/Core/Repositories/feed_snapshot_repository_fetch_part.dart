@@ -154,10 +154,23 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       merged.putIfAbsent(post.docID, () => post);
     }
 
+    final globalBadgePosts = await _fetchVisibleGlobalBadgePosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit < 20 ? 24 : limit,
+      maxTimeExclusive: _resolveFeedPageMaxTime(startAfter),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    for (final post in globalBadgePosts) {
+      merged.putIfAbsent(post.docID, () => post);
+    }
+
     if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$normalizedUserId merged=${merged.length} '
-        'celebAuthors=${celebIds.length} publicScheduled=${publicScheduled.length}',
+        'celebAuthors=${celebIds.length} publicScheduled=${publicScheduled.length} '
+        'globalBadge=${globalBadgePosts.length}',
       );
     }
 
@@ -339,6 +352,18 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       merged.putIfAbsent(post.docID, () => post);
     }
 
+    final globalBadgePosts = await _fetchVisibleGlobalBadgePosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit < 20 ? 24 : limit,
+      maxTimeExclusive: null,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    for (final post in globalBadgePosts) {
+      merged.putIfAbsent(post.docID, () => post);
+    }
+
     final visible = await filterVisiblePosts(
       merged.values.toList(growable: false),
       currentUserId: currentUserId,
@@ -353,7 +378,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       debugPrint(
         '[FeedSnapshot] uid=$currentUserId personalFallback own=${ownPosts.length} '
         'followingSeed=${followingIds.length} '
-        'merged=${merged.length} visible=${visible.length}',
+        'merged=${merged.length} visible=${visible.length} '
+        'globalBadge=${globalBadgePosts.length}',
       );
     }
 
@@ -451,6 +477,17 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     );
   }
 
+  int? _resolveFeedPageMaxTime(
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
+  ) {
+    if (startAfter == null) return null;
+    final data = startAfter.data();
+    final raw = data?['timeStamp'];
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    return int.tryParse(raw?.toString() ?? '');
+  }
+
   Future<List<PostsModel>> _fetchVisiblePublicIzBirakPosts({
     required int nowMs,
     required int cutoffMs,
@@ -474,9 +511,62 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     return posts.where((post) {
       final meta = authorMeta[post.userID];
       if (meta == null) return false;
-      final rozet = meta.rozet.trim();
-      return rozet.isNotEmpty || meta.isApproved;
+      return isDiscoveryPublicAuthor(
+        rozet: meta.rozet,
+        isApproved: meta.isApproved,
+      );
     }).toList(growable: false);
+  }
+
+  Future<List<PostsModel>> _fetchVisibleGlobalBadgePosts({
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    required int? maxTimeExclusive,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    final posts = await _postRepository.fetchRecentGlobalPosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit,
+      maxTimeExclusive: maxTimeExclusive,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    if (posts.isEmpty) return const <PostsModel>[];
+
+    final authorMeta = await _userSummaryResolver.resolveMany(
+      posts.map((post) => post.userID).toSet().toList(growable: false),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    final visible = <PostsModel>[];
+    for (final post in posts) {
+      final meta = authorMeta[post.userID];
+      if (meta == null || meta.isDeleted) continue;
+      if (!isDiscoveryPublicAuthor(
+        rozet: meta.rozet,
+        isApproved: meta.isApproved,
+      )) {
+        continue;
+      }
+      visible.add(
+        post.copyWith(
+          authorNickname: post.authorNickname.isNotEmpty
+              ? post.authorNickname
+              : meta.nickname,
+          authorDisplayName: post.authorDisplayName.isNotEmpty
+              ? post.authorDisplayName
+              : meta.displayName,
+          authorAvatarUrl: post.authorAvatarUrl.isNotEmpty
+              ? post.authorAvatarUrl
+              : meta.avatarUrl,
+          rozet: post.rozet.isNotEmpty ? post.rozet : meta.rozet,
+        ),
+      );
+    }
+    return visible;
   }
 
   Future<FeedSourcePage> _loadLegacyPage({

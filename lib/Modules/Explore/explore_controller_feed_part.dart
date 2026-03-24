@@ -233,16 +233,19 @@ extension ExploreControllerFeedPart on ExploreController {
         .where((p) {
       final profile = profiles[p.userID];
       if (profile == null) return false;
-      final isPrivate = (profile['isPrivate'] ?? false) == true;
       final isDeactivated = isDeactivatedAccount(
         accountStatus: profile['accountStatus'],
         isDeleted: profile['isDeleted'],
       );
       if (isDeactivated) return false;
-      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final rozet =
+          (profile['rozet'] ?? profile['badge'] ?? p.rozet).toString().trim();
+      final isApproved = profile['isApproved'] == true;
+      return _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: p.userID,
         followingIds: followingIDs,
-        isPrivate: isPrivate,
+        rozet: rozet,
+        isApproved: isApproved,
         isDeleted: false,
       );
     }).toList();
@@ -605,18 +608,16 @@ extension ExploreControllerFeedPart on ExploreController {
       preferCache: true,
       cacheOnly: !ContentPolicy.isConnected,
     );
-    final userPrivacy = <String, bool>{};
-    for (final uid in uniqueUserIDs) {
-      final data = userProfiles[uid];
-      userPrivacy[uid] = (data?['isPrivate'] ?? false) == true;
-    }
-
     return items.where((post) {
-      final isPrivate = userPrivacy[post.userID] ?? false;
-      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final data = userProfiles[post.userID];
+      final rozet =
+          (data?['rozet'] ?? data?['badge'] ?? post.rozet).toString().trim();
+      final isApproved = data?['isApproved'] == true;
+      return _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: post.userID,
         followingIds: followingIDs,
-        isPrivate: isPrivate,
+        rozet: rozet,
+        isApproved: isApproved,
         isDeleted: false,
       );
     }).toList();

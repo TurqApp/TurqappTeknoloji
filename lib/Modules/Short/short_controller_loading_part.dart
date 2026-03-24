@@ -62,19 +62,37 @@ extension ShortControllerLoadingPart on ShortController {
 
       if (finalFiltered.isNotEmpty) {
         final authorIds = finalFiltered.map((e) => e.userID).toSet().toList();
-        final userPrivacy = await _fetchUsersPrivacy(authorIds);
+        final userSummaries = await _fetchUserSummaries(authorIds);
 
         final filtered = <PostsModel>[];
         for (final p in finalFiltered) {
-          final isPrivate = userPrivacy[p.userID] == true;
-          final include = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+          final summary = userSummaries[p.userID];
+          if (summary == null || summary.isDeleted) {
+            continue;
+          }
+          final include =
+              _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
             authorUserId: p.userID,
             followingIds: _followingIDs,
-            isPrivate: isPrivate,
-            isDeleted: false,
+            rozet: summary.rozet,
+            isApproved: summary.isApproved,
+            isDeleted: summary.isDeleted,
           );
           if (include) {
-            filtered.add(p);
+            filtered.add(
+              p.copyWith(
+                authorNickname: p.authorNickname.isNotEmpty
+                    ? p.authorNickname
+                    : summary.nickname,
+                authorDisplayName: p.authorDisplayName.isNotEmpty
+                    ? p.authorDisplayName
+                    : summary.displayName,
+                authorAvatarUrl: p.authorAvatarUrl.isNotEmpty
+                    ? p.authorAvatarUrl
+                    : summary.avatarUrl,
+                rozet: p.rozet.isNotEmpty ? p.rozet : summary.rozet,
+              ),
+            );
           }
         }
 
@@ -381,13 +399,14 @@ extension ShortControllerLoadingPart on ShortController {
     }
   }
 
-  Future<Map<String, bool>> _fetchUsersPrivacy(List<String> uids) async {
+  Future<Map<String, UserSummary>> _fetchUserSummaries(
+      List<String> uids) async {
     if (uids.isEmpty) return {};
 
-    final result = <String, bool>{};
+    final result = <String, UserSummary>{};
     final missing = <String>[];
     for (final uid in uids) {
-      final cached = _privacyCache.get(uid);
+      final cached = _authorSummaryCache.get(uid);
       if (cached != null) {
         result[uid] = cached;
       } else {
@@ -407,19 +426,11 @@ extension ShortControllerLoadingPart on ShortController {
         );
 
         for (final entry in users.entries) {
-          final isPrivate = entry.value.isPrivate;
-          result[entry.key] = isPrivate;
-          _privacyCache.put(entry.key, isPrivate);
+          result[entry.key] = entry.value;
+          _authorSummaryCache.put(entry.key, entry.value);
         }
       } catch (e) {
-        _log('_fetchUsersPrivacy chunk error: $e');
-      }
-
-      for (final uid in part) {
-        result.putIfAbsent(uid, () => false);
-        if (!_privacyCache.containsKey(uid)) {
-          _privacyCache.put(uid, false);
-        }
+        _log('_fetchUserSummaries chunk error: $e');
       }
     }
 

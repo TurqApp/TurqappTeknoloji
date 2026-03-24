@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
@@ -86,9 +87,8 @@ class ShortController extends GetxController {
   final Set<String> _followingIDs = {};
   StreamSubscription? _followingSub;
 
-  /// Kullanıcı gizlilik cache'i — her sayfa yüklemesinde aynı UID'leri tekrar sorgulamayı önler.
-  /// Kapasite: 500 kullanıcı, TTL: 10 dakika (gizlilik ayarı sık değişmez).
-  final _privacyCache = LRUCache<String, bool>(
+  /// Kullanıcı özet cache'i — visibility ve rozet kuralını tekrar çözümlememek için tutulur.
+  final _authorSummaryCache = LRUCache<String, UserSummary>(
     capacity: 500,
     ttl: const Duration(minutes: 10),
   );

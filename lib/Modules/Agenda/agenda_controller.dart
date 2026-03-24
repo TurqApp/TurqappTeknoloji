@@ -162,12 +162,17 @@ class AgendaController extends GetxController {
     if (!_isRenderablePost(post)) return false;
     if (await _isUserDeactivated(post.userID)) return false;
 
-    final isPrivate = await _isUserPrivate(post.userID);
-    return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+    final summary = await _userSummaryResolver.resolve(
+      post.userID,
+      preferCache: true,
+    );
+    if (summary == null) return false;
+    return _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
       authorUserId: post.userID,
       followingIds: followingIDs,
-      isPrivate: isPrivate,
-      isDeleted: false,
+      rozet: summary.rozet,
+      isApproved: summary.isApproved,
+      isDeleted: summary.isDeleted,
     );
   }
 
@@ -265,10 +270,11 @@ class AgendaController extends GetxController {
     );
     return publicIzBirakPosts.where((post) {
       final meta = authorMeta[post.userID];
-      final rozet = meta?.rozet.trim() ?? '';
-      final isApproved = meta?.isApproved == true;
-      if (rozet.isEmpty && !isApproved) return false;
-      return true;
+      if (meta == null || meta.isDeleted) return false;
+      return isDiscoveryPublicAuthor(
+        rozet: meta.rozet,
+        isApproved: meta.isApproved,
+      );
     }).toList(growable: false);
   }
 
@@ -306,8 +312,7 @@ class AgendaController extends GetxController {
 
   void resumePlaybackAfterOverlay() => _performResumePlaybackAfterOverlay();
 
-  void resetSurfaceForTabTransition() =>
-      _performResetSurfaceForTabTransition();
+  void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
 
   void _scheduleVisibilityEvaluation({
     required double playThreshold,
