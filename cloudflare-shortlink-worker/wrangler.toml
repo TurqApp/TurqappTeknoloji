@@ -10,6 +10,8 @@ routes = [
   { pattern = "turqapp.com/i/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/m/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/og-image", zone_name = "turqapp.com" },
+  { pattern = "turqapp.com/app-ads.txt", zone_name = "turqapp.com" },
+  { pattern = "www.turqapp.com/app-ads.txt", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/.well-known/*", zone_name = "turqapp.com" }
 ]
 
@@ -25,6 +27,7 @@ DEFAULT_OG_IMAGE = "https://cdn.turqapp.com/og/default.jpg"
 EMAIL_ACTION_CONFIRM_URL = "https://europe-west3-turqappteknoloji.cloudfunctions.net/confirmEmailAction"
 FIREBASE_PROJECT_ID = "turqappteknoloji"
 SHORT_LINK_RESOLVE_URL = "https://us-central1-turqappteknoloji.cloudfunctions.net/resolveShortLink"
+APP_ADS_TXT = "google.com, pub-4558422035199571, DIRECT, f08c47fec0942fa0"
 
 # JSON string olarak verilir.
 # iOS Universal Links:

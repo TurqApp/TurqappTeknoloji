@@ -5,6 +5,7 @@ interface Env {
   ANDROID_STORE_URL: string;
   DEFAULT_OG_IMAGE: string;
   EMAIL_ACTION_CONFIRM_URL: string;
+  APP_ADS_TXT?: string;
   AASA_JSON: string;
   ASSETLINKS_JSON: string;
   FIREBASE_PROJECT_ID?: string;
@@ -29,6 +30,8 @@ type LinkMeta = {
 };
 
 const CACHE_TTL_SECONDS = 300;
+const DEFAULT_APP_ADS_TXT =
+  "google.com, pub-4558422035199571, DIRECT, f08c47fec0942fa0";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -38,6 +41,17 @@ export default {
 
     if (path === "/og-image") {
       return proxyOgImage(request, url, env);
+    }
+
+    if (path === "/app-ads.txt") {
+      const body = String(env.APP_ADS_TXT || DEFAULT_APP_ADS_TXT).trim();
+      return new Response(`${body}\n`, {
+        status: 200,
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "public, max-age=3600",
+        },
+      });
     }
 
     if (path === "/.well-known/apple-app-site-association") {
