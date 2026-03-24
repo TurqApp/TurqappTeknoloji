@@ -24,6 +24,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'create_scholarship_basic_part.dart';
 part 'create_scholarship_extra_part.dart';
+part 'create_scholarship_extra_targeting_part.dart';
 part 'create_scholarship_media_part.dart';
 
 class CreateScholarshipView extends StatefulWidget {
