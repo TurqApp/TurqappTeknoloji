@@ -490,12 +490,13 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
     final logoUrl = burs.logo.trim().isNotEmpty
         ? burs.logo.trim()
         : (burs.img.trim().isNotEmpty ? burs.img.trim() : burs.img2.trim());
-    final provider = burs.bursVeren.trim().isNotEmpty
-        ? burs.bursVeren.trim()
-        : 'common.unknown_user'.tr;
     final description = burs.shortDescription.trim().isNotEmpty
         ? burs.shortDescription.trim()
         : burs.aciklama.trim();
+    final deadlineLabel = burs.bitisTarihi.trim().isNotEmpty
+        ? 'education_feed.application_deadline'
+            .trParams({'date': burs.bitisTarihi.trim()})
+        : '';
     final audience = burs.sehirler.isNotEmpty
         ? burs.sehirler.take(2).join(', ')
         : (burs.universiteler.isNotEmpty
@@ -553,12 +554,14 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
                             height: metrics.detailRowHeight,
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: Text(
-                                provider,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: PasajCardStyles.lineTwo,
-                              ),
+                              child: description.isNotEmpty
+                                  ? Text(
+                                      description,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: PasajCardStyles.lineTwo,
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                           ),
                           SizedBox(height: metrics.contentGap),
@@ -566,9 +569,9 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
                             height: metrics.detailRowHeight,
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: description.isNotEmpty
+                              child: deadlineLabel.isNotEmpty
                                   ? Text(
-                                      description,
+                                      deadlineLabel,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: PasajCardStyles.detail,
