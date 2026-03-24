@@ -111,17 +111,27 @@ extension EducationControllerPasajPart on EducationController {
   void _resetTrackedScrollController(ScrollController? controller) {
     if (controller == null) return;
 
-    void resetNow() {
-      if (!controller.hasClients) return;
+    bool resetNow() {
+      if (!controller.hasClients) return false;
       try {
         controller.jumpTo(0);
+        return true;
       } catch (_) {}
+      return false;
     }
 
-    resetNow();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      resetNow();
-    });
+    void scheduleRetry(int attemptsLeft) {
+      if (attemptsLeft <= 0) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (resetNow()) return;
+        Future<void>.delayed(const Duration(milliseconds: 80), () {
+          scheduleRetry(attemptsLeft - 1);
+        });
+      });
+    }
+
+    if (resetNow()) return;
+    scheduleRetry(24);
   }
 
   void _performResetSurfaceForTabTransition() {
