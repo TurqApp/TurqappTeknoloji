@@ -73,14 +73,21 @@ class _MyQRCodeState extends State<MyQRCode> {
                       surfaceColor: Color(0x1FFFFFFF),
                     ),
                   ),
-                  Text(
-                    'qr.title'.tr,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: FontSizes.size18,
-                      fontFamily: AppFontFamilies.mbold,
-                    ),
-                  ),
+                  Obx(() {
+                    final nickname =
+                        userService.currentUserRx.value?.nickname.trim() ??
+                            userService.nickname.trim();
+                    final headerTitle =
+                        nickname.isNotEmpty ? '@$nickname' : '@';
+                    return Text(
+                      headerTitle,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: FontSizes.size18,
+                        fontFamily: AppFontFamilies.mbold,
+                      ),
+                    );
+                  }),
                   IconButton(
                     onPressed: () {
                       controller.showQrScannerModal();
