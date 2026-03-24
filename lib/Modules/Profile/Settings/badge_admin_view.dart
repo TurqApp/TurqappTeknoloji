@@ -18,7 +18,6 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 part 'badge_admin_view_actions_part.dart';
 part 'badge_admin_view_applications_part.dart';
 part 'badge_admin_view_content_part.dart';
-part 'badge_admin_view_shell_part.dart';
 
 class BadgeAdminView extends StatefulWidget {
   const BadgeAdminView({super.key});
@@ -143,6 +142,49 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
   void _updateBadgeAdminState(VoidCallback fn) {
     if (!mounted) return;
     setState(fn);
+  }
+
+  Widget _buildPage(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'admin.badges.title'.tr),
+            Expanded(
+              child: FutureBuilder<bool>(
+                future: _canAccessFuture,
+                builder: (context, accessSnap) {
+                  if (accessSnap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (accessSnap.data != true) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'admin.no_access'.tr,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'MontserratMedium',
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                    child: _buildBadgeAdminContent(context, theme),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
