@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/job_model.dart';
@@ -66,7 +67,7 @@ class JobHomeSnapshotRepository extends GetxService {
 
   Stream<CachedResource<List<JobModel>>> openHome({
     required String userId,
-    int limit = 150,
+    int limit = ReadBudgetRegistry.jobHomeInitialLimit,
     bool forceSync = false,
   }) {
     return _homeAdapter.open(
@@ -83,7 +84,7 @@ class JobHomeSnapshotRepository extends GetxService {
 
   Future<CachedResource<List<JobModel>>> loadHome({
     required String userId,
-    int limit = 150,
+    int limit = ReadBudgetRegistry.jobHomeInitialLimit,
     bool forceSync = false,
   }) {
     return openHome(

@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -74,7 +75,7 @@ class ScholarshipsController extends GetxController {
   final RxDouble scrollOffset = 0.0.obs;
   final RxBool listingSelectionReady = false.obs;
   final RxInt listingSelection = 0.obs;
-  final int initialBatchSize = 30;
+  final int initialBatchSize = ReadBudgetRegistry.scholarshipHomeInitialLimit;
   final int batchSize = 10;
   final RxBool hasMoreData = true.obs;
   final RxInt totalCount = 0.obs;

@@ -4,7 +4,7 @@ extension NotificationsSnapshotRepositoryQueryPart
     on NotificationsSnapshotRepository {
   Stream<CachedResource<List<NotificationModel>>> openInbox({
     required String userId,
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
     bool forceSync = false,
   }) {
     return _pipeline.open(
@@ -18,7 +18,7 @@ extension NotificationsSnapshotRepositoryQueryPart
 
   Future<CachedResource<List<NotificationModel>>> loadInbox({
     required String userId,
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
     bool forceSync = false,
   }) {
     return openInbox(
@@ -30,7 +30,7 @@ extension NotificationsSnapshotRepositoryQueryPart
 
   Future<CachedResource<List<NotificationModel>>> bootstrapInbox({
     required String userId,
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
   }) {
     final query = NotificationsSnapshotQuery(
       userId: userId,

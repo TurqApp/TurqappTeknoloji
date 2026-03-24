@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 class NotificationsRepository extends GetxService {
   static NotificationsRepository? maybeFind() {
@@ -77,7 +78,7 @@ class NotificationsRepository extends GetxService {
 
   Future<QuerySnapshot<Map<String, dynamic>>> fetchCachedNotifications(
     String uid, {
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
   }) {
     return _notificationsRef(uid)
         .orderBy('timeStamp', descending: true)
@@ -87,7 +88,7 @@ class NotificationsRepository extends GetxService {
 
   Future<QuerySnapshot<Map<String, dynamic>>> fetchServerNotifications(
     String uid, {
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
   }) {
     return _notificationsRef(uid)
         .orderBy('timeStamp', descending: true)
@@ -97,7 +98,7 @@ class NotificationsRepository extends GetxService {
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchCachedNotifications(
     String uid, {
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
   }) {
     return _notificationsRef(uid)
         .orderBy('timeStamp', descending: true)
@@ -116,7 +117,7 @@ class NotificationsRepository extends GetxService {
   Future<QuerySnapshot<Map<String, dynamic>>> fetchOnlyNewNotifications(
     String uid, {
     required int latestTs,
-    int limit = 120,
+    int limit = ReadBudgetRegistry.notificationsDeltaFetchLimit,
   }) {
     Query<Map<String, dynamic>> query = _notificationsRef(uid)
         .orderBy('timeStamp', descending: false)

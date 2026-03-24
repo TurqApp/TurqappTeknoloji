@@ -85,7 +85,7 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchLatestRaw({
-    int limit = 200,
+    int limit = ReadBudgetRegistry.scholarshipRepositoryLatestLimit,
     bool preferCache = true,
     bool forceRefresh = false,
     bool cacheOnly = false,

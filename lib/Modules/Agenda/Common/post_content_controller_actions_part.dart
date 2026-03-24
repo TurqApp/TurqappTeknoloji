@@ -150,8 +150,7 @@ extension PostContentControllerActionsPart on PostContentController {
 
     final archiveController = _archiveControllerOrNull;
     if (archiveController != null) {
-      final index11 = archiveController.list.indexOf(model);
-      if (index11 >= 0) archiveController.list.removeAt(index11);
+      archiveController.removeArchivedPost(model.docID);
     }
 
     arsiv.value = false;
@@ -474,7 +473,7 @@ extension PostContentControllerActionsPart on PostContentController {
 
     final reshareEntries = await _postRepository.fetchAllReshareEntries(
       docID,
-      limit: 200,
+      limit: ReadBudgetRegistry.reshareUserPreviewInitialLimit,
     );
     final entries =
         reshareEntries.map((e) => MapEntry(e.userId, e.timeStamp)).toList();

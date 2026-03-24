@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/telemetry_threshold_policy_adapter.dart';
 import 'package:turqappv2/Core/Services/qa_lab_catalog.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Services/qa_lab_recorder.dart';
@@ -71,6 +73,22 @@ class _QALabViewState extends State<QALabView> {
         const <String, dynamic>{};
     final focusSurfaces =
         focusCoverage['surfaces'] as List<dynamic>? ?? const <dynamic>[];
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    final telemetryCoverage = playbackKpi == null
+        ? const <String, dynamic>{
+            'configuredSurfaceCount': 0,
+            'observedSurfaceCount': 0,
+            'coverageRatio': 0.0,
+            'observedSurfaces': <String>[],
+            'unobservedSurfaces': <String>[],
+          }
+        : TelemetryThresholdPolicyAdapter.buildCoverageSummary(playbackKpi);
+    final observedTelemetrySurfaces =
+        telemetryCoverage['observedSurfaces'] as List<dynamic>? ??
+            const <dynamic>[];
+    final missingTelemetrySurfaces =
+        telemetryCoverage['unobservedSurfaces'] as List<dynamic>? ??
+            const <dynamic>[];
 
     return Card(
       child: Padding(
@@ -100,8 +118,40 @@ class _QALabViewState extends State<QALabView> {
               'focus avg coverage: ${(((focusCoverage['averageCoverage'] ?? 0.0) as num) * 100).toStringAsFixed(0)}%',
             ),
             const SizedBox(height: 8),
+            Text(
+              'runtime telemetry: ${telemetryCoverage['observedSurfaceCount'] ?? 0}/${telemetryCoverage['configuredSurfaceCount'] ?? 0} observed',
+            ),
+            Text(
+              'runtime telemetry ratio: ${(((telemetryCoverage['coverageRatio'] ?? 0.0) as num) * 100).toStringAsFixed(0)}%',
+            ),
+            const SizedBox(height: 8),
             Text('origin: $byOrigin'),
             Text('tags: $byTag'),
+            const SizedBox(height: 8),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Runtime Telemetry Coverage'),
+              children: [
+                ListTile(
+                  dense: true,
+                  title: const Text('Observed surfaces'),
+                  subtitle: Text(
+                    observedTelemetrySurfaces.isEmpty
+                        ? '-'
+                        : observedTelemetrySurfaces.join(', '),
+                  ),
+                ),
+                ListTile(
+                  dense: true,
+                  title: const Text('Missing surfaces'),
+                  subtitle: Text(
+                    missingTelemetrySurfaces.isEmpty
+                        ? '-'
+                        : missingTelemetrySurfaces.join(', '),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,

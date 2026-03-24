@@ -5,6 +5,7 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
     String uid, {
     required String subcollection,
     required String? orderByField,
+    required int? limit,
     required bool descending,
     required bool preferCache,
     required bool forceRefresh,
@@ -17,14 +18,22 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
 
     if (!forceRefresh) {
       final memory = _getFromMemoryImpl(key, allowStale: false);
-      if (preferCache && memory != null) return memory;
+      if (preferCache && memory != null) {
+        if (limit == null || limit <= 0 || memory.length <= limit) {
+          return memory;
+        }
+        return memory.take(limit).toList(growable: false);
+      }
       final disk = await _getFromPrefsImpl(key, allowStale: false);
       if (preferCache && disk != null) {
         _memory[key] = _CachedUserSubcollection(
           items: disk,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        if (limit == null || limit <= 0 || disk.length <= limit) {
+          return disk;
+        }
+        return disk.take(limit).toList(growable: false);
       }
     }
 
@@ -36,6 +45,9 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
         .collection(subcollection);
     if (orderByField != null && orderByField.trim().isNotEmpty) {
       query = query.orderBy(orderByField, descending: descending);
+    }
+    if (limit != null && limit > 0) {
+      query = query.limit(limit);
     }
     final snap = await query.get();
     final items = snap.docs

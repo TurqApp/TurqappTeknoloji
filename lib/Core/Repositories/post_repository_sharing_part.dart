@@ -3,7 +3,7 @@ part of 'post_repository.dart';
 extension PostRepositorySharingPart on PostRepository {
   Future<List<PostReshareEntry>> fetchAllReshareEntries(
     String postId, {
-    int limit = 200,
+    int limit = ReadBudgetRegistry.reshareUserPreviewInitialLimit,
   }) async {
     if (postId.trim().isEmpty) return const <PostReshareEntry>[];
     final snap = await _firestore
@@ -27,7 +27,7 @@ extension PostRepositorySharingPart on PostRepository {
     String uid, {
     bool preferCache = true,
     bool forceRefresh = false,
-    int limit = 200,
+    int limit = ReadBudgetRegistry.userReshareMapInitialLimit,
   }) async {
     if (uid.trim().isEmpty) return const <String, int>{};
     final entries = await _userSubcollectionRepository.getEntries(
@@ -37,6 +37,7 @@ extension PostRepositorySharingPart on PostRepository {
       descending: true,
       preferCache: preferCache,
       forceRefresh: forceRefresh,
+      limit: limit,
     );
     final map = <String, int>{};
     for (final entry in entries.take(limit)) {

@@ -5,7 +5,7 @@ extension NotificationsSnapshotRepositoryActionPart
   Future<void> persistInboxSnapshot({
     required String userId,
     required List<NotificationModel> notifications,
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
     CachedResourceSource source = CachedResourceSource.server,
   }) async {
     final normalized = notifications
@@ -50,7 +50,7 @@ extension NotificationsSnapshotRepositoryActionPart
   Future<void> markReadLocally({
     required String userId,
     required List<String> docIds,
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
   }) async {
     if (userId.trim().isEmpty || docIds.isEmpty) return;
     final current = await bootstrapInbox(
@@ -111,7 +111,7 @@ extension NotificationsSnapshotRepositoryActionPart
   Future<void> deleteLocally({
     required String userId,
     required List<String> docIds,
-    int limit = 300,
+    int limit = ReadBudgetRegistry.notificationsInboxInitialLimit,
   }) async {
     if (userId.trim().isEmpty || docIds.isEmpty) return;
     final current = await bootstrapInbox(

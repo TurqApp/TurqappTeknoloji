@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 
@@ -85,16 +86,18 @@ class MarketRepository extends GetxService {
     try {
       return await ref
           .orderBy('createdAt', descending: true)
-          .limit(50)
+          .limit(ReadBudgetRegistry.savedMarketRefsInitialLimit)
           .get(options);
     } on FirebaseException {
       try {
         return await ref
             .orderBy('timeStamp', descending: true)
-            .limit(50)
+            .limit(ReadBudgetRegistry.savedMarketRefsInitialLimit)
             .get(options);
       } on FirebaseException {
-        return ref.limit(50).get(options);
+        return ref
+            .limit(ReadBudgetRegistry.savedMarketRefsInitialLimit)
+            .get(options);
       }
     }
   }

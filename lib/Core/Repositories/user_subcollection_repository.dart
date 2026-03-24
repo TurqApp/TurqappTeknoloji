@@ -59,6 +59,7 @@ class UserSubcollectionRepository extends GetxService {
     String uid, {
     required String subcollection,
     String? orderByField,
+    int? limit,
     bool descending = true,
     bool preferCache = true,
     bool forceRefresh = false,
@@ -68,6 +69,7 @@ class UserSubcollectionRepository extends GetxService {
         uid,
         subcollection: subcollection,
         orderByField: orderByField,
+        limit: limit,
         descending: descending,
         preferCache: preferCache,
         forceRefresh: forceRefresh,

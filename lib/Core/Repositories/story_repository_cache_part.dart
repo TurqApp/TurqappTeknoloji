@@ -132,6 +132,29 @@ extension StoryRepositoryCachePart on StoryRepository {
       );
     }
 
+    final cachePayload = <String, dynamic>{
+      'event': cacheHit ? 'scopedSnapshotHit' : 'liveSyncSucceeded',
+      'surfaceKey': 'story_row_snapshot',
+      'hasScope': false,
+      'isUserScoped': false,
+      'source': cacheHit ? 'firestoreCache' : 'server',
+      'hasData': users.isNotEmpty,
+      'hasLocalSnapshot': cacheHit,
+      'isRefreshing': false,
+      'isStale': false,
+      'hasLiveError': false,
+      'itemCount': users.length,
+      'requestedLimit': limit,
+    };
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi != null) {
+      playbackKpi.track(
+        PlaybackKpiEventType.cacheFirstLifecycle,
+        cachePayload,
+      );
+    }
+    recordQALabCacheFirstEvent(cachePayload);
+
     return StoryFetchResult(users: users, cacheHit: cacheHit);
   }
 

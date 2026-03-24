@@ -143,7 +143,7 @@ extension AntremanControllerActionsPart on AntremanController {
         anaBaslik,
         sinavTuru,
         ders,
-        limit: 120,
+        limit: ReadBudgetRegistry.antremanCategoryPoolInitialLimit,
       );
       _categoryPool
         ..clear()
@@ -187,6 +187,7 @@ extension AntremanControllerActionsPart on AntremanController {
       savedQuestionsList.clear();
       final savedIds = await _antremanRepository.fetchSavedQuestionIds(
         userID,
+        limit: ReadBudgetRegistry.antremanSavedQuestionInitialLimit,
       );
       if (savedIds.isEmpty) {
         loadingProgress.value = 1.0;
@@ -234,9 +235,7 @@ extension AntremanControllerActionsPart on AntremanController {
       savedQuestions[key] = !isSaved;
       AppSnackbar(
         "common.success".tr,
-        isSaved
-            ? "training.saved_removed".tr
-            : "training.saved_added".tr,
+        isSaved ? "training.saved_removed".tr : "training.saved_added".tr,
       );
     } catch (e) {
       AppSnackbar(
@@ -500,6 +499,8 @@ extension AntremanControllerActionsPart on AntremanController {
   Future<void> _fillCategoryPoolInBackground(
       String anaBaslik, String sinavTuru, String ders) async {
     try {
+      final onWifi = await ConnectivityHelper.isWifi();
+      if (!onWifi) return;
       final all = await _fetchCategoryPoolDocs(anaBaslik, sinavTuru, ders);
       await _saveCachedCategoryPool(
         _buildCategoryKey(anaBaslik, sinavTuru, ders),

@@ -56,7 +56,10 @@ extension _MarketControllerHomePart on MarketController {
     final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _marketSnapshotRepository
-        .openHome(userId: userId, limit: 120)
+        .openHome(
+      userId: userId,
+      limit: ReadBudgetRegistry.marketHomeInitialLimit,
+    )
         .listen((resource) {
       unawaited(_applyHomeSnapshotResource(resource));
     });
@@ -116,7 +119,7 @@ extension _MarketControllerHomePart on MarketController {
     try {
       final fetched = await _marketSnapshotRepository.loadHome(
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 120,
+        limit: ReadBudgetRegistry.marketHomeInitialLimit,
         forceSync: forceRefresh,
       );
       final activeFetched = (fetched.data ?? const <MarketItemModel>[])

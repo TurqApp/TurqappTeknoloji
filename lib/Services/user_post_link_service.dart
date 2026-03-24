@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 import '../Models/posts_model.dart';
 import '../Models/user_post_reference.dart';
@@ -28,7 +29,8 @@ class UserPostLinkService {
   final FirebaseFirestore _firestore;
   final UserSubcollectionRepository _userSubcollectionRepository;
   final PostRepository _postRepository;
-  static const int _maxRefsPerFetch = 240;
+  static const int _maxRefsPerFetch =
+      ReadBudgetRegistry.savedPostRefsInitialLimit;
 
   Stream<List<UserPostReference>> listenLikedPosts(String userId) =>
       _listenUserRefs(userId, 'liked_posts');
@@ -52,6 +54,7 @@ class UserPostLinkService {
         userId,
         subcollection: collection,
         orderByField: 'timeStamp',
+        limit: _maxRefsPerFetch,
         descending: true,
         preferCache: true,
       );

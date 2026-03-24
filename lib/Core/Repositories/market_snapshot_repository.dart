@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 
@@ -7,7 +8,7 @@ class MarketListingQuery {
   const MarketListingQuery({
     required this.query,
     required this.userId,
-    this.limit = 120,
+    this.limit = ReadBudgetRegistry.marketHomeInitialLimit,
     this.page = 1,
     this.scopeTag = '',
   });
@@ -96,7 +97,7 @@ class MarketSnapshotRepository extends GetxService {
 
   Stream<CachedResource<List<MarketItemModel>>> openHome({
     required String userId,
-    int limit = 120,
+    int limit = ReadBudgetRegistry.marketHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) {
@@ -114,7 +115,7 @@ class MarketSnapshotRepository extends GetxService {
 
   Future<CachedResource<List<MarketItemModel>>> loadHome({
     required String userId,
-    int limit = 120,
+    int limit = ReadBudgetRegistry.marketHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) {

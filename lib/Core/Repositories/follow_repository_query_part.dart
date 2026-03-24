@@ -27,6 +27,67 @@ extension FollowRepositoryQueryPart on FollowRepository {
     );
   }
 
+  Future<List<String>> getFollowingPreviewIds(
+    String uid, {
+    int limit = ReadBudgetRegistry.followRelationPreviewInitialLimit,
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) {
+    return getRelationPreviewIds(
+      uid,
+      relation: 'followings',
+      limit: limit,
+      preferCache: preferCache,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  Future<List<String>> getFollowerPreviewIds(
+    String uid, {
+    int limit = ReadBudgetRegistry.followRelationPreviewInitialLimit,
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) {
+    return getRelationPreviewIds(
+      uid,
+      relation: 'followers',
+      limit: limit,
+      preferCache: preferCache,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  Future<List<String>> getRelationPreviewIds(
+    String uid, {
+    required String relation,
+    int limit = ReadBudgetRegistry.followRelationPreviewInitialLimit,
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) async {
+    if (uid.isEmpty) return const <String>[];
+    final fetchLimit = limit <= 0
+        ? ReadBudgetRegistry.followRelationPreviewInitialLimit
+        : limit;
+    final source = forceRefresh
+        ? Source.server
+        : (preferCache ? Source.serverAndCache : Source.server);
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection(relation);
+    try {
+      final snap = await query
+          .orderBy('timeStamp', descending: true)
+          .limit(fetchLimit)
+          .get(GetOptions(source: source));
+      return snap.docs.map((doc) => doc.id).toList(growable: false);
+    } on FirebaseException {
+      final snap =
+          await query.limit(fetchLimit).get(GetOptions(source: source));
+      return snap.docs.map((doc) => doc.id).toList(growable: false);
+    }
+  }
+
   Future<Set<String>> getRelationIds(
     String uid, {
     required String relation,

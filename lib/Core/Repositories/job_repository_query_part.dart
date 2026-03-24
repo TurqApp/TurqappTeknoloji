@@ -32,7 +32,7 @@ extension JobRepositoryQueryPart on JobRepository {
   }
 
   Future<List<JobModel>> fetchLatestJobs({
-    int limit = 150,
+    int limit = ReadBudgetRegistry.jobHomeInitialLimit,
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {

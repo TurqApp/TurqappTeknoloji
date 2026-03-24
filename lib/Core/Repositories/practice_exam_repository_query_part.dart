@@ -3,11 +3,12 @@ part of 'practice_exam_repository.dart';
 extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
   Future<List<SinavModel>> fetchByExamType(
     String sinavTuru, {
+    int limit = ReadBudgetRegistry.practiceExamTypeInitialLimit,
     bool preferCache = true,
     bool forceRefresh = false,
     bool cacheOnly = false,
   }) async {
-    final cacheKey = 'type:${normalizeSearchText(sinavTuru)}';
+    final cacheKey = 'type:${normalizeSearchText(sinavTuru)}:$limit';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
@@ -26,6 +27,7 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
     final snap = await _firestore
         .collection('practiceExams')
         .where('sinavTuru', isEqualTo: sinavTuru)
+        .limit(limit)
         .get();
     final items = snap.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
@@ -35,10 +37,11 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
   }
 
   Future<List<SinavModel>> fetchAll({
+    int limit = ReadBudgetRegistry.practiceExamHomeInitialLimit,
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
-    const cacheKey = 'all';
+    final cacheKey = 'all:$limit';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
@@ -55,6 +58,7 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
     final snap = await _firestore
         .collection('practiceExams')
         .orderBy('timeStamp', descending: true)
+        .limit(limit)
         .get();
     final items = snap.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))

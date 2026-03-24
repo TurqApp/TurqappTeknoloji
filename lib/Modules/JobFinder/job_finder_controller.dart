@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
@@ -38,7 +39,7 @@ class JobFinderController extends GetxController {
     return Get.find<JobFinderController>();
   }
 
-  static const int _fullBootstrapLimit = 150;
+  static const int _fullBootstrapLimit = ReadBudgetRegistry.jobHomeInitialLimit;
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_job_listing_selection';
   static const String _allTurkeyRaw = 'Tüm Türkiye';

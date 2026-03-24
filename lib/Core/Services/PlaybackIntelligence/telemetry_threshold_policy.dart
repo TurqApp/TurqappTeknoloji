@@ -44,6 +44,11 @@ class SurfaceTelemetrySnapshot {
   final RenderDiffSurfaceSummary? renderDiff;
   final PlaybackWindowSurfaceSummary? playbackWindow;
 
+  bool get hasSignals =>
+      (cacheFirst?.eventCount ?? 0) > 0 ||
+      (renderDiff?.eventCount ?? 0) > 0 ||
+      (playbackWindow?.eventCount ?? 0) > 0;
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'surface': surface,
@@ -169,6 +174,25 @@ class _SurfaceThresholds {
 class TelemetryThresholdPolicy {
   const TelemetryThresholdPolicy._();
 
+  static const _SurfaceThresholds _cacheOnlySurfaceThresholds =
+      _SurfaceThresholds(
+    minCacheEvents: 2,
+    warnLocalHitRatio: 0.25,
+    blockLocalHitRatio: 0.10,
+    warnLiveFailCount: 1,
+    blockLiveFailCount: 2,
+    minRenderPatchEvents: 99,
+    warnRenderAverageOps: 999,
+    blockRenderAverageOps: 999,
+    warnRenderMaxOps: 999,
+    blockRenderMaxOps: 999,
+    minPlaybackEvents: 99,
+    warnActiveLostCount: 99,
+    blockActiveLostCount: 99,
+    warnAttachedPlayers: 99,
+    blockAttachedPlayers: 99,
+  );
+
   static const Map<String, _SurfaceThresholds> _defaults =
       <String, _SurfaceThresholds>{
     'feed': _SurfaceThresholds(
@@ -205,6 +229,17 @@ class TelemetryThresholdPolicy {
       warnAttachedPlayers: 5,
       blockAttachedPlayers: 8,
     ),
+    'story': _cacheOnlySurfaceThresholds,
+    'profile': _cacheOnlySurfaceThresholds,
+    'notifications': _cacheOnlySurfaceThresholds,
+    'market': _cacheOnlySurfaceThresholds,
+    'jobs': _cacheOnlySurfaceThresholds,
+    'scholarship': _cacheOnlySurfaceThresholds,
+    'practice_exam': _cacheOnlySurfaceThresholds,
+    'answer_key': _cacheOnlySurfaceThresholds,
+    'past_question': _cacheOnlySurfaceThresholds,
+    'tutoring': _cacheOnlySurfaceThresholds,
+    'workout': _cacheOnlySurfaceThresholds,
   };
 
   static TelemetryThresholdReport evaluateSnapshots(

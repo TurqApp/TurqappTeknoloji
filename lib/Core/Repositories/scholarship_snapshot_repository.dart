@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
@@ -82,7 +83,7 @@ class ScholarshipSnapshotRepository extends GetxService {
 
   Stream<CachedResource<ScholarshipListingSnapshot>> openHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) =>
@@ -95,7 +96,7 @@ class ScholarshipSnapshotRepository extends GetxService {
 
   Future<CachedResource<ScholarshipListingSnapshot>> loadHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) =>

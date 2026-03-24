@@ -144,7 +144,7 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
 
   Future<List<String>> fetchSavedQuestionIds(
     String userId, {
-    int limit = 200,
+    int limit = ReadBudgetRegistry.antremanSavedQuestionInitialLimit,
   }) async {
     if (userId.isEmpty) return const <String>[];
     final snapshot = await _firestore

@@ -413,7 +413,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         initial: true,
         trigger: 'refresh_agenda',
       );
-      await _fetchAndMergeReshareEvents(eventLimit: 500);
+      await _fetchAndMergeReshareEvents(
+        eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
+      );
       pauseAll.value = false;
     } catch (e) {
       print("refreshAgenda error: $e");

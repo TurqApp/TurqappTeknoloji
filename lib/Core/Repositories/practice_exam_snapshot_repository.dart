@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
@@ -71,7 +72,7 @@ class PracticeExamSnapshotRepository extends GetxService {
 
   Stream<CachedResource<List<SinavModel>>> openHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.practiceExamHomeInitialLimit,
     bool forceSync = false,
   }) =>
       _openHomeImpl(
@@ -82,7 +83,7 @@ class PracticeExamSnapshotRepository extends GetxService {
 
   Future<CachedResource<List<SinavModel>>> loadHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.practiceExamHomeInitialLimit,
     bool forceSync = false,
   }) =>
       _loadHomeImpl(

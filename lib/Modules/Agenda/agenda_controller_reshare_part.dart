@@ -21,7 +21,7 @@ extension AgendaControllerResharePart on AgendaController {
         uid,
         preferCache: true,
         forceRefresh: refreshFollowings,
-        limit: 200,
+        limit: ReadBudgetRegistry.userReshareMapInitialLimit,
       );
     } catch (_) {}
   }
@@ -128,7 +128,7 @@ extension AgendaControllerResharePart on AgendaController {
   }
 
   void _scheduleInitialReshareMerge({
-    int eventLimit = 120,
+    int eventLimit = ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
     Duration delay = const Duration(milliseconds: 2200),
   }) {
     _reshareWarmupTimer?.cancel();
@@ -326,7 +326,9 @@ extension AgendaControllerResharePart on AgendaController {
     }
   }
 
-  Future<void> _fetchAndMergeReshareEvents({int eventLimit = 500}) async {
+  Future<void> _fetchAndMergeReshareEvents({
+    int eventLimit = ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
+  }) async {
     try {
       final uid = _currentUid;
       if (uid.isEmpty) return;
@@ -373,8 +375,12 @@ extension AgendaControllerResharePart on AgendaController {
         ..sort((a, b) => ((b['timeStamp'] ?? 0) as int)
             .compareTo((a['timeStamp'] ?? 0) as int));
 
-      if (visibleEvents.length > 120) {
-        visibleEvents.removeRange(120, visibleEvents.length);
+      if (visibleEvents.length >
+          ReadBudgetRegistry.reshareFeedWarmupInitialLimit) {
+        visibleEvents.removeRange(
+          ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
+          visibleEvents.length,
+        );
       }
 
       final visibleUserIds = visibleEvents

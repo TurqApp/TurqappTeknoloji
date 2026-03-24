@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
@@ -56,7 +57,7 @@ class DenemeSinavlariController extends GetxController {
   final RxString searchQuery = ''.obs;
   final RxList<SinavModel> searchResults = <SinavModel>[].obs;
   DocumentSnapshot? _lastDocument;
-  static const int _pageSize = 30;
+  static const int _pageSize = ReadBudgetRegistry.practiceExamHomeInitialLimit;
   StreamSubscription<CachedResource<List<SinavModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchToken = 0;
