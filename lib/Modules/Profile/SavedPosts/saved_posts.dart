@@ -12,7 +12,6 @@ import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 
 import '../../Agenda/FloodListing/flood_listing.dart';
 
-part 'saved_posts_shell_part.dart';
 part 'saved_posts_content_part.dart';
 
 class SavedPosts extends StatefulWidget {
@@ -47,6 +46,52 @@ class _SavedPostsState extends State<SavedPosts> {
       Get.delete<SavedPostsController>(force: true);
     }
     super.dispose();
+  }
+
+  Widget _buildSavedPostsShell(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: "settings.saved_posts".tr),
+            PageLineBar(
+              barList: [
+                "common.all".tr,
+                "saved_posts.posts_tab".tr,
+                "saved_posts.series_tab".tr,
+              ],
+              pageName: _pageLineBarTag,
+              pageController: controller.pageController,
+            ),
+            Expanded(
+              child: Obx(() {
+                return PageView(
+                  controller: controller.pageController,
+                  onPageChanged: (v) {
+                    syncPageLineBarSelection(_pageLineBarTag, v);
+                  },
+                  children: [
+                    _buildAgendaTab(
+                      posts: controller.savedAgendas,
+                      emptyText: "saved_posts.no_saved_posts".tr,
+                    ),
+                    _buildAgendaTab(
+                      posts: controller.savedPostsOnly,
+                      emptyText: "saved_posts.no_saved_posts".tr,
+                    ),
+                    _buildAgendaTab(
+                      posts: controller.savedSeries,
+                      emptyText: "saved_posts.no_saved_series".tr,
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
