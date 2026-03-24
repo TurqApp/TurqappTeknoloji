@@ -55,3 +55,8 @@ tests/load/k6_summary_*_latest.json
 
 # Local coverage output
 coverage/
+
+# Local QA / smoke artefacts
+artifacts/
+.runlogs/
+android/.kotlin/
