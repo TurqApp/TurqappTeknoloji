@@ -63,6 +63,8 @@ import 'classic_content_controller.dart';
 part 'classic_content_quote_part.dart';
 part 'classic_content_media_part.dart';
 part 'classic_content_header_actions_part.dart';
+part 'classic_content_header_menu_part.dart';
+part 'classic_content_header_interactions_part.dart';
 part 'classic_content_body_part.dart';
 part 'classic_content_helpers_part.dart';
 

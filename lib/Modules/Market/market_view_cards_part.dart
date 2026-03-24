@@ -134,33 +134,6 @@ extension _MarketViewCardsPart on MarketView {
     );
   }
 
-  Widget _buildItemVisual(
-    MarketItemModel item,
-    Color accent, {
-    double? width,
-    double? height,
-    required double radius,
-  }) {
-    final child = item.coverImageUrl.isNotEmpty
-        ? Image.network(
-            item.coverImageUrl,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            errorBuilder: (_, __, ___) => _buildItemFallback(item, accent),
-          )
-        : _buildItemFallback(item, accent);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: Container(
-        width: width,
-        height: height,
-        color: accent.withValues(alpha: 0.12),
-        child: child,
-      ),
-    );
-  }
-
   Widget _buildItemFallback(MarketItemModel item, Color accent) {
     return Center(
       child: Icon(

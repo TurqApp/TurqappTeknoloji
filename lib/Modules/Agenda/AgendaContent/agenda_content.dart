@@ -71,6 +71,8 @@ import 'agenda_content_controller.dart';
 part 'agenda_content_quote_part.dart';
 part 'agenda_content_media_part.dart';
 part 'agenda_content_header_actions_part.dart';
+part 'agenda_content_header_menu_part.dart';
+part 'agenda_content_header_navigation_part.dart';
 part 'agenda_content_body_part.dart';
 
 class AgendaContent extends PostContentBase {

@@ -32,6 +32,8 @@ import 'AgendaContent/agenda_content_controller.dart';
 part 'agenda_controller_feed_part.dart';
 part 'agenda_controller_lifecycle_part.dart';
 part 'agenda_controller_loading_part.dart';
+part 'agenda_controller_loading_cache_part.dart';
+part 'agenda_controller_loading_shuffle_part.dart';
 part 'agenda_controller_playback_part.dart';
 part 'agenda_controller_render_part.dart';
 part 'agenda_controller_reshare_part.dart';
