@@ -222,7 +222,11 @@ class QALabRecorder extends GetxService {
   final RxList<QALabRouteEvent> routes = <QALabRouteEvent>[].obs;
   final RxList<QALabCheckpoint> checkpoints = <QALabCheckpoint>[].obs;
   Timer? _periodicTimer;
+  final Map<String, Timer> _surfaceWatchdogs = <String, Timer>{};
   final Map<String, DateTime> _rateLimitedIssueTimes = <String, DateTime>{};
+  final Set<String> _emittedFindingKeys = <String>{};
+  DateTime? _lastAutoExportAt;
+  bool _autoExportInFlight = false;
 
   @override
   void onInit() {
@@ -245,7 +249,11 @@ class QALabRecorder extends GetxService {
     lastLifecycleState.value = '';
     lastPermissionStatuses.clear();
     _rateLimitedIssueTimes.clear();
+    _emittedFindingKeys.clear();
+    _lastAutoExportAt = null;
+    _autoExportInFlight = false;
     _periodicTimer?.cancel();
+    _cancelAllSurfaceWatchdogs();
     if (QALabMode.periodicSnapshots) {
       _periodicTimer = Timer.periodic(
         Duration(seconds: QALabMode.periodicSnapshotSeconds),
@@ -270,6 +278,7 @@ class QALabRecorder extends GetxService {
   void disposeSession() {
     _periodicTimer?.cancel();
     _periodicTimer = null;
+    _cancelAllSurfaceWatchdogs();
   }
 
   void recordRouteChange({
@@ -545,6 +554,8 @@ class QALabRecorder extends GetxService {
     required String label,
     required String surface,
     Map<String, dynamic> extra = const <String, dynamic>{},
+    bool refreshWatchdogs = true,
+    bool emitSignals = true,
   }) {
     if (!QALabMode.enabled) return;
     if (sessionId.value.isEmpty) {
@@ -566,6 +577,15 @@ class QALabRecorder extends GetxService {
     _trimList(checkpoints, QALabMode.maxCheckpoints);
     lastRoute.value = route;
     lastSurface.value = _inferSurfaceFromSnapshot(snapshot);
+    if (refreshWatchdogs) {
+      _refreshSurfaceWatchdogs(
+        activeSurface: lastSurface.value,
+        snapshot: snapshot,
+      );
+    }
+    if (emitSignals) {
+      _maybeEmitAutoSignals();
+    }
   }
 
   void recordIssue({
@@ -603,6 +623,7 @@ class QALabRecorder extends GetxService {
     _trimList(issues, QALabMode.maxIssues);
     lastRoute.value = route;
     lastSurface.value = surface;
+    _maybeEmitAutoSignals();
   }
 
   int get blockingIssueCount => issues
@@ -969,6 +990,16 @@ class QALabRecorder extends GetxService {
       }
     }
 
+    final autoplayFinding = _buildAutoplaySurfaceFinding(
+      surface: surface,
+      surfaceCheckpoints: surfaceCheckpoints,
+      referenceTime: referenceTime,
+      route: route,
+    );
+    if (autoplayFinding != null) {
+      findings.add(autoplayFinding);
+    }
+
     if (surface == 'feed') {
       final count = _asInt(latestProbe['count']);
       final centeredIndex = _asInt(latestProbe['centeredIndex']);
@@ -1197,6 +1228,8 @@ class QALabRecorder extends GetxService {
       surfaceIssues,
       surfaceCheckpoints,
     );
+    final autoplayFindings =
+        runtimeFindings.where((item) => item.code.contains('autoplay_')).length;
 
     return <String, dynamic>{
       'checkpointCount': surfaceCheckpoints.length,
@@ -1210,8 +1243,103 @@ class QALabRecorder extends GetxService {
       'permissionBlockCount': permissionBlocks,
       'lifecycleInterruptionCount': lifecycleInterruptions,
       'blankSnapshotCount': blankSnapshots,
+      'autoplayFindingCount': autoplayFindings,
       'runtimeFindingCount': runtimeFindings.length,
     };
+  }
+
+  QALabPinpointFinding? _buildAutoplaySurfaceFinding({
+    required String surface,
+    required List<QALabCheckpoint> surfaceCheckpoints,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    if (surface != 'feed' && surface != 'short') {
+      return null;
+    }
+    if (surfaceCheckpoints.isEmpty) {
+      return null;
+    }
+    final latestCheckpoint = surfaceCheckpoints.last;
+    final surfaceProbe =
+        latestCheckpoint.probe[surface] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final authProbe = latestCheckpoint.probe['auth'] as Map<String, dynamic>? ??
+        const <String, dynamic>{};
+    if (!_hasAuthenticatedUser(authProbe)) {
+      return null;
+    }
+
+    final expectedDocId = surface == 'feed'
+        ? (surfaceProbe['centeredDocId'] ?? '').toString()
+        : (surfaceProbe['activeDocId'] ?? '').toString();
+    final count = _asInt(surfaceProbe['count']);
+    if (count <= 0 || expectedDocId.isEmpty) {
+      return null;
+    }
+    if (surface == 'feed') {
+      final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
+      final playbackSuspended = surfaceProbe['playbackSuspended'] == true;
+      final pauseAll = surfaceProbe['pauseAll'] == true;
+      final canClaimPlaybackNow = surfaceProbe['canClaimPlaybackNow'] == true;
+      if (centeredIndex < 0 ||
+          centeredIndex >= count ||
+          playbackSuspended ||
+          pauseAll ||
+          !canClaimPlaybackNow) {
+        return null;
+      }
+    } else {
+      final activeIndex = _asInt(surfaceProbe['activeIndex']);
+      if (activeIndex < 0 || activeIndex >= count) {
+        return null;
+      }
+    }
+
+    final observedSince = _playbackObservationStart(
+      surfaceCheckpoints: surfaceCheckpoints,
+      route: route,
+      surface: surface,
+      expectedDocId: expectedDocId,
+    );
+    final elapsedMs = referenceTime.difference(observedSince).inMilliseconds;
+    if (elapsedMs < QALabMode.autoplayDetectionGraceMs) {
+      return null;
+    }
+
+    final playbackProbe =
+        latestCheckpoint.probe['videoPlayback'] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final currentPlayingDocId =
+        (playbackProbe['currentPlayingDocID'] ?? '').toString();
+    if (currentPlayingDocId == expectedDocId) {
+      return null;
+    }
+    final registeredHandleCount =
+        _asInt(playbackProbe['registeredHandleCount']);
+    final savedStateCount = _asInt(playbackProbe['savedStateCount']);
+    final wrongTarget = currentPlayingDocId.isNotEmpty;
+    return QALabPinpointFinding(
+      severity: registeredHandleCount > 0
+          ? QALabIssueSeverity.error
+          : QALabIssueSeverity.warning,
+      code: wrongTarget
+          ? '${surface}_autoplay_wrong_target'
+          : '${surface}_autoplay_missing',
+      message: wrongTarget
+          ? 'Autoplay on $surface claimed the wrong video after the grace window.'
+          : 'Autoplay on $surface stayed idle after the grace window.',
+      route: route,
+      surface: surface,
+      timestamp: latestCheckpoint.timestamp,
+      context: <String, dynamic>{
+        'expectedDocId': expectedDocId,
+        'currentPlayingDocID': currentPlayingDocId,
+        'registeredHandleCount': registeredHandleCount,
+        'savedStateCount': savedStateCount,
+        'elapsedMs': elapsedMs,
+      },
+    );
   }
 
   List<QALabPinpointFinding> _buildVideoSurfaceFindings({
@@ -1448,6 +1576,7 @@ class QALabRecorder extends GetxService {
       ),
     );
     _trimList(issues, QALabMode.maxIssues);
+    _maybeEmitAutoSignals();
   }
 
   bool _surfaceNeedsMediaPermissions(String surface) {
@@ -1507,6 +1636,109 @@ class QALabRecorder extends GetxService {
 
   bool _isPrioritySurface(String surface) {
     return QALabCatalog.focusSurfaces.contains(surface);
+  }
+
+  void _refreshSurfaceWatchdogs({
+    required String activeSurface,
+    required Map<String, dynamic> snapshot,
+  }) {
+    if (!_isSurfaceAutoplayWatchdog(activeSurface) ||
+        !_shouldTrackSurfaceWatchdog(activeSurface, snapshot)) {
+      _cancelSurfaceWatchdog('feed');
+      _cancelSurfaceWatchdog('short');
+      return;
+    }
+    if (activeSurface == 'feed') {
+      _cancelSurfaceWatchdog('short');
+    } else {
+      _cancelSurfaceWatchdog('feed');
+    }
+    _cancelSurfaceWatchdog(activeSurface);
+    _surfaceWatchdogs[activeSurface] = Timer(
+      Duration(seconds: QALabMode.surfaceWatchdogSeconds),
+      () => _runSurfaceWatchdog(activeSurface),
+    );
+  }
+
+  void _runSurfaceWatchdog(String surface) {
+    _surfaceWatchdogs.remove(surface)?.cancel();
+    if (!QALabMode.enabled) {
+      return;
+    }
+    final snapshot = IntegrationTestStateProbe.snapshot();
+    final currentSurface = _inferSurfaceFromSnapshot(snapshot);
+    if (currentSurface != surface ||
+        !_shouldTrackSurfaceWatchdog(surface, snapshot)) {
+      return;
+    }
+    captureCheckpoint(
+      label: '${surface}_watchdog',
+      surface: surface,
+      extra: <String, dynamic>{
+        'watchdog': true,
+        'watchdogSeconds': QALabMode.surfaceWatchdogSeconds,
+      },
+      refreshWatchdogs: false,
+      emitSignals: true,
+    );
+  }
+
+  bool _isSurfaceAutoplayWatchdog(String surface) {
+    return surface == 'feed' || surface == 'short';
+  }
+
+  bool _shouldTrackSurfaceWatchdog(
+    String surface,
+    Map<String, dynamic> snapshot,
+  ) {
+    final authProbe =
+        snapshot['auth'] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    if (!_hasAuthenticatedUser(authProbe)) {
+      return false;
+    }
+    final surfaceProbe =
+        snapshot[surface] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    final count = _asInt(surfaceProbe['count']);
+    if (surfaceProbe['registered'] != true || count <= 0) {
+      return false;
+    }
+    if (surface == 'feed') {
+      final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
+      return centeredIndex >= 0 &&
+          centeredIndex < count &&
+          surfaceProbe['playbackSuspended'] != true &&
+          surfaceProbe['pauseAll'] != true &&
+          surfaceProbe['canClaimPlaybackNow'] == true &&
+          (surfaceProbe['centeredDocId'] ?? '').toString().isNotEmpty;
+    }
+    final activeIndex = _asInt(surfaceProbe['activeIndex']);
+    return activeIndex >= 0 &&
+        activeIndex < count &&
+        (surfaceProbe['activeDocId'] ?? '').toString().isNotEmpty;
+  }
+
+  DateTime _playbackObservationStart({
+    required List<QALabCheckpoint> surfaceCheckpoints,
+    required String route,
+    required String surface,
+    required String expectedDocId,
+  }) {
+    var observedSince = surfaceCheckpoints.last.timestamp;
+    for (final checkpoint in surfaceCheckpoints.reversed) {
+      if (checkpoint.route != route) {
+        break;
+      }
+      final surfaceProbe = checkpoint.probe[surface] as Map<String, dynamic>? ??
+          const <String, dynamic>{};
+      final docId = surface == 'feed'
+          ? (surfaceProbe['centeredDocId'] ?? '').toString()
+          : (surfaceProbe['activeDocId'] ?? '').toString();
+      if (docId != expectedDocId) {
+        break;
+      }
+      observedSince = checkpoint.timestamp;
+    }
+    return observedSince;
   }
 
   String _videoIdOf(QALabIssue issue) {
@@ -1588,5 +1820,84 @@ class QALabRecorder extends GetxService {
   void _trimList<T>(RxList<T> list, int maxCount) {
     if (list.length <= maxCount) return;
     list.removeRange(0, list.length - maxCount);
+  }
+
+  void _cancelSurfaceWatchdog(String surface) {
+    _surfaceWatchdogs.remove(surface)?.cancel();
+  }
+
+  void _cancelAllSurfaceWatchdogs() {
+    for (final timer in _surfaceWatchdogs.values) {
+      timer.cancel();
+    }
+    _surfaceWatchdogs.clear();
+  }
+
+  void _maybeEmitAutoSignals() {
+    if (!QALabMode.enabled) {
+      return;
+    }
+    var shouldAutoExport = false;
+    for (final finding in buildPinpointFindings()) {
+      final key = [
+        finding.surface,
+        finding.route,
+        finding.code,
+        finding.message,
+      ].join('|');
+      if (!_emittedFindingKeys.add(key)) {
+        continue;
+      }
+      if (QALabMode.autoMarkerLogs) {
+        debugPrint(_formatFindingMarker(finding));
+      }
+      if (_severityRank(finding.severity) >=
+          _severityRank(QALabIssueSeverity.error)) {
+        shouldAutoExport = true;
+      }
+    }
+    if (shouldAutoExport && QALabMode.autoExportFindings) {
+      _scheduleAutoExport();
+    }
+  }
+
+  String _formatFindingMarker(QALabPinpointFinding finding) {
+    return '[QA_LAB][${finding.severity.name.toUpperCase()}]'
+        '[${finding.surface}] ${finding.code} route=${finding.route} '
+        'message=${finding.message}';
+  }
+
+  void _scheduleAutoExport() {
+    if (_autoExportInFlight) {
+      return;
+    }
+    final now = DateTime.now();
+    final previous = _lastAutoExportAt;
+    if (previous != null &&
+        now.difference(previous) < const Duration(seconds: 2)) {
+      return;
+    }
+    _lastAutoExportAt = now;
+    _autoExportInFlight = true;
+    unawaited(
+      exportSessionJson().then((file) {
+        if (QALabMode.autoMarkerLogs) {
+          debugPrint('[QA_LAB][EXPORT] ${file.path}');
+        }
+      }).catchError((Object error, StackTrace stackTrace) {
+        debugPrint(
+          '[QA_LAB][EXPORT_ERROR] ${error.runtimeType}: $error\n$stackTrace',
+        );
+      }).whenComplete(() {
+        _autoExportInFlight = false;
+      }),
+    );
+  }
+
+  @override
+  void onClose() {
+    _periodicTimer?.cancel();
+    _cancelAllSurfaceWatchdogs();
+    super.onClose();
   }
 }

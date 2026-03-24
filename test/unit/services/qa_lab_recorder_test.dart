@@ -162,4 +162,57 @@ void main() {
       isTrue,
     );
   });
+
+  test('qa recorder flags feed autoplay missing after grace window', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': '',
+        'registeredHandleCount': 1,
+        'savedStateCount': 0,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp4',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp5',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_autoplay_missing'),
+      isTrue,
+    );
+  });
 }

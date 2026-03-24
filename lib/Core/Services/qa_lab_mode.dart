@@ -78,4 +78,24 @@ class QALabMode {
     'QA_LAB_NOISE_BURST_WARNING_COUNT',
     defaultValue: 3,
   );
+
+  static const bool autoMarkerLogs = bool.fromEnvironment(
+    'QA_LAB_AUTO_MARKER_LOGS',
+    defaultValue: enabled,
+  );
+
+  static const bool autoExportFindings = bool.fromEnvironment(
+    'QA_LAB_AUTO_EXPORT_FINDINGS',
+    defaultValue: enabled,
+  );
+
+  static const int surfaceWatchdogSeconds = int.fromEnvironment(
+    'QA_LAB_SURFACE_WATCHDOG_SECONDS',
+    defaultValue: 4,
+  );
+
+  static const int autoplayDetectionGraceMs = int.fromEnvironment(
+    'QA_LAB_AUTOPLAY_DETECTION_GRACE_MS',
+    defaultValue: 3500,
+  );
 }
