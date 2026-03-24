@@ -375,6 +375,21 @@ export const onUserNotificationCreate = functions.firestore
         return;
       }
 
+      const canSendPush = await _claimInteractionPushWindow({
+        uid,
+        type,
+        postId: targetDocID,
+        fromUserID,
+      });
+      if (!canSendPush) {
+        console.log("onUserNotificationCreate skip:rate_limited", {
+          uid,
+          type,
+          targetPresent: targetDocID.length > 0,
+        });
+        return;
+      }
+
       const title = String(data.title || "TurqApp");
       const body = String(data.body || _notificationBodyFromType(type));
       const imageUrl = String(data.imageUrl || "");
@@ -741,6 +756,64 @@ const _defaultPushTypes: PushTypeMap = {
   shared_as_posts: true,
   posts: true,
 };
+
+const _interactionPushQuietWindowsMs: Record<string, number> = {
+  like: 30 * 60 * 1000,
+  comment: 2 * 60 * 1000,
+};
+
+function _pushThrottleRef(uid: string) {
+  return db
+    .collection("users")
+    .doc(uid.trim())
+    .collection("_runtime")
+    .doc("pushThrottle");
+}
+
+async function _claimInteractionPushWindow(args: {
+  uid: string;
+  type: string;
+  postId?: string;
+  fromUserID?: string;
+}): Promise<boolean> {
+  const uid = args.uid.trim();
+  const type = String(args.type || "").trim().toLowerCase();
+  const quietWindowMs = _interactionPushQuietWindowsMs[type];
+  if (!uid || !quietWindowMs) return true;
+
+  const ref = _pushThrottleRef(uid);
+  const now = Date.now();
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = (snap.data() || {}) as Record<string, unknown>;
+    const lastSentAt = Number(data[`${type}LastSentAt`] ?? 0);
+    if (lastSentAt > 0 && now - lastSentAt < quietWindowMs) {
+      tx.set(
+        ref,
+        {
+          [`${type}SuppressedCount`]: admin.firestore.FieldValue.increment(1),
+          [`${type}LastSuppressedAt`]: now,
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+      return false;
+    }
+
+    tx.set(
+      ref,
+      {
+        [`${type}LastSentAt`]: now,
+        [`${type}LastPostID`]: String(args.postId || ""),
+        [`${type}LastFromUserID`]: String(args.fromUserID || ""),
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+    return true;
+  });
+}
 
 async function _loadNotificationPushConfig(): Promise<{
   enabled: boolean;
