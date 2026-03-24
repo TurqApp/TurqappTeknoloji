@@ -109,6 +109,20 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       merged[post.docID] = post;
     }
 
+    if (startAfter == null) {
+      final ownPosts = await _postRepository.fetchRecentPostsForAuthors(
+        <String>[normalizedUserId],
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        perAuthorLimit: min(limit, 10),
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      for (final post in ownPosts) {
+        merged.putIfAbsent(post.docID, () => post);
+      }
+    }
+
     final celebIds = await _postRepository.fetchCelebrityAuthorIds(
       <String>{normalizedUserId, ...followingIds}.toList(growable: false),
       preferCache: preferCache,
