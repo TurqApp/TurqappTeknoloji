@@ -25,6 +25,7 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'deneme_sinavlari_content_part.dart';
+part 'deneme_sinavlari_sections_part.dart';
 part 'deneme_sinavlari_shell_part.dart';
 
 class DenemeSinavlari extends StatelessWidget {
