@@ -7,7 +7,6 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import '../JobContent/job_content.dart';
 import 'my_job_ads_controller.dart';
 
-part 'my_job_ads_shell_part.dart';
 part 'my_job_ads_content_part.dart';
 
 class MyJobAds extends StatefulWidget {
@@ -45,7 +44,28 @@ class _MyJobAdsState extends State<MyJobAds> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _buildMyJobAdsBody(),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(15),
+              child: Row(
+                children: [BackButtons(text: "pasaj.job_finder.my_ads".tr)],
+              ),
+            ),
+            PageLineBar(
+              barList: [
+                "pasaj.job_finder.published_tab".tr,
+                "pasaj.job_finder.expired_tab".tr,
+              ],
+              pageName: _pageLineBarTag,
+              pageController: controller.pageController,
+            ),
+            Expanded(child: _buildAdsPageView()),
+          ],
+        ),
+      ),
     );
   }
 }
