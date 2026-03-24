@@ -11,7 +11,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 part 'qa_lab_view_summary_part.dart';
 part 'qa_lab_view_actions_part.dart';
 part 'qa_lab_view_findings_part.dart';
-part 'qa_lab_view_routes_part.dart';
 
 class QALabView extends StatefulWidget {
   const QALabView({super.key});
