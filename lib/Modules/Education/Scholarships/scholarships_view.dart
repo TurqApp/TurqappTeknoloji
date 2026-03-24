@@ -37,6 +37,7 @@ import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
 part 'scholarships_view_body_part.dart';
 part 'scholarships_view_actions_part.dart';
+part 'scholarships_view_user_part.dart';
 
 class ScholarshipsView extends StatefulWidget {
   const ScholarshipsView({
