@@ -4,8 +4,6 @@ import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'ads_preview_screen_lifecycle_part.dart';
-part 'ads_preview_screen_content_part.dart';
 part 'ads_preview_screen_result_part.dart';
 part 'ads_preview_screen_form_part.dart';
 
@@ -29,13 +27,33 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
   @override
   void initState() {
     super.initState();
-    _initLifecycle();
+    _controller = AdsCenterController.ensure();
+    _userId.text = _currentUid;
   }
 
   @override
   void dispose() {
-    _disposeLifecycle();
+    _country.dispose();
+    _city.dispose();
+    _age.dispose();
+    _userId.dispose();
     super.dispose();
+  }
+
+  Widget _buildPage(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(14),
+      children: [
+        Text(
+          'ads_center.delivery_simulation'.tr,
+          style: const TextStyle(fontFamily: 'MontserratBold', fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        _buildPreviewForm(),
+        const SizedBox(height: 16),
+        Obx(_buildPreviewResult),
+      ],
+    );
   }
 
   @override
