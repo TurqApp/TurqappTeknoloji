@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/interests_list.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'interest_controller_data_part.dart';
 part 'interest_controller_actions_part.dart';
 
 class InterestsController extends GetxController {
@@ -37,6 +36,35 @@ class InterestsController extends GetxController {
   bool _selectionLimitShown = false;
 
   String canonicalize(String value) => _canonicalize(value);
+
+  String _norm(String value) {
+    return normalizeSearchText(value).replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  String _canonicalize(String value) {
+    final normalized = _norm(value);
+    for (final item in interestList) {
+      if (_norm(item) == normalized) {
+        return item;
+      }
+    }
+    return value.trim();
+  }
+
+  bool isSelected(String item) {
+    final canonical = _canonicalize(item);
+    return selecteds.any((e) => _canonicalize(e) == canonical);
+  }
+
+  List<String> filterItems(List<String> allItems) {
+    final query = normalizeSearchText(searchText.value);
+    if (query.isEmpty) {
+      return allItems;
+    }
+    return allItems
+        .where((item) => normalizeSearchText(item).contains(query))
+        .toList(growable: false);
+  }
 
   @override
   void onInit() {
