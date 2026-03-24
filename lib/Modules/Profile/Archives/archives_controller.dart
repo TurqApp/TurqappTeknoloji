@@ -8,8 +8,6 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
-part 'archives_controller_lifecycle_part.dart';
-
 class ArchiveController extends GetxController {
   static ArchiveController ensure() {
     final existing = maybeFind();
@@ -153,5 +151,65 @@ class ArchiveController extends GetxController {
     }
     final docId = list[candidateIndex].docID.trim();
     _pendingCenteredDocId = docId.isEmpty ? null : docId;
+  }
+
+  void _onInitArchiveController() {
+    scrollController.addListener(_onScroll);
+    _bindAuth();
+  }
+
+  void _onCloseArchiveController() {
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    _authSub?.cancel();
+  }
+
+  void _onScroll() {
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 300) {
+      fetchData();
+    }
+    if (list.isEmpty) return;
+    if (position.pixels <= 0) {
+      centeredIndex.value = 0;
+      currentVisibleIndex.value = 0;
+      lastCenteredIndex = 0;
+      capturePendingCenteredEntry(preferredIndex: 0);
+      return;
+    }
+    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final nextIndex = (((position.pixels + position.viewportDimension * 0.25) /
+                estimatedItemExtent)
+            .floor())
+        .clamp(0, list.length - 1);
+    if (centeredIndex.value != nextIndex) {
+      if (lastCenteredIndex != null && lastCenteredIndex != nextIndex) {
+        final prevModel = list[lastCenteredIndex!];
+        disposeAgendaContentController(prevModel.docID);
+      }
+      centeredIndex.value = nextIndex;
+      currentVisibleIndex.value = nextIndex;
+      lastCenteredIndex = nextIndex;
+      capturePendingCenteredEntry(preferredIndex: nextIndex);
+    }
+  }
+
+  void _bindAuth() {
+    _authSub = FirebaseAuth.instance.userChanges().listen((user) {
+      final nextUserId = user?.uid;
+      if (_currentUserId != nextUserId) {
+        _currentUserId = nextUserId;
+        list.clear();
+      }
+      if (nextUserId == null) {
+        isLoading.value = false;
+        return;
+      }
+      unawaited(_bootstrapArchive(nextUserId));
+    });
   }
 }
