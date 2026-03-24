@@ -13,6 +13,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'sinav_sonuclari_preview_content_part.dart';
 part 'sinav_sonuclari_preview_questions_part.dart';
+part 'sinav_sonuclari_preview_sections_part.dart';
 
 class SinavSonuclariPreview extends StatefulWidget {
   final SinavModel model;
