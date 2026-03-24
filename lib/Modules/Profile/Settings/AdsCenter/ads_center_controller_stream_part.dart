@@ -1,6 +1,24 @@
 part of 'ads_center_controller.dart';
 
 extension AdsCenterControllerStreamPart on AdsCenterController {
+  Future<void> refreshDashboard() async {
+    if (!canAccess.value) return;
+    try {
+      final metrics = await repository.getDashboardMetrics();
+      dashboard.assignAll(metrics);
+      errorText.value = null;
+    } catch (e) {
+      errorText.value = normalizeAdsCenterError(e);
+    }
+  }
+
+  Future<void> refreshAll() async {
+    loading.value = true;
+    await refreshDashboard();
+    _bindCampaigns();
+    loading.value = false;
+  }
+
   Future<void> _init() async {
     loading.value = true;
     errorText.value = null;
@@ -36,5 +54,23 @@ extension AdsCenterControllerStreamPart on AdsCenterController {
     } finally {
       loading.value = false;
     }
+  }
+
+  void _bindCampaigns() {
+    _campaignSub?.cancel();
+    _campaignSub = repository
+        .watchCampaigns(
+          status: filterStatus.value,
+          placement: filterPlacement.value,
+          includeTest: filterIncludeTest.value,
+        )
+        .listen(
+          campaigns.assignAll,
+          onError: _onStreamError,
+        );
+  }
+
+  void _onStreamError(Object error) {
+    errorText.value = normalizeAdsCenterError(error);
   }
 }
