@@ -18,6 +18,9 @@ part 'sign_in_start_part.dart';
 part 'sign_in_signin_part.dart';
 part 'sign_in_password_reset_part.dart';
 part 'sign_in_signup_part.dart';
+part 'sign_in_signup_identity_part.dart';
+part 'sign_in_signup_profile_part.dart';
+part 'sign_in_signup_otp_part.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({
