@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/qa_lab_catalog.dart';
+import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Services/qa_lab_recorder.dart';
+import 'package:turqappv2/Core/Services/qa_lab_remote_uploader.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'qa_lab_view_summary_part.dart';
@@ -20,11 +22,13 @@ class QALabView extends StatefulWidget {
 
 class _QALabViewState extends State<QALabView> {
   late final QALabRecorder _recorder;
+  late final QALabRemoteUploader _remoteUploader;
 
   @override
   void initState() {
     super.initState();
     _recorder = QALabRecorder.ensure();
+    _remoteUploader = QALabRemoteUploader.ensure();
     if (_recorder.sessionId.value.isEmpty) {
       _recorder.startSession(trigger: 'qa_lab_open');
     }

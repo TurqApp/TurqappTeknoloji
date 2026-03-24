@@ -47,6 +47,26 @@ extension _QALabViewActionsPart on _QALabViewState {
               },
               child: Text('settings.diagnostics.qa_export'.tr),
             ),
+            FilledButton.tonal(
+              onPressed: () async {
+                try {
+                  await _recorder.syncRemoteSummary(
+                    reason: 'manual_cloud_sync',
+                    immediate: true,
+                  );
+                  AppSnackbar(
+                    'common.success'.tr,
+                    'QA Cloud Sync queued',
+                  );
+                } catch (error) {
+                  AppSnackbar(
+                    'common.error'.tr,
+                    'QA Cloud Sync failed: $error',
+                  );
+                }
+              },
+              child: const Text('Cloud Sync'),
+            ),
             OutlinedButton(
               key: const ValueKey<String>(
                 IntegrationTestKeys.actionQaShareReport,

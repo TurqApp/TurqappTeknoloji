@@ -7,6 +7,9 @@ extension _QALabViewSummaryPart on _QALabViewState {
       final nativePlayback = Map<String, dynamic>.from(
         _recorder.lastNativePlaybackSnapshot,
       );
+      final remoteState = _remoteUploader.lastSyncState.value;
+      final remoteError = _remoteUploader.lastSyncError.value;
+      final remoteSyncAt = _remoteUploader.lastSyncedAt.value;
       final nativeErrors =
           (nativePlayback['errors'] as List<dynamic>? ?? const <dynamic>[])
               .map((item) => item.toString())
@@ -38,6 +41,20 @@ extension _QALabViewSummaryPart on _QALabViewState {
               Text(
                 '${'settings.diagnostics.qa_last_export'.tr}: ${_recorder.lastExportPath.value.isEmpty ? '-' : _recorder.lastExportPath.value}',
               ),
+              Text(
+                'remote=${QALabMode.remoteUploadEnabled ? remoteState : "disabled"} '
+                'scope=${QALabMode.remoteUploadScope} '
+                'uploads=${_remoteUploader.uploadCount.value} '
+                'occurrences=${_remoteUploader.uploadedOccurrenceCount.value}',
+              ),
+              Text(
+                'remoteLastSync=${remoteSyncAt == null ? "-" : remoteSyncAt.toUtc().toIso8601String()}',
+              ),
+              if (remoteError.isNotEmpty)
+                Text(
+                  'remoteError=$remoteError',
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
               Text(
                 'lifecycle=${_recorder.lastLifecycleState.value.isEmpty ? "-" : _recorder.lastLifecycleState.value}',
               ),

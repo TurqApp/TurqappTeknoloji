@@ -765,4 +765,120 @@ void main() {
       isFalse,
     );
   });
+
+  test('qa recorder builds remote session document with device context',
+      () async {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp15',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.sessionId.value = 'session-1';
+    recorder.startedAt.value = now.subtract(const Duration(seconds: 15));
+    recorder.lastRoute.value = '/NavBar';
+    recorder.lastSurface.value = 'feed';
+
+    final remote = await recorder.buildRemoteSessionDocument(
+      reason: 'unit_test',
+      extendedDeviceInfoOverride: <String, dynamic>{
+        'package': <String, dynamic>{
+          'appName': 'TurqApp',
+          'packageName': 'com.turqapp.app',
+          'version': '1.1.4',
+          'buildNumber': '14',
+        },
+        'device': <String, dynamic>{
+          'manufacturer': 'Samsung',
+          'model': 'SM-N986B',
+          'sdkInt': 33,
+        },
+      },
+    );
+
+    final device = remote['device'] as Map<String, dynamic>? ??
+        <String, dynamic>{};
+    final surfaces = remote['surfaceSummaries'] as Map<String, dynamic>? ??
+        <String, dynamic>{};
+    final feed = surfaces['feed'] as Map<String, dynamic>? ??
+        <String, dynamic>{};
+
+    expect(remote['sessionId'], 'session-1');
+    expect(device['model'], 'SM-N986B');
+    expect((remote['app'] as Map<String, dynamic>)['packageName'],
+        'com.turqapp.app');
+    expect(feed['latestRoute'], '/NavBar');
+    expect(feed['healthScore'], isNotNull);
+  });
+
+  test('qa recorder builds grouped remote occurrences with stable signature',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.sessionId.value = 'session-2';
+    recorder.startedAt.value = now.subtract(const Duration(seconds: 10));
+    recorder.lastRoute.value = '/NavBar';
+    recorder.lastSurface.value = 'feed';
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp16',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+
+    final occurrences = recorder.buildRemoteIssueOccurrences(
+      sessionDocument: <String, dynamic>{
+        'platform': 'android',
+        'buildMode': 'release',
+        'device': <String, dynamic>{'model': 'SM-N986B'},
+        'app': <String, dynamic>{'version': '1.1.4'},
+      },
+    );
+
+    final feedOccurrence = occurrences.firstWhere(
+      (item) => item['surface'] == 'feed',
+    );
+
+    expect(feedOccurrence['signature'], isNotEmpty);
+    expect(feedOccurrence['occurrenceId'], contains('session-2'));
+    expect(feedOccurrence['route'], '/NavBar');
+    expect(feedOccurrence['summary'], contains('feed'));
+  });
 }

@@ -2054,6 +2054,37 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────
+    // QA TELEMETRY
+    // ──────────────────────────────────────────────
+    match /qa/{scopeId} {
+      allow read: if canManageAdminPanels();
+      allow create, update: if isAuth();
+      allow delete: if false;
+
+      match /sessions/{sessionId} {
+        allow read: if canManageAdminPanels();
+        allow create, update: if isAuth()
+          && request.resource.data.sessionId is string
+          && request.resource.data.sessionId == sessionId;
+        allow delete: if false;
+      }
+
+      match /issues/{signature} {
+        allow read: if canManageAdminPanels();
+        allow create, update: if isAuth();
+        allow delete: if false;
+
+        match /occurrences/{occurrenceId} {
+          allow read: if canManageAdminPanels();
+          allow create, update: if isAuth()
+            && request.resource.data.occurrenceId is string
+            && request.resource.data.occurrenceId == occurrenceId;
+          allow delete: if false;
+        }
+      }
+    }
+
+    // ──────────────────────────────────────────────
     // MISCELLANEOUS
     // ──────────────────────────────────────────────
     match /Hashtags/{docId} {

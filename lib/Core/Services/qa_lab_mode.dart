@@ -94,6 +94,36 @@ class QALabMode {
     defaultValue: enabled,
   );
 
+  static const bool remoteUploadEnabled = bool.fromEnvironment(
+    'QA_LAB_REMOTE_UPLOAD',
+    defaultValue: enabled,
+  );
+
+  static const String remoteCollectionName = String.fromEnvironment(
+    'QA_LAB_REMOTE_COLLECTION',
+    defaultValue: 'qa',
+  );
+
+  static const String remoteUploadScope = String.fromEnvironment(
+    'QA_LAB_REMOTE_SCOPE',
+    defaultValue: 'live',
+  );
+
+  static const int remoteUploadDebounceMs = int.fromEnvironment(
+    'QA_LAB_REMOTE_UPLOAD_DEBOUNCE_MS',
+    defaultValue: 2500,
+  );
+
+  static const int remoteUploadMaxFindings = int.fromEnvironment(
+    'QA_LAB_REMOTE_UPLOAD_MAX_FINDINGS',
+    defaultValue: 16,
+  );
+
+  static const int remoteUploadMaxTimelineEvents = int.fromEnvironment(
+    'QA_LAB_REMOTE_UPLOAD_MAX_TIMELINE',
+    defaultValue: 8,
+  );
+
   static const int surfaceWatchdogSeconds = int.fromEnvironment(
     'QA_LAB_SURFACE_WATCHDOG_SECONDS',
     defaultValue: 4,
