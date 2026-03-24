@@ -12,6 +12,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
+import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 import 'package:turqappv2/Core/Localization/app_translations.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
@@ -43,7 +44,9 @@ Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ensureQALabIfEnabled();
-  WidgetsBinding.instance.addTimingsCallback(recordQALabFrameTimings);
+  if (QALabMode.enabled && !IntegrationTestMode.enabled) {
+    WidgetsBinding.instance.addTimingsCallback(recordQALabFrameTimings);
+  }
   ErrorWidget.builder = (FlutterErrorDetails details) {
     _reportStartupFallbackError(details);
     return Material(
