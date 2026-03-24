@@ -54,7 +54,8 @@ extension _QALabViewSummaryPart on _QALabViewState {
                     '${item.surface} • health ${item.healthScore} • '
                     'blocking=${item.blockingCount} error=${item.errorCount} '
                     'route=${item.latestRoute.isEmpty ? "-" : item.latestRoute}\n'
-                    '${item.headlineCode}: ${item.headlineMessage}',
+                    '${item.headlineCode}: ${item.headlineMessage}\n'
+                    'rootCause=${item.primaryRootCauseCategory} • ${item.primaryRootCauseDetail}',
                   ),
                 ),
               ],

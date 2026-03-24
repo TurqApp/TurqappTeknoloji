@@ -209,6 +209,8 @@ class QALabSurfaceAlertSummary {
     required this.findingCount,
     required this.headlineCode,
     required this.headlineMessage,
+    required this.primaryRootCauseCategory,
+    required this.primaryRootCauseDetail,
   });
 
   final String surface;
@@ -220,6 +222,8 @@ class QALabSurfaceAlertSummary {
   final int findingCount;
   final String headlineCode;
   final String headlineMessage;
+  final String primaryRootCauseCategory;
+  final String primaryRootCauseDetail;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -232,6 +236,8 @@ class QALabSurfaceAlertSummary {
       'findingCount': findingCount,
       'headlineCode': headlineCode,
       'headlineMessage': headlineMessage,
+      'primaryRootCauseCategory': primaryRootCauseCategory,
+      'primaryRootCauseDetail': primaryRootCauseDetail,
     };
   }
 }
@@ -753,6 +759,8 @@ class QALabRecorder extends GetxService {
               (diagnostic.coverage.complete
                   ? '${diagnostic.surface} surface has low health without a pinpoint finding.'
                   : '${diagnostic.surface} surface still has QA coverage gaps.');
+          final rootCause =
+              _inferPrimaryRootCause(diagnostic, surfaceFindings, headlineCode);
           return QALabSurfaceAlertSummary(
             surface: diagnostic.surface,
             latestRoute: diagnostic.latestRoute,
@@ -763,6 +771,8 @@ class QALabRecorder extends GetxService {
             findingCount: surfaceFindings.length,
             headlineCode: headlineCode,
             headlineMessage: headlineMessage,
+            primaryRootCauseCategory: rootCause.$1,
+            primaryRootCauseDetail: rootCause.$2,
           );
         })
         .whereType<QALabSurfaceAlertSummary>()
@@ -1892,6 +1902,100 @@ class QALabRecorder extends GetxService {
       return severityCompare;
     }
     return a.surface.compareTo(b.surface);
+  }
+
+  (String, String) _inferPrimaryRootCause(
+    QALabSurfaceDiagnostic diagnostic,
+    List<QALabPinpointFinding> findings,
+    String headlineCode,
+  ) {
+    final runtime = diagnostic.runtime;
+    final code = headlineCode.trim().toLowerCase();
+
+    if (code.contains('blank_surface')) {
+      return (
+        'data_absent',
+        '${diagnostic.surface} loaded as an empty authenticated surface.',
+      );
+    }
+    if (code.contains('autoplay') || code.contains('playback_gate')) {
+      return (
+        'autoplay_dispatch',
+        '${diagnostic.surface} had eligible content but autoplay did not lock onto the expected video.',
+      );
+    }
+    if (code.contains('first_frame')) {
+      return (
+        'first_frame_latency',
+        '${diagnostic.surface} started playback but first frame confirmation lagged or never arrived.',
+      );
+    }
+    if (code.contains('buffer_stall') || code.contains('rebuffer')) {
+      return (
+        'buffering_instability',
+        '${diagnostic.surface} playback spent too long buffering or repeatedly rebuffered.',
+      );
+    }
+    if (code.contains('cache_live_failures') ||
+        (runtime['cacheFailureCount'] as int? ?? 0) > 0) {
+      return (
+        'cache_live_sync',
+        '${diagnostic.surface} cache-first flow preserved stale state or failed to refresh live data.',
+      );
+    }
+    if (code.contains('permission')) {
+      return (
+        'permission_block',
+        '${diagnostic.surface} is blocked by OS-level permission state.',
+      );
+    }
+    if (code.contains('jank') || code.contains('noise_burst')) {
+      return (
+        'runtime_noise',
+        '${diagnostic.surface} accumulated frame jank or suppressed runtime noise.',
+      );
+    }
+    if (code.contains('lifecycle')) {
+      return (
+        'lifecycle_interruption',
+        '${diagnostic.surface} was interrupted by app lifecycle transitions.',
+      );
+    }
+    if (code.contains('route_resolution')) {
+      return (
+        'route_resolution',
+        '${diagnostic.surface} opened without completing target route resolution.',
+      );
+    }
+    if (code.contains('media_failure')) {
+      return (
+        'media_pipeline',
+        '${diagnostic.surface} reported a media pipeline failure.',
+      );
+    }
+    if (code == 'coverage_gap') {
+      return (
+        'coverage_gap',
+        '${diagnostic.surface} still has missing QA coverage tags.',
+      );
+    }
+
+    final blockingCount = findings
+        .where((item) => item.severity == QALabIssueSeverity.blocking)
+        .length;
+    final errorCount = findings
+        .where((item) => item.severity == QALabIssueSeverity.error)
+        .length;
+    if (blockingCount > 0 || errorCount > 0) {
+      return (
+        'runtime_regression',
+        '${diagnostic.surface} has high-severity findings without a specialized root-cause mapping yet.',
+      );
+    }
+    return (
+      'observation_only',
+      '${diagnostic.surface} is degraded, but only low-severity observations are present so far.',
+    );
   }
 
   List<QALabPinpointFinding> _dedupeFindings(

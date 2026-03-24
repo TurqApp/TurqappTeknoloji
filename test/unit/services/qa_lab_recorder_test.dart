@@ -273,5 +273,60 @@ void main() {
     expect(summaries.first.surface, 'feed');
     expect(summaries.first.blockingCount, greaterThan(0));
     expect(summaries.first.headlineCode, 'feed_blank_surface');
+    expect(summaries.first.primaryRootCauseCategory, 'data_absent');
+    expect(summaries.first.primaryRootCauseDetail, contains('empty'));
+  });
+
+  test('qa recorder maps autoplay findings to autoplay root cause', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': '',
+        'registeredHandleCount': 1,
+        'savedStateCount': 0,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp8',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp9',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+
+    final summaries = recorder.buildSurfaceAlertSummaries();
+    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
+
+    expect(feedSummary.headlineCode, 'feed_autoplay_missing');
+    expect(feedSummary.primaryRootCauseCategory, 'autoplay_dispatch');
+    expect(feedSummary.primaryRootCauseDetail, contains('autoplay'));
   });
 }
