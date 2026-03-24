@@ -6,7 +6,6 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sin
 import 'package:turqappv2/Modules/Education/PracticeExams/SoruContent/soru_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
-part 'sinav_sorusu_hazirla_shell_part.dart';
 part 'sinav_sorusu_hazirla_question_part.dart';
 
 class SinavSorusuHazirla extends StatefulWidget {
@@ -67,5 +66,21 @@ class _SinavSorusuHazirlaState extends State<SinavSorusuHazirla> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: _buildSinavSorusuHazirlaBody());
+  }
+
+  Widget _buildSinavSorusuHazirlaBody() {
+    return SafeArea(
+      bottom: false,
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              BackButtons(text: 'tests.prepare_questions'.tr),
+              Expanded(child: _buildSinavSorusuHazirlaContent()),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
