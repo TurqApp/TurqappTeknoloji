@@ -10,7 +10,6 @@ import 'package:turqappv2/Core/Utils/phone_utils.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'editor_phone_number_controller_data_part.dart';
 part 'editor_phone_number_controller_actions_part.dart';
 
 class EditorPhoneNumberController extends GetxController {
@@ -43,6 +42,47 @@ class EditorPhoneNumberController extends GetxController {
   String get _currentUid => _userService.effectiveUserId;
 
   Timer? _timer;
+
+  void _seedFromCurrentUser() {
+    final currentUser = _userService.currentUser;
+    if (currentUser == null) return;
+    final phone = currentUser.phoneNumber.trim();
+    if (phone.isEmpty) return;
+    phoneController.text = phone;
+    phoneValue.value = phone;
+  }
+
+  Future<void> _loadInitialPhone() async {
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
+    final data = await _userRepository.getUserRaw(
+      uid,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    final rawPhone = (data ?? const {})["phoneNumber"]?.toString().trim() ?? "";
+    if (rawPhone.isNotEmpty) {
+      phoneController.text = rawPhone;
+      phoneValue.value = rawPhone;
+    }
+  }
+
+  Future<String> _resolveAccountEmail() async {
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) return "";
+
+    final authEmail = normalizeEmailAddress(current.email);
+    if (authEmail.isNotEmpty) return authEmail;
+
+    final currentUserEmail =
+        normalizeEmailAddress(_userService.currentUser?.email);
+    if (currentUserEmail.isNotEmpty) return currentUserEmail;
+
+    final data = await _userRepository.getUserRaw(current.uid);
+    return normalizeEmailAddress(
+      (((data ?? const {})["email"]) ?? "").toString(),
+    );
+  }
 
   @override
   void onInit() {
