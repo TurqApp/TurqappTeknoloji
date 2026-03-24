@@ -70,7 +70,6 @@ part 'settings_sections_account_part.dart';
 part 'settings_sections_session_part.dart';
 part 'settings_sections_tasks_part.dart';
 part 'settings_diagnostics_actions_part.dart';
-part 'settings_diagnostics_cache_part.dart';
 part 'settings_diagnostics_detail_part.dart';
 part 'settings_diagnostics_menu_part.dart';
 part 'settings_diagnostics_usage_part.dart';
