@@ -10,6 +10,8 @@ extension JobFinderControllerSheetPart on JobFinderController {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return SafeArea(
+          top: false,
+          bottom: false,
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -55,7 +57,6 @@ extension JobFinderControllerSheetPart on JobFinderController {
     final types = [
       "Tam Zamanlı",
       "Yarı Zamanlı",
-      "Part-Time",
       "Uzaktan",
       "Hibrit",
     ];
@@ -111,10 +112,16 @@ extension JobFinderControllerSheetPart on JobFinderController {
                         final normalizedSelectedType = normalizeSearchText(
                           selectedType.value,
                         );
+                        final normalizedTypeAliases = <String>{
+                          normalizedSelectedType,
+                          if (normalizedSelectedType ==
+                              normalizeSearchText('Yarı Zamanlı'))
+                            normalizeSearchText('Part-Time'),
+                        };
                         final matchType = selectedType.value.isEmpty ||
                             job.calismaTuru
                                 .map(normalizeSearchText)
-                                .contains(normalizedSelectedType);
+                                .any(normalizedTypeAliases.contains);
                         return matchCity && matchType;
                       }).toList();
 
