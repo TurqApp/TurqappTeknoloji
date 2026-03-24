@@ -10,7 +10,6 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'follower_content_view_part.dart';
-part 'follower_content_actions_part.dart';
 
 class FollowerContent extends StatefulWidget {
   final String userID;
