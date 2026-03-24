@@ -177,6 +177,10 @@ async function ensurePostsCollection() {
                 { name: "locationCity", type: "string", optional: true },
                 { name: "originalPostID", type: "string", optional: true },
                 { name: "originalUserID", type: "string", optional: true },
+                { name: "ctaLabel", type: "string", optional: true },
+                { name: "ctaUrl", type: "string", optional: true },
+                { name: "ctaType", type: "string", optional: true },
+                { name: "ctaDocId", type: "string", optional: true },
                 { name: "quotedPost", type: "bool", optional: true },
                 { name: "mainFlood", type: "string", optional: true },
                 { name: "contentType", type: "string", optional: true },
@@ -229,6 +233,10 @@ async function ensurePostsCollection() {
                 { name: "locationCity", type: "string", optional: true },
                 { name: "originalPostID", type: "string", optional: true },
                 { name: "originalUserID", type: "string", optional: true },
+                { name: "ctaLabel", type: "string", optional: true },
+                { name: "ctaUrl", type: "string", optional: true },
+                { name: "ctaType", type: "string", optional: true },
+                { name: "ctaDocId", type: "string", optional: true },
                 { name: "quotedPost", type: "bool", optional: true },
                 { name: "mainFlood", type: "string", optional: true },
                 { name: "contentType", type: "string", optional: true },
@@ -365,6 +373,7 @@ async function ensureTagsCollection() {
 }
 function buildSearchDoc(postId, data) {
     const analysis = data.analysis || {};
+    const reshareMap = data.reshareMap || {};
     const stats = data.stats || {};
     const paylas = Number(data.paylasGizliligi);
     const paylasGizliligi = Number.isFinite(paylas) ? paylas : 0;
@@ -444,6 +453,10 @@ function buildSearchDoc(postId, data) {
         locationCity: asString(data.locationCity) || asString(data.konum),
         originalPostID: asString(data.originalPostID),
         originalUserID: asString(data.originalUserID),
+        ctaLabel: asString(reshareMap.ctaLabel),
+        ctaUrl: asString(reshareMap.ctaUrl),
+        ctaType: asString(reshareMap.ctaType),
+        ctaDocId: asString(reshareMap.ctaDocId),
         quotedPost: asBool(data.quotedPost),
         mainFlood: asString(data.mainFlood),
         contentType,
