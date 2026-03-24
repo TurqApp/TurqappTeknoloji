@@ -4,6 +4,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
   Widget buildContent(BuildContext context) {
     final ScholarshipDetailController controller =
         ScholarshipDetailController.ensure();
+    final double feedLikeBodyFontSize =
+        Theme.of(context).platform == TargetPlatform.iOS ? 14 : 13;
 
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData == null || scholarshipData['model'] == null) {
@@ -240,12 +242,12 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                 ScholarshipRichText.build(
                                   model.aciklama,
                                   baseStyle: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: feedLikeBodyFontSize,
                                     fontFamily: "Montserrat",
                                   ),
                                 ),
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: feedLikeBodyFontSize,
                                   fontFamily: "Montserrat",
                                 ),
                               ),
