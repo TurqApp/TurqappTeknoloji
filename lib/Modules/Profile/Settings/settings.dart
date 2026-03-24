@@ -74,7 +74,6 @@ part 'settings_diagnostics_cache_part.dart';
 part 'settings_diagnostics_detail_part.dart';
 part 'settings_diagnostics_menu_part.dart';
 part 'settings_diagnostics_usage_part.dart';
-part 'settings_admin_push_menu_tile_part.dart';
 part 'settings_shell_helpers_part.dart';
 
 class SettingsView extends StatefulWidget {
