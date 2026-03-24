@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
-part 'support_admin_view_actions_part.dart';
 part 'support_admin_view_content_part.dart';
 
 class SupportAdminView extends StatefulWidget {
