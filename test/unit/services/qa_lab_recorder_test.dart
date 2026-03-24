@@ -215,4 +215,63 @@ void main() {
       isTrue,
     );
   });
+
+  test('qa recorder builds surface alert summaries with blockers first', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp6',
+        label: 'feed_loaded',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+      QALabCheckpoint(
+        id: 'cp7',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'short': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'activeIndex': 1,
+            'activeDocId': 'short-2',
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': '',
+            'registeredHandleCount': 0,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+    ]);
+
+    final summaries = recorder.buildSurfaceAlertSummaries();
+
+    expect(summaries, isNotEmpty);
+    expect(summaries.first.surface, 'feed');
+    expect(summaries.first.blockingCount, greaterThan(0));
+    expect(summaries.first.headlineCode, 'feed_blank_surface');
+  });
 }

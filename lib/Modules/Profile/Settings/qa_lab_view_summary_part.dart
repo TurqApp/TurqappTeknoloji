@@ -3,6 +3,7 @@ part of 'qa_lab_view.dart';
 extension _QALabViewSummaryPart on _QALabViewState {
   Widget _buildSummaryCard() {
     return Obx(() {
+      final topAlerts = _recorder.buildSurfaceAlertSummaries().take(3).toList();
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -42,6 +43,21 @@ extension _QALabViewSummaryPart on _QALabViewState {
               Text(
                 'routes=${_recorder.routes.length} checkpoints=${_recorder.checkpoints.length}',
               ),
+              if (topAlerts.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'critical now',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                ...topAlerts.map(
+                  (item) => Text(
+                    '${item.surface} • health ${item.healthScore} • '
+                    'blocking=${item.blockingCount} error=${item.errorCount} '
+                    'route=${item.latestRoute.isEmpty ? "-" : item.latestRoute}\n'
+                    '${item.headlineCode}: ${item.headlineMessage}',
+                  ),
+                ),
+              ],
             ],
           ),
         ),

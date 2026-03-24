@@ -198,6 +198,44 @@ class QALabSurfaceDiagnostic {
   }
 }
 
+class QALabSurfaceAlertSummary {
+  const QALabSurfaceAlertSummary({
+    required this.surface,
+    required this.latestRoute,
+    required this.healthScore,
+    required this.blockingCount,
+    required this.errorCount,
+    required this.warningCount,
+    required this.findingCount,
+    required this.headlineCode,
+    required this.headlineMessage,
+  });
+
+  final String surface;
+  final String latestRoute;
+  final int healthScore;
+  final int blockingCount;
+  final int errorCount;
+  final int warningCount;
+  final int findingCount;
+  final String headlineCode;
+  final String headlineMessage;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'surface': surface,
+      'latestRoute': latestRoute,
+      'healthScore': healthScore,
+      'blockingCount': blockingCount,
+      'errorCount': errorCount,
+      'warningCount': warningCount,
+      'findingCount': findingCount,
+      'headlineCode': headlineCode,
+      'headlineMessage': headlineMessage,
+    };
+  }
+}
+
 class QALabRecorder extends GetxService {
   static QALabRecorder ensure() {
     final existing = maybeFind();
@@ -677,6 +715,62 @@ class QALabRecorder extends GetxService {
         .toList(growable: false);
   }
 
+  List<QALabSurfaceAlertSummary> buildSurfaceAlertSummaries() {
+    final diagnostics = buildFocusSurfaceDiagnostics();
+    final findings = buildPinpointFindings();
+    final findingsBySurface = <String, List<QALabPinpointFinding>>{};
+    for (final finding in findings) {
+      findingsBySurface
+          .putIfAbsent(finding.surface, () => <QALabPinpointFinding>[])
+          .add(finding);
+    }
+
+    final summaries = diagnostics
+        .map((diagnostic) {
+          final surfaceFindings =
+              findingsBySurface[diagnostic.surface] ?? const [];
+          if (surfaceFindings.isEmpty &&
+              diagnostic.healthScore == 100 &&
+              diagnostic.coverage.complete) {
+            return null;
+          }
+          final blockingCount = surfaceFindings
+              .where((item) => item.severity == QALabIssueSeverity.blocking)
+              .length;
+          final errorCount = surfaceFindings
+              .where((item) => item.severity == QALabIssueSeverity.error)
+              .length;
+          final warningCount = surfaceFindings
+              .where((item) => item.severity == QALabIssueSeverity.warning)
+              .length;
+          final headline =
+              surfaceFindings.isEmpty ? null : surfaceFindings.first;
+          final headlineCode = headline?.code ??
+              (diagnostic.coverage.complete
+                  ? 'surface_attention'
+                  : 'coverage_gap');
+          final headlineMessage = headline?.message ??
+              (diagnostic.coverage.complete
+                  ? '${diagnostic.surface} surface has low health without a pinpoint finding.'
+                  : '${diagnostic.surface} surface still has QA coverage gaps.');
+          return QALabSurfaceAlertSummary(
+            surface: diagnostic.surface,
+            latestRoute: diagnostic.latestRoute,
+            healthScore: diagnostic.healthScore,
+            blockingCount: blockingCount,
+            errorCount: errorCount,
+            warningCount: warningCount,
+            findingCount: surfaceFindings.length,
+            headlineCode: headlineCode,
+            headlineMessage: headlineMessage,
+          );
+        })
+        .whereType<QALabSurfaceAlertSummary>()
+        .toList(growable: false);
+    summaries.sort(_compareSurfaceAlertSummaries);
+    return summaries;
+  }
+
   Map<String, dynamic> buildExportJson() {
     final currentSnapshot = IntegrationTestStateProbe.snapshot();
     final playbackKpi = PlaybackKpiService.maybeFind();
@@ -690,6 +784,7 @@ class QALabRecorder extends GetxService {
             : TelemetryThresholdPolicyAdapter.evaluateKpiService(playbackKpi)
                 .toJson());
     final surfaceDiagnostics = buildFocusSurfaceDiagnostics();
+    final surfaceAlerts = buildSurfaceAlertSummaries();
 
     return <String, dynamic>{
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -715,6 +810,16 @@ class QALabRecorder extends GetxService {
         'entries': QALabCatalog.entries
             .map((entry) => entry.toJson())
             .toList(growable: false),
+      },
+      'executiveSummary': <String, dynamic>{
+        'blockingSurfaceCount':
+            surfaceAlerts.where((item) => item.blockingCount > 0).length,
+        'errorSurfaceCount':
+            surfaceAlerts.where((item) => item.errorCount > 0).length,
+        'warningSurfaceCount':
+            surfaceAlerts.where((item) => item.warningCount > 0).length,
+        'topSurfaceAlerts':
+            surfaceAlerts.take(8).map((item) => item.toJson()).toList(),
       },
       'device': _deviceInfoSnapshot(),
       'permissions': Map<String, String>.from(lastPermissionStatuses),
@@ -1769,6 +1874,24 @@ class QALabRecorder extends GetxService {
       case QALabIssueSeverity.info:
         return 1;
     }
+  }
+
+  int _compareSurfaceAlertSummaries(
+    QALabSurfaceAlertSummary a,
+    QALabSurfaceAlertSummary b,
+  ) {
+    final severityCompare = ((b.blockingCount * 1000) +
+            (b.errorCount * 100) +
+            (b.warningCount * 10) +
+            (100 - b.healthScore)) -
+        ((a.blockingCount * 1000) +
+            (a.errorCount * 100) +
+            (a.warningCount * 10) +
+            (100 - a.healthScore));
+    if (severityCompare != 0) {
+      return severityCompare;
+    }
+    return a.surface.compareTo(b.surface);
   }
 
   List<QALabPinpointFinding> _dedupeFindings(
