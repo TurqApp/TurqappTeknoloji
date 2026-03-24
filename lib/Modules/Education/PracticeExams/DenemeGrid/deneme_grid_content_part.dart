@@ -132,4 +132,57 @@ extension _DenemeGridContentPart on DenemeGrid {
       ),
     );
   }
+
+  String _formattedApplicationText(int count) {
+    final scaled = count * 3;
+    String value;
+    if (scaled / 1000000 > 1) {
+      value = '${(scaled / 1000000).toStringAsFixed(2)}M';
+    } else if (scaled / 1000 > 1) {
+      value = '${(scaled / 1000).toStringAsFixed(1)}B';
+    } else {
+      value = '$scaled';
+    }
+    return '${'practice.application_count'.tr}: $value';
+  }
+
+  Color _ctaColor(DenemeGridController controller) {
+    if (_isOwner) {
+      return Colors.indigo;
+    }
+    if (controller.currentTime.value <
+        controller.examTime.value - controller.fifteenMinutes) {
+      return Colors.green;
+    }
+    if (controller.currentTime.value >=
+            controller.examTime.value - controller.fifteenMinutes &&
+        controller.currentTime.value < controller.examTime.value) {
+      return Colors.purple;
+    }
+    if (controller.currentTime.value >= controller.examTime.value &&
+        controller.currentTime.value < model.bitis) {
+      return Colors.black;
+    }
+    return Colors.pink;
+  }
+
+  String _ctaLabel(DenemeGridController controller) {
+    if (_isOwner) {
+      return 'common.view'.tr;
+    }
+    if (controller.currentTime.value <
+        controller.examTime.value - controller.fifteenMinutes) {
+      return 'practice.apply_now'.tr;
+    }
+    if (controller.currentTime.value >=
+            controller.examTime.value - controller.fifteenMinutes &&
+        controller.currentTime.value < controller.examTime.value) {
+      return 'scholarship.closed'.tr;
+    }
+    if (controller.currentTime.value >= controller.examTime.value &&
+        controller.currentTime.value < model.bitis) {
+      return 'practice.started'.tr;
+    }
+    return 'practice.start_now'.tr;
+  }
 }
