@@ -25,7 +25,6 @@ import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'profile_controller_header_part.dart';
 part 'profile_controller_account_part.dart';
-part 'profile_controller_reshare_part.dart';
 part 'profile_controller_primary_part.dart';
 part 'profile_controller_cache_part.dart';
 part 'profile_controller_lifecycle_part.dart';
