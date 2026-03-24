@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'qa_lab_view_summary_part.dart';
 part 'qa_lab_view_actions_part.dart';
+part 'qa_lab_view_routes_part.dart';
 
 class QALabView extends StatefulWidget {
   const QALabView({super.key});
@@ -217,40 +218,6 @@ class _QALabViewState extends State<QALabView> {
                     'permBlocks=${item.runtime['permissionBlockCount'] ?? 0} '
                     'findings=${item.findings.length}',
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  Widget _buildRoutesCard() {
-    return Obx(() {
-      final items = _recorder.routes.reversed.take(20).toList(growable: false);
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'settings.diagnostics.qa_routes'.tr,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (items.isEmpty) Text('settings.diagnostics.qa_no_routes'.tr),
-              ...items.map(
-                (item) => ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(CupertinoIcons.arrow_right_arrow_left),
-                  title: Text(item.current),
-                  subtitle: Text('${item.previous} • ${item.surface}'),
                 ),
               ),
             ],
