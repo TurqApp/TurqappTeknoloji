@@ -5,9 +5,6 @@ import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
-part 'lesson_based_tests_controller_bootstrap_part.dart';
-part 'lesson_based_tests_controller_data_part.dart';
-
 class LessonBasedTestsController extends GetxController {
   static LessonBasedTestsController ensure(
     String testTuru, {
@@ -41,5 +38,48 @@ class LessonBasedTestsController extends GetxController {
   void onInit() {
     super.onInit();
     _handleControllerInit();
+  }
+
+  void _handleControllerInit() {
+    unawaited(_bootstrapData());
+  }
+
+  Future<void> _bootstrapData() async {
+    final cached = await _testRepository.fetchByType(
+      testTuru,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      list.assignAll(cached);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:type:$testTuru',
+        minInterval: LessonBasedTestsController._silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
+    try {
+      final items = await _testRepository.fetchByType(
+        testTuru,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      list.assignAll(items);
+      SilentRefreshGate.markRefreshed('tests:type:$testTuru');
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
