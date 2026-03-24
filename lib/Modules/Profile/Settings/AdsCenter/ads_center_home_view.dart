@@ -9,9 +9,6 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_dashboard_view.
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_delivery_monitor_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_preview_screen.dart';
 
-part 'ads_center_home_view_appbar_part.dart';
-part 'ads_center_home_view_tabs_part.dart';
-
 class AdsCenterHomeView extends StatefulWidget {
   const AdsCenterHomeView({super.key});
 
@@ -89,6 +86,50 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
           ],
         ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leadingWidth: 52,
+      titleSpacing: 8,
+      leading: const AppBackButton(icon: Icons.arrow_back),
+      title: AppPageTitle('ads_center.title'.tr, fontSize: 18),
+      bottom: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: Colors.black,
+        indicatorColor: Colors.black,
+        labelStyle: const TextStyle(
+          fontFamily: 'MontserratMedium',
+          fontSize: 13,
+        ),
+        tabs: [
+          Tab(text: 'ads_center.tab_dashboard'.tr),
+          Tab(text: 'ads_center.tab_campaigns'.tr),
+          Tab(text: 'ads_center.tab_editor'.tr),
+          Tab(text: 'ads_center.tab_creatives'.tr),
+          Tab(text: 'ads_center.tab_monitor'.tr),
+          Tab(text: 'ads_center.tab_preview'.tr),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabs() {
+    return TabBarView(
+      controller: _tabController,
+      children: const [
+        AdsDashboardView(),
+        AdsCampaignListView(),
+        AdsCampaignEditorView(),
+        AdsCreativeReviewView(),
+        AdsDeliveryMonitorView(),
+        AdsPreviewScreen(),
+      ],
     );
   }
 
