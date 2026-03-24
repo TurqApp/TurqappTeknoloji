@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Tests/MyTestResults/my_test_results_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestPastResultContent/test_past_result_content.dart';
 
-part 'my_test_results_shell_part.dart';
 part 'my_test_results_content_part.dart';
 
 class MyTestResults extends StatefulWidget {
@@ -46,5 +45,26 @@ class _MyTestResultsState extends State<MyTestResults> {
   @override
   Widget build(BuildContext context) {
     return _buildPage();
+  }
+
+  Widget _buildPage() {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'tests.results_title'.tr),
+            Expanded(
+              child: RefreshIndicator(
+                color: Colors.white,
+                backgroundColor: Colors.black,
+                onRefresh: controller.findAndGetTestler,
+                child: Obx(() => _buildContent()),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
