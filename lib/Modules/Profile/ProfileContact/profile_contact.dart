@@ -5,7 +5,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Modules/Profile/ProfileContact/profile_contant_controller.dart';
 
-part 'profile_contact_shell_part.dart';
 part 'profile_contact_content_part.dart';
 
 class ProfileContact extends StatefulWidget {
@@ -48,5 +47,30 @@ class _ProfileContactState extends State<ProfileContact> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'profile_contact.title'.tr),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Column(
+                    children: [
+                      _buildCallVisibilityTile(),
+                      const SizedBox(height: 12),
+                      _buildEmailVisibilityTile(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
