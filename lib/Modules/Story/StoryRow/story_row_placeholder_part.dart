@@ -10,14 +10,20 @@ class StoryRowPlaceholder extends StatefulWidget {
 class _StoryRowPlaceholderState extends State<StoryRowPlaceholder>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat();
+      duration: const Duration(milliseconds: 1800),
+      reverseDuration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _opacity = CurvedAnimation(
+      parent: _ctrl,
+      curve: Curves.easeInOut,
+    ).drive(Tween<double>(begin: 0.76, end: 1.0));
   }
 
   @override
@@ -29,24 +35,21 @@ class _StoryRowPlaceholderState extends State<StoryRowPlaceholder>
   @override
   Widget build(BuildContext context) {
     final items = List.generate(6, (i) => i);
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) {
-        final t = _ctrl.value;
-        return ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: index == 0 ? StoryRow._storyRowLeadingPadding : 0,
-                right: StoryRow._storyRowItemSpacing,
-              ),
-              child: _ShimmerCircle(progress: t, index: index),
-            );
-          },
-        );
-      },
+    return FadeTransition(
+      opacity: _opacity,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: index == 0 ? StoryRow._storyRowLeadingPadding : 0,
+              right: StoryRow._storyRowItemSpacing,
+            ),
+            child: _ShimmerCircle(progress: 0.35, index: index),
+          );
+        },
+      ),
     );
   }
 }

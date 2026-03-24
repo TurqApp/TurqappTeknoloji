@@ -13,17 +13,15 @@ extension _FollowingFollowersShellPart on _FollowingFollowersState {
                 Obx(
                   () => BackButtons(text: controller.nickname.value),
                 ),
-                Obx(() {
-                  return PageLineBar(
-                    barList: [
-                      'following.followers_tab'.tr,
-                      'following.following_tab'.tr,
-                    ],
-                    pageName: _pageLineBarTag,
-                    initialIndex: widget.selection,
-                    pageController: controller.pageController,
-                  );
-                }),
+                PageLineBar(
+                  barList: [
+                    'following.followers_tab'.tr,
+                    'following.following_tab'.tr,
+                  ],
+                  pageName: _pageLineBarTag,
+                  initialIndex: widget.selection,
+                  pageController: controller.pageController,
+                ),
                 Expanded(
                   child: PageView(
                     controller: controller.pageController,
