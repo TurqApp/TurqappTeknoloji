@@ -4,12 +4,40 @@ import 'package:turqappv2/Core/Services/Ads/ads_feature_flags_service.dart';
 import 'package:turqappv2/Models/Ads/ad_feature_flags.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 
-part 'ads_dashboard_view_content_part.dart';
 part 'ads_dashboard_view_helpers_part.dart';
 part 'ads_dashboard_view_sections_part.dart';
 
 class AdsDashboardView extends StatelessWidget {
   const AdsDashboardView({super.key});
+
+  Widget _buildPage({
+    required AdsCenterController controller,
+    required AdsFeatureFlagsService flagsService,
+  }) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        await flagsService.refreshOnce();
+        await controller.refreshDashboard();
+      },
+      child: Obx(() {
+        final metrics = controller.dashboard;
+        final flags = flagsService.flags.value;
+
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(14),
+          children: [
+            _buildSummarySection(metrics),
+            const SizedBox(height: 16),
+            _buildFeatureFlagsSection(
+              controller: controller,
+              flags: flags,
+            ),
+          ],
+        );
+      }),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
