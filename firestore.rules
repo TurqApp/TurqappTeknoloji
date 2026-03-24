@@ -140,8 +140,8 @@ service cloud.firestore {
       return isAdmin() || isAllowlistedPushSender();
     }
     function isQATelemetryEnabled() {
-      return exists(/databases/$(database)/documents/adminConfig/admin)
-        && get(/databases/$(database)/documents/adminConfig/admin).data.qaCollectionEnabled == true;
+      return exists(/databases/$(database)/documents/adminConfig/qa)
+        && get(/databases/$(database)/documents/adminConfig/qa).data.qaEnabled == true;
     }
     function isFollowerEdgeWrite(followerId) {
       return isAuth()

@@ -315,12 +315,12 @@ class QALabRemoteUploader extends GetxService {
     _lastGateRefreshAt = now;
     try {
       final doc = await ConfigRepository.ensure().getAdminConfigDoc(
-        'admin',
+        'qa',
         preferCache: true,
         forceRefresh: false,
         ttl: const Duration(seconds: 20),
       );
-      final enabled = doc?['qaCollectionEnabled'] == true;
+      final enabled = doc?['qaEnabled'] == true;
       _applyRemoteGate(
         enabled,
         source: 'config_fetch',
@@ -343,12 +343,12 @@ class QALabRemoteUploader extends GetxService {
     }
     _adminConfigSubscription = ConfigRepository.ensure()
         .watchAdminConfigDoc(
-      'admin',
+      'qa',
       ttl: const Duration(seconds: 20),
     ).listen(
       (doc) {
         _applyRemoteGate(
-          doc['qaCollectionEnabled'] == true,
+          doc['qaEnabled'] == true,
           source: 'config_watch',
         );
       },
