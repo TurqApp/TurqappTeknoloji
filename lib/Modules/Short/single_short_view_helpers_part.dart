@@ -76,7 +76,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   void _requestExclusivePlayback(
     String docId, {
-    Duration minSpacing = const Duration(milliseconds: 220),
+    Duration minSpacing = const Duration(milliseconds: 900),
   }) {
     final trimmed = docId.trim();
     if (trimmed.isEmpty) return;
@@ -300,10 +300,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         await ctrl.seekTo(safePos);
       }
 
+      _requestExclusivePlayback(docId);
       for (var i = 0; i < 3; i++) {
         if (!mounted || ctrl.isDisposed) return;
         await ctrl.play();
-        _requestExclusivePlayback(docId);
         _scheduleVolumeRestore(ctrl);
         await Future.delayed(const Duration(milliseconds: 120));
         if (ctrl.value.isPlaying) break;
