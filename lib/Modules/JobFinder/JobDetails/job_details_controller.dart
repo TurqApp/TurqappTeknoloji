@@ -28,7 +28,6 @@ import '../ApplicationReview/application_review.dart';
 
 part 'job_details_controller_data_part.dart';
 part 'job_details_controller_actions_part.dart';
-part 'job_details_controller_lifecycle_part.dart';
 
 class JobDetailsController extends GetxController {
   static JobDetailsController ensure({
@@ -75,5 +74,20 @@ class JobDetailsController extends GetxController {
   void onInit() {
     super.onInit();
     _handleOnInit();
+  }
+
+  void _handleOnInit() {
+    unawaited(_initialize());
+  }
+
+  Future<void> _initialize() async {
+    unawaited(refreshJob());
+    unawaited(cvCheck());
+    unawaited(getUserData(model.value.userID));
+    unawaited(checkSaved(model.value.docID));
+    unawaited(checkBasvuru(model.value.docID));
+    unawaited(bootstrapSimilar());
+    unawaited(bootstrapReviews());
+    unawaited(incrementViewCount());
   }
 }
