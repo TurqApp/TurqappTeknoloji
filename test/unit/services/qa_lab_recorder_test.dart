@@ -1228,6 +1228,123 @@ void main() {
     expect(feedSummary.primaryRootCauseCategory, 'feed_trigger_duplication');
   });
 
+  test('qa recorder specializes feed fetch host lookup failures', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_fetch_host_lookup',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.add(
+      QALabTimelineEvent(
+        id: 'tf_host_lookup_failed',
+        category: 'feed_fetch',
+        code: 'failed',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+        metadata: const <String, dynamic>{
+          'trigger': 'manual',
+          'pageLimit': 30,
+          'currentCount': 0,
+          'error':
+              "ClientException with SocketException: Failed host lookup: 'cdn.turqapp.com' (OS Error: No address associated with hostname, errno = 7)",
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_host_lookup_failed'),
+      isTrue,
+    );
+  });
+
+  test('qa recorder maps feed fetch backend unavailable failures to summary',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_fetch_backend_unavailable',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.add(
+      QALabTimelineEvent(
+        id: 'tf_backend_unavailable',
+        category: 'feed_fetch',
+        code: 'failed',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+        metadata: const <String, dynamic>{
+          'trigger': 'manual',
+          'pageLimit': 30,
+          'currentCount': 0,
+          'error':
+              '[cloud_firestore/unavailable] The service is currently unavailable. This is a most likely a transient condition and may be corrected by retrying with a backoff.',
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+    final summaries = recorder.buildSurfaceAlertSummaries();
+    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
+
+    expect(
+      findings.any((item) => item.code == 'feed_backend_unavailable'),
+      isTrue,
+    );
+    expect(feedSummary.headlineCode, 'feed_backend_unavailable');
+    expect(feedSummary.primaryRootCauseCategory, 'backend_unavailable');
+  });
+
   test('qa recorder flags duplicate playback dispatch bursts', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();

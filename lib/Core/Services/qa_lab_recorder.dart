@@ -1748,13 +1748,22 @@ class QALabRecorder extends GetxService {
     if (surface != 'feed') {
       return const <QALabPinpointFinding>[];
     }
+    final findings = <QALabPinpointFinding>[];
+    final specializedFailureFinding = _buildSpecializedFeedFetchFailureFinding(
+      surfaceTimeline: surfaceTimeline,
+      referenceTime: referenceTime,
+      route: route,
+    );
+    if (specializedFailureFinding != null) {
+      findings.add(specializedFailureFinding);
+    }
     final bursts = _feedTriggerBursts(surfaceTimeline: surfaceTimeline);
     if (bursts.isEmpty) {
-      return const <QALabPinpointFinding>[];
+      return findings;
     }
     final strongest = bursts.first;
     final repeatCount = _asInt(strongest['repeatCount']);
-    return <QALabPinpointFinding>[
+    findings.add(
       QALabPinpointFinding(
         severity: repeatCount >= 3
             ? QALabIssueSeverity.error
@@ -1767,7 +1776,71 @@ class QALabRecorder extends GetxService {
         timestamp: _parseTimestamp(strongest['timestamp']) ?? referenceTime,
         context: strongest,
       ),
-    ];
+    );
+    return findings;
+  }
+
+  QALabPinpointFinding? _buildSpecializedFeedFetchFailureFinding({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    final failedEvent = surfaceTimeline
+        .where((event) => event.category == 'feed_fetch')
+        .where((event) => event.code == 'failed')
+        .toList(growable: false)
+        .lastOrNull;
+    if (failedEvent == null) {
+      return null;
+    }
+    final error = (failedEvent.metadata['error'] ?? '').toString().trim();
+    if (error.isEmpty) {
+      return null;
+    }
+    final lowerError = error.toLowerCase();
+    final trigger = (failedEvent.metadata['trigger'] ?? '').toString();
+    final pageLimit = _asInt(failedEvent.metadata['pageLimit']);
+    final currentCount = _asInt(failedEvent.metadata['currentCount']);
+
+    if (error.contains('Failed host lookup') ||
+        lowerError.contains('no address associated with hostname')) {
+      return QALabPinpointFinding(
+        severity: QALabIssueSeverity.error,
+        code: 'feed_host_lookup_failed',
+        message:
+            'feed hit hostname resolution failures while loading remote dependencies.',
+        route: route,
+        surface: 'feed',
+        timestamp: failedEvent.timestamp,
+        context: <String, dynamic>{
+          'trigger': trigger,
+          'pageLimit': pageLimit,
+          'currentCount': currentCount,
+          'error': error,
+        },
+      );
+    }
+
+    if (lowerError.contains('cloud_firestore/unavailable') ||
+        lowerError.contains('service is currently unavailable')) {
+      return QALabPinpointFinding(
+        severity: QALabIssueSeverity.error,
+        code: 'feed_backend_unavailable',
+        message:
+            'feed hit a transient backend availability failure while loading live data.',
+        route: route,
+        surface: 'feed',
+        timestamp: failedEvent.timestamp,
+        context: <String, dynamic>{
+          'trigger': trigger,
+          'pageLimit': pageLimit,
+          'currentCount': currentCount,
+          'error': error,
+        },
+      );
+    }
+
+    return null;
   }
 
   List<Map<String, dynamic>> _feedTriggerBursts({
