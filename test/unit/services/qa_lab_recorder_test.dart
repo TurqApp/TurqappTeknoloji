@@ -614,7 +614,7 @@ void main() {
       QALabTimelineEvent(
         id: 'tf3',
         category: 'feed_fetch',
-        code: 'skipped',
+        code: 'requested',
         route: '/NavBar',
         surface: 'feed',
         timestamp: now.subtract(const Duration(milliseconds: 300)),
