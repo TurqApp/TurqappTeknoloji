@@ -21,6 +21,8 @@ import 'composer_hashtag_utils.dart';
 import 'post_creator_model.dart';
 
 part 'creator_content_media_part.dart';
+part 'creator_content_controller_media_video_part.dart';
+part 'creator_content_controller_media_image_part.dart';
 part 'creator_content_quoted_part.dart';
 part 'creator_content_shell_part.dart';
 part 'creator_content_text_part.dart';
