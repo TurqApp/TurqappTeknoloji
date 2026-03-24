@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:turqappv2/Core/full_screen_image_viewer.dart';
 
 import '../../helpers/test_helper.dart';
@@ -48,7 +49,7 @@ void main() {
         await pumpRouteTransition(tester);
 
         expect(find.byType(FullScreenImageViewer), findsOneWidget);
-        expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+        expect(find.byType(PinchZoom), findsOneWidget);
         expect(find.byIcon(CupertinoIcons.xmark), findsOneWidget);
 
         await tester.tap(find.byIcon(CupertinoIcons.xmark));
@@ -60,7 +61,7 @@ void main() {
     );
 
     testWidgets(
-      'opens under tablet harness and survives drag gesture updates',
+      'small drag updates do not dismiss the viewer',
       (tester) async {
         await pumpApp(
           tester,
@@ -81,6 +82,31 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
 
         expect(find.byType(FullScreenImageViewer), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'large vertical drag dismisses the viewer',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const _ViewerRouteHarness(),
+          variant: WidgetHarnessVariants.phoneAndroid,
+        );
+
+        await tester.tap(find.text('open'));
+        await pumpRouteTransition(tester);
+
+        expect(find.byType(FullScreenImageViewer), findsOneWidget);
+
+        await tester.drag(
+          find.byType(FullScreenImageViewer),
+          const Offset(0, 150),
+        );
+        await pumpRouteTransition(tester);
+
+        expect(find.byType(FullScreenImageViewer), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );

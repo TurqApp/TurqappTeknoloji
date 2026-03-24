@@ -1,8 +1,49 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Agenda/Components/post_state_messages.dart';
 
 import '../../helpers/test_helper.dart';
+
+class _PostStateTranslations extends Translations {
+  @override
+  Map<String, Map<String, String>> get keys => {
+        'tr': {
+          'post_state.hidden_title': 'Gonderi gizlendi',
+          'post_state.hidden_body': 'Bu gonderi gizli durumda.',
+          'post_state.archived_title': 'Gonderi arsivlendi',
+          'post_state.archived_body': 'Bu gonderi arsivde tutuluyor.',
+          'post_state.deleted_title': 'Gonderi silindi',
+          'post_state.deleted_body': 'Bu gonderi kalici olarak silindi.',
+          'common.undo': 'Geri al',
+        },
+      };
+}
+
+Future<void> _pumpPostStateHarness(
+  WidgetTester tester,
+  Widget child, {
+  WidgetHarnessVariant variant = WidgetHarnessVariants.phoneAndroid,
+}) async {
+  await configureHarnessSurface(tester, variant: variant);
+  await tester.pumpWidget(
+    GetMaterialApp(
+      locale: const Locale('tr'),
+      translations: _PostStateTranslations(),
+      theme: ThemeData(platform: variant.platform, useMaterial3: false),
+      home: MediaQuery(
+        data: MediaQueryData(
+          size: variant.size,
+          devicePixelRatio: variant.devicePixelRatio,
+          textScaler: TextScaler.linear(variant.textScale),
+        ),
+        child: Scaffold(body: child),
+      ),
+    ),
+  );
+  await tester.pump();
+}
 
 void main() {
   group('Post state message widgets', () {
@@ -11,22 +52,20 @@ void main() {
       (tester) async {
         var undoCount = 0;
 
-        await pumpApp(
+        await _pumpPostStateHarness(
           tester,
           PostHiddenMessage(
             onUndo: () => undoCount++,
           ),
-          wrapInScaffold: true,
           variant: WidgetHarnessVariants.phoneAndroid,
         );
 
-        expect(find.text('post_state.hidden_title'), findsOneWidget);
-        expect(find.text('post_state.hidden_body'), findsOneWidget);
-        expect(find.text('common.undo'), findsOneWidget);
-        expect(find.byIcon(Icons.check_circle), findsNothing);
-        expect(find.byIcon(Icons.error), findsNothing);
+        expect(find.text('Gonderi gizlendi'), findsOneWidget);
+        expect(find.text('Bu gonderi gizli durumda.'), findsOneWidget);
+        expect(find.text('Geri al'), findsOneWidget);
+        expect(find.byIcon(CupertinoIcons.checkmark_seal), findsOneWidget);
 
-        await tester.tap(find.text('common.undo'));
+        await tester.tap(find.text('Geri al'));
         await tester.pump();
 
         expect(undoCount, 1);
@@ -39,20 +78,20 @@ void main() {
       (tester) async {
         var undoCount = 0;
 
-        await pumpApp(
+        await _pumpPostStateHarness(
           tester,
           PostArchivedMessage(
             onUndo: () => undoCount++,
           ),
-          wrapInScaffold: true,
           variant: WidgetHarnessVariants.phoneIos,
         );
 
-        expect(find.text('post_state.archived_title'), findsOneWidget);
-        expect(find.text('post_state.archived_body'), findsOneWidget);
-        expect(find.text('common.undo'), findsOneWidget);
+        expect(find.text('Gonderi arsivlendi'), findsOneWidget);
+        expect(find.text('Bu gonderi arsivde tutuluyor.'), findsOneWidget);
+        expect(find.text('Geri al'), findsOneWidget);
+        expect(find.byIcon(CupertinoIcons.checkmark_seal), findsOneWidget);
 
-        await tester.tap(find.text('common.undo'));
+        await tester.tap(find.text('Geri al'));
         await tester.pump();
 
         expect(undoCount, 1);
@@ -63,16 +102,16 @@ void main() {
     testWidgets(
       'PostDeletedMessage renders under large text without undo affordance',
       (tester) async {
-        await pumpApp(
+        await _pumpPostStateHarness(
           tester,
           const PostDeletedMessage(),
-          wrapInScaffold: true,
           variant: WidgetHarnessVariants.phoneLargeText,
         );
 
-        expect(find.text('post_state.deleted_title'), findsOneWidget);
-        expect(find.text('post_state.deleted_body'), findsOneWidget);
-        expect(find.text('common.undo'), findsNothing);
+        expect(find.text('Gonderi silindi'), findsOneWidget);
+        expect(find.text('Bu gonderi kalici olarak silindi.'), findsOneWidget);
+        expect(find.text('Geri al'), findsNothing);
+        expect(find.byIcon(CupertinoIcons.checkmark_seal), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );
