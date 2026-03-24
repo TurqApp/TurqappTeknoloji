@@ -810,7 +810,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       final Color displayColor = _ClassicContentState._actionColor;
 
       return AnimatedActionButton(
-        key: ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
+        key:
+            ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
         enabled: canInteract,
         semanticsLabel: 'common.comments'.tr,
         onTap: canInteract
@@ -836,6 +837,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     return Obx(() {
       final bool isLiked =
           _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
+      final int displayLikeCount = controller.likeCount.value <= 0 && isLiked
+          ? 1
+          : controller.likeCount.value;
       final Color displayColor =
           isLiked ? Colors.blueAccent : _ClassicContentState._actionColor;
 
@@ -846,13 +850,15 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         onTap: controller.like,
         onLongPress: _openLikeListing,
         longPressDuration: const Duration(milliseconds: 220),
+        hitTestBehavior: HitTestBehavior.translucent,
+        padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 4.0),
         child: _iconAction(
           icon: isLiked
               ? CupertinoIcons.hand_thumbsup_fill
               : CupertinoIcons.hand_thumbsup,
           iconSize: 19,
           color: displayColor,
-          label: NumberFormatter.format(controller.likeCount.value),
+          label: NumberFormatter.format(displayLikeCount),
           labelColor: displayColor,
           leadingTransformOffsetY: -2,
         ),

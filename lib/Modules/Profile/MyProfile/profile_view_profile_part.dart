@@ -1,9 +1,12 @@
 part of 'profile_view.dart';
 
 extension _ProfileViewProfilePart on _ProfileViewState {
-  String get _myUserId => userService.effectiveUserId;
+  CurrentUserModel? get _reactiveCurrentUser => userService.currentUserRx.value;
 
-  String get _myNickname => userService.nickname;
+  String get _myUserId =>
+      _reactiveCurrentUser?.userID ?? userService.effectiveUserId;
+
+  String get _myNickname => _reactiveCurrentUser?.nickname ?? userService.nickname;
 
   String get _myIosSafeNickname {
     final controllerNickname = controller.headerNickname.value.trim();
@@ -19,9 +22,11 @@ extension _ProfileViewProfilePart on _ProfileViewState {
     return userService.avatarUrl;
   }
 
-  String get _myFirstName => userService.firstName;
+  String get _myFirstName =>
+      _reactiveCurrentUser?.firstName ?? userService.firstName;
 
-  String get _myLastName => userService.lastName;
+  String get _myLastName =>
+      _reactiveCurrentUser?.lastName ?? userService.lastName;
 
   bool get _hasVerifiedRozet {
     final headerRozet = normalizeRozetValue(controller.headerRozet.value);
@@ -29,11 +34,12 @@ extension _ProfileViewProfilePart on _ProfileViewState {
     return normalizeRozetValue(userService.rozet).isNotEmpty;
   }
 
-  String get _myMeslek => userService.meslekKategori;
+  String get _myMeslek =>
+      _reactiveCurrentUser?.meslekKategori ?? userService.meslekKategori;
 
-  String get _myBio => userService.bio;
+  String get _myBio => _reactiveCurrentUser?.bio ?? userService.bio;
 
-  String get _myAdres => userService.adres;
+  String get _myAdres => _reactiveCurrentUser?.adres ?? userService.adres;
 
   String get _myDisplayFirstName {
     final display = controller.headerDisplayName.value.trim();
@@ -68,9 +74,11 @@ extension _ProfileViewProfilePart on _ProfileViewState {
     return _myAdres.trim();
   }
 
-  int get _myTotalPosts => userService.counterOfPosts;
+  int get _myTotalPosts =>
+      _reactiveCurrentUser?.counterOfPosts ?? userService.counterOfPosts;
 
-  int get _myTotalLikes => userService.counterOfLikes;
+  int get _myTotalLikes =>
+      _reactiveCurrentUser?.counterOfLikes ?? userService.counterOfLikes;
 
   int get _myTotalMarket =>
       _marketItems.where((item) => item.status != 'archived').length;

@@ -22,6 +22,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Models/current_user_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Market/market_offer_utils.dart';

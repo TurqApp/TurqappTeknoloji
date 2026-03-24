@@ -73,17 +73,36 @@ extension PendingActionExecutionPart on PendingAction {
       final stats = (postData['stats'] as Map?)?.cast<String, dynamic>() ??
           const <String, dynamic>{};
       final currentLikeCount = (stats['likeCount'] as num?)?.toInt() ?? 0;
+      final ownerId = (postData['userID'] ?? '').toString().trim();
+      DocumentReference<Map<String, dynamic>>? ownerRef;
+      DocumentSnapshot<Map<String, dynamic>>? ownerSnap;
+      if (ownerId.isNotEmpty) {
+        ownerRef = firestore.collection('users').doc(ownerId);
+        ownerSnap = await tx.get(ownerRef);
+      }
       final nowMs = DateTime.now().millisecondsSinceEpoch;
 
       if (shouldLike && !likeSnap.exists) {
         tx.set(likeRef, {'userID': userId, 'timeStamp': nowMs});
         tx.set(userLikeRef, {'postDocID': postId, 'timeStamp': nowMs});
         tx.update(postRef, {'stats.likeCount': currentLikeCount + 1});
+        if (ownerRef != null) {
+          tx.set(ownerRef, {
+            'counterOfLikes': FieldValue.increment(1),
+          }, SetOptions(merge: true));
+        }
       } else if (!shouldLike && likeSnap.exists) {
         tx.delete(likeRef);
         tx.delete(userLikeRef);
         final next = currentLikeCount > 0 ? currentLikeCount - 1 : 0;
         tx.update(postRef, {'stats.likeCount': next});
+        final currentOwnerLikes =
+            (ownerSnap?.data()?['counterOfLikes'] as num?)?.toInt() ?? 0;
+        if (ownerRef != null && currentOwnerLikes > 0) {
+          tx.set(ownerRef, {
+            'counterOfLikes': FieldValue.increment(-1),
+          }, SetOptions(merge: true));
+        }
       }
     });
   }

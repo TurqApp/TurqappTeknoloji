@@ -827,7 +827,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final Color displayColor = _AgendaContentState._actionColor;
 
       return AnimatedActionButton(
-        key: ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
+        key:
+            ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
         enabled: canInteract,
         semanticsLabel: 'common.comments'.tr,
         onTap: canInteract
@@ -854,6 +855,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
     return Obx(() {
       final bool isLiked =
           _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
+      final int displayLikeCount = controller.likeCount.value <= 0 && isLiked
+          ? 1
+          : controller.likeCount.value;
       final Color likeColor =
           isLiked ? Colors.blueAccent : _AgendaContentState._actionColor;
 
@@ -863,6 +867,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         semanticsLabel: 'common.likes'.tr,
         onTap: controller.like,
         showTapArea: _AgendaContentState._showActionTapAreas,
+        hitTestBehavior: HitTestBehavior.translucent,
+        padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 4.0),
         onLongPress: () {
           _suspendAgendaFeedForRoute();
           Get.bottomSheet(
@@ -886,7 +892,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
               ? CupertinoIcons.hand_thumbsup_fill
               : CupertinoIcons.hand_thumbsup,
           color: likeColor,
-          label: NumberFormatter.format(controller.likeCount.value),
+          label: NumberFormatter.format(displayLikeCount),
           labelColor: likeColor,
           iconSize: 17,
           leadingTransformOffsetY: -2,
