@@ -851,46 +851,48 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   Widget likeButton() {
-    final bool isLiked =
-        _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
-    final Color likeColor =
-        isLiked ? Colors.blueAccent : _AgendaContentState._actionColor;
+    return Obx(() {
+      final bool isLiked =
+          _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
+      final Color likeColor =
+          isLiked ? Colors.blueAccent : _AgendaContentState._actionColor;
 
-    return AnimatedActionButton(
-      key: ValueKey(IntegrationTestKeys.feedLikeButton(widget.model.docID)),
-      enabled: true,
-      semanticsLabel: 'common.likes'.tr,
-      onTap: controller.like,
-      showTapArea: _AgendaContentState._showActionTapAreas,
-      onLongPress: () {
-        _suspendAgendaFeedForRoute();
-        Get.bottomSheet(
-          Container(
-            height: Get.height / 2,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(18),
-                topLeft: Radius.circular(18),
+      return AnimatedActionButton(
+        key: ValueKey(IntegrationTestKeys.feedLikeButton(widget.model.docID)),
+        enabled: true,
+        semanticsLabel: 'common.likes'.tr,
+        onTap: controller.like,
+        showTapArea: _AgendaContentState._showActionTapAreas,
+        onLongPress: () {
+          _suspendAgendaFeedForRoute();
+          Get.bottomSheet(
+            Container(
+              height: Get.height / 2,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(18),
+                  topLeft: Radius.circular(18),
+                ),
               ),
+              child: PostLikeListing(postID: widget.model.docID),
             ),
-            child: PostLikeListing(postID: widget.model.docID),
-          ),
-        ).then((_) {
-          _restoreAgendaFeedCenter();
-        });
-      },
-      child: _iconAction(
-        icon: isLiked
-            ? CupertinoIcons.hand_thumbsup_fill
-            : CupertinoIcons.hand_thumbsup,
-        color: likeColor,
-        label: NumberFormatter.format(controller.likeCount.value),
-        labelColor: likeColor,
-        iconSize: 17,
-        leadingTransformOffsetY: -2,
-      ),
-    );
+          ).then((_) {
+            _restoreAgendaFeedCenter();
+          });
+        },
+        child: _iconAction(
+          icon: isLiked
+              ? CupertinoIcons.hand_thumbsup_fill
+              : CupertinoIcons.hand_thumbsup,
+          color: likeColor,
+          label: NumberFormatter.format(controller.likeCount.value),
+          labelColor: likeColor,
+          iconSize: 17,
+          leadingTransformOffsetY: -2,
+        ),
+      );
+    });
   }
 
   Widget reshareButton() {
