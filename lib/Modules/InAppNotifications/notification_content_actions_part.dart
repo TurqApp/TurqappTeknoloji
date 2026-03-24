@@ -23,7 +23,10 @@ extension NotificationContentActionsPart on _NotificationContentState {
 
   Future<void> _openNotification() async {
     final notifyReader = NotifyReaderController.ensure();
-    await notifyReader.openNotification(model);
+    await notifyReader.openNotification(
+      model,
+      returnToNavbarOnClose: false,
+    );
   }
 
   Widget _buildFollowButton() {

@@ -50,7 +50,10 @@ class NotifyReaderController extends GetxController {
     lastOpenedTargetId.value = targetId;
   }
 
-  Future<void> openNotification(NotificationModel model) async {
+  Future<void> openNotification(
+    NotificationModel model, {
+    bool returnToNavbarOnClose = true,
+  }) async {
     final normalizedType =
         normalizeNotificationType(model.type, model.postType);
     final targetId = model.postID.trim();
@@ -66,7 +69,10 @@ class NotifyReaderController extends GetxController {
         targetId: model.userID.trim(),
         normalizedType: normalizedType,
       );
-      await goToProfile(model.userID);
+      await goToProfile(
+        model.userID,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
@@ -81,7 +87,10 @@ class NotifyReaderController extends GetxController {
         targetId: targetId,
         normalizedType: normalizedType,
       );
-      await goToJob(targetId);
+      await goToJob(
+        targetId,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
@@ -96,7 +105,10 @@ class NotifyReaderController extends GetxController {
         targetId: targetId,
         normalizedType: normalizedType,
       );
-      await goToTutoring(targetId);
+      await goToTutoring(
+        targetId,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
@@ -111,7 +123,10 @@ class NotifyReaderController extends GetxController {
         targetId: targetId,
         normalizedType: normalizedType,
       );
-      await goToChat(targetId);
+      await goToChat(
+        targetId,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
@@ -126,7 +141,10 @@ class NotifyReaderController extends GetxController {
         targetId: targetId,
         normalizedType: normalizedType,
       );
-      await goToMarket(targetId);
+      await goToMarket(
+        targetId,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
@@ -141,7 +159,10 @@ class NotifyReaderController extends GetxController {
         targetId: targetId,
         normalizedType: normalizedType,
       );
-      await goToPostComments(targetId);
+      await goToPostComments(
+        targetId,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
@@ -156,7 +177,10 @@ class NotifyReaderController extends GetxController {
         targetId: targetId,
         normalizedType: normalizedType,
       );
-      await goToPost(targetId);
+      await goToPost(
+        targetId,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
@@ -167,100 +191,167 @@ class NotifyReaderController extends GetxController {
         targetId: model.userID.trim(),
         normalizedType: normalizedType,
       );
-      await goToProfile(model.userID);
+      await goToProfile(
+        model.userID,
+        returnToNavbarOnClose: returnToNavbarOnClose,
+      );
       return;
     }
 
     AppSnackbar('common.info'.tr, 'notify_reader.route_missing'.tr);
   }
 
-  /// Post detay sayfasına git, geri dönülürse NavBarView'e atla
-  Future<void> goToPost(String postID) async {
+  /// Post detay sayfasına git, istenirse geri dönülünce NavBarView'e atla
+  Future<void> goToPost(
+    String postID, {
+    bool returnToNavbarOnClose = true,
+  }) async {
     final lookup = await _lookupRepository.getPostLookup(postID);
     if (!lookup.exists || lookup.model == null) {
       AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
     final model = lookup.model!;
     if (model.deletedPost == true) {
       AppSnackbar('common.info'.tr, 'notify_reader.post_removed'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
 
-    final route = (model.floodCount > 1)
-        ? Get.to<FloodListing>(() => FloodListing(mainModel: model))
-        : Get.to<SinglePost>(
-            () => SinglePost(model: model, showComments: false));
-
-    route?.then((_) => toNavbar());
+    if (model.floodCount > 1) {
+      await Get.to<FloodListing>(() => FloodListing(mainModel: model));
+    } else {
+      await Get.to<SinglePost>(
+        () => SinglePost(model: model, showComments: false),
+      );
+    }
+    if (returnToNavbarOnClose) {
+      toNavbar();
+    }
   }
 
-  /// Post yorum sayfasına git, geri dönülürse NavBarView'e atla
-  Future<void> goToPostComments(String postID) async {
+  /// Post yorum sayfasına git, istenirse geri dönülünce NavBarView'e atla
+  Future<void> goToPostComments(
+    String postID, {
+    bool returnToNavbarOnClose = true,
+  }) async {
     final lookup = await _lookupRepository.getPostLookup(postID);
     if (!lookup.exists || lookup.model == null) {
       AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
     final model = lookup.model!;
     if (model.deletedPost == true) {
       AppSnackbar('common.info'.tr, 'notify_reader.post_removed'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
 
-    Get.to<SinglePost>(() => SinglePost(model: model, showComments: true))
-        ?.then((_) => toNavbar());
+    await Get.to<SinglePost>(
+        () => SinglePost(model: model, showComments: true));
+    if (returnToNavbarOnClose) {
+      toNavbar();
+    }
   }
 
-  /// Profil sayfasına git, geri dönülürse NavBarView'e atla
-  Future<void> goToProfile(String userID) async {
-    Get.to<SocialProfile>(() => SocialProfile(userID: userID))
-        ?.then((_) => toNavbar());
+  /// Profil sayfasına git, istenirse geri dönülünce NavBarView'e atla
+  Future<void> goToProfile(
+    String userID, {
+    bool returnToNavbarOnClose = true,
+  }) async {
+    await Get.to<SocialProfile>(() => SocialProfile(userID: userID));
+    if (returnToNavbarOnClose) {
+      toNavbar();
+    }
   }
 
-  /// Sohbet sayfasına git, geri dönülürse NavBarView'e atla
-  Future<void> goToChat(String chatID) async {
+  /// Sohbet sayfasına git, istenirse geri dönülünce NavBarView'e atla
+  Future<void> goToChat(
+    String chatID, {
+    bool returnToNavbarOnClose = true,
+  }) async {
     final lookup = await _lookupRepository.getChatLookup(chatID);
     final otherUser = lookup.otherUser;
 
     if (otherUser.isEmpty) {
       AppSnackbar('common.info'.tr, 'notify_reader.chat_missing'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
 
-    Get.to<ChatView>(() => ChatView(chatID: chatID, userID: otherUser))
-        ?.then((_) => toNavbar());
+    await Get.to<ChatView>(() => ChatView(chatID: chatID, userID: otherUser));
+    if (returnToNavbarOnClose) {
+      toNavbar();
+    }
   }
 
-  Future<void> goToJob(String jobID) async {
+  Future<void> goToJob(
+    String jobID, {
+    bool returnToNavbarOnClose = true,
+  }) async {
     final lookup = await _lookupRepository.getJobLookup(jobID);
     if (!lookup.exists || lookup.model == null) {
       AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
     final model = lookup.model!;
-    Get.to<JobDetails>(() => JobDetails(model: model))?.then((_) => toNavbar());
+    await Get.to<JobDetails>(() => JobDetails(model: model));
+    if (returnToNavbarOnClose) {
+      toNavbar();
+    }
   }
 
-  Future<void> goToTutoring(String tutoringID) async {
+  Future<void> goToTutoring(
+    String tutoringID, {
+    bool returnToNavbarOnClose = true,
+  }) async {
     final lookup = await _lookupRepository.getTutoringLookup(tutoringID);
     if (!lookup.exists || lookup.model == null) {
       AppSnackbar('common.info'.tr, 'notify_reader.tutoring_missing'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
     final model = lookup.model!;
-    Get.to<TutoringDetail>(() => TutoringDetail(), arguments: model)
-        ?.then((_) => toNavbar());
+    await Get.to<TutoringDetail>(() => TutoringDetail(), arguments: model);
+    if (returnToNavbarOnClose) {
+      toNavbar();
+    }
   }
 
-  Future<void> goToMarket(String itemId) async {
+  Future<void> goToMarket(
+    String itemId, {
+    bool returnToNavbarOnClose = true,
+  }) async {
     final lookup = await _lookupRepository.getMarketLookup(itemId);
     if (!lookup.exists || lookup.model == null) {
       AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
-      return toNavbar();
+      if (returnToNavbarOnClose) {
+        toNavbar();
+      }
+      return;
     }
     final model = lookup.model!;
-    Get.to(() => MarketDetailView(item: model))?.then((_) => toNavbar());
+    await Get.to(() => MarketDetailView(item: model));
+    if (returnToNavbarOnClose) {
+      toNavbar();
+    }
   }
 
   /// NavBarView'e geç ve önceki sayfaları stack'ten at
