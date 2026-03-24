@@ -57,6 +57,7 @@ part 'social_profile_content_part.dart';
 part 'social_profile_content_grid_part.dart';
 part 'social_profile_sections_part.dart';
 part 'social_profile_header_part.dart';
+part 'social_profile_header_actions_part.dart';
 
 class SocialProfile extends StatefulWidget {
   final String userID;
