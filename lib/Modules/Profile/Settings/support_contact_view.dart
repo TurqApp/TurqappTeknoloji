@@ -9,7 +9,6 @@ part 'support_contact_view_shell_part.dart';
 part 'support_contact_view_card_part.dart';
 part 'support_contact_view_form_part.dart';
 part 'support_contact_view_submit_part.dart';
-part 'support_contact_view_lifecycle_part.dart';
 part 'support_contact_view_topics_part.dart';
 part 'support_contact_view_actions_part.dart';
 part 'support_contact_view_error_part.dart';
@@ -35,7 +34,7 @@ class _SupportContactViewState extends State<SupportContactView> {
 
   @override
   void dispose() {
-    _handleDispose();
+    _messageController.dispose();
     super.dispose();
   }
 
