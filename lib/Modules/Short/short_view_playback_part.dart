@@ -215,6 +215,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
               'page': page,
               'retry': missingAdapterRetries + 1,
               'hadAdapter': vc != null,
+              'dispatchIssued': false,
+              'dispatchSource': 'missing_adapter_retry',
             },
           );
           final hadActiveAdapter = controller.cache[page] != null;
@@ -327,6 +329,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'docId': docId,
             'page': page,
             'retry': _stallWatchdogRetries,
+            'dispatchIssued': false,
+            'dispatchSource': 'stall_recovery',
           },
         );
         vc.setVolume(volume ? 1 : 0);
@@ -362,6 +366,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'docId': docId,
             'page': page,
             'retry': _playWatchdogRetries,
+            'dispatchIssued': false,
+            'dispatchSource': 'watchdog_retry',
           },
         );
         vc.setVolume(volume ? 1 : 0);

@@ -1708,6 +1708,91 @@ void main() {
     );
   });
 
+  test('qa recorder ignores short recovery retries for duplicate dispatches',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp16b',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'short': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'activeIndex': 0,
+            'activeDocId': 'short-1',
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'ts3b',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 500)),
+        metadata: const <String, dynamic>{'docId': 'short-1'},
+      ),
+      QALabTimelineEvent(
+        id: 'tp5b',
+        category: 'playback_dispatch',
+        code: 'short_page_play',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 300)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'dispatchIssued': true,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp6b',
+        category: 'playback_dispatch',
+        code: 'short_watchdog_play_retry',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 200)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'dispatchIssued': false,
+          'dispatchSource': 'watchdog_retry',
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp7b',
+        category: 'playback_dispatch',
+        code: 'short_stall_recovery_play',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 100)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'dispatchIssued': false,
+          'dispatchSource': 'stall_recovery',
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_duplicate_playback_dispatch'),
+      isFalse,
+    );
+  });
+
   test('qa recorder drops resolved permission blockers from active findings',
       () {
     final recorder = QALabRecorder();
