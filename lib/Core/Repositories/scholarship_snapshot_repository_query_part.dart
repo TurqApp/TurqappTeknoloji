@@ -165,7 +165,7 @@ extension ScholarshipSnapshotRepositoryQueryPart
       'liseOrtaOkulSehirler': List<String>.from(
         (hit['liseOrtaOkulSehirler'] as List<dynamic>? ?? const <dynamic>[]),
       ),
-      'logo': '',
+      'logo': ((hit['logo'] ?? hit['logoUrl']) ?? '').toString().trim(),
       'mukerrerDurumu': (hit['mukerrerDurumu'] ?? '').toString(),
       'ogrenciSayisi': (hit['ogrenciSayisi'] ?? '').toString(),
       'sehirler': List<String>.from(

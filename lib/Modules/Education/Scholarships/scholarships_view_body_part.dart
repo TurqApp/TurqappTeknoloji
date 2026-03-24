@@ -620,23 +620,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
                           ],
                         ),
                         SizedBox(height: metrics.railSectionGap),
-                        SizedBox(
-                          height: metrics.middleSlotHeight,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              burs.tutar.trim(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(
-                                color: Color(0xFF8B0000),
-                                fontSize: 15,
-                                fontFamily: 'MontserratBold',
-                              ),
-                            ),
-                          ),
-                        ),
+                        SizedBox(height: metrics.middleSlotHeight),
                         const Spacer(),
                         GestureDetector(
                           onTap: () => Get.to(
