@@ -5,7 +5,7 @@ extension _ChatControllerConversationSyncX on ChatController {
     _messagesSubscription = _conversationRepository
         .watchConversationMessagesHead(
       chatID,
-      limit: ChatController._syncHeadSize,
+      limit: _syncHeadSize,
       cacheOnly: cacheOnly,
     )
         .listen((snapshot) {
@@ -51,7 +51,7 @@ extension _ChatControllerConversationSyncX on ChatController {
       final conversationSnapshot =
           await _conversationRepository.fetchLatestMessages(
         chatID,
-        limit: ChatController._initialPageSize,
+        limit: _initialPageSize,
         preferCache: !shouldHitServer,
         cacheOnly: cacheOnly,
       );
@@ -62,7 +62,7 @@ extension _ChatControllerConversationSyncX on ChatController {
           : _conversationOldestCursor;
 
       _conversationHasMore =
-          conversationSnapshot.docs.length >= ChatController._initialPageSize;
+          conversationSnapshot.docs.length >= _initialPageSize;
       _updateHasMoreOlder();
       _refreshMergedMessages();
       _lastServerSyncAt = DateTime.now();
@@ -83,13 +83,13 @@ extension _ChatControllerConversationSyncX on ChatController {
           ? await _conversationRepository.fetchMessagesAfter(
               chatID,
               createdAfterMs: latestLoadedTs,
-              limit: ChatController._syncHeadSize,
+              limit: _syncHeadSize,
               preferCache: !shouldHitServer,
               cacheOnly: cacheOnly,
             )
           : await _conversationRepository.fetchLatestMessages(
               chatID,
-              limit: ChatController._syncHeadSize,
+              limit: _syncHeadSize,
               preferCache: !shouldHitServer,
               cacheOnly: cacheOnly,
             );
@@ -117,7 +117,7 @@ extension _ChatControllerConversationSyncX on ChatController {
         final convSnapshot = await _conversationRepository.fetchOlderMessages(
           chatID,
           startAfter: _conversationOldestCursor!,
-          limit: ChatController._olderPageSize,
+          limit: _olderPageSize,
           preferCache: true,
           cacheOnly: cacheOnly,
         );
@@ -125,8 +125,7 @@ extension _ChatControllerConversationSyncX on ChatController {
         if (convSnapshot.docs.isNotEmpty) {
           _conversationOldestCursor = convSnapshot.docs.last;
         }
-        _conversationHasMore =
-            convSnapshot.docs.length >= ChatController._olderPageSize;
+        _conversationHasMore = convSnapshot.docs.length >= _olderPageSize;
       }
 
       _updateHasMoreOlder();

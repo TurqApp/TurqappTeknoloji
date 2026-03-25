@@ -104,8 +104,7 @@ extension _ChatControllerConversationX on ChatController {
     if (text.isNotEmpty) {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final shouldSendHeartbeat = !_typingActive ||
-          (nowMs - _lastTypingHeartbeatMs) >=
-              ChatController._typingHeartbeatIntervalMs;
+          (nowMs - _lastTypingHeartbeatMs) >= _typingHeartbeatIntervalMs;
       if (shouldSendHeartbeat) {
         try {
           _conversationRepository.setTypingTimestamp(

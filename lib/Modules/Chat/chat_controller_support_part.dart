@@ -1,5 +1,43 @@
 part of 'chat_controller.dart';
 
+String? _activeChatTag;
+final ConversationRepository _conversationRepository =
+    ConversationRepository.ensure();
+const int _initialPageSize = 60;
+const int _olderPageSize = 40;
+const int _syncHeadSize = 40;
+const int _typingHeartbeatIntervalMs = 1500;
+const int _localChatWindowLimit = 180;
+final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+
+ChatController? _resolveRegisteredChatController({String? tag}) {
+  final resolvedTag = (tag ?? _activeChatTag)?.trim();
+  final normalizedTag = resolvedTag?.isEmpty == true ? null : resolvedTag;
+  final isRegistered = Get.isRegistered<ChatController>(tag: normalizedTag);
+  if (!isRegistered) return null;
+  return Get.find<ChatController>(tag: normalizedTag);
+}
+
+ChatController _ensureChatController({
+  required String chatID,
+  required String userID,
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = _resolveRegisteredChatController(tag: tag);
+  if (existing != null) {
+    _activeChatTag = tag ?? chatID;
+    return existing;
+  }
+  final created = Get.put(
+    ChatController(chatID: chatID, userID: userID),
+    tag: tag,
+    permanent: permanent,
+  );
+  _activeChatTag = tag ?? chatID;
+  return created;
+}
+
 extension ChatControllerSupportPart on ChatController {
   NetworkAwarenessService? get _network => NetworkAwarenessService.maybeFind();
 

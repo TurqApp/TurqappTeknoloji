@@ -32,7 +32,7 @@ extension ChatControllerLocalCachePart on ChatController {
   Future<void> _saveLocalConversationWindow(List<MessageModel> input) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final list = input.take(ChatController._localChatWindowLimit).toList();
+      final list = input.take(_localChatWindowLimit).toList();
       final payload = list.map(_serializeLocalMessage).toList();
       await prefs.setString(_localChatWindowKey, jsonEncode(payload));
     } catch (_) {}

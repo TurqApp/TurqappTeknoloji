@@ -51,41 +51,23 @@ part 'chat_controller_send_part.dart';
 part 'chat_controller_support_part.dart';
 
 class ChatController extends GetxController {
-  static String? _activeTag;
-
   static ChatController ensure({
     required String chatID,
     required String userID,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) {
-      _activeTag = tag ?? chatID;
-      return existing;
-    }
-    final created = Get.put(
-      ChatController(chatID: chatID, userID: userID),
-      tag: tag,
-      permanent: permanent,
-    );
-    _activeTag = tag ?? chatID;
-    return created;
-  }
+  }) =>
+      _ensureChatController(
+        chatID: chatID,
+        userID: userID,
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static ChatController? maybeFind({String? tag}) {
-    final resolvedTag = (tag ?? _activeTag)?.trim();
-    final isRegistered = Get.isRegistered<ChatController>(
-      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
-    );
-    if (!isRegistered) return null;
-    return Get.find<ChatController>(
-      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
-    );
-  }
+  static ChatController? maybeFind({String? tag}) =>
+      _resolveRegisteredChatController(tag: tag);
 
-  String chatID;
-  String userID;
+  String chatID, userID;
   var nickname = "".obs;
   var avatarUrl = "".obs;
   var token = "".obs;
@@ -118,8 +100,6 @@ class ChatController extends GetxController {
   RxList<File> images = <File>[].obs;
   final Rx<File?> pendingVideo = Rx<File?>(null);
   final RxString selectedGifUrl = ''.obs;
-  final ConversationRepository _conversationRepository =
-      ConversationRepository.ensure();
   final replyingTo = Rxn<MessageModel>();
   final editingMessage = Rxn<MessageModel>();
   Timer? _messageSyncTimer;
@@ -128,12 +108,8 @@ class ChatController extends GetxController {
   DateTime? _lastServerSyncAt;
   bool _isMessageSyncing = false;
   String _realtimeHeadSignature = '';
-  bool _isLoadingOlder = false;
-  bool _conversationHasMore = true;
+  bool _isLoadingOlder = false, _conversationHasMore = true;
   DocumentSnapshot<Map<String, dynamic>>? _conversationOldestCursor;
-  static const int _initialPageSize = 60;
-  static const int _olderPageSize = 40;
-  static const int _syncHeadSize = 40;
   final Map<String, MessageModel> _conversationMessages = {};
   var showScrollDownButton = false.obs;
   var scrollDownOpacity = 0.0.obs;
@@ -150,14 +126,10 @@ class ChatController extends GetxController {
   Timer? _typingDebounce;
   Timer? _recordingTimer;
   StreamSubscription<DocumentSnapshot>? _typingStream;
-  bool _typingActive = false;
+  bool _typingActive = false, _recipientMuted = false;
   int _lastTypingHeartbeatMs = 0;
-  bool _recipientMuted = false;
-  static const int _typingHeartbeatIntervalMs = 1500;
   final AudioRecorder _audioRecorder = AudioRecorder();
   String? _recordingPath;
-  static const int _localChatWindowLimit = 180;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   ChatController({required this.chatID, required this.userID});
 

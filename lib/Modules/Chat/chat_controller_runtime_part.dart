@@ -2,7 +2,7 @@ part of 'chat_controller.dart';
 
 extension ChatControllerRuntimePart on ChatController {
   void _initializeChatRuntime() {
-    ChatController._activeTag = chatID;
+    _activeChatTag = chatID;
     ChatControllerSupportPart(this).getUserData();
     unawaited(ChatControllerSupportPart(this).loadChatBackgroundPreference());
     unawaited(ChatControllerSupportPart(this).getData());
@@ -47,8 +47,8 @@ extension ChatControllerRuntimePart on ChatController {
   }
 
   void _disposeChatRuntimeResources() {
-    if (ChatController._activeTag == chatID) {
-      ChatController._activeTag = null;
+    if (_activeChatTag == chatID) {
+      _activeChatTag = null;
     }
     unawaited(ChatControllerSupportPart(this)._markConversationOpenedNow());
     _messageSyncTimer?.cancel();
