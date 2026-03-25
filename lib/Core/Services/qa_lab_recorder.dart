@@ -2122,7 +2122,7 @@ class QALabRecorder extends GetxService {
   }) {
     final events = surfaceTimeline
         .where((event) => event.category == 'playback_dispatch')
-        .where(_isIssuedPlaybackDispatch)
+        .where(_isDuplicatePlaybackDispatchCandidate)
         .where(
           (event) =>
               docId == null ||
@@ -2201,6 +2201,23 @@ class QALabRecorder extends GetxService {
       return raw.toLowerCase() != 'false';
     }
     return true;
+  }
+
+  bool _isDuplicatePlaybackDispatchCandidate(QALabTimelineEvent event) {
+    if (!_isIssuedPlaybackDispatch(event)) {
+      return false;
+    }
+    if (event.surface.trim() != 'feed') {
+      return true;
+    }
+    switch (event.code) {
+      case 'feed_play_only_this':
+      case 'feed_reassert_only_this':
+      case 'feed_card_exclusive_play_only_this':
+        return true;
+      default:
+        return false;
+    }
   }
 
   int _countDuplicatePlaybackDispatchBursts({

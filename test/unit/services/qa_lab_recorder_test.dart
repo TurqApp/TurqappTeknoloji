@@ -1475,20 +1475,26 @@ void main() {
       QALabTimelineEvent(
         id: 'tp2',
         category: 'playback_dispatch',
-        code: 'feed_card_adapter_play',
+        code: 'feed_reassert_only_this',
         route: '/NavBar',
         surface: 'feed',
         timestamp: now.subtract(const Duration(milliseconds: 170)),
-        metadata: const <String, dynamic>{'docId': 'post-2'},
+        metadata: const <String, dynamic>{
+          'docId': 'post-2',
+          'dispatchIssued': true,
+        },
       ),
       QALabTimelineEvent(
         id: 'tp3',
         category: 'playback_dispatch',
-        code: 'feed_card_video_state_request',
+        code: 'feed_play_only_this',
         route: '/NavBar',
         surface: 'feed',
         timestamp: now.subtract(const Duration(milliseconds: 120)),
-        metadata: const <String, dynamic>{'docId': 'post-2'},
+        metadata: const <String, dynamic>{
+          'docId': 'post-2',
+          'dispatchIssued': true,
+        },
       ),
     ]);
 
@@ -1496,6 +1502,98 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_duplicate_playback_dispatch'),
       isTrue,
+    );
+  });
+
+  test('qa recorder ignores feed coordination chain for duplicate dispatches',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp13b',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-2',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'post-2',
+            'registeredHandleCount': 1,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'ts1b',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 300)),
+        metadata: const <String, dynamic>{'docId': 'post-2'},
+      ),
+      QALabTimelineEvent(
+        id: 'tp1b',
+        category: 'playback_dispatch',
+        code: 'feed_play_only_this',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 220)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-2',
+          'dispatchIssued': true,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp2b',
+        category: 'playback_dispatch',
+        code: 'feed_card_adapter_play',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 170)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-2',
+          'dispatchIssued': true,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp3b',
+        category: 'playback_dispatch',
+        code: 'feed_card_video_state_request',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 120)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-2',
+          'dispatchIssued': true,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_duplicate_playback_dispatch'),
+      isFalse,
     );
   });
 
