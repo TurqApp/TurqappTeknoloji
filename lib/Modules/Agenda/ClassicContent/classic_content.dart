@@ -158,17 +158,30 @@ class _ClassicContentState extends State<ClassicContent>
   static const double _reelPortraitFrameAspectRatio = 5 / 8;
   static const double _feedPortraitFrameAspectRatio = 4 / 5;
   static const double _squareFrameAspectRatio = 0.92;
-  bool get _shouldPreserveScholarshipShareFrame {
+  double? get _sharedFeedFrameAspectRatio {
     final type =
         _ctaNavigationService.resolveMeta(widget.model.reshareMap).type;
-    return type == 'scholarship' && widget.model.img.length == 1;
+    if (widget.model.img.length != 1) {
+      return null;
+    }
+    switch (type) {
+      case 'market':
+      case 'tutoring':
+      case 'job':
+        return 1.0;
+      case 'scholarship':
+        return 4 / 3;
+      default:
+        return null;
+    }
   }
 
   double get _resolvedClassicFrameAspectRatio {
-    final raw = widget.model.aspectRatio.toDouble();
-    if (_shouldPreserveScholarshipShareFrame && raw > 0) {
-      return raw.clamp(0.65, 1.8);
+    final sharedFeedAspectRatio = _sharedFeedFrameAspectRatio;
+    if (sharedFeedAspectRatio != null) {
+      return sharedFeedAspectRatio;
     }
+    final raw = widget.model.aspectRatio.toDouble();
     if (raw <= 0) return _squareFrameAspectRatio;
     if (raw < 0.7) return _reelPortraitFrameAspectRatio;
     if (raw < 0.9) return _feedPortraitFrameAspectRatio;

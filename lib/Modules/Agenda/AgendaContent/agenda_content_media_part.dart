@@ -23,9 +23,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
   Widget _buildVideoThumbnail({double? aspectRatio}) {
     final thumb = widget.model.thumbnail.trim().isNotEmpty
         ? widget.model.thumbnail.trim()
-        : (widget.model.img.isNotEmpty
-            ? widget.model.img.first.trim()
-            : '');
+        : (widget.model.img.isNotEmpty ? widget.model.img.first.trim() : '');
     final fallback = _buildVideoPosterFallback(aspectRatio: aspectRatio);
     final cacheHeight = aspectRatio != null
         ? _feedCacheHeightForAspectRatio(aspectRatio)
@@ -178,13 +176,10 @@ extension _AgendaContentMediaPart on _AgendaContentState {
     final type = _AgendaContentState._ctaNavigationService
         .resolveMeta(widget.model.reshareMap)
         .type;
-    final preserveScholarshipFrame =
-        type == 'scholarship' && widget.model.img.length == 1;
-    final singleImageAspectRatio = widget.model.floodCount > 1
-        ? 1.0
-        : (preserveScholarshipFrame
-            ? widget.model.aspectRatio.toDouble().clamp(0.65, 1.8)
-            : 0.80);
+    final sharedFeedAspectRatio =
+        widget.model.img.length == 1 ? _sharedFeedAspectRatioFor(type) : null;
+    final singleImageAspectRatio =
+        widget.model.floodCount > 1 ? 1.0 : (sharedFeedAspectRatio ?? 0.80);
 
     switch (images.length) {
       case 1:
@@ -390,15 +385,15 @@ extension _AgendaContentMediaPart on _AgendaContentState {
         onTap: () => _AgendaContentState._ctaNavigationService
             .openFromPostMeta(widget.model.reshareMap),
         child: Container(
-          width: 132,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          width: 106,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: palette,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
             boxShadow: [
               BoxShadow(
@@ -413,13 +408,26 @@ extension _AgendaContentMediaPart on _AgendaContentState {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 13,
               fontFamily: 'MontserratBold',
             ),
           ),
         ),
       ),
     );
+  }
+
+  double? _sharedFeedAspectRatioFor(String type) {
+    switch (type) {
+      case 'market':
+      case 'tutoring':
+      case 'job':
+        return 1.0;
+      case 'scholarship':
+        return 4 / 3;
+      default:
+        return null;
+    }
   }
 
   List<Color> _feedCtaPaletteFor({
