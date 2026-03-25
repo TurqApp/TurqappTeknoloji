@@ -44,6 +44,8 @@ class VideoSessionMetrics {
   }
 
   void onBufferingStart() {
+    // Startup buffering belongs to TTFF/startup health, not rebuffer quality.
+    if (firstFrameAt == null) return;
     _lastBufferStart = DateTime.now();
     rebufferCount++;
   }
