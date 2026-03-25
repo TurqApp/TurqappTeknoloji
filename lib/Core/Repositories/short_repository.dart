@@ -4,17 +4,8 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
-class ShortPageResult {
-  const ShortPageResult({
-    required this.posts,
-    required this.lastDoc,
-    required this.hasMore,
-  });
-
-  final List<PostsModel> posts;
-  final QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc;
-  final bool hasMore;
-}
+part 'short_repository_models_part.dart';
+part 'short_repository_query_part.dart';
 
 class ShortRepository extends GetxService {
   ShortRepository({FirebaseFirestore? firestore})
@@ -38,70 +29,12 @@ class ShortRepository extends GetxService {
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
     int pageSize = 20,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    final base = _firestore.collection('Posts');
-
-    Query<Map<String, dynamic>> query = base
-        .where('hlsStatus', isEqualTo: 'ready')
-        .where('arsiv', isEqualTo: false)
-        .where('deletedPost', isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: ts)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageSize);
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-
-    QuerySnapshot<Map<String, dynamic>> snap;
-    try {
-      snap = await PerformanceService.traceFeedLoad(
-        () => query.get(),
-        feedMode: 'short_page',
+  }) =>
+      _fetchReadyPageImpl(
+        startAfter: startAfter,
+        pageSize: pageSize,
+        nowMs: nowMs,
       );
-    } catch (e) {
-      final isIndexError = e is FirebaseException
-          ? e.code == 'failed-precondition'
-          : e.toString().contains('requires an index');
-      if (!isIndexError) rethrow;
-
-      Query<Map<String, dynamic>> fallback = base
-          .where('arsiv', isEqualTo: false)
-          .where('deletedPost', isEqualTo: false)
-          .where('timeStamp', isLessThanOrEqualTo: ts)
-          .orderBy('timeStamp', descending: true)
-          .limit(pageSize);
-      if (startAfter != null) {
-        fallback = fallback.startAfterDocument(startAfter);
-      }
-      try {
-        snap = await fallback.get();
-      } catch (_) {
-        Query<Map<String, dynamic>> broad =
-            base.orderBy('timeStamp', descending: true).limit(pageSize);
-        if (startAfter != null) {
-          broad = broad.startAfterDocument(startAfter);
-        }
-        snap = await broad.get();
-      }
-    }
-
-    if (snap.docs.isEmpty) {
-      return ShortPageResult(
-        posts: const <PostsModel>[],
-        lastDoc: startAfter,
-        hasMore: false,
-      );
-    }
-
-    return ShortPageResult(
-      posts: snap.docs
-          .map((d) => PostsModel.fromMap(d.data(), d.id))
-          .toList(growable: false),
-      lastDoc: snap.docs.last,
-      hasMore: snap.docs.length == pageSize,
-    );
-  }
 
   Future<List<PostsModel>> fetchRandomReadyPosts({
     int limit = 1000,

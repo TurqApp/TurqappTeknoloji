@@ -3,33 +3,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-bool isDiscoveryPublicAuthor({
-  required String rozet,
-  required bool isApproved,
-}) {
-  return rozet.trim().isNotEmpty || isApproved;
-}
-
-bool canViewerSeeDiscoverySurfaceAuthor({
-  required String authorUserId,
-  required Set<String> followingIds,
-  required String rozet,
-  required bool isApproved,
-  required bool isDeleted,
-  String? viewerUserId,
-}) {
-  final uid = authorUserId.trim();
-  if (uid.isEmpty) return false;
-  if (isDeleted) return false;
-
-  final me =
-      (viewerUserId ?? CurrentUserService.instance.effectiveUserId).trim();
-  if (me.isNotEmpty && me == uid) return true;
-  if (isDiscoveryPublicAuthor(rozet: rozet, isApproved: isApproved)) {
-    return true;
-  }
-  return followingIds.contains(uid);
-}
+part 'visibility_policy_service_support_part.dart';
 
 class VisibilityPolicyService extends GetxService {
   static VisibilityPolicyService? maybeFind() {
@@ -51,79 +25,47 @@ class VisibilityPolicyService extends GetxService {
     String? viewerUserId,
     bool preferCache = true,
     bool forceRefresh = false,
-  }) async {
-    final viewerUid =
-        (viewerUserId ?? CurrentUserService.instance.effectiveUserId).trim();
-    if (viewerUid.isEmpty) return <String>{};
-    return _followRepository.getFollowingIds(
-      viewerUid,
-      preferCache: preferCache,
-      forceRefresh: forceRefresh,
-    );
-  }
+  }) =>
+      _loadViewerFollowingIdsImpl(
+        viewerUserId: viewerUserId,
+        preferCache: preferCache,
+        forceRefresh: forceRefresh,
+      );
 
   Future<bool> canViewerSeeAuthor({
     required String authorUserId,
     required Set<String> followingIds,
     bool preferCache = true,
-  }) async {
-    final uid = authorUserId.trim();
-    if (uid.isEmpty) return false;
-
-    final me = CurrentUserService.instance.effectiveUserId;
-    if (me.isNotEmpty && me == uid) return true;
-
-    final summary = await _resolver.resolve(
-      uid,
-      preferCache: preferCache,
-    );
-    if (summary == null) return false;
-    if (summary.isDeleted) return false;
-    if (!summary.isPrivate) return true;
-    return followingIds.contains(uid);
-  }
+  }) =>
+      _canViewerSeeAuthorImpl(
+        authorUserId: authorUserId,
+        followingIds: followingIds,
+        preferCache: preferCache,
+      );
 
   Future<bool> canViewerSeeDiscoveryAuthor({
     required String authorUserId,
     required Set<String> followingIds,
     bool preferCache = true,
-  }) async {
-    final uid = authorUserId.trim();
-    if (uid.isEmpty) return false;
-
-    final me = CurrentUserService.instance.effectiveUserId.trim();
-    if (me.isNotEmpty && me == uid) return true;
-
-    final summary = await _resolver.resolve(
-      uid,
-      preferCache: preferCache,
-    );
-    if (summary == null) return false;
-    return canViewerSeeDiscoverySurfaceAuthor(
-      authorUserId: uid,
-      followingIds: followingIds,
-      rozet: summary.rozet,
-      isApproved: summary.isApproved,
-      isDeleted: summary.isDeleted,
-      viewerUserId: me,
-    );
-  }
+  }) =>
+      _canViewerSeeDiscoveryAuthorImpl(
+        authorUserId: authorUserId,
+        followingIds: followingIds,
+        preferCache: preferCache,
+      );
 
   bool canViewerSeeAuthorFromSummary({
     required String authorUserId,
     required Set<String> followingIds,
     required bool isPrivate,
     required bool isDeleted,
-  }) {
-    final uid = authorUserId.trim();
-    if (uid.isEmpty) return false;
-    if (isDeleted) return false;
-
-    final me = CurrentUserService.instance.effectiveUserId;
-    if (me.isNotEmpty && me == uid) return true;
-    if (!isPrivate) return true;
-    return followingIds.contains(uid);
-  }
+  }) =>
+      _canViewerSeeAuthorFromSummaryImpl(
+        authorUserId: authorUserId,
+        followingIds: followingIds,
+        isPrivate: isPrivate,
+        isDeleted: isDeleted,
+      );
 
   bool canViewerSeeDiscoveryAuthorFromSummary({
     required String authorUserId,
@@ -132,14 +74,13 @@ class VisibilityPolicyService extends GetxService {
     required bool isApproved,
     required bool isDeleted,
     String? viewerUserId,
-  }) {
-    return canViewerSeeDiscoverySurfaceAuthor(
-      authorUserId: authorUserId,
-      followingIds: followingIds,
-      rozet: rozet,
-      isApproved: isApproved,
-      isDeleted: isDeleted,
-      viewerUserId: viewerUserId,
-    );
-  }
+  }) =>
+      _canViewerSeeDiscoveryAuthorFromSummaryImpl(
+        authorUserId: authorUserId,
+        followingIds: followingIds,
+        rozet: rozet,
+        isApproved: isApproved,
+        isDeleted: isDeleted,
+        viewerUserId: viewerUserId,
+      );
 }

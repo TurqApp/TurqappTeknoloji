@@ -8,6 +8,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'tutoring_detail_controller_reviews_part.dart';
 part 'tutoring_detail_controller_runtime_part.dart';
+part 'tutoring_detail_controller_actions_part.dart';
+part 'tutoring_detail_controller_models_part.dart';
 
 class TutoringDetailController extends GetxController {
   static TutoringDetailController ensure({
@@ -30,25 +32,7 @@ class TutoringDetailController extends GetxController {
   }
 
   var isLoading = true.obs;
-  var tutoring = TutoringModel(
-    docID: '',
-    aciklama: '',
-    baslik: '',
-    brans: '',
-    cinsiyet: '',
-    dersYeri: [],
-    end: 0,
-    favorites: [],
-    fiyat: 0,
-    ilce: '',
-    onayVerildi: false,
-    sehir: '',
-    telefon: false,
-    timeStamp: 0,
-    userID: '',
-    whatsapp: false,
-    imgs: null,
-  ).obs;
+  var tutoring = buildEmptyTutoringModel().obs;
   var users = <String, Map<String, dynamic>>{}.obs;
   var carouselCurrentIndex = 0.obs;
 
@@ -87,59 +71,15 @@ class TutoringDetailController extends GetxController {
   Future<void> checkBasvuru(String docID) =>
       _TutoringDetailControllerRuntimeX(this).checkBasvuru(docID);
 
-  Future<void> toggleBasvuru(String docId) async {
-    final uid = _uid;
-    if (uid.isEmpty) {
-      AppSnackbar('common.error'.tr, 'tutoring.apply_login_required'.tr);
-      return;
-    }
-
-    try {
-      final t = tutoring.value;
-      final ownerData = users[t.userID];
-      final tutorName =
-          (ownerData?['displayName'] ?? ownerData?['nickname'] ?? '')
-              .toString()
-              .trim();
-      final tutorImage = (ownerData?['avatarUrl'] ?? '').toString();
-      final currentUserSummary = await _userSummaryResolver.resolve(
-        uid,
-        preferCache: true,
-      );
-      final applicantName = currentUserSummary?.displayName.trim() ?? '';
-      final applicantLabel =
-          applicantName.isNotEmpty ? applicantName : 'common.some_user'.tr;
-      final applicantImage = currentUserSummary?.avatarUrl.trim() ?? '';
-
-      final isApplied = await _tutoringRepository.toggleApplication(
-        tutoringId: docId,
-        ownerUid: tutoring.value.userID,
-        userId: uid,
-        tutoringTitle: t.baslik,
-        tutorName: tutorName,
-        tutorImage: tutorImage,
-        applicantLabel: applicantLabel,
-        applicantImage: applicantImage,
-      );
-      basvuruldu.value = isApplied;
-      if (isApplied) {
-        AppSnackbar('common.success'.tr, 'tutoring.application_sent'.tr);
-      }
-    } catch (_) {
-      AppSnackbar('common.error'.tr, 'tutoring.application_failed'.tr);
-    }
-  }
+  Future<void> toggleBasvuru(String docId) =>
+      _TutoringDetailControllerActionsX(this).toggleBasvuru(docId);
 
   // ── View Count ──
 
   // ── Unpublish ──
 
-  Future<void> unpublishTutoring() async {
-    final docId = tutoring.value.docID;
-    try {
-      await _tutoringRepository.unpublish(docId);
-    } catch (_) {}
-  }
+  Future<void> unpublishTutoring() =>
+      _TutoringDetailControllerActionsX(this).unpublishTutoring();
 
   // ── Similar ──
 
