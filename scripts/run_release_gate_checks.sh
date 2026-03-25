@@ -47,6 +47,9 @@ echo "[telemetry-threshold-report]"
 TELEMETRY_FAIL_ON_BLOCKING="$telemetry_fail_on_blocking" \
   bash scripts/export_telemetry_threshold_report.sh
 
+echo "[device-log-report]"
+bash scripts/export_android_device_log_report.sh
+
 echo "[release-alert-bundle]"
 bash scripts/export_release_alert_bundle.sh
 

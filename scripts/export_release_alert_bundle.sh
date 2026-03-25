@@ -6,6 +6,7 @@ cd "$REPO_ROOT"
 
 smoke_report="${INTEGRATION_SMOKE_REPORT_OUTPUT:-artifacts/integration_smoke_report_latest.json}"
 telemetry_report="${TELEMETRY_REPORT_OUTPUT:-artifacts/telemetry_threshold_report_latest.json}"
+device_log_report="${DEVICE_LOG_REPORT_OUTPUT:-artifacts/device_log_report_latest.json}"
 output_file="${RELEASE_ALERT_BUNDLE_OUTPUT:-artifacts/release_alert_bundle_latest.json}"
 allow_stale_telemetry="${RELEASE_ALERT_ALLOW_STALE_TELEMETRY:-0}"
 
@@ -18,7 +19,13 @@ if [[ -f "$telemetry_report" ]]; then
   fi
 fi
 
+device_log_input=""
+if [[ -f "$device_log_report" ]]; then
+  device_log_input="$device_log_report"
+fi
+
 dart run tool/release_alert_bundle.dart \
   --output "$output_file" \
   --smoke-input "$smoke_report" \
-  --telemetry-input "$telemetry_input"
+  --telemetry-input "$telemetry_input" \
+  --device-log-input "$device_log_input"

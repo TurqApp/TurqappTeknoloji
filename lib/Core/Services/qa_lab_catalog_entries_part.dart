@@ -391,6 +391,11 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: false,
   ),
   QALabCatalogEntry(
+    path: 'test/unit/services/device_log_reporter_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
     path: 'test/unit/services/feed_api_live_smoke_test.dart',
     origin: QALabTestOrigin.unit,
     runnableInApp: false,

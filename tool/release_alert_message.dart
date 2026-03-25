@@ -54,10 +54,13 @@ Map<String, dynamic> _buildSlackPayload(Map<String, dynamic> bundle) {
   final nextActions = _asList(bundle['nextActions']);
   final severity = (summary['severity'] ?? 'unknown').toString();
   final headline = (summary['headline'] ?? 'Release alert').toString();
+  final adminReportRequired = summary['adminReportRequired'] == true;
+  final triageState = (summary['triageState'] ?? '').toString();
 
   final lines = <String>[
     '*$headline*',
     'Severity: `${severity.toUpperCase()}`',
+    if (adminReportRequired) 'Admin review: `REQUIRED` ($triageState)',
     ...topSignals.take(3).map(_signalLine),
     ...nextActions.take(3).map((action) => 'Action: ${action.toString()}'),
   ];
@@ -83,6 +86,8 @@ Map<String, dynamic> _buildDiscordPayload(Map<String, dynamic> bundle) {
   final nextActions = _asList(bundle['nextActions']);
   final severity = (summary['severity'] ?? 'unknown').toString();
   final headline = (summary['headline'] ?? 'Release alert').toString();
+  final adminReportRequired = summary['adminReportRequired'] == true;
+  final triageState = (summary['triageState'] ?? '').toString();
 
   return <String, dynamic>{
     'content': '**$headline**',
@@ -91,8 +96,11 @@ Map<String, dynamic> _buildDiscordPayload(Map<String, dynamic> bundle) {
         'title': 'Release Gate Alert',
         'description': [
           'Severity: ${severity.toUpperCase()}',
+          if (adminReportRequired) 'Admin review: REQUIRED ($triageState)',
           ...topSignals.take(3).map(_signalLine),
-          ...nextActions.take(3).map((action) => 'Action: ${action.toString()}'),
+          ...nextActions
+              .take(3)
+              .map((action) => 'Action: ${action.toString()}'),
         ].join('\n'),
         'color': _discordColorForSeverity(severity),
       },
@@ -107,6 +115,8 @@ Map<String, dynamic> _buildTeamsPayload(Map<String, dynamic> bundle) {
   final nextActions = _asList(bundle['nextActions']);
   final severity = (summary['severity'] ?? 'unknown').toString();
   final headline = (summary['headline'] ?? 'Release alert').toString();
+  final adminReportRequired = summary['adminReportRequired'] == true;
+  final triageState = (summary['triageState'] ?? '').toString();
 
   return <String, dynamic>{
     'type': 'message',
@@ -131,6 +141,13 @@ Map<String, dynamic> _buildTeamsPayload(Map<String, dynamic> bundle) {
               'text': 'Severity: ${severity.toUpperCase()}',
               'wrap': true,
             },
+            if (adminReportRequired)
+              <String, dynamic>{
+                'type': 'TextBlock',
+                'spacing': 'Small',
+                'text': 'Admin review: REQUIRED ($triageState)',
+                'wrap': true,
+              },
             for (final signal in topSignals.take(3))
               <String, dynamic>{
                 'type': 'TextBlock',
@@ -161,6 +178,9 @@ String _signalLine(dynamic rawSignal) {
   }
   if (type == 'telemetry') {
     return 'Telemetry ${signal['surface']}: ${signal['code']} (${signal['severity']})';
+  }
+  if (type == 'device_log') {
+    return 'Device log ${signal['code']}: ${signal['message']} x${signal['count']} (${signal['severity']})';
   }
   return signal.toString();
 }
