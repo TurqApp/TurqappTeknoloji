@@ -16,47 +16,30 @@ void main() {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
-    final probe = <String, dynamic>{
-      'feed': <String, dynamic>{
-        'registered': true,
-        'count': 1,
-        'centeredIndex': 0,
-        'centeredDocId': 'video-1',
-        'centeredHasPlayableVideo': true,
-        'playbackSuspended': false,
-        'pauseAll': false,
-        'canClaimPlaybackNow': true,
-      },
-      'auth': <String, dynamic>{
-        'currentUid': 'user-1',
-        'isFirebaseSignedIn': true,
-        'currentUserLoaded': true,
-      },
-      'videoPlayback': <String, dynamic>{
-        'registered': true,
-        'currentPlayingDocID': 'video-1',
-        'registeredHandleCount': 1,
-        'savedStateCount': 0,
-      },
-    };
-    recorder.checkpoints.addAll(<QALabCheckpoint>[
+    recorder.checkpoints.add(
       QALabCheckpoint(
-        id: 'cp1a',
+        id: 'cp1',
         label: 'feed_visible',
         surface: 'feed',
         route: '/NavBar',
-        timestamp: now.subtract(const Duration(seconds: 12)),
-        probe: probe,
-      ),
-      QALabCheckpoint(
-        id: 'cp1b',
-        label: 'feed_watchdog',
-        surface: 'feed',
-        route: '/NavBar',
         timestamp: now,
-        probe: probe,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
       ),
-    ]);
+    );
     recorder.issues.add(
       QALabIssue(
         id: 'issue1',
@@ -79,198 +62,6 @@ void main() {
       findings.any((item) => item.code == 'feed_first_frame_timeout'),
       isTrue,
     );
-  });
-
-  test('qa recorder ignores native feed first-frame timeout while gate blocked',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp_gate_blocked',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 1,
-            'centeredIndex': 0,
-            'centeredDocId': 'video-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': false,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.lastNativePlaybackSnapshot
-      ..clear()
-      ..addAll(<String, dynamic>{
-        'platform': 'android',
-        'status': 'FIRST_FRAME_TIMEOUT|PLAYBACK_NOT_STARTED',
-        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'PLAYBACK_NOT_STARTED'],
-        'active': true,
-        'firstFrameRendered': false,
-        'isPlaybackExpected': true,
-        'isPlaying': false,
-        'isBuffering': false,
-        'stallCount': 0,
-        'layerAttachCount': 1,
-        'lastKnownPlaybackTime': 0.0,
-        'sampledAt': now.toUtc().toIso8601String(),
-        'trigger': 'test',
-        'supported': true,
-      });
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_native_first_frame_timeout'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder ignores stale feed video timeout for non-active doc', () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp1b',
-        label: 'feed_visible',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 1,
-            'centeredIndex': 0,
-            'centeredDocId': 'video-2',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-          'videoPlayback': <String, dynamic>{
-            'registered': true,
-            'currentPlayingDocID': 'video-2',
-            'registeredHandleCount': 1,
-            'savedStateCount': 0,
-          },
-        },
-      ),
-    );
-    recorder.issues.add(
-      QALabIssue(
-        id: 'issue1b',
-        source: QALabIssueSource.video,
-        severity: QALabIssueSeverity.info,
-        code: 'video_session_started',
-        message: 'Video session started',
-        timestamp: now.subtract(const Duration(seconds: 10)),
-        route: '/NavBar',
-        surface: 'feed',
-        metadata: const <String, dynamic>{
-          'videoId': 'video-1',
-        },
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_first_frame_timeout'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder ignores feed blank surface after recent host lookup error',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'feed_blank_cp',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBarView',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 0,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.issues.add(
-      QALabIssue(
-        id: 'feed_host_lookup',
-        source: QALabIssueSource.platform,
-        severity: QALabIssueSeverity.error,
-        code: 'platform_error',
-        message:
-            "ClientException with SocketException: Failed host lookup: 'firebasestorage.googleapis.com'",
-        timestamp: now.subtract(const Duration(seconds: 3)),
-        route: '/NavBarView',
-        surface: 'feed',
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_blank_surface'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder specializes platform host lookup failures', () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.issues.add(
-      QALabIssue(
-        id: 'feed_host_lookup_specialized',
-        source: QALabIssueSource.platform,
-        severity: QALabIssueSeverity.error,
-        code: 'platform_error',
-        message:
-            "ClientException with SocketException: Failed host lookup: 'firebasestorage.googleapis.com'",
-        timestamp: now,
-        route: '/NavBarView',
-        surface: 'feed',
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-    final finding = findings.firstWhere(
-      (item) => item.code == 'feed_host_lookup_failed',
-    );
-
-    expect(finding.message, contains('hostname resolution'));
-    expect(finding.context['host'], 'firebasestorage.googleapis.com');
   });
 
   test('qa recorder flags authenticated short blank surface', () {
@@ -429,7 +220,6 @@ void main() {
         'count': 2,
         'centeredIndex': 0,
         'centeredDocId': 'post-1',
-        'centeredHasPlayableVideo': true,
         'playbackSuspended': false,
         'pauseAll': false,
         'canClaimPlaybackNow': true,
@@ -471,241 +261,6 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_autoplay_missing'),
       isTrue,
-    );
-  });
-
-  test(
-      'qa recorder ignores feed autoplay missing after recent host lookup error',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-    final probe = <String, dynamic>{
-      'feed': <String, dynamic>{
-        'registered': true,
-        'count': 2,
-        'centeredIndex': 0,
-        'centeredDocId': 'post-1',
-        'centeredHasPlayableVideo': true,
-        'playbackSuspended': false,
-        'pauseAll': false,
-        'canClaimPlaybackNow': true,
-      },
-      'auth': <String, dynamic>{
-        'currentUid': 'user-1',
-        'isFirebaseSignedIn': true,
-        'currentUserLoaded': true,
-      },
-      'videoPlayback': <String, dynamic>{
-        'registered': true,
-        'currentPlayingDocID': '',
-        'registeredHandleCount': 1,
-        'savedStateCount': 0,
-      },
-    };
-
-    recorder.checkpoints.addAll(<QALabCheckpoint>[
-      QALabCheckpoint(
-        id: 'cp4a',
-        label: 'feed_visible',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now.subtract(const Duration(seconds: 5)),
-        probe: probe,
-      ),
-      QALabCheckpoint(
-        id: 'cp4b',
-        label: 'feed_watchdog',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: probe,
-      ),
-    ]);
-    recorder.issues.add(
-      QALabIssue(
-        id: 'feed_autoplay_host_lookup',
-        source: QALabIssueSource.platform,
-        severity: QALabIssueSeverity.error,
-        code: 'platform_error',
-        message:
-            "ClientException with SocketException: Failed host lookup: 'cdn.turqapp.com'",
-        timestamp: now.subtract(const Duration(seconds: 2)),
-        route: '/NavBar',
-        surface: 'feed',
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_autoplay_missing'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder requires persistent feed wrong-target autoplay mismatch',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.addAll(<QALabCheckpoint>[
-      QALabCheckpoint(
-        id: 'cp5a',
-        label: 'feed_visible',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now.subtract(const Duration(seconds: 5)),
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 2,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-          'videoPlayback': <String, dynamic>{
-            'registered': true,
-            'currentPlayingDocID': 'post-1',
-            'registeredHandleCount': 1,
-            'savedStateCount': 0,
-          },
-        },
-      ),
-      QALabCheckpoint(
-        id: 'cp5b',
-        label: 'feed_watchdog',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 2,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-          'videoPlayback': <String, dynamic>{
-            'registered': true,
-            'currentPlayingDocID': 'post-2',
-            'registeredHandleCount': 1,
-            'savedStateCount': 0,
-          },
-        },
-      ),
-    ]);
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_autoplay_wrong_target'),
-      isFalse,
-    );
-  });
-
-  test(
-      'qa recorder ignores feed wrong-target autoplay during backend unavailable failures',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.addAll(<QALabCheckpoint>[
-      QALabCheckpoint(
-        id: 'cp5c',
-        label: 'feed_visible',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now.subtract(const Duration(seconds: 5)),
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 2,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-          'videoPlayback': <String, dynamic>{
-            'registered': true,
-            'currentPlayingDocID': 'post-2',
-            'registeredHandleCount': 1,
-            'savedStateCount': 0,
-          },
-        },
-      ),
-      QALabCheckpoint(
-        id: 'cp5d',
-        label: 'feed_watchdog',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 2,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-          'videoPlayback': <String, dynamic>{
-            'registered': true,
-            'currentPlayingDocID': 'post-2',
-            'registeredHandleCount': 1,
-            'savedStateCount': 0,
-          },
-        },
-      ),
-    ]);
-    recorder.issues.add(
-      QALabIssue(
-        id: 'feed_autoplay_backend_unavailable',
-        source: QALabIssueSource.platform,
-        severity: QALabIssueSeverity.error,
-        code: 'platform_error',
-        message:
-            '[cloud_firestore/unavailable] The service is currently unavailable. This is a most likely a transient condition and may be corrected by retrying with a backoff.',
-        timestamp: now.subtract(const Duration(seconds: 1)),
-        route: '/NavBar',
-        surface: 'feed',
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_autoplay_wrong_target'),
-      isFalse,
     );
   });
 
@@ -770,156 +325,6 @@ void main() {
     expect(summaries.first.primaryRootCauseDetail, contains('empty'));
   });
 
-  test(
-      'qa recorder ignores feed centered index invalid after recent host lookup error',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'feed_center_invalid_cp',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBarView',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 3,
-            'centeredIndex': -1,
-            'centeredDocId': '',
-            'centeredHasPlayableVideo': false,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': false,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.issues.add(
-      QALabIssue(
-        id: 'feed_center_host_lookup',
-        source: QALabIssueSource.platform,
-        severity: QALabIssueSeverity.error,
-        code: 'platform_error',
-        message:
-            "ClientException with SocketException: Failed host lookup: 'cdn.turqapp.com'",
-        timestamp: now.subtract(const Duration(seconds: 4)),
-        route: '/NavBarView',
-        surface: 'feed',
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_centered_index_invalid'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder waits before flagging feed centered index invalid', () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'feed_center_invalid_early',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBarView',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 3,
-            'centeredIndex': -1,
-            'centeredDocId': '',
-            'centeredHasPlayableVideo': false,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': false,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_centered_index_invalid'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder maps backend unavailable findings to summary root cause',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'feed_backend_cp',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBarView',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 2,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.issues.add(
-      QALabIssue(
-        id: 'feed_backend_unavailable',
-        source: QALabIssueSource.platform,
-        severity: QALabIssueSeverity.error,
-        code: 'platform_error',
-        message:
-            '[cloud_firestore/unavailable] The service is currently unavailable. This is a most likely a transient condition and may be corrected by retrying with a backoff.',
-        timestamp: now.subtract(const Duration(seconds: 1)),
-        route: '/NavBarView',
-        surface: 'feed',
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-    final summaries = recorder.buildSurfaceAlertSummaries();
-    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
-
-    expect(
-      findings.any((item) => item.code == 'feed_backend_unavailable'),
-      isTrue,
-    );
-    expect(feedSummary.headlineCode, 'feed_backend_unavailable');
-    expect(feedSummary.primaryRootCauseCategory, 'backend_unavailable');
-  });
-
   test('qa recorder maps autoplay findings to autoplay root cause', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -929,7 +334,6 @@ void main() {
         'count': 2,
         'centeredIndex': 0,
         'centeredDocId': 'post-1',
-        'centeredHasPlayableVideo': true,
         'playbackSuspended': false,
         'pauseAll': false,
         'canClaimPlaybackNow': true,
@@ -974,7 +378,7 @@ void main() {
     expect(feedSummary.primaryRootCauseDetail, contains('autoplay'));
   });
 
-  test('qa recorder ignores unstable focus when checking audio drift', () {
+  test('qa recorder flags inconsistent feed audio state across sessions', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
@@ -1037,76 +441,6 @@ void main() {
     ]);
 
     final findings = recorder.buildPinpointFindings();
-    expect(
-      findings.any((item) => item.code == 'feed_audio_state_inconsistent'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder flags inconsistent feed audio state for stable sessions',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp10b',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 3,
-            'centeredIndex': 1,
-            'centeredDocId': 'post-2',
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.issues.addAll(<QALabIssue>[
-      QALabIssue(
-        id: 'audio_stable_1',
-        source: QALabIssueSource.video,
-        severity: QALabIssueSeverity.info,
-        code: 'video_session_ended',
-        message: 'Video session ended',
-        timestamp: now.subtract(const Duration(seconds: 4)),
-        route: '/NavBar',
-        surface: 'feed',
-        metadata: const <String, dynamic>{
-          'videoId': 'post-1',
-          'isAudible': true,
-          'hasStableFocus': true,
-        },
-      ),
-      QALabIssue(
-        id: 'audio_stable_2',
-        source: QALabIssueSource.video,
-        severity: QALabIssueSeverity.info,
-        code: 'video_session_ended',
-        message: 'Video session ended',
-        timestamp: now.subtract(const Duration(seconds: 2)),
-        route: '/NavBar',
-        surface: 'feed',
-        metadata: const <String, dynamic>{
-          'videoId': 'post-2',
-          'isAudible': false,
-          'hasStableFocus': true,
-        },
-      ),
-    ]);
-
-    final findings = recorder.buildPinpointFindings();
     final summaries = recorder.buildSurfaceAlertSummaries();
     final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
 
@@ -1134,7 +468,6 @@ void main() {
             'count': 2,
             'centeredIndex': 0,
             'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
             'playbackSuspended': false,
             'pauseAll': false,
             'canClaimPlaybackNow': true,
@@ -1300,123 +633,6 @@ void main() {
     expect(feedSummary.primaryRootCauseCategory, 'feed_trigger_duplication');
   });
 
-  test('qa recorder specializes feed fetch host lookup failures', () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp_fetch_host_lookup',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 3,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.timelineEvents.add(
-      QALabTimelineEvent(
-        id: 'tf_host_lookup_failed',
-        category: 'feed_fetch',
-        code: 'failed',
-        route: '/NavBar',
-        surface: 'feed',
-        timestamp: now.subtract(const Duration(seconds: 1)),
-        metadata: const <String, dynamic>{
-          'trigger': 'manual',
-          'pageLimit': 30,
-          'currentCount': 0,
-          'error':
-              "ClientException with SocketException: Failed host lookup: 'cdn.turqapp.com' (OS Error: No address associated with hostname, errno = 7)",
-        },
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_host_lookup_failed'),
-      isTrue,
-    );
-  });
-
-  test('qa recorder maps feed fetch backend unavailable failures to summary',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp_fetch_backend_unavailable',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 3,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'centeredHasPlayableVideo': true,
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.timelineEvents.add(
-      QALabTimelineEvent(
-        id: 'tf_backend_unavailable',
-        category: 'feed_fetch',
-        code: 'failed',
-        route: '/NavBar',
-        surface: 'feed',
-        timestamp: now.subtract(const Duration(seconds: 1)),
-        metadata: const <String, dynamic>{
-          'trigger': 'manual',
-          'pageLimit': 30,
-          'currentCount': 0,
-          'error':
-              '[cloud_firestore/unavailable] The service is currently unavailable. This is a most likely a transient condition and may be corrected by retrying with a backoff.',
-        },
-      ),
-    );
-
-    final findings = recorder.buildPinpointFindings();
-    final summaries = recorder.buildSurfaceAlertSummaries();
-    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
-
-    expect(
-      findings.any((item) => item.code == 'feed_backend_unavailable'),
-      isTrue,
-    );
-    expect(feedSummary.headlineCode, 'feed_backend_unavailable');
-    expect(feedSummary.primaryRootCauseCategory, 'backend_unavailable');
-  });
-
   test('qa recorder flags duplicate playback dispatch bursts', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -1475,26 +691,20 @@ void main() {
       QALabTimelineEvent(
         id: 'tp2',
         category: 'playback_dispatch',
-        code: 'feed_reassert_only_this',
+        code: 'feed_card_adapter_play',
         route: '/NavBar',
         surface: 'feed',
         timestamp: now.subtract(const Duration(milliseconds: 170)),
-        metadata: const <String, dynamic>{
-          'docId': 'post-2',
-          'dispatchIssued': true,
-        },
+        metadata: const <String, dynamic>{'docId': 'post-2'},
       ),
       QALabTimelineEvent(
         id: 'tp3',
         category: 'playback_dispatch',
-        code: 'feed_play_only_this',
+        code: 'feed_card_video_state_request',
         route: '/NavBar',
         surface: 'feed',
         timestamp: now.subtract(const Duration(milliseconds: 120)),
-        metadata: const <String, dynamic>{
-          'docId': 'post-2',
-          'dispatchIssued': true,
-        },
+        metadata: const <String, dynamic>{'docId': 'post-2'},
       ),
     ]);
 
@@ -1502,98 +712,6 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_duplicate_playback_dispatch'),
       isTrue,
-    );
-  });
-
-  test('qa recorder ignores feed coordination chain for duplicate dispatches',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp13b',
-        label: 'feed_runtime',
-        surface: 'feed',
-        route: '/NavBar',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 1,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-2',
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-          'videoPlayback': <String, dynamic>{
-            'registered': true,
-            'currentPlayingDocID': 'post-2',
-            'registeredHandleCount': 1,
-            'savedStateCount': 0,
-          },
-        },
-      ),
-    );
-    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
-      QALabTimelineEvent(
-        id: 'ts1b',
-        category: 'scroll',
-        code: 'settled',
-        route: '/NavBar',
-        surface: 'feed',
-        timestamp: now.subtract(const Duration(milliseconds: 300)),
-        metadata: const <String, dynamic>{'docId': 'post-2'},
-      ),
-      QALabTimelineEvent(
-        id: 'tp1b',
-        category: 'playback_dispatch',
-        code: 'feed_play_only_this',
-        route: '/NavBar',
-        surface: 'feed',
-        timestamp: now.subtract(const Duration(milliseconds: 220)),
-        metadata: const <String, dynamic>{
-          'docId': 'post-2',
-          'dispatchIssued': true,
-        },
-      ),
-      QALabTimelineEvent(
-        id: 'tp2b',
-        category: 'playback_dispatch',
-        code: 'feed_card_adapter_play',
-        route: '/NavBar',
-        surface: 'feed',
-        timestamp: now.subtract(const Duration(milliseconds: 170)),
-        metadata: const <String, dynamic>{
-          'docId': 'post-2',
-          'dispatchIssued': true,
-        },
-      ),
-      QALabTimelineEvent(
-        id: 'tp3b',
-        category: 'playback_dispatch',
-        code: 'feed_card_video_state_request',
-        route: '/NavBar',
-        surface: 'feed',
-        timestamp: now.subtract(const Duration(milliseconds: 120)),
-        metadata: const <String, dynamic>{
-          'docId': 'post-2',
-          'dispatchIssued': true,
-        },
-      ),
-    ]);
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'feed_duplicate_playback_dispatch'),
-      isFalse,
     );
   });
 
@@ -1802,170 +920,6 @@ void main() {
 
     expect(
       findings.any((item) => item.code == 'feed_duplicate_playback_dispatch'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder ignores short recovery retries for duplicate dispatches',
-      () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp16b',
-        label: 'short_runtime',
-        surface: 'short',
-        route: '/ShortView',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'short': <String, dynamic>{
-            'registered': true,
-            'count': 1,
-            'activeIndex': 0,
-            'activeDocId': 'short-1',
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
-      QALabTimelineEvent(
-        id: 'ts3b',
-        category: 'scroll',
-        code: 'settled',
-        route: '/ShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 500)),
-        metadata: const <String, dynamic>{'docId': 'short-1'},
-      ),
-      QALabTimelineEvent(
-        id: 'tp5b',
-        category: 'playback_dispatch',
-        code: 'short_page_play',
-        route: '/ShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 300)),
-        metadata: const <String, dynamic>{
-          'docId': 'short-1',
-          'dispatchIssued': true,
-        },
-      ),
-      QALabTimelineEvent(
-        id: 'tp6b',
-        category: 'playback_dispatch',
-        code: 'short_watchdog_play_retry',
-        route: '/ShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 200)),
-        metadata: const <String, dynamic>{
-          'docId': 'short-1',
-          'dispatchIssued': false,
-          'dispatchSource': 'watchdog_retry',
-        },
-      ),
-      QALabTimelineEvent(
-        id: 'tp7b',
-        category: 'playback_dispatch',
-        code: 'short_stall_recovery_play',
-        route: '/ShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 100)),
-        metadata: const <String, dynamic>{
-          'docId': 'short-1',
-          'dispatchIssued': false,
-          'dispatchSource': 'stall_recovery',
-        },
-      ),
-    ]);
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'short_duplicate_playback_dispatch'),
-      isFalse,
-    );
-  });
-
-  test('qa recorder scopes short duplicate dispatches to latest route', () {
-    final recorder = QALabRecorder();
-    final now = DateTime.now();
-
-    recorder.checkpoints.add(
-      QALabCheckpoint(
-        id: 'cp16c',
-        label: 'short_runtime',
-        surface: 'short',
-        route: '/SingleShortView',
-        timestamp: now,
-        probe: <String, dynamic>{
-          'short': <String, dynamic>{
-            'registered': true,
-            'count': 1,
-            'activeIndex': 0,
-            'activeDocId': 'short-1',
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
-      ),
-    );
-    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
-      QALabTimelineEvent(
-        id: 'ts3c',
-        category: 'scroll',
-        code: 'settled',
-        route: '/ShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 600)),
-        metadata: const <String, dynamic>{'docId': 'short-1'},
-      ),
-      QALabTimelineEvent(
-        id: 'tp5c',
-        category: 'playback_dispatch',
-        code: 'short_page_play',
-        route: '/ShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 520)),
-        metadata: const <String, dynamic>{
-          'docId': 'short-1',
-          'dispatchIssued': true,
-        },
-      ),
-      QALabTimelineEvent(
-        id: 'ts4c',
-        category: 'scroll',
-        code: 'settled',
-        route: '/SingleShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 400)),
-        metadata: const <String, dynamic>{'docId': 'short-1'},
-      ),
-      QALabTimelineEvent(
-        id: 'tp6c',
-        category: 'playback_dispatch',
-        code: 'short_page_play',
-        route: '/SingleShortView',
-        surface: 'short',
-        timestamp: now.subtract(const Duration(milliseconds: 280)),
-        metadata: const <String, dynamic>{
-          'docId': 'short-1',
-          'dispatchIssued': true,
-        },
-      ),
-    ]);
-
-    final findings = recorder.buildPinpointFindings();
-
-    expect(
-      findings.any((item) => item.code == 'short_duplicate_playback_dispatch'),
       isFalse,
     );
   });

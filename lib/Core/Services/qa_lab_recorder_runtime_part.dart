@@ -157,30 +157,32 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       return const <QALabPinpointFinding>[];
     }
 
+    var audibleCount = 0;
+    var mutedCount = 0;
     var unstableFocusCount = 0;
-    var stableAudibleCount = 0;
-    var stableMutedCount = 0;
     for (final issue in endedSessions) {
       final isAudible = issue.metadata['isAudible'] == true;
       final hasStableFocus = issue.metadata['hasStableFocus'] == true;
+      if (isAudible) {
+        audibleCount += 1;
+      } else {
+        mutedCount += 1;
+      }
       if (!hasStableFocus) {
         unstableFocusCount += 1;
-        continue;
-      }
-      if (isAudible) {
-        stableAudibleCount += 1;
-      } else {
-        stableMutedCount += 1;
       }
     }
 
-    if (stableAudibleCount == 0 || stableMutedCount == 0) {
+    if (audibleCount == 0 || mutedCount == 0) {
       return const <QALabPinpointFinding>[];
     }
 
+    final severity = unstableFocusCount > 0
+        ? QALabIssueSeverity.error
+        : QALabIssueSeverity.warning;
     return <QALabPinpointFinding>[
       QALabPinpointFinding(
-        severity: QALabIssueSeverity.warning,
+        severity: severity,
         code: '${surface}_audio_state_inconsistent',
         message:
             'Videos on $surface finished with mixed audible and muted states during the same session.',
@@ -188,8 +190,8 @@ extension QALabRecorderRuntimePart on QALabRecorder {
         surface: surface,
         timestamp: referenceTime,
         context: <String, dynamic>{
-          'audibleSessionCount': stableAudibleCount,
-          'mutedSessionCount': stableMutedCount,
+          'audibleSessionCount': audibleCount,
+          'mutedSessionCount': mutedCount,
           'unstableFocusCount': unstableFocusCount,
         },
       ),
@@ -228,19 +230,6 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     final isPlaying = lastNativePlaybackSnapshot['isPlaying'] == true;
     final isBuffering = lastNativePlaybackSnapshot['isBuffering'] == true;
     final stallCount = _asInt(lastNativePlaybackSnapshot['stallCount']);
-    final surfaceEligibleForAutoplay = switch (surface) {
-      'feed' => _asInt(latestProbe['centeredIndex']) >= 0 &&
-          _asInt(latestProbe['centeredIndex']) < count &&
-          latestProbe['centeredHasPlayableVideo'] == true &&
-          latestProbe['playbackSuspended'] != true &&
-          latestProbe['pauseAll'] != true &&
-          latestProbe['canClaimPlaybackNow'] == true &&
-          (latestProbe['centeredDocId'] ?? '').toString().isNotEmpty,
-      'short' => _asInt(latestProbe['activeIndex']) >= 0 &&
-          _asInt(latestProbe['activeIndex']) < count &&
-          (latestProbe['activeDocId'] ?? '').toString().isNotEmpty,
-      _ => false,
-    };
     final sampledAt =
         _parseTimestamp(lastNativePlaybackSnapshot['sampledAt']) ??
             referenceTime;
@@ -259,7 +248,6 @@ extension QALabRecorderRuntimePart on QALabRecorder {
           _asDouble(lastNativePlaybackSnapshot['lastKnownPlaybackTime']),
       'layerAttachCount':
           _asInt(lastNativePlaybackSnapshot['layerAttachCount']),
-      'surfaceEligibleForAutoplay': surfaceEligibleForAutoplay,
     };
 
     const firstFrameCodes = <String>{
@@ -267,7 +255,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       'READY_WITHOUT_FRAME',
       'PLAYBACK_NOT_STARTED',
     };
-    if (surfaceEligibleForAutoplay && errors.any(firstFrameCodes.contains)) {
+    if (errors.any(firstFrameCodes.contains)) {
       findings.add(
         QALabPinpointFinding(
           severity: errors.contains('FIRST_FRAME_TIMEOUT') ||
@@ -389,66 +377,20 @@ extension QALabRecorderRuntimePart on QALabRecorder {
               _activeIssueLookback(issue.severity),
         )
         .map(
-          (issue) =>
-              _specializedActiveIssueFinding(issue) ??
-              QALabPinpointFinding(
-                severity: issue.severity,
-                code: issue.code,
-                message: issue.message,
-                route: issue.route,
-                surface: issue.surface,
-                timestamp: issue.timestamp,
-                context: <String, dynamic>{
-                  'source': issue.source.name,
-                  'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
-                },
-              ),
+          (issue) => QALabPinpointFinding(
+            severity: issue.severity,
+            code: issue.code,
+            message: issue.message,
+            route: issue.route,
+            surface: issue.surface,
+            timestamp: issue.timestamp,
+            context: <String, dynamic>{
+              'source': issue.source.name,
+              'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
+            },
+          ),
         )
         .toList(growable: false);
-  }
-
-  QALabPinpointFinding? _specializedActiveIssueFinding(QALabIssue issue) {
-    if (issue.code != 'platform_error') {
-      return null;
-    }
-    final surface = issue.surface.isEmpty ? 'app' : issue.surface;
-    final lowerMessage = issue.message.toLowerCase();
-    final baseContext = <String, dynamic>{
-      'source': issue.source.name,
-      'lastCheckpoint': _lastCheckpointLabelBefore(issue.timestamp),
-    };
-
-    if (_isHostLookupErrorMessage(issue.message)) {
-      return QALabPinpointFinding(
-        severity: issue.severity,
-        code: '${surface}_host_lookup_failed',
-        message:
-            '$surface hit hostname resolution failures while loading remote dependencies.',
-        route: issue.route,
-        surface: issue.surface,
-        timestamp: issue.timestamp,
-        context: <String, dynamic>{
-          ...baseContext,
-          'host': _firstQuotedValue(issue.message),
-        },
-      );
-    }
-
-    if (lowerMessage.contains('cloud_firestore/unavailable') ||
-        lowerMessage.contains('service is currently unavailable')) {
-      return QALabPinpointFinding(
-        severity: issue.severity,
-        code: '${surface}_backend_unavailable',
-        message:
-            '$surface hit a transient backend availability failure while loading live data.',
-        route: issue.route,
-        surface: issue.surface,
-        timestamp: issue.timestamp,
-        context: baseContext,
-      );
-    }
-
-    return null;
   }
 
   bool _isSpecializedIssueCode(String code) {
@@ -469,16 +411,6 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     );
     final status = lastPermissionStatuses[rawKey];
     return status == 'granted' || status == 'limited';
-  }
-
-  bool _isHostLookupErrorMessage(String message) {
-    return message.contains('Failed host lookup') ||
-        message.contains('No address associated with hostname');
-  }
-
-  String _firstQuotedValue(String message) {
-    final match = RegExp(r"'([^']+)'").firstMatch(message);
-    return match?.group(1) ?? '';
   }
 
   Duration _activeIssueLookback(QALabIssueSeverity severity) {
@@ -673,7 +605,6 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
       return centeredIndex >= 0 &&
           centeredIndex < count &&
-          surfaceProbe['centeredHasPlayableVideo'] == true &&
           surfaceProbe['playbackSuspended'] != true &&
           surfaceProbe['pauseAll'] != true &&
           surfaceProbe['canClaimPlaybackNow'] == true &&
@@ -707,99 +638,6 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       observedSince = checkpoint.timestamp;
     }
     return observedSince;
-  }
-
-  bool _hasPersistentAutoplayMismatch({
-    required String surface,
-    required List<QALabCheckpoint> surfaceCheckpoints,
-    required String route,
-    required String expectedDocId,
-    required String currentPlayingDocId,
-    required DateTime referenceTime,
-  }) {
-    if (expectedDocId.isEmpty || currentPlayingDocId.isEmpty) {
-      return false;
-    }
-    var mismatchCount = 0;
-    DateTime? oldestMismatchAt;
-    for (final checkpoint in surfaceCheckpoints.reversed) {
-      if (checkpoint.route != route) {
-        break;
-      }
-      final surfaceProbe = checkpoint.probe[surface] as Map<String, dynamic>? ??
-          const <String, dynamic>{};
-      final checkpointExpectedDocId = surface == 'feed'
-          ? (surfaceProbe['centeredDocId'] ?? '').toString()
-          : (surfaceProbe['activeDocId'] ?? '').toString();
-      if (checkpointExpectedDocId != expectedDocId) {
-        break;
-      }
-      final playbackProbe =
-          checkpoint.probe['videoPlayback'] as Map<String, dynamic>? ??
-              const <String, dynamic>{};
-      final checkpointCurrentPlayingDocId =
-          (playbackProbe['currentPlayingDocID'] ?? '').toString();
-      if (checkpointCurrentPlayingDocId == currentPlayingDocId) {
-        mismatchCount += 1;
-        oldestMismatchAt = checkpoint.timestamp;
-        continue;
-      }
-      if (checkpointCurrentPlayingDocId == expectedDocId) {
-        break;
-      }
-    }
-    if (mismatchCount >= 2) {
-      return true;
-    }
-    if (oldestMismatchAt == null) {
-      return false;
-    }
-    return referenceTime.difference(oldestMismatchAt).inMilliseconds >=
-        QALabMode.autoplayDetectionGraceMs * 2;
-  }
-
-  bool _isRelevantSurfaceVideoIssue({
-    required String surface,
-    required String videoId,
-    required DateTime issueTimestamp,
-    required List<QALabCheckpoint> surfaceCheckpoints,
-    required String route,
-  }) {
-    if ((surface != 'feed' && surface != 'short') ||
-        surfaceCheckpoints.isEmpty) {
-      return true;
-    }
-    final latestCheckpoint = surfaceCheckpoints.last;
-    final surfaceProbe =
-        latestCheckpoint.probe[surface] as Map<String, dynamic>? ??
-            const <String, dynamic>{};
-    final expectedDocId = surface == 'feed'
-        ? (surfaceProbe['centeredDocId'] ?? '').toString()
-        : (surfaceProbe['activeDocId'] ?? '').toString();
-    final playbackProbe =
-        latestCheckpoint.probe['videoPlayback'] as Map<String, dynamic>? ??
-            const <String, dynamic>{};
-    final currentPlayingDocId =
-        (playbackProbe['currentPlayingDocID'] ?? '').toString();
-
-    if (expectedDocId.isEmpty && currentPlayingDocId.isEmpty) {
-      return true;
-    }
-    if (videoId != expectedDocId && videoId != currentPlayingDocId) {
-      return false;
-    }
-    if (videoId == expectedDocId && expectedDocId.isNotEmpty) {
-      final observedSince = _playbackObservationStart(
-        surfaceCheckpoints: surfaceCheckpoints,
-        route: route,
-        surface: surface,
-        expectedDocId: expectedDocId,
-      );
-      if (issueTimestamp.isBefore(observedSince)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   String _videoIdOf(QALabIssue issue) {
@@ -876,18 +714,6 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       return (
         'data_absent',
         '${diagnostic.surface} loaded as an empty authenticated surface.',
-      );
-    }
-    if (code.contains('host_lookup_failed')) {
-      return (
-        'network_dns_failure',
-        '${diagnostic.surface} could not resolve one or more required remote hosts during runtime.',
-      );
-    }
-    if (code.contains('backend_unavailable')) {
-      return (
-        'backend_unavailable',
-        '${diagnostic.surface} hit a transient backend availability failure while loading live data.',
       );
     }
     if (code.contains('autoplay') || code.contains('playback_gate')) {

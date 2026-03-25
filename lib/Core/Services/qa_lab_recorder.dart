@@ -974,29 +974,6 @@ class QALabRecorder extends GetxService {
         .toList(growable: false);
   }
 
-  List<QALabTimelineEvent> _routeScopedTimelineEvents(
-    List<QALabTimelineEvent> surfaceTimeline,
-    String route,
-  ) {
-    final trimmedRoute = route.trim();
-    if (trimmedRoute.isEmpty) {
-      return surfaceTimeline;
-    }
-    final exactMatches = surfaceTimeline
-        .where((event) => event.route.trim() == trimmedRoute)
-        .toList(growable: false);
-    if (exactMatches.isNotEmpty) {
-      return exactMatches;
-    }
-    final unscopedMatches = surfaceTimeline
-        .where((event) => event.route.trim().isEmpty)
-        .toList(growable: false);
-    if (unscopedMatches.isNotEmpty) {
-      return unscopedMatches;
-    }
-    return surfaceTimeline;
-  }
-
   List<QALabPinpointFinding> _buildSurfaceRuntimeFindings(
     String surface,
     List<QALabIssue> surfaceIssues,
@@ -1013,10 +990,6 @@ class QALabRecorder extends GetxService {
         latestCheckpoint?.probe['auth'] as Map<String, dynamic>? ??
             const <String, dynamic>{};
     final referenceTime = latestCheckpoint?.timestamp ?? DateTime.now();
-    final recentHostLookupFailure = _hasRecentHostLookupFailure(
-      surfaceIssues: surfaceIssues,
-      referenceTime: referenceTime,
-    );
     final route = latestCheckpoint?.route.isNotEmpty == true
         ? latestCheckpoint!.route
         : _latestRouteForSurface(surface);
@@ -1024,9 +997,7 @@ class QALabRecorder extends GetxService {
     if ((surface == 'feed' || surface == 'short') &&
         _hasAuthenticatedUser(authProbe)) {
       final count = _asInt(latestProbe['count']);
-      if (count == 0 &&
-          latestProbe['registered'] == true &&
-          !recentHostLookupFailure) {
+      if (count == 0 && latestProbe['registered'] == true) {
         findings.add(
           QALabPinpointFinding(
             severity: QALabIssueSeverity.blocking,
@@ -1046,7 +1017,6 @@ class QALabRecorder extends GetxService {
 
     final autoplayFinding = _buildAutoplaySurfaceFinding(
       surface: surface,
-      surfaceIssues: surfaceIssues,
       surfaceCheckpoints: surfaceCheckpoints,
       referenceTime: referenceTime,
       route: route,
@@ -1063,21 +1033,7 @@ class QALabRecorder extends GetxService {
         rootProbe,
         route: route,
       );
-      final hasInvalidCenteredIndex =
-          count > 0 && (centeredIndex < 0 || centeredIndex >= count);
-      final invalidCenteredIndexSince = hasInvalidCenteredIndex
-          ? _feedCenteredIndexInvalidObservedSince(
-              surfaceCheckpoints: surfaceCheckpoints,
-              route: route,
-            )
-          : null;
-      final invalidCenteredIndexElapsedMs = invalidCenteredIndexSince == null
-          ? 0
-          : referenceTime.difference(invalidCenteredIndexSince).inMilliseconds;
-      if (hasInvalidCenteredIndex &&
-          !recentHostLookupFailure &&
-          invalidCenteredIndexElapsedMs >=
-              QALabMode.autoplayDetectionGraceMs) {
+      if (count > 0 && (centeredIndex < 0 || centeredIndex >= count)) {
         findings.add(
           QALabPinpointFinding(
             severity: QALabIssueSeverity.error,
@@ -1090,7 +1046,6 @@ class QALabRecorder extends GetxService {
             context: <String, dynamic>{
               'count': count,
               'centeredIndex': centeredIndex,
-              'elapsedMs': invalidCenteredIndexElapsedMs,
             },
           ),
         );
@@ -1098,10 +1053,7 @@ class QALabRecorder extends GetxService {
       final playbackSuspended = latestProbe['playbackSuspended'] == true;
       final pauseAll = latestProbe['pauseAll'] == true;
       final canClaimPlaybackNow = latestProbe['canClaimPlaybackNow'] == true;
-      final centeredHasPlayableVideo =
-          latestProbe['centeredHasPlayableVideo'] == true;
       if (isFeedForeground &&
-          centeredHasPlayableVideo &&
           count > 0 &&
           (playbackSuspended || pauseAll || !canClaimPlaybackNow)) {
         findings.add(
@@ -1114,7 +1066,6 @@ class QALabRecorder extends GetxService {
             surface: surface,
             timestamp: referenceTime,
             context: <String, dynamic>{
-              'centeredHasPlayableVideo': centeredHasPlayableVideo,
               'playbackSuspended': playbackSuspended,
               'pauseAll': pauseAll,
               'canClaimPlaybackNow': canClaimPlaybackNow,
@@ -1243,7 +1194,6 @@ class QALabRecorder extends GetxService {
       _buildVideoSurfaceFindings(
         surface: surface,
         surfaceIssues: surfaceIssues,
-        surfaceCheckpoints: surfaceCheckpoints,
         referenceTime: referenceTime,
         route: route,
       ),
@@ -1416,7 +1366,6 @@ class QALabRecorder extends GetxService {
 
   QALabPinpointFinding? _buildAutoplaySurfaceFinding({
     required String surface,
-    required List<QALabIssue> surfaceIssues,
     required List<QALabCheckpoint> surfaceCheckpoints,
     required DateTime referenceTime,
     required String route,
@@ -1436,16 +1385,6 @@ class QALabRecorder extends GetxService {
     if (!_hasAuthenticatedUser(authProbe)) {
       return null;
     }
-    if (_hasRecentHostLookupFailure(
-          surfaceIssues: surfaceIssues,
-          referenceTime: referenceTime,
-        ) ||
-        _hasRecentBackendUnavailableFailure(
-          surfaceIssues: surfaceIssues,
-          referenceTime: referenceTime,
-        )) {
-      return null;
-    }
 
     final expectedDocId = surface == 'feed'
         ? (surfaceProbe['centeredDocId'] ?? '').toString()
@@ -1456,14 +1395,11 @@ class QALabRecorder extends GetxService {
     }
     if (surface == 'feed') {
       final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
-      final centeredHasPlayableVideo =
-          surfaceProbe['centeredHasPlayableVideo'] == true;
       final playbackSuspended = surfaceProbe['playbackSuspended'] == true;
       final pauseAll = surfaceProbe['pauseAll'] == true;
       final canClaimPlaybackNow = surfaceProbe['canClaimPlaybackNow'] == true;
       if (centeredIndex < 0 ||
           centeredIndex >= count ||
-          !centeredHasPlayableVideo ||
           playbackSuspended ||
           pauseAll ||
           !canClaimPlaybackNow) {
@@ -1499,17 +1435,6 @@ class QALabRecorder extends GetxService {
         _asInt(playbackProbe['registeredHandleCount']);
     final savedStateCount = _asInt(playbackProbe['savedStateCount']);
     final wrongTarget = currentPlayingDocId.isNotEmpty;
-    if (wrongTarget &&
-        !_hasPersistentAutoplayMismatch(
-          surface: surface,
-          surfaceCheckpoints: surfaceCheckpoints,
-          route: route,
-          expectedDocId: expectedDocId,
-          currentPlayingDocId: currentPlayingDocId,
-          referenceTime: referenceTime,
-        )) {
-      return null;
-    }
     return QALabPinpointFinding(
       severity: registeredHandleCount > 0
           ? QALabIssueSeverity.error
@@ -1533,72 +1458,9 @@ class QALabRecorder extends GetxService {
     );
   }
 
-  bool _hasRecentHostLookupFailure({
-    required List<QALabIssue> surfaceIssues,
-    required DateTime referenceTime,
-  }) {
-    const markers = <String>[
-      'Failed host lookup',
-      'No address associated with hostname',
-    ];
-    return surfaceIssues.any((issue) {
-      if (issue.source != QALabIssueSource.platform) {
-        return false;
-      }
-      if (referenceTime.difference(issue.timestamp) >
-          const Duration(seconds: 20)) {
-        return false;
-      }
-      final message = issue.message;
-      return markers.any(message.contains);
-    });
-  }
-
-  bool _hasRecentBackendUnavailableFailure({
-    required List<QALabIssue> surfaceIssues,
-    required DateTime referenceTime,
-  }) {
-    return surfaceIssues.any((issue) {
-      if (issue.source != QALabIssueSource.platform) {
-        return false;
-      }
-      if (referenceTime.difference(issue.timestamp) >
-          const Duration(seconds: 20)) {
-        return false;
-      }
-      final message = issue.message.toLowerCase();
-      return message.contains('cloud_firestore/unavailable') ||
-          message.contains('service is currently unavailable');
-    });
-  }
-
-  DateTime? _feedCenteredIndexInvalidObservedSince({
-    required List<QALabCheckpoint> surfaceCheckpoints,
-    required String route,
-  }) {
-    DateTime? observedSince;
-    for (final checkpoint in surfaceCheckpoints.reversed) {
-      if (checkpoint.route != route) {
-        break;
-      }
-      final feedProbe =
-          checkpoint.probe['feed'] as Map<String, dynamic>? ??
-              const <String, dynamic>{};
-      final count = _asInt(feedProbe['count']);
-      final centeredIndex = _asInt(feedProbe['centeredIndex']);
-      final isInvalid = count > 0 && (centeredIndex < 0 || centeredIndex >= count);
-      if (!isInvalid) {
-        break;
-      }
-      observedSince = checkpoint.timestamp;
-    }
-    return observedSince;
-  }
-
   List<QALabPinpointFinding> _buildVideoSurfaceFindings({
     required String surface,
     required List<QALabIssue> surfaceIssues,
-    required List<QALabCheckpoint> surfaceCheckpoints,
     required DateTime referenceTime,
     required String route,
   }) {
@@ -1624,15 +1486,6 @@ class QALabRecorder extends GetxService {
     for (final issue in surfaceIssues) {
       final videoId = _videoIdOf(issue);
       if (videoId.isEmpty) continue;
-      if (!_isRelevantSurfaceVideoIssue(
-        surface: surface,
-        videoId: videoId,
-        issueTimestamp: issue.timestamp,
-        surfaceCheckpoints: surfaceCheckpoints,
-        route: route,
-      )) {
-        continue;
-      }
       if (issue.code == 'video_session_started' &&
           !firstFrameIds.contains(videoId)) {
         final ended = endedByVideoId[videoId];
@@ -1771,22 +1624,13 @@ class QALabRecorder extends GetxService {
     if (surface != 'feed') {
       return const <QALabPinpointFinding>[];
     }
-    final findings = <QALabPinpointFinding>[];
-    final specializedFailureFinding = _buildSpecializedFeedFetchFailureFinding(
-      surfaceTimeline: surfaceTimeline,
-      referenceTime: referenceTime,
-      route: route,
-    );
-    if (specializedFailureFinding != null) {
-      findings.add(specializedFailureFinding);
-    }
     final bursts = _feedTriggerBursts(surfaceTimeline: surfaceTimeline);
     if (bursts.isEmpty) {
-      return findings;
+      return const <QALabPinpointFinding>[];
     }
     final strongest = bursts.first;
     final repeatCount = _asInt(strongest['repeatCount']);
-    findings.add(
+    return <QALabPinpointFinding>[
       QALabPinpointFinding(
         severity: repeatCount >= 3
             ? QALabIssueSeverity.error
@@ -1799,71 +1643,7 @@ class QALabRecorder extends GetxService {
         timestamp: _parseTimestamp(strongest['timestamp']) ?? referenceTime,
         context: strongest,
       ),
-    );
-    return findings;
-  }
-
-  QALabPinpointFinding? _buildSpecializedFeedFetchFailureFinding({
-    required List<QALabTimelineEvent> surfaceTimeline,
-    required DateTime referenceTime,
-    required String route,
-  }) {
-    final failedEvent = surfaceTimeline
-        .where((event) => event.category == 'feed_fetch')
-        .where((event) => event.code == 'failed')
-        .toList(growable: false)
-        .lastOrNull;
-    if (failedEvent == null) {
-      return null;
-    }
-    final error = (failedEvent.metadata['error'] ?? '').toString().trim();
-    if (error.isEmpty) {
-      return null;
-    }
-    final lowerError = error.toLowerCase();
-    final trigger = (failedEvent.metadata['trigger'] ?? '').toString();
-    final pageLimit = _asInt(failedEvent.metadata['pageLimit']);
-    final currentCount = _asInt(failedEvent.metadata['currentCount']);
-
-    if (error.contains('Failed host lookup') ||
-        lowerError.contains('no address associated with hostname')) {
-      return QALabPinpointFinding(
-        severity: QALabIssueSeverity.error,
-        code: 'feed_host_lookup_failed',
-        message:
-            'feed hit hostname resolution failures while loading remote dependencies.',
-        route: route,
-        surface: 'feed',
-        timestamp: failedEvent.timestamp,
-        context: <String, dynamic>{
-          'trigger': trigger,
-          'pageLimit': pageLimit,
-          'currentCount': currentCount,
-          'error': error,
-        },
-      );
-    }
-
-    if (lowerError.contains('cloud_firestore/unavailable') ||
-        lowerError.contains('service is currently unavailable')) {
-      return QALabPinpointFinding(
-        severity: QALabIssueSeverity.error,
-        code: 'feed_backend_unavailable',
-        message:
-            'feed hit a transient backend availability failure while loading live data.',
-        route: route,
-        surface: 'feed',
-        timestamp: failedEvent.timestamp,
-        context: <String, dynamic>{
-          'trigger': trigger,
-          'pageLimit': pageLimit,
-          'currentCount': currentCount,
-          'error': error,
-        },
-      );
-    }
-
-    return null;
+    ];
   }
 
   List<Map<String, dynamic>> _feedTriggerBursts({
@@ -1923,8 +1703,7 @@ class QALabRecorder extends GetxService {
     if (surface != 'feed' && surface != 'short') {
       return const <QALabPinpointFinding>[];
     }
-    final routeTimeline = _routeScopedTimelineEvents(surfaceTimeline, route);
-    final latestSettle = _latestScrollSettleEvent(routeTimeline);
+    final latestSettle = _latestScrollSettleEvent(surfaceTimeline);
     if (latestSettle == null) {
       return const <QALabPinpointFinding>[];
     }
@@ -1935,12 +1714,12 @@ class QALabRecorder extends GetxService {
 
     final findings = <QALabPinpointFinding>[];
     final dispatch = _firstPlaybackDispatchAfter(
-      surfaceTimeline: routeTimeline,
+      surfaceTimeline: surfaceTimeline,
       after: latestSettle.timestamp,
       docId: expectedDocId,
     );
     final latestSkip = _latestPlaybackSkipAfter(
-      surfaceTimeline: routeTimeline,
+      surfaceTimeline: surfaceTimeline,
       after: latestSettle.timestamp,
       docId: expectedDocId,
     );
@@ -2055,7 +1834,7 @@ class QALabRecorder extends GetxService {
     }
 
     final duplicateBursts = _duplicatePlaybackDispatchBursts(
-      surfaceTimeline: routeTimeline,
+      surfaceTimeline: surfaceTimeline,
       docId: expectedDocId,
     );
     if (duplicateBursts.isNotEmpty) {
@@ -2122,7 +1901,7 @@ class QALabRecorder extends GetxService {
   }) {
     final events = surfaceTimeline
         .where((event) => event.category == 'playback_dispatch')
-        .where(_isDuplicatePlaybackDispatchCandidate)
+        .where(_isIssuedPlaybackDispatch)
         .where(
           (event) =>
               docId == null ||
@@ -2201,23 +1980,6 @@ class QALabRecorder extends GetxService {
       return raw.toLowerCase() != 'false';
     }
     return true;
-  }
-
-  bool _isDuplicatePlaybackDispatchCandidate(QALabTimelineEvent event) {
-    if (!_isIssuedPlaybackDispatch(event)) {
-      return false;
-    }
-    if (event.surface.trim() != 'feed') {
-      return true;
-    }
-    switch (event.code) {
-      case 'feed_play_only_this':
-      case 'feed_reassert_only_this':
-      case 'feed_card_exclusive_play_only_this':
-        return true;
-      default:
-        return false;
-    }
   }
 
   int _countDuplicatePlaybackDispatchBursts({

@@ -235,16 +235,6 @@ class VideoStateManager extends GetxController {
     });
   }
 
-  bool hasInitializedHandle(String docID) {
-    final handle = _allVideoControllers[docID];
-    return handle != null && handle.isInitialized;
-  }
-
-  bool isHandleActivelyPlaying(String docID) {
-    final handle = _allVideoControllers[docID];
-    return handle != null && handle.isInitialized && handle.isPlaying;
-  }
-
   /// GLOBAL VIDEO CONTROL: Video oynatma isteği
   void requestPlayVideo(String docID, PlaybackHandle handle) {
     _allVideoControllers[docID] = handle;

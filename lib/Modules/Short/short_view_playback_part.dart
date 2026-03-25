@@ -87,7 +87,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
       currentPage = page;
       _showOverlayControls = true;
     });
-    controller.lastIndex.value = currentPage;
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       try {
         VideoStateManager.instance
@@ -187,51 +186,17 @@ extension ShortViewPlaybackPart on _ShortViewState {
     }
   }
 
-  void _schedulePlayForPage(
-    int page, {
-    int missingAdapterRetries = 0,
-  }) {
+  void _schedulePlayForPage(int page) {
     _playDebounce?.cancel();
     _playDebounce = Timer(
-      missingAdapterRetries > 0
-          ? _shortMissingAdapterRetryDelay
-          : defaultTargetPlatform == TargetPlatform.android
-              ? _shortPlayResumeDelayAndroid
-              : _shortPlayResumeDelay,
-      () async {
+      defaultTargetPlatform == TargetPlatform.android
+          ? _shortPlayResumeDelayAndroid
+          : _shortPlayResumeDelay,
+      () {
         if (!mounted || page != currentPage) return;
         _enforceSingleActiveAudio(page);
-        var vc = controller.cache[page];
-        if (vc == null || vc.isStopped) {
-          if (missingAdapterRetries >= _shortMissingAdapterRetryLimit) return;
-          final docId = page >= 0 && page < _cachedShorts.length
-              ? _cachedShorts[page].docID
-              : '';
-          recordQALabPlaybackDispatch(
-            surface: 'short',
-            stage: 'short_missing_adapter_retry',
-            metadata: <String, dynamic>{
-              'docId': docId,
-              'page': page,
-              'retry': missingAdapterRetries + 1,
-              'hadAdapter': vc != null,
-              'dispatchIssued': false,
-              'dispatchSource': 'missing_adapter_retry',
-            },
-          );
-          final hadActiveAdapter = controller.cache[page] != null;
-          await controller.updateCacheTiers(
-            page,
-            suppressWarmPause: true,
-          );
-          if (!mounted || page != currentPage) return;
-          _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
-          _schedulePlayForPage(
-            page,
-            missingAdapterRetries: missingAdapterRetries + 1,
-          );
-          return;
-        }
+        final vc = controller.cache[page];
+        if (vc == null) return;
         final docId = page >= 0 && page < _cachedShorts.length
             ? _cachedShorts[page].docID
             : '';
@@ -329,8 +294,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'docId': docId,
             'page': page,
             'retry': _stallWatchdogRetries,
-            'dispatchIssued': false,
-            'dispatchSource': 'stall_recovery',
           },
         );
         vc.setVolume(volume ? 1 : 0);
@@ -366,8 +329,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'docId': docId,
             'page': page,
             'retry': _playWatchdogRetries,
-            'dispatchIssued': false,
-            'dispatchSource': 'watchdog_retry',
           },
         );
         vc.setVolume(volume ? 1 : 0);

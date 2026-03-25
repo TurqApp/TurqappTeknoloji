@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.Debug
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.os.PowerManager
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +20,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -73,8 +73,6 @@ class ExoPlayerView(
     private var stableSurfacePasses = 0
     private var isBufferingDispatched = false
     private var lastVideoFrameAtMs = 0L
-    private var lastSmokeFrameSignalAtMs = 0L
-    private var lastSmokeAutoplayRequestAtMs = 0L
     private var firstVideoFrameAtMs = 0L
     private var lastWatchdogPositionMs = 0L
     private var stallRecoveries = 0
@@ -94,26 +92,21 @@ class ExoPlayerView(
             if (!isSmokeRegistryActive) {
                 return@monitor
             }
-            handler.post {
-                if (!isSmokeRegistryActive) {
-                    return@post
-                }
-                val probeSnapshot = smokeProbe?.debugSnapshot().orEmpty()
-                val runtimeSnapshot = mapOf(
-                    "viewId" to viewId,
-                    "currentUrl" to (currentUrl ?: ""),
-                    "isSoftHeld" to isSoftHeld,
-                    "heldVolume" to heldVolume.toDouble(),
-                    "playerVolume" to (player?.volume ?: 0f).toDouble(),
-                    "isMuted" to ((player?.volume ?: 1f) == 0f),
-                    "isPlayingRuntime" to (player?.isPlaying ?: false),
-                )
-                ExoPlayerSmokeRegistry.publish(
-                    context,
-                    it,
-                    probeSnapshot + runtimeSnapshot,
-                )
-            }
+            val probeSnapshot = smokeProbe?.debugSnapshot().orEmpty()
+            val runtimeSnapshot = mapOf(
+                "viewId" to viewId,
+                "currentUrl" to (currentUrl ?: ""),
+                "isSoftHeld" to isSoftHeld,
+                "heldVolume" to heldVolume.toDouble(),
+                "playerVolume" to (player?.volume ?: 0f).toDouble(),
+                "isMuted" to ((player?.volume ?: 1f) == 0f),
+                "isPlayingRuntime" to (player?.isPlaying ?: false),
+            )
+            ExoPlayerSmokeRegistry.publish(
+                context,
+                it,
+                probeSnapshot + runtimeSnapshot,
+            )
         }
         val layoutRes = R.layout.turq_texture_player_view
         playerView = (LayoutInflater.from(context)
@@ -230,6 +223,11 @@ class ExoPlayerView(
                     // Audio focus'u native katmanda zorla alma.
                     // Feed/SinglePost geçişinde focus churn sesi sıfırlayabiliyor.
                     setAudioAttributes(audioAttributes, false)
+                    setVideoFrameMetadataListener(
+                        VideoFrameMetadataListener { _, _, _, _ ->
+                            lastVideoFrameAtMs = System.currentTimeMillis()
+                        }
+                    )
                 }
         } else {
             existing
@@ -255,8 +253,6 @@ class ExoPlayerView(
         stableSurfacePasses = 0
         isBufferingDispatched = false
         lastVideoFrameAtMs = 0L
-        lastSmokeFrameSignalAtMs = 0L
-        lastSmokeAutoplayRequestAtMs = 0L
         firstVideoFrameAtMs = 0L
         lastWatchdogPositionMs = 0L
         stallRecoveries = 0
@@ -344,7 +340,6 @@ class ExoPlayerView(
             override fun onRenderedFirstFrame() {
                 didRenderFirstFrame = true
                 lastVideoFrameAtMs = System.currentTimeMillis()
-                lastSmokeFrameSignalAtMs = SystemClock.elapsedRealtime()
                 if (firstVideoFrameAtMs == 0L) {
                     firstVideoFrameAtMs = lastVideoFrameAtMs
                 }
@@ -413,13 +408,15 @@ class ExoPlayerView(
         player = activePlayer
         currentUrl = url
         if (autoPlay) {
-            requestSmokeAutoplay(forceNewSession = true)
+            smokeMonitor.resetForNewPlaybackSession()
+            smokeProbe?.onAutoplayRequested()
         }
     }
 
     fun play() {
         player?.let { p ->
-            requestSmokeAutoplay(forceNewSession = false)
+            smokeMonitor.resetForNewPlaybackSession()
+            smokeProbe?.onAutoplayRequested()
             if (isSoftHeld) {
                 p.volume = heldVolume
                 isSoftHeld = false
@@ -565,16 +562,6 @@ class ExoPlayerView(
             override fun run() {
                 player?.let { p ->
                     if (p.isPlaying) {
-                        if (didRenderFirstFrame) {
-                            lastVideoFrameAtMs = System.currentTimeMillis()
-                            val now = SystemClock.elapsedRealtime()
-                            if (isSmokeRegistryActive &&
-                                now - lastSmokeFrameSignalAtMs >= 450L
-                            ) {
-                                lastSmokeFrameSignalAtMs = now
-                                smokeMonitor.onFrameRendered()
-                            }
-                        }
                         sendEvent(mapOf(
                             "event" to "timeUpdate",
                             "position" to (p.currentPosition / 1000.0),
@@ -593,32 +580,6 @@ class ExoPlayerView(
     private fun stopPositionUpdates() {
         positionRunnable?.let { handler.removeCallbacks(it) }
         positionRunnable = null
-    }
-
-    private fun requestSmokeAutoplay(forceNewSession: Boolean) {
-        val probe = smokeProbe ?: return
-        val activePlayer = player ?: return
-        val now = SystemClock.elapsedRealtime()
-        val alreadyTrackingActivePlayback =
-            smokeMonitor.isPlaybackExpected &&
-                (activePlayer.isPlaying ||
-                    activePlayer.playWhenReady ||
-                    smokeMonitor.hasRenderedFirstFrame)
-
-        if (!forceNewSession) {
-            if (alreadyTrackingActivePlayback) {
-                return
-            }
-            if (lastSmokeAutoplayRequestAtMs > 0L &&
-                now - lastSmokeAutoplayRequestAtMs < 900L
-            ) {
-                return
-            }
-        }
-
-        smokeMonitor.resetForNewPlaybackSession()
-        lastSmokeAutoplayRequestAtMs = now
-        probe.onAutoplayRequested()
     }
 
     private fun startStallWatchdog() {
@@ -702,7 +663,6 @@ class ExoPlayerView(
                 p.playWhenReady = true
                 p.play()
                 lastVideoFrameAtMs = System.currentTimeMillis()
-                lastSmokeFrameSignalAtMs = SystemClock.elapsedRealtime()
                 lastWatchdogPositionMs = p.currentPosition
             } catch (_: Throwable) {
             }
