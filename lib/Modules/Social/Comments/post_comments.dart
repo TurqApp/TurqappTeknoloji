@@ -103,6 +103,7 @@ class _PostCommentsState extends State<PostComments> {
                                     ),
                                     model: controller.list[i],
                                     postID: widget.postID,
+                                    postOwnerUserId: widget.userID,
                                     commentControllerTag: _controllerTag,
                                     isPending: controller.isPendingComment(
                                         controller.list[i].docID),

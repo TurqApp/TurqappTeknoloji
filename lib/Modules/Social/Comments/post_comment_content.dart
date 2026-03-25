@@ -23,6 +23,7 @@ class PostCommentContent extends StatefulWidget {
     super.key,
     required this.model,
     required this.postID,
+    required this.postOwnerUserId,
     required this.commentControllerTag,
     this.isPending = false,
     this.onReplyTap,
@@ -30,6 +31,7 @@ class PostCommentContent extends StatefulWidget {
 
   final PostCommentModel model;
   final String postID;
+  final String postOwnerUserId;
   final String commentControllerTag;
   final bool isPending;
   final void Function(String commentId, String nickname)? onReplyTap;
@@ -45,6 +47,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
 
   PostCommentModel get model => widget.model;
   String get postID => widget.postID;
+  String get postOwnerUserId => widget.postOwnerUserId;
   bool get isPending => widget.isPending;
   String get commentControllerTag => widget.commentControllerTag;
   void Function(String commentId, String nickname)? get onReplyTap =>
@@ -79,7 +82,10 @@ class _PostCommentContentState extends State<PostCommentContent> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUID = CurrentUserService.instance.effectiveUserId;
+    final userService = CurrentUserService.instance;
+    final currentUID =
+        (userService.currentUserRx.value?.userID ?? userService.authUserId)
+            .trim();
     return Padding(
       key: ValueKey(IntegrationTestKeys.commentItem(model.docID)),
       padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
@@ -207,53 +213,84 @@ class _PostCommentContentState extends State<PostCommentContent> {
                 ],
                 4.ph,
                 if (!isPending)
-                  Row(
-                    children: [
-                      GestureDetector(
-                        key: ValueKey(
-                          IntegrationTestKeys.commentReplyButton(model.docID),
-                        ),
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          final nickname = controller.nickname.value.trim();
-                          onReplyTap?.call(
-                            model.docID,
-                            nickname.isEmpty
-                                ? 'common.unknown_user'.tr
-                                : nickname,
-                          );
-                        },
-                        child: Text(
-                          'comments.reply'.tr,
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                            fontFamily: AppFontFamilies.mmedium,
-                          ),
-                        ),
-                      ),
-                      if (model.userID == currentUID) ...[
-                        10.pw,
+                  Obx(() {
+                    final viewerUid =
+                        (userService.currentUserRx.value?.userID ??
+                                userService.authUserId)
+                            .trim();
+                    final canDeleteComment = viewerUid.isNotEmpty &&
+                        (model.userID == viewerUid ||
+                            postOwnerUserId.trim() == viewerUid);
+                    return Row(
+                      children: [
                         GestureDetector(
                           key: ValueKey(
-                            IntegrationTestKeys.commentDeleteButton(
-                              model.docID,
-                            ),
+                            IntegrationTestKeys.commentReplyButton(model.docID),
                           ),
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => _confirmDelete(controller),
+                          onTap: () {
+                            final nickname = controller.nickname.value.trim();
+                            onReplyTap?.call(
+                              model.docID,
+                              nickname.isEmpty
+                                  ? 'common.unknown_user'.tr
+                                  : nickname,
+                            );
+                          },
                           child: Text(
-                            'common.delete'.tr,
+                            'comments.reply'.tr,
                             style: TextStyle(
-                              color: AppColors.deleteText,
+                              color: Colors.black54,
                               fontSize: 12,
                               fontFamily: AppFontFamilies.mmedium,
                             ),
                           ),
                         ),
+                        if (canDeleteComment) ...[
+                          10.pw,
+                          GestureDetector(
+                            key: ValueKey(
+                              IntegrationTestKeys.commentDeleteButton(
+                                model.docID,
+                              ),
+                            ),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _confirmDelete(controller),
+                            child: Text(
+                              'common.delete'.tr,
+                              style: TextStyle(
+                                color: AppColors.deleteText,
+                                fontSize: 12,
+                                fontFamily: AppFontFamilies.mmedium,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    );
+                  }),
+                Obx(() {
+                  if (controller.replies.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  final viewerUid =
+                      (userService.currentUserRx.value?.userID ??
+                              userService.authUserId)
+                          .trim();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Column(
+                      children: controller.replies
+                          .map(
+                            (reply) => _buildReplyItem(
+                              reply,
+                              viewerUid: viewerUid,
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  );
+                }),
               ],
             ),
           ),
@@ -312,6 +349,111 @@ class _PostCommentContentState extends State<PostCommentContent> {
       yesText: 'common.delete'.tr,
       onYesPressed: () async {
         final ok = await controller.deleteComment();
+        if (!ok) {
+          AppSnackbar('common.error'.tr, 'comments.delete_failed'.tr);
+        }
+      },
+    );
+  }
+
+  Widget _buildReplyItem(
+    SubCommentModel reply, {
+    required String viewerUid,
+  }) {
+    final replyNickname =
+        controller.replyNicknames[reply.userID]?.trim().isNotEmpty == true
+            ? controller.replyNicknames[reply.userID]!.trim()
+            : 'common.unknown_user'.tr;
+    final replyAvatarUrl =
+        controller.replyAvatarUrls[reply.userID]?.trim() ?? '';
+    final canDeleteReply = viewerUid.isNotEmpty &&
+        (reply.userID == viewerUid || postOwnerUserId.trim() == viewerUid);
+    return Padding(
+      padding: const EdgeInsets.only(left: 14, top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 26,
+            height: 26,
+            child: CachedUserAvatar(
+              userId: reply.userID,
+              imageUrl: replyAvatarUrl.isNotEmpty ? replyAvatarUrl : null,
+              radius: 13,
+              backgroundColor: Colors.grey.shade200,
+            ),
+          ),
+          8.pw,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        replyNickname,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textBlack,
+                          fontSize: 12,
+                          fontFamily: AppFontFamilies.mbold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      timeAgoMetin(reply.timeStamp),
+                      style: TextStyle(
+                        color: Colors.black45,
+                        fontSize: 10,
+                        fontFamily: AppFontFamilies.mmedium,
+                      ),
+                    ),
+                  ],
+                ),
+                2.ph,
+                if (reply.text.trim().isNotEmpty)
+                  Text(
+                    reply.text,
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontFamily: AppFontFamilies.mregular,
+                      height: 1.2,
+                    ),
+                  ),
+                if (canDeleteReply) ...[
+                  4.ph,
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _confirmReplyDelete(reply),
+                    child: Text(
+                      'common.delete'.tr,
+                      style: TextStyle(
+                        color: AppColors.deleteText,
+                        fontSize: 11,
+                        fontFamily: AppFontFamilies.mmedium,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmReplyDelete(SubCommentModel reply) {
+    noYesAlert(
+      title: 'common.delete'.tr,
+      message: 'comments.delete_message'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'common.delete'.tr,
+      onYesPressed: () async {
+        final ok = await controller.deleteReply(reply.docID);
         if (!ok) {
           AppSnackbar('common.error'.tr, 'comments.delete_failed'.tr);
         }

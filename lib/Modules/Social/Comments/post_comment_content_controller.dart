@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -48,15 +50,20 @@ class PostCommentContentController extends GetxController {
   final RxString nickname = ''.obs;
   final RxString avatarUrl = ''.obs;
   final RxList<String> likes = <String>[].obs;
+  final RxList<SubCommentModel> replies = <SubCommentModel>[].obs;
+  final RxMap<String, String> replyNicknames = <String, String>{}.obs;
+  final RxMap<String, String> replyAvatarUrls = <String, String>{}.obs;
   final PostInteractionService _interactionService =
       PostInteractionService.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  StreamSubscription<List<SubCommentModel>>? _replySub;
 
   @override
   void onInit() {
     super.onInit();
     likes.assignAll(model.likes);
     _loadUserProfile(model.userID);
+    _bindReplies();
   }
 
   Future<void> _loadUserProfile(String userID) async {
@@ -69,6 +76,35 @@ class PostCommentContentController extends GetxController {
         nickname.value = summary.preferredName;
         avatarUrl.value = summary.avatarUrl;
       }
+    } catch (_) {}
+  }
+
+  void _bindReplies() {
+    _replySub?.cancel();
+    _replySub = _interactionService
+        .listenSubComments(postID, model.docID, limit: 50)
+        .listen((items) {
+      replies.assignAll(items);
+      for (final reply in items) {
+        _primeReplyProfile(reply.userID);
+      }
+    });
+  }
+
+  Future<void> _primeReplyProfile(String userID) async {
+    final uid = userID.trim();
+    if (uid.isEmpty) return;
+    if (replyNicknames.containsKey(uid) && replyAvatarUrls.containsKey(uid)) {
+      return;
+    }
+    try {
+      final summary = await _userSummaryResolver.resolve(
+        uid,
+        preferCache: true,
+      );
+      if (summary == null) return;
+      replyNicknames[uid] = summary.preferredName;
+      replyAvatarUrls[uid] = summary.avatarUrl;
     } catch (_) {}
   }
 
@@ -113,5 +149,26 @@ class PostCommentContentController extends GetxController {
         PostCommentController.maybeFind(tag: commentControllerTag);
     if (controller == null) return false;
     return controller.deleteComment(model.docID);
+  }
+
+  Future<bool> deleteReply(String replyId) async {
+    final trimmed = replyId.trim();
+    if (trimmed.isEmpty) return false;
+    final ok = await _interactionService.deleteComment(
+      postID,
+      trimmed,
+      isSubComment: true,
+      parentCommentId: model.docID,
+    );
+    if (ok) {
+      replies.removeWhere((reply) => reply.docID == trimmed);
+    }
+    return ok;
+  }
+
+  @override
+  void onClose() {
+    _replySub?.cancel();
+    super.onClose();
   }
 }
