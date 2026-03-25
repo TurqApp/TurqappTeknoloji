@@ -32,6 +32,7 @@ import '../../../Core/Repositories/admin_push_repository.dart';
 
 part 'post_content_controller_actions_part.dart';
 part 'post_content_controller_data_part.dart';
+part 'post_content_controller_profile_part.dart';
 
 class PostContentController extends GetxController {
   static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
