@@ -19,6 +19,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'create_book_controller_form_part.dart';
 part 'create_book_controller_submission_part.dart';
 part 'create_book_controller_answer_key_part.dart';
+part 'create_book_controller_fields_part.dart';
 
 class CreateBookController extends GetxController {
   static CreateBookController ensure(
@@ -44,17 +45,9 @@ class CreateBookController extends GetxController {
 
   final Function? onBack;
   final BookletModel? existingBook;
-  final baslikController = TextEditingController();
-  final yayinEviController = TextEditingController();
-  final basimTarihiController = TextEditingController();
-  final list = <CevapAnahtariHazirlikModel>[].obs;
-  final selection = 0.obs;
-  final sinavTuru = ''.obs;
-  final imageFile = Rxn<File>();
-  final showIndicator = false.obs;
   late final String docID;
-  final picker = ImagePicker();
   final BookletRepository _bookletRepository = BookletRepository.ensure();
+  final _state = _CreateBookControllerState();
 
   CreateBookController(this.onBack, {this.existingBook}) {
     docID =

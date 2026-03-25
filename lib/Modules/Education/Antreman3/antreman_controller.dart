@@ -24,6 +24,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'antreman_controller_actions_part.dart';
 part 'antreman_controller_category_part.dart';
+part 'antreman_controller_fields_part.dart';
 part 'antreman_controller_models_part.dart';
 part 'antreman_controller_question_actions_part.dart';
 part 'antreman_controller_support_part.dart';
@@ -48,38 +49,10 @@ class AntremanController extends GetxController {
   final Map<String, Map<String, List<String>>> subjects = _antremanSubjects;
 
   final Map<String, IconData> icons = _antremanIcons;
-  var expandedIndex = RxInt(-1);
-  final RxString selectedSubject = ''.obs;
-  final RxString selectedSinavTuru = ''.obs;
-  final RxInt currentQuestionIndex = 0.obs;
-  final RxMap<String, String> selectedAnswers = <String, String>{}.obs;
-  final RxMap<String, String> initialAnswers = <String, String>{}.obs;
-  final RxMap<String, bool> answerStates = <String, bool>{}.obs;
-  final RxMap<String, bool> likedQuestions = <String, bool>{}.obs;
-  final RxMap<String, bool> savedQuestions = <String, bool>{}.obs;
-  final RxBool isSortingEnabled = true.obs;
-  final RxDouble loadingProgress = 0.0.obs;
-  final RxBool isSubjectSelecting = false.obs;
-  final RxMap<String, double> imageAspectRatios = <String, double>{}.obs;
-  final RxString justAnswered = ''.obs; // New state to track answer status
-  final RxString searchQuery = ''.obs;
-  final RxList<QuestionBankModel> searchResults = <QuestionBankModel>[].obs;
-  final RxBool isSearchLoading = false.obs;
+  final _state = _AntremanControllerState();
 
   final String userID = CurrentUserService.instance.effectiveUserId;
   final int batchSize = 5;
-  final RxInt expandedSubIndex = RxInt(-1);
-  final RxString mainCategory = ''.obs;
-  final RxBool mainCategoryLoaded = false.obs;
-  final RxList<QuestionBankModel> questions = RxList<QuestionBankModel>();
-  final RxList<QuestionBankModel> savedQuestionsList =
-      RxList<QuestionBankModel>();
-  final List<QuestionBankModel> _categoryPool = <QuestionBankModel>[];
-  final Set<String> _loadedQuestionIds = <String>{};
-  final RxString _activeCategoryKey = ''.obs;
-  bool _mainCategoryPromptShown = false;
-  Timer? _searchDebounce;
-  int _searchToken = 0;
 
   @override
   void onInit() {

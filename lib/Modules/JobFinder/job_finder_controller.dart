@@ -23,6 +23,7 @@ import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
 part 'job_finder_controller_data_part.dart';
+part 'job_finder_controller_fields_part.dart';
 part 'job_finder_controller_sheet_part.dart';
 part 'job_finder_controller_lifecycle_part.dart';
 part 'job_finder_controller_support_part.dart';
@@ -55,31 +56,7 @@ class JobFinderController extends GetxController {
     AppAssets.practice2,
     AppAssets.practice3,
   ];
-
-  // Tab management
-  final innerTabIndex = 0.obs;
-  final innerPageController = PageController();
-
-  RxList<JobModel> allJobs = <JobModel>[].obs;
-  RxList<JobModel> list = <JobModel>[].obs;
-  RxList<JobModel> aramaSonucu = <JobModel>[].obs;
-
-  TextEditingController search = TextEditingController();
-  var listingSelection = 1.obs;
-  final RxBool listingSelectionReady = false.obs;
-  var sehir = "".obs;
-  final sehirler = <String>[].obs;
-  var short = 0.obs;
-  var filtre = false.obs;
-  var isLoading = true.obs;
-  final sehirlerVeIlcelerData = <CitiesModel>[].obs;
-  var kullaniciSehiri = "".obs;
-  int _searchRequestId = 0;
-  double? _userLat;
-  double? _userLong;
-  Position? _lastResolvedPosition;
-  StreamSubscription<CachedResource<List<JobModel>>>? _homeSnapshotSub;
-  Timer? _deferredLocationTimer;
+  final _state = _JobFinderControllerState();
 
   @override
   void onInit() {

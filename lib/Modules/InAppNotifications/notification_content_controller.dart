@@ -9,6 +9,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'notification_content_controller_fields_part.dart';
 part 'notification_content_controller_runtime_part.dart';
 
 class NotificationContentController extends GetxController {
@@ -47,17 +48,12 @@ class NotificationContentController extends GetxController {
 
   String userID;
   final NotificationModel notification;
+  final _state = _NotificationContentControllerState();
 
   NotificationContentController({
     required this.userID,
     required this.notification,
   });
-  var avatarUrl = "".obs;
-  var nickname = "".obs;
-  var following = false.obs;
-  var followLoading = false.obs;
-  var model = PostsModel.empty().obs;
-  var targetHint = "".obs;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
   final NotifyLookupRepository _notifyLookupRepository =

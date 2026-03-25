@@ -10,39 +10,22 @@ import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 part 'following_followers_controller_cache_part.dart';
+part 'following_followers_controller_fields_part.dart';
 part 'following_followers_controller_models_part.dart';
 part 'following_followers_controller_search_part.dart';
 part 'following_followers_controller_mutation_part.dart';
 part 'following_followers_controller_runtime_part.dart';
 
 class FollowingFollowersController extends GetxController {
+  final _state = _FollowingFollowersControllerState();
+
   @override
   void onClose() {
     _FollowingFollowersControllerRuntimePart.onClose(this);
     super.onClose();
   }
 
-  var selection = 0.obs;
-  final PageController pageController = PageController();
-  RxList<String> takipciler = <String>[].obs;
-  RxList<String> takipEdilenler = <String>[].obs;
-  bool isLoadingFollowers = false;
-  bool isLoadingFollowing = false;
-  bool hasMoreFollowers = true;
-  bool hasMoreFollowing = true;
-  var takipciCounter = 0.obs;
-  var takipedilenCounter = 0.obs;
-
-  final TextEditingController searchTakipciController = TextEditingController();
-  final TextEditingController searchTakipEdilenController =
-      TextEditingController();
   final String userId;
-  final Map<String, _RelationIdSetCacheEntry> _relationIdSetCache =
-      <String, _RelationIdSetCacheEntry>{};
-  final Map<String, _SearchResultCacheEntry> _searchResultCache =
-      <String, _SearchResultCacheEntry>{};
-
-  var nickname = "".obs;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
   final VisibilityPolicyService _visibilityPolicy =

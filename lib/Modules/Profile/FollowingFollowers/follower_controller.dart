@@ -7,6 +7,7 @@ import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'follower_controller_cache_part.dart';
+part 'follower_controller_actions_part.dart';
 part 'follower_controller_fields_part.dart';
 
 class FollowerController extends GetxController {
@@ -44,48 +45,6 @@ class FollowerController extends GetxController {
   final FollowRepository _followRepository = FollowRepository.ensure();
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
-
-  Future<void> follow(String otherUserID) async {
-    if (followLoading.value) return;
-    final wasFollowed = isFollowed.value;
-    isFollowed.value = !wasFollowed;
-    followLoading.value = true;
-    late final FollowToggleOutcome outcome;
-    try {
-      outcome = await FollowService.toggleFollow(otherUserID);
-    } catch (_) {
-      isFollowed.value = wasFollowed;
-      isFollowed.refresh();
-      AppSnackbar('common.error'.tr, 'following.update_failed'.tr);
-      followLoading.value = false;
-      return;
-    }
-
-    isFollowed.value = outcome.nowFollowing;
-    isFollowed.refresh();
-
-    final myUid = _currentUid;
-    if (myUid.isNotEmpty) {
-      try {
-        FollowerController._followStateCacheByUser['$myUid:$otherUserID'] =
-            _FollowStateCacheEntry(
-          isFollowed: outcome.nowFollowing,
-          cachedAt: DateTime.now(),
-        );
-        FollowingFollowersController.applyFollowMutationToCaches(
-          currentUid: myUid,
-          otherUserID: otherUserID,
-          nowFollowing: outcome.nowFollowing,
-        );
-      } catch (_) {}
-    }
-
-    if (outcome.limitReached) {
-      AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
-    }
-
-    followLoading.value = false;
-  }
 
   Future<void> getData(String userID) =>
       _FollowerControllerCacheX(this).getData(userID);

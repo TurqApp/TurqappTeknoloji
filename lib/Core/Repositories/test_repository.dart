@@ -10,6 +10,7 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 part 'test_repository_query_part.dart';
 part 'test_repository_action_part.dart';
 part 'test_repository_cache_part.dart';
+part 'test_repository_models_part.dart';
 
 class TestRepository extends GetxService {
   TestRepository({FirebaseFirestore? firestore})
@@ -71,26 +72,4 @@ class TestRepository extends GetxService {
 
   TestReadinessModel? _questionFromMap(Map<String, dynamic> raw) =>
       _TestRepositoryCacheX(this)._questionFromMap(raw);
-}
-
-class _TimedTests {
-  const _TimedTests({
-    required this.items,
-    required this.cachedAt,
-  });
-
-  final List<TestsModel> items;
-  final DateTime cachedAt;
-}
-
-class TestPageResult {
-  const TestPageResult({
-    required this.items,
-    required this.lastDocument,
-    required this.hasMore,
-  });
-
-  final List<TestsModel> items;
-  final DocumentSnapshot? lastDocument;
-  final bool hasMore;
 }

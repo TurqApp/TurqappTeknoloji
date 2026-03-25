@@ -3,14 +3,13 @@ import 'dart:math';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
+part 'agenda_shuffle_cache_service_fields_part.dart';
+
 class AgendaShuffleCacheService extends GetxService {
   static const int _cacheValidMinutes = 5;
   static const int _initialFetchSize = 60;
   static const int _backgroundFetchSize = 300;
-
-  final List<PostsModel> _posts = <PostsModel>[];
-  int _index = 0;
-  DateTime? _cachedAt;
+  final _state = _AgendaShuffleCacheServiceState();
 
   static AgendaShuffleCacheService? maybeFind() {
     final isRegistered = Get.isRegistered<AgendaShuffleCacheService>();
@@ -22,18 +21,6 @@ class AgendaShuffleCacheService extends GetxService {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(AgendaShuffleCacheService(), permanent: true);
-  }
-
-  int get initialFetchSize => _initialFetchSize;
-  int get backgroundFetchSize => _backgroundFetchSize;
-  int get currentIndex => _index;
-  bool get hasBufferedItems => _posts.isNotEmpty && _index < _posts.length;
-  bool get hasMore => _posts.length > _index;
-
-  bool get isFresh {
-    if (_cachedAt == null) return false;
-    final diff = DateTime.now().difference(_cachedAt!).inMinutes;
-    return diff < _cacheValidMinutes;
   }
 
   void clear() {
