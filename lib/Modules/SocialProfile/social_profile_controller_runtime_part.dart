@@ -18,6 +18,7 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
     scrollController.dispose();
     _userDocSub?.cancel();
     _resharesSub?.cancel();
+    _visibilityDebounce?.cancel();
   }
 
   bool _performIsPrivateContentBlockedFor(String? viewerUserId) {

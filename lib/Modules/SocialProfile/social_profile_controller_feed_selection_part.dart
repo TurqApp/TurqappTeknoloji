@@ -70,6 +70,9 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
         'target': target,
       },
     );
+    if (postSelection.value == 0) {
+      _performEnsureCenteredPlaybackForIndex(target);
+    }
   }
 
   void _performCapturePendingCenteredEntry({
@@ -125,6 +128,76 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     required bool isReshare,
   }) {
     return '${isReshare ? 'reshare' : 'post'}_$docId';
+  }
+
+  bool _performCanAutoplayCombinedEntry(Map<String, dynamic> entry) {
+    final post = entry['post'];
+    if (post is! PostsModel) return false;
+    if (post.deletedPost) return false;
+    if (post.arsiv) return false;
+    return post.hasPlayableVideo;
+  }
+
+  void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {
+    if (postSelection.value != 0) return;
+    if (showPfImage.value) return;
+    final activeEntries = combinedFeedEntries;
+    if (modelIndex < 0 || modelIndex >= activeEntries.length) return;
+    if (!_performCanAutoplayCombinedEntry(activeEntries[modelIndex])) return;
+
+    final prev = _visibleFractions[modelIndex];
+    if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
+      previousFraction: prev,
+      visibleFraction: visibleFraction,
+    )) {
+      return;
+    }
+
+    if (visibleFraction <= 0.01) {
+      _visibleFractions.remove(modelIndex);
+    } else {
+      _visibleFractions[modelIndex] = visibleFraction;
+    }
+
+    _performScheduleVisibilityEvaluation();
+  }
+
+  void _performScheduleVisibilityEvaluation() {
+    _visibilityDebounce?.cancel();
+    _visibilityDebounce = Timer(
+      FeedPlaybackSelectionPolicy.evaluationDebounceDuration,
+      _performEvaluateCenteredPlayback,
+    );
+  }
+
+  void _performEvaluateCenteredPlayback() {
+    if (postSelection.value != 0) return;
+    final activeEntries = combinedFeedEntries;
+    if (activeEntries.isEmpty) return;
+
+    final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+      visibleFractions: _visibleFractions,
+      currentIndex: centeredIndex.value,
+      lastCenteredIndex: lastCenteredIndex,
+      itemCount: activeEntries.length,
+      canAutoplayIndex: (index) =>
+          _performCanAutoplayCombinedEntry(activeEntries[index]),
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+    );
+
+    if (targetIndex >= 0 && targetIndex < activeEntries.length) {
+      if (centeredIndex.value != targetIndex) {
+        centeredIndex.value = targetIndex;
+      }
+      currentVisibleIndex.value = targetIndex;
+      lastCenteredIndex = targetIndex;
+      if (centeredIndex.value != targetIndex ||
+          !_performIsPlaybackTargetCurrent(targetIndex)) {
+        _performEnsureCenteredPlaybackForIndex(targetIndex);
+      }
+    } else {
+      centeredIndex.value = -1;
+    }
   }
 
   List<Map<String, dynamic>> _performCombinedFeedEntries() {
@@ -189,6 +262,40 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       if (AgendaContentController.maybeFind(tag: tag) != null) {
         Get.delete<AgendaContentController>(tag: tag, force: true);
       }
+    }
+  }
+
+  bool _performIsPlaybackTargetCurrent(int index) {
+    final activeEntries = combinedFeedEntries;
+    if (index < 0 || index >= activeEntries.length) return false;
+    final entry = activeEntries[index];
+    final docId = ((entry['docID'] as String?) ?? '').trim();
+    if (docId.isEmpty) return false;
+    final playbackKey = agendaInstanceTag(
+      docId: docId,
+      isReshare: entry['isReshare'] == true,
+    );
+    return VideoStateManager.instance.currentPlayingDocID == playbackKey;
+  }
+
+  void _performEnsureCenteredPlaybackForIndex(int index) {
+    if (postSelection.value != 0) return;
+    if (showPfImage.value) return;
+    final activeEntries = combinedFeedEntries;
+    if (index < 0 || index >= activeEntries.length) return;
+    final entry = activeEntries[index];
+    if (!_performCanAutoplayCombinedEntry(entry)) return;
+    final docId = ((entry['docID'] as String?) ?? '').trim();
+    if (docId.isEmpty) return;
+    final playbackKey = agendaInstanceTag(
+      docId: docId,
+      isReshare: entry['isReshare'] == true,
+    );
+    final manager = VideoStateManager.instance;
+    if (manager.currentPlayingDocID == playbackKey) {
+      manager.reassertOnlyThis(playbackKey);
+    } else {
+      manager.playOnlyThis(playbackKey);
     }
   }
 }

@@ -52,6 +52,9 @@ extension ProfileControllerSelectionPart on ProfileController {
       expectedDocId: expectedDocId,
       payload: <String, dynamic>{'target': target},
     );
+    if (postSelection.value == 0) {
+      _performEnsureCenteredPlaybackForIndex(target);
+    }
   }
 
   void _performCapturePendingCenteredEntry({int? preferredIndex}) {
@@ -161,9 +164,10 @@ extension ProfileControllerSelectionPart on ProfileController {
     if (!_performCanAutoplayMergedEntry(mergedPosts[modelIndex])) return;
 
     final prev = _visibleFractions[modelIndex];
-    if (GetPlatform.isAndroid &&
-        prev != null &&
-        (prev - visibleFraction).abs() < 0.08) {
+    if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
+      previousFraction: prev,
+      visibleFraction: visibleFraction,
+    )) {
       return;
     }
 
@@ -179,73 +183,75 @@ extension ProfileControllerSelectionPart on ProfileController {
   void _performScheduleVisibilityEvaluation() {
     _visibilityDebounce?.cancel();
     _visibilityDebounce = Timer(
-      GetPlatform.isAndroid
-          ? const Duration(milliseconds: 24)
-          : const Duration(milliseconds: 40),
+      FeedPlaybackSelectionPolicy.evaluationDebounceDuration,
       _performEvaluateCenteredPlayback,
     );
   }
 
   void _performEvaluateCenteredPlayback() {
     if (mergedPosts.isEmpty) return;
-    final current = centeredIndex.value;
-    var bestIndex = -1;
-    var bestFraction = 0.0;
-    var fallbackIndex = -1;
-    var fallbackFraction = 0.0;
-    const double playThreshold = 0.80;
-    final double secondaryThreshold = GetPlatform.isAndroid ? 0.55 : 0.62;
-    final double lingerThreshold = GetPlatform.isAndroid ? 0.14 : 0.40;
-    final double hysteresis = GetPlatform.isAndroid ? 0.10 : 0.06;
+    final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+      visibleFractions: _visibleFractions,
+      currentIndex: centeredIndex.value,
+      lastCenteredIndex: lastCenteredIndex,
+      itemCount: mergedPosts.length,
+      canAutoplayIndex: (index) =>
+          _performCanAutoplayMergedEntry(mergedPosts[index]),
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+    );
 
-    _visibleFractions.forEach((index, fraction) {
-      if (index < 0 || index >= mergedPosts.length) return;
-      if (!_performCanAutoplayMergedEntry(mergedPosts[index])) return;
-      if (fraction > fallbackFraction) {
-        fallbackFraction = fraction;
-        fallbackIndex = index;
+    if (targetIndex >= 0 && targetIndex < mergedPosts.length) {
+      if (centeredIndex.value != targetIndex) {
+        centeredIndex.value = targetIndex;
       }
-      if (fraction < playThreshold) return;
-      if (fraction > bestFraction) {
-        bestFraction = fraction;
-        bestIndex = index;
+      currentVisibleIndex.value = targetIndex;
+      lastCenteredIndex = targetIndex;
+      if (centeredIndex.value != targetIndex ||
+          !_performIsPlaybackTargetCurrent(targetIndex)) {
+        _performEnsureCenteredPlaybackForIndex(targetIndex);
       }
-    });
-
-    if (bestIndex >= 0) {
-      final currentFraction =
-          current >= 0 ? (_visibleFractions[current] ?? 0.0) : 0.0;
-      final shouldSwitch = current == -1 ||
-          current == bestIndex ||
-          currentFraction < playThreshold ||
-          bestFraction >= currentFraction + hysteresis;
-      if (shouldSwitch && centeredIndex.value != bestIndex) {
-        centeredIndex.value = bestIndex;
-        currentVisibleIndex.value = bestIndex;
-        lastCenteredIndex = bestIndex;
-      }
-      return;
-    }
-
-    if (fallbackIndex >= 0 && fallbackFraction >= secondaryThreshold) {
-      if (centeredIndex.value != fallbackIndex) {
-        centeredIndex.value = fallbackIndex;
-        currentVisibleIndex.value = fallbackIndex;
-        lastCenteredIndex = fallbackIndex;
-      }
-      return;
-    }
-
-    if (current >= 0) {
-      final currentFraction = _visibleFractions[current] ?? 0.0;
-      if (currentFraction < lingerThreshold) {
-        centeredIndex.value = -1;
-      }
+    } else {
+      centeredIndex.value = -1;
     }
   }
 
   void _performSetPostSelection(int index) {
     postSelection.value = index;
+    if (index != 0) {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    }
+  }
+
+  bool _performIsPlaybackTargetCurrent(int index) {
+    if (index < 0 || index >= mergedPosts.length) return false;
+    final entry = mergedPosts[index];
+    final docId = ((entry['docID'] as String?) ?? '').trim();
+    if (docId.isEmpty) return false;
+    final playbackKey = agendaInstanceTag(
+      docId: docId,
+      isReshare: entry['isReshare'] == true,
+    );
+    return VideoStateManager.instance.currentPlayingDocID == playbackKey;
+  }
+
+  void _performEnsureCenteredPlaybackForIndex(int index) {
+    if (postSelection.value != 0) return;
+    if (pausetheall.value || showPfImage.value) return;
+    if (index < 0 || index >= mergedPosts.length) return;
+    final entry = mergedPosts[index];
+    if (!_performCanAutoplayMergedEntry(entry)) return;
+    final docId = ((entry['docID'] as String?) ?? '').trim();
+    if (docId.isEmpty) return;
+    final playbackKey = agendaInstanceTag(
+      docId: docId,
+      isReshare: entry['isReshare'] == true,
+    );
+    final manager = VideoStateManager.instance;
+    if (manager.currentPlayingDocID == playbackKey) {
+      manager.reassertOnlyThis(playbackKey);
+    } else {
+      manager.playOnlyThis(playbackKey);
+    }
   }
 
   GlobalKey _performGetPostKey({

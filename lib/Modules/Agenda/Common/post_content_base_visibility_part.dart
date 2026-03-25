@@ -19,14 +19,10 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
         isReshare: widget.isReshared,
       );
       if (profileIndex >= 0) {
-        profileController.currentVisibleIndex.value = profileIndex;
-        profileController.capturePendingCenteredEntry(
-          preferredIndex: profileIndex,
+        profileController.onPostVisibilityChanged(
+          profileIndex,
+          visibleFraction,
         );
-        if (visibleFraction >= 0.72) {
-          profileController.centeredIndex.value = profileIndex;
-          profileController.lastCenteredIndex = profileIndex;
-        }
       }
     }
 
@@ -37,14 +33,10 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
         isReshare: widget.isReshared,
       );
       if (socialIndex >= 0) {
-        socialProfileController.currentVisibleIndex.value = socialIndex;
-        socialProfileController.capturePendingCenteredEntry(
-          preferredIndex: socialIndex,
+        socialProfileController.onPostVisibilityChanged(
+          socialIndex,
+          visibleFraction,
         );
-        if (visibleFraction >= 0.72) {
-          socialProfileController.centeredIndex.value = socialIndex;
-          socialProfileController.lastCenteredIndex = socialIndex;
-        }
       }
     }
 

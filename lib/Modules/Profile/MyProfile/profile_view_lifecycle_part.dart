@@ -22,9 +22,6 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
-    try {
-      AgendaController.ensure().isMuted.value = false;
-    } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_refreshProfileSurfaceMeta(force: false));

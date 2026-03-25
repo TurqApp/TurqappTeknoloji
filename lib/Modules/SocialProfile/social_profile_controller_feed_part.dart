@@ -11,6 +11,9 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
 
   Future<void> _performSetPostSelection(int index) async {
     postSelection.value = index;
+    if (index != 0) {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    }
     UserAnalyticsService.instance
         .trackFeatureUsage('social_profile_tab_$index');
     if (index == 5) {
