@@ -163,7 +163,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: AspectRatio(
-                        aspectRatio: 1.18,
+                        aspectRatio: 4 / 3,
                         child: galleryImages.length == 1
                             ? _buildGalleryImage(galleryImages.first)
                             : PageView.builder(

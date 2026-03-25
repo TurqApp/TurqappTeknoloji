@@ -40,12 +40,46 @@ extension ScholarshipDetailViewHelpersPart on ScholarshipDetailView {
     bool rich = false,
   }) {
     final cleanValue = value.trim();
+    final shouldStack =
+        rich || cleanValue.contains('\n') || cleanValue.length > 80;
     final baseStyle = const TextStyle(
       color: Colors.black87,
       fontSize: 14,
       fontFamily: 'MontserratMedium',
       height: 1.45,
     );
+
+    if (shouldStack) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+                fontFamily: 'MontserratBold',
+              ),
+            ),
+            const SizedBox(height: 6),
+            rich
+                ? Text.rich(
+                    ScholarshipRichText.build(
+                      cleanValue.isEmpty ? 'common.unspecified'.tr : cleanValue,
+                      baseStyle: baseStyle,
+                    ),
+                    style: baseStyle,
+                  )
+                : Text(
+                    cleanValue.isEmpty ? 'common.unspecified'.tr : cleanValue,
+                    style: baseStyle,
+                  ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
