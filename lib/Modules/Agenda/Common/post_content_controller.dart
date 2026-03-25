@@ -33,6 +33,7 @@ import '../../../Core/Repositories/admin_push_repository.dart';
 part 'post_content_controller_actions_part.dart';
 part 'post_content_controller_data_part.dart';
 part 'post_content_controller_profile_part.dart';
+part 'post_content_controller_runtime_part.dart';
 
 class PostContentController extends GetxController {
   static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
@@ -171,9 +172,8 @@ class PostContentController extends GetxController {
 
   final yenidenPaylasildiMi = false.obs;
 
-  AgendaController _resolveAgendaController() {
-    return AgendaController.ensure();
-  }
+  AgendaController _resolveAgendaController() =>
+      _performResolveAgendaController();
 
   late final AgendaController agendaController = _resolveAgendaController();
   late final PostRepository _postRepository;
@@ -206,17 +206,7 @@ class PostContentController extends GetxController {
 
   @protected
   Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
-    if (!scrollFeedToTopOnReshare) return;
-    try {
-      final controller = agendaController.scrollController;
-      if (controller.hasClients) {
-        await controller.animateTo(
-          0,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
-        );
-      }
-    } catch (_) {}
+    await _performOnReshareAdded(uid, targetPostId: targetPostId);
   }
 
   @protected
@@ -225,59 +215,12 @@ class PostContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _postRepository = PostRepository.ensure();
-    _adminPushRepository = AdminPushRepository.ensure();
-    unawaited(_hydrateAdminPushPermission());
-    // Delay reactive counter hydration until after the first frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (isClosed) return;
-      countManager.initializeCounts(
-        model.docID,
-        likeCount: model.stats.likeCount.toInt(),
-        commentCount: model.stats.commentCount.toInt(),
-        savedCount: model.stats.savedCount.toInt(),
-        retryCount: model.stats.retryCount.toInt(),
-        statsCount: model.stats.statsCount.toInt(),
-      );
-      _initializeStats();
-    });
-
-    getGizleArsivSikayetEdildi();
-    getUserData(model.userID);
-    getReSharedUsers(model.docID);
-    // Real-time listeners handle likes/saved/comments membership and counts.
-    saveSeeing();
-    followCheck();
-    _bindFollowingState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _bindMembershipListeners();
-      _bindPostDocCounts();
-      onPostFrameBound();
-    });
-
-    onPostInitialized();
-  }
-
-  Future<void> _hydrateAdminPushPermission() async {
-    final allowed = await AdminAccessService.canAccessTask('admin_push');
-    if (_canSendAdminPush == allowed) return;
-    _canSendAdminPush = allowed;
-    update();
+    _handlePostContentInit();
   }
 
   @override
   void onClose() {
-    _interactionWorker?.dispose();
-    _postDataWorker?.dispose();
-    _postRepository.releasePost(model.docID);
-    _userSub?.cancel();
-    _likeDocSub?.cancel();
-    _savedDocSub?.cancel();
-    _reshareDocSub?.cancel();
-    _postDocSub?.cancel();
-    _currentUserStreamSub?.cancel();
-    _followingWorker?.dispose();
-    _myResharesWorker?.dispose();
+    _handlePostContentClose();
     super.onClose();
   }
 }
