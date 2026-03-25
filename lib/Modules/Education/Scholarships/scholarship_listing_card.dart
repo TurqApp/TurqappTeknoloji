@@ -24,12 +24,9 @@ class ScholarshipListingCard extends StatelessWidget {
   final Future<void> Function() onToggleSaved;
   final Future<void> Function() onShare;
 
-  static final TextStyle _titleStyle =
-      PasajCardStyles.lineOne.copyWith(fontSize: 14);
-  static final TextStyle _descriptionStyle =
-      PasajCardStyles.lineTwo.copyWith(fontSize: 13);
-  static final TextStyle _deadlineStyle =
-      PasajCardStyles.detail.copyWith(fontSize: 11);
+  static const TextStyle _titleStyle = PasajCardStyles.lineOne;
+  static const TextStyle _descriptionStyle = PasajCardStyles.lineTwo;
+  static const TextStyle _deadlineStyle = PasajCardStyles.detail;
 
   @override
   Widget build(BuildContext context) {
