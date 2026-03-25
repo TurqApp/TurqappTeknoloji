@@ -549,6 +549,20 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           .doc(upload.id)
           .set(data, SetOptions(merge: true));
       PostRepository.ensure().mergeCachedPostData(upload.id, data);
+      if (!flood && scheduledAt == 0) {
+        try {
+          await UserRepository.ensure().updateUserFields(
+            userID,
+            {'counterOfPosts': FieldValue.increment(1)},
+            mergeIntoCache: false,
+          );
+          if (CurrentUserService.instance.effectiveUserId.trim() == userID) {
+            await CurrentUserService.instance.applyLocalCounterDelta(
+              postsDelta: 1,
+            );
+          }
+        } catch (_) {}
+      }
       unawaited(
         TypesensePostService.instance
             .syncPostById(upload.id)
