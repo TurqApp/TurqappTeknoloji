@@ -16,6 +16,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 
 part 'feed_snapshot_repository_fetch_part.dart';
 part 'feed_snapshot_repository_codec_part.dart';
+part 'feed_snapshot_repository_facade_part.dart';
 part 'feed_snapshot_repository_visibility_part.dart';
 part 'feed_snapshot_repository_models_part.dart';
 part 'feed_snapshot_repository_runtime_part.dart';
@@ -86,54 +87,4 @@ class FeedSnapshotRepository extends GetxService {
     isEmpty: (items) => items.isEmpty,
     liveSource: CachedResourceSource.server,
   );
-
-  Stream<CachedResource<List<PostsModel>>> openHome({
-    required String userId,
-    int limit = 30,
-    bool forceSync = false,
-  }) {
-    return _homePipeline.open(
-      FeedSnapshotQuery(
-        userId: userId,
-        limit: limit,
-      ),
-      forceSync: forceSync,
-    );
-  }
-
-  Future<CachedResource<List<PostsModel>>> loadHome({
-    required String userId,
-    int limit = 30,
-    bool forceSync = false,
-  }) {
-    return openHome(
-      userId: userId,
-      limit: limit,
-      forceSync: forceSync,
-    ).last;
-  }
-
-  Future<CachedResource<List<PostsModel>>> bootstrapHome({
-    required String userId,
-    int limit = 30,
-  }) =>
-      bootstrapFeedHome(
-        this,
-        userId: userId,
-        limit: limit,
-      );
-
-  Future<void> persistHomeSnapshot({
-    required String userId,
-    required List<PostsModel> posts,
-    int limit = _defaultPersistLimit,
-    CachedResourceSource source = CachedResourceSource.server,
-  }) =>
-      persistFeedHomeSnapshot(
-        this,
-        userId: userId,
-        posts: posts,
-        limit: limit,
-        source: source,
-      );
 }

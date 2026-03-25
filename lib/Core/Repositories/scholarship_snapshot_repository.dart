@@ -8,18 +8,10 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 
+part 'scholarship_snapshot_repository_models_part.dart';
+part 'scholarship_snapshot_repository_facade_part.dart';
 part 'scholarship_snapshot_repository_query_part.dart';
 part 'scholarship_snapshot_repository_codec_part.dart';
-
-class ScholarshipListingSnapshot {
-  const ScholarshipListingSnapshot({
-    required this.items,
-    required this.found,
-  });
-
-  final List<Map<String, dynamic>> items;
-  final int found;
-}
 
 class ScholarshipSnapshotRepository extends GetxService {
   ScholarshipSnapshotRepository();
@@ -80,60 +72,4 @@ class ScholarshipSnapshotRepository extends GetxService {
     loadWarmSnapshot: _loadWarmSnapshot,
     isEmpty: (snapshot) => snapshot.items.isEmpty,
   );
-
-  Stream<CachedResource<ScholarshipListingSnapshot>> openHome({
-    required String userId,
-    int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
-    int page = 1,
-    bool forceSync = false,
-  }) =>
-      _openHomeImpl(
-        userId: userId,
-        limit: limit,
-        page: page,
-        forceSync: forceSync,
-      );
-
-  Future<CachedResource<ScholarshipListingSnapshot>> loadHome({
-    required String userId,
-    int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
-    int page = 1,
-    bool forceSync = false,
-  }) =>
-      _loadHomeImpl(
-        userId: userId,
-        limit: limit,
-        page: page,
-        forceSync: forceSync,
-      );
-
-  Stream<CachedResource<ScholarshipListingSnapshot>> openSearch({
-    required String query,
-    required String userId,
-    int limit = 40,
-    int page = 1,
-    bool forceSync = false,
-  }) =>
-      _openSearchImpl(
-        query: query,
-        userId: userId,
-        limit: limit,
-        page: page,
-        forceSync: forceSync,
-      );
-
-  Future<CachedResource<ScholarshipListingSnapshot>> search({
-    required String query,
-    required String userId,
-    int limit = 40,
-    int page = 1,
-    bool forceSync = false,
-  }) =>
-      _searchImpl(
-        query: query,
-        userId: userId,
-        limit: limit,
-        page: page,
-        forceSync: forceSync,
-      );
 }

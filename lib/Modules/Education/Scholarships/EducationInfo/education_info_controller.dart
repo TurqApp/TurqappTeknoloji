@@ -14,6 +14,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'education_info_controller_data_part.dart';
 part 'education_info_controller_actions_part.dart';
+part 'education_info_controller_facade_part.dart';
 part 'education_info_controller_labels_part.dart';
 part 'education_info_controller_lifecycle_part.dart';
 
@@ -74,57 +75,11 @@ class EducationInfoController extends GetxController
   final Map<String, AnimationController> _animationControllers = {};
   final Map<String, RxDouble> _animationTurns = {};
 
-  String get middleSchoolValue => _middleSchool;
-  String get highSchoolValue => _highSchool;
-  String get associateValue => _associate;
-  String get bachelorValue => _bachelor;
-  String get mastersValue => _masters;
-  String get doctorateValue => _doctorate;
-
   @override
   void onInit() {
     super.onInit();
     _EducationInfoControllerLifecyclePart(this).handleOnInit();
   }
-
-  Future<void> loadInitialData() => _loadInitialDataImpl();
-
-  Future<void> loadSavedData() => _loadSavedDataImpl();
-
-  void updateContent() => content.value = '';
-
-  Future<void> loadSavedDataForLevel(String level) =>
-      _loadSavedDataForLevelImpl(level);
-
-  bool hasDataForLevel(String level) => _hasDataForLevelImpl(level);
-
-  void clearFields() => _clearFieldsImpl();
-
-  void clearOtherEducationFields(String currentLevel) =>
-      _clearOtherEducationFieldsImpl(currentLevel);
-
-  Future<void> saveMiddleSchool() => _saveMiddleSchoolImpl();
-
-  Future<void> saveHighSchool() => _saveHighSchoolImpl();
-
-  Future<void> saveHigherEducation() => _saveHigherEducationImpl();
-
-  Future<void> showBottomSheet(
-    BuildContext context,
-    List<String> items,
-    String title,
-    Function(String) onSelect, {
-    String? selectedItem,
-    bool isSearchable = false,
-  }) =>
-      _showBottomSheetImpl(
-        context,
-        items,
-        title,
-        onSelect,
-        selectedItem: selectedItem,
-        isSearchable: isSearchable,
-      );
 
   @override
   void onClose() {

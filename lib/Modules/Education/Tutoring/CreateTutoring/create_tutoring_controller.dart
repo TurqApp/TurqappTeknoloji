@@ -23,7 +23,9 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 part 'create_tutoring_controller_form_part.dart';
+part 'create_tutoring_controller_runtime_part.dart';
 part 'create_tutoring_controller_submission_part.dart';
+part 'create_tutoring_controller_support_part.dart';
 
 class CreateTutoringController extends GetxController {
   static CreateTutoringController ensure({
@@ -69,73 +71,21 @@ class CreateTutoringController extends GetxController {
   /// Müsaitlik takvimi: gün → saat aralıkları listesi
   final availability = <String, List<String>>{}.obs;
 
-  static const List<String> weekDays = [
-    'Pazartesi',
-    'Salı',
-    'Çarşamba',
-    'Perşembe',
-    'Cuma',
-    'Cumartesi',
-    'Pazar',
-  ];
-
-  static const List<String> timeSlots = [
-    '08:00-10:00',
-    '10:00-12:00',
-    '12:00-14:00',
-    '14:00-16:00',
-    '16:00-18:00',
-    '18:00-20:00',
-    '20:00-22:00',
-  ];
+  static List<String> get weekDays => _createTutoringWeekDays;
+  static List<String> get timeSlots => _createTutoringTimeSlots;
 
   double? _lat;
   double? _long;
 
-  final Map<String, String> branchIconMap = {
-    'Yaz Okulu': '1.png',
-    'Orta Öğretim': '2.png',
-    'İlk Öğretim': '3.png',
-    'Yabancı Dil': '4.png',
-    'Yazılım': '5.png',
-    'Direksiyon': '6.png',
-    'Spor': '7.png',
-    'Sanat': '8.png',
-    'Müzik': '9.png',
-    'Tiyatro': '10.png',
-    'Kişisel Gelişim': '11.png',
-    'Mesleki': '12.png',
-    'Özel Eğitim': '13.png',
-    'Çocuk': '14.png',
-    'Diksiyon': '15.png',
-    'Fotoğrafçılık': '16.png',
-  };
-
   @override
   void onInit() {
     super.onInit();
-    loadSehirler();
-    ever(selectedBranch, (value) {
-      branchController.text = value;
-    });
+    _handleRuntimeInit();
   }
 
   @override
   void onClose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    branchController.dispose();
-    priceController.dispose();
-    cityController.dispose();
-    districtController.dispose();
+    _handleRuntimeClose();
     super.onClose();
-  }
-
-  void addImage(String imagePath) {
-    images.add(imagePath);
-  }
-
-  void togglePhoneOpen(bool value) {
-    isPhoneOpen.value = value;
   }
 }
