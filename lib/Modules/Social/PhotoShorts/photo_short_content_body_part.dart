@@ -63,16 +63,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                 child: Obx(
                                   () => controller.avatarUrl.value != ""
                                       ? GestureDetector(
-                                          onTap: () {
-                                            if (widget.model.userID !=
-                                                _currentUserId) {
-                                              Get.to(
-                                                () => SocialProfile(
-                                                  userID: widget.model.userID,
-                                                ),
-                                              );
-                                            }
-                                          },
+                                          onTap: _openAvatarStoryOrProfile,
                                           child: CachedNetworkImage(
                                             imageUrl:
                                                 controller.avatarUrl.value,
@@ -90,51 +81,46 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                             ),
                             const SizedBox(width: 7),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          if (widget.model.userID !=
-                                              _currentUserId) {
-                                            Get.to(
-                                              () => SocialProfile(
-                                                userID: widget.model.userID,
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: Text(
-                                          controller.fullName.value,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontFamily: AppFontFamilies.mbold,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _openAuthorProfile,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            controller.fullName.value,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontFamily:
+                                                  AppFontFamilies.mbold,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      RozetContent(
-                                        size: 14,
-                                        userID: widget.model.userID,
-                                        rozetValue: widget.model.rozet,
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    controller.nickname.value.trim().isEmpty
-                                        ? ''
-                                        : '@${controller.nickname.value.trim()}',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                      fontFamily: AppFontFamilies.mregular,
+                                        RozetContent(
+                                          size: 14,
+                                          userID: widget.model.userID,
+                                          rozetValue: widget.model.rozet,
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                    Text(
+                                      controller.nickname.value.trim().isEmpty
+                                          ? ''
+                                          : '@${controller.nickname.value.trim()}',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        fontFamily: AppFontFamilies.mregular,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             SizedBox(width: 7),

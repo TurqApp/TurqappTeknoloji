@@ -245,13 +245,17 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
   }
 
   void _openAvatarStoryOrProfile() {
+    final storyUser = _resolveStoryUser();
+    if (widget.model.userID == _currentUid &&
+        (storyUser == null || storyUser.stories.isEmpty)) {
+      return;
+    }
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
     if (modelIndex >= 0) {
       agendaController.lastCenteredIndex = modelIndex;
     }
     agendaController.centeredIndex.value = -1;
-    final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
       final users = _storyUsersSnapshot();
@@ -265,10 +269,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
     }
 
     videoController?.pause();
-    final currentUid = _currentUid;
-    final route = widget.model.userID == currentUid
-        ? Get.to(() => ProfileView())
-        : Get.to(() => SocialProfile(userID: widget.model.userID));
+    final route = Get.to(() => SocialProfile(userID: widget.model.userID));
     route?.then((_) {
       _restoreAgendaFeedCenter();
     });

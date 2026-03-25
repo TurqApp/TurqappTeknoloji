@@ -16,6 +16,9 @@ import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
+import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Core/sizes.dart';
@@ -48,6 +51,40 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   late final bool _ownsController;
   int _currentPage = 0;
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
+  StoryUserModel? _resolveStoryUser() {
+    final rowController = StoryRowController.maybeFind();
+    if (rowController == null) return null;
+    for (final user in rowController.users) {
+      if (user.userID == widget.model.userID && user.stories.isNotEmpty) {
+        return user;
+      }
+    }
+    return null;
+  }
+
+  List<StoryUserModel> _storyUsersSnapshot() {
+    final rowController = StoryRowController.maybeFind();
+    if (rowController == null) return const <StoryUserModel>[];
+    return rowController.users.toList(growable: false);
+  }
+
+  Future<void> _openAuthorProfile() async {
+    if (widget.model.userID == _currentUserId) return;
+    await Get.to(() => SocialProfile(userID: widget.model.userID));
+  }
+
+  Future<void> _openAvatarStoryOrProfile() async {
+    final storyUser = _resolveStoryUser();
+    if (storyUser != null && storyUser.stories.isNotEmpty) {
+      await Get.to(() => StoryViewer(
+            startedUser: storyUser,
+            storyOwnerUsers: _storyUsersSnapshot(),
+          ));
+      return;
+    }
+    await _openAuthorProfile();
+  }
 
   @override
   void initState() {

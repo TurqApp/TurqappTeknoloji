@@ -54,7 +54,6 @@ import '../../../Core/rozet_content.dart';
 import '../../../Core/texts.dart';
 import '../../../Core/Services/upload_queue_service.dart';
 import '../../Social/PostSharers/post_sharers.dart';
-import '../../Profile/MyProfile/profile_view.dart';
 import '../../SocialProfile/social_profile.dart';
 import '../../PostCreator/post_creator.dart';
 import '../TagPosts/tag_posts.dart';

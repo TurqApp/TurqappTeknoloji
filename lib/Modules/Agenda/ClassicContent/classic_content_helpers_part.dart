@@ -223,13 +223,17 @@ extension ClassicContentHelpersPart on _ClassicContentState {
   }
 
   void _openAvatarStoryOrProfile() {
+    final storyUser = _resolveStoryUser();
+    if (widget.model.userID == _currentUid &&
+        (storyUser == null || storyUser.stories.isEmpty)) {
+      return;
+    }
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
     if (modelIndex >= 0) {
       agendaController.lastCenteredIndex = modelIndex;
     }
     agendaController.centeredIndex.value = -1;
-    final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
       final users = StoryRowController.maybeFind()?.users.toList(
@@ -246,9 +250,7 @@ extension ClassicContentHelpersPart on _ClassicContentState {
     }
 
     videoController?.pause();
-    final route = widget.model.userID == _currentUid
-        ? Get.to(() => ProfileView())
-        : Get.to(() => SocialProfile(userID: widget.model.userID));
+    final route = Get.to(() => SocialProfile(userID: widget.model.userID));
     route?.then((_) {
       _restoreClassicFeedCenter();
     });

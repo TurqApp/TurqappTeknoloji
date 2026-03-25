@@ -110,15 +110,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          if (model.userID != _currentUserId) {
-                            volumeOff(false);
-                            Get.to(() => SocialProfile(userID: model.userID))
-                                ?.then((v) {
-                              volumeOff(true);
-                            });
-                          }
-                        },
+                        onTap: _openAvatarStoryOrProfile,
                         child: ClipOval(
                           child: SizedBox(
                             width: 35,
@@ -139,24 +131,16 @@ extension ShortsContentBodyPart on _ShortsContentState {
                       ),
                       const SizedBox(width: 7),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (model.userID != _currentUserId) {
-                                        volumeOff(false);
-                                        Get.to(SocialProfile(
-                                                userID: model.userID))
-                                            ?.then((v) {
-                                          volumeOff(true);
-                                        });
-                                      }
-                                    },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _openAuthorProfile,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
                                     child: Text(
                                       controller.fullName.value,
                                       maxLines: 1,
@@ -167,25 +151,25 @@ extension ShortsContentBodyPart on _ShortsContentState {
                                       ),
                                     ),
                                   ),
-                                ),
-                                RozetContent(
-                                  size: 14,
-                                  userID: model.userID,
-                                  rozetValue: model.rozet,
-                                ),
-                              ],
-                            ),
-                            Text(
-                              controller.nickname.value.trim().isEmpty
-                                  ? ''
-                                  : '@${controller.nickname.value.trim()}',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: AppFontFamilies.mregular,
+                                  RozetContent(
+                                    size: 14,
+                                    userID: model.userID,
+                                    rozetValue: model.rozet,
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              Text(
+                                controller.nickname.value.trim().isEmpty
+                                    ? ''
+                                    : '@${controller.nickname.value.trim()}',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontFamily: AppFontFamilies.mregular,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       SizedBox(width: 7),
