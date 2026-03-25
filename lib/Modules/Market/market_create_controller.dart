@@ -23,54 +23,7 @@ import 'market_schema_service.dart';
 
 part 'market_create_controller_form_part.dart';
 part 'market_create_controller_submission_part.dart';
-
-class MarketLeafCategory {
-  MarketLeafCategory({
-    required this.key,
-    required this.label,
-    required this.pathLabels,
-    required this.fields,
-    required this.meta,
-  });
-
-  final String key;
-  final String label;
-  final List<String> pathLabels;
-  final List<Map<String, dynamic>> fields;
-  final Map<String, dynamic> meta;
-
-  String get pathText => pathLabels.join(' > ');
-  String get pathTextWithoutTop =>
-      pathLabels.length <= 1 ? pathText : pathLabels.skip(1).join(' > ');
-}
-
-class MarketCategoryNode {
-  MarketCategoryNode({
-    required this.key,
-    required this.label,
-    required this.pathLabels,
-    required this.fields,
-    required this.meta,
-    required this.children,
-  });
-
-  final String key;
-  final String label;
-  final List<String> pathLabels;
-  final List<Map<String, dynamic>> fields;
-  final Map<String, dynamic> meta;
-  final List<MarketCategoryNode> children;
-
-  bool get isLeaf => children.isEmpty;
-
-  MarketLeafCategory toLeaf() => MarketLeafCategory(
-        key: key,
-        label: label,
-        pathLabels: pathLabels,
-        fields: fields,
-        meta: meta,
-      );
-}
+part 'market_create_controller_models_part.dart';
 
 class MarketCreateController extends GetxController {
   static MarketCreateController ensure({
@@ -147,17 +100,12 @@ class MarketCreateController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    load();
+    _handleMarketCreateInit();
   }
 
   @override
   void onClose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    priceController.dispose();
-    for (final controller in _fieldControllers.values) {
-      controller.dispose();
-    }
+    _handleMarketCreateClose();
     super.onClose();
   }
 }
