@@ -974,6 +974,28 @@ class QALabRecorder extends GetxService {
         .toList(growable: false);
   }
 
+  bool _isQALabAutostartWarmup({
+    required String surface,
+    required String route,
+    required DateTime referenceTime,
+  }) {
+    if (surface != 'feed') return false;
+    final started = startedAt.value;
+    if (started == null) return false;
+    final ageMs = referenceTime.difference(started).inMilliseconds;
+    if (ageMs < 0 || ageMs > 9000) return false;
+
+    final normalizedRoute = route.trim().toLowerCase();
+    if (normalizedRoute.contains('qa_lab') ||
+        normalizedRoute.contains('qalab')) {
+      return false;
+    }
+    return normalizedRoute.isEmpty ||
+        normalizedRoute == '/' ||
+        normalizedRoute.contains('navbar') ||
+        normalizedRoute.contains('feed');
+  }
+
   List<QALabPinpointFinding> _buildSurfaceRuntimeFindings(
     String surface,
     List<QALabIssue> surfaceIssues,
@@ -1055,6 +1077,11 @@ class QALabRecorder extends GetxService {
       final canClaimPlaybackNow = latestProbe['canClaimPlaybackNow'] == true;
       if (isFeedForeground &&
           count > 0 &&
+          !_isQALabAutostartWarmup(
+            surface: surface,
+            route: route,
+            referenceTime: referenceTime,
+          ) &&
           (playbackSuspended || pauseAll || !canClaimPlaybackNow)) {
         findings.add(
           QALabPinpointFinding(

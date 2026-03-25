@@ -255,7 +255,13 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       'READY_WITHOUT_FRAME',
       'PLAYBACK_NOT_STARTED',
     };
-    if (errors.any(firstFrameCodes.contains)) {
+    final suppressStartupFirstFrameTimeout = _isQALabAutostartWarmup(
+      surface: surface,
+      route: route,
+      referenceTime: referenceTime,
+    );
+    if (!suppressStartupFirstFrameTimeout &&
+        errors.any(firstFrameCodes.contains)) {
       findings.add(
         QALabPinpointFinding(
           severity: errors.contains('FIRST_FRAME_TIMEOUT') ||

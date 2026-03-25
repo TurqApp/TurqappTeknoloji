@@ -264,6 +264,92 @@ void main() {
     );
   });
 
+  test('qa recorder suppresses feed playback gate during autostart warmup', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    recorder.startedAt.value = now.subtract(const Duration(seconds: 4));
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_gate_warmup',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': false,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_playback_gate_blocked'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder still flags feed playback gate after warmup', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    recorder.startedAt.value = now.subtract(const Duration(seconds: 12));
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_gate_post_warmup',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': false,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_playback_gate_blocked'),
+      isTrue,
+    );
+  });
+
   test('qa recorder builds surface alert summaries with blockers first', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -508,6 +594,65 @@ void main() {
       isTrue,
     );
     expect(feedSummary.primaryRootCauseCategory, 'first_frame_latency');
+  });
+
+  test(
+      'qa recorder suppresses native first-frame timeout during autostart warmup',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    recorder.startedAt.value = now.subtract(const Duration(seconds: 4));
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_native_warmup',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'android',
+        'status': 'FIRST_FRAME_TIMEOUT',
+        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'PLAYBACK_NOT_STARTED'],
+        'active': true,
+        'firstFrameRendered': false,
+        'isPlaybackExpected': true,
+        'isPlaying': false,
+        'isBuffering': false,
+        'stallCount': 0,
+        'layerAttachCount': 1,
+        'lastKnownPlaybackTime': 0.0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+      });
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_native_first_frame_timeout'),
+      isFalse,
+    );
   });
 
   test('qa recorder export includes native playback diagnostics', () {
