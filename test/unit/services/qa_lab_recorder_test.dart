@@ -1793,6 +1793,85 @@ void main() {
     );
   });
 
+  test('qa recorder scopes short duplicate dispatches to latest route', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp16c',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/SingleShortView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'short': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'activeIndex': 0,
+            'activeDocId': 'short-1',
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'ts3c',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 600)),
+        metadata: const <String, dynamic>{'docId': 'short-1'},
+      ),
+      QALabTimelineEvent(
+        id: 'tp5c',
+        category: 'playback_dispatch',
+        code: 'short_page_play',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 520)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'dispatchIssued': true,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'ts4c',
+        category: 'scroll',
+        code: 'settled',
+        route: '/SingleShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 400)),
+        metadata: const <String, dynamic>{'docId': 'short-1'},
+      ),
+      QALabTimelineEvent(
+        id: 'tp6c',
+        category: 'playback_dispatch',
+        code: 'short_page_play',
+        route: '/SingleShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 280)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'dispatchIssued': true,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_duplicate_playback_dispatch'),
+      isFalse,
+    );
+  });
+
   test('qa recorder drops resolved permission blockers from active findings',
       () {
     final recorder = QALabRecorder();

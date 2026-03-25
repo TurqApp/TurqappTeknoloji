@@ -974,6 +974,29 @@ class QALabRecorder extends GetxService {
         .toList(growable: false);
   }
 
+  List<QALabTimelineEvent> _routeScopedTimelineEvents(
+    List<QALabTimelineEvent> surfaceTimeline,
+    String route,
+  ) {
+    final trimmedRoute = route.trim();
+    if (trimmedRoute.isEmpty) {
+      return surfaceTimeline;
+    }
+    final exactMatches = surfaceTimeline
+        .where((event) => event.route.trim() == trimmedRoute)
+        .toList(growable: false);
+    if (exactMatches.isNotEmpty) {
+      return exactMatches;
+    }
+    final unscopedMatches = surfaceTimeline
+        .where((event) => event.route.trim().isEmpty)
+        .toList(growable: false);
+    if (unscopedMatches.isNotEmpty) {
+      return unscopedMatches;
+    }
+    return surfaceTimeline;
+  }
+
   List<QALabPinpointFinding> _buildSurfaceRuntimeFindings(
     String surface,
     List<QALabIssue> surfaceIssues,
@@ -1900,7 +1923,8 @@ class QALabRecorder extends GetxService {
     if (surface != 'feed' && surface != 'short') {
       return const <QALabPinpointFinding>[];
     }
-    final latestSettle = _latestScrollSettleEvent(surfaceTimeline);
+    final routeTimeline = _routeScopedTimelineEvents(surfaceTimeline, route);
+    final latestSettle = _latestScrollSettleEvent(routeTimeline);
     if (latestSettle == null) {
       return const <QALabPinpointFinding>[];
     }
@@ -1911,12 +1935,12 @@ class QALabRecorder extends GetxService {
 
     final findings = <QALabPinpointFinding>[];
     final dispatch = _firstPlaybackDispatchAfter(
-      surfaceTimeline: surfaceTimeline,
+      surfaceTimeline: routeTimeline,
       after: latestSettle.timestamp,
       docId: expectedDocId,
     );
     final latestSkip = _latestPlaybackSkipAfter(
-      surfaceTimeline: surfaceTimeline,
+      surfaceTimeline: routeTimeline,
       after: latestSettle.timestamp,
       docId: expectedDocId,
     );
@@ -2031,7 +2055,7 @@ class QALabRecorder extends GetxService {
     }
 
     final duplicateBursts = _duplicatePlaybackDispatchBursts(
-      surfaceTimeline: surfaceTimeline,
+      surfaceTimeline: routeTimeline,
       docId: expectedDocId,
     );
     if (duplicateBursts.isNotEmpty) {
