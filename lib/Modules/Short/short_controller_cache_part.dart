@@ -66,14 +66,11 @@ extension ShortControllerCachePart on ShortController {
       if (adapter == null) continue;
       final distance = (i - currentIndex).abs();
       if (distance == 0) {
-        adapter
-            .setPreferredBufferDuration(ShortController._activeBufferSeconds);
+        adapter.setPreferredBufferDuration(_activeBufferSeconds);
       } else if (distance == 1) {
-        adapter.setPreferredBufferDuration(
-          ShortController._neighborBufferSeconds,
-        );
+        adapter.setPreferredBufferDuration(_neighborBufferSeconds);
       } else {
-        adapter.setPreferredBufferDuration(ShortController._prepBufferSeconds);
+        adapter.setPreferredBufferDuration(_prepBufferSeconds);
       }
     }
 

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+part 'swr_controller_runtime_part.dart';
+
 /// Stale-While-Revalidate (SWR) GetX Controller Base
 ///
 /// Kullanım adımları:
@@ -67,82 +69,18 @@ abstract class SWRController<T> extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_initSWR());
-  }
-
-  // ─── SWR core ──────────────────────────────────────────────────
-
-  Future<void> _initSWR() async {
-    // 1. Anında stale cache göster
-    try {
-      final cached = await loadFromCache();
-      if (cached.isNotEmpty && items.isEmpty) {
-        items.assignAll(cached);
-      }
-    } catch (e) {
-      debugPrint('[SWR] cache load error: $e');
-    }
-
-    // 2. Arka planda tazele
-    await revalidate();
+    _SWRControllerRuntimePart<T>(this).handleOnInit();
   }
 
   /// Ağdan taze veri çek ve items'ı güncelle.
   /// [force] = TTL'yi görmezden gel ve her zaman ağa git.
-  Future<void> revalidate({bool force = false}) async {
-    if (isRevalidating.value) return;
-
-    // TTL dolmadıysa ve force değilse atla
-    if (!force && _lastRevalidated != null) {
-      final age = DateTime.now().difference(_lastRevalidated!);
-      if (age < revalidateTTL) return;
-    }
-
-    isRevalidating.value = true;
-    try {
-      final fresh = await fetchFromNetwork();
-      if (fresh.isNotEmpty) {
-        mergeItems(fresh);
-        _lastRevalidated = DateTime.now();
-      }
-      hasMore.value = fresh.isNotEmpty;
-    } catch (e) {
-      debugPrint('[SWR] revalidate error: $e');
-    } finally {
-      isRevalidating.value = false;
-    }
-  }
+  Future<void> revalidate({bool force = false}) =>
+      _SWRControllerRuntimePart<T>(this).revalidate(force: force);
 
   /// Sayfayı sıfırla ve baştan yükle.
   @override
-  Future<void> refresh() async {
-    if (isLoading.value) return;
-    isLoading.value = true;
-    try {
-      items.clear();
-      hasMore.value = true;
-      _lastRevalidated = null;
-      await _initSWR();
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  Future<void> refresh() => _SWRControllerRuntimePart<T>(this).refresh();
 
   /// Sonraki sayfayı yükle (infinite scroll).
-  Future<void> loadMore() async {
-    if (isLoading.value || !hasMore.value || isRevalidating.value) return;
-    isLoading.value = true;
-    try {
-      final nextPage = await fetchFromNetwork(cursor: paginationCursor);
-      if (nextPage.isEmpty) {
-        hasMore.value = false;
-        return;
-      }
-      items.addAll(nextPage);
-    } catch (e) {
-      debugPrint('[SWR] loadMore error: $e');
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  Future<void> loadMore() => _SWRControllerRuntimePart<T>(this).loadMore();
 }

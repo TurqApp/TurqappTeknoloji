@@ -193,7 +193,7 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<void> _performInitialLoad() async {
     _log(
-      '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: ${ShortController._globalShuffleCompleted})',
+      '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: $_globalShuffleCompleted)',
     );
     _log(
       '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}',
@@ -241,8 +241,7 @@ extension ShortControllerLoadingPart on ShortController {
     if (shorts.isNotEmpty) {
       _log(
           '[Shorts] 🔄 Liste zaten mevcut (${shorts.length} video), ilk 5 preload');
-      final initialCount =
-          math.min(ShortController._initialPreloadCount, shorts.length);
+      final initialCount = math.min(_initialPreloadCount, shorts.length);
       final futures = <Future>[];
       for (int i = 0; i < initialCount; i++) {
         if (!cache.containsKey(i)) {
@@ -252,7 +251,7 @@ extension ShortControllerLoadingPart on ShortController {
       await Future.wait(futures);
       for (int i = 0; i < initialCount; i++) {
         cache[i]?.setPreferredBufferDuration(
-          ShortController._neighborBufferSeconds,
+          _neighborBufferSeconds,
         );
         _tiers[i] = _CacheTier.hot;
       }
@@ -264,8 +263,7 @@ extension ShortControllerLoadingPart on ShortController {
       await _runInitialLoadOnce();
 
       if (shorts.isNotEmpty) {
-        final initialCount =
-            math.min(ShortController._initialPreloadCount, shorts.length);
+        final initialCount = math.min(_initialPreloadCount, shorts.length);
         _log('[Shorts] ⚡ İlk $initialCount video preload ediliyor...');
         final futures = <Future>[];
         for (int i = 0; i < initialCount; i++) {
@@ -276,7 +274,7 @@ extension ShortControllerLoadingPart on ShortController {
         await Future.wait(futures);
         for (int i = 0; i < initialCount; i++) {
           cache[i]?.setPreferredBufferDuration(
-            ShortController._neighborBufferSeconds,
+            _neighborBufferSeconds,
           );
           _tiers[i] = _CacheTier.hot;
         }
@@ -455,12 +453,12 @@ extension ShortControllerLoadingPart on ShortController {
           .where((post) => !existingIds.contains(post.docID))
           .toList(growable: false);
       if (incoming.isNotEmpty) {
-        if (shorts.isEmpty && !ShortController._globalShuffleCompleted) {
+        if (shorts.isEmpty && !_globalShuffleCompleted) {
           final shuffled = List<PostsModel>.from(incoming);
           shuffled.shuffle();
           shorts.addAll(shuffled);
           unawaited(_persistVisibleSnapshot());
-          ShortController._globalShuffleCompleted = true;
+          _globalShuffleCompleted = true;
         } else {
           shorts.addAll(incoming);
           unawaited(_persistVisibleSnapshot());
