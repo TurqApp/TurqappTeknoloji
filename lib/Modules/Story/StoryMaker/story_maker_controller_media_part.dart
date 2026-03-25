@@ -191,6 +191,11 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     if (picked == null) return;
 
     final videoFile = File(picked.path);
+    final validation = await UploadValidationService.validateVideo(videoFile);
+    if (!validation.isValid) {
+      UploadValidationService.showValidationError(validation.errorMessage!);
+      return;
+    }
     final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
     if (nsfwVideo.isNSFW) {
       AppSnackbar(

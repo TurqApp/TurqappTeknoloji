@@ -36,10 +36,10 @@ Future<ValidationResult> _performValidateImage(File imageFile) async {
 Future<ValidationResult> _performValidateVideo(File videoFile) async {
   try {
     final fileSize = await videoFile.length();
-    if (fileSize > UploadConstants.maxVideoSizeBytes) {
+    if (fileSize > UploadValidationService.currentMaxVideoSizeBytes) {
       return ValidationResult.error(
           'upload_validation.video_size_too_large'.trParams({
-        'max': UploadConstants.getMaxVideoSizeText(),
+        'max': UploadValidationService.currentMaxVideoSizeText,
         'current': UploadConstants.formatBytes(fileSize),
       }));
     }

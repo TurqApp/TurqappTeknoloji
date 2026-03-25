@@ -18,6 +18,7 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Services/upload_validation_service.dart';
 import 'package:turqappv2/Core/Services/video_compression_service.dart';
 import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -43,7 +44,8 @@ class UploadQueueService extends GetxController {
     return Get.put(UploadQueueService(), permanent: permanent);
   }
 
-  static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
+  static int get _maxVideoBytesForStorageRule =>
+      UploadValidationService.currentMaxVideoSizeBytes;
   static const Duration _recentDuplicateWindow = Duration(minutes: 15);
   final RxList<QueuedUpload> _queue = <QueuedUpload>[].obs;
   final RxBool _isProcessing = false.obs;

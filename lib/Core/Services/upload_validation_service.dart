@@ -3,6 +3,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Services/media_compression_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:video_player/video_player.dart';
@@ -32,6 +33,16 @@ class ValidationResult {
 }
 
 class UploadValidationService {
+  static bool get _hasBadge =>
+      CurrentUserService.instance.rozet.trim().isNotEmpty;
+
+  static int get currentMaxVideoSizeBytes => _hasBadge
+      ? UploadConstants.maxBadgedVideoSizeBytes
+      : UploadConstants.maxRegularVideoSizeBytes;
+
+  static String get currentMaxVideoSizeText =>
+      UploadConstants.formatBytes(currentMaxVideoSizeBytes);
+
   /// Validate individual image file
   static Future<ValidationResult> validateImage(File imageFile) =>
       _performValidateImage(imageFile);

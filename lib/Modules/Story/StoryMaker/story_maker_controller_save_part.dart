@@ -124,6 +124,14 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           }
           final ts = DateTime.now().millisecondsSinceEpoch;
           if (e.type == StoryElementType.video) {
+            final validation = await UploadValidationService.validateVideo(file);
+            if (!validation.isValid) {
+              AppSnackbar(
+                "common.error".tr,
+                validation.errorMessage ?? 'upload_validation.video_error'.tr,
+              );
+              return;
+            }
             final ext = path.extension(file.path);
             final ref =
                 FirebaseStorage.instance.ref('stories/$uid/$storyId/$ts$ext');

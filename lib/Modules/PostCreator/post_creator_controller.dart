@@ -64,7 +64,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     return Get.find<PostCreatorController>();
   }
 
-  static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
+  static int get _maxVideoBytesForStorageRule =>
+      UploadValidationService.currentMaxVideoSizeBytes;
   static const int _maxScheduledWindowDays = 90;
   static int _lastModerationSnackbarAtMs = 0;
   final PostRepository _postRepository = PostRepository.ensure();

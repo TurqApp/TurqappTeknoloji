@@ -1,6 +1,8 @@
 class UploadConstants {
   static const int maxImageSizeBytes = 8 * 1024 * 1024;
-  static const int maxVideoSizeBytes = 60 * 1024 * 1024;
+  static const int maxRegularVideoSizeBytes = 35 * 1024 * 1024;
+  static const int maxBadgedVideoSizeBytes = 45 * 1024 * 1024;
+  static const int maxVideoSizeBytes = maxBadgedVideoSizeBytes;
   static const int maxPassthroughVideoBytes = 35 * 1024 * 1024;
   static const int maxTotalPostSizeBytes = 150 * 1024 * 1024;
 
