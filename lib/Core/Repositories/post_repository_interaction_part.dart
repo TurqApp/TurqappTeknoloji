@@ -180,6 +180,9 @@ extension PostRepositoryInteractionPart on PostRepository {
         },
         mergeIntoCache: false,
       );
+      await CurrentUserService.instance.applyLocalCounterDelta(
+        postsDelta: archived ? -1 : 1,
+      );
     }
 
     final state = _states[model.docID];

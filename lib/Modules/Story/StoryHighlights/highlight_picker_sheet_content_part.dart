@@ -12,15 +12,14 @@ extension _HighlightPickerSheetContentPart on _HighlightPickerSheetState {
 
     return SafeArea(
       top: false,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: Container(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
           constraints: BoxConstraints(
-            maxHeight: media.size.height - topInset - 24,
+            maxHeight: media.size.height - topInset - bottomInset - 24,
           ),
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
           decoration: BoxDecoration(
             color: const Color(0xFFFCFCFC),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -34,6 +33,7 @@ extension _HighlightPickerSheetContentPart on _HighlightPickerSheetState {
             ],
           ),
           child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

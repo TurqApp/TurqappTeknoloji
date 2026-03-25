@@ -22,7 +22,12 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
   bool _isCreatingNew = false;
   bool _isSubmitting = false;
 
-  String get _currentUid => CurrentUserService.instance.effectiveUserId;
+  String get _currentUid {
+    final userService = CurrentUserService.instance;
+    final authUid = userService.authUserId.trim();
+    if (authUid.isNotEmpty) return authUid;
+    return userService.effectiveUserId;
+  }
 
   @override
   void dispose() {

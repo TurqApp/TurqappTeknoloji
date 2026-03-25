@@ -90,29 +90,27 @@ extension ClassicContentBodyPart on _ClassicContentState {
         Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildClassicActionSlot(
                 commentButton(context),
-                pullTowardSend: true,
+                offsetX: -5,
               ),
               _buildClassicActionSlot(
                 likeButton(),
-                pullTowardSend: true,
               ),
               _buildClassicActionSlot(
                 saveButton(),
-                pullTowardSend: true,
               ),
               _buildClassicActionSlot(
                 reshareButton(),
-                pullTowardSend: true,
               ),
               _buildClassicActionSlot(
                 statButton(),
-                pullTowardSend: true,
               ),
-              _buildClassicActionSlot(sendButton()),
+              _buildClassicActionSlot(
+                sendButton(),
+                offsetX: 5,
+              ),
             ],
           ),
         ),
@@ -706,12 +704,11 @@ extension ClassicContentBodyPart on _ClassicContentState {
 
   Widget _buildClassicActionSlot(
     Widget child, {
-    bool pullTowardSend = false,
+    double offsetX = 0,
   }) {
-    return SizedBox(
-      width: 58,
+    return Expanded(
       child: Transform.translate(
-        offset: const Offset(3, 0),
+        offset: Offset(offsetX, 0),
         child: Center(child: child),
       ),
     );

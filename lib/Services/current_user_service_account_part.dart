@@ -72,6 +72,35 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
     }
   }
 
+  Future<void> applyLocalCounterDelta({
+    int postsDelta = 0,
+    int likesDelta = 0,
+    int followersDelta = 0,
+    int followingsDelta = 0,
+  }) async {
+    final current = _currentUser;
+    if (current == null) return;
+    if (postsDelta == 0 &&
+        likesDelta == 0 &&
+        followersDelta == 0 &&
+        followingsDelta == 0) {
+      return;
+    }
+
+    int clampNonNegative(int value) => value < 0 ? 0 : value;
+
+    await _updateUser(
+      current.copyWith(
+        counterOfPosts: clampNonNegative(current.counterOfPosts + postsDelta),
+        counterOfLikes: clampNonNegative(current.counterOfLikes + likesDelta),
+        counterOfFollowers:
+            clampNonNegative(current.counterOfFollowers + followersDelta),
+        counterOfFollowings:
+            clampNonNegative(current.counterOfFollowings + followingsDelta),
+      ),
+    );
+  }
+
   Future<void> _applyOptimisticLocalPatch(
     Map<String, dynamic> normalizedFields,
   ) async {

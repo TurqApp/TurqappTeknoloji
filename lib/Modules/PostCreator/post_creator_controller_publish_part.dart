@@ -642,6 +642,9 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
               {'counterOfPosts': FieldValue.increment(1)},
               mergeIntoCache: false,
             );
+            await CurrentUserService.instance.applyLocalCounterDelta(
+              postsDelta: 1,
+            );
           }
         } catch (_) {}
       }

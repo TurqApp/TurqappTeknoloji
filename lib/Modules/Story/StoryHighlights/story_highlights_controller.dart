@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_highlights_repository.dart';
@@ -32,7 +33,11 @@ class StoryHighlightsController extends GetxController {
       StoryHighlightsRepository.ensure();
   final StoryRepository _storyRepository = StoryRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
-  String get _currentUid => _userService.effectiveUserId;
+  String get _currentUid {
+    final authUid = _userService.authUserId.trim();
+    if (authUid.isNotEmpty) return authUid;
+    return _userService.effectiveUserId;
+  }
 
   RxList<StoryHighlightModel> highlights = <StoryHighlightModel>[].obs;
   RxBool isLoading = false.obs;
@@ -98,7 +103,13 @@ class StoryHighlightsController extends GetxController {
 
       var resolvedCoverUrl = coverUrl.trim();
       if (resolvedCoverUrl.isEmpty && storyIds.isNotEmpty) {
-        resolvedCoverUrl = await _resolveCoverUrlFromStoryIds(storyIds);
+        try {
+          resolvedCoverUrl = await _resolveCoverUrlFromStoryIds(storyIds);
+        } catch (e, st) {
+          debugPrint('StoryHighlights create cover resolve error: $e');
+          debugPrintStack(stackTrace: st);
+          resolvedCoverUrl = '';
+        }
       }
 
       final model = StoryHighlightModel(
@@ -113,12 +124,19 @@ class StoryHighlightsController extends GetxController {
 
       await _repository.createHighlight(uid, model);
       highlights.add(model);
-      await _repository.setHighlights(
-        uid,
-        List<StoryHighlightModel>.from(highlights),
-      );
+      try {
+        await _repository.setHighlights(
+          uid,
+          List<StoryHighlightModel>.from(highlights),
+        );
+      } catch (e, st) {
+        debugPrint('StoryHighlights create cache persist error: $e');
+        debugPrintStack(stackTrace: st);
+      }
       return model;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('StoryHighlights create failed: $e');
+      debugPrintStack(stackTrace: st);
       return null;
     }
   }
