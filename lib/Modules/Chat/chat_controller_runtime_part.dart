@@ -3,17 +3,17 @@ part of 'chat_controller.dart';
 extension ChatControllerRuntimePart on ChatController {
   void _initializeChatRuntime() {
     ChatController._activeTag = chatID;
-    getUserData();
-    loadChatBackgroundPreference();
-    unawaited(getData());
-    _clearConversationUnread();
-    _syncUnreadIndicatorsLocal();
-    unawaited(_markConversationOpenedNow());
+    ChatControllerSupportPart(this).getUserData();
+    unawaited(ChatControllerSupportPart(this).loadChatBackgroundPreference());
+    unawaited(ChatControllerSupportPart(this).getData());
+    unawaited(ChatControllerSupportPart(this)._clearConversationUnread());
+    ChatControllerSupportPart(this)._syncUnreadIndicatorsLocal();
+    unawaited(ChatControllerSupportPart(this)._markConversationOpenedNow());
     textEditingController.addListener(() {
       textMesage.value = textEditingController.text;
-      _onTypingChanged();
+      ChatControllerSupportPart(this)._onTypingChanged();
     });
-    _listenTypingState();
+    ChatControllerSupportPart(this)._listenTypingState();
     scrollController.addListener(() {
       final offset = scrollController.offset;
       final visible = offset > 500;
@@ -27,7 +27,7 @@ extension ChatControllerRuntimePart on ChatController {
       if (scrollController.hasClients &&
           scrollController.position.maxScrollExtent > 0 &&
           offset > (scrollController.position.maxScrollExtent - 280)) {
-        loadOlderMessages();
+        unawaited(ChatControllerSupportPart(this).loadOlderMessages());
       }
     });
   }
@@ -50,7 +50,7 @@ extension ChatControllerRuntimePart on ChatController {
     if (ChatController._activeTag == chatID) {
       ChatController._activeTag = null;
     }
-    unawaited(_markConversationOpenedNow());
+    unawaited(ChatControllerSupportPart(this)._markConversationOpenedNow());
     _messageSyncTimer?.cancel();
     _messagesSubscription?.cancel();
     _realtimeHeadSignature = '';
@@ -62,7 +62,7 @@ extension ChatControllerRuntimePart on ChatController {
     scrollController.dispose();
     pageController.dispose();
     focus.dispose();
-    _clearTyping();
+    ChatControllerSupportPart(this)._clearTyping();
   }
 
   Future<void> _performArchiveCurrentChat() async {

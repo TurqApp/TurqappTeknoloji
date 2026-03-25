@@ -50,6 +50,7 @@ part 'post_creator_controller_publish_upload_part.dart';
 part 'post_creator_controller_route_part.dart';
 part 'post_creator_controller_ui_part.dart';
 part 'post_creator_controller_models_part.dart';
+part 'post_creator_controller_runtime_part.dart';
 
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
   static PostCreatorController ensure({bool permanent = false}) {
@@ -97,14 +98,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
-  String _requireCurrentUid() {
-    final uid = _currentUid;
-    if (uid.isEmpty) {
-      throw StateError('Current user uid unavailable');
-    }
-    return uid;
-  }
-
   String _sharedSourcePostID = "";
   bool _isQuotedPost = false;
   String _quotedOriginalText = "";
@@ -130,65 +123,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   String get sharedOriginalUserID => _sharedOriginalUserID;
   String get sharedOriginalPostID => _sharedOriginalPostID;
 
-  String _resolvePostLocationCity() =>
-      _PostCreatorControllerUploadSupportX(this)._resolvePostLocationCity();
-
-  Future<String?> _ensureStorageUploadAuthReady() =>
-      _PostCreatorControllerUploadSupportX(this)
-          ._ensureStorageUploadAuthReady();
-
-  Future<void> _preparePostShellForStorageUpload({
-    required String docID,
-    required String uid,
-    required int nowMs,
-  }) =>
-      _PostCreatorControllerUploadSupportX(this)
-          ._preparePostShellForStorageUpload(
-        docID: docID,
-        uid: uid,
-        nowMs: nowMs,
-      );
-
-  Future<TaskSnapshot> _putFileWithAuthRetry({
-    required Reference ref,
-    required File file,
-    required SettableMetadata metadata,
-  }) =>
-      _PostCreatorControllerUploadSupportX(this)._putFileWithAuthRetry(
-        ref: ref,
-        file: file,
-        metadata: metadata,
-      );
-
-  NavBarController? _maybeNavBarController() =>
-      _PostCreatorControllerUploadSupportX(this)._maybeNavBarController();
-
   DateTime get maxIzBirakDate =>
       DateTime.now().add(const Duration(days: _maxScheduledWindowDays));
-
-  int allocateComposerItemIndex() {
-    final next = _nextComposerItemIndex;
-    _nextComposerItemIndex++;
-    return next;
-  }
-
-  PostCreatorModel insertComposerItemAfter(int listIndex) {
-    final newIndex = allocateComposerItemIndex();
-    final model = PostCreatorModel(index: newIndex, text: "");
-    final insertAt = (listIndex + 1).clamp(0, postList.length);
-    postList.insert(insertAt, model);
-    postList.refresh();
-    return model;
-  }
-
-  void resetComposerItemIndexSeed([int next = 1]) {
-    _nextComposerItemIndex = next;
-  }
-
-  CreatorContentController ensureComposerControllerFor(int composerIndex) {
-    final tag = composerIndex.toString();
-    return CreatorContentController.ensure(tag: tag);
-  }
 
   @override
   void onInit() {

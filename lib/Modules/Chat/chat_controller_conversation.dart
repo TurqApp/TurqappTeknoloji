@@ -179,7 +179,11 @@ extension _ChatControllerConversationX on ChatController {
     _listenRealtimeMessages(cacheOnly: hasLocalWindow);
     if (_isOffline) {
       _messageSyncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
-        _syncMessages(forceServer: false);
+        unawaited(
+          _ChatControllerConversationSyncX(this)._syncMessages(
+            forceServer: false,
+          ),
+        );
       });
     }
   }

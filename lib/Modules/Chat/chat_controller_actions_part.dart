@@ -78,7 +78,9 @@ extension ChatControllerActionsPart on ChatController {
     }
 
     if (latestSeenTs > 0) {
-      unawaited(_markConversationOpenedAt(latestSeenTs));
+      unawaited(ChatControllerSupportPart(this)._markConversationOpenedAt(
+        latestSeenTs,
+      ));
     }
   }
 

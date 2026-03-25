@@ -283,7 +283,7 @@ extension ChatControllerSendPart on ChatController {
         _conversationMessages[optimistic.docID] = optimistic;
         _refreshMergedMessages();
       } catch (_) {
-        _syncMessages(forceServer: true);
+        ChatControllerSupportPart(this)._syncMessages(forceServer: true);
       }
 
       if (!_recipientMuted &&
