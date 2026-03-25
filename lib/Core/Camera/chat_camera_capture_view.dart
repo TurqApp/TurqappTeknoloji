@@ -26,6 +26,7 @@ class ChatCameraCaptureView extends StatefulWidget {
 }
 
 class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
+  static const double _captureButtonSize = 84;
   CameraController? _controller;
   List<CameraDescription> _cameras = const [];
   int _selectedCameraIndex = 0;
@@ -150,41 +151,57 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                   Positioned.fill(
                     child: CameraPreview(c),
                   ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.24),
+                              Colors.transparent,
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.44),
+                            ],
+                            stops: const [0.0, 0.18, 0.64, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   Positioned(
                     top: 10,
                     left: 10,
-                    child: IconButton(
+                    child: _topControlButton(
+                      icon: CupertinoIcons.xmark,
                       onPressed: () => Get.back(),
-                      icon: const Icon(
-                        CupertinoIcons.xmark_circle_fill,
-                        color: Colors.white,
-                        size: 30,
-                      ),
                     ),
                   ),
                   Positioned(
                     top: 10,
                     right: 10,
-                    child: IconButton(
+                    child: _topControlButton(
+                      icon: CupertinoIcons.refresh,
                       onPressed: _toggleLens,
-                      icon: const Icon(
-                        CupertinoIcons.refresh_circled_solid,
-                        color: Colors.white,
-                        size: 30,
-                      ),
                     ),
                   ),
                   Positioned(
-                    bottom: 130,
-                    left: 0,
-                    right: 0,
+                    bottom: 164,
+                    left: 20,
+                    right: 20,
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.16),
+                          ),
                         ),
                         child: Text(
                           _mode == ChatCameraMode.photo
@@ -203,45 +220,96 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                     ),
                   ),
                   Positioned(
-                    bottom: 60,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _modeButton('chat.camera.capture'.tr,
-                            ChatCameraMode.photo),
-                        const SizedBox(width: 18),
-                        GestureDetector(
-                          onTap: () async {
-                            if (_mode == ChatCameraMode.photo) {
-                              await _takePhoto();
-                            } else {
-                              if (_isRecording) {
+                    bottom: 38,
+                    left: 18,
+                    right: 18,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.32),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.14),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.16),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _modeButton(
+                              icon: CupertinoIcons.photo,
+                              text: 'Fotoğraf',
+                              value: ChatCameraMode.photo,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () async {
+                              if (_mode == ChatCameraMode.photo) {
+                                await _takePhoto();
+                              } else if (_isRecording) {
                                 await _stopVideo();
                               } else {
                                 await _startVideo();
                               }
-                            }
-                          },
-                          child: Container(
-                            width: 74,
-                            height: 74,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _isRecording
-                                  ? Colors.red
-                                  : Colors.white.withValues(alpha: 0.9),
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 3,
+                            },
+                            child: Container(
+                              width: _captureButtonSize,
+                              height: _captureButtonSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withValues(alpha: 0.12),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  width: 3.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.18),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  width: _isRecording ? 30 : 58,
+                                  height: _isRecording ? 30 : 58,
+                                  decoration: BoxDecoration(
+                                    color: _isRecording
+                                        ? const Color(0xFFE63A3A)
+                                        : Colors.white,
+                                    shape: _isRecording
+                                        ? BoxShape.rectangle
+                                        : BoxShape.circle,
+                                    borderRadius: _isRecording
+                                        ? BorderRadius.circular(10)
+                                        : null,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 18),
-                        _modeButton('common.video'.tr, ChatCameraMode.video),
-                      ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _modeButton(
+                              icon: CupertinoIcons.video_camera_solid,
+                              text: 'Video',
+                              value: ChatCameraMode.video,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -252,29 +320,76 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
     );
   }
 
-  Widget _modeButton(String text, ChatCameraMode value) {
+  Widget _topControlButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.14),
+        ),
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          color: Colors.white,
+          size: 22,
+        ),
+      ),
+    );
+  }
+
+  Widget _modeButton({
+    required IconData icon,
+    required String text,
+    required ChatCameraMode value,
+  }) {
     final selected = _mode == value;
     return GestureDetector(
       onTap: () {
         if (_isRecording) return;
         setState(() => _mode = value);
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: selected
-              ? Colors.white.withValues(alpha: 0.3)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontFamily: "MontserratBold",
+              ? Colors.white.withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: selected
+                ? Colors.white.withValues(alpha: 0.88)
+                : Colors.white.withValues(alpha: 0.28),
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontFamily: "MontserratBold",
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
