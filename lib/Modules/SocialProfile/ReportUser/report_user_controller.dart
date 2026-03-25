@@ -6,6 +6,8 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/report_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'report_user_controller_runtime_part.dart';
+
 class ReportUserController extends GetxController {
   static ReportUserController ensure({
     required String userID,
@@ -59,85 +61,10 @@ class ReportUserController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadUser();
+    _ReportUserControllerRuntimePart(this).loadUser();
   }
 
-  Future<void> _loadUser() async {
-    final data = await _userSummaryResolver.resolve(
-      userID,
-      preferCache: true,
-    );
-    if (data == null) return;
-    nickname.value = data.nickname;
-    avatarUrl.value = data.avatarUrl;
-    fullName.value = data.displayName;
-  }
+  Future<void> report() => _ReportUserControllerRuntimePart(this).report();
 
-  Future<void> report() async {
-    if (isSubmitting.value) return;
-    if (selectedKey.value.trim().isEmpty ||
-        selectedTitle.value.trim().isEmpty ||
-        selectedDesc.value.trim().isEmpty) {
-      AppSnackbar(
-        'report.select_reason_title'.tr,
-        'report.select_reason_body'.tr,
-      );
-      return;
-    }
-
-    isSubmitting.value = true;
-    try {
-      await _reportRepository.submitReport(
-        targetUserId: userID,
-        postId: postID,
-        commentId: commentID,
-        selection: ReportModel(
-          key: selectedKey.value,
-          title: selectedTitle.value,
-          description: selectedDesc.value,
-        ),
-      );
-
-      Get.back();
-
-      AppSnackbar(
-        'report.submitted_title'.tr,
-        'report.submitted_body'.trParams({
-          'nickname': nickname.value,
-        }),
-      );
-    } finally {
-      isSubmitting.value = false;
-    }
-  }
-
-  Future<void> block() async {
-    final currentUserID = CurrentUserService.instance.effectiveUserId;
-    final blockedEntries = await _userSubcollectionRepository.getEntries(
-      userID,
-      subcollection: "blockedUsers",
-      preferCache: true,
-    );
-    final exists = blockedEntries.any((entry) => entry.id == currentUserID);
-    if (exists) {
-      await _userSubcollectionRepository.deleteEntry(
-        userID,
-        subcollection: "blockedUsers",
-        docId: currentUserID,
-      );
-      blockedUser.value = false;
-      return;
-    }
-
-    await _userSubcollectionRepository.upsertEntry(
-      userID,
-      subcollection: "blockedUsers",
-      docId: currentUserID,
-      data: {
-        "userID": currentUserID,
-        "updatedDate": DateTime.now().millisecondsSinceEpoch,
-      },
-    );
-    blockedUser.value = true;
-  }
+  Future<void> block() => _ReportUserControllerRuntimePart(this).block();
 }

@@ -99,10 +99,8 @@ extension FollowRepositoryQueryPart on FollowRepository {
       limit: fetchLimit,
       source: initialSource,
     );
-    final normalizedFirst = first
-        .where((id) => id.isNotEmpty)
-        .toSet()
-        .toList(growable: false);
+    final normalizedFirst =
+        first.where((id) => id.isNotEmpty).toSet().toList(growable: false);
 
     if (forceRefresh || !preferCache || normalizedFirst.length >= fetchLimit) {
       return normalizedFirst;

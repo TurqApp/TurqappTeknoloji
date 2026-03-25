@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'user_subdoc_repository_models_part.dart';
 part 'user_subdoc_repository_cache_part.dart';
+part 'user_subdoc_repository_runtime_part.dart';
 
 class UserSubdocRepository extends GetxService {
   static const String _prefsPrefix = 'user_subdoc_repository_v1';
@@ -29,9 +30,7 @@ class UserSubdocRepository extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) {
-      _prefs = prefs;
-    });
+    _handleUserSubdocRepositoryInit();
   }
 
   Future<Map<String, dynamic>> getDoc(
@@ -41,42 +40,15 @@ class UserSubdocRepository extends GetxService {
     bool preferCache = true,
     bool forceRefresh = false,
     Duration ttl = _defaultTtl,
-  }) async {
-    if (uid.isEmpty || collection.isEmpty || docId.isEmpty) {
-      return const <String, dynamic>{};
-    }
-    final key = _userSubdocCacheKey(uid, collection, docId);
-
-    if (!forceRefresh && preferCache) {
-      final memory = _getUserSubdocFromMemory(this, key, ttl: ttl);
-      if (memory != null) return memory;
-
-      final disk = await _getUserSubdocFromPrefs(this, key, ttl: ttl);
-      if (disk != null) {
-        _memory[key] = _CachedUserSubdoc(
-          data: Map<String, dynamic>.from(disk),
-          cachedAt: DateTime.now(),
-        );
-        return disk;
-      }
-    }
-
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection(collection)
-        .doc(docId)
-        .get();
-    final data =
-        Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});
-    await putDoc(
-      uid,
-      collection: collection,
-      docId: docId,
-      data: data,
-    );
-    return data;
-  }
+  }) =>
+      _getUserSubdocDoc(
+        uid,
+        collection: collection,
+        docId: docId,
+        preferCache: preferCache,
+        forceRefresh: forceRefresh,
+        ttl: ttl,
+      );
 
   Future<void> putDoc(
     String uid, {
@@ -99,31 +71,14 @@ class UserSubdocRepository extends GetxService {
     required String docId,
     required Map<String, dynamic> data,
     bool merge = true,
-  }) async {
-    if (uid.isEmpty || collection.isEmpty || docId.isEmpty) return;
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection(collection)
-        .doc(docId)
-        .set(data, SetOptions(merge: merge));
-    final current = await getDoc(
-      uid,
-      collection: collection,
-      docId: docId,
-      preferCache: true,
-      forceRefresh: false,
-    );
-    final merged = merge
-        ? (Map<String, dynamic>.from(current)..addAll(data))
-        : Map<String, dynamic>.from(data);
-    await putDoc(
-      uid,
-      collection: collection,
-      docId: docId,
-      data: merged,
-    );
-  }
+  }) =>
+      _setUserSubdocDoc(
+        uid,
+        collection: collection,
+        docId: docId,
+        data: data,
+        merge: merge,
+      );
 
   Future<void> invalidate(
     String uid, {

@@ -23,8 +23,8 @@ extension AdminPushRepositoryQueryPart on AdminPushRepository {
   }) async {
     final uid = filters.uid.trim();
     if (uid.isNotEmpty) {
-      final data =
-          await _userRepository.getUserRaw(uid) ?? const <String, dynamic>{};
+      final data = await _adminPushUserRepository.getUserRaw(uid) ??
+          const <String, dynamic>{};
       if (data.isEmpty) return <String>[];
       return _isEligiblePushTargetImpl(uid, data) ? <String>[uid] : <String>[];
     }
@@ -71,7 +71,9 @@ extension AdminPushRepositoryQueryPart on AdminPushRepository {
 
       for (final doc in users.docs) {
         final data = doc.data();
-        await _userRepository.seedUser(UserSummary.fromMap(doc.id, data));
+        await _adminPushUserRepository.seedUser(
+          UserSummary.fromMap(doc.id, data),
+        );
         if (matchesFilters(doc.id, data)) {
           targets.add(doc.id);
         }

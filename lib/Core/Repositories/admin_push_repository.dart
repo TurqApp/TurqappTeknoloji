@@ -10,58 +10,18 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'admin_push_repository_query_part.dart';
 part 'admin_push_repository_action_part.dart';
 part 'admin_push_repository_filter_part.dart';
-
-class AdminPushReport {
-  final String id;
-  final Map<String, dynamic> data;
-
-  const AdminPushReport({
-    required this.id,
-    required this.data,
-  });
-}
-
-class AdminPushTargetFilters {
-  final String uid;
-  final String meslek;
-  final String konum;
-  final String gender;
-  final int? minAge;
-  final int? maxAge;
-
-  const AdminPushTargetFilters({
-    this.uid = '',
-    this.meslek = '',
-    this.konum = '',
-    this.gender = '',
-    this.minAge,
-    this.maxAge,
-  });
-}
+part 'admin_push_repository_models_part.dart';
+part 'admin_push_repository_support_part.dart';
 
 class AdminPushRepository extends GetxService {
-  static const String _defaultPushImageUrl =
-      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/logoblack.png?alt=media&token=23085c34-c823-48d9-a650-2342ec801d23';
+  static const String _defaultPushImageUrl = _adminPushDefaultImageUrl;
 
-  static AdminPushRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<AdminPushRepository>();
-    if (!isRegistered) return null;
-    return Get.find<AdminPushRepository>();
-  }
+  static AdminPushRepository? maybeFind() => _maybeFindAdminPushRepository();
 
-  static AdminPushRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AdminPushRepository(), permanent: true);
-  }
-
-  final UserRepository _userRepository = UserRepository.ensure();
+  static AdminPushRepository ensure() => _ensureAdminPushRepository();
 
   CollectionReference<Map<String, dynamic>> get _reportsRef =>
-      FirebaseFirestore.instance
-          .collection('adminConfig')
-          .doc('admin')
-          .collection('pushReports');
+      _adminPushReportsRef();
 
   Stream<List<AdminPushReport>> watchReports({int limit = 20}) =>
       _watchReportsImpl(limit: limit);
