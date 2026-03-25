@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'qa_lab_mode.dart';
 part 'qa_lab_remote_uploader_upload_part.dart';
 part 'qa_lab_remote_uploader_gate_part.dart';
+part 'qa_lab_remote_uploader_runtime_part.dart';
 
 class QALabRemoteUploader extends GetxService {
   QALabRemoteUploader({
@@ -61,58 +62,18 @@ class QALabRemoteUploader extends GetxService {
     List<Map<String, dynamic>> occurrences = const <Map<String, dynamic>>[],
     required String reason,
     bool immediate = false,
-  }) async {
-    if (!QALabMode.remoteUploadEnabled) {
-      return;
-    }
-    final sessionId = (sessionDocument['sessionId'] ?? '').toString().trim();
-    if (sessionId.isNotEmpty && sessionId != _activeSessionId) {
-      _clearPermissionDeniedBlockForNewSession(sessionId);
-      _activeSessionId = sessionId;
-      _uploadedOccurrenceIds.clear();
-    }
-    _pendingSessionDocument = _sanitizeMap(sessionDocument);
-    _pendingReason = reason;
-    for (final occurrence in occurrences) {
-      final occurrenceId = (occurrence['occurrenceId'] ?? '').toString().trim();
-      if (occurrenceId.isEmpty) {
-        continue;
-      }
-      _pendingOccurrences[occurrenceId] = _sanitizeMap(occurrence);
-    }
+  }) =>
+      QALabRemoteUploaderRuntimePart(this).scheduleUpload(
+        sessionDocument: sessionDocument,
+        occurrences: occurrences,
+        reason: reason,
+        immediate: immediate,
+      );
 
-    _debounceTimer?.cancel();
-    if (immediate) {
-      await _flushPending();
-      return;
-    }
-    _debounceTimer = Timer(
-      Duration(milliseconds: QALabMode.remoteUploadDebounceMs),
-      () => unawaited(_flushPending()),
-    );
-  }
+  Future<void> flushNow() => QALabRemoteUploaderRuntimePart(this).flushNow();
 
-  Future<void> flushNow() async {
-    _debounceTimer?.cancel();
-    await _flushPending();
-  }
-
-  void resetLocalState() {
-    _debounceTimer?.cancel();
-    _pendingSessionDocument = null;
-    _pendingReason = '';
-    _pendingOccurrences.clear();
-    _uploadedOccurrenceIds.clear();
-    _activeSessionId = '';
-    _permissionDeniedSessionId = '';
-    _permissionDeniedUntil = null;
-    uploadCount.value = 0;
-    uploadedOccurrenceCount.value = 0;
-    lastSyncState.value = 'idle';
-    lastSyncError.value = '';
-    lastSyncReason.value = '';
-    lastSyncedAt.value = null;
-  }
+  void resetLocalState() =>
+      QALabRemoteUploaderRuntimePart(this).resetLocalState();
 
   Future<void> _flushPending() => _qaLabRemoteUploaderFlushPending(this);
 
@@ -157,8 +118,7 @@ class QALabRemoteUploader extends GetxService {
 
   @override
   void onClose() {
-    _debounceTimer?.cancel();
-    _qaConfigSubscription?.cancel();
+    QALabRemoteUploaderRuntimePart(this).onClose();
     super.onClose();
   }
 }

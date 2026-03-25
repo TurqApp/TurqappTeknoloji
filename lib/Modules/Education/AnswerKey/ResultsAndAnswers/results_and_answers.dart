@@ -7,6 +7,7 @@ import 'package:turqappv2/Modules/Education/AnswerKey/ResultsAndAnswers/results_
 
 part 'results_and_answers_content_part.dart';
 part 'results_and_answers_speedometer_part.dart';
+part 'results_and_answers_speedometer_controller_part.dart';
 
 class ResultsAndAnswers extends StatefulWidget {
   final OpticalFormModel model;

@@ -5,6 +5,7 @@ import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../../Themes/app_fonts.dart';
 
 part 'hashtag_text_post_controller_part.dart';
+part 'hashtag_text_post_controller_runtime_part.dart';
 
 class HashtagTextVideoPost extends StatelessWidget {
   final String text;
