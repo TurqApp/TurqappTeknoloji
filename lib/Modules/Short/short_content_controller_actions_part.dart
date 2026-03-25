@@ -3,7 +3,7 @@ part of 'short_content_controller.dart';
 extension ShortContentControllerActionsPart on ShortContentController {
   Future<void> toggleLike() async {
     try {
-      await _postRepository.toggleLike(model);
+      await _shortPostRepository.toggleLike(model);
     } catch (e) {
       AppSnackbar('common.error'.tr, 'post.like_failed'.tr);
     }
@@ -13,7 +13,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
 
   Future<void> toggleSave() async {
     try {
-      await _postRepository.toggleSave(model);
+      await _shortPostRepository.toggleSave(model);
     } catch (e) {
       AppSnackbar('common.error'.tr, 'post.save_failed'.tr);
     }
@@ -23,7 +23,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
 
   Future<void> toggleReshare() async {
     try {
-      final newReshareStatus = await _postRepository.toggleReshare(model);
+      final newReshareStatus = await _shortPostRepository.toggleReshare(model);
       if (newReshareStatus) {
         ProfileController.maybeFind()?.getResharesSingle();
       } else {
@@ -38,7 +38,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
 
   Future<void> reportPost() async {
     try {
-      final success = await _interactionService.reportPost(model.docID);
+      final success = await _shortInteractionService.reportPost(model.docID);
       if (success) {
         isReported.value = true;
         reportCount.value++;
@@ -111,7 +111,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
   }
 
   Future<void> arsivle() async {
-    await _postRepository.setArchived(model, true);
+    await _shortPostRepository.setArchived(model, true);
 
     final shortController = ShortController.maybeFind();
     final index = shortController?.shorts.indexOf(model) ?? -1;
@@ -140,7 +140,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
   }
 
   Future<void> arsivdenCikart() async {
-    await _postRepository.setArchived(model, false);
+    await _shortPostRepository.setArchived(model, false);
 
     final shortController = ShortController.maybeFind();
     final index = shortController?.shorts.indexOf(model) ?? -1;
@@ -214,7 +214,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     if (followLoading.value) return;
 
     try {
-      final currentUid = _currentUserId;
+      final currentUid = _shortCurrentUserId;
       final alreadyFollowing = await FollowRepository.ensure().isFollowing(
         model.userID,
         currentUid: currentUid,

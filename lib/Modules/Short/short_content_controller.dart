@@ -19,6 +19,15 @@ import '../../Services/current_user_service.dart';
 
 part 'short_content_controller_data_part.dart';
 part 'short_content_controller_actions_part.dart';
+part 'short_content_controller_runtime_part.dart';
+
+final PostInteractionService _shortInteractionService =
+    PostInteractionService.ensure();
+final PostRepository _shortPostRepository = PostRepository.ensure();
+final UserSummaryResolver _shortUserSummaryResolver =
+    UserSummaryResolver.ensure();
+
+String get _shortCurrentUserId => CurrentUserService.instance.effectiveUserId;
 
 class ShortContentController extends GetxController {
   static ShortContentController ensure({
@@ -56,21 +65,13 @@ class ShortContentController extends GetxController {
   var token = "".obs;
   var takipEdiyorum = false.obs;
   var followLoading = false.obs;
-  // yorumCount -> commentCount RxInt'e taşındı
   var pageCounter = 0.obs;
-  // Yeni interaction service
-  late PostInteractionService _interactionService;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-
-  // Stats observables - PostsModel.stats'tan alinacak
   RxInt likeCount = 0.obs;
   RxInt commentCount = 0.obs;
   RxInt savedCount = 0.obs;
   RxInt retryCount = 0.obs;
   RxInt viewCount = 0.obs;
   RxInt reportCount = 0.obs;
-
-  // User interaction status
   RxBool isLiked = false.obs;
   RxBool isSaved = false.obs;
   RxBool isReshared = false.obs;
@@ -83,59 +84,22 @@ class ShortContentController extends GetxController {
   var ilkPaylasanNickname = "".obs;
   var ilkPaylasanUserID = "".obs;
   var fullscreen = true.obs;
-  // Kaldırılan deprecated değişkenler:
-  // yenidenPaylasildiMi -> isReshared
-  // countManager -> PostInteractionService
-  // retryCount, statsCount -> lokal RxInt'ler
   StreamSubscription<DocumentSnapshot>? _postDocSub;
-  late final PostRepository _postRepository;
   PostRepositoryState? _postState;
   Worker? _interactionWorker;
   Worker? _postDataWorker;
   Timer? _deleteFadeTimer;
   Timer? _deleteRemoveTimer;
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {
     super.onInit();
-
-    // Initialize interaction service
-    _interactionService = PostInteractionService.ensure();
-    _postRepository = PostRepository.ensure();
-
-    // Initialize stats from model
-    _initializeStats();
-
-    // Initialize other data
-    getGizleArsivSikayetEdildi();
-    avatarUrl.value = model.authorAvatarUrl.trim();
-    nickname.value = model.authorNickname.trim();
-    fullName.value = model.authorDisplayName.trim();
-    fetchUserData(model.userID);
-
-    // Record view and load user interaction status
-    Future.microtask(() {
-      if (isClosed) return;
-      _interactionService.recordView(model.docID);
-      _loadUserInteractionStatus();
-    });
-
-    // Bind listeners
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (isClosed) return;
-      _bindPostStatsListener();
-    });
+    _handleRuntimeInit();
   }
 
   @override
   void onClose() {
-    _deleteFadeTimer?.cancel();
-    _deleteRemoveTimer?.cancel();
-    _interactionWorker?.dispose();
-    _postDataWorker?.dispose();
-    _postRepository.releasePost(model.docID);
-    _postDocSub?.cancel();
+    _handleRuntimeClose();
     super.onClose();
   }
 }

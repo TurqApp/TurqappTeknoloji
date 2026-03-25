@@ -12,13 +12,13 @@ extension ShortContentControllerDataPart on ShortContentController {
 
   Future<void> _loadUserInteractionStatus() async {
     try {
-      _postState ??= _postRepository.attachPost(model);
+      _postState ??= _shortPostRepository.attachPost(model);
       _syncSharedInteractionState();
     } catch (_) {}
   }
 
   void _bindPostStatsListener() {
-    _postState ??= _postRepository.attachPost(model);
+    _postState ??= _shortPostRepository.attachPost(model);
     _postDataWorker?.dispose();
     _postDataWorker =
         ever<Map<String, dynamic>?>(_postState!.latestPostData, (data) {
@@ -87,7 +87,7 @@ extension ShortContentControllerDataPart on ShortContentController {
 
   Future<void> saveSeeing() async {
     try {
-      await _interactionService.recordView(model.docID);
+      await _shortInteractionService.recordView(model.docID);
     } catch (_) {}
   }
 
@@ -107,13 +107,13 @@ extension ShortContentControllerDataPart on ShortContentController {
       token.value = '';
       takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
         userID,
-        currentUid: _currentUserId,
+        currentUid: _shortCurrentUserId,
         preferCache: true,
       );
       return;
     }
 
-    final summary = await _userSummaryResolver.resolve(
+    final summary = await _shortUserSummaryResolver.resolve(
       userID,
       preferCache: true,
       cacheOnly: false,
@@ -138,7 +138,7 @@ extension ShortContentControllerDataPart on ShortContentController {
 
     takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
       userID,
-      currentUid: _currentUserId,
+      currentUid: _shortCurrentUserId,
       preferCache: true,
     );
   }
