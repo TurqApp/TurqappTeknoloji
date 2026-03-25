@@ -19,6 +19,7 @@ import '../../Services/current_user_service.dart';
 
 part 'short_content_controller_data_part.dart';
 part 'short_content_controller_actions_part.dart';
+part 'short_content_controller_fields_part.dart';
 part 'short_content_controller_runtime_part.dart';
 
 final PostInteractionService _shortInteractionService =
@@ -53,38 +54,9 @@ class ShortContentController extends GetxController {
 
   String postID;
   PostsModel model;
+  final _state = _ShortContentControllerState();
 
   ShortContentController({required this.postID, required this.model});
-
-  final avatarUrl = "".obs,
-      nickname = "".obs,
-      fullName = "".obs,
-      token = "".obs;
-  final takipEdiyorum = false.obs,
-      followLoading = false.obs,
-      pageCounter = 0.obs;
-  final likeCount = 0.obs,
-      commentCount = 0.obs,
-      savedCount = 0.obs,
-      retryCount = 0.obs,
-      viewCount = 0.obs,
-      reportCount = 0.obs;
-  final isLiked = false.obs,
-      isSaved = false.obs,
-      isReshared = false.obs,
-      isReported = false.obs;
-  final gizlendi = false.obs,
-      arsivlendi = false.obs,
-      silindi = false.obs,
-      silindiOpacity = 1.0.obs;
-  final ilkPaylasanPfImage = "".obs,
-      ilkPaylasanNickname = "".obs,
-      ilkPaylasanUserID = "".obs,
-      fullscreen = true.obs;
-  StreamSubscription<DocumentSnapshot>? _postDocSub;
-  PostRepositoryState? _postState;
-  Worker? _interactionWorker, _postDataWorker;
-  Timer? _deleteFadeTimer, _deleteRemoveTimer;
 
   @override
   void onInit() {

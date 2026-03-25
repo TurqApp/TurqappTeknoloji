@@ -12,6 +12,7 @@ import 'package:turqappv2/Services/user_post_link_service.dart';
 
 part 'liked_posts_controller_lifecycle_part.dart';
 part 'liked_posts_controller_data_part.dart';
+part 'liked_posts_controller_fields_part.dart';
 part 'liked_posts_controller_navigation_part.dart';
 
 class LikedPostControllers extends GetxController {
@@ -28,23 +29,9 @@ class LikedPostControllers extends GetxController {
   }
 
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-
-  final RxList<PostsModel> all = <PostsModel>[].obs;
-  final selection = 0.obs;
-  PageController pageController = PageController(initialPage: 0);
-  final currentVisibleIndex = RxInt(-1);
-  final centeredIndex = 0.obs;
-  int? lastCenteredIndex;
-  String? _pendingCenteredDocId;
+  final _state = _LikedPostsControllerState();
 
   final UserPostLinkService _linkService = UserPostLinkService.ensure();
-  StreamSubscription<User?>? _authSub;
-  StreamSubscription<List<UserPostReference>>? _likedSub;
-  final Map<String, GlobalKey> _postKeys = {};
-
-  String? _currentUserId;
-  List<UserPostReference> _latestRefs = const [];
-  final isLoading = false.obs;
 
   List<PostsModel> get likedAll => all;
 

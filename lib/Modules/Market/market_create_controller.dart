@@ -23,6 +23,7 @@ import 'market_schema_service.dart';
 
 part 'market_create_controller_form_part.dart';
 part 'market_create_controller_submission_part.dart';
+part 'market_create_controller_fields_part.dart';
 part 'market_create_controller_models_part.dart';
 part 'market_create_controller_support_part.dart';
 
@@ -54,36 +55,8 @@ class MarketCreateController extends GetxController {
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   final MarketItemModel? initialItem;
-
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
-  final TextEditingController priceController = TextEditingController();
-
-  final RxBool isLoading = false.obs;
-  final RxBool isSubmitting = false.obs;
-  final RxBool isResolvingLocation = false.obs;
-  final RxList<Map<String, dynamic>> topCategories =
-      <Map<String, dynamic>>[].obs;
-  final RxList<List<MarketCategoryNode>> categoryLevels =
-      <List<MarketCategoryNode>>[].obs;
-  final RxList<MarketCategoryNode> selectedCategoryNodes =
-      <MarketCategoryNode>[].obs;
-  final RxList<MarketLeafCategory> leafCategories = <MarketLeafCategory>[].obs;
-  final Rxn<MarketLeafCategory> selectedLeaf = Rxn<MarketLeafCategory>();
-  final RxString selectedTopKey = ''.obs;
-  final RxString selectedCity = ''.obs;
-  final RxString selectedDistrict = ''.obs;
-  final RxString contactPreference = 'message_only'.obs;
-  final RxMap<String, String> fieldValues = <String, String>{}.obs;
-  final RxList<CitiesModel> cityDistricts = <CitiesModel>[].obs;
-  final RxList<String> cities = <String>[].obs;
-  final RxList<File> selectedImages = <File>[].obs;
-  final RxList<String> existingImageUrls = <String>[].obs;
-
-  final Map<String, TextEditingController> _fieldControllers =
-      <String, TextEditingController>{};
+  final _state = _MarketCreateControllerState();
   static const int maxImages = 4;
-  MarketCategoryNode? _selectedTopNode;
 
   @override
   void onInit() {

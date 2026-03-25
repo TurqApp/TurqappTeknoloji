@@ -2,6 +2,8 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+part 'video_emotion_config_service_values_part.dart';
+
 class VideoRemoteConfigService extends GetxService {
   static VideoRemoteConfigService? maybeFind() {
     final isRegistered = Get.isRegistered<VideoRemoteConfigService>();
@@ -55,46 +57,6 @@ class VideoRemoteConfigService extends GetxService {
     } catch (e) {
       _ready.value = true;
       debugPrint('[RemoteConfig] init failed, defaults used: $e');
-    }
-  }
-
-  int get prefetchBreadthCount => _readInt(
-      'video_prefetch_breadth_count', _defaultPrefetchBreadthCount, 1, 20);
-
-  int get prefetchBreadthSegments => _readInt('video_prefetch_breadth_segments',
-      _defaultPrefetchBreadthSegments, 1, 10);
-
-  int get prefetchDepthCount =>
-      _readInt('video_prefetch_depth_count', _defaultPrefetchDepthCount, 1, 10);
-
-  int get prefetchMaxConcurrent => _readInt(
-      'video_prefetch_max_concurrent', _defaultPrefetchMaxConcurrent, 1, 6);
-
-  int get cacheSoftLimitBytes =>
-      _readInt(
-          'video_cache_soft_limit_mb', _defaultCacheSoftLimitMb, 256, 10240) *
-      1024 *
-      1024;
-
-  int get cacheHardLimitBytes =>
-      _readInt(
-          'video_cache_hard_limit_mb', _defaultCacheHardLimitMb, 512, 12288) *
-      1024 *
-      1024;
-
-  int get cacheRecentProtectCount => _readInt(
-      'video_cache_recent_protect_count',
-      _defaultCacheRecentProtectCount,
-      1,
-      20);
-
-  int _readInt(String key, int fallback, int min, int max) {
-    try {
-      final value = _remoteConfig.getInt(key);
-      if (value <= 0) return fallback;
-      return value.clamp(min, max);
-    } catch (_) {
-      return fallback;
     }
   }
 }

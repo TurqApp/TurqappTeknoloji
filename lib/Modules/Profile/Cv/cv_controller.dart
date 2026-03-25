@@ -22,6 +22,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'cv_controller_sections_part.dart';
 part 'cv_controller_education_part.dart';
 part 'cv_controller_experience_part.dart';
+part 'cv_controller_fields_part.dart';
 part 'cv_controller_persistence_part.dart';
 part 'cv_controller_profile_part.dart';
 
@@ -59,22 +60,7 @@ class CvController extends GetxController {
     'cv.language.italian',
     'cv.language.korean',
   ];
-  var selection = 0.obs;
-  TextEditingController firstName = TextEditingController(text: "");
-  TextEditingController lastName = TextEditingController(text: "");
-  TextEditingController linkedin = TextEditingController(text: "");
-  TextEditingController mail = TextEditingController(text: "");
-  TextEditingController phoneNumber = TextEditingController(text: "");
-  TextEditingController onYazi = TextEditingController(text: "");
-
-  RxList<CvSchoolModel> okullar = <CvSchoolModel>[].obs;
-  RxList<CVLanguegeModel> diler = <CVLanguegeModel>[].obs;
-  RxList<CVExperinceModel> isDeneyimleri = <CVExperinceModel>[].obs;
-  RxList<CVReferenceHumans> referanslar = <CVReferenceHumans>[].obs;
-  RxList<String> skills = <String>[].obs;
-  RxBool isSaving = false.obs;
-  RxBool isUploadingPhoto = false.obs;
-  RxString photoUrl = ''.obs;
+  final _state = _CvControllerState();
 
   String get _currentUid => _userService.effectiveUserId;
 

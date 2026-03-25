@@ -7,6 +7,7 @@ import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'follower_controller_cache_part.dart';
+part 'follower_controller_fields_part.dart';
 
 class FollowerController extends GetxController {
   static FollowerController ensure({
@@ -28,12 +29,7 @@ class FollowerController extends GetxController {
     return Get.find<FollowerController>(tag: tag);
   }
 
-  var avatarUrl = "".obs;
-  var nickname = "".obs;
-  var fullname = "".obs;
-  var isLoaded = false.obs;
-  var isFollowed = false.obs;
-  var followLoading = false.obs;
+  final _state = _FollowerControllerState();
   static const Duration _followStateCacheTtl = Duration(seconds: 20);
   static const Duration _followStateStaleRetention = Duration(minutes: 3);
   static const int _maxFollowStateCacheEntries = 800;

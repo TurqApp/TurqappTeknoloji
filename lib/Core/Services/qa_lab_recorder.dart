@@ -40,6 +40,7 @@ part 'qa_lab_recorder_runtime_root_cause_map_part.dart';
 part 'qa_lab_recorder_runtime_signals_part.dart';
 part 'qa_lab_recorder_runtime_navigation_part.dart';
 part 'qa_lab_recorder_facade_part.dart';
+part 'qa_lab_recorder_fields_part.dart';
 part 'qa_lab_recorder_capture_part.dart';
 part 'qa_lab_recorder_capture_events_part.dart';
 part 'qa_lab_recorder_capture_timeline_part.dart';
@@ -65,26 +66,7 @@ class QALabRecorder extends GetxService {
   static QALabRecorder? maybeFind() =>
       Get.isRegistered<QALabRecorder>() ? Get.find<QALabRecorder>() : null;
 
-  final RxString sessionId = ''.obs, lastRoute = ''.obs, lastSurface = ''.obs;
-  final Rxn<DateTime> startedAt = Rxn<DateTime>();
-  final RxString lastExportPath = ''.obs, lastLifecycleState = ''.obs;
-  final RxMap<String, String> lastPermissionStatuses = <String, String>{}.obs;
-  final RxList<QALabIssue> issues = <QALabIssue>[].obs;
-  final RxList<QALabRouteEvent> routes = <QALabRouteEvent>[].obs;
-  final RxList<QALabCheckpoint> checkpoints = <QALabCheckpoint>[].obs;
-  final RxList<QALabTimelineEvent> timelineEvents = <QALabTimelineEvent>[].obs;
-  final RxMap<String, dynamic> lastNativePlaybackSnapshot =
-      <String, dynamic>{}.obs;
-  final RxList<Map<String, dynamic>> nativePlaybackSamples =
-      <Map<String, dynamic>>[].obs;
-  Timer? _periodicTimer, _nativePlaybackTimer;
-  final Map<String, Timer> _surfaceWatchdogs = <String, Timer>{};
-  final Map<String, DateTime> _rateLimitedIssueTimes = <String, DateTime>{};
-  final Set<String> _emittedFindingKeys = <String>{};
-  DateTime? _lastAutoExportAt, _lastNativePlaybackSampleAt;
-  Map<String, dynamic>? _cachedExtendedDeviceInfo;
-  Future<Map<String, dynamic>>? _extendedDeviceInfoFuture;
-  bool _autoExportInFlight = false, _nativePlaybackSampleInFlight = false;
+  final _state = _QALabRecorderState();
 
   @override
   void onInit() {

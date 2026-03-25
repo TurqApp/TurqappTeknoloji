@@ -28,6 +28,7 @@ import '../post_creator_controller.dart';
 import 'composer_hashtag_utils.dart';
 
 part 'creator_content_controller_poll_part.dart';
+part 'creator_content_controller_fields_part.dart';
 part 'creator_content_controller_lifecycle_part.dart';
 part 'creator_content_controller_media_part.dart';
 part 'creator_content_controller_video_part.dart';
@@ -48,35 +49,8 @@ class CreatorContentController extends GetxController
           ? Get.find<CreatorContentController>(tag: tag)
           : null;
 
-  final textEdit = TextEditingController();
-  final ImagePicker picker = ImagePicker();
-  final CropController cropController = CropController();
-
-  final RxList<File> selectedImages = <File>[].obs;
-  final Rx<File?> selectedVideo = Rx<File?>(null);
-  final RxList<Uint8List?> croppedImages = <Uint8List?>[].obs;
-  final RxBool isCropping = false.obs, isPlaying = false.obs;
-  final RxBool hasVideo = false.obs, isProcessing = false.obs;
-  final focus = FocusNode();
-  final RxBool isFocusedOnce = false.obs, contentNotEmpty = false.obs;
-  final RxBool textChanged = false.obs, waitingVideo = false.obs;
-  final RxList<HashtagModel> trendingHashtags = <HashtagModel>[].obs;
-  final RxList<HashtagModel> hashtagSuggestions = <HashtagModel>[].obs;
-  final RxBool showHashtagSuggestions = false.obs,
-      hashtagSuggestionsLoading = false.obs;
-  final RxString activeHashtagQuery = ''.obs,
-      reusedVideoUrl = ''.obs,
-      reusedVideoThumbnail = ''.obs;
-  final RxDouble reusedVideoAspectRatio = 0.0.obs,
-      reusedImageAspectRatio = 0.0.obs;
-  final RxList<String> reusedImageUrls = <String>[].obs;
-  final RxString videoLookPreset = 'original'.obs;
-
-  final Rx<Uint8List?> selectedThumbnail = Rx<Uint8List?>(null);
-  final Rxn<Map<String, dynamic>> pollData = Rxn<Map<String, dynamic>>();
-  final adres = ''.obs, gif = ''.obs;
+  final _state = _CreatorContentControllerState();
   final TopTagsRepository _topTagsRepository = TopTagsRepository.ensure();
-  final rxVideoPlayerController = Rx<VideoPlayerController?>(null);
 
   VideoPlayerController? get videoPlayerController =>
       rxVideoPlayerController.value;

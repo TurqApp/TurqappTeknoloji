@@ -27,6 +27,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_i
 
 part 'scholarships_controller_data_part.dart';
 part 'scholarships_controller_actions_part.dart';
+part 'scholarships_controller_fields_part.dart';
 part 'scholarships_controller_models_part.dart';
 part 'scholarships_controller_runtime_part.dart';
 
@@ -55,37 +56,8 @@ class ScholarshipsController extends GetxController {
       ScholarshipRepository.ensure();
   final ScholarshipSnapshotRepository _scholarshipSnapshotRepository =
       ScholarshipSnapshotRepository.ensure();
-  final ScrollController scrollController = ScrollController();
-  final RxList<Map<String, dynamic>> allScholarships =
-      <Map<String, dynamic>>[].obs;
-  final RxList<Map<String, dynamic>> visibleScholarships =
-      <Map<String, dynamic>>[].obs;
-  final RxString searchQuery = ''.obs;
-  final RxBool isLoading = false.obs;
-  final RxBool isLoadingMore = false.obs;
-  final RxBool isSearching = false.obs;
-  final RxMap<String, bool> likedScholarships = <String, bool>{}.obs;
-  final RxMap<String, bool> bookmarkedScholarships = <String, bool>{}.obs;
-  final List<RxBool> isExpandedList = [];
-  final RxMap<String, bool> followedUsers = <String, bool>{}.obs;
-  final RxMap<String, bool> followLoading = <String, bool>{}.obs;
-  final Set<String> _likedByCurrentUser = <String>{};
-  final Set<String> _bookmarkedByCurrentUser = <String>{};
-  final Map<String, String> _shortLinkCache = <String, String>{};
-  final Set<String> _shortLinkInFlight = <String>{};
-  DateTime? lastRefresh;
-  final RxMap<int, RxInt> pageIndices = <int, RxInt>{}.obs;
-  final RxDouble scrollOffset = 0.0.obs;
-  final RxBool listingSelectionReady = false.obs;
-  final RxInt listingSelection = 0.obs;
-  final RxBool hasMoreData = true.obs;
-  final RxInt totalCount = 0.obs;
-  Timer? _searchDebounce;
+  final _state = _ScholarshipsControllerState();
   final int minSearchLength = 2;
-  int _searchRequestToken = 0;
-  int _typesensePage = 0;
-  StreamSubscription<CachedResource<ScholarshipListingSnapshot>>?
-      _homeSnapshotSub;
   @override
   void onInit() {
     super.onInit();

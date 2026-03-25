@@ -33,6 +33,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'market_controller_filter_part.dart';
 part 'market_controller_home_part.dart';
 part 'market_controller_actions_part.dart';
+part 'market_controller_fields_part.dart';
 part 'market_controller_lifecycle_part.dart';
 part 'market_controller_runtime_part.dart';
 part 'market_controller_support_part.dart';
@@ -51,36 +52,7 @@ class MarketController extends GetxController {
   final MarketRepository _repository = MarketRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
-
-  final ScrollController scrollController = ScrollController();
-  final TextEditingController search = TextEditingController();
-
-  final RxDouble scrollOffset = 0.0.obs;
-  final RxBool listingSelectionReady = false.obs;
-  final RxInt listingSelection = 1.obs;
-  final RxBool isLoading = false.obs;
-  final RxBool isSearchLoading = false.obs;
-  final RxString searchQuery = ''.obs;
-  final RxString selectedCategoryKey = ''.obs;
-  final RxString selectedCityFilter = ''.obs;
-  final RxString selectedContactFilter = ''.obs;
-  final RxString sortSelection = 'newest'.obs;
-  final RxString minPriceFilter = ''.obs;
-  final RxString maxPriceFilter = ''.obs;
-  final RxList<Map<String, dynamic>> categories = <Map<String, dynamic>>[].obs;
-  final RxList<Map<String, dynamic>> roundMenuItems =
-      <Map<String, dynamic>>[].obs;
-  final RxList<MarketItemModel> items = <MarketItemModel>[].obs;
-  final RxList<MarketItemModel> searchedItems = <MarketItemModel>[].obs;
-  final RxList<MarketItemModel> visibleItems = <MarketItemModel>[].obs;
-  final RxList<MarketItemModel> pendingCreatedItems = <MarketItemModel>[].obs;
-  final RxList<String> allCityOptions = <String>[].obs;
-  final RxList<String> savedItemIds = <String>[].obs;
-  final RxMap<String, int> roundMenuBadges = <String, int>{}.obs;
-  final RxList<String> recentSearches = <String>[].obs;
-  StreamSubscription<CachedResource<List<MarketItemModel>>>? _homeSnapshotSub;
-  Timer? _searchDebounce;
-  int _searchRequestId = 0;
+  final _state = _MarketControllerState();
 
   @override
   void onInit() {
