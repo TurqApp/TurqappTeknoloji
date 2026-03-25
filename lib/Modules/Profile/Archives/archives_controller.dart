@@ -8,6 +8,9 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
+part 'archives_controller_lifecycle_part.dart';
+part 'archives_controller_data_part.dart';
+
 class ArchiveController extends GetxController {
   static ArchiveController ensure() {
     final existing = maybeFind();
@@ -38,55 +41,19 @@ class ArchiveController extends GetxController {
 
   String get _resolvedCurrentUid => CurrentUserService.instance.effectiveUserId;
 
-  Future<void> _bootstrapArchive(String uid) async {
-    final cached = await _profileRepository.readCachedArchive(uid);
-    if (cached.isNotEmpty) {
-      list.assignAll(cached);
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'archive:$uid',
-        minInterval: ArchiveController._silentRefreshInterval,
-      )) {
-        unawaited(fetchData(silent: true));
-      }
-      return;
-    }
-    await fetchData();
-  }
-
   Future<void> fetchData({bool silent = false}) async {
-    final uid = _resolvedCurrentUid;
-    if (uid.isEmpty) return;
-    if (!silent) {
-      isLoading.value = true;
-    }
-    final currentCentered = centeredIndex.value;
-    if (currentCentered >= 0 && currentCentered < list.length) {
-      _pendingCenteredDocId = list[currentCentered].docID;
-    } else if (lastCenteredIndex != null &&
-        lastCenteredIndex! >= 0 &&
-        lastCenteredIndex! < list.length) {
-      _pendingCenteredDocId = list[lastCenteredIndex!].docID;
-    }
-    try {
-      final posts = await _profileRepository.fetchArchive(uid);
-      list.assignAll(posts);
-      _restoreCenteredPost();
-      SilentRefreshGate.markRefreshed('archive:$uid');
-    } finally {
-      isLoading.value = false;
-    }
+    await _ArchiveControllerDataPart(this).fetchArchiveData(silent: silent);
   }
 
   @override
   void onInit() {
     super.onInit();
-    _onInitArchiveController();
+    _ArchiveControllerLifecyclePart(this).handleOnInit();
   }
 
   @override
   void onClose() {
-    _onCloseArchiveController();
+    _ArchiveControllerLifecyclePart(this).handleOnClose();
     super.onClose();
   }
 
@@ -132,33 +99,6 @@ class ArchiveController extends GetxController {
     capturePendingCenteredEntry(preferredIndex: nextIndex);
   }
 
-  int _resolveRestoreIndex() {
-    if (list.isEmpty) return -1;
-    final pendingDocId = _pendingCenteredDocId;
-    if (pendingDocId != null && pendingDocId.isNotEmpty) {
-      final mapped = list.indexWhere((post) => post.docID == pendingDocId);
-      if (mapped >= 0) return mapped;
-    }
-    if (lastCenteredIndex != null &&
-        lastCenteredIndex! >= 0 &&
-        lastCenteredIndex! < list.length) {
-      return lastCenteredIndex!;
-    }
-    if (centeredIndex.value >= 0 && centeredIndex.value < list.length) {
-      return centeredIndex.value;
-    }
-    return 0;
-  }
-
-  void _restoreCenteredPost() {
-    final target = _resolveRestoreIndex();
-    if (target < 0 || target >= list.length) return;
-    centeredIndex.value = target;
-    currentVisibleIndex.value = target;
-    lastCenteredIndex = target;
-    _pendingCenteredDocId = null;
-  }
-
   void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
     if (model != null) {
       final docId = model.docID.trim();
@@ -177,65 +117,5 @@ class ArchiveController extends GetxController {
     }
     final docId = list[candidateIndex].docID.trim();
     _pendingCenteredDocId = docId.isEmpty ? null : docId;
-  }
-
-  void _onInitArchiveController() {
-    scrollController.addListener(_onScroll);
-    _bindAuth();
-  }
-
-  void _onCloseArchiveController() {
-    scrollController.removeListener(_onScroll);
-    scrollController.dispose();
-    _authSub?.cancel();
-  }
-
-  void _onScroll() {
-    if (!scrollController.hasClients) return;
-    final position = scrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 300) {
-      fetchData();
-    }
-    if (list.isEmpty) return;
-    if (position.pixels <= 0) {
-      centeredIndex.value = 0;
-      currentVisibleIndex.value = 0;
-      lastCenteredIndex = 0;
-      capturePendingCenteredEntry(preferredIndex: 0);
-      return;
-    }
-    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
-      320.0,
-      680.0,
-    );
-    final nextIndex = (((position.pixels + position.viewportDimension * 0.25) /
-                estimatedItemExtent)
-            .floor())
-        .clamp(0, list.length - 1);
-    if (centeredIndex.value != nextIndex) {
-      if (lastCenteredIndex != null && lastCenteredIndex != nextIndex) {
-        final prevModel = list[lastCenteredIndex!];
-        disposeAgendaContentController(prevModel.docID);
-      }
-      centeredIndex.value = nextIndex;
-      currentVisibleIndex.value = nextIndex;
-      lastCenteredIndex = nextIndex;
-      capturePendingCenteredEntry(preferredIndex: nextIndex);
-    }
-  }
-
-  void _bindAuth() {
-    _authSub = FirebaseAuth.instance.userChanges().listen((user) {
-      final nextUserId = user?.uid;
-      if (_currentUserId != nextUserId) {
-        _currentUserId = nextUserId;
-        list.clear();
-      }
-      if (nextUserId == null) {
-        isLoading.value = false;
-        return;
-      }
-      unawaited(_bootstrapArchive(nextUserId));
-    });
   }
 }
