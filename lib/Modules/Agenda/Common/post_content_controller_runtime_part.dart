@@ -26,6 +26,8 @@ extension PostContentControllerRuntimePart on PostContentController {
     _postRepository = PostRepository.ensure();
     _adminPushRepository = AdminPushRepository.ensure();
     unawaited(_hydrateAdminPushPermission());
+    _bindMembershipListeners();
+    _bindPostDocCounts();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isClosed) return;
       countManager.initializeCounts(
@@ -46,8 +48,7 @@ extension PostContentControllerRuntimePart on PostContentController {
     followCheck();
     _bindFollowingState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _bindMembershipListeners();
-      _bindPostDocCounts();
+      if (isClosed) return;
       onPostFrameBound();
     });
 
