@@ -16,16 +16,19 @@ class DefaultAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBackgroundColor =
+        backgroundColor ?? const Color(0xFFEDF2F7);
+    final effectiveIconColor = iconColor ?? const Color(0xFF88A8C3);
     return CircleAvatar(
       radius: radius,
-      backgroundColor: backgroundColor ?? Colors.grey[300],
+      backgroundColor: effectiveBackgroundColor,
       child: Padding(
         padding: padding ?? EdgeInsets.all(radius * 0.3),
         child: SvgPicture.asset(
           kDefaultAvatarAsset,
           fit: BoxFit.contain,
           colorFilter: ColorFilter.mode(
-            iconColor ?? Colors.grey[600]!,
+            effectiveIconColor,
             BlendMode.srcIn,
           ),
         ),

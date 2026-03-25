@@ -30,6 +30,7 @@ if (admin.apps.length === 0) {
     admin.initializeApp();
 }
 const db = admin.firestore();
+const DEFAULT_SIGNUP_FOLLOW_UID = "fzP4AVdMugTi5oe11UTj6ljnfCj2";
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -231,40 +232,35 @@ exports.syncUserSchemaAndFlags = functions.firestore
         }
     });
 });
-// FORCE FOLLOW ON NEW USER CREATE (server-side guarantee)
+// ONE-TIME DEFAULT FOLLOW ON NEW USER CREATE
 exports.enforceMandatoryFollowOnUserCreate = functions.firestore
     .document("users/{uid}")
     .onCreate(async (_snap, context) => {
-    const uid = context.params.uid;
-    if (!uid)
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = DEFAULT_SIGNUP_FOLLOW_UID.trim();
+    if (!uid || !targetUid || uid == targetUid)
         return;
     try {
-        const configSnap = await db.collection("adminConfig").doc("forceFollow").get();
-        const required = (0, userSchemaUtils_1.parseForceFollowUids)(configSnap.data()).filter((target) => target !== uid);
-        if (required.length === 0)
-            return;
         const now = Date.now();
-        for (const targetUid of required) {
-            const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
-            const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
-            const meRootRef = db.doc(`users/${uid}`);
-            const targetRootRef = db.doc(`users/${targetUid}`);
-            await db.runTransaction(async (tx) => {
-                const existing = await tx.get(myFollowingRef);
-                if (existing.exists)
-                    return;
-                tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
-                tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
-                tx.set(meRootRef, {
-                    counterOfFollowings: admin.firestore.FieldValue.increment(1),
-                    updatedDate: now,
-                }, { merge: true });
-                tx.set(targetRootRef, {
-                    counterOfFollowers: admin.firestore.FieldValue.increment(1),
-                    updatedDate: now,
-                }, { merge: true });
-            });
-        }
+        const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
+        const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
+        const meRootRef = db.doc(`users/${uid}`);
+        const targetRootRef = db.doc(`users/${targetUid}`);
+        await db.runTransaction(async (tx) => {
+            const existing = await tx.get(myFollowingRef);
+            if (existing.exists)
+                return;
+            tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
+            tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
+            tx.set(meRootRef, {
+                counterOfFollowings: admin.firestore.FieldValue.increment(1),
+                updatedDate: now,
+            }, { merge: true });
+            tx.set(targetRootRef, {
+                counterOfFollowers: admin.firestore.FieldValue.increment(1),
+                updatedDate: now,
+            }, { merge: true });
+        });
     }
     catch (e) {
         console.error("enforceMandatoryFollowOnUserCreate error", e);

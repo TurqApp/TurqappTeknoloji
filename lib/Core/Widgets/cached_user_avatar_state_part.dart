@@ -219,7 +219,6 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           DefaultAvatar(
             radius: widget.radius,
             backgroundColor: widget.backgroundColor,
-            iconColor: Colors.grey[600],
           );
     }
     if (_resolvedFilePath.isNotEmpty) {
@@ -260,7 +259,6 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
               DefaultAvatar(
                 radius: widget.radius,
                 backgroundColor: widget.backgroundColor,
-                iconColor: Colors.grey[600],
               ),
         ),
       ),
