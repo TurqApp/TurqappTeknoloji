@@ -5,15 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _CachedNotificationPreferences {
-  final Map<String, dynamic> data;
-  final DateTime cachedAt;
-
-  const _CachedNotificationPreferences({
-    required this.data,
-    required this.cachedAt,
-  });
-}
+part 'notification_preferences_repository_models_part.dart';
 
 class NotificationPreferencesRepository extends GetxService {
   static const Duration _ttl = Duration(hours: 12);
@@ -37,9 +29,7 @@ class NotificationPreferencesRepository extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) {
-      _prefs = prefs;
-    });
+    _handleNotificationPreferencesInit();
   }
 
   Future<Map<String, dynamic>?> getPreferences(
