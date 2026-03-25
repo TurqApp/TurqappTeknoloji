@@ -14,22 +14,6 @@ class _NotificationPreferenceItem {
 
 extension _NotificationSettingsViewCategoriesPart
     on _NotificationSettingsViewState {
-  List<_NotificationPreferenceItem> get _followsItems => const [
-        _NotificationPreferenceItem(
-          path: 'followers.follows',
-          titleKey: 'notifications.follow_notifs',
-          subtitleKey: 'notifications.follow_notifs_desc',
-        ),
-      ];
-
-  List<_NotificationPreferenceItem> get _messagesItems => const [
-        _NotificationPreferenceItem(
-          path: 'messages.directMessages',
-          titleKey: 'notifications.direct_messages',
-          subtitleKey: 'notifications.direct_messages_desc',
-        ),
-      ];
-
   List<_NotificationPreferenceItem> get _opportunitiesItems => const [
         _NotificationPreferenceItem(
           path: 'opportunities.jobApplications',
@@ -69,23 +53,17 @@ extension _NotificationSettingsViewCategoriesPart
         value: _boolValue('posts.likes'),
         onChanged: (value) => _setValue('posts.likes', value),
       ),
-      _NavTile(
+      _SwitchTile(
         title: 'notifications.follows'.tr,
         subtitle: 'notifications.follows_desc'.tr,
-        onTap: () => _openCategory(
-          context,
-          title: 'notifications.follows'.tr,
-          items: _followsItems,
-        ),
+        value: _boolValue('followers.follows'),
+        onChanged: (value) => _setValue('followers.follows', value),
       ),
-      _NavTile(
+      _SwitchTile(
         title: 'notifications.messages'.tr,
         subtitle: 'notifications.messages_desc'.tr,
-        onTap: () => _openCategory(
-          context,
-          title: 'notifications.messages'.tr,
-          items: _messagesItems,
-        ),
+        value: _boolValue('messages.directMessages'),
+        onChanged: (value) => _setValue('messages.directMessages', value),
       ),
       _NavTile(
         title: 'notifications.opportunities'.tr,
