@@ -12,6 +12,8 @@ import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'dormitory_info_controller_labels_part.dart';
+
 class DormitoryInfoController extends GetxController {
   static DormitoryInfoController ensure({
     required String tag,
@@ -69,71 +71,8 @@ class DormitoryInfoController extends GetxController {
     });
   }
 
-  String localizedAdminType(String value) {
-    switch (value) {
-      case _publicAdminType:
-        return 'dormitory.admin_public'.tr;
-      case _privateAdminType:
-        return 'dormitory.admin_private'.tr;
-      case _selectAdminType:
-        return 'dormitory.select_admin_type'.tr;
-      default:
-        return value;
-    }
-  }
-
-  String localizedSelectLabel(String value) {
-    switch (value) {
-      case _selectCity:
-        return 'common.select_city'.tr;
-      case _selectDistrict:
-        return 'common.select_district'.tr;
-      case _selectAdminType:
-        return 'dormitory.select_admin_type'.tr;
-      default:
-        return value;
-    }
-  }
-
   bool get isCityUnselected =>
       sehir.value.isEmpty || sehir.value == _selectCity;
-
-  bool _matchesValue(String value, Set<String> variants) =>
-      variants.contains(value.trim());
-
-  String normalizedAdminType(String value) {
-    if (_matchesValue(value, const <String>{
-      _publicAdminType,
-      'Public',
-      'Öffentlich',
-      'Publique',
-      'Pubblico',
-      'Государственный',
-    })) {
-      return _publicAdminType;
-    }
-    if (_matchesValue(value, const <String>{
-      _privateAdminType,
-      'Private',
-      'Privat',
-      'Privé',
-      'Privato',
-      'Частный',
-    })) {
-      return _privateAdminType;
-    }
-    if (_matchesValue(value, const <String>{
-      _selectAdminType,
-      'Select Administration',
-      'Verwaltung wählen',
-      'Choisir ladministration',
-      'Seleziona amministrazione',
-      'Выберите управление',
-    })) {
-      return _selectAdminType;
-    }
-    return value;
-  }
 
   @override
   void onClose() {
@@ -294,6 +233,4 @@ class DormitoryInfoController extends GetxController {
       AppSnackbar('common.error'.tr, 'dormitory.select_or_enter'.tr);
     }
   }
-
-  String capitalize(String s) => capitalizeWords(s);
 }
