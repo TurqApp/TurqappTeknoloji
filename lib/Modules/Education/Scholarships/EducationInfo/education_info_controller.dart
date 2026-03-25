@@ -14,6 +14,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'education_info_controller_data_part.dart';
 part 'education_info_controller_actions_part.dart';
+part 'education_info_controller_labels_part.dart';
+part 'education_info_controller_lifecycle_part.dart';
 
 class EducationInfoController extends GetxController
     with GetTickerProviderStateMixin {
@@ -82,112 +84,7 @@ class EducationInfoController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    _initAnimationControllers();
-    loadInitialData();
-  }
-
-  String localizedFieldLabel(String label) {
-    switch (label) {
-      case 'Eğitim Seviyesi':
-        return 'scholarship.education_level_label'.tr;
-      case 'Ülke':
-        return 'scholarship.country_label'.tr;
-      case 'İl':
-        return 'common.city'.tr;
-      case 'İlçe':
-        return 'common.district'.tr;
-      case 'Okul':
-        return 'education_info.middle_school'.tr;
-      case 'Lise':
-        return 'education_info.high_school'.tr;
-      case 'Üniversite':
-        return 'scholarship.applicant.university'.tr;
-      case 'Fakülte':
-        return 'scholarship.applicant.faculty'.tr;
-      case 'Bölüm':
-        return 'scholarship.applicant.department'.tr;
-      case 'Sınıf':
-        return 'education_info.class_level'.tr;
-      default:
-        return label;
-    }
-  }
-
-  String localizedOption(String value) {
-    switch (value) {
-      case _middleSchool:
-        return 'education_info.level_middle_school'.tr;
-      case _highSchool:
-        return 'education_info.level_high_school'.tr;
-      case _associate:
-        return 'education_info.level_associate'.tr;
-      case _bachelor:
-        return 'education_info.level_bachelor'.tr;
-      case _masters:
-        return 'education_info.level_masters'.tr;
-      case _doctorate:
-        return 'education_info.level_doctorate'.tr;
-      case '5. Sınıf':
-      case '6. Sınıf':
-      case '7. Sınıf':
-      case '8. Sınıf':
-      case '9. Sınıf':
-      case '10. Sınıf':
-      case '11. Sınıf':
-      case '12. Sınıf':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-      case '10':
-      case '11':
-      case '12':
-        return 'education_info.class_grade'.trParams({
-          'grade': value.split('.').first,
-        });
-      default:
-        return value;
-    }
-  }
-
-  String localizedPlaceholder(String label) {
-    return 'education_info.select_field'
-        .trParams({'field': localizedFieldLabel(label)});
-  }
-
-  void _initAnimationControllers() {
-    final labels = [
-      'Eğitim Seviyesi',
-      'Ülke',
-      'İl',
-      'İlçe',
-      'Okul',
-      'Lise',
-      'Üniversite',
-      'Fakülte',
-      'Bölüm',
-      'Sınıf',
-    ];
-    for (var label in labels) {
-      _animationControllers[label] = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 200),
-      );
-      _animationTurns[label] = 0.0.obs;
-      _animationControllers[label]!.addListener(() {
-        _animationTurns[label]!.value =
-            _animationControllers[label]!.value * 0.5;
-      });
-    }
-  }
-
-  AnimationController getAnimationController(String label) {
-    return _animationControllers[label]!;
-  }
-
-  RxDouble getAnimationTurns(String label) {
-    return _animationTurns[label]!;
+    _EducationInfoControllerLifecyclePart(this).handleOnInit();
   }
 
   Future<void> loadInitialData() => _loadInitialDataImpl();
@@ -231,11 +128,7 @@ class EducationInfoController extends GetxController
 
   @override
   void onClose() {
-    for (var controller in _animationControllers.values) {
-      controller.dispose();
-    }
-    _animationControllers.clear();
-    _animationTurns.clear();
+    _EducationInfoControllerLifecyclePart(this).handleOnClose();
     super.onClose();
   }
 }
