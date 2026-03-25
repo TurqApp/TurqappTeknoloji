@@ -1,13 +1,17 @@
 import 'dart:async';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_highlights_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightsController extends GetxController {
@@ -33,10 +37,14 @@ class StoryHighlightsController extends GetxController {
       StoryHighlightsRepository.ensure();
   final StoryRepository _storyRepository = StoryRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
-  String get _currentUid {
+  String get _ownerUid => userId.trim();
+
+  bool get _canMutateOwnedHighlights {
+    final ownerUid = _ownerUid;
+    if (ownerUid.isEmpty) return false;
     final authUid = _userService.authUserId.trim();
-    if (authUid.isNotEmpty) return authUid;
-    return _userService.effectiveUserId;
+    if (authUid.isEmpty) return true;
+    return authUid == ownerUid;
   }
 
   RxList<StoryHighlightModel> highlights = <StoryHighlightModel>[].obs;
@@ -77,11 +85,12 @@ class StoryHighlightsController extends GetxController {
       if (!silent) {
         isLoading.value = true;
       }
-      highlights.value = await _repository.getHighlights(
+      final loaded = await _repository.getHighlights(
         userId,
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
+      highlights.assignAll(loaded);
       SilentRefreshGate.markRefreshed('story:highlights:$userId');
       await _hydrateMissingCoverUrls();
     } catch (_) {
@@ -96,15 +105,22 @@ class StoryHighlightsController extends GetxController {
     String coverUrl = '',
   }) async {
     try {
-      final uid = _currentUid;
-      if (uid.isEmpty) return null;
+      final uid = _ownerUid;
+      if (uid.isEmpty || !_canMutateOwnedHighlights) return null;
 
       final docRefId = DateTime.now().microsecondsSinceEpoch.toString();
 
       var resolvedCoverUrl = coverUrl.trim();
+      if (resolvedCoverUrl.isNotEmpty &&
+          !looksLikeImageUrl(resolvedCoverUrl)) {
+        resolvedCoverUrl = '';
+      }
       if (resolvedCoverUrl.isEmpty && storyIds.isNotEmpty) {
         try {
-          resolvedCoverUrl = await _resolveCoverUrlFromStoryIds(storyIds);
+          resolvedCoverUrl = await _resolveCoverUrlFromStoryIds(
+            storyIds,
+            highlightId: docRefId,
+          );
         } catch (e, st) {
           debugPrint('StoryHighlights create cover resolve error: $e');
           debugPrintStack(stackTrace: st);
@@ -143,8 +159,8 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> addStoryToHighlight(String highlightId, String storyId) async {
     try {
-      final uid = _currentUid;
-      if (uid.isEmpty) return;
+      final uid = _ownerUid;
+      if (uid.isEmpty || !_canMutateOwnedHighlights) return;
 
       await _repository.addStoryToHighlight(
         uid,
@@ -166,8 +182,8 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> deleteHighlight(String highlightId) async {
     try {
-      final uid = _currentUid;
-      if (uid.isEmpty) return;
+      final uid = _ownerUid;
+      if (uid.isEmpty || !_canMutateOwnedHighlights) return;
 
       await _repository.deleteHighlight(
         uid,
@@ -185,8 +201,8 @@ class StoryHighlightsController extends GetxController {
   Future<void> updateHighlight(
       String highlightId, String title, String coverUrl) async {
     try {
-      final uid = _currentUid;
-      if (uid.isEmpty) return;
+      final uid = _ownerUid;
+      if (uid.isEmpty || !_canMutateOwnedHighlights) return;
 
       await _repository.updateHighlight(
         uid,
@@ -210,8 +226,7 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> _hydrateMissingCoverUrls() async {
     if (highlights.isEmpty) return;
-    final currentUid = _currentUid;
-    final canPersist = currentUid.isNotEmpty && currentUid == userId;
+    final canPersist = _canMutateOwnedHighlights;
     var anyLocalUpdate = false;
 
     for (var i = 0; i < highlights.length; i++) {
@@ -219,7 +234,10 @@ class StoryHighlightsController extends GetxController {
       if (item.coverUrl.trim().isNotEmpty || item.storyIds.isEmpty) {
         continue;
       }
-      final cover = await _resolveCoverUrlFromStoryIds(item.storyIds);
+      final cover = await _resolveCoverUrlFromStoryIds(
+        item.storyIds,
+        highlightId: item.id,
+      );
       if (cover.isEmpty) continue;
 
       item.coverUrl = cover;
@@ -245,7 +263,10 @@ class StoryHighlightsController extends GetxController {
     }
   }
 
-  Future<String> _resolveCoverUrlFromStoryIds(List<String> storyIds) async {
+  Future<String> _resolveCoverUrlFromStoryIds(
+    List<String> storyIds, {
+    required String highlightId,
+  }) async {
     for (final storyId in storyIds) {
       final data = await _storyRepository.getStoryRaw(
         storyId,
@@ -255,8 +276,41 @@ class StoryHighlightsController extends GetxController {
       if ((data['deleted'] ?? false) == true) continue;
       final extracted = _extractPreviewUrlFromStoryData(data);
       if (extracted.isNotEmpty) return extracted;
+      final generated = await _generateHighlightThumbnailFromStoryData(
+        data,
+        highlightId: highlightId,
+      );
+      if (generated.isNotEmpty) return generated;
     }
     return '';
+  }
+
+  Future<String> _generateHighlightThumbnailFromStoryData(
+    Map<String, dynamic> data, {
+    required String highlightId,
+  }) async {
+    final uid = _ownerUid;
+    if (uid.isEmpty || highlightId.trim().isEmpty) return '';
+    final videoUrl = _extractVideoUrlFromStoryData(data);
+    if (videoUrl.isEmpty) return '';
+    try {
+      final thumbData = await VideoThumbnail.thumbnailData(
+        video: videoUrl,
+        imageFormat: ImageFormat.JPEG,
+        quality: 75,
+      );
+      if (thumbData == null || thumbData.isEmpty) return '';
+      final uploadUrl = await WebpUploadService.uploadBytesAsWebp(
+        storage: FirebaseStorage.instance,
+        bytes: thumbData,
+        storagePathWithoutExt: 'highlights/$uid/$highlightId/cover',
+      );
+      return CdnUrlBuilder.toCdnUrl(uploadUrl);
+    } catch (e, st) {
+      debugPrint('StoryHighlights thumbnail generate failed: $e');
+      debugPrintStack(stackTrace: st);
+      return '';
+    }
   }
 
   String _extractPreviewUrlFromStoryData(Map<String, dynamic> data) {
@@ -311,5 +365,33 @@ class StoryHighlightsController extends GetxController {
 
   bool _isLikelyImageUrl(String url) {
     return looksLikeImageUrl(url);
+  }
+
+  String _extractVideoUrlFromStoryData(Map<String, dynamic> data) {
+    final topLevelVideo = (data['videoUrl'] ?? data['video'] ?? '')
+        .toString()
+        .trim();
+    if (_looksLikeVideoUrl(topLevelVideo)) return topLevelVideo;
+
+    final elements = data['elements'];
+    if (elements is! List) return '';
+    for (final raw in elements) {
+      if (raw is! Map) continue;
+      final entry = raw.map((k, v) => MapEntry('$k', v));
+      final content = (entry['content'] ?? '').toString().trim();
+      if (_looksLikeVideoUrl(content)) return content;
+    }
+    return '';
+  }
+
+  bool _looksLikeVideoUrl(String url) {
+    final clean = url.trim().toLowerCase();
+    if (clean.isEmpty) return false;
+    return clean.contains('.mp4') ||
+        clean.contains('.mov') ||
+        clean.contains('.m4v') ||
+        clean.contains('.webm') ||
+        clean.contains('video') ||
+        clean.contains('videoplayback');
   }
 }
