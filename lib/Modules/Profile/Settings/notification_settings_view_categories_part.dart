@@ -14,19 +14,6 @@ class _NotificationPreferenceItem {
 
 extension _NotificationSettingsViewCategoriesPart
     on _NotificationSettingsViewState {
-  List<_NotificationPreferenceItem> get _postsCommentsItems => const [
-        _NotificationPreferenceItem(
-          path: 'posts.comments',
-          titleKey: 'notifications.comments',
-          subtitleKey: 'notifications.comments_desc',
-        ),
-        _NotificationPreferenceItem(
-          path: 'posts.postActivity',
-          titleKey: 'notifications.post_activity',
-          subtitleKey: 'notifications.post_activity_desc',
-        ),
-      ];
-
   List<_NotificationPreferenceItem> get _followsItems => const [
         _NotificationPreferenceItem(
           path: 'followers.follows',
@@ -64,14 +51,23 @@ extension _NotificationSettingsViewCategoriesPart
   List<Widget> _buildCategorySection(BuildContext context) {
     return [
       _SectionLabel('notifications.categories'.tr),
-      _NavTile(
-        title: 'notifications.posts_comments'.tr,
-        subtitle: 'notifications.posts_comments_desc'.tr,
-        onTap: () => _openCategory(
-          context,
-          title: 'notifications.posts_comments'.tr,
-          items: _postsCommentsItems,
-        ),
+      _SwitchTile(
+        title: 'notifications.posts'.tr,
+        subtitle: 'notifications.posts_desc'.tr,
+        value: _boolValue('posts.posts'),
+        onChanged: (value) => _setValue('posts.posts', value),
+      ),
+      _SwitchTile(
+        title: 'notifications.comments'.tr,
+        subtitle: 'notifications.comments_desc'.tr,
+        value: _boolValue('posts.comments'),
+        onChanged: (value) => _setValue('posts.comments', value),
+      ),
+      _SwitchTile(
+        title: 'notifications.likes'.tr,
+        subtitle: 'notifications.likes_desc'.tr,
+        value: _boolValue('posts.likes'),
+        onChanged: (value) => _setValue('posts.likes', value),
       ),
       _NavTile(
         title: 'notifications.follows'.tr,

@@ -15,8 +15,9 @@ class NotificationPreferencesService {
         'directMessages': true,
       },
       'posts': {
+        'posts': true,
         'comments': true,
-        'postActivity': true,
+        'likes': true,
       },
       'followers': {
         'follows': true,
@@ -65,7 +66,10 @@ class NotificationPreferencesService {
   }
 
   static Map<String, dynamic> mergeWithDefaults(Map<String, dynamic>? raw) {
-    final merged = _deepMerge(defaults(), raw ?? <String, dynamic>{});
+    final merged = _deepMerge(
+      defaults(),
+      _normalizeLegacyPreferences(raw ?? <String, dynamic>{}),
+    );
     return Map<String, dynamic>.from(merged);
   }
 
@@ -88,11 +92,12 @@ class NotificationPreferencesService {
       case 'comment':
         return _readBool(prefs, 'posts.comments');
       case 'like':
+      case 'comment_like':
+        return _readBool(prefs, 'posts.likes');
       case 'reshared_posts':
       case 'shared_as_posts':
       case 'posts':
-      case 'comment_like':
-        return _readBool(prefs, 'posts.postActivity');
+        return _readBool(prefs, 'posts.posts');
       case 'follow':
       case 'user':
         return _readBool(prefs, 'followers.follows');
@@ -137,6 +142,23 @@ class NotificationPreferencesService {
       }
     }
     return result;
+  }
+
+  static Map<String, dynamic> _normalizeLegacyPreferences(
+    Map<String, dynamic> raw,
+  ) {
+    final normalized = Map<String, dynamic>.from(raw);
+    final posts = normalized['posts'];
+    if (posts is Map) {
+      final mappedPosts = Map<String, dynamic>.from(posts);
+      final legacyPostActivity = mappedPosts['postActivity'];
+      if (legacyPostActivity is bool) {
+        mappedPosts.putIfAbsent('posts', () => legacyPostActivity);
+        mappedPosts.putIfAbsent('likes', () => legacyPostActivity);
+      }
+      normalized['posts'] = mappedPosts;
+    }
+    return normalized;
   }
 
   static Map<String, dynamic> _pathMap(String path, dynamic value) {

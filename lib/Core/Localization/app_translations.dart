@@ -854,8 +854,13 @@ class AppTranslations extends Translations {
         'notifications.posts_comments': 'Gönderiler ve yorumlar',
         'notifications.posts_comments_desc':
             'Gönderi etkileşimleri, yorumlar ve duyurular.',
+        'notifications.posts': 'Gönderiler',
+        'notifications.posts_desc':
+            'Gönderi paylaşımları, yeniden paylaşımlar ve duyurular.',
         'notifications.comments': 'Yorumlar',
         'notifications.comments_desc': 'Gönderine yapılan yorumlar.',
+        'notifications.likes': 'Beğeniler',
+        'notifications.likes_desc': 'Gönderi ve yorum beğenileri.',
         'comments.delete_message':
             'Bu yorumu silmek istediğinizden emin misiniz?',
         'comments.delete_failed': 'Yorum silinemedi.',
@@ -4687,8 +4692,13 @@ class AppTranslations extends Translations {
         'notifications.posts_comments': 'Posts and comments',
         'notifications.posts_comments_desc':
             'Post interactions, comments, and announcements.',
+        'notifications.posts': 'Posts',
+        'notifications.posts_desc':
+            'Post shares, reshares, and announcement pushes.',
         'notifications.comments': 'Comments',
         'notifications.comments_desc': 'Comments made on your post.',
+        'notifications.likes': 'Likes',
+        'notifications.likes_desc': 'Likes on your posts and comments.',
         'comments.delete_message':
             'Are you sure you want to delete this comment?',
         'comments.delete_failed': 'Comment could not be deleted.',
@@ -8596,8 +8606,14 @@ class AppTranslations extends Translations {
         'notifications.posts_comments': 'Beiträge und Kommentare',
         'notifications.posts_comments_desc':
             'Beitragsinteraktionen, Kommentare und Ankündigungen.',
+        'notifications.posts': 'Beiträge',
+        'notifications.posts_desc':
+            'Beitragsfreigaben, Reshares und Ankündigungen.',
         'notifications.comments': 'Kommentare',
         'notifications.comments_desc': 'Kommentare zu deinem Beitrag.',
+        'notifications.likes': 'Gefällt mir',
+        'notifications.likes_desc':
+            'Gefällt-mir-Angaben für deine Beiträge und Kommentare.',
         'comments.delete_message':
             'Möchtest du diesen Kommentar wirklich löschen?',
         'comments.delete_failed': 'Kommentar konnte nicht gelöscht werden.',
