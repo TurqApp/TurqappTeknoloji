@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
+part 'post_reshare_listing_controller_runtime_part.dart';
+
 class ReshareUserItem {
   const ReshareUserItem({
     required this.userID,
@@ -59,140 +61,30 @@ class PostReshareListingController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    reshareScrollController.addListener(_onReshareScroll);
-    quoteScrollController.addListener(_onQuoteScroll);
-    loadMoreReshares(initial: true);
+    _PostReshareListingControllerRuntimePart.onInit(this);
   }
 
   @override
   void onClose() {
-    reshareScrollController.removeListener(_onReshareScroll);
-    quoteScrollController.removeListener(_onQuoteScroll);
-    reshareScrollController.dispose();
-    quoteScrollController.dispose();
+    _PostReshareListingControllerRuntimePart.onClose(this);
     super.onClose();
   }
 
   void ensureQuotesLoaded() {
-    if (_quotesInitialized) return;
-    _quotesInitialized = true;
-    loadMoreQuotes(initial: true);
+    _PostReshareListingControllerRuntimePart.ensureQuotesLoaded(this);
   }
 
-  Future<void> loadMoreReshares({bool initial = false}) async {
-    if (_fetchingReshares || !hasMoreReshares.value) return;
-    _fetchingReshares = true;
-    if (initial) {
-      isLoadingReshares.value = true;
-    } else {
-      isLoadingMoreReshares.value = true;
-    }
-
-    try {
-      final page = await _postRepository.fetchReshareUserIdsPage(
-        postID,
-        lastDoc: _lastReshareDoc,
-        limit: _pageSize,
-      );
-      if (page.userIds.isEmpty) {
-        hasMoreReshares.value = false;
-        return;
-      }
-
-      _lastReshareDoc = page.lastDoc;
-      hasMoreReshares.value = page.hasMore;
-
-      final fetched = await Future.wait(
-        page.userIds.map(_fetchUserItem),
-      );
-      final existingIds = reshareUsers.map((e) => e.userID).toSet();
-      reshareUsers.addAll(
-        fetched.whereType<ReshareUserItem>().where(
-              (item) => existingIds.add(item.userID),
-            ),
-      );
-    } finally {
-      _fetchingReshares = false;
-      isLoadingReshares.value = false;
-      isLoadingMoreReshares.value = false;
-    }
+  Future<void> loadMoreReshares({bool initial = false}) {
+    return _PostReshareListingControllerRuntimePart.loadMoreReshares(
+      this,
+      initial: initial,
+    );
   }
 
-  Future<void> loadMoreQuotes({bool initial = false}) async {
-    if (_fetchingQuotes || !hasMoreQuotes.value) return;
-    _fetchingQuotes = true;
-    if (initial) {
-      isLoadingQuotes.value = true;
-    } else {
-      isLoadingMoreQuotes.value = true;
-    }
-
-    final newItems = <ReshareUserItem>[];
-    final existingIds = quoteUsers.map((e) => e.userID).toSet();
-
-    try {
-      final page = await _postRepository.fetchQuoteUserIdsPage(
-        postID,
-        lastDoc: _lastQuoteSharerDoc,
-        limit: _pageSize,
-      );
-      _lastQuoteSharerDoc = page.lastDoc;
-      hasMoreQuotes.value = page.hasMore;
-
-      final fetched = await Future.wait(page.userIds.map(_fetchUserItem));
-      for (final item in fetched.whereType<ReshareUserItem>()) {
-        if (existingIds.add(item.userID)) {
-          newItems.add(item);
-        }
-      }
-
-      quoteUsers.addAll(newItems);
-    } finally {
-      _fetchingQuotes = false;
-      isLoadingQuotes.value = false;
-      isLoadingMoreQuotes.value = false;
-    }
-  }
-
-  Future<ReshareUserItem?> _fetchUserItem(String userID) async {
-    try {
-      final summary = await _userSummaryResolver.resolve(
-        userID,
-        preferCache: true,
-      );
-      if (summary == null) return null;
-      return ReshareUserItem(
-        userID: userID,
-        nickname: summary.nickname.trim(),
-        fullName: summary.displayName.trim(),
-        avatarUrl: summary.avatarUrl.trim(),
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  void _onReshareScroll() {
-    if (!reshareScrollController.hasClients ||
-        _fetchingReshares ||
-        !hasMoreReshares.value) {
-      return;
-    }
-    final position = reshareScrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 180) {
-      loadMoreReshares();
-    }
-  }
-
-  void _onQuoteScroll() {
-    if (!quoteScrollController.hasClients ||
-        _fetchingQuotes ||
-        !hasMoreQuotes.value) {
-      return;
-    }
-    final position = quoteScrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 180) {
-      loadMoreQuotes();
-    }
+  Future<void> loadMoreQuotes({bool initial = false}) {
+    return _PostReshareListingControllerRuntimePart.loadMoreQuotes(
+      this,
+      initial: initial,
+    );
   }
 }
