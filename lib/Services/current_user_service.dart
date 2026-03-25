@@ -33,6 +33,7 @@ import '../Models/current_user_model.dart';
 
 part 'current_user_service_cache_part.dart';
 part 'current_user_service_access_part.dart';
+part 'current_user_service_facade_part.dart';
 part 'current_user_service_account_part.dart';
 part 'current_user_service_auth_part.dart';
 part 'current_user_service_lifecycle_part.dart';
@@ -115,108 +116,8 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     _userStreamController.add(user);
   }
 
-  /// Current user (synchronous access)
-  CurrentUserModel? get currentUser => _currentUser;
-
-  /// Is user logged in
-  bool get isLoggedIn => _currentUser != null;
-
-  /// Current user ID (shortcut)
-  String get userId {
-    final cached = (_currentUser?.userID ?? '').trim();
-    if (cached.isNotEmpty) return cached;
-    return effectiveUserId;
-  }
-
-  /// Auth fallback dahil efektif kullanıcı ID'si.
   String get effectiveUserId => _performEffectiveUserId();
 
-  User? get currentAuthUser => _performCurrentAuthUser();
-
-  bool get hasAuthUser => _performHasAuthUser();
-
-  String get authUserId => _performAuthUserId();
-
-  String get authEmail => _performAuthEmail();
-
-  String get authDisplayName => _performAuthDisplayName();
-
-  String get effectiveEmail => _performEffectiveEmail();
-
-  String get effectivePhoneNumber => _performEffectivePhoneNumber();
-
-  String get effectiveDisplayName => _performEffectiveDisplayName();
-
-  Stream<User?> authStateChanges() => _performAuthStateChanges();
-
-  Future<User?> resolveAuthUser({
-    bool waitForAuthState = false,
-    Duration timeout = const Duration(seconds: 3),
-  }) =>
-      _performResolveAuthUser(
-        waitForAuthState: waitForAuthState,
-        timeout: timeout,
-      );
-
-  Future<User?> reloadCurrentAuthUser() => _performReloadCurrentAuthUser();
-
-  Future<String?> ensureAuthReady({
-    bool waitForAuthState = false,
-    bool forceTokenRefresh = false,
-    Duration timeout = const Duration(seconds: 3),
-  }) =>
-      _performEnsureAuthReady(
-        waitForAuthState: waitForAuthState,
-        forceTokenRefresh: forceTokenRefresh,
-        timeout: timeout,
-      );
-
-  Future<void> refreshAuthTokenIfNeeded({
-    bool waitForAuthState = true,
-  }) =>
-      _performRefreshAuthTokenIfNeeded(
-        waitForAuthState: waitForAuthState,
-      );
-
-  Future<void> signOutAuth() => _performSignOutAuth();
-
-  Future<void> deleteAuthUserIfPresent() => _performDeleteAuthUserIfPresent();
-
-  /// Current user nickname (shortcut)
-  String get nickname => _currentUser?.nickname ?? '';
-
-  String get firstName => _currentUser?.firstName ?? '';
-
-  String get lastName => _currentUser?.lastName ?? '';
-
-  String get rozet => _currentUser?.rozet ?? '';
-
-  String get email => _currentUser?.email ?? '';
-
-  String get phoneNumber => _currentUser?.phoneNumber ?? '';
-
-  String get bio => _currentUser?.bio ?? '';
-
-  String get meslekKategori => _currentUser?.meslekKategori ?? '';
-
-  String get adres => _currentUser?.adres ?? '';
-
-  int get counterOfPosts => _currentUser?.counterOfPosts ?? 0;
-
-  int get counterOfLikes => _currentUser?.counterOfLikes ?? 0;
-
-  /// Current user profile image (shortcut)
-  String get avatarUrl {
-    final raw = (_currentUser?.avatarUrl ?? '').trim();
-    return isDefaultAvatarUrl(raw) ? '' : raw;
-  }
-
-  /// Current user full name (shortcut)
-  String get fullName => _currentUser?.fullName ?? '';
-
-  /// Feed view selection with local fallback.
-  /// 0: Classic, 1: Modern
-  int get effectiveViewSelection => viewSelectionRx.value;
   final RxInt viewSelectionRx = 1.obs;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -266,92 +167,10 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   // 🚀 Initialization
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  /// Initialize service (can be called multiple times, e.g., after fresh login)
-  ///
-  /// Returns true if user loaded from cache/Firebase
-  Future<bool> initialize() => _performInitialize();
-
-  /// Force refresh from Firebase (bypasses cache)
-  Future<void> forceRefresh() => _performForceRefresh();
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 💾 Cache Management
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🔥 Firebase Sync
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Start Firebase realtime sync
-  Future<void> _startFirebaseSync() => _performStartFirebaseSync();
-
-  Future<void> _adoptFreshSessionKeyIfNeeded() =>
-      _performAdoptFreshSessionKeyIfNeeded();
-
-  void _startExclusiveSessionHeartbeat(String uid) =>
-      _performStartExclusiveSessionHeartbeat(uid);
-
-  Future<void> _validateExclusiveSessionFromServer(String uid) =>
-      _performValidateExclusiveSessionFromServer(uid);
-
-  Future<Map<String, dynamic>> _buildMergedUserData({
-    required String uid,
-    required Map<String, dynamic> rootData,
-  }) =>
-      _performBuildMergedUserData(
-        uid: uid,
-        rootData: rootData,
-      );
-
-  /// Stop Firebase sync
-  Future<void> _stopFirebaseSync() => _performStopFirebaseSync();
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🔄 User Updates
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Update current user (internal)
-  Future<void> _updateUser(CurrentUserModel user) async {
-    await _performUpdateUser(user);
-  }
-
-  Future<bool> _handlePermanentBanIfNeeded(CurrentUserModel user) async {
-    return _performHandlePermanentBanIfNeeded(user);
-  }
-
-  Future<bool> _handleExclusiveSessionIfNeeded(
-    String uid,
-    Map<String, dynamic> data,
-  ) async {
-    return _performHandleExclusiveSessionIfNeeded(uid, data);
-  }
-
-  bool _publishResolvedUser(CurrentUserModel user) {
-    return _performPublishResolvedUser(user);
-  }
-
-  Future<void> _warmAvatar(CurrentUserModel? user) async {
-    await _performWarmAvatar(user);
-  }
-
-  Future<void> _signOutToSignIn({
-    String initialIdentifier = '',
-  }) async {
-    await _performSignOutToSignIn(initialIdentifier: initialIdentifier);
-  }
-
-  /// Update specific fields (optimistic update)
-  ///
-  /// **Example:**
-  /// ```dart
-  /// await userService.updateFields({
-  ///   'nickname': 'new_nickname',
-  ///   'bio': 'New bio text',
-  /// });
-  /// ```
-  bool isUserBlocked(String userId) {
-    return _currentUser?.blockedUsers.contains(userId) ?? false;
-  }
+  // Email verification state (Firebase Auth)
+  final RxBool emailVerifiedRx = true.obs;
+  DateTime? _lastEmailPromptAt;
+  Duration _emailPromptCooldown = const Duration(days: 7);
 
   bool hasReadStory(String storyId) {
     return _currentUser?.readStories.contains(storyId) ?? false;
@@ -362,22 +181,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   }
 
   bool get isVerified => _currentUser?.isVerified ?? false;
-
-  bool get isEmailVerified => emailVerifiedRx.value;
-
-  // Email verification state (Firebase Auth)
-  final RxBool emailVerifiedRx = true.obs;
-  DateTime? _lastEmailPromptAt;
-  Duration _emailPromptCooldown = const Duration(days: 7);
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🚪 Logout
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Logout and clear all data
-  Future<void> logout() async {
-    await _performLogout();
-  }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🧹 Cleanup
