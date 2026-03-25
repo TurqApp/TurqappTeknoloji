@@ -2,8 +2,8 @@ part of 'current_user_service.dart';
 
 extension CurrentUserServiceAuthPart on CurrentUserService {
   String _performEffectiveUserId() {
-    final serviceUid = userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
+    final cachedUid = (_currentUser?.userID ?? '').trim();
+    if (cachedUid.isNotEmpty) return cachedUid;
     return authUserId;
   }
 
