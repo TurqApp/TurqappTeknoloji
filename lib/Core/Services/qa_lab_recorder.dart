@@ -49,6 +49,7 @@ part 'qa_lab_recorder_diagnostics_state_part.dart';
 part 'qa_lab_recorder_diagnostics_state_surface_part.dart';
 part 'qa_lab_recorder_diagnostics_state_feed_part.dart';
 part 'qa_lab_recorder_diagnostics_playback_part.dart';
+part 'qa_lab_recorder_diagnostics_autoplay_part.dart';
 part 'qa_lab_recorder_diagnostics_timeline_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_helpers_part.dart';
