@@ -4,6 +4,8 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
+part 'sinav_sorusu_hazirla_controller_runtime_part.dart';
+
 class SinavSorusuHazirlaController extends GetxController {
   static SinavSorusuHazirlaController ensure({
     required String tag,
@@ -59,74 +61,12 @@ class SinavSorusuHazirlaController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getSorular();
+    _handleInit();
   }
 
-  Future<void> getSorular() => _getSorularImpl();
+  Future<void> getSorular() => _loadQuestions();
 
-  Future<void> setList() => _setListImpl();
+  Future<void> setList() => _createQuestionDrafts();
 
-  Future<void> completeExam() => _completeExamImpl();
-
-  Future<void> _getSorularImpl() async {
-    isLoading.value = true;
-    try {
-      final questions = await _practiceExamRepository.fetchQuestions(
-        docID,
-        preferCache: true,
-      );
-      if (questions.isNotEmpty) {
-        list.assignAll(questions);
-      } else {
-        await setList();
-      }
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
-    } finally {
-      isLoading.value = false;
-      isInitialized.value = true;
-    }
-  }
-
-  Future<void> _setListImpl() async {
-    try {
-      for (int i = 0; i < tumDersler.length; i++) {
-        final soruSayisi = int.tryParse(derslerinSoruSayilari[i]) ?? 0;
-        for (int j = 0; j < soruSayisi; j++) {
-          await FirebaseFirestore.instance
-              .collection("practiceExams")
-              .doc(docID)
-              .collection("Sorular")
-              .doc(DateTime.now().microsecondsSinceEpoch.toString())
-              .set({
-            "id": j,
-            "soru": "",
-            "ders": tumDersler[i],
-            "konu": "",
-            "dogruCevap": "A",
-            "yanitlayanlar": [],
-          });
-          SetOptions(merge: true);
-        }
-      }
-      await getSorular();
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'tests.questions_create_failed'.tr);
-    }
-  }
-
-  Future<void> _completeExamImpl() async {
-    try {
-      await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(docID)
-          .set({
-        "taslak": false,
-      }, SetOptions(merge: true));
-      complated();
-      Get.back();
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'tests.complete_failed'.tr);
-    }
-  }
+  Future<void> completeExam() => _completeExam();
 }

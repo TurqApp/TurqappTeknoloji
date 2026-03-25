@@ -14,6 +14,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'answer_key_controller_data_part.dart';
 part 'answer_key_controller_search_part.dart';
+part 'answer_key_controller_ui_part.dart';
 
 class AnswerKeyController extends GetxController {
   static AnswerKeyController ensure({bool permanent = false}) {
@@ -61,68 +62,6 @@ class AnswerKeyController extends GetxController {
   void toggleListingSelection() {
     _toggleListingSelectionValue();
   }
-
-  List<String> lessons = [
-    "LGS",
-    "TYT",
-    "AYT",
-    "YDT",
-    "YDS",
-    "ALES",
-    "DGS",
-    "KPSS",
-    "DUS",
-    "TUS",
-    "Dil",
-    "Yazılım",
-    "Spor",
-    "Tasarım",
-  ];
-
-  final List<Color> colors = [
-    Colors.deepPurple,
-    Colors.indigo,
-    Colors.teal,
-    Colors.deepOrange,
-    Colors.pink,
-    Colors.cyan.shade700,
-    Colors.blueGrey,
-    Colors.pink.shade900,
-  ];
-
-  List<Color> lessonsColors = [
-    Colors.lightBlue.shade700,
-    Colors.pink.shade600,
-    Colors.green.shade700,
-    Colors.orange.shade700,
-    Colors.red.shade800,
-    Colors.indigo.shade800,
-    Colors.lime.shade700,
-    Colors.brown.shade800,
-    Colors.blue.shade800,
-    Colors.cyan.shade800,
-    Colors.purple.shade700,
-    Colors.teal.shade700,
-    Colors.red.shade700,
-    Colors.deepOrange.shade700,
-  ];
-
-  List<IconData> lessonsIcons = [
-    Icons.psychology,
-    Icons.school,
-    Icons.library_books,
-    Icons.translate,
-    Icons.language,
-    Icons.book_online,
-    Icons.calculate,
-    Icons.assignment,
-    Icons.health_and_safety,
-    Icons.medical_services,
-    Icons.translate,
-    Icons.code,
-    Icons.sports_basketball,
-    Icons.design_services,
-  ];
 
   @override
   void onClose() {
