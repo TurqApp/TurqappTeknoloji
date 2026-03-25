@@ -535,6 +535,7 @@ export const onUserNotificationCreate = functions.firestore
       );
       const cfg = await _loadNotificationPushConfig();
       const userPrefs = await _loadUserNotificationPreferences(uid);
+      const isAdminPush = data.adminPush === true;
 
       // Self-notification push göndermeyelim.
       if (fromUserID && fromUserID === uid) return;
@@ -559,19 +560,21 @@ export const onUserNotificationCreate = functions.firestore
         return;
       }
 
-      const canSendPush = await _claimInteractionPushWindow({
-        uid,
-        type,
-        postId: targetDocID,
-        fromUserID,
-      });
-      if (!canSendPush) {
-        console.log("onUserNotificationCreate skip:rate_limited", {
+      if (!isAdminPush) {
+        const canSendPush = await _claimInteractionPushWindow({
           uid,
           type,
-          targetPresent: targetDocID.length > 0,
+          postId: targetDocID,
+          fromUserID,
         });
-        return;
+        if (!canSendPush) {
+          console.log("onUserNotificationCreate skip:rate_limited", {
+            uid,
+            type,
+            targetPresent: targetDocID.length > 0,
+          });
+          return;
+        }
       }
 
       const title = String(data.title || "TurqApp");
