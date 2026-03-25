@@ -1,0 +1,128 @@
+part of 'education_reference_data_service.dart';
+
+extension EducationReferenceDataServiceDataX on EducationReferenceDataService {
+  Future<List<String>> getCountries() async {
+    final cached = _countries;
+    if (cached != null) {
+      return List<String>.from(cached);
+    }
+    final future = _countriesFuture ??= _loadCountries();
+    final resolved = await future;
+    _countries = resolved;
+    _countriesFuture = null;
+    return List<String>.from(resolved);
+  }
+
+  Future<List<MiddleSchoolModel>> getMiddleSchools() async {
+    final entries = await getMiddleSchoolEntries();
+    return entries
+        .map((entry) => MiddleSchoolModel.fromJson(entry))
+        .toList(growable: false);
+  }
+
+  Future<List<HighSchoolModel>> getHighSchools() async {
+    final entries = await getHighSchoolEntries();
+    return entries
+        .map((entry) => HighSchoolModel.fromJson(entry))
+        .toList(growable: false);
+  }
+
+  Future<List<HigherEducationModel>> getHigherEducations() async {
+    final entries = await getHigherEducationEntries();
+    return entries
+        .map((entry) => HigherEducationModel.fromJson(entry))
+        .toList(growable: false);
+  }
+
+  Future<List<DormitoryModel>> getDormitories() async {
+    final entries = await getDormitoryEntries();
+    return entries
+        .map((entry) => DormitoryModel.fromJson(entry))
+        .toList(growable: false);
+  }
+
+  Future<List<Map<String, dynamic>>> getMiddleSchoolEntries() async {
+    final entries = await _resolveEntries(
+      cached: _middleSchoolEntries,
+      future: _middleSchoolEntriesFuture,
+      assetPath: 'assets/data/MiddleSchool.json',
+      assignCached: (value) => _middleSchoolEntries = value,
+      clearFuture: () => _middleSchoolEntriesFuture = null,
+      setFuture: (value) => _middleSchoolEntriesFuture = value,
+    );
+    return _cloneEntries(entries);
+  }
+
+  Future<List<Map<String, dynamic>>> getHighSchoolEntries() async {
+    final entries = await _resolveEntries(
+      cached: _highSchoolEntries,
+      future: _highSchoolEntriesFuture,
+      assetPath: 'assets/data/HighSchool.json',
+      assignCached: (value) => _highSchoolEntries = value,
+      clearFuture: () => _highSchoolEntriesFuture = null,
+      setFuture: (value) => _highSchoolEntriesFuture = value,
+    );
+    return _cloneEntries(entries);
+  }
+
+  Future<List<Map<String, dynamic>>> getHigherEducationEntries() async {
+    final entries = await _resolveEntries(
+      cached: _higherEducationEntries,
+      future: _higherEducationEntriesFuture,
+      assetPath: 'assets/data/HigherEducation.json',
+      assignCached: (value) => _higherEducationEntries = value,
+      clearFuture: () => _higherEducationEntriesFuture = null,
+      setFuture: (value) => _higherEducationEntriesFuture = value,
+    );
+    return _cloneEntries(entries);
+  }
+
+  Future<List<Map<String, dynamic>>> getDormitoryEntries() async {
+    final entries = await _resolveEntries(
+      cached: _dormitoryEntries,
+      future: _dormitoryEntriesFuture,
+      assetPath: 'assets/data/Dormitory.json',
+      assignCached: (value) => _dormitoryEntries = value,
+      clearFuture: () => _dormitoryEntriesFuture = null,
+      setFuture: (value) => _dormitoryEntriesFuture = value,
+    );
+    return _cloneEntries(entries);
+  }
+
+  Future<List<String>> _loadCountries() async {
+    final response = await rootBundle.loadString('assets/data/Countries.json');
+    return compute(_decodeCountryNames, response);
+  }
+
+  Future<List<Map<String, dynamic>>> _resolveEntries({
+    required List<Map<String, dynamic>>? cached,
+    required Future<List<Map<String, dynamic>>>? future,
+    required String assetPath,
+    required void Function(List<Map<String, dynamic>> value) assignCached,
+    required void Function() clearFuture,
+    required void Function(Future<List<Map<String, dynamic>>> value) setFuture,
+  }) async {
+    if (cached != null) {
+      return cached;
+    }
+    final inFlight = future ?? _loadEntries(assetPath);
+    if (future == null) {
+      setFuture(inFlight);
+    }
+    final resolved = await inFlight;
+    assignCached(resolved);
+    clearFuture();
+    return resolved;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadEntries(String assetPath) async {
+    final response = await rootBundle.loadString(assetPath);
+    return compute(_decodeObjectEntries, response);
+  }
+
+  List<Map<String, dynamic>> _cloneEntries(List<Map<String, dynamic>> entries) {
+    return entries
+        .map((entry) => Map<String, dynamic>.from(entry))
+        .toList(growable: false);
+  }
+}
