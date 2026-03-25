@@ -166,6 +166,7 @@ class _ClassicContentState extends State<ClassicContent>
     }
     switch (type) {
       case 'market':
+      case 'practice-exam':
       case 'tutoring':
       case 'job':
         return 1.0;

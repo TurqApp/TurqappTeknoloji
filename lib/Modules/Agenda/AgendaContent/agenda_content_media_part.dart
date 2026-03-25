@@ -420,6 +420,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
   double? _sharedFeedAspectRatioFor(String type) {
     switch (type) {
       case 'market':
+      case 'practice-exam':
       case 'tutoring':
       case 'job':
         return 1.0;
