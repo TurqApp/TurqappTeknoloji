@@ -29,6 +29,7 @@ part 'qa_lab_recorder_runtime_surfaces_part.dart';
 part 'qa_lab_recorder_runtime_helpers_part.dart';
 part 'qa_lab_recorder_capture_part.dart';
 part 'qa_lab_recorder_diagnostics_part.dart';
+part 'qa_lab_recorder_diagnostics_playback_part.dart';
 
 class QALabRecorder extends GetxService {
   static QALabRecorder ensure() {
