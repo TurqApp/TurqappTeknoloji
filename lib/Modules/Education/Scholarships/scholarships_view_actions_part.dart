@@ -14,9 +14,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   bool _hasMultipleImages(String type, dynamic burs) {
-    return isIndividualScholarshipType(type) &&
-        burs is IndividualScholarshipsModel &&
-        burs.img2.isNotEmpty;
+    return false;
   }
 
   Widget _buildMultipleImagesView(int index, IndividualScholarshipsModel burs) {
