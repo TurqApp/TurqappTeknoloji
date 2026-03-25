@@ -73,6 +73,7 @@ part 'agenda_content_header_actions_part.dart';
 part 'agenda_content_header_menu_part.dart';
 part 'agenda_content_header_navigation_part.dart';
 part 'agenda_content_body_part.dart';
+part 'agenda_content_body_widgets_part.dart';
 
 class AgendaContent extends PostContentBase {
   final bool hideVideoPoster;
