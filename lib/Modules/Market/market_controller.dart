@@ -36,6 +36,7 @@ part 'market_controller_home_part.dart';
 part 'market_controller_actions_part.dart';
 part 'market_controller_lifecycle_part.dart';
 part 'market_controller_runtime_part.dart';
+part 'market_controller_support_part.dart';
 
 class MarketController extends GetxController {
   static MarketController ensure({bool permanent = false}) {
@@ -103,76 +104,6 @@ class MarketController extends GetxController {
   Timer? _searchDebounce;
   int _searchRequestId = 0;
 
-  bool _sameStringList(Iterable<String> left, Iterable<String> right) {
-    return listEquals(
-      left.toList(growable: false),
-      right.toList(growable: false),
-    );
-  }
-
-  bool _sameBadgeMap(Map<String, int> left, Map<String, int> right) {
-    return mapEquals(left, right);
-  }
-
-  bool _sameMapList(
-    Iterable<Map<String, dynamic>> left,
-    Iterable<Map<String, dynamic>> right,
-  ) {
-    return listEquals(
-      left.map(jsonEncode).toList(growable: false),
-      right.map(jsonEncode).toList(growable: false),
-    );
-  }
-
-  bool _sameMarketList(List<MarketItemModel> next) {
-    return _sameMarketEntries(items, next);
-  }
-
-  bool _sameMarketEntries(
-    List<MarketItemModel> current,
-    List<MarketItemModel> next,
-  ) {
-    final currentKeys = current
-        .map(
-          (item) => [
-            item.id,
-            item.title,
-            item.price,
-            item.favoriteCount,
-            item.viewCount,
-            item.offerCount,
-            item.city,
-            item.district,
-            item.coverImageUrl,
-            item.status,
-            item.createdAt,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (item) => [
-            item.id,
-            item.title,
-            item.price,
-            item.favoriteCount,
-            item.viewCount,
-            item.offerCount,
-            item.city,
-            item.district,
-            item.coverImageUrl,
-            item.status,
-            item.createdAt,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
-
-  bool _sameVisibleItems(List<MarketItemModel> next) {
-    return _sameMarketEntries(visibleItems, next);
-  }
-
   Future<void> _restoreListingSelection() => _performRestoreListingSelection();
 
   Future<void> _persistListingSelection() => _performPersistListingSelection();
@@ -189,31 +120,7 @@ class MarketController extends GetxController {
     super.onClose();
   }
 
-  List<String> get availableCities {
-    if (allCityOptions.isNotEmpty) {
-      return allCityOptions.toList(growable: false);
-    }
-    final out = <String>{};
-    for (final collection in <List<MarketItemModel>>[
-      items,
-      searchedItems,
-      visibleItems,
-      pendingCreatedItems,
-    ]) {
-      for (final item in collection) {
-        final city = item.city.trim();
-        if (city.isNotEmpty) out.add(city);
-      }
-    }
-    final list = out.toList();
-    sortTurkishStrings(list);
-    return list;
-  }
+  List<String> get availableCities => _computeAvailableCities();
 
-  bool get hasAdvancedFilters =>
-      selectedCityFilter.value.isNotEmpty ||
-      selectedContactFilter.value.isNotEmpty ||
-      minPriceFilter.value.trim().isNotEmpty ||
-      maxPriceFilter.value.trim().isNotEmpty ||
-      sortSelection.value != 'newest';
+  bool get hasAdvancedFilters => _computeHasAdvancedFilters();
 }

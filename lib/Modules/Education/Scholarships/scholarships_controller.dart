@@ -27,6 +27,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_i
 
 part 'scholarships_controller_data_part.dart';
 part 'scholarships_controller_actions_part.dart';
+part 'scholarships_controller_models_part.dart';
 
 class ScholarshipsController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
@@ -190,29 +191,3 @@ class ScholarshipsController extends GetxController {
         ),
       ];
 }
-
-class InformationModel {
-  final String title;
-  final Color color;
-  final IconData icon;
-
-  InformationModel({
-    required this.title,
-    required this.color,
-    required this.icon,
-  });
-}
-
-List<Color> colors = [
-  Colors.blueGrey,
-  Colors.teal,
-  Colors.deepOrange,
-  Colors.indigo,
-];
-
-List<IconData> icons = [
-  CupertinoIcons.person,
-  CupertinoIcons.building_2_fill,
-  CupertinoIcons.person_2,
-  CupertinoIcons.house_fill,
-];
