@@ -12,6 +12,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/job_model.dart';
 
 part 'my_job_ads_controller_data_part.dart';
+part 'my_job_ads_controller_runtime_part.dart';
 
 class MyJobAdsController extends GetxController {
   static MyJobAdsController ensure({
@@ -41,89 +42,15 @@ class MyJobAdsController extends GetxController {
   RxList<JobModel> deactive = <JobModel>[].obs;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
-  bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
-    final currentKeys = current
-        .map(
-          (job) => [
-            job.docID,
-            job.logo,
-            job.brand,
-            job.meslek,
-            job.ilanBasligi,
-            job.city,
-            job.town,
-            job.timeStamp,
-            job.viewCount,
-            job.applicationCount,
-            job.ended,
-            job.calismaTuru.join('|'),
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (job) => [
-            job.docID,
-            job.logo,
-            job.brand,
-            job.meslek,
-            job.ilanBasligi,
-            job.city,
-            job.town,
-            job.timeStamp,
-            job.viewCount,
-            job.applicationCount,
-            job.ended,
-            job.calismaTuru.join('|'),
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
-
   @override
   void onInit() {
     super.onInit();
     _handleOnInit();
   }
 
-  void _handleOnInit() {
-    unawaited(_bootstrapImpl());
-  }
-
-  Future<void> getActive({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      _getActiveImpl(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
-
-  Future<void> getDeactive({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      _getDeactiveImpl(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
-
-  void goToPage(int index) {
-    pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
   @override
   void onClose() {
     _handleOnClose();
     super.onClose();
-  }
-
-  void _handleOnClose() {
-    pageController.dispose();
   }
 }
