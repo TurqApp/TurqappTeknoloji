@@ -5,15 +5,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Modules/Story/StoryHighlights/story_highlight_model.dart';
 
-class _CachedStoryHighlights {
-  final List<StoryHighlightModel> items;
-  final DateTime cachedAt;
-
-  const _CachedStoryHighlights({
-    required this.items,
-    required this.cachedAt,
-  });
-}
+part 'story_highlights_repository_models_part.dart';
 
 class StoryHighlightsRepository extends GetxService {
   static const Duration _ttl = Duration(hours: 6);
