@@ -4,6 +4,7 @@ import '../../Services/post_interaction_service.dart';
 import '../../Models/posts_model.dart';
 
 part 'post_controller_actions_part.dart';
+part 'post_controller_runtime_part.dart';
 
 /// Post etkileşimlerini yönetmek için controller
 class PostController extends GetxController {
@@ -32,78 +33,5 @@ class PostController extends GetxController {
   void onInit() {
     super.onInit();
     _interactionService = PostInteractionService.ensure();
-  }
-
-  // ========== BEĞENI İŞLEMLERİ ==========
-
-  /// Post beğenme/beğeni kaldırma işlemi
-  Future<void> handleLike(String postId, PostsModel post) async {
-    try {
-      final isLiked = await _interactionService.toggleLike(postId);
-
-      // UI güncellemesi için post modelini güncelle
-      if (isLiked) {
-        post.stats.likeCount++;
-      } else {
-        post.stats.likeCount--;
-      }
-
-      // UI'ı güncelle
-      update(['post_$postId', 'like_$postId']);
-
-      // Başarılı mesajı göster
-      AppSnackbar(
-        'common.success'.tr,
-        isLiked
-            ? 'post_controller.like_added'.tr
-            : 'post_controller.like_removed'.tr,
-        duration: const Duration(seconds: 1),
-      );
-    } catch (e) {
-      AppSnackbar('common.error'.tr,
-          'post_controller.like_failed'.trParams({'error': '$e'}));
-    }
-  }
-
-  /// Post beğeni durumunu kontrol et
-  Future<bool> checkLikeStatus(String postId) async {
-    return await _interactionService.isPostLiked(postId);
-  }
-
-  /// Post kayıt durumunu kontrol et
-  Future<bool> checkSaveStatus(String postId) async {
-    return await _interactionService.isPostSaved(postId);
-  }
-
-  /// Yeniden paylaşma durumunu kontrol et
-  Future<bool> checkReshareStatus(String postId) async {
-    // Private method erişimi yerine getUserInteractionStatus kullan
-    final status = await _interactionService.getUserInteractionStatus(postId);
-    return status['reshared'] ?? false;
-  }
-
-  // ========== GÖRÜNTÜLEME İŞLEMLERİ ==========
-
-  /// Post görüntüleme kaydı
-  Future<void> recordView(String postId, PostsModel post) async {
-    try {
-      await _interactionService.recordView(postId);
-      // View işlemi sessizce yapılır, UI güncellemesi stats listener'dan gelir
-    } catch (e) {
-      // Görüntüleme hatalarını sessizce logla
-      print('View recording error: $e');
-    }
-  }
-
-  // ========== YARDIMCI METODLAR ==========
-
-  /// Post etkileşim sayılarını getir
-  Future<Map<String, int>> getInteractionCounts(String postId) async {
-    return await _interactionService.getPostInteractionCounts(postId);
-  }
-
-  /// Kullanıcı etkileşim durumlarını getir
-  Future<Map<String, bool>> getUserInteractionStatus(String postId) async {
-    return await _interactionService.getUserInteractionStatus(postId);
   }
 }

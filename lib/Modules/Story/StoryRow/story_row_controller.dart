@@ -16,6 +16,7 @@ import 'story_user_model.dart';
 
 part 'story_row_controller_cache_part.dart';
 part 'story_row_controller_load_part.dart';
+part 'story_row_controller_support_part.dart';
 
 class StoryRowController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -48,63 +49,11 @@ class StoryRowController extends GetxController {
 
   String get _currentUid => userService.effectiveUserId;
 
-  void _ensureMyUserPlaceholder() {
-    final myUid = _currentUid;
-    if (myUid.isEmpty) return;
-    if (users.any((u) => u.userID == myUid)) return;
-
-    final nickname = userService.nickname.trim();
-    final fullName = userService.fullName.trim();
-
-    users.insert(
-      0,
-      StoryUserModel(
-        nickname:
-            nickname.isNotEmpty ? nickname : 'story.placeholder_nickname'.tr,
-        avatarUrl: userService.avatarUrl,
-        fullName: fullName,
-        userID: myUid,
-        stories: const [],
-      ),
-    );
-  }
-
-  String _resolveStoryNickname(Map<String, dynamic> data) {
-    final nickname = (data['nickname'] ?? '').toString().trim();
-    final username = (data['username'] ?? '').toString().trim();
-    final usernameLower = (data['usernameLower'] ?? '').toString().trim();
-    final hasSpace = hasNicknameWhitespace(nickname);
-    if (nickname.isNotEmpty && !hasSpace) return nickname;
-    if (username.isNotEmpty) return username;
-    if (usernameLower.isNotEmpty) return usernameLower;
-    return '';
-  }
-
-  String _resolveAvatar(Map<String, dynamic> data) {
-    final profile = (data['profile'] is Map)
-        ? Map<String, dynamic>.from(data['profile'] as Map)
-        : const <String, dynamic>{};
-    return resolveAvatarUrl(data, profile: profile);
-  }
-
-  // Auto refresh için static method
-  static Future<void> refreshStoriesGlobally() async {
-    try {
-      final controller = maybeFind();
-      if (controller == null) return;
-      await controller.loadStories();
-    } catch (e) {
-      debugPrint("Story refresh error: $e");
-    }
-  }
+  static Future<void> refreshStoriesGlobally() => _refreshStoryRowGlobally();
 
   @override
   void onInit() {
     super.onInit();
-    _ensureMyUserPlaceholder();
-    unawaited(_bootstrapStoryRow());
-    // Main.dart'ta zaten hikayeler yüklendiği için burada sadece listener'ları bağla
-    // Arka planda tam listeyi genişlet (düşük öncelik)
-    _scheduleBackgroundFullLoad();
+    _handleStoryRowInit(this);
   }
 }

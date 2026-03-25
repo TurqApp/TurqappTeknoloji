@@ -24,6 +24,7 @@ import 'market_schema_service.dart';
 part 'market_create_controller_form_part.dart';
 part 'market_create_controller_submission_part.dart';
 part 'market_create_controller_models_part.dart';
+part 'market_create_controller_support_part.dart';
 
 class MarketCreateController extends GetxController {
   static MarketCreateController ensure({
@@ -83,19 +84,6 @@ class MarketCreateController extends GetxController {
       <String, TextEditingController>{};
   static const int maxImages = 4;
   MarketCategoryNode? _selectedTopNode;
-
-  bool get isEditing => initialItem != null;
-  int get totalImageCount => existingImageUrls.length + selectedImages.length;
-  String get pageTitle => isEditing
-      ? 'pasaj.market.create.edit_title'.tr
-      : 'pasaj.market.create.add_title'.tr;
-  String get draftActionLabel => isEditing
-      ? 'pasaj.market.create.update_draft'.tr
-      : 'pasaj.market.status.draft'.tr;
-  String get publishActionLabel =>
-      isEditing ? 'common.update'.tr : 'common.publish'.tr;
-  String get selectedCategoryPathText =>
-      selectedLeaf.value?.pathTextWithoutTop ?? '';
 
   @override
   void onInit() {

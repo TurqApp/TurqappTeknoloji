@@ -26,6 +26,7 @@ part 'antreman_controller_actions_part.dart';
 part 'antreman_controller_category_part.dart';
 part 'antreman_controller_models_part.dart';
 part 'antreman_controller_question_actions_part.dart';
+part 'antreman_controller_support_part.dart';
 
 class AntremanController extends GetxController {
   static AntremanController ensure({bool permanent = false}) {
@@ -40,22 +41,10 @@ class AntremanController extends GetxController {
     return Get.find<AntremanController>();
   }
 
-  static const String _mainCategoryPrefKeyPrefix = 'antreman_main_category';
-  static const String _categoryCachePrefix = 'antreman_category_cache_';
-  static const String _categoryCacheTimePrefix =
-      'antreman_category_cache_time_';
-  static const Duration _categoryCacheTtl = Duration(hours: 12);
-  static const int _mainCategoryWarmupLimit = 10;
   final QuestionBankSnapshotRepository _questionBankSnapshotRepository =
       QuestionBankSnapshotRepository.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
-  String get _activeUid {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    return uid.isEmpty ? 'guest' : uid;
-  }
-
-  String get _mainCategoryPrefKey => '$_mainCategoryPrefKeyPrefix:$_activeUid';
   final Map<String, Map<String, List<String>>> subjects = _antremanSubjects;
 
   final Map<String, IconData> icons = _antremanIcons;
@@ -91,23 +80,6 @@ class AntremanController extends GetxController {
   bool _mainCategoryPromptShown = false;
   Timer? _searchDebounce;
   int _searchToken = 0;
-
-  List<String> get mainCategories => const <String>[
-        'LGS',
-        'YKS',
-        'KPSS',
-        'YDS',
-        'ALES',
-        'DGS',
-        'DUS',
-        'TUS',
-      ];
-
-  List<String> get visibleMainCategories => mainCategory.value.isEmpty
-      ? mainCategories
-      : <String>[mainCategory.value];
-
-  bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
   @override
   void onInit() {

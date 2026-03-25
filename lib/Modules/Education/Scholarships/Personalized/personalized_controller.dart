@@ -15,6 +15,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'personalized_controller_data_part.dart';
 part 'personalized_controller_score_part.dart';
+part 'personalized_controller_runtime_part.dart';
 
 class PersonalizedController extends GetxController {
   static String? _activeTag;
@@ -22,34 +23,11 @@ class PersonalizedController extends GetxController {
   static PersonalizedController ensure({
     required String tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) {
-      _activeTag = tag;
-      return existing;
-    }
-    final created = Get.put(
-      PersonalizedController(),
-      tag: tag,
-      permanent: permanent,
-    );
-    created.controllerTag = tag;
-    _activeTag = tag;
-    return created;
-  }
+  }) =>
+      _ensurePersonalizedController(tag: tag, permanent: permanent);
 
-  static PersonalizedController? maybeFind({String? tag}) {
-    final resolvedTag = (tag ?? _activeTag)?.trim();
-    if (resolvedTag != null && resolvedTag.isNotEmpty) {
-      final isRegistered =
-          Get.isRegistered<PersonalizedController>(tag: resolvedTag);
-      if (!isRegistered) return null;
-      return Get.find<PersonalizedController>(tag: resolvedTag);
-    }
-    final isRegistered = Get.isRegistered<PersonalizedController>();
-    if (!isRegistered) return null;
-    return Get.find<PersonalizedController>();
-  }
+  static PersonalizedController? maybeFind({String? tag}) =>
+      _maybeFindPersonalizedController(tag: tag);
 
   final UserRepository _userRepository = UserRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
@@ -96,22 +74,12 @@ class PersonalizedController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeData();
-    _setupScrollListener();
-  }
-
-  String get _cacheKey {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return '$_cacheKeyPrefix:guest';
-    return '$_cacheKeyPrefix:$uid';
+    _handlePersonalizedControllerInit(this);
   }
 
   @override
   void onClose() {
-    if (_activeTag == controllerTag) {
-      _activeTag = null;
-    }
-    scrollController.dispose();
+    _handlePersonalizedControllerClose(this);
     super.onClose();
   }
 }

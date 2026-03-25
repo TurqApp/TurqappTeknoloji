@@ -7,6 +7,8 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
+part 'search_tests_controller_runtime_part.dart';
+
 class SearchTestsController extends GetxController {
   static SearchTestsController ensure({
     String? tag,
@@ -38,76 +40,25 @@ class SearchTestsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleControllerInit();
+    _handleSearchTestsControllerInit(this);
   }
 
-  void filterSearchResults(String query) {
-    final normalizedQuery = normalizeSearchText(query);
-    if (normalizedQuery.isEmpty) {
-      filteredList.assignAll(list);
-    } else {
-      filteredList.assignAll(
-        list.where(
-          (test) =>
-              normalizeSearchText(test.aciklama).contains(normalizedQuery) ||
-              normalizeSearchText(test.testTuru).contains(normalizedQuery) ||
-              test.dersler.any(
-                (ders) => normalizeSearchText(ders).contains(normalizedQuery),
-              ),
-        ),
-      );
-    }
-  }
-
-  void _handleControllerInit() {
-    unawaited(_bootstrapData());
-    Future.delayed(const Duration(milliseconds: 100), () {
-      Get.focusScope?.requestFocus(focusNode);
-    });
-  }
+  void filterSearchResults(String query) =>
+      _filterSearchTestsResults(this, query);
 
   @override
   void onClose() {
-    _handleControllerClose();
+    _handleSearchTestsControllerClose(this);
     super.onClose();
-  }
-
-  void _handleControllerClose() {
-    searchController.dispose();
-    focusNode.dispose();
-  }
-
-  Future<void> _bootstrapData() async {
-    final cached = await _testRepository.fetchAll(cacheOnly: true);
-    if (cached.isNotEmpty) {
-      list.assignAll(cached);
-      filteredList.assignAll(cached);
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'tests:search_all',
-        minInterval: SearchTestsController._silentRefreshInterval,
-      )) {
-        unawaited(getData(silent: true, forceRefresh: true));
-      }
-      return;
-    }
-    await getData();
   }
 
   Future<void> getData({
     bool silent = false,
     bool forceRefresh = false,
-  }) async {
-    if (!silent || list.isEmpty) {
-      isLoading.value = true;
-    }
-    final items = await _testRepository.fetchAll(
-      preferCache: !forceRefresh,
-      forceRefresh: forceRefresh,
-    );
-    list.assignAll(items);
-    filterSearchResults(searchController.text);
-    SilentRefreshGate.markRefreshed('tests:search_all');
-    isLoading.value = false;
-  }
+  }) =>
+      _getSearchTestsData(
+        this,
+        silent: silent,
+        forceRefresh: forceRefresh,
+      );
 }

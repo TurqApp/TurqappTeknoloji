@@ -278,7 +278,7 @@ extension PostRepositoryInteractionPart on PostRepository {
     if (!forceRefresh &&
         state.interactionFetchedAt != null &&
         DateTime.now().difference(state.interactionFetchedAt!) <
-            PostRepository._interactionTtl) {
+            _postRepositoryInteractionTtl) {
       return;
     }
     state.interactionLoading = true;

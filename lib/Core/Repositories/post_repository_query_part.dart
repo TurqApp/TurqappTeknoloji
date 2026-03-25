@@ -526,7 +526,7 @@ extension PostRepositoryQueryPart on PostRepository {
     if (model.deletedPost || model.arsiv || model.gizlendi) return false;
     final ageMs =
         DateTime.now().millisecondsSinceEpoch - model.timeStamp.toInt();
-    if (ageMs < PostRepository._stuckUploadingRepairAge.inMilliseconds) {
+    if (ageMs < _postRepositoryStuckUploadingRepairAge.inMilliseconds) {
       return false;
     }
     final hasCompletedMedia = model.img.isNotEmpty ||
@@ -539,8 +539,8 @@ extension PostRepositoryQueryPart on PostRepository {
   Future<void> _performRepairStuckUploadingPost(PostsModel model) async {
     final docId = model.docID.trim();
     if (docId.isEmpty) return;
-    if (PostRepository._uploadRepairInFlight.contains(docId)) return;
-    PostRepository._uploadRepairInFlight.add(docId);
+    if (_postRepositoryUploadRepairInFlight.contains(docId)) return;
+    _postRepositoryUploadRepairInFlight.add(docId);
     try {
       await _firestore.collection('Posts').doc(docId).set(<String, dynamic>{
         'isUploading': false,
@@ -558,7 +558,7 @@ extension PostRepositoryQueryPart on PostRepository {
         );
       }
     } finally {
-      PostRepository._uploadRepairInFlight.remove(docId);
+      _postRepositoryUploadRepairInFlight.remove(docId);
     }
   }
 
@@ -590,8 +590,7 @@ extension PostRepositoryQueryPart on PostRepository {
     final ctaUrl = (doc['ctaUrl'] ?? '').toString().trim();
     final ctaType = (doc['ctaType'] ?? '').toString().trim();
     final ctaDocId = (doc['ctaDocId'] ?? '').toString().trim();
-    final hasCta =
-        ctaLabel.isNotEmpty ||
+    final hasCta = ctaLabel.isNotEmpty ||
         ctaUrl.isNotEmpty ||
         ctaType.isNotEmpty ||
         ctaDocId.isNotEmpty;

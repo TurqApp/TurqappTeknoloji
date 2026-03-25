@@ -437,11 +437,11 @@ extension AntremanControllerActionsPart on AntremanController {
   }
 
   String _cacheKeyForCategory(String categoryKey) {
-    return '${AntremanController._categoryCachePrefix}${_activeUid}_$categoryKey';
+    return '$_categoryCachePrefix${_activeUid}_$categoryKey';
   }
 
   String _cacheTimeKeyForCategory(String categoryKey) {
-    return '${AntremanController._categoryCacheTimePrefix}${_activeUid}_$categoryKey';
+    return '$_categoryCacheTimePrefix${_activeUid}_$categoryKey';
   }
 
   Future<List<QuestionBankModel>> _loadCachedCategoryPool(
@@ -457,7 +457,7 @@ extension AntremanControllerActionsPart on AntremanController {
       final age = DateTime.now().difference(
         DateTime.fromMillisecondsSinceEpoch(cacheTime),
       );
-      if (age > AntremanController._categoryCacheTtl) {
+      if (age > _categoryCacheTtl) {
         return <QuestionBankModel>[];
       }
 
@@ -507,7 +507,7 @@ extension AntremanControllerActionsPart on AntremanController {
         for (final ders in entry.value) {
           final categoryKey = _buildCategoryKey(category, sinavTuru, ders);
           final cached = await _loadCachedCategoryPool(categoryKey);
-          if (cached.length >= AntremanController._mainCategoryWarmupLimit) {
+          if (cached.length >= _mainCategoryWarmupLimit) {
             continue;
           }
 
@@ -515,7 +515,7 @@ extension AntremanControllerActionsPart on AntremanController {
             category,
             sinavTuru,
             ders,
-            limit: AntremanController._mainCategoryWarmupLimit,
+            limit: _mainCategoryWarmupLimit,
           );
           if (docs.isNotEmpty) {
             await _saveCachedCategoryPool(categoryKey, docs);
