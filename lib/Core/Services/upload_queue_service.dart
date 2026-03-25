@@ -24,70 +24,11 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'upload_queue_service_helpers_part.dart';
+part 'upload_queue_service_models_part.dart';
 part 'upload_queue_service_persistence_part.dart';
 part 'upload_queue_service_post_shell_part.dart';
 part 'upload_queue_service_processing_part.dart';
-
-enum UploadStatus {
-  pending('upload_queue.status_pending'),
-  uploading('upload_queue.status_uploading'),
-  completed('upload_queue.status_completed'),
-  failed('upload_queue.status_failed'),
-  paused('upload_queue.status_paused');
-
-  const UploadStatus(this.labelKey);
-  final String labelKey;
-
-  String get label => labelKey.tr;
-}
-
-class QueuedUpload {
-  final String id;
-  final String postData;
-  final List<String> imagePaths;
-  final String? videoPath;
-  final DateTime createdAt;
-  UploadStatus status;
-  int retryCount;
-  String? errorMessage;
-  double progress;
-
-  QueuedUpload({
-    required this.id,
-    required this.postData,
-    required this.imagePaths,
-    this.videoPath,
-    required this.createdAt,
-    this.status = UploadStatus.pending,
-    this.retryCount = 0,
-    this.errorMessage,
-    this.progress = 0.0,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'postData': postData,
-        'imagePaths': imagePaths,
-        'videoPath': videoPath,
-        'createdDate': createdAt.millisecondsSinceEpoch,
-        'status': status.name,
-        'retryCount': retryCount,
-        'errorMessage': errorMessage,
-        'progress': progress,
-      };
-
-  factory QueuedUpload.fromJson(Map<String, dynamic> json) => QueuedUpload(
-        id: json['id'],
-        postData: json['postData'],
-        imagePaths: List<String>.from(json['imagePaths']),
-        videoPath: json['videoPath'],
-        createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdDate']),
-        status: UploadStatus.values.firstWhere((e) => e.name == json['status']),
-        retryCount: json['retryCount'] ?? 0,
-        errorMessage: json['errorMessage'],
-        progress: json['progress']?.toDouble() ?? 0.0,
-      );
-}
 
 class UploadQueueService extends GetxController {
   static UploadQueueService? maybeFind() {
@@ -121,40 +62,6 @@ class UploadQueueService extends GetxController {
 
   static const String _queueKeyPrefix = 'upload_queue';
   static const int _maxRetries = 3;
-
-  String _firstNonEmptyValue(Iterable<dynamic> candidates) {
-    for (final candidate in candidates) {
-      final value = candidate?.toString().trim() ?? '';
-      if (value.isNotEmpty) return value;
-    }
-    return '';
-  }
-
-  String _resolveActiveUserId([Map<String, dynamic>? postDataMap]) {
-    return _firstNonEmptyValue([
-      CurrentUserService.instance.effectiveUserId,
-      postDataMap?['userID'],
-    ]);
-  }
-
-  bool _isAuthRetryableStorageError(FirebaseException e) {
-    final code = normalizeLowercase(e.code);
-    return code == 'unauthenticated' || code == 'unauthorized';
-  }
-
-  Future<void> _refreshAuthTokenIfNeeded() =>
-      _performRefreshAuthTokenIfNeeded();
-
-  Future<TaskSnapshot> _putFileWithAuthRetry({
-    required Reference ref,
-    required File file,
-    required SettableMetadata metadata,
-  }) =>
-      _performPutFileWithAuthRetry(
-        ref: ref,
-        file: file,
-        metadata: metadata,
-      );
 
   void _notifyQueueUpdated() {
     _queue.refresh();

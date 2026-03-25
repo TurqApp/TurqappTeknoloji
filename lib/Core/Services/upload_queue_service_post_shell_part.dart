@@ -3,7 +3,7 @@ part of 'upload_queue_service.dart';
 extension UploadQueueServicePostShellPart on UploadQueueService {
   Future<void> _performCreatePendingPostShell(QueuedUpload upload) async {
     final postDataMap = jsonDecode(upload.postData) as Map<String, dynamic>;
-    final String userID = _resolveActiveUserId(postDataMap);
+    final String userID = _resolveUploadQueueActiveUserId(postDataMap);
     if (userID.isEmpty) return;
 
     final String text = (postDataMap['text'] ?? '')
@@ -36,22 +36,22 @@ extension UploadQueueServicePostShellPart on UploadQueueService {
     final String quotedSourceAvatarUrl =
         (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
     final currentUser = CurrentUserService.instance;
-    final String authorNickname = _firstNonEmptyValue([
+    final String authorNickname = _uploadQueueFirstNonEmptyValue([
       normalizeHandleInput(postDataMap['nickname']?.toString() ?? ''),
       normalizeHandleInput(postDataMap['authorNickname']?.toString() ?? ''),
       normalizeHandleInput(currentUser.nickname),
     ]);
-    final String username = _firstNonEmptyValue([
+    final String username = _uploadQueueFirstNonEmptyValue([
       normalizeHandleInput(postDataMap['username']?.toString() ?? ''),
     ]);
-    final String fullName = _firstNonEmptyValue([
+    final String fullName = _uploadQueueFirstNonEmptyValue([
       postDataMap['fullName'],
       postDataMap['authorDisplayName'],
       postDataMap['displayName'],
       currentUser.fullName,
       authorNickname,
     ]);
-    final String authorDisplayName = _firstNonEmptyValue([
+    final String authorDisplayName = _uploadQueueFirstNonEmptyValue([
       postDataMap['authorDisplayName'],
       postDataMap['displayName'],
       fullName,
@@ -61,7 +61,7 @@ extension UploadQueueServicePostShellPart on UploadQueueService {
         (postDataMap['authorAvatarUrl'] ?? currentUser.avatarUrl)
             .toString()
             .trim();
-    final String authorRozet = _firstNonEmptyValue([
+    final String authorRozet = _uploadQueueFirstNonEmptyValue([
       postDataMap['rozet'],
       currentUser.currentUser?.rozet.trim() ?? '',
     ]);
