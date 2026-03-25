@@ -154,4 +154,13 @@ class AgendaController extends GetxController {
     _handleLifecycleClose();
     super.onClose();
   }
+
+  Future<void> addNewReshareEntryWithoutScroll(
+    String postId,
+    String reshareUserID,
+  ) =>
+      _performAddNewReshareEntryWithoutScroll(postId, reshareUserID);
+
+  void removeReshareEntry(String postId, String reshareUserID) =>
+      _performRemoveReshareEntry(postId, reshareUserID);
 }

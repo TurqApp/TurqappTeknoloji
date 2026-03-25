@@ -19,6 +19,24 @@ class NotificationsRepository extends GetxService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  DocumentReference<Map<String, dynamic>> inboxDoc(
+    String uid, {
+    String? docId,
+  }) {
+    final trimmedUid = uid.trim();
+    return docId == null || docId.trim().isEmpty
+        ? _firestore
+            .collection('users')
+            .doc(trimmedUid)
+            .collection('notifications')
+            .doc()
+        : _firestore
+            .collection('users')
+            .doc(trimmedUid)
+            .collection('notifications')
+            .doc(docId.trim());
+  }
+
   void queueCreateInboxItem(
     WriteBatch batch,
     String uid,

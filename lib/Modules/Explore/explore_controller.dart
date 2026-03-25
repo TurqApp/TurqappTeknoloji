@@ -189,6 +189,12 @@ class ExploreController extends GetxController {
 
   void resetSurfaceForTabTransition() => _handleResetSurfaceForTabTransition();
 
+  void capturePendingFloodEntry({int? preferredIndex, PostsModel? model}) =>
+      _performCapturePendingFloodEntry(
+        preferredIndex: preferredIndex,
+        model: model,
+      );
+
   @override
   void onClose() {
     _handleOnClose();

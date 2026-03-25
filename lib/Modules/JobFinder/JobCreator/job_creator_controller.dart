@@ -132,6 +132,9 @@ class JobCreatorController extends GetxController {
   String localizedBenefits(List<String> values) =>
       _JobCreatorControllerSupportX(this).localizedBenefits(values);
 
+  int parseMoneyInput(String value) =>
+      _JobCreatorControllerSupportX(this).parseMoneyInput(value);
+
   @override
   void onInit() {
     super.onInit();
