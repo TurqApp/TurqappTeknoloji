@@ -52,6 +52,7 @@ class QALabRemoteUploader extends GetxService {
   String _activeSessionId = '';
   DateTime? _lastGateRefreshAt;
   DateTime? _permissionDeniedUntil;
+  String _permissionDeniedSessionId = '';
 
   Future<void> scheduleUpload({
     required Map<String, dynamic> sessionDocument,
@@ -64,6 +65,7 @@ class QALabRemoteUploader extends GetxService {
     }
     final sessionId = (sessionDocument['sessionId'] ?? '').toString().trim();
     if (sessionId.isNotEmpty && sessionId != _activeSessionId) {
+      _clearPermissionDeniedBlockForNewSession(sessionId);
       _activeSessionId = sessionId;
       _uploadedOccurrenceIds.clear();
     }
@@ -100,6 +102,8 @@ class QALabRemoteUploader extends GetxService {
     _pendingOccurrences.clear();
     _uploadedOccurrenceIds.clear();
     _activeSessionId = '';
+    _permissionDeniedSessionId = '';
+    _permissionDeniedUntil = null;
     uploadCount.value = 0;
     uploadedOccurrenceCount.value = 0;
     lastSyncState.value = 'idle';
@@ -140,12 +144,12 @@ class QALabRemoteUploader extends GetxService {
     lastSyncState.value = 'uploading';
     lastSyncError.value = '';
     lastSyncReason.value = reason;
+    final sessionId =
+        (sessionDocument['sessionId'] ?? '').toString().trim().isEmpty
+            ? DateTime.now().millisecondsSinceEpoch.toString()
+            : (sessionDocument['sessionId'] ?? '').toString().trim();
 
     try {
-      final sessionId =
-          (sessionDocument['sessionId'] ?? '').toString().trim().isEmpty
-              ? DateTime.now().millisecondsSinceEpoch.toString()
-              : (sessionDocument['sessionId'] ?? '').toString().trim();
       final firestore = _firestoreOverride ?? FirebaseFirestore.instance;
       final scopeRef = firestore
           .collection(QALabMode.remoteCollectionName)
@@ -264,14 +268,15 @@ class QALabRemoteUploader extends GetxService {
         _pendingOccurrences.putIfAbsent(occurrenceId, () => occurrence);
       }
       if (error is FirebaseException && error.code == 'permission-denied') {
-        _permissionDeniedUntil = DateTime.now().add(const Duration(minutes: 1));
+        _permissionDeniedSessionId = sessionId;
+        _permissionDeniedUntil = null;
         remoteCollectionEnabled.value = false;
         lastGateCheckedAt.value = DateTime.now();
         lastSyncState.value = 'permission_denied';
-        lastSyncReason.value = 'write_denied';
+        lastSyncReason.value = 'write_denied_session';
         lastSyncError.value = '$error';
         debugPrint(
-          '[QA_LAB][REMOTE_PERMISSION_DENIED] Upload disabled temporarily after write denial.\n$stackTrace',
+          '[QA_LAB][REMOTE_PERMISSION_DENIED] Upload disabled for session $sessionId after write denial.\n$stackTrace',
         );
         return;
       }
@@ -337,6 +342,10 @@ class QALabRemoteUploader extends GetxService {
   Future<bool> _isRemoteGateEnabled() async {
     _ensureAdminConfigSubscription();
     final now = DateTime.now();
+    if (_permissionDeniedSessionId.isNotEmpty &&
+        _permissionDeniedSessionId == _activeSessionId) {
+      return false;
+    }
     if (_permissionDeniedUntil != null &&
         now.isBefore(_permissionDeniedUntil!)) {
       return false;
@@ -406,7 +415,8 @@ class QALabRemoteUploader extends GetxService {
     if (enabled) {
       _permissionDeniedUntil = null;
       if (lastSyncState.value == 'disabled_by_admin' ||
-          lastSyncState.value == 'permission_denied') {
+          (lastSyncState.value == 'permission_denied' &&
+              _permissionDeniedSessionId.isEmpty)) {
         lastSyncState.value = 'idle';
         lastSyncError.value = '';
       }
@@ -461,6 +471,20 @@ class QALabRemoteUploader extends GetxService {
     if (value is int) return value;
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  void _clearPermissionDeniedBlockForNewSession(String sessionId) {
+    if (_permissionDeniedSessionId.isEmpty ||
+        _permissionDeniedSessionId == sessionId) {
+      return;
+    }
+    _permissionDeniedSessionId = '';
+    _permissionDeniedUntil = null;
+    _lastGateRefreshAt = null;
+    if (lastSyncState.value == 'permission_denied') {
+      lastSyncState.value = 'idle';
+      lastSyncError.value = '';
+    }
   }
 
   @override
