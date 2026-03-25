@@ -130,3 +130,57 @@ extension AgendaControllerSupportPart on AgendaController {
     }).toList(growable: false);
   }
 }
+
+extension AgendaControllerPublicApiPart on AgendaController {
+  Future<void> addNewReshareEntryWithoutScroll(
+    String postId,
+    String reshareUserID,
+  ) =>
+      _performAddNewReshareEntryWithoutScroll(postId, reshareUserID);
+
+  void removeReshareEntry(String postId, String reshareUserID) =>
+      _performRemoveReshareEntry(postId, reshareUserID);
+
+  void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
+      _performOnPostVisibilityChanged(modelIndex, visibleFraction);
+
+  void suspendPlaybackForOverlay() => _performSuspendPlaybackForOverlay();
+
+  void resumePlaybackAfterOverlay() => _performResumePlaybackAfterOverlay();
+
+  void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
+
+  void _scheduleVisibilityEvaluation({
+    required double playThreshold,
+    required double stopThreshold,
+  }) =>
+      _performScheduleVisibilityEvaluation(
+        playThreshold: playThreshold,
+        stopThreshold: stopThreshold,
+      );
+
+  void _evaluateCenteredPlayback({
+    required double playThreshold,
+    required double stopThreshold,
+  }) =>
+      _performEvaluateCenteredPlayback(
+        playThreshold: playThreshold,
+        stopThreshold: stopThreshold,
+      );
+
+  void _trackPlaybackWindow() => _performTrackPlaybackWindow();
+
+  void _bindFollowingListener() => _performBindFollowingListener();
+
+  void _bindMergedFeedEntries() => _performBindMergedFeedEntries();
+
+  void _bindFilteredFeedEntries() => _performBindFilteredFeedEntries();
+
+  void _bindRenderFeedEntries() => _performBindRenderFeedEntries();
+
+  void _rebuildMergedFeedEntries() => _performRebuildMergedFeedEntries();
+
+  void _rebuildFilteredFeedEntries() => _performRebuildFilteredFeedEntries();
+
+  void _rebuildRenderFeedEntries() => _performRebuildRenderFeedEntries();
+}

@@ -35,33 +35,17 @@ part 'agenda_controller_lifecycle_part.dart';
 part 'agenda_controller_loading_part.dart';
 part 'agenda_controller_loading_cache_part.dart';
 part 'agenda_controller_loading_shuffle_part.dart';
+part 'agenda_controller_models_part.dart';
 part 'agenda_controller_playback_part.dart';
 part 'agenda_controller_render_part.dart';
 part 'agenda_controller_reshare_part.dart';
 part 'agenda_controller_support_part.dart';
 
-enum FeedViewMode { forYou, following, city }
-
-class _AgendaSourcePage {
-  const _AgendaSourcePage({
-    required this.items,
-    required this.lastDoc,
-    required this.usesPrimaryFeed,
-  });
-
-  final List<PostsModel> items;
-  final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
-  final bool usesPrimaryFeed;
-}
-
 class AgendaController extends GetxController {
   static AgendaController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
-    return Get.put(
-      AgendaController(),
-      permanent: permanent,
-    );
+    return Get.put(AgendaController(), permanent: permanent);
   }
 
   static AgendaController? maybeFind() {
@@ -91,8 +75,6 @@ class AgendaController extends GetxController {
       <Map<String, dynamic>>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
 
-  /// FAB gösterimi için kullanılır. Her frame'de reactive güncelleme yapmak yerine
-  /// sadece eşik aşıldığında güncellenir (scroll jank'ı engeller).
   final RxBool showFAB = true.obs;
   final RxInt centeredIndex = 0.obs;
   final RxBool playbackSuspended = false.obs;
@@ -127,12 +109,11 @@ class AgendaController extends GetxController {
 
   final RxSet<String> followingIDs = <String>{}.obs;
   final Rx<FeedViewMode> feedViewMode = FeedViewMode.forYou.obs;
-  final RxMap<String, int> myReshares =
-      <String, int>{}.obs; // postID -> reshare timestamp
+  final RxMap<String, int> myReshares = <String, int>{}.obs;
   final RxList<Map<String, dynamic>> publicReshareEvents =
-      <Map<String, dynamic>>[].obs; // {postID,userID,timeStamp}
+      <Map<String, dynamic>>[].obs;
   final RxList<Map<String, dynamic>> feedReshareEntries =
-      <Map<String, dynamic>>[].obs; // Feed'de görünecek reshare entry'leri
+      <Map<String, dynamic>>[].obs;
   final Map<String, bool> _userPrivacyCache = {};
   final Map<String, bool> _userDeactivatedCache = {};
 
@@ -153,7 +134,6 @@ class AgendaController extends GetxController {
   String? _lastPlaybackCommandDocId;
   bool _feedModeFallbackQueued = false;
   int _feedModeFallbackEpoch = 0;
-  // null => no time window limit
   static const Duration? _agendaWindow = null;
   static const int _reshareScanPostLimit = 12;
 
@@ -174,60 +154,4 @@ class AgendaController extends GetxController {
     _handleLifecycleClose();
     super.onClose();
   }
-
-  Future<void> addNewReshareEntryWithoutScroll(
-    String postId,
-    String reshareUserID,
-  ) =>
-      _performAddNewReshareEntryWithoutScroll(postId, reshareUserID);
-
-  void removeReshareEntry(String postId, String reshareUserID) =>
-      _performRemoveReshareEntry(postId, reshareUserID);
-
-  void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
-      _performOnPostVisibilityChanged(modelIndex, visibleFraction);
-
-  void suspendPlaybackForOverlay() => _performSuspendPlaybackForOverlay();
-
-  void resumePlaybackAfterOverlay() => _performResumePlaybackAfterOverlay();
-
-  void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
-
-  void _scheduleVisibilityEvaluation({
-    required double playThreshold,
-    required double stopThreshold,
-  }) =>
-      _performScheduleVisibilityEvaluation(
-        playThreshold: playThreshold,
-        stopThreshold: stopThreshold,
-      );
-
-  void _evaluateCenteredPlayback({
-    required double playThreshold,
-    required double stopThreshold,
-  }) =>
-      _performEvaluateCenteredPlayback(
-        playThreshold: playThreshold,
-        stopThreshold: stopThreshold,
-      );
-
-  void _trackPlaybackWindow() => _performTrackPlaybackWindow();
-
-  void _bindFollowingListener() => _performBindFollowingListener();
-
-  void _bindMergedFeedEntries() => _performBindMergedFeedEntries();
-
-  void _bindFilteredFeedEntries() => _performBindFilteredFeedEntries();
-
-  void _bindRenderFeedEntries() => _performBindRenderFeedEntries();
-
-  void _rebuildMergedFeedEntries() => _performRebuildMergedFeedEntries();
-
-  void _rebuildFilteredFeedEntries() => _performRebuildFilteredFeedEntries();
-
-  void _rebuildRenderFeedEntries() => _performRebuildRenderFeedEntries();
-
-  /// Pull-based following + reshares fetch (realtime listener yerine).
-  /// Dışarıdan da çağrılabilir (ör. follow/unfollow sonrası).
-  // Yeni yüklenen gönderileri en üste almak için güvenli yenileme
 }

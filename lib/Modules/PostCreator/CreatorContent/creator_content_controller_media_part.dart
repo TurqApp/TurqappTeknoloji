@@ -520,7 +520,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
   }
 
   void _performSetVideoLookPreset(String preset) {
-    if (!CreatorContentController.supportedVideoLookPresets.contains(preset)) {
+    if (!kCreatorSupportedVideoLookPresets.contains(preset)) {
       return;
     }
     videoLookPreset.value = preset;

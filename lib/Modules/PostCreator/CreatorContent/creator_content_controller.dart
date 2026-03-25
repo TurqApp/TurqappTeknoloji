@@ -28,15 +28,15 @@ import '../post_creator_controller.dart';
 import 'composer_hashtag_utils.dart';
 
 part 'creator_content_controller_poll_part.dart';
+part 'creator_content_controller_lifecycle_part.dart';
 part 'creator_content_controller_media_part.dart';
 part 'creator_content_controller_video_part.dart';
 part 'creator_content_controller_hashtag_part.dart';
 
 class CreatorContentController extends GetxController
     with WidgetsBindingObserver {
-  void _handleTextEditingChanged() {
-    refreshHashtagSuggestionsFromCursor();
-  }
+  void _handleTextEditingChanged() =>
+      _CreatorContentControllerLifecyclePart(this).handleTextEditingChanged();
 
   static CreatorContentController ensure({
     String? tag,
@@ -44,11 +44,7 @@ class CreatorContentController extends GetxController
   }) {
     final existing = maybeFind(tag: tag);
     if (existing != null) return existing;
-    return Get.put(
-      CreatorContentController(),
-      tag: tag,
-      permanent: permanent,
-    );
+    return Get.put(CreatorContentController(), tag: tag, permanent: permanent);
   }
 
   static CreatorContentController? maybeFind({String? tag}) {
@@ -56,14 +52,6 @@ class CreatorContentController extends GetxController
     if (!isRegistered) return null;
     return Get.find<CreatorContentController>(tag: tag);
   }
-
-  static const List<String> supportedVideoLookPresets = <String>[
-    'original',
-    'clear',
-    'cinema',
-    'vibe',
-    'bright',
-  ];
 
   TextEditingController textEdit = TextEditingController();
   final ImagePicker picker = ImagePicker();
@@ -93,10 +81,7 @@ class CreatorContentController extends GetxController
   final RxList<String> reusedImageUrls = <String>[].obs;
   final RxString videoLookPreset = 'original'.obs;
 
-  // User-selected custom thumbnail for video posts
   final Rx<Uint8List?> selectedThumbnail = Rx<Uint8List?>(null);
-
-  // Poll data for this post (question + options)
   final Rxn<Map<String, dynamic>> pollData = Rxn<Map<String, dynamic>>();
 
   var adres = "".obs;
@@ -112,30 +97,19 @@ class CreatorContentController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    WidgetsBinding.instance.addObserver(this);
-    textEdit.addListener(_handleTextEditingChanged);
+    _CreatorContentControllerLifecyclePart(this).handleOnInit();
   }
 
   @override
   void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
-    textEdit.removeListener(_handleTextEditingChanged);
-    unawaited(_releaseVideoController());
-    isPlaying.value = false;
-    focus.dispose();
-    textEdit.dispose();
+    _CreatorContentControllerLifecyclePart(this).handleOnClose();
     super.onClose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      unawaited(forcePauseVideo());
-    }
-  }
+  void didChangeAppLifecycleState(AppLifecycleState state) =>
+      _CreatorContentControllerLifecyclePart(this)
+          .didChangeAppLifecycleState(state);
 
   Future<void> openPollComposer() => _performOpenPollComposer();
 
@@ -191,7 +165,6 @@ class CreatorContentController extends GetxController
 
   void _enforceImageCap() => _performEnforceImageCap();
 
-  /// Opens a bottom sheet to pick a custom thumbnail frame from the selected video
   Future<void> openThumbnailPicker() => _performOpenThumbnailPicker();
 
   Future<void> goToLocationMap() => _performGoToLocationMap();

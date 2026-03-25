@@ -8,6 +8,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'StoryLikes/story_likes.dart';
 import 'StorySeens/story_seens.dart';
 
+part 'user_story_content_controller_runtime_part.dart';
+
 class UserStoryContentController extends GetxController {
   static UserStoryContentController ensure({
     required String tag,
@@ -62,169 +64,45 @@ class UserStoryContentController extends GetxController {
   final RxMap<String, int> reactionCounts = <String, int>{}.obs;
   final RxString myReaction = ''.obs;
 
-  Future<void> getLikes(String storyID) async {
-    final uid = _currentUid;
-    final snapshot = await _storyRepository.fetchStoryEngagement(
-      storyID,
-      currentUid: uid,
-    );
-    likeCount.value = snapshot.likeCount;
-    isLikedMe.value = snapshot.isLiked;
-    reactionCounts.assignAll(snapshot.reactionCounts);
-    myReaction.value = snapshot.myReaction;
-  }
+  Future<void> getLikes(String storyID) =>
+      _UserStoryContentControllerRuntimePart(this).getLikes(storyID);
 
   Future<void> showPostCommentsBottomSheet(
-      String docID, String nickname, bool isMyStory,
-      {void Function(bool)? onClosed}) async {
-    Get.bottomSheet(
-      SizedBox(
-        height: Get.height * 0.55,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: StoryComments(
-              storyID: storyID, nickname: nickname, isMyStory: isMyStory),
-        ),
-      ),
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      barrierColor: Colors.black54,
-    ).then((_) {
-      if (onClosed != null) {
-        onClosed(true); // Sheet kapandı, callback tetikleniyor
-      }
-    });
-  }
-
-  Future<void> showLikesBottomSheet(String docID,
-      {void Function(bool)? onClosed}) async {
-    Get.bottomSheet(
-      SizedBox(
-        height: Get.height * 0.55,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: StoryLikes(storyID: storyID),
-        ),
-      ),
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      barrierColor: Colors.black54,
-    ).then((_) {
-      if (onClosed != null) {
-        onClosed(true);
-      }
-    });
-  }
-
-  Future<void> showSeensBottomSheet(String docID,
-      {void Function(bool)? onClosed}) async {
-    Get.bottomSheet(
-      SizedBox(
-        height: Get.height * 0.55,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: StorySeens(storyID: storyID),
-        ),
-      ),
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      barrierColor: Colors.black54,
-    ).then((_) {
-      if (onClosed != null) {
-        onClosed(true);
-      }
-    });
-  }
-
-  Future<void> getReactions(String storyID) async {
-    try {
-      final uid = _currentUid;
-      final snapshot = await _storyRepository.fetchStoryEngagement(
-        storyID,
-        currentUid: uid,
-      );
-      reactionCounts.assignAll(snapshot.reactionCounts);
-      myReaction.value = snapshot.myReaction;
-    } catch (e) {
-      debugPrint("getReactions error: $e");
-    }
-  }
-
-  Future<void> react(String storyID, String emoji) async {
-    try {
-      final uid = _currentUid;
-      if (uid.isEmpty) return;
-
-      final previousReaction = myReaction.value;
-      final nextReaction = await _storyRepository.toggleStoryReaction(
-        storyID,
-        currentUid: uid,
-        emoji: emoji,
-        currentReaction: previousReaction,
+    String docID,
+    String nickname,
+    bool isMyStory, {
+    void Function(bool)? onClosed,
+  }) =>
+      _UserStoryContentControllerRuntimePart(this).showPostCommentsBottomSheet(
+        docID,
+        nickname,
+        isMyStory,
+        onClosed: onClosed,
       );
 
-      if (previousReaction == emoji) {
-        reactionCounts[emoji] = (reactionCounts[emoji] ?? 1) - 1;
-        if (reactionCounts[emoji]! <= 0) reactionCounts.remove(emoji);
-        myReaction.value = '';
-      } else {
-        if (previousReaction.isNotEmpty) {
-          reactionCounts[previousReaction] =
-              (reactionCounts[previousReaction] ?? 1) - 1;
-          if (reactionCounts[previousReaction]! <= 0) {
-            reactionCounts.remove(previousReaction);
-          }
-        }
-        reactionCounts[emoji] = (reactionCounts[emoji] ?? 0) + 1;
-        myReaction.value = nextReaction;
-      }
-      HapticFeedback.lightImpact();
-    } catch (e) {
-      debugPrint("react error: $e");
-    }
-  }
+  Future<void> showLikesBottomSheet(
+    String docID, {
+    void Function(bool)? onClosed,
+  }) =>
+      _UserStoryContentControllerRuntimePart(this)
+          .showLikesBottomSheet(docID, onClosed: onClosed);
 
-  Future<void> like(String storyID) async {
-    final uid = _currentUid;
-    if (uid.isEmpty) return;
-    final next = await _storyRepository.toggleStoryLike(
-      storyID,
-      currentUid: uid,
-    );
-    if (next) {
-      isLikedMe.value = true;
-      if (likeCount.value >= 0) {
-        likeCount.value++;
-      }
-    } else {
-      isLikedMe.value = false;
-      if (likeCount.value >= 0) {
-        likeCount.value--;
-      }
-    }
-  }
+  Future<void> showSeensBottomSheet(
+    String docID, {
+    void Function(bool)? onClosed,
+  }) =>
+      _UserStoryContentControllerRuntimePart(this)
+          .showSeensBottomSheet(docID, onClosed: onClosed);
 
-  Future<void> setSeen(String storyID) async {
-    final uid = _currentUid;
-    if (uid.isEmpty) return;
-    await _storyRepository.setStorySeen(
-      storyID,
-      currentUid: uid,
-    );
-  }
+  Future<void> getReactions(String storyID) =>
+      _UserStoryContentControllerRuntimePart(this).getReactions(storyID);
+
+  Future<void> react(String storyID, String emoji) =>
+      _UserStoryContentControllerRuntimePart(this).react(storyID, emoji);
+
+  Future<void> like(String storyID) =>
+      _UserStoryContentControllerRuntimePart(this).like(storyID);
+
+  Future<void> setSeen(String storyID) =>
+      _UserStoryContentControllerRuntimePart(this).setSeen(storyID);
 }

@@ -26,6 +26,7 @@ import '../../Services/current_user_service.dart';
 import '../Profile/Settings/settings_controller.dart';
 
 part 'nav_bar_controller_lifecycle_part.dart';
+part 'nav_bar_controller_support_part.dart';
 part 'nav_bar_controller_update_part.dart';
 
 typedef TextUpdate = String;
@@ -89,87 +90,16 @@ class NavBarController extends GetxController
   Timer? _uploadIndicatorTimer;
   Timer? _ratingPromptTimer;
 
-  String _selectedIndexKeyFor(String uid) =>
-      '${_selectedIndexPrefKeyPrefix}_$uid';
+  Future<void> restorePersistedIndex() =>
+      _NavBarControllerSupportPart(this).restorePersistedIndex();
 
-  int _normalizeSelectedIndex(int value) {
-    if (value == 2) return 0;
-    if (value < 0) return 0;
-    if (value > 4) return 4;
-    return value;
-  }
-
-  Future<void> restorePersistedIndex() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(_selectedIndexKeyFor(uid));
-      if (stored == null) return;
-      selectedIndex.value = _normalizeSelectedIndex(stored);
-    } catch (_) {}
-  }
-
-  Future<void> _persistSelectedIndex(int index) async {
-    if (index == 2) return;
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        _selectedIndexKeyFor(uid),
-        _normalizeSelectedIndex(index),
-      );
-    } catch (_) {}
-  }
+  Future<void> _persistSelectedIndex(int index) =>
+      _NavBarControllerSupportPart(this).persistSelectedIndex(index);
 
   @override
   void onInit() {
     super.onInit();
-    WidgetsBinding.instance.addObserver(this);
-
-    // Animation Controllers
-    animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    ).obs;
-    animationController.value.repeat();
-
-    typingController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    ).obs;
-    typingController.value.addListener(() {
-      visibleCharCount.value =
-          (fullText.length * typingController.value.value).floor();
-    });
-
-    deletingController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    ).obs;
-    deletingController.value.addListener(() {
-      removeCharCount.value =
-          (deletingController.value.value * fullText.length).floor();
-    });
-
-    unawaited(restorePersistedIndex());
-    _runAcilisAnimation();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!_isDisposed && !IntegrationTestMode.suppressPeriodicSideEffects) {
-        unawaited(checkAppVersion());
-      }
-    });
-    if (!IntegrationTestMode.suppressPeriodicSideEffects) {
-      _scheduleRatingPrompt(const Duration(seconds: 25));
-    }
-
-    if (!GetPlatform.isIOS &&
-        !IntegrationTestMode.suppressPeriodicSideEffects) {
-      _startBackgroundCacheLoop();
-    }
-    _startUploadIndicatorSync();
-    // Baslangicta e-posta dogrulama popup'i kapali.
+    _NavBarControllerSupportPart(this).handleOnInit();
   }
 
   void _startBackgroundCacheLoop() => _startBackgroundCacheLoopImpl();
@@ -180,30 +110,7 @@ class NavBarController extends GetxController
 
   @override
   void onClose() {
-    // ⚠️ CRITICAL FIX: Mark as disposed first to stop animations
-    _isDisposed = true;
-
-    _backgroundCacheTimer?.cancel();
-    _backgroundCacheTimer = null;
-    _uploadIndicatorTimer?.cancel();
-    _uploadIndicatorTimer = null;
-    _ratingPromptTimer?.cancel();
-    _ratingPromptTimer = null;
-    WidgetsBinding.instance.removeObserver(this);
-
-    // Dispose animation controllers safely
-    try {
-      typingController.value.dispose();
-    } catch (_) {}
-
-    try {
-      deletingController.value.dispose();
-    } catch (_) {}
-
-    try {
-      animationController.value.dispose();
-    } catch (_) {}
-
+    _NavBarControllerSupportPart(this).handleOnClose();
     super.onClose();
   }
 
