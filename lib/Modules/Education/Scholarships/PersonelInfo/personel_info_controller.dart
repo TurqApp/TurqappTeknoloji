@@ -12,6 +12,7 @@ import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'personel_info_controller_data_part.dart';
+part 'personel_info_controller_fields_part.dart';
 part 'personel_info_controller_labels_part.dart';
 part 'personel_info_controller_form_part.dart';
 
@@ -35,40 +36,7 @@ class PersonelInfoController extends GetxController
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
-  final tc = ''.obs;
-  final medeniHal = _single.obs;
-  final county = _turkey.obs;
-  final cinsiyet = _selectValue.obs;
-  final engelliRaporu = _none.obs;
-  final calismaDurumu = _notWorking.obs;
-  final city = ''.obs;
-  final town = ''.obs;
-  final selectedDate = Rxn<DateTime>();
-
-  final originalTC = ''.obs;
-  final originalMedeniHal = _single.obs;
-  final originalCounty = _turkey.obs;
-  final originalCinsiyet = _selectValue.obs;
-  final originalEngelliRaporu = _none.obs;
-  final originalCalismaDurumu = _notWorking.obs;
-  final originalCity = ''.obs;
-  final originalTown = ''.obs;
-  final originalSelectedDate = Rxn<DateTime>();
-
-  final isLoading = true.obs;
-  final isSaving = false.obs;
-  final sehirlerVeIlcelerData = <CitiesModel>[].obs;
-  final sehirler = <String>[].obs;
-
-  final medeniHalList = [_single, _married, _divorced];
-  final cinsiyetList = [_male, _female];
-  final engelliRaporuList = [_hasReport, _none];
-  final calismaDurumuList = [_working, _notWorking];
-  final countryList = _countryList;
-
-  late final List<FieldConfig> fieldConfigs;
-  final Map<String, AnimationController> _animationControllers = {};
-  final Map<String, RxDouble> _animationTurns = {};
+  final _state = _PersonelInfoControllerState();
 
   String get defaultSelectValue => _selectValue;
   String get turkeyValue => _turkey;

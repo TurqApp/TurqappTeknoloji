@@ -8,6 +8,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/sav
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'deneme_sinavi_preview_controller_fields_part.dart';
 part 'deneme_sinavi_preview_controller_actions_part.dart';
 part 'deneme_sinavi_preview_controller_runtime_part.dart';
 
@@ -36,20 +37,8 @@ class DenemeSinaviPreviewController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
-  var displayName = "".obs;
-  var nickname = "".obs;
-  var avatarUrl = "".obs;
-  var dahaOnceBasvurdu = false.obs;
-  var basvuranSayisi = 0.obs;
-  var currentTime = DateTime.now().millisecondsSinceEpoch.obs;
-  var showSucces = false.obs;
-  var sinavaGirebilir = false.obs;
-  var examTime = 0.obs;
-  var isLoading = true.obs;
-  var isInitialized = false.obs;
-  var isSaved = false.obs;
   final int fifteenMinutes = 15 * 60 * 1000;
-
+  final _state = _DenemeSinaviPreviewControllerState();
   final SinavModel model;
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 

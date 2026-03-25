@@ -25,6 +25,7 @@ import '../../Models/posts_model.dart';
 
 part 'short_controller_loading_part.dart';
 part 'short_controller_cache_part.dart';
+part 'short_controller_fields_part.dart';
 part 'short_controller_runtime_part.dart';
 part 'short_controller_models_part.dart';
 
@@ -37,45 +38,10 @@ class ShortController extends GetxController {
   static ShortController? maybeFind() => _maybeFindShortController();
 
   void _log(String message) => _ShortControllerRuntimeX(this).log(message);
-
-  final RxList<PostsModel> shorts = <PostsModel>[].obs;
-  final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
-  final ShortPlaybackCoordinator _playbackCoordinator =
-      ShortPlaybackCoordinator.forCurrentPlatform();
-  final Map<int, HLSVideoAdapter> cache = {};
-  final Map<int, _CacheTier> _tiers = {};
-  final lastIndex = 0.obs;
-  Future<void>? _backgroundPreloadFuture;
-  Future<void>? _initialLoadFuture;
+  final _state = _ShortControllerState();
 
   bool _isEligibleShortPost(PostsModel post) =>
       _ShortControllerRuntimeX(this).isEligibleShortPost(post);
-
-  // Dinamik yükleme durumları
-  final int pageSize = 20;
-  final RxBool isLoading = false.obs;
-  final RxBool hasMore = true.obs;
-  final RxBool isRefreshing = false.obs; // Yenileme durumu
-  QueryDocumentSnapshot<Map<String, dynamic>>? _lastDoc;
-
-  // Basit yapı - davranış analizi kaldırıldı
-
-  // Takip edilenler takibi
-  final Set<String> _followingIDs = {};
-  StreamSubscription? _followingSub;
-
-  /// Kullanıcı özet cache'i — visibility ve rozet kuralını tekrar çözümlememek için tutulur.
-  final _authorSummaryCache = LRUCache<String, UserSummary>(
-    capacity: 500,
-    ttl: const Duration(minutes: 10),
-  );
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final ShortRepository _shortRepository = ShortRepository.ensure();
-  final ShortSnapshotRepository _shortSnapshotRepository =
-      ShortSnapshotRepository.ensure();
-  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
 
   @override
   void onInit() {

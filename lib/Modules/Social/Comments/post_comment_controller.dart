@@ -12,6 +12,7 @@ import '../../../Services/current_user_service.dart';
 import '../../../Services/post_interaction_service.dart';
 
 part 'post_comment_controller_actions_part.dart';
+part 'post_comment_controller_fields_part.dart';
 part 'post_comment_controller_runtime_part.dart';
 
 class PostCommentController extends GetxController {
@@ -54,21 +55,7 @@ class PostCommentController extends GetxController {
   final PostInteractionService _interactionService =
       PostInteractionService.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-
-  final RxList<PostCommentModel> list = <PostCommentModel>[].obs;
-  final RxSet<String> pendingCommentIds = <String>{}.obs;
-  final RxString postUserNickname = ''.obs;
-  final RxString replyingToCommentId = ''.obs;
-  final RxString replyingToNickname = ''.obs;
-  final RxString selectedGifUrl = ''.obs;
-  final RxString lastSuccessfulCommentId = ''.obs;
-  final RxString lastSuccessfulSendText = ''.obs;
-  final RxBool lastSuccessfulSendWasReply = false.obs;
-  final RxString lastDeletedCommentId = ''.obs;
-  final RxString lastDeletedCommentText = ''.obs;
-  final Map<String, PostCommentModel> _pendingLocalComments = {};
-
-  StreamSubscription<List<PostCommentModel>>? _commentSub;
+  final _state = _PostCommentControllerState();
 
   @override
   void onInit() {

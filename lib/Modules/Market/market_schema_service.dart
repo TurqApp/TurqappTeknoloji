@@ -6,15 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'market_schema_seed.dart';
 
+part 'market_schema_service_fields_part.dart';
 part 'market_schema_service_labels_part.dart';
+part 'market_schema_service_runtime_part.dart';
 
 class MarketSchemaService extends GetxService {
   static const String _cacheKey = 'market_schema_v1';
   static const String _cacheVersionKey = 'market_schema_v1_version';
   static const String _assetPath = 'assets/data/market_schema.json';
-
-  final RxMap<String, dynamic> schema = <String, dynamic>{}.obs;
-  SharedPreferences? _prefs;
+  final _state = _MarketSchemaServiceState();
 
   static MarketSchemaService? maybeFind() {
     final isRegistered = Get.isRegistered<MarketSchemaService>();
@@ -36,31 +36,9 @@ class MarketSchemaService extends GetxService {
     });
   }
 
-  Future<Map<String, dynamic>> loadSchema({bool forceRefresh = false}) async {
-    _prefs ??= await SharedPreferences.getInstance();
-
-    if (!forceRefresh) {
-      final cachedRaw = _prefs?.getString(_cacheKey) ?? '';
-      if (cachedRaw.isNotEmpty) {
-        try {
-          final parsed = Map<String, dynamic>.from(
-            json.decode(cachedRaw) as Map,
-          );
-          schema.assignAll(parsed);
-          return parsed;
-        } catch (_) {}
-      }
-    }
-
-    final fallback = await _loadFallbackSchema();
-    schema.assignAll(fallback);
-    await _prefs?.setString(_cacheKey, json.encode(fallback));
-    await _prefs?.setInt(
-      _cacheVersionKey,
-      (fallback['version'] as num?)?.toInt() ?? 1,
-    );
-    return fallback;
-  }
+  Future<Map<String, dynamic>> loadSchema({bool forceRefresh = false}) =>
+      _MarketSchemaServiceRuntimePart(this)
+          .loadSchema(forceRefresh: forceRefresh);
 
   List<Map<String, dynamic>> roundMenuItems() =>
       MarketSchemaServiceLabelsPart(this).roundMenuItems();
@@ -76,15 +54,4 @@ class MarketSchemaService extends GetxService {
 
   String? _categoryLabelFor(String key) =>
       MarketSchemaServiceLabelsPart(this).categoryLabelFor(key);
-
-  Future<Map<String, dynamic>> _loadFallbackSchema() async {
-    try {
-      final raw = await rootBundle.loadString(_assetPath);
-      return Map<String, dynamic>.from(json.decode(raw) as Map);
-    } catch (_) {
-      return Map<String, dynamic>.from(
-        json.decode(kMarketSchemaSeedJson) as Map,
-      );
-    }
-  }
 }

@@ -59,6 +59,6 @@ extension _ShortControllerRuntimeX on ShortController {
     _log('[Shorts] ❌ ShortController.onClose() called');
     _playbackCoordinator.reset();
     clearCache();
-    _followingSub?.cancel();
+    _state.followingSub?.cancel();
   }
 }

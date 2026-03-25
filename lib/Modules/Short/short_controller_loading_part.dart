@@ -17,7 +17,7 @@ extension ShortControllerLoadingPart on ShortController {
   void _bindFollowingListener() {
     final myUid = CurrentUserService.instance.effectiveUserId;
     if (myUid.isEmpty) return;
-    _followingSub?.cancel();
+    _state.followingSub?.cancel();
     _fetchFollowingList(myUid);
   }
 

@@ -11,6 +11,7 @@ import 'package:turqappv2/Themes/app_fonts.dart';
 
 part 'page_line_bar_controller_part.dart';
 part 'page_line_bar_controller_fields_part.dart';
+part 'page_line_bar_controller_support_part.dart';
 
 const String kExplorePageLineBarTag = 'explore_page_line_bar';
 const String kSavedPostsPageLineBarTag = 'saved_posts_page_line_bar';

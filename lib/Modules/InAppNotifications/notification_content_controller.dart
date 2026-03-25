@@ -10,6 +10,7 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'notification_content_controller_fields_part.dart';
+part 'notification_content_controller_actions_part.dart';
 part 'notification_content_controller_runtime_part.dart';
 
 class NotificationContentController extends GetxController {
@@ -68,24 +69,7 @@ class NotificationContentController extends GetxController {
   Future<void> getPostData(String docID) =>
       _NotificationContentControllerRuntimePart(this).getPostData(docID);
 
-  Future<void> toggleFollowStatus(String userID) async {
-    if (followLoading.value) return;
-    final wasFollowing = following.value;
-    following.value = !wasFollowing; // optimistic
-    followLoading.value = true;
-    try {
-      final outcome = await FollowService.toggleFollow(userID);
-      following.value = outcome.nowFollowing; // reconcile
-      if (outcome.limitReached) {
-        AppSnackbar(
-          'following.limit_title'.tr,
-          'following.limit_body'.tr,
-        );
-      }
-    } catch (e) {
-      following.value = wasFollowing; // revert
-    } finally {
-      followLoading.value = false;
-    }
-  }
+  Future<void> toggleFollowStatus(String userID) =>
+      _NotificationContentControllerActionsPart(this)
+          .toggleFollowStatus(userID);
 }
