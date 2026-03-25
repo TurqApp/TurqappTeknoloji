@@ -1,6 +1,23 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerSupportPart on AgendaController {
+  UserProfileCacheService get _profileCache => UserProfileCacheService.ensure();
+
+  UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
+
+  VisibilityPolicyService get _visibilityPolicy =>
+      VisibilityPolicyService.ensure();
+
+  PostRepository get _postRepository => PostRepository.ensure();
+
+  FeedSnapshotRepository get _feedSnapshotRepository =>
+      FeedSnapshotRepository.ensure();
+
+  FeedRenderCoordinator get _feedRenderCoordinator =>
+      FeedRenderCoordinator.ensure();
+
+  RuntimeInvariantGuard get _invariantGuard => RuntimeInvariantGuard.ensure();
+
   bool _isRenderablePost(PostsModel post) {
     if (!post.hasVideoSignal) return true;
     return post.hasRenderableVideoCard;

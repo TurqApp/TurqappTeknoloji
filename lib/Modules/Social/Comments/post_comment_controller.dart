@@ -12,6 +12,7 @@ import '../../../Services/current_user_service.dart';
 import '../../../Services/post_interaction_service.dart';
 
 part 'post_comment_controller_actions_part.dart';
+part 'post_comment_controller_runtime_part.dart';
 
 class PostCommentController extends GetxController {
   static String? _activeTag;
@@ -94,61 +95,20 @@ class PostCommentController extends GetxController {
     if ((controllerTag ?? '').trim().isNotEmpty) {
       _activeTag = controllerTag;
     }
-    _bindComments();
-    _loadPostOwnerNickname();
+    PostCommentControllerRuntimePart(this).onInit();
   }
 
-  void _bindComments() {
-    _commentSub?.cancel();
-    _commentSub = _interactionService
-        .listenComments(postID, limit: 100)
-        .listen((comments) {
-      final serverComments = comments.where((c) => !c.deleted).toList();
-      final serverIds = serverComments.map((c) => c.docID).toSet();
+  void _bindComments() => PostCommentControllerRuntimePart(this).bindComments();
 
-      // Sunucuya düşen pending yorumları local pending havuzundan çıkar.
-      final resolvedPending =
-          pendingCommentIds.where(serverIds.contains).toList();
-      for (final id in resolvedPending) {
-        pendingCommentIds.remove(id);
-        _pendingLocalComments.remove(id);
-      }
-
-      final pendingOnly = _pendingLocalComments.values
-          .where((c) => !serverIds.contains(c.docID))
-          .toList();
-
-      final merged = <PostCommentModel>[
-        ...pendingOnly,
-        ...serverComments,
-      ]..sort((a, b) => (b.timeStamp).compareTo(a.timeStamp));
-
-      list.value = merged;
-    });
-  }
-
-  Future<void> _loadPostOwnerNickname() async {
-    try {
-      final data = await _userSummaryResolver.resolve(
-        userID,
-        preferCache: true,
-      );
-      if (data != null) {
-        postUserNickname.value = data.displayName.trim().isNotEmpty
-            ? data.displayName
-            : data.nickname;
-      }
-    } catch (e) {
-      postUserNickname.value = '';
-    }
-  }
+  Future<void> _loadPostOwnerNickname() =>
+      PostCommentControllerRuntimePart(this).loadPostOwnerNickname();
 
   @override
   void onClose() {
     if (_activeTag == controllerTag) {
       _activeTag = null;
     }
-    _commentSub?.cancel();
+    PostCommentControllerRuntimePart(this).onClose();
     super.onClose();
   }
 }

@@ -55,16 +55,6 @@ class AgendaController extends GetxController {
   }
 
   final scrollController = ScrollController();
-  UserProfileCacheService get _profileCache => UserProfileCacheService.ensure();
-  UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
-  VisibilityPolicyService get _visibilityPolicy =>
-      VisibilityPolicyService.ensure();
-  PostRepository get _postRepository => PostRepository.ensure();
-  FeedSnapshotRepository get _feedSnapshotRepository =>
-      FeedSnapshotRepository.ensure();
-  FeedRenderCoordinator get _feedRenderCoordinator =>
-      FeedRenderCoordinator.ensure();
-  RuntimeInvariantGuard get _invariantGuard => RuntimeInvariantGuard.ensure();
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final RxList<Map<String, dynamic>> mergedFeedEntries =
@@ -154,13 +144,4 @@ class AgendaController extends GetxController {
     _handleLifecycleClose();
     super.onClose();
   }
-
-  Future<void> addNewReshareEntryWithoutScroll(
-    String postId,
-    String reshareUserID,
-  ) =>
-      _performAddNewReshareEntryWithoutScroll(postId, reshareUserID);
-
-  void removeReshareEntry(String postId, String reshareUserID) =>
-      _performRemoveReshareEntry(postId, reshareUserID);
 }

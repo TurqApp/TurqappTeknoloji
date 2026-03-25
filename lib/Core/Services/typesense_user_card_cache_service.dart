@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/typesense_user_service.dart';
 
+part 'typesense_user_card_cache_service_models_part.dart';
+
 class TypesenseUserCardCacheService extends GetxService {
   static const Duration _ttl = Duration(minutes: 15);
   static const String _prefsPrefix = 'typesense_user_cards_v1';
@@ -139,17 +141,4 @@ class TypesenseUserCardCacheService extends GetxService {
   }
 
   String _prefsKey(String cacheKey) => '$_prefsPrefix:$cacheKey';
-}
-
-class _CachedUserCardsResult {
-  const _CachedUserCardsResult({
-    required this.cards,
-    required this.cachedAt,
-  });
-
-  final Map<String, Map<String, dynamic>> cards;
-  final DateTime cachedAt;
-
-  bool get isFresh =>
-      DateTime.now().difference(cachedAt) < TypesenseUserCardCacheService._ttl;
 }
