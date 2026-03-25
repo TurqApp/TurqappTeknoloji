@@ -24,6 +24,7 @@ import 'qa_lab_remote_uploader.dart';
 part 'qa_lab_recorder_models_part.dart';
 part 'qa_lab_recorder_export_part.dart';
 part 'qa_lab_recorder_remote_sync_part.dart';
+part 'qa_lab_recorder_remote_sync_helpers_part.dart';
 part 'qa_lab_recorder_runtime_part.dart';
 part 'qa_lab_recorder_runtime_surfaces_part.dart';
 part 'qa_lab_recorder_runtime_helpers_part.dart';
