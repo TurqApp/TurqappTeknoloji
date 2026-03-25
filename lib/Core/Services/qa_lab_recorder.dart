@@ -107,57 +107,7 @@ class QALabRecorder extends GetxService {
   }
 
   void startSession({String trigger = 'manual'}) {
-    sessionId.value = DateTime.now().millisecondsSinceEpoch.toString();
-    startedAt.value = DateTime.now();
-    lastRoute.value = Get.currentRoute;
-    lastSurface.value =
-        _inferSurfaceFromSnapshot(IntegrationTestStateProbe.snapshot());
-    issues.clear();
-    routes.clear();
-    checkpoints.clear();
-    timelineEvents.clear();
-    lastNativePlaybackSnapshot.clear();
-    nativePlaybackSamples.clear();
-    lastExportPath.value = '';
-    lastLifecycleState.value = '';
-    lastPermissionStatuses.clear();
-    _rateLimitedIssueTimes.clear();
-    _emittedFindingKeys.clear();
-    _lastAutoExportAt = null;
-    _lastNativePlaybackSampleAt = null;
-    _autoExportInFlight = false;
-    _nativePlaybackSampleInFlight = false;
-    _periodicTimer?.cancel();
-    _nativePlaybackTimer?.cancel();
-    _cancelAllSurfaceWatchdogs();
-    if (QALabMode.periodicSnapshots) {
-      _periodicTimer = Timer.periodic(
-        Duration(seconds: QALabMode.periodicSnapshotSeconds),
-        (_) => captureCheckpoint(
-          label: 'heartbeat',
-          surface: lastSurface.value.isEmpty ? 'app' : lastSurface.value,
-          extra: <String, dynamic>{'trigger': trigger},
-        ),
-      );
-    }
-    if (_supportsNativePlaybackSampling) {
-      _nativePlaybackTimer = Timer.periodic(
-        Duration(seconds: QALabMode.nativePlaybackPollSeconds),
-        (_) => unawaited(sampleNativePlayback(trigger: 'poll')),
-      );
-      unawaited(sampleNativePlayback(trigger: 'session_started'));
-    }
-    captureCheckpoint(
-      label: 'session_started',
-      surface: lastSurface.value.isEmpty ? 'app' : lastSurface.value,
-      extra: <String, dynamic>{'trigger': trigger},
-    );
-    unawaited(
-      syncRemoteSummary(
-        reason: 'session_started:$trigger',
-        immediate: false,
-      ),
-    );
+    _startSessionImpl(trigger: trigger);
   }
 
   Future<void> prepareFreshStart({String trigger = 'launch'}) {
@@ -165,15 +115,11 @@ class QALabRecorder extends GetxService {
   }
 
   void resetSession() {
-    startSession(trigger: 'reset');
+    _resetSessionImpl();
   }
 
   void disposeSession() {
-    _periodicTimer?.cancel();
-    _periodicTimer = null;
-    _nativePlaybackTimer?.cancel();
-    _nativePlaybackTimer = null;
-    _cancelAllSurfaceWatchdogs();
+    _disposeSessionImpl();
   }
 
   @override

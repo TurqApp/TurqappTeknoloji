@@ -1,6 +1,72 @@
 part of 'qa_lab_recorder.dart';
 
 extension _QALabRecorderSessionPart on QALabRecorder {
+  void _startSessionImpl({String trigger = 'manual'}) {
+    sessionId.value = DateTime.now().millisecondsSinceEpoch.toString();
+    startedAt.value = DateTime.now();
+    lastRoute.value = Get.currentRoute;
+    lastSurface.value =
+        _inferSurfaceFromSnapshot(IntegrationTestStateProbe.snapshot());
+    issues.clear();
+    routes.clear();
+    checkpoints.clear();
+    timelineEvents.clear();
+    lastNativePlaybackSnapshot.clear();
+    nativePlaybackSamples.clear();
+    lastExportPath.value = '';
+    lastLifecycleState.value = '';
+    lastPermissionStatuses.clear();
+    _rateLimitedIssueTimes.clear();
+    _emittedFindingKeys.clear();
+    _lastAutoExportAt = null;
+    _lastNativePlaybackSampleAt = null;
+    _autoExportInFlight = false;
+    _nativePlaybackSampleInFlight = false;
+    _periodicTimer?.cancel();
+    _nativePlaybackTimer?.cancel();
+    _cancelAllSurfaceWatchdogs();
+    if (QALabMode.periodicSnapshots) {
+      _periodicTimer = Timer.periodic(
+        Duration(seconds: QALabMode.periodicSnapshotSeconds),
+        (_) => captureCheckpoint(
+          label: 'heartbeat',
+          surface: lastSurface.value.isEmpty ? 'app' : lastSurface.value,
+          extra: <String, dynamic>{'trigger': trigger},
+        ),
+      );
+    }
+    if (_supportsNativePlaybackSampling) {
+      _nativePlaybackTimer = Timer.periodic(
+        Duration(seconds: QALabMode.nativePlaybackPollSeconds),
+        (_) => unawaited(sampleNativePlayback(trigger: 'poll')),
+      );
+      unawaited(sampleNativePlayback(trigger: 'session_started'));
+    }
+    captureCheckpoint(
+      label: 'session_started',
+      surface: lastSurface.value.isEmpty ? 'app' : lastSurface.value,
+      extra: <String, dynamic>{'trigger': trigger},
+    );
+    unawaited(
+      syncRemoteSummary(
+        reason: 'session_started:$trigger',
+        immediate: false,
+      ),
+    );
+  }
+
+  void _resetSessionImpl() {
+    _startSessionImpl(trigger: 'reset');
+  }
+
+  void _disposeSessionImpl() {
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
+    _nativePlaybackTimer?.cancel();
+    _nativePlaybackTimer = null;
+    _cancelAllSurfaceWatchdogs();
+  }
+
   Future<void> _prepareFreshStartImpl({String trigger = 'launch'}) async {
     if (!QALabMode.enabled) return;
     final clearedTargets = <String>[];
@@ -96,7 +162,7 @@ extension _QALabRecorderSessionPart on QALabRecorder {
     }
 
     QALabRemoteUploader.maybeFind()?.resetLocalState();
-    startSession(trigger: 'fresh_start:$trigger');
+    _startSessionImpl(trigger: 'fresh_start:$trigger');
     captureCheckpoint(
       label: 'fresh_start_applied',
       surface: lastSurface.value.isEmpty ? 'app' : lastSurface.value,
