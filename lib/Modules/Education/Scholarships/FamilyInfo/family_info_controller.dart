@@ -11,6 +11,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'family_info_controller_data_part.dart';
 part 'family_info_controller_actions_part.dart';
+part 'family_info_controller_runtime_part.dart';
 
 class FamilyInfoController extends GetxController {
   static FamilyInfoController ensure({
@@ -67,99 +68,9 @@ class FamilyInfoController extends GetxController {
   final sehirler = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
 
-  bool _matchesValue(String value, Set<String> variants) =>
-      variants.contains(value.trim());
-
-  bool _isSelectValue(String value) => _matchesValue(value, const <String>{
-        _selectValue,
-        'Select',
-        'Auswählen',
-        'Sélectionner',
-        'Seleziona',
-        'Выбрать',
-      });
-  bool _isSelectJobValue(String value) => _matchesValue(value, const <String>{
-        _selectJob,
-        'Select Job',
-        'Beruf wählen',
-        'Choisir une profession',
-        'Seleziona professione',
-        'Выберите профессию',
-      });
-  bool _isSelectHomeOwnershipValue(String value) =>
-      _matchesValue(value, const <String>{
-        _selectHomeOwnership,
-        'Select',
-        'Auswählen',
-        'Sélectionner',
-        'Seleziona',
-        'Выбрать',
-      });
-  bool _isYesValue(String value) => _matchesValue(value, const <String>{
-        _yesValue,
-        'Yes',
-        'Ja',
-        'Oui',
-        'Sì',
-        'Si',
-        'Да',
-      });
-
-  bool get isFatherUnselected => _isSelectValue(fatherLiving.value);
-  bool get isMotherUnselected => _isSelectValue(motherLiving.value);
-  bool get isFatherAlive => _isYesValue(fatherLiving.value);
-  bool get isMotherAlive => _isYesValue(motherLiving.value);
-  bool get isHomeOwnershipUnselected =>
-      _isSelectHomeOwnershipValue(evMulkiyeti.value);
-
-  String get defaultSelection => _selectValue;
-  String get defaultHomeOwnershipSelection => _selectHomeOwnership;
-  String get defaultJobSelection => _selectJob;
-
   @override
   void onInit() {
     super.onInit();
-    scrollController.addListener(() {
-      FocusScope.of(Get.context!).unfocus();
-    });
-    loadSehirler();
-    fetchFromFirestore();
-
-    // Hayatta mı sorusu değiştiğinde ilgili alanları temizle
-    ever(fatherLiving, (value) {
-      if (!_isYesValue(value)) {
-        _clearFatherFields();
-      }
-    });
-
-    ever(motherLiving, (value) {
-      if (!_isYesValue(value)) {
-        _clearMotherFields();
-      }
-    });
-  }
-
-  String localizedSelection(String value) {
-    switch (value) {
-      case _selectValue:
-      case _selectHomeOwnership:
-        return 'common.select'.tr;
-      case _selectJob:
-        return 'family_info.select_job'.tr;
-      case _yesValue:
-        return 'common.yes'.tr;
-      case _noValue:
-        return 'common.no'.tr;
-      case _ownedHome:
-        return 'family_info.home_owned'.tr;
-      case _relativeHome:
-        return 'family_info.home_relative'.tr;
-      case _lodgingHome:
-        return 'family_info.home_lodging'.tr;
-      case _rentHome:
-        return 'family_info.home_rent'.tr;
-      default:
-        return value;
-    }
+    _handleOnInit();
   }
 }
