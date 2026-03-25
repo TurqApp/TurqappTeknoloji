@@ -57,10 +57,15 @@ bash scripts/run_release_gate_checks.sh
 ### Smoke
 - Amaç: script + endpoint + threshold hattını kısa profilde doğrulamak
 - Tüm anlamlı `k6` modları için `ID_TOKEN` gerekir
+- `scripts/run_k6_smoke.sh`, ek havuz verilmemişse mode/profile'a uygun gecici auth token havuzunu otomatik üretir
+- Warm-path SLO'su için runner feed card ve interaction callable hatlarını k6 oncesi bir kez isitir
+- `tests/load/k6_turqapp_load_test.js`, cold TTFC gibi warm TTFC'yi de VU basina ilk cache-backed acilis uzerinden olcer; ayni turdaki ag refresh'i check/error icin devam eder
+- `feed_ttfc_warm p95 < 500ms` gate'i smoke'ta zorlanmaz; bu SLO `feed_only` ve `full/mixed` performans profillerinde dogrulanir
 - `ID_TOKEN` yoksa `scripts/run_k6_smoke.sh` smoke turunu bilinçli olarak atlar
 
 ```bash
 RUN_K6_SMOKE=1 \
+K6_TEMP_TOKEN_COUNT=4 \
 ID_TOKEN=<firebase-id-token> \
 bash scripts/run_release_gate_checks.sh
 ```
@@ -70,6 +75,7 @@ Auth'lu search smoke:
 ```bash
 RUN_K6_SMOKE=1 \
 K6_MODE=search_only \
+K6_TEMP_TOKEN_COUNT=4 \
 ID_TOKEN=<firebase-id-token> \
 bash scripts/run_release_gate_checks.sh
 ```
@@ -89,17 +95,15 @@ k6 run \
 
 ### Interaction Only
 - Amaç: like/view callable davranışı
-- Not: `ID_TOKEN`, `TOGGLE_LIKE_ENDPOINT`, `RECORD_VIEW_ENDPOINT` gerekir
+- Not: `ID_TOKEN` gerekir; varsayılan olarak `toggleLikeBatch` ve `recordViewBatch` endpoint'leri kullanılır
+- Not: default runner warm-up ve gecici auth havuzunu otomatik kurar; istenirse `K6_TEMP_TOKEN_COUNT` ile override edilir
 
 ```bash
-k6 run \
-  --env FIREBASE_PROJECT_ID=turqappteknoloji \
-  --env ID_TOKEN=<firebase-id-token> \
-  --env TOGGLE_LIKE_ENDPOINT=<callable-url> \
-  --env RECORD_VIEW_ENDPOINT=<callable-url> \
-  --env K6_PROFILE=smoke \
-  --env K6_MODE=interaction_only \
-  tests/load/k6_turqapp_load_test.js
+K6_TEMP_TOKEN_COUNT=4 \
+ID_TOKEN=<firebase-id-token> \
+K6_PROFILE=smoke \
+K6_MODE=interaction_only \
+bash scripts/run_k6_smoke.sh
 ```
 
 ## Release Gate

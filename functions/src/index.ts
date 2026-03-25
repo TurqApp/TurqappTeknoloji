@@ -160,7 +160,7 @@ export { onVideoUpload } from "./hlsTranscode";
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📊 AGGREGATION COUNTER SHARDING (A9)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export { recordViewBatch, aggregateCounterShards, initCounterShards } from "./counterShards";
+export { recordViewBatch, toggleLikeBatch, aggregateCounterShards, initCounterShards } from "./counterShards";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
