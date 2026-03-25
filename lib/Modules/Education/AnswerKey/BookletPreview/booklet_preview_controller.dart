@@ -8,6 +8,8 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answer.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'booklet_preview_controller_runtime_part.dart';
+
 class BookletPreviewController extends GetxController {
   static BookletPreviewController ensure(
     BookletModel model, {
@@ -49,76 +51,17 @@ class BookletPreviewController extends GetxController {
     _initialize();
   }
 
-  void _initialize() {
-    final currentUserId = CurrentUserService.instance.effectiveUserId;
-    _loadBookmarkState(currentUserId);
-    fetchAnswerKeys();
-    fetchUserData();
-  }
+  void _initialize() => BookletPreviewControllerRuntimePart(this).initialize();
 
-  Future<void> _loadBookmarkState(String currentUserId) async {
-    if (currentUserId.isEmpty) return;
+  Future<void> _loadBookmarkState(String currentUserId) =>
+      BookletPreviewControllerRuntimePart(this)
+          .loadBookmarkState(currentUserId);
 
-    try {
-      final savedDoc = await _subcollectionRepository.getEntry(
-        currentUserId,
-        subcollection: "books",
-        docId: model.docID,
-        preferCache: true,
-      );
-      isBookmarked.value = savedDoc != null;
-    } catch (_) {}
-  }
+  Future<void> fetchAnswerKeys() =>
+      BookletPreviewControllerRuntimePart(this).fetchAnswerKeys();
 
-  Future<void> fetchAnswerKeys() async {
-    try {
-      final rawItems = await _bookletRepository.fetchAnswerKeys(
-        model.docID,
-        preferCache: true,
-      );
-      final newList = <AnswerKeySubModel>[];
-      for (final item in rawItems) {
-        final data = Map<String, dynamic>.from(
-          (item['data'] as Map?) ?? const <String, dynamic>{},
-        );
-        final baslik = (data["baslik"] ?? "").toString();
-        final rawCevaplar = data["dogruCevaplar"];
-        final cevaplar = rawCevaplar is List
-            ? rawCevaplar.map((e) => e.toString()).toList()
-            : <String>[];
-        final sira = data["sira"] is num
-            ? data["sira"] as num
-            : num.tryParse((data["sira"] ?? "0").toString()) ?? 0;
-
-        newList.add(
-          AnswerKeySubModel(
-            baslik: baslik,
-            docID: (item['id'] ?? '').toString(),
-            dogruCevaplar: cevaplar,
-            sira: sira,
-          ),
-        );
-      }
-      newList.sort((a, b) => a.sira.compareTo(b.sira));
-      answerKeys.assignAll(newList);
-    } catch (_) {}
-  }
-
-  Future<void> fetchUserData() async {
-    try {
-      final data = await _userSummaryResolver.resolve(
-            model.userID,
-            preferCache: true,
-          ) ??
-          _userSummaryResolver.resolveFromMaps(model.userID);
-      nickname.value = data.nickname;
-      avatarUrl.value = data.avatarUrl;
-      fullName.value = data.displayName;
-      if (fullName.value.isEmpty) {
-        fullName.value = nickname.value;
-      }
-    } catch (_) {}
-  }
+  Future<void> fetchUserData() =>
+      BookletPreviewControllerRuntimePart(this).fetchUserData();
 
   Future<void> toggleBookmark() async {
     final userId = CurrentUserService.instance.effectiveUserId;

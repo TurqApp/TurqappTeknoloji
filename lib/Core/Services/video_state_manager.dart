@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 
 part 'video_state_manager_playback_part.dart';
+part 'video_state_manager_models_part.dart';
 
 /// Instagram tarzı akıcı video deneyimi için video durumu yöneticisi
 /// Her videonun oynatma pozisyonunu ve durumunu bellekte tutar
@@ -131,30 +132,5 @@ class VideoStateManager extends GetxController {
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
     super.onClose();
-  }
-}
-
-/// Video durum modeli
-class VideoState {
-  final Duration position;
-  final bool isPlaying;
-  final DateTime lastUpdated;
-
-  VideoState({
-    required this.position,
-    required this.isPlaying,
-    required this.lastUpdated,
-  });
-
-  VideoState copyWith({
-    Duration? position,
-    bool? isPlaying,
-    DateTime? lastUpdated,
-  }) {
-    return VideoState(
-      position: position ?? this.position,
-      isPlaying: isPlaying ?? this.isPlaying,
-      lastUpdated: lastUpdated ?? this.lastUpdated,
-    );
   }
 }

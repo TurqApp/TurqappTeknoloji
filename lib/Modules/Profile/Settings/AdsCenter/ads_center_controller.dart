@@ -11,6 +11,7 @@ import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_utils.dart';
 
 part 'ads_center_controller_stream_part.dart';
+part 'ads_center_controller_actions_part.dart';
 
 class AdsCenterController extends GetxController {
   static AdsCenterController ensure({bool permanent = false}) {
@@ -84,40 +85,34 @@ class AdsCenterController extends GetxController {
     super.onClose();
   }
 
-  Future<String> saveCampaign(AdCampaign campaign) async {
-    final id = await repository.upsertCampaign(campaign);
-    await refreshDashboard();
-    return id;
-  }
+  Future<String> saveCampaign(AdCampaign campaign) =>
+      AdsCenterControllerActionsPart(this).saveCampaign(campaign);
 
-  Future<String> saveCreative(AdCreative creative) async {
-    final id = await repository.upsertCreative(creative);
-    return id;
-  }
+  Future<String> saveCreative(AdCreative creative) =>
+      AdsCenterControllerActionsPart(this).saveCreative(creative);
 
   Future<void> reviewCreative({
     required String creativeId,
     required AdModerationStatus status,
     required String note,
-  }) async {
-    await repository.reviewCreative(
-      creativeId,
-      status: status,
-      note: note,
-    );
-  }
+  }) =>
+      AdsCenterControllerActionsPart(this).reviewCreative(
+        creativeId: creativeId,
+        status: status,
+        note: note,
+      );
 
   Future<void> updateCampaignStatus(
     String campaignId,
     AdCampaignStatus status,
-  ) async {
-    await repository.updateCampaignStatus(campaignId, status);
-    await refreshDashboard();
-  }
+  ) =>
+      AdsCenterControllerActionsPart(this).updateCampaignStatus(
+        campaignId,
+        status,
+      );
 
-  Future<void> saveFlags(AdFeatureFlags flags) async {
-    await AdsFeatureFlagsService.to.setFlags(flags);
-  }
+  Future<void> saveFlags(AdFeatureFlags flags) =>
+      AdsCenterControllerActionsPart(this).saveFlags(flags);
 
   Future<void> runPreview({
     required AdPlacementType placement,
@@ -125,35 +120,15 @@ class AdsCenterController extends GetxController {
     required String city,
     required int? age,
     required String userId,
-  }) async {
-    previewLoading.value = true;
-    try {
-      final ctx = await targetingService.buildContext(
-        userId: userId,
+  }) =>
+      AdsCenterControllerActionsPart(this).runPreview(
         placement: placement,
-        isPreview: true,
         country: country,
         city: city,
         age: age,
+        userId: userId,
       );
 
-      final res = await deliveryService.simulateForAdmin(ctx);
-      previewResult.value = res;
-    } finally {
-      previewLoading.value = false;
-    }
-  }
-
-  Future<void> trackPreviewImpression() async {
-    final result = previewResult.value;
-    if (!result.hasAd || result.campaign == null || result.creative == null) {
-      return;
-    }
-    await analyticsService.logImpression(
-      campaignId: result.campaign!.id,
-      creativeId: result.creative!.id,
-      placement: result.campaign!.placementTypes.first,
-      isPreview: true,
-    );
-  }
+  Future<void> trackPreviewImpression() =>
+      AdsCenterControllerActionsPart(this).trackPreviewImpression();
 }

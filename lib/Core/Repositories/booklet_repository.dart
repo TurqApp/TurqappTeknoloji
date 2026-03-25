@@ -8,6 +8,7 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 part 'booklet_repository_query_part.dart';
 part 'booklet_repository_action_part.dart';
+part 'booklet_repository_models_part.dart';
 
 class BookletRepository extends GetxService {
   BookletRepository({FirebaseFirestore? firestore})
@@ -135,26 +136,4 @@ class BookletRepository extends GetxService {
       return null;
     }
   }
-}
-
-class BookletPage {
-  const BookletPage({
-    required this.items,
-    required this.lastDocument,
-    required this.hasMore,
-  });
-
-  final List<BookletModel> items;
-  final DocumentSnapshot? lastDocument;
-  final bool hasMore;
-}
-
-class _TimedBooklets {
-  const _TimedBooklets({
-    required this.items,
-    required this.cachedAt,
-  });
-
-  final List<BookletModel> items;
-  final DateTime cachedAt;
 }
