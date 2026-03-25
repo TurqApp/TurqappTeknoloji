@@ -4,15 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _CachedUserSubdoc {
-  final Map<String, dynamic> data;
-  final DateTime cachedAt;
-
-  const _CachedUserSubdoc({
-    required this.data,
-    required this.cachedAt,
-  });
-}
+part 'user_subdoc_repository_models_part.dart';
+part 'user_subdoc_repository_cache_part.dart';
 
 class UserSubdocRepository extends GetxService {
   static const String _prefsPrefix = 'user_subdoc_repository_v1';
@@ -52,13 +45,13 @@ class UserSubdocRepository extends GetxService {
     if (uid.isEmpty || collection.isEmpty || docId.isEmpty) {
       return const <String, dynamic>{};
     }
-    final key = _cacheKey(uid, collection, docId);
+    final key = _userSubdocCacheKey(uid, collection, docId);
 
     if (!forceRefresh && preferCache) {
-      final memory = _getFromMemory(key, ttl: ttl);
+      final memory = _getUserSubdocFromMemory(this, key, ttl: ttl);
       if (memory != null) return memory;
 
-      final disk = await _getFromPrefs(key, ttl: ttl);
+      final disk = await _getUserSubdocFromPrefs(this, key, ttl: ttl);
       if (disk != null) {
         _memory[key] = _CachedUserSubdoc(
           data: Map<String, dynamic>.from(disk),
@@ -90,21 +83,13 @@ class UserSubdocRepository extends GetxService {
     required String collection,
     required String docId,
     required Map<String, dynamic> data,
-  }) async {
-    if (uid.isEmpty || collection.isEmpty || docId.isEmpty) return;
-    final key = _cacheKey(uid, collection, docId);
-    final cachedAt = DateTime.now();
-    _memory[key] = _CachedUserSubdoc(
-      data: Map<String, dynamic>.from(data),
-      cachedAt: cachedAt,
-    );
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs?.setString(
-      _prefsKey(key),
-      jsonEncode({
-        't': cachedAt.millisecondsSinceEpoch,
-        'd': data,
-      }),
+  }) {
+    return _putUserSubdoc(
+      this,
+      uid,
+      collection: collection,
+      docId: docId,
+      data: data,
     );
   }
 
@@ -144,45 +129,12 @@ class UserSubdocRepository extends GetxService {
     String uid, {
     required String collection,
     required String docId,
-  }) async {
-    final key = _cacheKey(uid, collection, docId);
-    _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs?.remove(_prefsKey(key));
-  }
-
-  Map<String, dynamic>? _getFromMemory(
-    String key, {
-    required Duration ttl,
   }) {
-    final entry = _memory[key];
-    if (entry == null) return null;
-    if (DateTime.now().difference(entry.cachedAt) > ttl) return null;
-    return Map<String, dynamic>.from(entry.data);
+    return _invalidateUserSubdoc(
+      this,
+      uid,
+      collection: collection,
+      docId: docId,
+    );
   }
-
-  Future<Map<String, dynamic>?> _getFromPrefs(
-    String key, {
-    required Duration ttl,
-  }) async {
-    _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_prefsKey(key));
-    if (raw == null || raw.isEmpty) return null;
-    try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      final data = (decoded['d'] as Map?)?.cast<String, dynamic>();
-      if (ts <= 0 || data == null) return null;
-      final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
-      if (DateTime.now().difference(cachedAt) > ttl) return null;
-      return data;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  String _cacheKey(String uid, String collection, String docId) =>
-      '$uid::$collection::$docId';
-
-  String _prefsKey(String key) => '$_prefsPrefix:$key';
 }

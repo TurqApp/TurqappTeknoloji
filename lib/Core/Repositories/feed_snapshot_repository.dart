@@ -17,35 +17,8 @@ import 'package:turqappv2/Models/posts_model.dart';
 part 'feed_snapshot_repository_fetch_part.dart';
 part 'feed_snapshot_repository_codec_part.dart';
 part 'feed_snapshot_repository_visibility_part.dart';
-
-class FeedSnapshotQuery {
-  const FeedSnapshotQuery({
-    required this.userId,
-    this.limit = 30,
-    this.scopeTag = 'home',
-  });
-
-  final String userId;
-  final int limit;
-  final String scopeTag;
-
-  String get scopeId => <String>[
-        'limit=$limit',
-        'scope=${scopeTag.trim()}',
-      ].join('|');
-}
-
-class FeedSourcePage {
-  const FeedSourcePage({
-    required this.items,
-    required this.lastDoc,
-    required this.usesPrimaryFeed,
-  });
-
-  final List<PostsModel> items;
-  final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
-  final bool usesPrimaryFeed;
-}
+part 'feed_snapshot_repository_models_part.dart';
+part 'feed_snapshot_repository_runtime_part.dart';
 
 class FeedSnapshotRepository extends GetxService {
   FeedSnapshotRepository();
@@ -143,46 +116,24 @@ class FeedSnapshotRepository extends GetxService {
   Future<CachedResource<List<PostsModel>>> bootstrapHome({
     required String userId,
     int limit = 30,
-  }) {
-    final query = FeedSnapshotQuery(
-      userId: userId,
-      limit: limit,
-    );
-    return _coordinator.bootstrap(
-      _homeKey(query),
-      loadWarmSnapshot: () => _loadWarmHomeSnapshot(query),
-    );
-  }
+  }) =>
+      bootstrapFeedHome(
+        this,
+        userId: userId,
+        limit: limit,
+      );
 
   Future<void> persistHomeSnapshot({
     required String userId,
     required List<PostsModel> posts,
     int limit = _defaultPersistLimit,
     CachedResourceSource source = CachedResourceSource.server,
-  }) async {
-    final normalized =
-        _normalizePosts(posts).take(limit).toList(growable: false);
-    if (normalized.isEmpty) return;
-    final key = _homeKey(FeedSnapshotQuery(
-      userId: userId,
-      limit: limit,
-    ));
-    final record = ScopedSnapshotRecord<List<PostsModel>>(
-      data: normalized,
-      snapshotAt: DateTime.now(),
-      schemaVersion: 1,
-      generationId: 'manual:${DateTime.now().millisecondsSinceEpoch}',
-      source: source,
-    );
-    final userMeta = await _buildUserMeta(normalized);
-    await Future.wait(<Future<void>>[
-      _memoryStore.write(key, record),
-      _snapshotStore.write(key, record),
-      _warmLaunchPool.savePosts(
-        IndexPoolKind.feed,
-        normalized,
-        userMeta: userMeta,
-      ),
-    ]);
-  }
+  }) =>
+      persistFeedHomeSnapshot(
+        this,
+        userId: userId,
+        posts: posts,
+        limit: limit,
+        source: source,
+      );
 }
