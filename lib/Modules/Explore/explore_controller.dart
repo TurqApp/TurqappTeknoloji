@@ -27,6 +27,7 @@ import '../../Models/posts_model.dart';
 
 part 'explore_controller_recent_search_part.dart';
 part 'explore_controller_feed_part.dart';
+part 'explore_controller_runtime_part.dart';
 part 'explore_controller_search_part.dart';
 
 class ExploreController extends GetxController {
@@ -118,56 +119,7 @@ class ExploreController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _applyUserCacheQuota();
-    unawaited(_loadRecentSearchUsersCache());
-    UserAnalyticsService.instance.trackFeatureUsage('explore_open');
-    fetchTrendingTags();
-    unawaited(_quickFillExploreFromPoolAndBootstrap());
-    _bindRecentSearchUsers();
-    _bindFollowingListener();
-    exploreScroll.addListener(() {
-      if (exploreScroll.position.pixels >=
-          exploreScroll.position.maxScrollExtent - 200) {
-        fetchExplorePosts();
-      }
-
-      _syncScrollToTopVisibility(exploreScroll.offset);
-    });
-
-    videoScroll.addListener(() {
-      if (videoScroll.position.pixels >=
-          videoScroll.position.maxScrollExtent - 200) {
-        fetchVideo();
-      }
-
-      _syncScrollToTopVisibility(videoScroll.offset);
-    });
-
-    photoScroll.addListener(() {
-      if (photoScroll.position.pixels >=
-          photoScroll.position.maxScrollExtent - 200) {
-        fetchPhoto();
-      }
-
-      _syncScrollToTopVisibility(photoScroll.offset);
-    });
-
-    floodsScroll.addListener(() {
-      if (floodsScroll.position.pixels >=
-          floodsScroll.position.maxScrollExtent - 200) {
-        fetchFloods();
-      }
-
-      _updateFloodVisibleIndex();
-      _syncScrollToTopVisibility(floodsScroll.offset);
-    });
-
-    searchFocus.addListener(() {
-      isKeyboardOpen.value = searchFocus.hasFocus;
-      if (searchFocus.hasFocus) {
-        isSearchMode.value = true;
-      }
-    });
+    _handleOnInit();
   }
 
   void _syncScrollToTopVisibility(double offset) =>
@@ -251,30 +203,21 @@ class ExploreController extends GetxController {
           List<OgrenciModel> users) =>
       _performFilterPendingOrDeletedUsers(users);
 
-  void onSearchChanged(String value) => _performOnSearchChanged(value);
+  void onSearchChanged(String value) => _handleOnSearchChanged(value);
 
-  void _clearSearchResults() => _performClearSearchResults();
+  void _clearSearchResults() => _handleClearSearchResults();
 
-  Future<void> search(String query) => _performSearch(query);
+  Future<void> search(String query) => _handleSearch(query);
 
-  void resetSearchToDefault() => _performResetSearchToDefault();
+  void resetSearchToDefault() => _handleResetSearchToDefault();
 
-  void resetSurfaceForTabTransition() =>
-      _performResetSurfaceForTabTransition();
+  void resetSurfaceForTabTransition() => _handleResetSurfaceForTabTransition();
 
   @override
   void onClose() {
-    _currentUserWorker?.dispose();
-    _currentUserWorker = null;
-    _searchDebounce?.cancel();
-    exploreScroll.dispose();
-    videoScroll.dispose();
-    photoScroll.dispose();
-    searchController.dispose();
-    searchFocus.dispose();
-    pageController.dispose();
+    _handleOnClose();
     super.onClose();
   }
 
-  void goToPage(int index) => _performGoToPage(index);
+  void goToPage(int index) => _handleGoToPage(index);
 }
