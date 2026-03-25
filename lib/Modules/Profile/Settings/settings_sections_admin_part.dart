@@ -61,12 +61,11 @@ extension _SettingsViewSectionsAdminPart on _SettingsViewState {
               CupertinoIcons.antenna_radiowaves_left_right,
               _showSystemDiagnosticsMenu,
             ),
-            if (QALabMode.enabled)
-              buildRow(
-                'settings.diagnostics.qa_lab'.tr,
-                CupertinoIcons.waveform_path_ecg,
-                () => Get.to(() => const QALabView()),
-              ),
+            buildRow(
+              'settings.diagnostics.qa_lab'.tr,
+              CupertinoIcons.waveform_path_ecg,
+              () => Get.to(() => const QALabView()),
+            ),
             _AdminPushMenuTile(buildRow: buildRow),
           ],
         );

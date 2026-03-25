@@ -3,7 +3,7 @@ class ReadBudgetRegistry {
 
   static const int savedPostRefsInitialLimit = 20;
   static const int savedMarketRefsInitialLimit = 20;
-  static const int followRelationPreviewInitialLimit = 30;
+  static const int followRelationPreviewInitialLimit = 40;
   static const int notificationsInboxInitialLimit = 80;
   static const int notificationsDeltaFetchLimit = 40;
   static const int userReshareMapInitialLimit = 60;

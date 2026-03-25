@@ -59,6 +59,8 @@ class SocialMediaLinksRepository extends GetxService {
         cacheOnly: cacheOnly,
       );
 
+  Future<bool> hasFreshCacheEntry(String uid) => _hasFreshCacheEntryImpl(uid);
+
   Future<void> setLinks(String uid, List<SocialMediaModel> items) =>
       _setLinksImpl(uid, items);
 

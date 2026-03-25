@@ -101,7 +101,6 @@ extension FollowingFollowersControllerCachePart
     bool forceServer = false,
   }) async {
     if (isLoadingFollowers) return;
-    if (!isSelf && takipciler.isNotEmpty) return;
 
     if (initial &&
         !forceServer &&
@@ -114,18 +113,20 @@ extension FollowingFollowersControllerCachePart
       hasMoreFollowers = true;
     }
 
-    final fetchLimit = _resolveLimit(initial: initial);
-    final ids = await _followRepository.getFollowerPreviewIds(
-      userId,
-      limit: fetchLimit,
-      preferCache: !forceServer,
-      forceRefresh: forceServer,
-    );
-    takipciler.value = _normalizedIds(ids).toList(growable: false);
-    hasMoreFollowers = false;
-
-    _saveRelationListCache(isFollowers: true);
-    isLoadingFollowers = false;
+    try {
+      final fetchLimit = _resolveLimit(initial: initial);
+      final ids = await _followRepository.getFollowerPreviewIds(
+        userId,
+        limit: fetchLimit,
+        preferCache: !forceServer,
+        forceRefresh: forceServer,
+      );
+      takipciler.value = _normalizedIds(ids).toList(growable: false);
+      hasMoreFollowers = false;
+      _saveRelationListCache(isFollowers: true);
+    } finally {
+      isLoadingFollowers = false;
+    }
   }
 
   Future<void> getFollowing({
@@ -133,7 +134,6 @@ extension FollowingFollowersControllerCachePart
     bool forceServer = false,
   }) async {
     if (isLoadingFollowing) return;
-    if (!isSelf && takipEdilenler.isNotEmpty) return;
 
     if (initial &&
         !forceServer &&
@@ -146,18 +146,20 @@ extension FollowingFollowersControllerCachePart
       hasMoreFollowing = true;
     }
 
-    final fetchLimit = _resolveLimit(initial: initial);
-    final ids = await _followRepository.getFollowingPreviewIds(
-      userId,
-      limit: fetchLimit,
-      preferCache: !forceServer,
-      forceRefresh: forceServer,
-    );
-    takipEdilenler.value = _normalizedIds(ids).toList(growable: false);
-    hasMoreFollowing = false;
-
-    _saveRelationListCache(isFollowers: false);
-    isLoadingFollowing = false;
+    try {
+      final fetchLimit = _resolveLimit(initial: initial);
+      final ids = await _followRepository.getFollowingPreviewIds(
+        userId,
+        limit: fetchLimit,
+        preferCache: !forceServer,
+        forceRefresh: forceServer,
+      );
+      takipEdilenler.value = _normalizedIds(ids).toList(growable: false);
+      hasMoreFollowing = false;
+      _saveRelationListCache(isFollowers: false);
+    } finally {
+      isLoadingFollowing = false;
+    }
   }
 
   bool _restoreRelationListCache({required bool isFollowers}) {

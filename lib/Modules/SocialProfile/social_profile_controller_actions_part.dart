@@ -2,11 +2,21 @@ part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerActionsPart on SocialProfileController {
   Future<void> _performGetSocialMediaLinks() async {
-    final list = await _socialLinksRepository.getLinks(
+    final hadFreshCache = await _socialLinksRepository.hasFreshCacheEntry(
+      userID,
+    );
+    var list = await _socialLinksRepository.getLinks(
       userID,
       preferCache: true,
       forceRefresh: false,
     );
+    if (hadFreshCache && list.isEmpty) {
+      list = await _socialLinksRepository.getLinks(
+        userID,
+        preferCache: false,
+        forceRefresh: true,
+      );
+    }
     socialMediaList.value = list;
   }
 

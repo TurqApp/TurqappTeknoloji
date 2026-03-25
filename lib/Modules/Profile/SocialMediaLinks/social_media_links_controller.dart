@@ -89,13 +89,21 @@ class SocialMediaController extends GetxController {
       isLoading.value = true;
     }
     try {
-      list.value = List<SocialMediaModel>.from(
-        await _linksRepository.getLinks(
-          uid,
-          preferCache: !forceRefresh,
-          forceRefresh: forceRefresh,
-        ),
+      final hadFreshCache =
+          !forceRefresh && await _linksRepository.hasFreshCacheEntry(uid);
+      var items = await _linksRepository.getLinks(
+        uid,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
+      if (hadFreshCache && items.isEmpty) {
+        items = await _linksRepository.getLinks(
+          uid,
+          preferCache: false,
+          forceRefresh: true,
+        );
+      }
+      list.value = List<SocialMediaModel>.from(items);
       SilentRefreshGate.markRefreshed('profile:social_media:$uid');
     } finally {
       isLoading.value = false;

@@ -1,6 +1,14 @@
 part of 'social_media_links_repository.dart';
 
 extension SocialMediaLinksRepositoryQueryPart on SocialMediaLinksRepository {
+  Future<bool> _hasFreshCacheEntryImpl(String uid) async {
+    if (uid.isEmpty) return false;
+    final memory = _getFromMemoryImpl(uid, allowStale: false);
+    if (memory != null) return true;
+    final disk = await _getFromPrefsEntryImpl(uid, allowStale: false);
+    return disk != null;
+  }
+
   Future<List<SocialMediaModel>> _getLinksImpl(
     String uid, {
     required bool preferCache,

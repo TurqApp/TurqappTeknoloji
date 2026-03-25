@@ -210,6 +210,12 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
           itemCount: list.isEmpty ? 1 : list.length + 1,
           itemBuilder: (ctx, i) {
             if (list.isEmpty) {
+              if (isLoading()) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: 30),
+                  child: Center(child: CupertinoActivityIndicator()),
+                );
+              }
               return Padding(
                 padding: EdgeInsets.only(top: 30),
                 child: Center(
