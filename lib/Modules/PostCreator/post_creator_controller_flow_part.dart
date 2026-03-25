@@ -86,12 +86,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
   }
 
   void _initializeServices() {
-    try {
-      _errorService = ErrorHandlingService.ensure();
-      _networkService = NetworkAwarenessService.ensure();
-      _uploadQueueService = UploadQueueService.ensure();
-      _draftService = DraftService.ensure();
-    } catch (_) {}
+    try {} catch (_) {}
   }
 
   Map<String, dynamic> _normalizePollForSave(
@@ -144,10 +139,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
 
   void _showModerationSnackbarOnce(String title, String message) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (nowMs - PostCreatorController._lastModerationSnackbarAtMs < 1500) {
+    if (nowMs - _lastModerationSnackbarAtMs < 1500) {
       return;
     }
-    PostCreatorController._lastModerationSnackbarAtMs = nowMs;
+    _lastModerationSnackbarAtMs = nowMs;
     AppSnackbar(title, message);
   }
 

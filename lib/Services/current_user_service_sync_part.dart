@@ -129,7 +129,7 @@ extension CurrentUserServiceSyncPart on CurrentUserService {
   void _performStartExclusiveSessionHeartbeat(String uid) {
     _exclusiveSessionHeartbeat?.cancel();
     _exclusiveSessionHeartbeat = Timer.periodic(
-      CurrentUserService._exclusiveSessionHeartbeatInterval,
+      _exclusiveSessionHeartbeatInterval,
       (_) => unawaited(_validateExclusiveSessionFromServer(uid)),
     );
   }
@@ -186,7 +186,7 @@ extension CurrentUserServiceSyncPart on CurrentUserService {
           collection: col,
           docId: doc,
           preferCache: true,
-          ttl: CurrentUserService._subdocCacheTtl,
+          ttl: _subdocCacheTtl,
         );
         return data;
       } catch (e, st) {
@@ -201,8 +201,7 @@ extension CurrentUserServiceSyncPart on CurrentUserService {
     ) async {
       final cacheKey = _listCacheKey(uid, key);
       final cached = _listCache[cacheKey];
-      if (cached != null &&
-          _isFresh(cached.fetchedAt, CurrentUserService._listCacheTtl)) {
+      if (cached != null && _isFresh(cached.fetchedAt, _listCacheTtl)) {
         return Map<String, dynamic>.from(cached.value);
       }
       try {

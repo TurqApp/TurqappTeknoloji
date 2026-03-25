@@ -370,12 +370,11 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
   /// Is verified account
   bool get isVerified => _currentUser?.isVerified ?? false;
-  bool get isEmailVerified => emailVerifiedRx.value;
 
   String? _emailPromptTimestampKey() {
     final uid = authUserId;
     if (uid.isEmpty) return null;
-    return '${CurrentUserService._emailPromptTimestampKeyPrefix}:$uid';
+    return '$_emailPromptTimestampKeyPrefix:$uid';
   }
 
   Future<void> _loadLastEmailPromptAt() async {

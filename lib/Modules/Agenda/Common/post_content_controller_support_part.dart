@@ -1,5 +1,17 @@
 part of 'post_content_controller.dart';
 
+final Map<String, _UserProfileCacheEntry> _userProfileCache =
+    <String, _UserProfileCacheEntry>{};
+const Duration _userProfileCacheTtl = Duration(minutes: 20);
+final Map<String, _ReshareUsersCacheEntry> _reshareUsersCache =
+    <String, _ReshareUsersCacheEntry>{};
+const Duration _reshareUsersCacheTtl = Duration(minutes: 2);
+
+final userService = CurrentUserService.instance;
+final countManager = PostCountManager.instance;
+final PostRepository _postRepository = PostRepository.ensure();
+final AdminPushRepository _adminPushRepository = AdminPushRepository.ensure();
+
 class _PostContentControllerSupportPart {
   final PostContentController _controller;
 
@@ -49,4 +61,38 @@ class _PostContentControllerSupportPart {
     }
     return _controller.model.docID;
   }
+}
+
+extension PostContentControllerSupportApi on PostContentController {
+  ShortController get shortsController => ShortController.ensure();
+
+  PostInteractionService get _interactionService =>
+      PostInteractionService.ensure();
+
+  RxInt get likeCount => countManager.getLikeCount(model.docID);
+
+  RxInt get commentCount => countManager.getCommentCount(model.docID);
+
+  RxInt get savedCount => countManager.getSavedCount(model.docID);
+
+  RxInt get retryCount => countManager.getRetryCount(model.docID);
+
+  RxInt get statsCount => countManager.getStatsCount(model.docID);
+
+  String get _currentUid => userService.effectiveUserId;
+
+  AgendaController _resolveAgendaController() =>
+      _performResolveAgendaController();
+
+  bool get canSendAdminPush =>
+      _PostContentControllerSupportPart(this).canSendAdminPush;
+
+  ({String title, String body}) _buildPostPushCopy() =>
+      _PostContentControllerSupportPart(this).buildPostPushCopy();
+
+  String? _pushPreviewImageUrl() =>
+      _PostContentControllerSupportPart(this).pushPreviewImageUrl();
+
+  String get reshareTargetPostId =>
+      _PostContentControllerSupportPart(this).reshareTargetPostId;
 }

@@ -60,7 +60,7 @@ extension PostContentControllerProfilePart on PostContentController {
       required String pushToken,
       required String name,
     }) {
-      PostContentController._userProfileCache[uid] = _UserProfileCacheEntry(
+      _userProfileCache[uid] = _UserProfileCacheEntry(
         nickname: nick,
         username: uname,
         avatarUrl: image,
@@ -138,10 +138,10 @@ extension PostContentControllerProfilePart on PostContentController {
       return;
     }
 
-    final cachedProfile = PostContentController._userProfileCache[userID];
+    final cachedProfile = _userProfileCache[userID];
     if (cachedProfile != null &&
         DateTime.now().difference(cachedProfile.updatedAt) <
-            PostContentController._userProfileCacheTtl) {
+            _userProfileCacheTtl) {
       applyProfile(
         nick: cachedProfile.nickname,
         uname: cachedProfile.username,
@@ -206,10 +206,9 @@ extension PostContentControllerProfilePart on PostContentController {
   }
 
   Future<void> getReSharedUsers(String docID) async {
-    final cached = PostContentController._reshareUsersCache[docID];
+    final cached = _reshareUsersCache[docID];
     if (cached != null &&
-        DateTime.now().difference(cached.updatedAt) <
-            PostContentController._reshareUsersCacheTtl) {
+        DateTime.now().difference(cached.updatedAt) < _reshareUsersCacheTtl) {
       reSharedUsers.value = cached.userIds;
       reShareUserUserID.value = cached.displayUserId;
       reShareUserNickname.value = cached.displayNickname;
@@ -229,7 +228,7 @@ extension PostContentControllerProfilePart on PostContentController {
     if (me.isNotEmpty && list.contains(me)) {
       reShareUserUserID.value = me;
       reShareUserNickname.value = 'Sen';
-      PostContentController._reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+      _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
         updatedAt: DateTime.now(),
         userIds: List<String>.from(list),
         displayUserId: me,
@@ -254,8 +253,7 @@ extension PostContentControllerProfilePart on PostContentController {
           final nick = await ReshareHelper.getUserNickname(match);
           reShareUserNickname.value = nick;
         }
-        PostContentController._reshareUsersCache[docID] =
-            _ReshareUsersCacheEntry(
+        _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
           updatedAt: DateTime.now(),
           userIds: List<String>.from(list),
           displayUserId: match,
@@ -267,7 +265,7 @@ extension PostContentControllerProfilePart on PostContentController {
 
     reShareUserUserID.value = '';
     reShareUserNickname.value = '';
-    PostContentController._reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+    _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
       updatedAt: DateTime.now(),
       userIds: List<String>.from(list),
       displayUserId: '',

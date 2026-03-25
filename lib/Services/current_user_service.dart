@@ -31,6 +31,7 @@ import 'package:turqappv2/Services/device_session_service.dart';
 
 import '../Models/current_user_model.dart';
 
+part 'current_user_service_support_part.dart';
 part 'current_user_service_cache_part.dart';
 part 'current_user_service_access_part.dart';
 part 'current_user_service_facade_part.dart';
@@ -39,16 +40,6 @@ part 'current_user_service_auth_part.dart';
 part 'current_user_service_lifecycle_part.dart';
 part 'current_user_service_story_part.dart';
 part 'current_user_service_sync_part.dart';
-
-class _TimedValue<T> {
-  final T value;
-  final DateTime fetchedAt;
-
-  const _TimedValue({
-    required this.value,
-    required this.fetchedAt,
-  });
-}
 
 /// 🎯 Singleton service for managing current user data
 ///
@@ -115,58 +106,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   String get effectiveUserId => _performEffectiveUserId();
 
   final RxInt viewSelectionRx = 1.obs;
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🔧 Private Variables
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  SharedPreferences? _prefs;
-  StreamSubscription<Map<String, dynamic>?>? _firestoreSubscription;
-  Timer? _exclusiveSessionHeartbeat;
-  static const Duration _exclusiveSessionHeartbeatInterval =
-      Duration(seconds: 10);
-
-  static const String _cacheKeyPrefix = 'cached_current_user';
-  static const String _cacheTimestampKeyPrefix =
-      'cached_current_user_timestamp';
-  static const String _activeCacheUidKey = 'cached_current_user_active_uid';
-  static const String _viewSelectionPrefKeyPrefix =
-      'preferred_feed_view_selection';
-  static const String _emailPromptTimestampKeyPrefix =
-      'email_verify_prompt_last_shown';
-  static Duration get _cacheExpiration =>
-      MetadataCachePolicy.ttlFor(MetadataCacheBucket.currentUserSummary);
-
-  bool _isInitialized = false;
-  bool _isSyncing = false;
-  int? _lastKnownViewSelection;
-  final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
-  static const Duration _rootDocCacheTtl = Duration(minutes: 2);
-  static const Duration _subdocCacheTtl = Duration(minutes: 10);
-  static const Duration _listCacheTtl = Duration(minutes: 2);
-  final Map<String, _TimedValue<Map<String, dynamic>>> _rootDocCache = {};
-  final Map<String, _TimedValue<Map<String, dynamic>>> _subdocCache = {};
-  final Map<String, _TimedValue<Map<String, dynamic>>> _listCache = {};
-  final Map<String, DateTime> _silentLogAt = {};
-
-  // ⚠️ OPTIMIZATION: Debounce cache writes to prevent duplicate saves
-  Timer? _cacheSaveTimer;
-  String?
-      _lastCacheSignature; // Track last saved snapshot to prevent duplicates
-  String? _lastReactiveSignature;
-  String? _lastRootSyncSignature;
-  String? _lastWarmedAvatarUrl;
-  bool _handlingPermanentBan = false;
-  bool _handlingSessionDisplacement = false;
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🚀 Initialization
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  // Email verification state (Firebase Auth)
-  final RxBool emailVerifiedRx = true.obs;
-  DateTime? _lastEmailPromptAt;
-  Duration _emailPromptCooldown = const Duration(days: 7);
 
   bool hasReadStory(String storyId) =>
       _CurrentUserServiceStoryPart(this).hasReadStory(storyId);

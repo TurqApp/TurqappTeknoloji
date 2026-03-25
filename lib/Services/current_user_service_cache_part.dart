@@ -25,10 +25,10 @@ extension CurrentUserServiceCachePart on CurrentUserService {
 
       final cacheAge = DateTime.now().millisecondsSinceEpoch - cachedTimestamp;
       if (!readDecision.allowStaleRead &&
-          cacheAge > CurrentUserService._cacheExpiration.inMilliseconds) {
+          cacheAge > _cacheExpiration.inMilliseconds) {
         return false;
       }
-      if (cacheAge > CurrentUserService._cacheExpiration.inMilliseconds) {
+      if (cacheAge > _cacheExpiration.inMilliseconds) {
         return false;
       }
 
@@ -76,7 +76,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
             DateTime.now().millisecondsSinceEpoch,
           );
           await _prefs?.setString(
-            CurrentUserService._activeCacheUidKey,
+            _activeCacheUidKey,
             user.userID,
           );
           await _persistViewSelection(user.userID, user.viewSelection);
@@ -93,23 +93,21 @@ extension CurrentUserServiceCachePart on CurrentUserService {
         await _prefs?.remove(_cacheKey(targetUid));
         await _prefs?.remove(_cacheTimestampKey(targetUid));
       }
-      final activeUid = _prefs?.getString(CurrentUserService._activeCacheUidKey);
+      final activeUid = _prefs?.getString(_activeCacheUidKey);
       if (targetUid.isEmpty || activeUid == targetUid) {
-        await _prefs?.remove(CurrentUserService._activeCacheUidKey);
+        await _prefs?.remove(_activeCacheUidKey);
       }
     } catch (_) {}
   }
 
-  String _cacheKey(String uid) => '${CurrentUserService._cacheKeyPrefix}_$uid';
+  String _cacheKey(String uid) => '${_cacheKeyPrefix}_$uid';
 
-  String _cacheTimestampKey(String uid) =>
-      '${CurrentUserService._cacheTimestampKeyPrefix}_$uid';
+  String _cacheTimestampKey(String uid) => '${_cacheTimestampKeyPrefix}_$uid';
 
   String _resolveCacheUid(String? uid) {
     final trimmed = uid?.trim() ?? '';
     if (trimmed.isNotEmpty) return trimmed;
-    return (_prefs?.getString(CurrentUserService._activeCacheUidKey) ?? '')
-        .trim();
+    return (_prefs?.getString(_activeCacheUidKey) ?? '').trim();
   }
 
   String _listCacheKey(String uid, String key) => '$uid::$key';
@@ -144,8 +142,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
     if (uid.isEmpty) return null;
     final cached = _rootDocCache[uid];
     if (cached == null) return null;
-    if (!allowStale &&
-        !_isFresh(cached.fetchedAt, CurrentUserService._rootDocCacheTtl)) {
+    if (!allowStale && !_isFresh(cached.fetchedAt, _rootDocCacheTtl)) {
       return null;
     }
     return Map<String, dynamic>.from(cached.value);
@@ -257,8 +254,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
     }
   }
 
-  String _viewSelectionKey(String uid) =>
-      '${CurrentUserService._viewSelectionPrefKeyPrefix}_$uid';
+  String _viewSelectionKey(String uid) => '${_viewSelectionPrefKeyPrefix}_$uid';
 
   int? _extractRequestedViewSelection(Map<String, dynamic> fields) {
     final raw = fields['viewSelection'];

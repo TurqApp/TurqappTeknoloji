@@ -37,11 +37,6 @@ part 'post_content_controller_runtime_part.dart';
 part 'post_content_controller_support_part.dart';
 
 class PostContentController extends GetxController {
-  static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
-  static const Duration _userProfileCacheTtl = Duration(minutes: 20);
-  static final Map<String, _ReshareUsersCacheEntry> _reshareUsersCache = {};
-  static const Duration _reshareUsersCacheTtl = Duration(minutes: 2);
-
   static PostContentController ensure({
     required String tag,
     required PostContentController Function() create,
@@ -57,18 +52,12 @@ class PostContentController extends GetxController {
     return Get.find<PostContentController>(tag: tag);
   }
 
-  static void invalidateUserProfileCache(String userId) {
-    if (userId.trim().isEmpty) return;
-    _userProfileCache.remove(userId);
-  }
+  static void invalidateUserProfileCache(String userId) =>
+      userId.trim().isEmpty ? null : _userProfileCache.remove(userId);
 
-  static void clearUserProfileCache() {
-    _userProfileCache.clear();
-  }
+  static void clearUserProfileCache() => _userProfileCache.clear();
 
-  static void clearReshareUsersCache() {
-    _reshareUsersCache.clear();
-  }
+  static void clearReshareUsersCache() => _reshareUsersCache.clear();
 
   PostContentController({
     required this.model,
@@ -91,39 +80,15 @@ class PostContentController extends GetxController {
   final bool enableLegacyCommentSync;
   final bool scrollFeedToTopOnReshare;
 
-  ShortController get shortsController => ShortController.ensure();
-
   bool _canSendAdminPush = AdminAccessService.isKnownAdminSync();
-
-  bool get canSendAdminPush =>
-      _PostContentControllerSupportPart(this).canSendAdminPush;
-
-  ({String title, String body}) _buildPostPushCopy() =>
-      _PostContentControllerSupportPart(this).buildPostPushCopy();
-
-  String? _pushPreviewImageUrl() =>
-      _PostContentControllerSupportPart(this).pushPreviewImageUrl();
 
   final likes = <String>[].obs;
   final unLikes = <String>[].obs;
   final saved = false.obs;
   final comments = <String>[].obs;
   final reSharedUsers = <String>[].obs;
-  final userService = CurrentUserService.instance;
-  final countManager = PostCountManager.instance;
-  PostInteractionService get _interactionService =>
-      PostInteractionService.ensure();
-
-  // Reactive count variables using centralized manager
-  RxInt get likeCount => countManager.getLikeCount(model.docID);
-  RxInt get commentCount => countManager.getCommentCount(model.docID);
-  RxInt get savedCount => countManager.getSavedCount(model.docID);
-  RxInt get retryCount => countManager.getRetryCount(model.docID);
-  RxInt get statsCount => countManager.getStatsCount(model.docID);
   final isFollowing = true.obs;
   final followLoading = false.obs;
-
-  // user info
   final RxString nickname;
   final RxString username;
   final RxString avatarUrl;
@@ -132,8 +97,6 @@ class PostContentController extends GetxController {
 
   final reShareUserNickname = "".obs;
   final reShareUserUserID = "".obs;
-
-  String get _currentUid => userService.effectiveUserId;
 
   final arsiv = false.obs;
   final gizlendi = false.obs;
@@ -146,12 +109,7 @@ class PostContentController extends GetxController {
 
   final yenidenPaylasildiMi = false.obs;
 
-  AgendaController _resolveAgendaController() =>
-      _performResolveAgendaController();
-
   late final AgendaController agendaController = _resolveAgendaController();
-  late final PostRepository _postRepository;
-  late final AdminPushRepository _adminPushRepository;
   PostRepositoryState? _postState;
   StreamSubscription<DocumentSnapshot>? _userSub;
   StreamSubscription<DocumentSnapshot>? _likeDocSub;
@@ -164,9 +122,6 @@ class PostContentController extends GetxController {
   Worker? _postDataWorker;
   Worker? _myResharesWorker;
 
-  String get reshareTargetPostId =>
-      _PostContentControllerSupportPart(this).reshareTargetPostId;
-
   @protected
   void onPostInitialized() {}
 
@@ -174,9 +129,8 @@ class PostContentController extends GetxController {
   void onPostFrameBound() {}
 
   @protected
-  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
-    await _performOnReshareAdded(uid, targetPostId: targetPostId);
-  }
+  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async =>
+      _performOnReshareAdded(uid, targetPostId: targetPostId);
 
   @protected
   Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {}

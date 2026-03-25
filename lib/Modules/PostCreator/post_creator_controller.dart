@@ -51,6 +51,7 @@ part 'post_creator_controller_route_part.dart';
 part 'post_creator_controller_ui_part.dart';
 part 'post_creator_controller_models_part.dart';
 part 'post_creator_controller_runtime_part.dart';
+part 'post_creator_controller_support_part.dart';
 
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
   static PostCreatorController ensure({bool permanent = false}) {
@@ -65,18 +66,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     return Get.find<PostCreatorController>();
   }
 
-  static int get _maxVideoBytesForStorageRule =>
-      UploadValidationService.currentMaxVideoSizeBytes;
-  static const int _maxScheduledWindowDays = 90;
-  static int _lastModerationSnackbarAtMs = 0;
-  final PostRepository _postRepository = PostRepository.ensure();
   RxList<PostCreatorModel> postList =
       <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
   int _nextComposerItemIndex = 1;
   final RxBool isKeyboardOpen = false.obs;
   final RxBool isPublishing = false.obs;
   var selectedIndex = 0.obs;
-  final agendaController = AgendaController.ensure();
   var comment = true.obs;
   // 0: Herkes, 1: Onaylı hesaplar, 2: Takip ettiğin hesaplar
   var commentVisibility = 0.obs;
@@ -85,18 +80,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   var publishMode = 0.obs;
   Rx<DateTime?> izBirakDateTime = Rx<DateTime?>(null);
 
-  // Services
-  late final ErrorHandlingService _errorService;
-  late final NetworkAwarenessService _networkService;
-  late final UploadQueueService _uploadQueueService;
-  late final DraftService _draftService;
   bool _sharedSourceApplied = false;
   String _sharedSourceFingerprint = "";
   bool _isSharedAsPost = false;
   String _sharedOriginalUserID = "";
   String _sharedOriginalPostID = "";
-
-  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   String _sharedSourcePostID = "";
   bool _isQuotedPost = false;
@@ -123,9 +111,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   String get sharedOriginalUserID => _sharedOriginalUserID;
   String get sharedOriginalPostID => _sharedOriginalPostID;
 
-  DateTime get maxIzBirakDate =>
-      DateTime.now().add(const Duration(days: _maxScheduledWindowDays));
-
   @override
   void onInit() {
     super.onInit();
@@ -143,34 +128,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     super.onClose();
   }
 
-  Future<void> prepareForRoute({
-    required String routeId,
-    required bool sharedAsPost,
-    required bool editMode,
-  }) =>
-      _PostCreatorControllerRouteX(this)._prepareForRoute(
-        routeId: routeId,
-        sharedAsPost: sharedAsPost,
-        editMode: editMode,
-      );
-
-  Future<void> resetComposerState() =>
-      _PostCreatorControllerRouteX(this)._resetComposerState();
-
   @override
   void didChangeMetrics() {
     _PostCreatorControllerRouteX(this)._handleDidChangeMetrics();
   }
-
-  DateTime? _normalizedIzBirakDateTime() =>
-      _PostCreatorControllerRouteX(this)._normalizedIzBirakDateTime();
-
-  Future<void> _hydrateQuotedSourceIfNeeded() =>
-      _PostCreatorControllerRouteX(this)._hydrateQuotedSourceIfNeeded();
-
-  void uploadAllPostsInBackground() =>
-      _PostCreatorControllerUiX(this)._uploadAllPostsInBackground();
-
-  Future<void> showCommentOptions() =>
-      _PostCreatorControllerUiX(this)._showCommentOptions();
 }
