@@ -29,6 +29,7 @@ part 'qa_lab_recorder_remote_sync_device_part.dart';
 part 'qa_lab_recorder_runtime_part.dart';
 part 'qa_lab_recorder_runtime_surfaces_part.dart';
 part 'qa_lab_recorder_runtime_helpers_part.dart';
+part 'qa_lab_recorder_runtime_ranking_part.dart';
 part 'qa_lab_recorder_runtime_signals_part.dart';
 part 'qa_lab_recorder_runtime_navigation_part.dart';
 part 'qa_lab_recorder_capture_part.dart';
