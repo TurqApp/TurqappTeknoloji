@@ -77,4 +77,38 @@ class BookletPreviewControllerRuntimePart {
       }
     } catch (_) {}
   }
+
+  Future<void> toggleBookmark() async {
+    final userId = CurrentUserService.instance.effectiveUserId;
+    if (userId.isEmpty) return;
+
+    try {
+      final savedDoc = await controller._subcollectionRepository.getEntry(
+        userId,
+        subcollection: 'books',
+        docId: controller.model.docID,
+        preferCache: true,
+      );
+
+      if (savedDoc != null) {
+        await controller._subcollectionRepository.deleteEntry(
+          userId,
+          subcollection: 'books',
+          docId: controller.model.docID,
+        );
+        controller.isBookmarked.value = false;
+        return;
+      }
+
+      await controller._subcollectionRepository.upsertEntry(
+        userId,
+        subcollection: 'books',
+        docId: controller.model.docID,
+        data: <String, dynamic>{
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
+      controller.isBookmarked.value = true;
+    } catch (_) {}
+  }
 }

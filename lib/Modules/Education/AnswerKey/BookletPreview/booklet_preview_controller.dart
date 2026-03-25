@@ -63,39 +63,8 @@ class BookletPreviewController extends GetxController {
   Future<void> fetchUserData() =>
       BookletPreviewControllerRuntimePart(this).fetchUserData();
 
-  Future<void> toggleBookmark() async {
-    final userId = CurrentUserService.instance.effectiveUserId;
-    if (userId.isEmpty) return;
-
-    try {
-      final savedDoc = await _subcollectionRepository.getEntry(
-        userId,
-        subcollection: 'books',
-        docId: model.docID,
-        preferCache: true,
-      );
-
-      if (savedDoc != null) {
-        await _subcollectionRepository.deleteEntry(
-          userId,
-          subcollection: 'books',
-          docId: model.docID,
-        );
-        isBookmarked.value = false;
-        return;
-      }
-
-      await _subcollectionRepository.upsertEntry(
-        userId,
-        subcollection: 'books',
-        docId: model.docID,
-        data: <String, dynamic>{
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-        },
-      );
-      isBookmarked.value = true;
-    } catch (_) {}
-  }
+  Future<void> toggleBookmark() =>
+      BookletPreviewControllerRuntimePart(this).toggleBookmark();
 
   void navigateToAnswerKey(BuildContext context, AnswerKeySubModel subModel) {
     Get.to(() => BookletAnswer(model: subModel, anaModel: model));

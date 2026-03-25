@@ -19,6 +19,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'answer_key_content_controller_data_part.dart';
 part 'answer_key_content_controller_actions_part.dart';
+part 'answer_key_content_controller_runtime_part.dart';
 
 class AnswerKeyContentController extends GetxController {
   static final Map<String, Set<String>> _savedIdsByUser =
@@ -56,8 +57,7 @@ class AnswerKeyContentController extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
-  static String _resolveCurrentUid() =>
-      CurrentUserService.instance.effectiveUserId;
+  static String _resolveCurrentUid() => _resolveAnswerKeyContentCurrentUid();
 
   bool get isOwner => isCurrentUserId(model.userID);
 
@@ -71,39 +71,9 @@ class AnswerKeyContentController extends GetxController {
     _initialize();
   }
 
-  static Future<Set<String>> _loadSavedIds(String userId) {
-    final cached = _savedIdsByUser[userId];
-    if (cached != null) {
-      return Future<Set<String>>.value(cached);
-    }
-    final existingLoader = _savedIdsLoaders[userId];
-    if (existingLoader != null) {
-      return existingLoader;
-    }
+  static Future<Set<String>> _loadSavedIds(String userId) =>
+      _loadAnswerKeyContentSavedIds(userId);
 
-    final loader = () async {
-      final entries = await UserSubcollectionRepository.ensure().getEntries(
-        userId,
-        subcollection: 'books',
-        orderByField: 'createdAt',
-        descending: true,
-        preferCache: true,
-        forceRefresh: false,
-      );
-      final ids = entries.map((entry) => entry.id).toSet();
-      _savedIdsByUser[userId] = ids;
-      return ids;
-    }();
-
-    _savedIdsLoaders[userId] = loader;
-    return loader.whenComplete(() {
-      _savedIdsLoaders.remove(userId);
-    });
-  }
-
-  static Future<void> warmSavedIdsForCurrentUser() async {
-    final userId = _resolveCurrentUid();
-    if (userId.isEmpty) return;
-    await _loadSavedIds(userId);
-  }
+  static Future<void> warmSavedIdsForCurrentUser() =>
+      _warmAnswerKeyContentSavedIdsForCurrentUser();
 }

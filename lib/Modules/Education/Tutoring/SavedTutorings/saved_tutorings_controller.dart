@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'saved_tutorings_controller_runtime_part.dart';
+
 class SavedTutoringsController extends GetxController {
   static SavedTutoringsController ensure({
     String? tag,
@@ -27,75 +29,18 @@ class SavedTutoringsController extends GetxController {
       UserSubcollectionRepository.ensure();
   var savedTutoringIds = <String>[].obs;
 
-  bool _sameIds(Iterable<String> next) {
-    return listEquals(
-      savedTutoringIds.toList(growable: false),
-      next.toList(growable: false),
-    );
-  }
+  bool _sameIds(Iterable<String> next) => _sameSavedTutoringIds(this, next);
 
   @override
   void onInit() {
     super.onInit();
-    loadSavedTutorings();
+    _handleSavedTutoringsInit(this);
   }
 
-  Future<void> loadSavedTutorings() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final entries = await _subcollectionRepository.getEntries(
-        uid,
-        subcollection: 'educators',
-        preferCache: true,
-        forceRefresh: false,
-      );
-      final nextIds = entries.map((doc) => doc.id).toList(growable: false);
-      if (!_sameIds(nextIds)) {
-        savedTutoringIds.assignAll(nextIds);
-      }
-    } catch (_) {}
-  }
+  Future<void> loadSavedTutorings() => _loadSavedTutorings(this);
 
-  Future<void> addSavedTutoring(String docId) async {
-    if (!savedTutoringIds.contains(docId)) {
-      savedTutoringIds.add(docId);
-      final uid = CurrentUserService.instance.effectiveUserId;
-      if (uid.isNotEmpty) {
-        await _subcollectionRepository.setEntries(
-          uid,
-          subcollection: 'educators',
-          items: savedTutoringIds
-              .map(
-                (id) => UserSubcollectionEntry(
-                  id: id,
-                  data: const <String, dynamic>{},
-                ),
-              )
-              .toList(growable: false),
-        );
-      }
-    }
-  }
+  Future<void> addSavedTutoring(String docId) => _addSavedTutoring(this, docId);
 
-  Future<void> removeSavedTutoring(String docId) async {
-    if (savedTutoringIds.contains(docId)) {
-      savedTutoringIds.remove(docId);
-      final uid = CurrentUserService.instance.effectiveUserId;
-      if (uid.isNotEmpty) {
-        await _subcollectionRepository.setEntries(
-          uid,
-          subcollection: 'educators',
-          items: savedTutoringIds
-              .map(
-                (id) => UserSubcollectionEntry(
-                  id: id,
-                  data: const <String, dynamic>{},
-                ),
-              )
-              .toList(growable: false),
-        );
-      }
-    }
-  }
+  Future<void> removeSavedTutoring(String docId) =>
+      _removeSavedTutoring(this, docId);
 }

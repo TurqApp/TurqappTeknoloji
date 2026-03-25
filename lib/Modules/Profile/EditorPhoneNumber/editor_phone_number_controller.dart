@@ -11,6 +11,7 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'editor_phone_number_controller_actions_part.dart';
+part 'editor_phone_number_controller_runtime_part.dart';
 
 class EditorPhoneNumberController extends GetxController {
   static EditorPhoneNumberController ensure({bool permanent = false}) {
@@ -43,72 +44,24 @@ class EditorPhoneNumberController extends GetxController {
 
   Timer? _timer;
 
-  void _seedFromCurrentUser() {
-    final currentUser = _userService.currentUser;
-    if (currentUser == null) return;
-    final phone = currentUser.phoneNumber.trim();
-    if (phone.isEmpty) return;
-    phoneController.text = phone;
-    phoneValue.value = phone;
-  }
+  void _seedFromCurrentUser() => _seedEditorPhoneFromCurrentUser(this);
 
-  Future<void> _loadInitialPhone() async {
-    final uid = _currentUid;
-    if (uid.isEmpty) return;
-    final data = await _userRepository.getUserRaw(
-      uid,
-      preferCache: true,
-      cacheOnly: true,
-    );
-    final rawPhone = (data ?? const {})["phoneNumber"]?.toString().trim() ?? "";
-    if (rawPhone.isNotEmpty) {
-      phoneController.text = rawPhone;
-      phoneValue.value = rawPhone;
-    }
-  }
+  Future<void> _loadInitialPhone() => _loadEditorPhoneInitial(this);
 
-  Future<String> _resolveAccountEmail() async {
-    final current = FirebaseAuth.instance.currentUser;
-    if (current == null) return "";
-
-    final authEmail = normalizeEmailAddress(current.email);
-    if (authEmail.isNotEmpty) return authEmail;
-
-    final currentUserEmail =
-        normalizeEmailAddress(_userService.currentUser?.email);
-    if (currentUserEmail.isNotEmpty) return currentUserEmail;
-
-    final data = await _userRepository.getUserRaw(current.uid);
-    return normalizeEmailAddress(
-      (((data ?? const {})["email"]) ?? "").toString(),
-    );
-  }
+  Future<String> _resolveAccountEmail() =>
+      _resolveEditorPhoneAccountEmail(this);
 
   @override
   void onInit() {
     super.onInit();
-    _seedFromCurrentUser();
-    unawaited(_loadInitialPhone());
-
-    phoneController.addListener(() {
-      phoneValue.value = phoneController.text;
-    });
-
-    codeController.addListener(() {
-      codeValue.value = codeController.text;
-    });
+    _handleEditorPhoneOnInit(this);
   }
 
   @override
   void onClose() {
-    _timer?.cancel();
-    phoneController.dispose();
-    codeController.dispose();
+    _disposeEditorPhoneController(this);
     super.onClose();
   }
 
-  bool get isPhoneValid {
-    final newPhone = phoneDigitsOnly(phoneController.text.trim());
-    return newPhone.length == 10 && newPhone.startsWith('5');
-  }
+  bool get isPhoneValid => _isEditorPhoneValid(this);
 }
