@@ -29,6 +29,7 @@ import 'drawing_screen.dart';
 
 part 'story_maker_controller_media_part.dart';
 part 'story_maker_controller_elements_part.dart';
+part 'story_maker_controller_fields_part.dart';
 part 'story_maker_controller_models_part.dart';
 part 'story_maker_controller_save_part.dart';
 part 'story_maker_controller_runtime_part.dart';
@@ -52,32 +53,8 @@ class StoryMakerController extends GetxController {
 
   static List<String> get supportedMediaLookPresets =>
       _storyMakerSupportedMediaLookPresets;
-
-  final Rx<Color> color = Colors.transparent.obs;
-  RxList<StoryElement> elements = <StoryElement>[].obs;
-  var music = "".obs;
-  final Rxn<MusicModel> selectedMusic = Rxn<MusicModel>();
-
-  RxBool isDragging = false.obs;
-  StoryElement? draggedElement;
-  RxBool isElementOverTrash = false.obs;
-  Offset? lastFingerPosition;
-
-  int _colorIndex = 0;
-  int _zIndexCounter = 0;
-  String _sharedPostSeedFingerprint = '';
-
-  final List<List<StoryElement>> _history = [];
-  int _historyIndex = -1;
-  final int _maxHistorySize = 20;
-
-  RxBool canUndo = false.obs;
-  RxBool canRedo = false.obs;
-
+  final _state = _StoryMakerControllerState();
   static RxBool get isUploadingStory => _storyMakerIsUploadingStory;
-
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  var isMusicPlaying = false.obs;
 
   StoryMakerController() {
     _configureStoryMakerAudioPlayer(_audioPlayer);

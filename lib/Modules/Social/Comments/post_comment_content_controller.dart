@@ -9,6 +9,7 @@ import '../../../Models/post_interactions_models_new.dart';
 import '../../../Services/post_interaction_service.dart';
 import 'post_comment_controller.dart';
 
+part 'post_comment_content_controller_fields_part.dart';
 part 'post_comment_content_controller_runtime_part.dart';
 
 class PostCommentContentController extends GetxController {
@@ -48,17 +49,10 @@ class PostCommentContentController extends GetxController {
   final PostCommentModel model;
   final String postID;
   final String commentControllerTag;
-
-  final RxString nickname = ''.obs;
-  final RxString avatarUrl = ''.obs;
-  final RxList<String> likes = <String>[].obs;
-  final RxList<SubCommentModel> replies = <SubCommentModel>[].obs;
-  final RxMap<String, String> replyNicknames = <String, String>{}.obs;
-  final RxMap<String, String> replyAvatarUrls = <String, String>{}.obs;
+  final _state = _PostCommentContentControllerState();
   final PostInteractionService _interactionService =
       PostInteractionService.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  StreamSubscription<List<SubCommentModel>>? _replySub;
 
   @override
   void onInit() {

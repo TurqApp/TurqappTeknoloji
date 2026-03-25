@@ -27,6 +27,7 @@ import '../../Models/posts_model.dart';
 
 part 'explore_controller_recent_search_part.dart';
 part 'explore_controller_feed_part.dart';
+part 'explore_controller_fields_part.dart';
 part 'explore_controller_runtime_part.dart';
 part 'explore_controller_search_part.dart';
 part 'explore_controller_support_part.dart';
@@ -39,51 +40,7 @@ class ExploreController extends GetxController {
       ? Get.find<ExploreController>()
       : null;
 
-  final selection = 0.obs;
-  final pageController = PageController(initialPage: 0);
-  final TextEditingController searchController = TextEditingController();
-  final FocusNode searchFocus = FocusNode();
-  final searchText = ''.obs;
-  final searchedList = <OgrenciModel>[].obs,
-      recentSearchUsers = <OgrenciModel>[].obs;
-  final searchedHashtags = <HashtagModel>[].obs,
-      searchedTags = <HashtagModel>[].obs;
-  final showAllRecent = false.obs,
-      isKeyboardOpen = false.obs,
-      isSearchMode = false.obs;
-  final scrollController = ScrollController();
-  final trendingTags = <HashtagModel>[].obs;
-  final ScrollController exploreScroll = ScrollController();
-  final explorePosts = <PostsModel>[].obs;
-  DocumentSnapshot? lastExploreDoc;
-  final exploreHasMore = true.obs, exploreIsLoading = false.obs;
-  final RxBool explorePreviewSuspended = false.obs;
-  final RxInt explorePreviewFocusIndex = (-1).obs;
-  final ScrollController videoScroll = ScrollController();
-  final exploreVideos = <PostsModel>[].obs;
-  DocumentSnapshot? lastVideoDoc;
-  final videoHasMore = true.obs, videoIsLoading = false.obs;
-  final ScrollController photoScroll = ScrollController();
-  final explorePhotos = <PostsModel>[].obs;
-  DocumentSnapshot? lastPhotoDoc;
-  final photoHasMore = true.obs, photoIsLoading = false.obs;
-  final ScrollController floodsScroll = ScrollController();
-  final exploreFloods = <PostsModel>[].obs;
-  DocumentSnapshot? lastFloodsDoc;
-  final floodsHasMore = true.obs, floodsIsLoading = false.obs;
-  final RxInt floodsVisibleIndex = (-1).obs;
-  int? lastFloodVisibleIndex;
-  String? _pendingFloodDocId;
-  final showScrollToTop = false.obs;
-  final RxSet<String> followingIDs = <String>{}.obs;
-  int _exploreEmptyScans = 0,
-      _videoEmptyScans = 0,
-      _photoEmptyScans = 0,
-      _floodsEmptyScans = 0;
-  Worker? _currentUserWorker;
-  Timer? _searchDebounce;
-  int _searchRequestId = 0;
-  String _recentSearchReloadKey = '';
+  final _state = _ExploreControllerState();
 
   @override
   void onInit() {

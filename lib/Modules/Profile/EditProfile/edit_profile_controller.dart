@@ -23,6 +23,7 @@ import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/Services/optimized_nsfw_service.dart';
 part 'edit_profile_controller_actions_part.dart';
 part 'edit_profile_controller_data_part.dart';
+part 'edit_profile_controller_fields_part.dart';
 
 class EditProfileController extends GetxController {
   static EditProfileController ensure({
@@ -44,23 +45,11 @@ class EditProfileController extends GetxController {
     return Get.find<EditProfileController>(tag: tag);
   }
 
-  final CropController cropController = CropController();
-  final ImagePicker picker = ImagePicker();
-
-  final Rx<File?> selectedImage = Rx<File?>(null);
-  final Rx<Uint8List?> croppedImage = Rx<Uint8List?>(null); // preview için
-  final RxBool isCropping =
-      false.obs; // artık UI bağımsız, ancak geriye dönük korunuyor
+  final _state = _EditProfileControllerState();
 
   // 🎯 Using CurrentUserService for optimized user data access
   final userService = CurrentUserService.instance;
   final UserRepository _userRepository = UserRepository.ensure();
-
-  final TextEditingController firstNameController = TextEditingController();
-  final TextEditingController lastNameController = TextEditingController();
-  final RxString email = ''.obs;
-  final RxString phoneNumber = ''.obs;
-  StreamSubscription<Map<String, dynamic>?>? _userSub;
 
   String get _currentUid => userService.effectiveUserId;
 

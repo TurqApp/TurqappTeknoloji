@@ -26,6 +26,7 @@ import '../../Services/current_user_service.dart';
 import '../Profile/Settings/settings_controller.dart';
 
 part 'nav_bar_controller_lifecycle_part.dart';
+part 'nav_bar_controller_fields_part.dart';
 part 'nav_bar_controller_support_part.dart';
 part 'nav_bar_controller_update_part.dart';
 
@@ -46,31 +47,7 @@ class NavBarController extends GetxController
   static const String _ratingLastShownAtKey = 'rating_prompt_last_shown_at';
   static const String _ratingLastStoreTapAtKey =
       'rating_prompt_last_store_tap_at';
-  var selectedIndex = 0.obs, showBar = true.obs;
-  ShortController? _shortCtrl;
-  final String fullText = "TurqApp";
-
-  ShortController get shortCtrl => _shortCtrl ??= ShortController.ensure();
-
-  late final Rx<AnimationController> typingController,
-      deletingController,
-      animationController;
-  var visibleCharCount = 0.obs, removeCharCount = 0.obs, hideAcilis = false.obs;
-  final uploadingPosts = false.obs;
-
-  bool _isDisposed = false,
-      _isForceUpdateVisible = false,
-      _ratingSheetShownThisSession = false;
-  String _androidMinVersion = '', _iosMinVersion = '';
-  String _updateTitle = 'app_update.title'.tr;
-  String _updateBody = 'app_update.body'.tr;
-  String? _androidStoreUrlOverride;
-  String? _iosStoreUrlOverride;
-  bool _ratingPromptEnabled = true;
-  Duration _ratingPromptEnabledAfter = const Duration(days: 7);
-  Duration _ratingPromptRepeatAfter = const Duration(days: 7);
-  Duration _ratingPromptStoreCooldown = const Duration(days: 90);
-  Timer? _backgroundCacheTimer, _uploadIndicatorTimer, _ratingPromptTimer;
+  final _state = _NavBarControllerState();
 
   @override
   void onInit() {

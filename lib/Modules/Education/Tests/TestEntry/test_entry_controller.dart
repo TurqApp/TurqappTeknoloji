@@ -6,6 +6,7 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
 
+part 'test_entry_controller_fields_part.dart';
 part 'test_entry_controller_runtime_part.dart';
 
 class TestEntryController extends GetxController {
@@ -28,12 +29,7 @@ class TestEntryController extends GetxController {
     return Get.find<TestEntryController>(tag: tag);
   }
 
-  final textController = TextEditingController();
-  final focusNode = FocusNode();
-  final model = Rx<TestsModel?>(null);
-  final isLoading = false.obs;
-  final TestRepository _testRepository = TestRepository.ensure();
-  final _helper = CreateTestController(null);
+  final _state = _TestEntryControllerState();
 
   @override
   void onInit() {
