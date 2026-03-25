@@ -24,6 +24,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'antreman_controller_actions_part.dart';
 part 'antreman_controller_category_part.dart';
+part 'antreman_controller_question_actions_part.dart';
 
 class AntremanController extends GetxController {
   static AntremanController ensure({bool permanent = false}) {
