@@ -64,6 +64,8 @@ class _PostContentControllerSupportPart {
 }
 
 extension PostContentControllerSupportApi on PostContentController {
+  CurrentUserService get userService => CurrentUserService.instance;
+
   ShortController get shortsController => ShortController.ensure();
 
   PostInteractionService get _interactionService =>
