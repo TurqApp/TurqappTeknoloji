@@ -6,6 +6,8 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
 
+part 'test_entry_controller_runtime_part.dart';
+
 class TestEntryController extends GetxController {
   static TestEntryController ensure({
     String? tag,
@@ -36,22 +38,13 @@ class TestEntryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleControllerInit();
-  }
-
-  void _handleControllerInit() {
-    focusNode.requestFocus();
+    _handleTestEntryOnInit();
   }
 
   @override
   void onClose() {
-    _handleControllerClose();
+    _handleTestEntryOnClose();
     super.onClose();
-  }
-
-  void _handleControllerClose() {
-    textController.dispose();
-    focusNode.dispose();
   }
 
   void onTextChanged(String val) {
@@ -100,23 +93,4 @@ class TestEntryController extends GetxController {
 
   String localizedLessons(List<String> lessons) =>
       _helper.localizedLessons(lessons);
-
-  void joinTest(BuildContext context) {
-    if (model.value != null) {
-      Get.to(
-        () => SolveTest(testID: model.value!.docID, showSucces: showAlert),
-      )?.then((_) {
-        model.value = null;
-        textController.text = '';
-      });
-    }
-  }
-
-  void showAlert() {
-    showAlertDialog(
-      Get.context!,
-      'tests.completed_title'.tr,
-      'tests.completed_body'.tr,
-    );
-  }
 }

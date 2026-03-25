@@ -27,6 +27,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'upload_queue_service_helpers_part.dart';
+part 'upload_queue_service_facade_part.dart';
 part 'upload_queue_service_queue_part.dart';
 part 'upload_queue_service_lifecycle_part.dart';
 part 'upload_queue_service_models_part.dart';
@@ -57,14 +58,6 @@ class UploadQueueService extends GetxController {
   final RxInt _completedCount = 0.obs;
   StreamSubscription<User?>? _authSub;
 
-  List<QueuedUpload> get queue => _queue;
-  bool get isProcessing => _isProcessing.value;
-  bool get isPaused => _isPaused.value;
-  int get failedCount => _failedCount.value;
-  int get completedCount => _completedCount.value;
-  int get pendingCount =>
-      _queue.where((item) => item.status == UploadStatus.pending).length;
-
   static const String _queueKeyPrefix = 'upload_queue';
   static const int _maxRetries = 3;
 
@@ -81,39 +74,11 @@ class UploadQueueService extends GetxController {
   Future<void> _createPendingPostShell(QueuedUpload upload) =>
       _performCreatePendingPostShell(upload);
 
-  /// Start processing queue
-  void _processQueue() => _performProcessQueue();
-
-  /// Process individual upload
-  Future<void> _processUpload(QueuedUpload upload) =>
-      _performProcessUpload(upload);
-
-  /// Pause queue processing
-  void pauseQueue() => _performPauseQueue();
-
-  /// Resume queue processing
-  void resumeQueue() => _performResumeQueue();
-
-  /// Clear completed uploads
-  void clearCompleted() => _performClearCompleted();
-
-  /// Retry failed uploads
-  void retryFailed() => _performRetryFailed();
-
-  /// Remove upload from queue
-  void removeUpload(String uploadId) => _performRemoveUpload(uploadId);
-
   /// Save queue to local storage
   Future<void> _saveQueueToStorage() => _performSaveQueueToStorage();
 
   /// Load queue from local storage
   Future<void> _loadQueueFromStorage() => _performLoadQueueFromStorage();
-
-  /// Listen to connectivity changes
-  void _listenToConnectivity() => _performListenToConnectivity();
-
-  /// Get queue statistics
-  Map<String, dynamic> getQueueStats() => _performGetQueueStats();
 
   @override
   void onClose() {

@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
+part 'answer_key_snapshot_repository_facade_part.dart';
 part 'answer_key_snapshot_repository_runtime_part.dart';
 
 class AnswerKeySnapshotRepository extends GetxService {
@@ -67,54 +68,6 @@ class AnswerKeySnapshotRepository extends GetxService {
     loadWarmSnapshot: _loadWarmSnapshot,
     isEmpty: (items) => items.isEmpty,
   );
-
-  Stream<CachedResource<List<BookletModel>>> openHome({
-    required String userId,
-    int limit = 30,
-    bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).openHome(
-        userId: userId,
-        limit: limit,
-        forceSync: forceSync,
-      );
-
-  Future<CachedResource<List<BookletModel>>> loadHome({
-    required String userId,
-    int limit = 30,
-    bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).loadHome(
-        userId: userId,
-        limit: limit,
-        forceSync: forceSync,
-      );
-
-  Stream<CachedResource<List<BookletModel>>> openSearch({
-    required String query,
-    required String userId,
-    int limit = 40,
-    bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).openSearch(
-        query: query,
-        userId: userId,
-        limit: limit,
-        forceSync: forceSync,
-      );
-
-  Future<CachedResource<List<BookletModel>>> search({
-    required String query,
-    required String userId,
-    int limit = 40,
-    bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).search(
-        query: query,
-        userId: userId,
-        limit: limit,
-        forceSync: forceSync,
-      );
 
   Future<List<BookletModel>?> _loadWarmSnapshot(
     EducationTypesenseDocIdQuery query,
