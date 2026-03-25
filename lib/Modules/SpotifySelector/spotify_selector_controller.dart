@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/music_model.dart';
 
 part 'spotify_selector_controller_browse_part.dart';
+part 'spotify_selector_controller_runtime_part.dart';
 
 class SpotifySelectorController extends GetxController {
   static SpotifySelectorController ensure({String? tag}) {
@@ -84,75 +85,21 @@ class SpotifySelectorController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    AudioFocusCoordinator.instance.registerAudioPlayer(_audioPlayer);
-    _audioPlayer.onPlayerComplete.listen((_) {
-      currentPlayingUrl.value = '';
-    });
-    searchController.addListener(() {
-      query.value = searchController.text.trim();
-      _resetVisibleCount();
-    });
-    scrollController.addListener(_handleScroll);
-    _loadTracks();
+    SpotifySelectorControllerRuntimePart(this).onInit();
   }
 
-  Future<void> _loadTracks() async {
-    isLoading.value = true;
-    try {
-      final tracks = await StoryMusicLibraryService.instance.fetchTracks(
-        limit: 100,
-        forceRemote: true,
-      );
-      final saved =
-          await StoryMusicLibraryService.instance.fetchSavedMusicIds();
-      library.assignAll(tracks);
-      savedTrackIds
-        ..clear()
-        ..addAll(saved);
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  Future<void> _loadTracks() =>
+      SpotifySelectorControllerRuntimePart(this).loadTracks();
 
-  Future<void> playMusic(MusicModel track) async {
-    final url = track.audioUrl.trim();
-    if (url.isEmpty) return;
-    if (currentPlayingUrl.value == url) {
-      await _audioPlayer.pause();
-      currentPlayingUrl.value = '';
-      return;
-    }
+  Future<void> playMusic(MusicModel track) =>
+      SpotifySelectorControllerRuntimePart(this).playMusic(track);
 
-    await _audioPlayer.stop();
-    await AudioFocusCoordinator.instance.requestAudioPlayerPlay(_audioPlayer);
-    final playablePath =
-        await StoryMusicLibraryService.instance.resolvePlayablePath(url);
-    if (playablePath.isNotEmpty) {
-      await _audioPlayer.play(DeviceFileSource(playablePath));
-    } else {
-      await _audioPlayer.play(UrlSource(url));
-    }
-    currentPlayingUrl.value = url;
-    unawaited(StoryMusicLibraryService.instance.warmTrack(track));
-  }
-
-  Future<void> toggleSaved(MusicModel track) async {
-    final saved =
-        await StoryMusicLibraryService.instance.toggleSavedMusic(track);
-    if (saved) {
-      savedTrackIds.add(track.docID);
-    } else {
-      savedTrackIds.remove(track.docID);
-    }
-    savedTrackIds.refresh();
-  }
+  Future<void> toggleSaved(MusicModel track) =>
+      SpotifySelectorControllerRuntimePart(this).toggleSaved(track);
 
   @override
   void onClose() {
-    scrollController.dispose();
-    searchController.dispose();
-    AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
-    _audioPlayer.dispose();
+    SpotifySelectorControllerRuntimePart(this).onClose();
     super.onClose();
   }
 }

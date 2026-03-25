@@ -5,21 +5,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
-class LikeUserItem {
-  const LikeUserItem({
-    required this.userID,
-    required this.nickname,
-    required this.fullName,
-    required this.avatarUrl,
-    required this.searchText,
-  });
-
-  final String userID;
-  final String nickname;
-  final String fullName;
-  final String avatarUrl;
-  final String searchText;
-}
+part 'post_like_listing_controller_models_part.dart';
 
 class PostLikeListingController extends GetxController {
   PostLikeListingController({required this.postID});

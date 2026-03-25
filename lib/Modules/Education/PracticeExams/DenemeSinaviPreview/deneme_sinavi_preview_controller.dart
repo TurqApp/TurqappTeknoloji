@@ -9,6 +9,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deneme_sinavi_preview_controller_actions_part.dart';
+part 'deneme_sinavi_preview_controller_runtime_part.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
   static DenemeSinaviPreviewController ensure({
@@ -64,9 +65,11 @@ class DenemeSinaviPreviewController extends GetxController {
     syncSavedState();
   }
 
-  Future<void> fetchUserData() => _fetchUserDataImpl();
+  Future<void> fetchUserData() =>
+      DenemeSinaviPreviewControllerRuntimePart(this).fetchUserData();
 
-  Future<void> getGecersizlikDurumu() => _getGecersizlikDurumuImpl();
+  Future<void> getGecersizlikDurumu() =>
+      DenemeSinaviPreviewControllerRuntimePart(this).getGecersizlikDurumu();
 
   Future<void> sinaviBitirAlert() => _sinaviBitirAlertImpl();
 
@@ -74,83 +77,14 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> addBasvuru() => _addBasvuruImpl();
 
-  Future<void> basvuruKontrol() => _basvuruKontrolImpl();
+  Future<void> basvuruKontrol() =>
+      DenemeSinaviPreviewControllerRuntimePart(this).basvuruKontrol();
 
-  Future<void> refreshData() => _refreshDataImpl();
+  Future<void> refreshData() =>
+      DenemeSinaviPreviewControllerRuntimePart(this).refreshData();
 
-  Future<void> syncSavedState() => _syncSavedStateImpl();
+  Future<void> syncSavedState() =>
+      DenemeSinaviPreviewControllerRuntimePart(this).syncSavedState();
 
   Future<void> toggleSaved() => _toggleSavedImpl();
-
-  Future<void> _fetchUserDataImpl() async {
-    try {
-      final data = await _userSummaryResolver.resolve(
-            model.userID,
-            preferCache: true,
-          ) ??
-          _userSummaryResolver.resolveFromMaps(model.userID);
-      displayName.value = data.preferredName;
-      nickname.value = data.nickname.trim();
-      avatarUrl.value = data.avatarUrl;
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'practice.user_load_failed'.tr);
-    } finally {
-      isLoading.value = false;
-      isInitialized.value = true;
-    }
-  }
-
-  Future<void> _getGecersizlikDurumuImpl() async {
-    try {
-      final data = await _practiceExamRepository.fetchRawById(
-        model.docID,
-        preferCache: true,
-      );
-
-      if (data == null || !data.containsKey('gecersizSayilanlar')) {
-        sinavaGirebilir.value = true;
-        return;
-      }
-
-      final gecersizSayilanlar = List<String>.from(
-        data['gecersizSayilanlar'] ?? [],
-      );
-      sinavaGirebilir.value = !gecersizSayilanlar.contains(_currentUserId);
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'practice.invalidity_load_failed'.tr);
-      sinavaGirebilir.value = true;
-    }
-  }
-
-  Future<void> _basvuruKontrolImpl() async {
-    try {
-      basvuranSayisi.value =
-          await _practiceExamRepository.fetchParticipantCount(
-        model.docID,
-        preferCache: true,
-      );
-      dahaOnceBasvurdu.value = await _practiceExamRepository.hasApplication(
-        model.docID,
-        _currentUserId,
-      );
-    } catch (error) {
-      AppSnackbar('common.error'.tr, 'practice.application_check_failed'.tr);
-    }
-  }
-
-  Future<void> _refreshDataImpl() async {
-    currentTime.value = DateTime.now().millisecondsSinceEpoch;
-    await fetchUserData();
-    await basvuruKontrol();
-    await syncSavedState();
-  }
-
-  Future<void> _syncSavedStateImpl() async {
-    final savedController = SavedPracticeExamsController.ensure();
-    if (savedController.savedExamIds.isEmpty &&
-        !savedController.isLoading.value) {
-      await savedController.loadSavedExams();
-    }
-    isSaved.value = savedController.savedExamIds.contains(model.docID);
-  }
 }
