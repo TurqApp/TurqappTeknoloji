@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'create_answer_key_controller_runtime_part.dart';
+
 class CreateAnswerKeyController extends GetxController {
   static CreateAnswerKeyController ensure(
     Function onBack, {
@@ -37,45 +39,19 @@ class CreateAnswerKeyController extends GetxController {
 
   @override
   void onClose() {
-    nameController.dispose();
+    _disposeCreateAnswerKeyController(this);
     super.onClose();
   }
 
-  Future<void> selectDateTime(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
-
-      if (pickedTime != null) {
-        final DateTime fullDateTime = DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-          pickedTime.hour,
-          pickedTime.minute,
-        );
-        selectedDateTime.value = fullDateTime;
-      }
-    }
-  }
+  Future<void> selectDateTime(BuildContext context) =>
+      _selectCreateAnswerKeyDateTime(this, context);
 
   void toggleSinavSureleri() {
     showSinavSureleri.value = !showSinavSureleri.value;
   }
 
-  void selectSinavSuresi(int duration) {
-    sinavSuresiCount.value = duration;
-    showSinavSureleri.value = false;
-  }
+  void selectSinavSuresi(int duration) =>
+      _selectCreateAnswerKeyDuration(this, duration);
 
   void setSelection(int value) {
     selection.value = value;
@@ -85,33 +61,12 @@ class CreateAnswerKeyController extends GetxController {
     selections.add("");
   }
 
-  void removeSelection(int index) {
-    if (selections.length > 1) {
-      selections.removeAt(index);
-    }
-  }
+  void removeSelection(int index) =>
+      _removeCreateAnswerKeySelection(this, index);
 
   void updateSelection(int index, String value) {
     selections[index] = value;
   }
 
-  Future<void> saveForm(BuildContext context) async {
-    final docID = DateTime.now().millisecondsSinceEpoch.toString();
-
-    await FirebaseFirestore.instance.collection("optikForm").doc(docID).set({
-      "max": selection.value,
-      "cevaplar": selections.toList(),
-      "name": nameController.text.isNotEmpty
-          ? nameController.text
-          : "answer_key.untitled_optical_form".tr,
-      "userID": CurrentUserService.instance.effectiveUserId,
-      "baslangic": selectedDateTime.value.millisecondsSinceEpoch,
-      "bitis": selectedDateTime.value.millisecondsSinceEpoch +
-          (60000 * sinavSuresiCount.value),
-      "kisitlama": false,
-    });
-
-    onBack();
-    Get.back();
-  }
+  Future<void> saveForm(BuildContext context) => _saveCreateAnswerKeyForm(this);
 }

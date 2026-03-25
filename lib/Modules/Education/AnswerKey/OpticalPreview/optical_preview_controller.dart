@@ -8,6 +8,8 @@ import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'optical_preview_controller_runtime_part.dart';
+
 class OpticalPreviewController extends GetxController {
   static OpticalPreviewController ensure(
     OpticalFormModel model,
@@ -46,66 +48,25 @@ class OpticalPreviewController extends GetxController {
     _initialize();
   }
 
-  void _initialize() {
-    cevaplar.value = List.generate(model.cevaplar.length, (index) => "");
-    kullaniciyiSinavGirdiKaydet();
-    checkInternetConnection();
-  }
+  void _initialize() => _initializeOpticalPreviewController(this);
 
   @override
   void onClose() {
-    _connectivitySubscription?.cancel();
-    fullName.dispose();
-    ogrenciNo.dispose();
+    _disposeOpticalPreviewController(this);
     super.onClose();
   }
 
-  void checkInternetConnection() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      results,
-    ) {
-      isConnected.value = results.any((r) => r != ConnectivityResult.none);
-    });
-  }
+  void checkInternetConnection() => _checkOpticalPreviewInternet(this);
 
-  void setData() {
-    _opticalFormRepository
-        .saveUserAnswers(
-          model.docID,
-          CurrentUserService.instance.effectiveUserId,
-          answers: cevaplar.toList(growable: false),
-          ogrenciNo: ogrenciNo.text,
-          fullName: fullName.text,
-        )
-        .then((_) => Get.back());
-  }
+  void setData() => _saveOpticalPreviewData(this);
 
-  void kullaniciyiSinavGirdiKaydet() {
-    _opticalFormRepository.initializeUserAnswers(
-      model.docID,
-      CurrentUserService.instance.effectiveUserId,
-      model.cevaplar.length,
-    );
-  }
+  void kullaniciyiSinavGirdiKaydet() => _initializeOpticalPreviewAnswers(this);
 
-  void toggleAnswer(int index, String item) {
-    if (cevaplar[index] == item) {
-      cevaplar[index] = "";
-    } else {
-      cevaplar[index] = item;
-    }
-  }
+  void toggleAnswer(int index, String item) =>
+      _toggleOpticalPreviewAnswer(this, index, item);
 
-  void handleFinishTest(BuildContext context) {
-    if (isConnected.value) {
-      setData();
-    } else {
-      showAlertDialog(
-        "answer_key.turn_on_internet_title".tr,
-        "answer_key.turn_on_internet_body".tr,
-      );
-    }
-  }
+  void handleFinishTest(BuildContext context) =>
+      _handleOpticalPreviewFinish(this);
 
   void startTest() {
     selection.value = 1;
@@ -115,10 +76,6 @@ class OpticalPreviewController extends GetxController {
     return fullName.text.trim().length >= 6 && ogrenciNo.text.trim().isNotEmpty;
   }
 
-  void showAlertDialog(String title, String desc) {
-    infoAlert(
-      title: title,
-      message: desc,
-    );
-  }
+  void showAlertDialog(String title, String desc) =>
+      _showOpticalPreviewAlert(title, desc);
 }

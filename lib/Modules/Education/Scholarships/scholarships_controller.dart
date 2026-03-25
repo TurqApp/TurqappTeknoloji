@@ -46,6 +46,10 @@ class ScholarshipsController extends GetxController {
     return Get.find<ScholarshipsController>();
   }
 
+  static const int _shortLinkPrefetchLimit = 6;
+  static const String _defaultOgImage =
+      'https://cdn.turqapp.com/og/default.jpg';
+
   final FollowRepository _followRepository = FollowRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
@@ -69,27 +73,19 @@ class ScholarshipsController extends GetxController {
   final Set<String> _bookmarkedByCurrentUser = <String>{};
   final Map<String, String> _shortLinkCache = <String, String>{};
   final Set<String> _shortLinkInFlight = <String>{};
-  static const int _shortLinkPrefetchLimit = 6;
-  static const String _defaultOgImage =
-      'https://cdn.turqapp.com/og/default.jpg';
   DateTime? lastRefresh;
   final RxMap<int, RxInt> pageIndices = <int, RxInt>{}.obs;
   final RxDouble scrollOffset = 0.0.obs;
   final RxBool listingSelectionReady = false.obs;
   final RxInt listingSelection = 0.obs;
-  final int initialBatchSize = ReadBudgetRegistry.scholarshipHomeInitialLimit;
-  final int batchSize = 10;
   final RxBool hasMoreData = true.obs;
   final RxInt totalCount = 0.obs;
   Timer? _searchDebounce;
-  final int minSearchLength = 2; // minimum search query length
+  final int minSearchLength = 2;
   int _searchRequestToken = 0;
   int _typesensePage = 0;
   StreamSubscription<CachedResource<ScholarshipListingSnapshot>>?
       _homeSnapshotSub;
-
-  bool get hasActiveSearch => searchQuery.value.length >= minSearchLength;
-
   @override
   void onInit() {
     super.onInit();

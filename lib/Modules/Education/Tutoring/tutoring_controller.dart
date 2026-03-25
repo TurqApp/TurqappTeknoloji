@@ -14,6 +14,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'tutoring_controller_data_part.dart';
 part 'tutoring_controller_model_extension_part.dart';
 part 'tutoring_controller_search_part.dart';
+part 'tutoring_controller_support_part.dart';
 
 class TutoringController extends GetxController {
   static TutoringController ensure({bool permanent = false}) {
@@ -46,56 +47,6 @@ class TutoringController extends GetxController {
   Timer? _searchDebounce;
   int _searchToken = 0;
   int _currentPage = 1;
-
-  String _firstImage(TutoringModel item) {
-    final imgs = item.imgs;
-    if (imgs == null || imgs.isEmpty) return '';
-    return imgs.first;
-  }
-
-  bool _sameTutoringEntries(
-    List<TutoringModel> current,
-    List<TutoringModel> next,
-  ) {
-    final currentKeys = current
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.brans,
-            item.sehir,
-            item.ilce,
-            item.fiyat,
-            item.timeStamp,
-            item.viewCount ?? 0,
-            item.applicationCount ?? 0,
-            item.dersYeri.join('|'),
-            _firstImage(item),
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.brans,
-            item.sehir,
-            item.ilce,
-            item.fiyat,
-            item.timeStamp,
-            item.viewCount ?? 0,
-            item.applicationCount ?? 0,
-            item.dersYeri.join('|'),
-            _firstImage(item),
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
-
-  bool _sameTutoringList(List<TutoringModel> next) =>
-      _sameTutoringEntries(tutoringList, next);
 
   static const int _pageSize = 30;
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;

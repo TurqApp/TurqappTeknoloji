@@ -45,7 +45,7 @@ extension TutoringControllerDataPart on TutoringController {
       final items = result.data ?? const <TutoringModel>[];
       hasMore.value = items.length >= TutoringController._pageSize;
       final nextList = _applyPersonalization(items);
-      if (!_sameTutoringList(nextList)) {
+      if (!_sameTutoringList(this, nextList)) {
         tutoringList.assignAll(nextList);
       }
       SilentRefreshGate.markRefreshed('tutoring:home');
@@ -91,7 +91,7 @@ extension TutoringControllerDataPart on TutoringController {
     if (items.isNotEmpty) {
       hasMore.value = items.length >= TutoringController._pageSize;
       final nextList = _applyPersonalization(items);
-      if (!_sameTutoringList(nextList)) {
+      if (!_sameTutoringList(this, nextList)) {
         tutoringList.assignAll(nextList);
       }
     }

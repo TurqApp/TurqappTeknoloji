@@ -9,64 +9,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'notify_lookup_repository_query_part.dart';
 part 'notify_lookup_repository_cache_part.dart';
-
-class NotifyPostLookup {
-  const NotifyPostLookup({
-    required this.exists,
-    required this.model,
-    required this.cachedAt,
-  });
-
-  final bool exists;
-  final PostsModel? model;
-  final DateTime cachedAt;
-}
-
-class NotifyChatLookup {
-  const NotifyChatLookup({
-    required this.otherUser,
-    required this.cachedAt,
-  });
-
-  final String otherUser;
-  final DateTime cachedAt;
-}
-
-class NotifyJobLookup {
-  const NotifyJobLookup({
-    required this.exists,
-    required this.model,
-    required this.cachedAt,
-  });
-
-  final bool exists;
-  final JobModel? model;
-  final DateTime cachedAt;
-}
-
-class NotifyTutoringLookup {
-  const NotifyTutoringLookup({
-    required this.exists,
-    required this.model,
-    required this.cachedAt,
-  });
-
-  final bool exists;
-  final TutoringModel? model;
-  final DateTime cachedAt;
-}
-
-class NotifyMarketLookup {
-  const NotifyMarketLookup({
-    required this.exists,
-    required this.model,
-    required this.cachedAt,
-  });
-
-  final bool exists;
-  final MarketItemModel? model;
-  final DateTime cachedAt;
-}
+part 'notify_lookup_repository_models_part.dart';
 
 class NotifyLookupRepository extends GetxService {
   NotifyLookupRepository({

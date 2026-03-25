@@ -1,5 +1,14 @@
 part of 'scholarships_controller.dart';
 
+int get _scholarshipsInitialBatchSize =>
+    ReadBudgetRegistry.scholarshipHomeInitialLimit;
+
+const int _scholarshipsBatchSize = 10;
+
+bool _scholarshipsHasActiveSearch(ScholarshipsController controller) {
+  return controller.searchQuery.value.length >= controller.minSearchLength;
+}
+
 extension ScholarshipsControllerRuntimeX on ScholarshipsController {
   void _handleOnInit() {
     FirebaseFirestore.instance.settings = Settings(
@@ -16,7 +25,7 @@ extension ScholarshipsControllerRuntimeX on ScholarshipsController {
     _homeSnapshotSub = _scholarshipSnapshotRepository
         .openHome(
           userId: userId,
-          limit: initialBatchSize,
+          limit: _scholarshipsInitialBatchSize,
         )
         .listen(_applyHomeSnapshotResource);
   }

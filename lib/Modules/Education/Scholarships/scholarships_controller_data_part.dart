@@ -58,7 +58,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
   void _setSearchQueryImpl(String q) {
     searchQuery.value = q.trim();
     _searchDebounce?.cancel();
-    if (!hasActiveSearch) {
+    if (!_scholarshipsHasActiveSearch(this)) {
       isSearching.value = false;
       _setVisibleScholarships(allScholarships);
       return;
@@ -82,7 +82,9 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
   void _applyScholarshipStateFromCombined(List<Map<String, dynamic>> combined) {
     allScholarships.clear();
     allScholarships.addAll(combined);
-    _setVisibleScholarships(hasActiveSearch ? visibleScholarships : combined);
+    _setVisibleScholarships(
+      _scholarshipsHasActiveSearch(this) ? visibleScholarships : combined,
+    );
   }
 
   void _setVisibleScholarships(List<Map<String, dynamic>> items) {
@@ -207,7 +209,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       }
       final result = await _scholarshipSnapshotRepository.loadHome(
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: initialBatchSize,
+        limit: _scholarshipsInitialBatchSize,
         forceSync: forceRefresh,
       );
       _typesensePage = 1;
@@ -217,14 +219,14 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       await _primeLocalStateForCombined(combined);
 
       _applyScholarshipStateFromCombined(combined);
-      if (hasActiveSearch) {
+      if (_scholarshipsHasActiveSearch(this)) {
         unawaited(
           _searchFromTypesense(searchQuery.value, ++_searchRequestToken),
         );
       }
       _prefetchShortLinksForList(allScholarships);
       SilentRefreshGate.markRefreshed('scholarships:home');
-      hasMoreData.value = combined.length >= initialBatchSize &&
+      hasMoreData.value = combined.length >= _scholarshipsInitialBatchSize &&
           allScholarships.length < totalCount.value;
     } catch (_) {
     } finally {
@@ -241,7 +243,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       isLoadingMore.value = true;
       final result = await _scholarshipSnapshotRepository.loadHome(
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: batchSize,
+        limit: _scholarshipsBatchSize,
         page: _typesensePage + 1,
         forceSync: true,
       );
@@ -261,7 +263,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       pageIndices.addAll(newPageIndices);
 
       allScholarships.addAll(combined);
-      if (hasActiveSearch) {
+      if (_scholarshipsHasActiveSearch(this)) {
         unawaited(
           _searchFromTypesense(searchQuery.value, ++_searchRequestToken),
         );
@@ -269,7 +271,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
         _setVisibleScholarships(allScholarships);
       }
       _prefetchShortLinksForList(allScholarships);
-      hasMoreData.value = combined.length >= batchSize &&
+      hasMoreData.value = combined.length >= _scholarshipsBatchSize &&
           allScholarships.length < totalCount.value;
     } catch (_) {
       AppSnackbar('common.error'.tr, 'scholarship.load_more_failed'.tr);
@@ -291,7 +293,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       unawaited(_primeLocalStateForCombined(items));
       _applyScholarshipStateFromCombined(items);
       _prefetchShortLinksForList(allScholarships);
-      hasMoreData.value = items.length >= initialBatchSize &&
+      hasMoreData.value = items.length >= _scholarshipsInitialBatchSize &&
           allScholarships.length < totalCount.value;
     }
 
