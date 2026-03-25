@@ -83,9 +83,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
   @override
   Widget build(BuildContext context) {
     final userService = CurrentUserService.instance;
-    final currentUID =
-        (userService.currentUserRx.value?.userID ?? userService.authUserId)
-            .trim();
+    final currentUID = _resolveViewerUid(userService);
     return Padding(
       key: ValueKey(IntegrationTestKeys.commentItem(model.docID)),
       padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
@@ -214,10 +212,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
                 4.ph,
                 if (!isPending)
                   Obx(() {
-                    final viewerUid =
-                        (userService.currentUserRx.value?.userID ??
-                                userService.authUserId)
-                            .trim();
+                    final viewerUid = _resolveViewerUid(userService);
                     final canDeleteComment = viewerUid.isNotEmpty &&
                         (model.userID == viewerUid ||
                             postOwnerUserId.trim() == viewerUid);
@@ -273,10 +268,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
                   if (controller.replies.isEmpty) {
                     return const SizedBox.shrink();
                   }
-                  final viewerUid =
-                      (userService.currentUserRx.value?.userID ??
-                              userService.authUserId)
-                          .trim();
+                  final viewerUid = _resolveViewerUid(userService);
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Column(
@@ -296,8 +288,9 @@ class _PostCommentContentState extends State<PostCommentContent> {
           ),
           if (!isPending)
             Obx(() {
-              final hasLiked = currentUID.isNotEmpty &&
-                  controller.likes.contains(currentUID);
+              final viewerUid = _resolveViewerUid(userService);
+              final hasLiked = viewerUid.isNotEmpty &&
+                  controller.likes.contains(viewerUid);
               return GestureDetector(
                 key: ValueKey(
                   IntegrationTestKeys.commentLikeButton(model.docID),
@@ -459,5 +452,11 @@ class _PostCommentContentState extends State<PostCommentContent> {
         }
       },
     );
+  }
+
+  String _resolveViewerUid(CurrentUserService userService) {
+    final cachedUid = (userService.currentUserRx.value?.userID ?? '').trim();
+    if (cachedUid.isNotEmpty) return cachedUid;
+    return userService.authUserId.trim();
   }
 }
