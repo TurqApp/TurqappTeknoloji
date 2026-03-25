@@ -2,17 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AppLanguageOption {
-  const AppLanguageOption({
-    required this.code,
-    required this.locale,
-    required this.nativeLabel,
-  });
-
-  final String code;
-  final Locale locale;
-  final String nativeLabel;
-}
+part 'app_language_service_models_part.dart';
+part 'app_language_service_runtime_part.dart';
 
 class AppLanguageService extends GetxService {
   static const String _prefKey = 'appLanguageCode';
@@ -83,29 +74,6 @@ class AppLanguageService extends GetxService {
 
   String get currentCode => _currentCode.value;
   Locale get currentLocale => _localeForCode(_currentCode.value);
-
-  String get currentLanguageLabel {
-    for (final option in options) {
-      if (option.code == _currentCode.value) return option.nativeLabel;
-    }
-    return 'Türkçe';
-  }
-
-  Future<AppLanguageService> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _currentCode.value = _normalizeCode(prefs.getString(_prefKey));
-    return this;
-  }
-
-  Future<void> changeLanguage(String code) async {
-    final normalized = _normalizeCode(code);
-    if (_currentCode.value == normalized) return;
-    _currentCode.value = normalized;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefKey, normalized);
-    await Get.updateLocale(_localeForCode(normalized));
-  }
 
   static Locale _localeForCode(String? code) {
     final normalized = _normalizeCode(code);

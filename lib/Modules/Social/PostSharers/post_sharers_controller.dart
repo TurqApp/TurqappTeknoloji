@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/post_sharers_model.dart';
 
 part 'post_sharers_controller_paging_part.dart';
+part 'post_sharers_controller_runtime_part.dart';
 
 class PostSharersController extends GetxController {
   static const int _pageSize = 20;
@@ -53,78 +54,12 @@ class PostSharersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    scrollController.addListener(_onScroll);
-    loadPostSharers();
+    _handlePostSharersOnInit();
   }
 
   @override
   void onClose() {
-    scrollController.removeListener(_onScroll);
-    scrollController.dispose();
+    _handlePostSharersOnClose();
     super.onClose();
-  }
-
-  Future<void> loadPostSharers() async {
-    if (_isFetching) return;
-    _isFetching = true;
-    try {
-      isLoading.value = true;
-      isLoadingMore.value = false;
-      _lastSharerDoc = null;
-      hasMore.value = true;
-      postSharers.clear();
-      usersData.clear();
-      _usingFallbackSharers = false;
-      _fallbackSharers = const <PostSharersModel>[];
-      _fallbackOffset = 0;
-
-      _resolvedPostId = postID.trim();
-      var targetPostId = _resolvedPostId;
-      var page = await _postRepository.fetchPostSharersPage(
-        targetPostId,
-        limit: _pageSize,
-      );
-      if (page.items.isEmpty && targetPostId.isNotEmpty) {
-        final model = await _postRepository.fetchPostById(
-          targetPostId,
-          preferCache: true,
-        );
-        final originalPostId = model?.originalPostID.trim() ?? '';
-        if (originalPostId.isNotEmpty && originalPostId != targetPostId) {
-          targetPostId = originalPostId;
-          page = await _postRepository.fetchPostSharersPage(
-            targetPostId,
-            limit: _pageSize,
-          );
-        }
-      }
-      _resolvedPostId = targetPostId;
-      if (page.items.isEmpty && targetPostId.isNotEmpty) {
-        final fallbackSharers =
-            await _postRepository.fetchSharedAsPostSharersFallback(
-          targetPostId,
-        );
-        if (fallbackSharers.isNotEmpty) {
-          _usingFallbackSharers = true;
-          _fallbackSharers = fallbackSharers;
-          _appendFallbackPage(reset: true);
-          return;
-        }
-      }
-      _lastSharerDoc = page.lastDoc;
-      hasMore.value = page.hasMore;
-      postSharers.assignAll(page.items);
-
-      final userIds = page.items
-          .map((sharer) => sharer.userID.trim())
-          .where((id) => id.isNotEmpty)
-          .toSet()
-          .toList(growable: false);
-      await loadUsersData(userIds);
-    } catch (_) {
-    } finally {
-      _isFetching = false;
-      isLoading.value = false;
-    }
   }
 }
