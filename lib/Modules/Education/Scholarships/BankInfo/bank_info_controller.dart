@@ -8,6 +8,10 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'bank_info_controller_actions_part.dart';
+part 'bank_info_controller_data_part.dart';
+part 'bank_info_controller_ui_part.dart';
+
 class BankInfoController extends GetxController {
   static BankInfoController ensure({
     required String tag,
@@ -80,123 +84,19 @@ class BankInfoController extends GetxController {
     loadData();
   }
 
-  String localizedFastType(String value) {
-    switch (value) {
-      case _selectBank:
-        return 'bank_info.select_bank'.tr;
-      case _email:
-        return 'bank_info.fast_email'.tr;
-      case _phone:
-        return 'bank_info.fast_phone'.tr;
-      case _ibanType:
-        return 'bank_info.fast_iban'.tr;
-      default:
-        return value;
-    }
-  }
+  String localizedFastType(String value) =>
+      _BankInfoControllerUiX(this).localizedFastType(value);
 
-  Future<void> loadData() async {
-    try {
-      final data = await _userRepository.getUserRaw(
-            CurrentUserService.instance.effectiveUserId,
-          ) ??
-          const <String, dynamic>{};
-      final bank = userString(data, key: "bank", scope: "finance");
-      final iban = userString(data, key: "iban", scope: "finance");
-      final kolayAdresFromDb = userString(
-        data,
-        key: "kolayAdresSelection",
-        scope: "preferences",
-        fallback: _email,
-      );
-      selectedBank.value = bank.isNotEmpty ? bank : _selectBank;
-      this.iban.text = iban.startsWith("TR") ? iban.substring(2) : iban;
-      kolayAdres.value =
-          kolayAdresList.contains(kolayAdresFromDb) ? kolayAdresFromDb : _email;
-    } catch (e) {
-      AppSnackbar('common.error'.tr, 'bank_info.load_failed'.tr);
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  Future<void> loadData() => _BankInfoControllerDataX(this).loadData();
 
-  void showBankBottomSheet(BuildContext context) {
-    ListBottomSheet.show(
-      context: context,
-      items: banks,
-      title: 'bank_info.select_bank'.tr,
-      selectedItem:
-          selectedBank.value == _selectBank ? null : selectedBank.value,
-      onSelect: (item) {
-        selectedBank.value = item;
-      },
-    );
-  }
+  void showBankBottomSheet(BuildContext context) =>
+      _BankInfoControllerUiX(this).showBankBottomSheet(context);
 
-  void showKolayAdresBottomSheet(BuildContext context) {
-    AppBottomSheet.show(
-      context: context,
-      items: kolayAdresList.map(localizedFastType).toList(),
-      title: 'bank_info.select_fast_type'.tr,
-      selectedItem: localizedFastType(kolayAdres.value),
-      onSelect: (item) {
-        final selectedIndex =
-            kolayAdresList.map(localizedFastType).toList().indexOf(item);
-        kolayAdres.value =
-            selectedIndex >= 0 ? kolayAdresList[selectedIndex] : item;
-        iban.text = ''; // Clear the TextField when kolayAdres changes
-      },
-    );
-  }
+  void showKolayAdresBottomSheet(BuildContext context) =>
+      _BankInfoControllerUiX(this).showKolayAdresBottomSheet(context);
 
-  Future<void> pasteFromClipboard() async {
-    ClipboardData? data = await Clipboard.getData('text/plain');
-    if (data != null) {
-      // Remove spaces and "TR" prefix for IBAN
-      String cleanedText = data.text!.replaceAll(' ', '');
-      if (kolayAdres.value == _ibanType && cleanedText.startsWith("TR")) {
-        cleanedText = cleanedText.substring(2);
-      }
-      iban.text = cleanedText;
-    }
-  }
+  Future<void> pasteFromClipboard() =>
+      _BankInfoControllerActionsX(this).pasteFromClipboard();
 
-  void saveData() {
-    if (iban.text.isEmpty) {
-      AppSnackbar('common.warning'.tr, 'bank_info.missing_value'.tr);
-      return;
-    }
-    if (selectedBank.value == _selectBank) {
-      AppSnackbar('common.warning'.tr, 'bank_info.missing_bank'.tr);
-      return;
-    }
-    if (kolayAdres.value == _email &&
-        !RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(iban.text)) {
-      AppSnackbar('common.error'.tr, 'bank_info.invalid_email'.tr);
-      return;
-    }
-
-    // Save to Firestore
-    _userRepository
-        .updateUserFields(CurrentUserService.instance.effectiveUserId, {
-      ...scopedUserUpdate(
-        scope: 'finance',
-        values: {
-          "iban": kolayAdres.value == _ibanType ? "TR${iban.text}" : iban.text,
-          "bank": selectedBank.value,
-        },
-      ),
-      ...scopedUserUpdate(
-        scope: 'preferences',
-        values: {
-          "kolayAdresSelection": kolayAdres.value,
-        },
-      ),
-    }).then((_) {
-      Get.back();
-      AppSnackbar('common.success'.tr, 'bank_info.saved'.tr);
-    }).catchError((e) {
-      AppSnackbar('common.error'.tr, 'bank_info.save_failed'.tr);
-    });
-  }
+  void saveData() => _BankInfoControllerActionsX(this).saveData();
 }

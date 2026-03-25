@@ -9,6 +9,8 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'optics_and_books_published_controller_runtime_part.dart';
+
 class OpticsAndBooksPublishedController extends GetxController {
   static OpticsAndBooksPublishedController ensure({bool permanent = false}) {
     final existing = maybeFind();
@@ -123,87 +125,25 @@ class OpticsAndBooksPublishedController extends GetxController {
     loadData(forceRefresh: true);
   }
 
-  Future<void> _bootstrapData() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      isLoading.value = false;
-      return;
-    }
-    try {
-      final cachedBooks = await _bookletRepository.fetchByOwner(
-        uid,
-        preferCache: true,
-        cacheOnly: true,
-      );
-      final cachedOptikler = await _opticalFormRepository.fetchByOwner(
-        uid,
-        preferCache: true,
-        cacheOnly: true,
-      );
-      if (cachedBooks.isNotEmpty || cachedOptikler.isNotEmpty) {
-        cachedBooks.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-        cachedOptikler.sort((a, b) => b.docID.compareTo(a.docID));
-        if (!_sameBookletEntries(list, cachedBooks)) {
-          list.assignAll(cachedBooks);
-        }
-        if (!_sameOpticalEntries(optikler, cachedOptikler)) {
-          optikler.assignAll(cachedOptikler);
-        }
-        isLoading.value = false;
-        if (SilentRefreshGate.shouldRefresh(
-          'answer_key:published:$uid',
-          minInterval: _silentRefreshInterval,
-        )) {
-          unawaited(loadData(silent: true, forceRefresh: true));
-        }
-        return;
-      }
-    } catch (_) {}
-    await loadData();
-  }
+  Future<void> _bootstrapData() =>
+      _OpticsAndBooksPublishedControllerRuntimeX(this)._bootstrapData();
 
   Future<void> loadData({
     bool silent = false,
     bool forceRefresh = false,
-  }) async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    final shouldShowLoader = !silent && list.isEmpty && optikler.isEmpty;
-    if (shouldShowLoader) {
-      isLoading.value = true;
-    }
-    await Future.wait([
-      getData(forceRefresh: forceRefresh),
-      getOptikler(forceRefresh: forceRefresh),
-    ]);
-    if (uid.isNotEmpty) {
-      SilentRefreshGate.markRefreshed('answer_key:published:$uid');
-    }
-    if (shouldShowLoader || (list.isEmpty && optikler.isEmpty)) {
-      isLoading.value = false;
-    }
-  }
+  }) =>
+      _OpticsAndBooksPublishedControllerRuntimeX(this).loadData(
+        silent: silent,
+        forceRefresh: forceRefresh,
+      );
 
-  Future<void> getData({bool forceRefresh = false}) async {
-    final tempList = await _bookletRepository.fetchByOwner(
-      CurrentUserService.instance.effectiveUserId,
-      preferCache: true,
-      forceRefresh: forceRefresh,
-    );
-    tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    if (!_sameBookletEntries(list, tempList)) {
-      list.assignAll(tempList);
-    }
-  }
+  Future<void> getData({bool forceRefresh = false}) =>
+      _OpticsAndBooksPublishedControllerRuntimeX(this).getData(
+        forceRefresh: forceRefresh,
+      );
 
-  Future<void> getOptikler({bool forceRefresh = false}) async {
-    final tempList = await _opticalFormRepository.fetchByOwner(
-      CurrentUserService.instance.effectiveUserId,
-      preferCache: true,
-      forceRefresh: forceRefresh,
-    );
-    tempList.sort((a, b) => b.docID.compareTo(a.docID));
-    if (!_sameOpticalEntries(optikler, tempList)) {
-      optikler.assignAll(tempList);
-    }
-  }
+  Future<void> getOptikler({bool forceRefresh = false}) =>
+      _OpticsAndBooksPublishedControllerRuntimeX(this).getOptikler(
+        forceRefresh: forceRefresh,
+      );
 }
