@@ -168,7 +168,7 @@ extension _EditProfileHeaderPart on _EditProfileState {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Obx(() {
-            final verified = currentUserService.emailVerifiedRx.value;
+            final verified = currentUserService.isEmailVerified;
             return GestureDetector(
               onTap: () {
                 if (!verified) {

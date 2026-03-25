@@ -98,8 +98,7 @@ class _ContactDetailsView extends StatelessWidget {
                 child: Obx(() {
                   final email = currentUserService.email.trim();
                   final phone = currentUserService.phoneNumber.trim();
-                  final emailVerified =
-                      currentUserService.emailVerifiedRx.value;
+                  final emailVerified = currentUserService.isEmailVerified;
                   final phoneVerified = phone.isNotEmpty;
                   return _buildAccountCenterCard(
                     child: Column(

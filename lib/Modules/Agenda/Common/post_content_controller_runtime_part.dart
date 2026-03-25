@@ -23,8 +23,6 @@ extension PostContentControllerRuntimePart on PostContentController {
   }
 
   void _handlePostContentInit() {
-    _postRepository = PostRepository.ensure();
-    _adminPushRepository = AdminPushRepository.ensure();
     unawaited(_hydrateAdminPushPermission());
     _bindMembershipListeners();
     _bindPostDocCounts();

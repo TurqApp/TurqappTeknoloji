@@ -11,7 +11,7 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
       emailController.text = seededEmail;
     }
     isEmailConfirmed.value = (currentUser?.email.isNotEmpty == true &&
-            _userService.emailVerifiedRx.value) ||
+            _userService.isEmailVerified) ||
         authUser?.emailVerified == true;
   }
 
