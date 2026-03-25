@@ -24,7 +24,6 @@ extension CreatorContentMediaPart on CreatorContent {
   }) {
     if (preset == 'original') return child;
     return Stack(
-      fit: StackFit.expand,
       children: [
         if (applyMatrix)
           ColorFiltered(
@@ -33,10 +32,12 @@ extension CreatorContentMediaPart on CreatorContent {
           )
         else
           child,
-        IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: _lookOverlayGradient(preset),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: _lookOverlayGradient(preset),
+              ),
             ),
           ),
         ),
