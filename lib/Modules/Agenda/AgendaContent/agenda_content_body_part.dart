@@ -476,37 +476,12 @@ extension AgendaContentBodyPart on _AgendaContentState {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: commentButton(context)),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: likeButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: reshareButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: statButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: saveButton()),
-                        )),
-                    SizedBox(width: 58, child: Center(child: sendButton())),
+                    _buildActionSlot(commentButton(context)),
+                    _buildActionSlot(likeButton()),
+                    _buildActionSlot(reshareButton()),
+                    _buildActionSlot(statButton()),
+                    _buildActionSlot(saveButton()),
+                    _buildActionSlot(sendButton()),
                   ],
                 ),
               ),
@@ -927,6 +902,16 @@ extension AgendaContentBodyPart on _AgendaContentState {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActionSlot(Widget child) {
+    return SizedBox(
+      width: 58,
+      child: Transform.translate(
+        offset: const Offset(3, 0),
+        child: Center(child: child),
       ),
     );
   }

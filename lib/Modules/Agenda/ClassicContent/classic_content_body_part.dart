@@ -92,12 +92,12 @@ extension ClassicContentBodyPart on _ClassicContentState {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              SizedBox(width: 58, child: Center(child: commentButton(context))),
-              SizedBox(width: 58, child: Center(child: likeButton())),
-              SizedBox(width: 58, child: Center(child: saveButton())),
-              SizedBox(width: 58, child: Center(child: reshareButton())),
-              SizedBox(width: 58, child: Center(child: statButton())),
-              SizedBox(width: 58, child: Center(child: sendButton())),
+              _buildClassicActionSlot(commentButton(context)),
+              _buildClassicActionSlot(likeButton()),
+              _buildClassicActionSlot(saveButton()),
+              _buildClassicActionSlot(reshareButton()),
+              _buildClassicActionSlot(statButton()),
+              _buildClassicActionSlot(sendButton()),
             ],
           ),
         ),
@@ -686,6 +686,16 @@ extension ClassicContentBodyPart on _ClassicContentState {
         _buildClassicActionRow(context),
         _buildClassicMetaSection(),
       ],
+    );
+  }
+
+  Widget _buildClassicActionSlot(Widget child) {
+    return SizedBox(
+      width: 58,
+      child: Transform.translate(
+        offset: const Offset(3, 0),
+        child: Center(child: child),
+      ),
     );
   }
 }

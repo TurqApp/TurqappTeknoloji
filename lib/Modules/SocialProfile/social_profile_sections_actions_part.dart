@@ -210,26 +210,18 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
+        Transform.translate(
+          offset: const Offset(3, 0),
+          child: Row(
           children: [
             Expanded(
               child: GestureDetector(
                 onTap: () {
                   _changePostSelection(0);
                 },
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.tag,
-                        color: controller.postSelection.value == 0
-                            ? Colors.pink
-                            : Colors.black,
-                        size: controller.postSelection.value == 0 ? 30 : 25,
-                      ),
-                    ],
-                  ),
+                child: _buildPostSelectionIcon(
+                  icon: Icons.tag,
+                  selected: controller.postSelection.value == 0,
                 ),
               ),
             ),
@@ -238,19 +230,9 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
                 onTap: () {
                   _changePostSelection(3);
                 },
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.repeat,
-                        color: controller.postSelection.value == 3
-                            ? Colors.pink
-                            : Colors.black,
-                        size: controller.postSelection.value == 3 ? 30 : 25,
-                      ),
-                    ],
-                  ),
+                child: _buildPostSelectionIcon(
+                  icon: Icons.repeat,
+                  selected: controller.postSelection.value == 3,
                 ),
               ),
             ),
@@ -259,19 +241,9 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
                 onTap: () {
                   _changePostSelection(1);
                 },
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.play_circle_outline,
-                        color: controller.postSelection.value == 1
-                            ? Colors.pink
-                            : Colors.black,
-                        size: controller.postSelection.value == 1 ? 30 : 25,
-                      ),
-                    ],
-                  ),
+                child: _buildPostSelectionIcon(
+                  icon: Icons.play_circle_outline,
+                  selected: controller.postSelection.value == 1,
                 ),
               ),
             ),
@@ -280,19 +252,9 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
                 onTap: () {
                   _changePostSelection(2);
                 },
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.photo_outlined,
-                        color: controller.postSelection.value == 2
-                            ? Colors.pink
-                            : Colors.black,
-                        size: controller.postSelection.value == 2 ? 30 : 25,
-                      ),
-                    ],
-                  ),
+                child: _buildPostSelectionIcon(
+                  icon: Icons.photo_outlined,
+                  selected: controller.postSelection.value == 2,
                 ),
               ),
             ),
@@ -301,19 +263,9 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
                 onTap: () {
                   _changePostSelection(5);
                 },
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        color: controller.postSelection.value == 5
-                            ? Colors.pink
-                            : Colors.black,
-                        size: controller.postSelection.value == 5 ? 30 : 25,
-                      ),
-                    ],
-                  ),
+                child: _buildPostSelectionIcon(
+                  icon: Icons.access_time,
+                  selected: controller.postSelection.value == 5,
                 ),
               ),
             ),
@@ -322,25 +274,35 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
                 onTap: () {
                   _changePostSelection(4);
                 },
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        color: controller.postSelection.value == 4
-                            ? Colors.pink
-                            : Colors.black,
-                        size: controller.postSelection.value == 4 ? 30 : 25,
-                      ),
-                    ],
-                  ),
+                child: _buildPostSelectionIcon(
+                  icon: Icons.shopping_bag_outlined,
+                  selected: controller.postSelection.value == 4,
                 ),
               ),
             ),
           ],
         ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildPostSelectionIcon({
+    required IconData icon,
+    required bool selected,
+  }) {
+    return Container(
+      color: Colors.white,
+      child: SizedBox(
+        height: 30,
+        child: Center(
+          child: Icon(
+            icon,
+            color: selected ? Colors.pink : Colors.black,
+            size: selected ? 30 : 25,
+          ),
+        ),
+      ),
     );
   }
 

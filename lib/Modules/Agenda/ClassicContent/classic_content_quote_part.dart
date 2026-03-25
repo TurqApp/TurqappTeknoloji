@@ -233,15 +233,25 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     return Padding(
       padding: const EdgeInsets.only(top: 8, left: 15, right: 15),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          commentButton(context),
-          likeButton(),
-          reshareButton(),
-          statButton(),
-          saveButton(),
-          sendButton(),
+          _buildClassicQuoteActionSlot(commentButton(context)),
+          _buildClassicQuoteActionSlot(likeButton()),
+          _buildClassicQuoteActionSlot(reshareButton()),
+          _buildClassicQuoteActionSlot(statButton()),
+          _buildClassicQuoteActionSlot(saveButton()),
+          _buildClassicQuoteActionSlot(sendButton()),
         ],
+      ),
+    );
+  }
+
+  Widget _buildClassicQuoteActionSlot(Widget child) {
+    return SizedBox(
+      width: 58,
+      child: Transform.translate(
+        offset: const Offset(3, 0),
+        child: Center(child: child),
       ),
     );
   }

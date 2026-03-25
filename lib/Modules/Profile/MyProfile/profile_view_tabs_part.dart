@@ -123,7 +123,9 @@ extension _ProfileViewTabsPart on _ProfileViewState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
+        Transform.translate(
+          offset: const Offset(3, 0),
+          child: Row(
           children: [
             Expanded(
               child: GestureDetector(
@@ -194,6 +196,7 @@ extension _ProfileViewTabsPart on _ProfileViewState {
             ),
           ],
         ),
+        ),
       ],
     );
   }
@@ -204,14 +207,15 @@ extension _ProfileViewTabsPart on _ProfileViewState {
   }) {
     return Container(
       color: Colors.white,
-      child: Column(
-        children: [
-          Icon(
+      child: SizedBox(
+        height: 30,
+        child: Center(
+          child: Icon(
             icon,
             color: selected ? Colors.pink : Colors.black,
             size: selected ? 30 : 25,
           ),
-        ],
+        ),
       ),
     );
   }
