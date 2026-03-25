@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 part 'tutoring_snapshot_repository_data_part.dart';
+part 'tutoring_snapshot_repository_facade_part.dart';
 
 class TutoringSnapshotRepository extends GetxService {
   TutoringSnapshotRepository();
@@ -65,70 +66,4 @@ class TutoringSnapshotRepository extends GetxService {
     loadWarmSnapshot: _loadWarmTutoringSnapshot,
     isEmpty: (items) => items.isEmpty,
   );
-
-  Stream<CachedResource<List<TutoringModel>>> openHome({
-    required String userId,
-    int limit = 30,
-    int page = 1,
-    bool forceSync = false,
-  }) {
-    return _homeAdapter.open(
-      EducationTypesenseQuery(
-        entity: EducationTypesenseEntity.tutoring,
-        query: '*',
-        limit: limit,
-        page: page,
-        userId: userId,
-        scopeTag: page <= 1 ? 'home' : 'home_page_$page',
-      ),
-      forceSync: forceSync,
-    );
-  }
-
-  Future<CachedResource<List<TutoringModel>>> loadHome({
-    required String userId,
-    int limit = 30,
-    int page = 1,
-    bool forceSync = false,
-  }) {
-    return openHome(
-      userId: userId,
-      limit: limit,
-      page: page,
-      forceSync: forceSync,
-    ).last;
-  }
-
-  Stream<CachedResource<List<TutoringModel>>> openSearch({
-    required String userId,
-    required String query,
-    int limit = 40,
-    bool forceSync = false,
-  }) {
-    return _searchAdapter.open(
-      EducationTypesenseQuery(
-        entity: EducationTypesenseEntity.tutoring,
-        query: query,
-        limit: limit,
-        page: 1,
-        userId: userId,
-        scopeTag: 'search',
-      ),
-      forceSync: forceSync,
-    );
-  }
-
-  Future<CachedResource<List<TutoringModel>>> search({
-    required String userId,
-    required String query,
-    int limit = 40,
-    bool forceSync = false,
-  }) {
-    return openSearch(
-      userId: userId,
-      query: query,
-      limit: limit,
-      forceSync: forceSync,
-    ).last;
-  }
 }

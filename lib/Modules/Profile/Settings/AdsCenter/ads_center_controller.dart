@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_utils.da
 
 part 'ads_center_controller_stream_part.dart';
 part 'ads_center_controller_actions_part.dart';
+part 'ads_center_controller_runtime_part.dart';
 
 class AdsCenterController extends GetxController {
   static AdsCenterController ensure({bool permanent = false}) {
@@ -72,63 +73,12 @@ class AdsCenterController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_init());
+    _handleRuntimeInit();
   }
 
   @override
   void onClose() {
-    _campaignSub?.cancel();
-    _creativeSub?.cancel();
-    _advertiserSub?.cancel();
-    _statsSub?.cancel();
-    _logSub?.cancel();
+    _handleRuntimeClose();
     super.onClose();
   }
-
-  Future<String> saveCampaign(AdCampaign campaign) =>
-      AdsCenterControllerActionsPart(this).saveCampaign(campaign);
-
-  Future<String> saveCreative(AdCreative creative) =>
-      AdsCenterControllerActionsPart(this).saveCreative(creative);
-
-  Future<void> reviewCreative({
-    required String creativeId,
-    required AdModerationStatus status,
-    required String note,
-  }) =>
-      AdsCenterControllerActionsPart(this).reviewCreative(
-        creativeId: creativeId,
-        status: status,
-        note: note,
-      );
-
-  Future<void> updateCampaignStatus(
-    String campaignId,
-    AdCampaignStatus status,
-  ) =>
-      AdsCenterControllerActionsPart(this).updateCampaignStatus(
-        campaignId,
-        status,
-      );
-
-  Future<void> saveFlags(AdFeatureFlags flags) =>
-      AdsCenterControllerActionsPart(this).saveFlags(flags);
-
-  Future<void> runPreview({
-    required AdPlacementType placement,
-    required String country,
-    required String city,
-    required int? age,
-    required String userId,
-  }) =>
-      AdsCenterControllerActionsPart(this).runPreview(
-        placement: placement,
-        country: country,
-        city: city,
-        age: age,
-        userId: userId,
-      );
-
-  Future<void> trackPreviewImpression() =>
-      AdsCenterControllerActionsPart(this).trackPreviewImpression();
 }
