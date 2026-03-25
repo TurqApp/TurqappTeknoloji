@@ -69,6 +69,10 @@ class FollowingFollowersController extends GetxController {
       <String, _RelationIdSetCacheEntry>{};
   final Map<String, _SearchResultCacheEntry> _searchResultCache =
       <String, _SearchResultCacheEntry>{};
+  Duration get searchResultCacheTtl => _searchResultCacheTtl;
+  Duration get relationSearchCacheTtl => _relationSearchCacheTtl;
+  Duration get searchResultStaleRetention => _searchResultStaleRetention;
+  int get maxSearchResultEntries => _maxSearchResultEntries;
 
   var nickname = "".obs;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();

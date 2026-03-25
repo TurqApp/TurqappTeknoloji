@@ -123,7 +123,7 @@ extension _HighlightPickerSheetContentPart on _HighlightPickerSheetState {
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
-              CupertinoIcons.bookmark_fill,
+              CupertinoIcons.star_fill,
               color: Colors.black,
               size: 18,
             ),
@@ -160,6 +160,7 @@ extension _HighlightPickerSheetContentPart on _HighlightPickerSheetState {
   }
 
   Widget _buildHighlightTile(StoryHighlightsController controller, dynamic h) {
+    final alreadyContainsStory = h.storyIds.contains(widget.storyId);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -213,27 +214,41 @@ extension _HighlightPickerSheetContentPart on _HighlightPickerSheetState {
             fontFamily: 'MontserratMedium',
           ),
         ),
-        trailing: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: h.storyIds.contains(widget.storyId)
-                ? Colors.black
-                : const Color(0xFFF4F4F4),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            h.storyIds.contains(widget.storyId)
-                ? CupertinoIcons.check_mark
-                : CupertinoIcons.add,
-            color: h.storyIds.contains(widget.storyId)
-                ? Colors.white
-                : Colors.black,
-            size: 18,
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (alreadyContainsStory)
+              const Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Icon(
+                  CupertinoIcons.check_mark_circled_solid,
+                  color: Colors.black,
+                  size: 18,
+                ),
+              ),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () async {
+                await controller.deleteHighlight(h.id);
+              },
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F4F4),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  CupertinoIcons.delete,
+                  color: Colors.black,
+                  size: 18,
+                ),
+              ),
+            ),
+          ],
         ),
         onTap: () async {
-          if (!h.storyIds.contains(widget.storyId)) {
+          if (!alreadyContainsStory) {
             await controller.addStoryToHighlight(h.id, widget.storyId);
           }
           Get.back();

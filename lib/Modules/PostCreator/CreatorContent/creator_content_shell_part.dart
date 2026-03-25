@@ -87,6 +87,7 @@ extension CreatorContentShellPart on CreatorContent {
                       const SizedBox(height: 12),
                       Obx(() {
                         final hasMedia = controller.croppedImages.isNotEmpty ||
+                            controller.selectedImages.isNotEmpty ||
                             controller.reusedImageUrls.isNotEmpty ||
                             controller.videoPlayerController != null ||
                             controller.waitingVideo.value;
@@ -110,6 +111,7 @@ extension CreatorContentShellPart on CreatorContent {
                       }),
                       Obx(() {
                         final hasMedia = controller.croppedImages.isNotEmpty ||
+                            controller.selectedImages.isNotEmpty ||
                             controller.reusedImageUrls.isNotEmpty ||
                             controller.videoPlayerController != null ||
                             controller.waitingVideo.value;
@@ -124,16 +126,17 @@ extension CreatorContentShellPart on CreatorContent {
                         if (mainController.isQuotedPost) {
                           return _buildQuotedComposerCard();
                         }
+                        final imagePreviewBytes = _currentImagePreviewBytes();
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (controller.croppedImages.isNotEmpty)
+                            if (imagePreviewBytes.isNotEmpty)
                               _buildThreadPickerPreview(
                                 buildImageGridFromMemory(
-                                  controller.croppedImages,
+                                  imagePreviewBytes,
                                 ),
                               ),
-                            if (controller.croppedImages.isEmpty &&
+                            if (imagePreviewBytes.isEmpty &&
                                 controller.reusedImageUrls.isNotEmpty)
                               _buildThreadPickerPreview(
                                 buildImageGridFromUrls(

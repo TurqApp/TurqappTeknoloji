@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightCircle extends StatelessWidget {
@@ -35,39 +40,7 @@ class StoryHighlightCircle extends StatelessWidget {
                   border: Border.all(color: Colors.grey.withAlpha(50)),
                 ),
                 padding: const EdgeInsets.all(4),
-                child: ClipOval(
-                  child: highlight.coverUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: highlight.coverUrl,
-                          fit: BoxFit.cover,
-                          fadeInDuration: Duration.zero,
-                          fadeOutDuration: Duration.zero,
-                          placeholder: (_, __) => Container(
-                            color: Colors.grey.withAlpha(30),
-                            child: const Icon(
-                              CupertinoIcons.collections,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                          ),
-                          errorWidget: (_, __, ___) => Container(
-                            color: Colors.grey.withAlpha(30),
-                            child: const Icon(
-                              CupertinoIcons.collections,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: Colors.grey.withAlpha(30),
-                          child: const Icon(
-                            CupertinoIcons.collections,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                        ),
-                ),
+                child: ClipOval(child: _HighlightCoverImage(highlight: highlight)),
               ),
               const SizedBox(height: 4),
               Text(
@@ -84,6 +57,181 @@ class StoryHighlightCircle extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HighlightCoverImage extends StatefulWidget {
+  const _HighlightCoverImage({required this.highlight});
+
+  final StoryHighlightModel highlight;
+
+  @override
+  State<_HighlightCoverImage> createState() => _HighlightCoverImageState();
+}
+
+class _HighlightCoverImageState extends State<_HighlightCoverImage> {
+  String _resolvedUrl = '';
+  Uint8List? _thumbnailBytes;
+  bool _isResolving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialCover = widget.highlight.coverUrl.trim();
+    _resolvedUrl = looksLikeImageUrl(initialCover) ? initialCover : '';
+    if (_resolvedUrl.isEmpty) {
+      _resolveFallbackThumbnail();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _HighlightCoverImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final rawLatest = widget.highlight.coverUrl.trim();
+    final latest = looksLikeImageUrl(rawLatest) ? rawLatest : '';
+    if (latest != _resolvedUrl && latest.isNotEmpty) {
+      _resolvedUrl = latest;
+      _thumbnailBytes = null;
+    }
+    if (latest.isEmpty && _resolvedUrl.isNotEmpty && !looksLikeImageUrl(_resolvedUrl)) {
+      _resolvedUrl = '';
+    }
+    if (_resolvedUrl.isEmpty &&
+        oldWidget.highlight.storyIds != widget.highlight.storyIds) {
+      _resolveFallbackThumbnail();
+    }
+  }
+
+  Future<void> _resolveFallbackThumbnail() async {
+    if (_isResolving || widget.highlight.storyIds.isEmpty) return;
+    _isResolving = true;
+    try {
+      final raw = await StoryRepository.ensure().getStoryRaw(
+        widget.highlight.storyIds.first,
+        preferCache: true,
+      );
+      if (!mounted || raw == null) return;
+      final preview = _extractPreviewUrl(raw);
+      if (!mounted) return;
+      if (preview.isNotEmpty) {
+        setState(() {
+          _resolvedUrl = preview;
+          _thumbnailBytes = null;
+        });
+        return;
+      }
+      final videoUrl = _extractVideoUrl(raw);
+      if (videoUrl.isEmpty) return;
+      final thumb = await VideoThumbnail.thumbnailData(
+        video: videoUrl,
+        imageFormat: ImageFormat.JPEG,
+        maxWidth: 240,
+        quality: 70,
+      );
+      if (!mounted || thumb == null || thumb.isEmpty) return;
+      setState(() {
+        _thumbnailBytes = thumb;
+      });
+    } finally {
+      _isResolving = false;
+    }
+  }
+
+  String _extractPreviewUrl(Map<String, dynamic> data) {
+    final topLevelThumb = (data['thumbnail'] ??
+            data['thumbnailUrl'] ??
+            data['thumbUrl'] ??
+            data['previewUrl'] ??
+            data['coverUrl'] ??
+            data['musicCoverUrl'] ??
+            '')
+        .toString()
+        .trim();
+    if (looksLikeImageUrl(topLevelThumb)) return topLevelThumb;
+
+    final elements = data['elements'];
+    if (elements is! List) return '';
+    for (final raw in elements) {
+      if (raw is! Map) continue;
+      final entry = raw.map((key, value) => MapEntry('$key', value));
+      final thumb = (entry['thumbnail'] ??
+              entry['thumbnailUrl'] ??
+              entry['thumbUrl'] ??
+              entry['previewUrl'] ??
+              entry['coverUrl'] ??
+              '')
+          .toString()
+          .trim();
+      if (looksLikeImageUrl(thumb)) return thumb;
+    }
+    for (final raw in elements) {
+      if (raw is! Map) continue;
+      final entry = raw.map((key, value) => MapEntry('$key', value));
+      final content = (entry['content'] ?? '').toString().trim();
+      if (looksLikeImageUrl(content)) return content;
+    }
+    return '';
+  }
+
+  String _extractVideoUrl(Map<String, dynamic> data) {
+    final topLevelVideo = (data['videoUrl'] ?? data['video'] ?? '')
+        .toString()
+        .trim();
+    if (_looksLikeVideoUrl(topLevelVideo)) return topLevelVideo;
+
+    final elements = data['elements'];
+    if (elements is! List) return '';
+    for (final raw in elements) {
+      if (raw is! Map) continue;
+      final entry = raw.map((key, value) => MapEntry('$key', value));
+      final content = (entry['content'] ?? '').toString().trim();
+      if (_looksLikeVideoUrl(content)) return content;
+    }
+    return '';
+  }
+
+  bool _looksLikeVideoUrl(String url) {
+    final clean = url.trim().toLowerCase();
+    if (clean.isEmpty) return false;
+    return clean.contains('.mp4') ||
+        clean.contains('.mov') ||
+        clean.contains('.m4v') ||
+        clean.contains('.webm') ||
+        clean.contains('video') ||
+        clean.contains('videoplayback');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_resolvedUrl.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: _resolvedUrl,
+        fit: BoxFit.cover,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        placeholder: (_, __) => _buildPlaceholder(),
+        errorWidget: (_, __, ___) => _buildPlaceholder(),
+      );
+    }
+    if (_thumbnailBytes != null && _thumbnailBytes!.isNotEmpty) {
+      return Image.memory(
+        _thumbnailBytes!,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+      );
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: Colors.grey.withAlpha(30),
+      child: const Icon(
+        CupertinoIcons.collections,
+        color: Colors.grey,
+        size: 20,
       ),
     );
   }

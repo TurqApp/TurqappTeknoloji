@@ -207,11 +207,20 @@ extension CreatorContentMediaVideoPart on CreatorContent {
   Widget _buildMediaLookSelector() {
     return Obx(() {
       final presets = CreatorContentController.supportedVideoLookPresets;
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: presets.map((preset) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          const spacing = 5.0;
+          final availableWidth = constraints.maxWidth.isFinite &&
+                  constraints.maxWidth > 0
+              ? constraints.maxWidth
+              : (presets.length * 54.0) + ((presets.length - 1) * spacing);
+          final tileWidth =
+              (availableWidth - ((presets.length - 1) * spacing)) /
+                  presets.length;
+          return Row(
+            children: presets.asMap().entries.map((entry) {
+              final index = entry.key;
+              final preset = entry.value;
             final isSelected = controller.videoLookPreset.value == preset;
             final labelKey = _videoLookLabelKeys[preset] ?? '';
             final label = labelKey.isNotEmpty ? labelKey.tr : preset;
@@ -230,13 +239,15 @@ extension CreatorContentMediaVideoPart on CreatorContent {
             final textColor =
                 isSelected ? Colors.white : const Color(0xFF25282C);
             return Padding(
-              padding: const EdgeInsets.only(right: 5),
+              padding: EdgeInsets.only(
+                right: index == presets.length - 1 ? 0 : spacing,
+              ),
               child: GestureDetector(
                 onTap: () => controller.setVideoLookPreset(preset),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOutCubic,
-                  width: 54,
+                  width: tileWidth,
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -347,7 +358,8 @@ extension CreatorContentMediaVideoPart on CreatorContent {
               ),
             );
           }).toList(),
-        ),
+          );
+        },
       );
     });
   }

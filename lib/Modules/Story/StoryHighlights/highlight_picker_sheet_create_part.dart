@@ -163,6 +163,7 @@ extension _HighlightPickerSheetCreatePart on _HighlightPickerSheetState {
       final created = await controller.createHighlight(
         title: title,
         storyIds: [widget.storyId],
+        coverUrl: widget.initialCoverUrl,
       );
       if (created != null) {
         Get.back();

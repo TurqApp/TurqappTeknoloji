@@ -11,7 +11,12 @@ part 'highlight_picker_sheet_create_part.dart';
 
 class HighlightPickerSheet extends StatefulWidget {
   final String storyId;
-  const HighlightPickerSheet({super.key, required this.storyId});
+  final String initialCoverUrl;
+  const HighlightPickerSheet({
+    super.key,
+    required this.storyId,
+    this.initialCoverUrl = '',
+  });
 
   @override
   State<HighlightPickerSheet> createState() => _HighlightPickerSheetState();

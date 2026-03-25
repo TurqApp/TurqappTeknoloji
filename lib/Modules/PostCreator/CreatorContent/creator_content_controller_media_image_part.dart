@@ -1,6 +1,28 @@
 part of 'creator_content.dart';
 
 extension CreatorContentMediaImagePart on CreatorContent {
+  List<Uint8List?> _currentImagePreviewBytes() {
+    final cropped =
+        controller.croppedImages.whereType<Uint8List>().toList(growable: false);
+    if (cropped.isNotEmpty) {
+      return cropped.cast<Uint8List?>();
+    }
+
+    if (controller.selectedImages.isEmpty) {
+      return const <Uint8List?>[];
+    }
+
+    final selected = <Uint8List?>[];
+    for (final file in controller.selectedImages) {
+      try {
+        selected.add(file.readAsBytesSync());
+      } catch (_) {
+        selected.add(null);
+      }
+    }
+    return selected;
+  }
+
   Widget buildImageGridFromMemory(List<Uint8List?> images) {
     images = images.where((e) => e != null).toList();
     if (images.isEmpty) return const SizedBox.shrink();

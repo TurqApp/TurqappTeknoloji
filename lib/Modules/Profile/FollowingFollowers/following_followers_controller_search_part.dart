@@ -30,8 +30,7 @@ extension FollowingFollowersControllerSearchPart
     final cacheId = '${plan.cacheKey}:$q';
     final cached = _searchResultCache[cacheId];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <=
-            FollowingFollowersController._searchResultCacheTtl) {
+        DateTime.now().difference(cached.cachedAt) <= searchResultCacheTtl) {
       plan.assignResult(_normalizedIds(cached.ids));
       return;
     }
@@ -49,8 +48,7 @@ extension FollowingFollowersControllerSearchPart
     final now = DateTime.now();
     final cached = _relationIdSetCache[relation];
     if (cached != null &&
-        now.difference(cached.cachedAt) <=
-            FollowingFollowersController._relationSearchCacheTtl) {
+        now.difference(cached.cachedAt) <= relationSearchCacheTtl) {
       return cached.ids;
     }
 
@@ -100,18 +98,14 @@ extension FollowingFollowersControllerSearchPart
   void _pruneSearchResultCache() {
     final now = DateTime.now();
     _searchResultCache.removeWhere(
-      (_, entry) =>
-          now.difference(entry.cachedAt) >
-          FollowingFollowersController._searchResultStaleRetention,
+      (_, entry) => now.difference(entry.cachedAt) > searchResultStaleRetention,
     );
-    if (_searchResultCache.length <=
-        FollowingFollowersController._maxSearchResultEntries) {
+    if (_searchResultCache.length <= maxSearchResultEntries) {
       return;
     }
     final entries = _searchResultCache.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount = _searchResultCache.length -
-        FollowingFollowersController._maxSearchResultEntries;
+    final removeCount = _searchResultCache.length - maxSearchResultEntries;
     for (var i = 0; i < removeCount; i++) {
       _searchResultCache.remove(entries[i].key);
     }
