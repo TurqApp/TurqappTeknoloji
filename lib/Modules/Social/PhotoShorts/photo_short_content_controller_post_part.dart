@@ -430,14 +430,11 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
       );
 
       try {
-        await UserRepository.ensure().updateUserFields(
-          uid,
-          {'counterOfPosts': FieldValue.increment(1)},
-          mergeIntoCache: false,
-        );
-        await CurrentUserService.instance.applyLocalCounterDelta(
-          postsDelta: 1,
-        );
+        if (CurrentUserService.instance.effectiveUserId.trim() == uid) {
+          await CurrentUserService.instance.applyLocalCounterDelta(
+            postsDelta: 1,
+          );
+        }
       } catch (_) {}
 
       await FirebaseFirestore.instance

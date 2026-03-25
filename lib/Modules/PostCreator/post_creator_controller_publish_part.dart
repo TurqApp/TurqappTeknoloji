@@ -635,17 +635,9 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       // Sayaç güncelle: kök post (index==0) ve hemen yayınlanıyorsa
       if (index == 0 && publishTime == nowMs) {
         try {
-          final me = _currentUid;
-          if (me.isNotEmpty) {
-            await UserRepository.ensure().updateUserFields(
-              me,
-              {'counterOfPosts': FieldValue.increment(1)},
-              mergeIntoCache: false,
-            );
-            await CurrentUserService.instance.applyLocalCounterDelta(
-              postsDelta: 1,
-            );
-          }
+          await CurrentUserService.instance.applyLocalCounterDelta(
+            postsDelta: 1,
+          );
         } catch (_) {}
       }
     }

@@ -34,6 +34,27 @@ const FAN_OUT_THRESHOLD = 10000;
 const FAN_OUT_BATCH_SIZE = 450; // Firestore batch limiti 500, güvenli margin
 /// Feed item'ın geçerlilik süresi: 7 gün
 const FEED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+function isCountedRootPost(data, nowMs = Date.now()) {
+    if (!data)
+        return false;
+    const timeStamp = Number(data.timeStamp || 0);
+    const scheduledAt = Number(data.scheduledAt || 0);
+    return (data.flood !== true &&
+        data.arsiv !== true &&
+        data.deletedPost !== true &&
+        data.gizlendi !== true &&
+        data.isUploading !== true &&
+        scheduledAt <= 0 &&
+        timeStamp > 0 &&
+        timeStamp <= nowMs);
+}
+async function adjustAuthorPostCount(authorId, delta) {
+    if (!authorId || delta == 0)
+        return;
+    await db().collection("users").doc(authorId).set({
+        counterOfPosts: admin.firestore.FieldValue.increment(delta),
+    }, { merge: true });
+}
 async function resolveFollowerCollection(authorId) {
     const followersSnap = await db()
         .collection("users")
@@ -295,6 +316,14 @@ exports.onPostCreate = functions
     catch (e) {
         console.error("[HybridFeed] onPostCreate error:", e);
     }
+    try {
+        if (isCountedRootPost(data)) {
+            await adjustAuthorPostCount(authorId, 1);
+        }
+    }
+    catch (e) {
+        console.error("[HybridFeed] onPostCreate counter error:", e);
+    }
 });
 exports.onPostBecomeVisible = functions
     .region("europe-west1")
@@ -317,19 +346,34 @@ exports.onPostBecomeVisible = functions
         after.deletedPost !== true &&
         after.gizlendi !== true &&
         after.isUploading !== true;
-    if (!authorId || beforeVisible || !afterVisible)
+    const beforeCounted = isCountedRootPost(before);
+    const afterCounted = isCountedRootPost(after);
+    if (!authorId)
         return;
+    if (!beforeVisible && afterVisible) {
+        try {
+            await upsertPostIntoHybridFeed({
+                postId,
+                authorId,
+                timeStamp,
+                isVideo,
+            });
+            console.log("[HybridFeed] Visibility upsert complete");
+        }
+        catch (e) {
+            console.error("[HybridFeed] onPostBecomeVisible error:", e);
+        }
+    }
     try {
-        await upsertPostIntoHybridFeed({
-            postId,
-            authorId,
-            timeStamp,
-            isVideo,
-        });
-        console.log("[HybridFeed] Visibility upsert complete");
+        if (!beforeCounted && afterCounted) {
+            await adjustAuthorPostCount(authorId, 1);
+        }
+        else if (beforeCounted && !afterCounted) {
+            await adjustAuthorPostCount(authorId, -1);
+        }
     }
     catch (e) {
-        console.error("[HybridFeed] onPostBecomeVisible error:", e);
+        console.error("[HybridFeed] onPostVisibility counter error:", e);
     }
 });
 // ─────────────────────────────────────────────────────────
@@ -341,6 +385,7 @@ exports.onPostDelete = functions
     .onDelete(async (snap, context) => {
     const postId = context.params.postId;
     const authorId = snap.data()?.userID || "";
+    const wasCounted = isCountedRootPost(snap.data());
     if (!authorId)
         return;
     try {
@@ -375,6 +420,14 @@ exports.onPostDelete = functions
     }
     catch (e) {
         console.error("[HybridFeed] onPostDelete error:", e);
+    }
+    try {
+        if (wasCounted) {
+            await adjustAuthorPostCount(authorId, -1);
+        }
+    }
+    catch (e) {
+        console.error("[HybridFeed] onPostDelete counter error:", e);
     }
 });
 // ─────────────────────────────────────────────────────────

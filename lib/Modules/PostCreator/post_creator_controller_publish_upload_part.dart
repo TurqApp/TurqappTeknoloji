@@ -592,17 +592,9 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             // Update counter for root post
             if (index == 0 && publishTime == nowMs) {
               try {
-                final me = _currentUid;
-                if (me.isNotEmpty) {
-                  await UserRepository.ensure().updateUserFields(
-                    me,
-                    {'counterOfPosts': FieldValue.increment(1)},
-                    mergeIntoCache: false,
-                  );
-                  await CurrentUserService.instance.applyLocalCounterDelta(
-                    postsDelta: 1,
-                  );
-                }
+                await CurrentUserService.instance.applyLocalCounterDelta(
+                  postsDelta: 1,
+                );
               } catch (e) {
                 await _errorService.handleError(
                   e,

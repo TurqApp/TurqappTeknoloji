@@ -10,6 +10,8 @@ bool _scholarshipsHasActiveSearch(ScholarshipsController controller) {
 }
 
 extension ScholarshipsControllerRuntimeX on ScholarshipsController {
+  bool get hasActiveSearch => _scholarshipsHasActiveSearch(this);
+
   void _handleOnInit() {
     FirebaseFirestore.instance.settings = Settings(
       persistenceEnabled: true,
