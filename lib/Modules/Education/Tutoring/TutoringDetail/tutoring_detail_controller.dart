@@ -6,6 +6,8 @@ import 'package:turqappv2/Models/Education/tutoring_review_model.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'tutoring_detail_controller_reviews_part.dart';
+
 class TutoringDetailController extends GetxController {
   static TutoringDetailController ensure({
     String? tag,
@@ -205,55 +207,6 @@ class TutoringDetailController extends GetxController {
       }
 
       similarList.assignAll(items);
-    } catch (_) {}
-  }
-
-  // ── Reviews ──
-
-  Future<void> fetchReviews(String docID) async {
-    try {
-      final items = await _tutoringRepository.fetchReviews(docID);
-
-      // Fetch users for reviews
-      final userIds = items.map((r) => r.userID).toSet();
-      final toFetch =
-          userIds.where((id) => !reviewUsers.containsKey(id)).toList();
-      if (toFetch.isNotEmpty) {
-        for (var i = 0; i < toFetch.length; i += 30) {
-          final batch = toFetch.skip(i).take(30).toList();
-          final summaries = await _userSummaryResolver.resolveMany(batch);
-          for (final entry in summaries.entries) {
-            reviewUsers[entry.key] = entry.value.toMap();
-          }
-        }
-      }
-
-      reviews.assignAll(items);
-    } catch (_) {}
-  }
-
-  Future<void> submitReview(String docID, int rating, String comment) async {
-    final uid = _uid;
-    if (uid.isEmpty) return;
-
-    try {
-      await _tutoringRepository.submitReview(
-        tutoringId: docID,
-        userId: uid,
-        rating: rating,
-        comment: comment,
-      );
-      await fetchReviews(docID);
-    } catch (_) {}
-  }
-
-  Future<void> deleteReview(String docID, String reviewID) async {
-    try {
-      await _tutoringRepository.deleteReview(
-        tutoringId: docID,
-        reviewId: reviewID,
-      );
-      await fetchReviews(docID);
     } catch (_) {}
   }
 }
