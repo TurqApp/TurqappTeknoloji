@@ -64,28 +64,4 @@ extension PracticeExamSnapshotRepositoryQueryPart
       forceSync: forceSync,
     ).last;
   }
-
-  Future<List<SinavModel>?> _loadWarmSnapshot(
-    EducationTypesenseDocIdQuery query,
-  ) async {
-    final raw = await TypesenseEducationSearchService.instance.searchHits(
-      entity: query.entity,
-      query: query.query,
-      limit: query.limit,
-      page: query.page,
-      filterBy: query.filterBy,
-      sortBy: query.sortBy,
-      cacheOnly: true,
-    );
-    final docIds = raw.hits
-        .map((hit) => (hit['docId'] ?? hit['id'] ?? '').toString().trim())
-        .where((id) => id.isNotEmpty)
-        .toList(growable: false);
-    if (docIds.isEmpty) return null;
-    final items = await _practiceExamRepository.fetchByIds(
-      docIds,
-      cacheOnly: true,
-    );
-    return items.isEmpty ? null : items;
-  }
 }

@@ -7,6 +7,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 part 'practice_exam_snapshot_repository_query_part.dart';
 part 'practice_exam_snapshot_repository_codec_part.dart';
+part 'practice_exam_snapshot_repository_runtime_part.dart';
 
 class PracticeExamSnapshotRepository extends GetxService {
   PracticeExamSnapshotRepository();
@@ -30,44 +31,20 @@ class PracticeExamSnapshotRepository extends GetxService {
       PracticeExamRepository.ensure();
 
   late final CacheFirstCoordinator<List<SinavModel>> _coordinator =
-      CacheFirstCoordinator<List<SinavModel>>(
-    memoryStore: MemoryScopedSnapshotStore<List<SinavModel>>(),
-    snapshotStore: SharedPrefsScopedSnapshotStore<List<SinavModel>>(
-      prefsPrefix: 'practice_exam_snapshot_v1',
-      encode: _encodeItems,
-      decode: _decodeItems,
-    ),
-    telemetry: const CacheFirstKpiTelemetry<List<SinavModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
-    ),
-  );
+      _buildPracticeExamSnapshotCoordinator();
 
   late final EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>
-      _homeAdapter = EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>(
+      _homeAdapter = _buildPracticeExamSnapshotAdapter(
     surfaceKey: _homeSurfaceKey,
     coordinator: _coordinator,
-    fetchDocIds: EducationTypesenseDocIdHydrationAdapter.defaultFetchDocIds,
-    hydrate: (docIds) => _practiceExamRepository.fetchByIds(docIds),
-    loadWarmSnapshot: _loadWarmSnapshot,
-    isEmpty: (items) => items.isEmpty,
+    repository: _practiceExamRepository,
   );
 
   late final EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>
-      _searchAdapter =
-      EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>(
+      _searchAdapter = _buildPracticeExamSnapshotAdapter(
     surfaceKey: _searchSurfaceKey,
     coordinator: _coordinator,
-    fetchDocIds: EducationTypesenseDocIdHydrationAdapter.defaultFetchDocIds,
-    hydrate: (docIds) => _practiceExamRepository.fetchByIds(docIds),
-    loadWarmSnapshot: _loadWarmSnapshot,
-    isEmpty: (items) => items.isEmpty,
+    repository: _practiceExamRepository,
   );
 
   Stream<CachedResource<List<SinavModel>>> openHome({

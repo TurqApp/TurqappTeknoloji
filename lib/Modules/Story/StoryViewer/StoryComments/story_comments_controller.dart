@@ -6,6 +6,8 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'story_comments_controller_runtime_part.dart';
+
 class StoryCommentsController extends GetxController {
   static String? _activeTag;
 
@@ -60,68 +62,19 @@ class StoryCommentsController extends GetxController {
 
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
-  Future<void> getData() async {
-    if ((controllerTag ?? '').trim().isNotEmpty) {
-      _activeTag = controllerTag;
-    }
-    list.assignAll(await _storyRepository.fetchStoryComments(storyID));
-    totalComment.value = await _storyRepository.fetchStoryCommentCount(storyID);
-  }
+  Future<void> getData() => _getDataImpl();
 
-  Future<void> getLast() async {
-    final last = await _storyRepository.fetchLatestStoryComment(storyID);
-    if (last != null) {
-      list.insert(0, last);
-    }
+  Future<void> getLast() => _getLastImpl();
 
-    totalComment.value++;
-  }
+  Future<void> setComment() => _setCommentImpl();
 
-  Future<void> setComment() async {
-    final text = commentTextfield.text.trim();
-    final gif = selectedGifUrl.value.trim();
-    if (text.isEmpty && gif.isEmpty) {
-      return;
-    }
-    try {
-      await _storyRepository.addStoryComment(
-        storyID,
-        userId: _currentUserId,
-        text: text,
-        gif: gif,
-      );
-      lastSuccessfulCommentText.value = text;
-      lastSuccessfulCommentGif.value = gif;
-      commentTextfield.clear();
-      selectedGifUrl.value = '';
-      await getLast();
-      closeKeyboard(Get.context!);
-    } catch (e) {
-      debugPrint("setComment error: $e");
-    }
-  }
+  Future<void> pickGif(BuildContext context) => _pickGifImpl(context);
 
-  Future<void> pickGif(BuildContext context) async {
-    final url = await GiphyPickerService.pickGifUrl(
-      context,
-      randomId: 'turqapp_story_comments',
-    );
-    if (url != null && url.trim().isNotEmpty) {
-      selectedGifUrl.value = url.trim();
-    }
-  }
-
-  void clearSelectedGif() {
-    selectedGifUrl.value = '';
-  }
+  void clearSelectedGif() => _clearSelectedGifImpl();
 
   @override
   void onClose() {
-    if (_activeTag == controllerTag) {
-      _activeTag = null;
-    }
-    commentFocus.dispose();
-    commentTextfield.dispose();
+    _handleClose();
     super.onClose();
   }
 }
