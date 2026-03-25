@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'story_interaction_optimizer_runtime_part.dart';
+
 class StoryInteractionOptimizer extends GetxService {
   static StoryInteractionOptimizer? maybeFind() {
     final isRegistered = Get.isRegistered<StoryInteractionOptimizer>();
@@ -39,186 +41,35 @@ class StoryInteractionOptimizer extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _initializeLocalCache();
+    _StoryInteractionOptimizerRuntimePart(this).handleOnInit();
   }
 
-  /// Local cache'i Firestore data ile sync et
-  void _initializeLocalCache() {
-    _userSubscription = _userService.userStream.listen((user) {
-      localStoryCache.clear();
-      localTimeCache.clear();
-      if (user == null) return;
-
-      for (final userId in user.readStories) {
-        localStoryCache[userId] = true;
-      }
-      localTimeCache.assignAll(user.readStoriesTimes);
-    });
-  }
-
-  /// Optimize edilmiş story view marking (debounced + batched)
   Future<void> markStoryViewed(
-      String storyOwnerId, String storyId, int storyTime) async {
-    try {
-      // Local cache'i hemen güncelle (UI responsiveness için)
-      localStoryCache[storyOwnerId] = true;
-      localTimeCache[storyOwnerId] = storyTime;
+    String storyOwnerId,
+    String storyId,
+    int storyTime,
+  ) =>
+      _StoryInteractionOptimizerRuntimePart(this).markStoryViewed(
+        storyOwnerId,
+        storyId,
+        storyTime,
+      );
 
-      // Pending writes'a ekle
-      _pendingWrites[storyOwnerId] = storyTime;
-      _pendingUsers.add(storyOwnerId);
+  bool areAllStoriesSeenCached(String storyOwnerId, List<dynamic> stories) =>
+      _StoryInteractionOptimizerRuntimePart(this).areAllStoriesSeenCached(
+        storyOwnerId,
+        stories,
+      );
 
-      // Debounce timer'ı reset et
-      _writeTimer?.cancel();
-      _writeTimer =
-          Timer(const Duration(milliseconds: 500), _flushPendingWrites);
-    } catch (e) {
-      debugPrint("markStoryViewed error: $e");
-      // Error durumunda bile UI responsiveness için local cache güncelle
-      localStoryCache[storyOwnerId] = true;
-      localTimeCache[storyOwnerId] = storyTime;
-    }
-  }
+  Future<void> forceFlush() =>
+      _StoryInteractionOptimizerRuntimePart(this).forceFlush();
 
-  /// Pending writes'ları batch olarak Firestore'a yaz
-  Future<void> _flushPendingWrites() async {
-    if (_pendingWrites.isEmpty || _isWriting) return;
-
-    // Concurrency kontrolü
-    _isWriting = true;
-
-    try {
-      final uid = _userService.effectiveUserId;
-      if (uid.isEmpty) {
-        _isWriting = false;
-        return;
-      }
-
-      // Current pending data'yı lokal değişkenlere kopyala (race condition önlemek için)
-      final currentWrites = Map<String, int>.from(_pendingWrites);
-      final currentUsers = Set<String>.from(_pendingUsers);
-
-      // Clear pending immediately (yeni isteklerin birikebilmesi için)
-      _pendingWrites.clear();
-      _pendingUsers.clear();
-
-      // Batch write için hazırla
-      final batch = FirebaseFirestore.instance.batch();
-      final userDocRef =
-          FirebaseFirestore.instance.collection('users').doc(uid);
-
-      // readStories subcollection updates
-      for (var entry in currentWrites.entries) {
-        batch.set(
-          userDocRef.collection('readStories').doc(entry.key),
-          {
-            'storyId': entry.key,
-            'readDate': entry.value,
-            'updatedDate': DateTime.now().millisecondsSinceEpoch,
-          },
-          SetOptions(merge: true),
-        );
-      }
-      if (currentUsers.isNotEmpty || currentWrites.isNotEmpty) {
-        await batch.commit();
-      }
-    } catch (e) {
-      debugPrint("Story batch write error: $e");
-
-      // Retry logic - pending writes'a geri ekle (data loss önlemek için)
-      try {
-        final retryWrites = Map<String, int>.from(_pendingWrites);
-        final retryUsers = Set<String>.from(_pendingUsers);
-
-        for (var entry in retryWrites.entries) {
-          _pendingWrites[entry.key] = entry.value;
-        }
-        _pendingUsers.addAll(retryUsers);
-
-        // 2 saniye sonra tekrar dene
-        Timer(const Duration(seconds: 2), _flushPendingWrites);
-      } catch (retryError) {
-        debugPrint("Story retry preparation error: $retryError");
-      }
-    } finally {
-      _isWriting = false;
-    }
-  }
-
-  /// Local cache'den hızlı story status check
-  bool areAllStoriesSeenCached(String storyOwnerId, List<dynamic> stories) {
-    if (stories.isEmpty) return true;
-
-    // Local cache'de var mı?
-    final isInReadList = localStoryCache[storyOwnerId] ?? false;
-    if (!isInReadList) return false;
-
-    final lastSeenTime = localTimeCache[storyOwnerId];
-    if (lastSeenTime == null) return false;
-
-    // Tüm hikayelerin zamanını kontrol et
-    for (var story in stories) {
-      final storyTime = story.createdAt?.millisecondsSinceEpoch ?? 0;
-      if (storyTime > lastSeenTime) {
-        return false; // Daha yeni hikaye var
-      }
-    }
-
-    return true; // Tüm hikayeler izlenmiş
-  }
-
-  /// Manual flush (acil durumlar için)
-  Future<void> forceFlush() async {
-    _writeTimer?.cancel();
-
-    // Concurrent işlemlerin bitmesini bekle
-    if (_pendingOperations.isNotEmpty) {
-      await Future.wait(_pendingOperations);
-      _pendingOperations.clear();
-    }
-
-    await _flushPendingWrites();
-  }
-
-  /// App kapatılırken çağrılacak
-  Future<void> cleanup() async {
-    _writeTimer?.cancel();
-
-    // Stream subscriptions'ları temizle
-    await _userSubscription?.cancel();
-
-    // Pending operations'ları bekle ve temizle
-    if (_pendingOperations.isNotEmpty) {
-      try {
-        await Future.wait(_pendingOperations, eagerError: false);
-      } catch (e) {
-        debugPrint("Story cleanup pending operation error: $e");
-      }
-      _pendingOperations.clear();
-    }
-
-    // Final flush
-    await _flushPendingWrites();
-
-    // Local cache'leri temizle
-    localStoryCache.clear();
-    localTimeCache.clear();
-  }
+  Future<void> cleanup() =>
+      _StoryInteractionOptimizerRuntimePart(this).cleanup();
 
   @override
   void onClose() {
-    _writeTimer?.cancel();
-
-    // Stream subscriptions'ları temizle
-    _userSubscription?.cancel();
-
-    // Pending operations'ları temizle
-    _pendingOperations.clear();
-
-    // Local cache'leri temizle
-    localStoryCache.clear();
-    localTimeCache.clear();
-
+    _StoryInteractionOptimizerRuntimePart(this).handleOnClose();
     super.onClose();
   }
 }

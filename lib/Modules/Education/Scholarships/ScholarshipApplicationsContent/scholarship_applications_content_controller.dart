@@ -4,6 +4,8 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:get/get.dart';
 
+part 'scholarship_applications_content_controller_data_part.dart';
+
 class ScholarshipApplicationsContentController extends GetxController {
   static ScholarshipApplicationsContentController ensure({
     required String tag,
@@ -91,124 +93,19 @@ class ScholarshipApplicationsContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadInitialData();
-    // Tüm verileri yüklemek için getData ve ogrenciBilgileriniKontrolEt'i çağır
-    isDetailsLoading.value = true;
-    Future.wait([getData(), ogrenciBilgileriniKontrolEt()]).then((_) {
-      isDetailsLoading.value = false;
-    }).catchError((_) {
-      isDetailsLoading.value = false;
-      AppSnackbar('common.error'.tr, 'scholarship.applicant_load_failed'.tr);
-    });
+    _ScholarshipApplicationsContentControllerDataPart(this).handleOnInit();
   }
 
-  Future<void> loadInitialData() async {
-    try {
-      isLoading.value = true;
-      final data = await _userSummaryResolver.resolve(
-        userID,
-        preferCache: true,
-      );
-      if (data != null) {
-        nickname.value = data.nickname;
-        avatarUrl.value = data.avatarUrl;
-        fullName.value = data.displayName;
-      }
-    } catch (_) {
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  Future<void> loadInitialData() =>
+      _ScholarshipApplicationsContentControllerDataPart(this).loadInitialData();
 
-  Future<Map<String, dynamic>?> _loadUserRaw({bool forceRefresh = false}) {
-    if (!forceRefresh && _userRawFuture != null) {
-      return _userRawFuture!;
-    }
-    final future = _userRepository.getUserRaw(
-      userID,
-      preferCache: !forceRefresh,
-      forceServer: forceRefresh,
-    );
-    _userRawFuture = future;
-    return future;
-  }
+  Future<void> getData() =>
+      _ScholarshipApplicationsContentControllerDataPart(this).getData();
 
-  Future<void> getData() async {
-    try {
-      final data = await _loadUserRaw();
-      if (data != null) {
-        // ad.value = doc.get("firstName") ?? "";
-        // soyad.value = doc.get("lastName") ?? "";
-        phoneNumber.value = userString(data, key: "phoneNumber");
-        email.value = userString(data, key: "email");
-        universite.value =
-            userString(data, key: "universite", scope: "education");
-        lise.value = userString(data, key: "lise", scope: "education");
-        ortaOkul.value = userString(data, key: "ortaOkul", scope: "education");
-        educationLevel.value =
-            userString(data, key: "educationLevel", scope: "education");
-        bolum.value = userString(data, key: "bolum", scope: "education");
-        ulke.value = userString(data, key: "ulke", scope: "profile");
-        nufusSehir.value =
-            userString(data, key: "nufusSehir", scope: "profile");
-        nufusIlce.value = userString(data, key: "nufusIlce", scope: "profile");
-        fakulte.value = userString(data, key: "fakulte", scope: "education");
-      }
-    } catch (_) {}
-  }
+  Future<void> ogrenciBilgileriniKontrolEt() =>
+      _ScholarshipApplicationsContentControllerDataPart(this)
+          .ogrenciBilgileriniKontrolEt();
 
-  Future<void> ogrenciBilgileriniKontrolEt() async {
-    try {
-      final data = await _loadUserRaw();
-      if (data != null) {
-        dogumTarigi.value =
-            userString(data, key: "dogumTarihi", scope: "profile");
-        medeniHal.value = userString(data, key: "medeniHal", scope: "profile");
-        cinsiyet.value = userString(data, key: "cinsiyet", scope: "profile");
-        engelliRaporu.value =
-            userString(data, key: "engelliRaporu", scope: "family");
-        calismaDurumu.value =
-            userString(data, key: "calismaDurumu", scope: "profile");
-
-        babaAdi.value = userString(data, key: "fatherName", scope: "family");
-        babaSoyadi.value =
-            userString(data, key: "fatherSurname", scope: "family");
-        babaHayata.value =
-            userString(data, key: "fatherLiving", scope: "family");
-        babaPhone.value = userString(data, key: "fatherPhone", scope: "family");
-        babaJob.value = userString(data, key: "fatherJob", scope: "family");
-        babaSalary.value =
-            userString(data, key: "fatherSalary", scope: "family");
-
-        anneAdi.value = userString(data, key: "motherName", scope: "family");
-        anneSoyadi.value =
-            userString(data, key: "motherSurname", scope: "family");
-        anneHayata.value =
-            userString(data, key: "motherLiving", scope: "family");
-        annePhone.value = userString(data, key: "motherPhone", scope: "family");
-        anneJob.value = userString(data, key: "motherJob", scope: "family");
-        anneSalary.value =
-            userString(data, key: "motherSalary", scope: "family");
-
-        evMulkiyeti.value =
-            userString(data, key: "evMulkiyeti", scope: "family");
-        ikametSehir.value =
-            userString(data, key: "ikametSehir", scope: "profile");
-        ikametIlce.value =
-            userString(data, key: "ikametIlce", scope: "profile");
-      }
-    } catch (_) {}
-  }
-
-  Future<void> toggleDetails() async {
-    showDetails.value = !showDetails.value;
-    if (showDetails.value) {
-      isDetailsLoading.value = true;
-      await Future.wait([
-        getData(),
-        ogrenciBilgileriniKontrolEt(),
-      ]);
-      isDetailsLoading.value = false;
-    }
-  }
+  Future<void> toggleDetails() =>
+      _ScholarshipApplicationsContentControllerDataPart(this).toggleDetails();
 }
