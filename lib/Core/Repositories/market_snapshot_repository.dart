@@ -5,29 +5,8 @@ import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 
 part 'market_snapshot_repository_data_part.dart';
-
-class MarketListingQuery {
-  const MarketListingQuery({
-    required this.query,
-    required this.userId,
-    this.limit = ReadBudgetRegistry.marketHomeInitialLimit,
-    this.page = 1,
-    this.scopeTag = '',
-  });
-
-  final String query;
-  final String userId;
-  final int limit;
-  final int page;
-  final String scopeTag;
-
-  String get scopeId => <String>[
-        query.trim(),
-        'limit=$limit',
-        'page=$page',
-        'scope=${scopeTag.trim()}',
-      ].join('|');
-}
+part 'market_snapshot_repository_models_part.dart';
+part 'market_snapshot_repository_facade_part.dart';
 
 class MarketSnapshotRepository extends GetxService {
   MarketSnapshotRepository();
@@ -96,71 +75,4 @@ class MarketSnapshotRepository extends GetxService {
     isEmpty: (items) => items.isEmpty,
     liveSource: CachedResourceSource.server,
   );
-
-  Stream<CachedResource<List<MarketItemModel>>> openHome({
-    required String userId,
-    int limit = ReadBudgetRegistry.marketHomeInitialLimit,
-    int page = 1,
-    bool forceSync = false,
-  }) {
-    return _homePipeline.open(
-      MarketListingQuery(
-        query: '*',
-        userId: userId,
-        limit: limit,
-        page: page,
-        scopeTag: page <= 1 ? 'home' : 'home_page_$page',
-      ),
-      forceSync: forceSync,
-    );
-  }
-
-  Future<CachedResource<List<MarketItemModel>>> loadHome({
-    required String userId,
-    int limit = ReadBudgetRegistry.marketHomeInitialLimit,
-    int page = 1,
-    bool forceSync = false,
-  }) {
-    return openHome(
-      userId: userId,
-      limit: limit,
-      page: page,
-      forceSync: forceSync,
-    ).last;
-  }
-
-  Stream<CachedResource<List<MarketItemModel>>> openSearch({
-    required String query,
-    required String userId,
-    int limit = 40,
-    int page = 1,
-    bool forceSync = false,
-  }) {
-    return _searchPipeline.open(
-      MarketListingQuery(
-        query: query,
-        userId: userId,
-        limit: limit,
-        page: page,
-        scopeTag: page <= 1 ? 'search' : 'search_page_$page',
-      ),
-      forceSync: forceSync,
-    );
-  }
-
-  Future<CachedResource<List<MarketItemModel>>> search({
-    required String query,
-    required String userId,
-    int limit = 40,
-    int page = 1,
-    bool forceSync = false,
-  }) {
-    return openSearch(
-      query: query,
-      userId: userId,
-      limit: limit,
-      page: page,
-      forceSync: forceSync,
-    ).last;
-  }
 }
