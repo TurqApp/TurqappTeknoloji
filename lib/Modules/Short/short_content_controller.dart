@@ -54,42 +54,37 @@ class ShortContentController extends GetxController {
   String postID;
   PostsModel model;
 
-  ShortContentController({
-    required this.postID,
-    required this.model,
-  });
+  ShortContentController({required this.postID, required this.model});
 
-  var avatarUrl = "".obs;
-  var nickname = "".obs;
-  var fullName = "".obs;
-  var token = "".obs;
-  var takipEdiyorum = false.obs;
-  var followLoading = false.obs;
-  var pageCounter = 0.obs;
-  RxInt likeCount = 0.obs;
-  RxInt commentCount = 0.obs;
-  RxInt savedCount = 0.obs;
-  RxInt retryCount = 0.obs;
-  RxInt viewCount = 0.obs;
-  RxInt reportCount = 0.obs;
-  RxBool isLiked = false.obs;
-  RxBool isSaved = false.obs;
-  RxBool isReshared = false.obs;
-  RxBool isReported = false.obs;
-  var gizlendi = false.obs;
-  var arsivlendi = false.obs;
-  var silindi = false.obs;
-  var silindiOpacity = 1.0.obs;
-  var ilkPaylasanPfImage = "".obs;
-  var ilkPaylasanNickname = "".obs;
-  var ilkPaylasanUserID = "".obs;
-  var fullscreen = true.obs;
+  final avatarUrl = "".obs,
+      nickname = "".obs,
+      fullName = "".obs,
+      token = "".obs;
+  final takipEdiyorum = false.obs,
+      followLoading = false.obs,
+      pageCounter = 0.obs;
+  final likeCount = 0.obs,
+      commentCount = 0.obs,
+      savedCount = 0.obs,
+      retryCount = 0.obs,
+      viewCount = 0.obs,
+      reportCount = 0.obs;
+  final isLiked = false.obs,
+      isSaved = false.obs,
+      isReshared = false.obs,
+      isReported = false.obs;
+  final gizlendi = false.obs,
+      arsivlendi = false.obs,
+      silindi = false.obs,
+      silindiOpacity = 1.0.obs;
+  final ilkPaylasanPfImage = "".obs,
+      ilkPaylasanNickname = "".obs,
+      ilkPaylasanUserID = "".obs,
+      fullscreen = true.obs;
   StreamSubscription<DocumentSnapshot>? _postDocSub;
   PostRepositoryState? _postState;
-  Worker? _interactionWorker;
-  Worker? _postDataWorker;
-  Timer? _deleteFadeTimer;
-  Timer? _deleteRemoveTimer;
+  Worker? _interactionWorker, _postDataWorker;
+  Timer? _deleteFadeTimer, _deleteRemoveTimer;
 
   @override
   void onInit() {
