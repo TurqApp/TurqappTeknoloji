@@ -24,6 +24,7 @@ import 'short_content.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
 
 part 'single_short_view_helpers_part.dart';
+part 'single_short_view_controller_part.dart';
 part 'single_short_view_playback_part.dart';
 part 'single_short_view_ui_part.dart';
 
@@ -230,6 +231,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   }
 
   final Map<int, bool> _completionTriggered = {};
+
+  void _refreshView() {
+    if (!mounted) return;
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
