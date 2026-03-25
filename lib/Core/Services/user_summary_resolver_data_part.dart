@@ -1,0 +1,126 @@
+part of 'user_summary_resolver.dart';
+
+extension UserSummaryResolverDataPart on UserSummaryResolver {
+  Future<Map<String, UserSummary>> resolveMany(
+    List<String> uids, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) {
+    return _resolveManyInternal(
+      uids,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+  }
+
+  Future<Map<String, UserSummary>> _resolveManyInternal(
+    List<String> uids, {
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    final local = await _users.getUsers(
+      uids,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    final missing = uids
+        .map((uid) => uid.trim())
+        .where((uid) => uid.isNotEmpty && !local.containsKey(uid))
+        .toSet()
+        .toList(growable: false);
+    if (missing.isEmpty) return local;
+
+    final cards = await _typesenseCards.getUserCardsByIds(
+      missing,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    for (final entry in cards.entries) {
+      final uid = entry.key.trim();
+      final card = entry.value;
+      if (uid.isEmpty || card.isEmpty) continue;
+      await _users.putUserRaw(uid, card);
+      local[uid] = UserSummary.fromMap(uid, card);
+    }
+    return local;
+  }
+
+  UserSummary resolveFromMaps(
+    String uid, {
+    Map<String, dynamic> embedded = const <String, dynamic>{},
+    Map<String, dynamic> profile = const <String, dynamic>{},
+  }) {
+    final normalizedUid = uid.trim().isNotEmpty
+        ? uid.trim()
+        : (embedded['userID'] ??
+                embedded['uid'] ??
+                profile['userID'] ??
+                profile['uid'] ??
+                '')
+            .toString()
+            .trim();
+    final merged = <String, dynamic>{}
+      ..addAll(profile)
+      ..addAll(embedded);
+    final nickname = _pickFirstSummaryText(<Object?>[
+      merged['nickname'],
+      merged['username'],
+      merged['handle'],
+      merged['displayName'],
+      merged['authorNickname'],
+      merged['authorDisplayName'],
+    ]);
+    final displayName = _pickFirstSummaryText(<Object?>[
+      merged['displayName'],
+      merged['fullName'],
+      merged['authorDisplayName'],
+      nickname,
+    ]);
+    final avatarUrl = resolveAvatarUrl(embedded, profile: profile);
+    final rozet = _pickFirstSummaryText(<Object?>[
+      merged['rozet'],
+      merged['badge'],
+    ]);
+    final token = _pickFirstSummaryText(<Object?>[
+      merged['token'],
+      merged['pushToken'],
+    ]);
+    return UserSummary(
+      userID: normalizedUid,
+      displayName: displayName,
+      nickname: nickname,
+      username: _pickFirstSummaryText(<Object?>[
+        merged['username'],
+        nickname,
+      ]),
+      avatarUrl: avatarUrl,
+      bio: _pickFirstSummaryText(<Object?>[
+        merged['bio'],
+      ]),
+      rozet: rozet,
+      token: token,
+      followerCount: _summaryInt(
+        merged['followerCount'] ?? merged['followersCount'],
+      ),
+      followingCount: _summaryInt(merged['followingCount']),
+      postCount: _summaryInt(merged['postCount']),
+      isPrivate: merged['isPrivate'] == true,
+      isDeleted: merged['isDeleted'] == true,
+      isApproved: merged['isApproved'] == true,
+    );
+  }
+}
+
+String _pickFirstSummaryText(List<Object?> candidates) {
+  for (final candidate in candidates) {
+    final value = candidate?.toString().trim() ?? '';
+    if (value.isNotEmpty) return value;
+  }
+  return '';
+}
+
+int _summaryInt(Object? raw) {
+  if (raw is int) return raw;
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw?.toString() ?? '') ?? 0;
+}

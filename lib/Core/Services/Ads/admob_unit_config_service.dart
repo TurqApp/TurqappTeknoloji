@@ -6,7 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
+
 part 'admob_unit_config_service_models_part.dart';
+part 'admob_unit_config_service_runtime_part.dart';
 
 class AdmobUnitConfigService extends GetxService {
   static const String _legacyDocId = 'admobUnits';
@@ -41,7 +43,7 @@ class AdmobUnitConfigService extends GetxService {
       return this;
     }
 
-    final future = _initInternal();
+    final future = _initInternalAdmobConfig(this);
     _initFuture = future;
     try {
       await future;
@@ -58,13 +60,15 @@ class AdmobUnitConfigService extends GetxService {
           : 'ca-app-pub-3940256099942544/6300978111';
     }
     if (Platform.isIOS) {
-      return _nextId(
+      return _nextAdmobUnitId(
+        this,
         ids: _config.ios.squareIds,
         cursorKey: _iosSquareCursorKey,
         fallback: _AdmobUnitConfig.defaultIosSquareIds.first,
       );
     }
-    return _nextId(
+    return _nextAdmobUnitId(
+      this,
       ids: _config.android.squareIds,
       cursorKey: _androidSquareCursorKey,
       fallback: _AdmobUnitConfig.defaultAndroidSquareIds.first,
@@ -91,13 +95,15 @@ class AdmobUnitConfigService extends GetxService {
           : 'ca-app-pub-3940256099942544/1033173712';
     }
     if (Platform.isIOS) {
-      return _nextId(
+      return _nextAdmobUnitId(
+        this,
         ids: _config.ios.interstitialIds,
         cursorKey: _iosInterstitialCursorKey,
         fallback: _AdmobUnitConfig.defaultIosInterstitialIds.first,
       );
     }
-    return _nextId(
+    return _nextAdmobUnitId(
+      this,
       ids: _config.android.interstitialIds,
       cursorKey: _androidInterstitialCursorKey,
       fallback: _AdmobUnitConfig.defaultAndroidInterstitialIds.first,
@@ -120,74 +126,9 @@ class AdmobUnitConfigService extends GetxService {
     return List<String>.from(ids, growable: false);
   }
 
-  Future<void> _initInternal() async {
-    try {
-      final currentData = await ConfigRepository.ensure().getAdminConfigDoc(
-        AdsCollections.admobUnitsDoc,
-        preferCache: true,
-        ttl: const Duration(hours: 6),
-      );
-      if (currentData != null && currentData.isNotEmpty) {
-        _config = _AdmobUnitConfig.fromMap(currentData);
-        await _writeRemoteDoc(_config.toMap());
-      } else {
-        final legacyData = await ConfigRepository.ensure().getAdminConfigDoc(
-          _legacyDocId,
-          preferCache: true,
-          ttl: const Duration(hours: 6),
-        );
-        if (legacyData != null && legacyData.isNotEmpty) {
-          _config = _AdmobUnitConfig.fromMap(legacyData);
-          await _writeRemoteDoc(_config.toMap());
-        } else {
-          await _writeRemoteDoc(_config.toMap());
-        }
-      }
-    } catch (_) {
-      _config = _AdmobUnitConfig.defaults;
-    }
-
-    _sub?.cancel();
-    _sub = ConfigRepository.ensure()
-        .watchAdminConfigDoc(
-      AdsCollections.admobUnitsDoc,
-      ttl: const Duration(hours: 6),
-    )
-        .listen((data) {
-      if (data.isEmpty) return;
-      _config = _AdmobUnitConfig.fromMap(data);
-    });
-    _initialized = true;
-  }
-
-  Future<void> _writeRemoteDoc(Map<String, dynamic> data) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection(AdsCollections.adminConfig)
-          .doc(AdsCollections.admobUnitsDoc)
-          .set(data, SetOptions(merge: true));
-      await ConfigRepository.ensure().putAdminConfigDoc(
-        AdsCollections.admobUnitsDoc,
-        data,
-      );
-    } catch (_) {}
-  }
-
-  String _nextId({
-    required List<String> ids,
-    required String cursorKey,
-    required String fallback,
-  }) {
-    if (ids.isEmpty) return fallback;
-    final currentIndex = _cursorByKey[cursorKey] ?? 0;
-    final next = ids[currentIndex % ids.length];
-    _cursorByKey[cursorKey] = (currentIndex + 1) % ids.length;
-    return next;
-  }
-
   @override
   void onClose() {
-    _sub?.cancel();
+    _disposeAdmobConfigRuntime(this);
     super.onClose();
   }
 }

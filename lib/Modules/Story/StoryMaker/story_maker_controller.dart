@@ -31,6 +31,7 @@ part 'story_maker_controller_media_part.dart';
 part 'story_maker_controller_elements_part.dart';
 part 'story_maker_controller_models_part.dart';
 part 'story_maker_controller_save_part.dart';
+part 'story_maker_controller_runtime_part.dart';
 
 class StoryMakerController extends GetxController {
   static StoryMakerController ensure({
@@ -101,98 +102,25 @@ class StoryMakerController extends GetxController {
   var isMusicPlaying = false.obs;
 
   StoryMakerController() {
-    try {
-      _audioPlayer.setAudioContext(
-        AudioContext(
-          android: AudioContextAndroid(
-            isSpeakerphoneOn: false,
-            stayAwake: false,
-            contentType: AndroidContentType.music,
-            usageType: AndroidUsageType.media,
-            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-          ),
-          iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.playback,
-            options: {
-              AVAudioSessionOptions.mixWithOthers,
-            },
-          ),
-        ),
-      );
-    } catch (_) {}
+    _configureStoryMakerAudioPlayer(_audioPlayer);
   }
 
   @override
   void onInit() {
     super.onInit();
-    AudioFocusCoordinator.instance.registerAudioPlayer(_audioPlayer);
-    _saveState();
+    _handleStoryMakerOnInit(this);
   }
 
   @override
   void onClose() {
-    AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
-    try {
-      if (_audioPlayer.state != PlayerState.disposed) {
-        _audioPlayer.stop().then((_) {
-          _audioPlayer.dispose();
-        }).catchError((e) {
-          print("AudioPlayer dispose error (ignored): $e");
-          try {
-            _audioPlayer.dispose();
-          } catch (disposeError) {
-            print("AudioPlayer final dispose error (ignored): $disposeError");
-          }
-        });
-      }
-    } catch (e) {
-      print("AudioPlayer onClose error (ignored): $e");
-    }
-
-    elements.clear();
-    music.value = "";
-    selectedMusic.value = null;
-    color.value = Colors.transparent;
-    _colorIndex = 0;
-    _zIndexCounter = 0;
-    _sharedPostSeedFingerprint = '';
-    _history.clear();
-    _historyIndex = -1;
-    canUndo.value = false;
-    canRedo.value = false;
+    _handleStoryMakerOnClose(this);
     super.onClose();
   }
 
-  void changeCircleColor() {
-    color.value = colorOptions[_colorIndex];
-    _colorIndex = (_colorIndex + 1) % colorOptions.length;
-  }
-
-  StoryElement? get currentBackgroundMediaElement {
-    final media = elements.where((e) =>
-        e.type == StoryElementType.image || e.type == StoryElementType.video);
-    if (media.isEmpty) return null;
-    final sorted = media.toList()..sort((a, b) => b.zIndex.compareTo(a.zIndex));
-    return sorted.first;
-  }
-
-  void setCurrentMediaLookPreset(String preset) {
-    if (!supportedMediaLookPresets.contains(preset)) return;
-    final target = currentBackgroundMediaElement;
-    if (target == null || target.mediaLookPreset == preset) return;
-    _saveState();
-    target.mediaLookPreset = preset;
-    elements.refresh();
-  }
-
   double _availablePlaygroundHeight({bool includeMediaLookTools = true}) {
-    final screenH = Get.height;
-    final topSafeArea = Get.mediaQuery.padding.top;
-    final reservedMediaLook = includeMediaLookTools ? _mediaLookToolsHeight : 0;
-    return screenH -
-        topSafeArea -
-        _topBarHeight -
-        _bottomToolsHeight -
-        reservedMediaLook;
+    return _storyMakerAvailablePlaygroundHeight(
+      this,
+      includeMediaLookTools: includeMediaLookTools,
+    );
   }
 }

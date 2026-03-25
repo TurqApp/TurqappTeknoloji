@@ -13,6 +13,7 @@ part 'following_followers_controller_cache_part.dart';
 part 'following_followers_controller_models_part.dart';
 part 'following_followers_controller_search_part.dart';
 part 'following_followers_controller_mutation_part.dart';
+part 'following_followers_controller_runtime_part.dart';
 
 class FollowingFollowersController extends GetxController {
   static const Duration _nicknameCacheTtl = Duration(minutes: 5);
@@ -38,7 +39,7 @@ class FollowingFollowersController extends GetxController {
 
   @override
   void onClose() {
-    _handleOnClose();
+    _FollowingFollowersControllerRuntimePart.onClose(this);
     super.onClose();
   }
 
@@ -115,10 +116,10 @@ class FollowingFollowersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleOnInit();
+    _FollowingFollowersControllerRuntimePart.onInit(this);
   }
 
-  bool get isSelf => _resolveIsSelf();
+  bool get isSelf => _FollowingFollowersControllerRuntimePart.isSelf(this);
 
   static void applyFollowMutationToCaches({
     required String currentUid,
@@ -130,69 +131,4 @@ class FollowingFollowersController extends GetxController {
         otherUserID: otherUserID,
         nowFollowing: nowFollowing,
       );
-
-  void _handleOnInit() {
-    _loadNicknameCached();
-    final followersCached = _restoreRelationListCache(isFollowers: true);
-    final followingsCached = _restoreRelationListCache(isFollowers: false);
-    unawaited(
-      getFollowers(
-        initial: true,
-        forceServer: followersCached,
-      ),
-    );
-    unawaited(
-      getFollowing(
-        initial: true,
-        forceServer: followingsCached,
-      ),
-    );
-    unawaited(
-      _reconcileInitialRelations(
-        followersCached: followersCached,
-        followingsCached: followingsCached,
-      ),
-    );
-  }
-
-  Future<void> _reconcileInitialRelations({
-    required bool followersCached,
-    required bool followingsCached,
-  }) async {
-    await getCounters();
-    final expectedFollowers = takipciCounter.value.clamp(
-      0,
-      ReadBudgetRegistry.followRelationPreviewInitialLimit,
-    );
-    if ((takipciCounter.value > 0 &&
-            takipciler.isEmpty &&
-            !isLoadingFollowers) ||
-        (followersCached &&
-            !isLoadingFollowers &&
-            takipciler.length < expectedFollowers)) {
-      await getFollowers(initial: true, forceServer: true);
-    }
-    final expectedFollowing = takipedilenCounter.value.clamp(
-      0,
-      ReadBudgetRegistry.followRelationPreviewInitialLimit,
-    );
-    if (takipedilenCounter.value > 0 &&
-        takipEdilenler.isEmpty &&
-        !isLoadingFollowing) {
-      await getFollowing(initial: true, forceServer: true);
-    }
-    if (followingsCached &&
-        !isLoadingFollowing &&
-        takipEdilenler.length < expectedFollowing) {
-      await getFollowing(initial: true, forceServer: true);
-    }
-  }
-
-  void _handleOnClose() {
-    pageController.dispose();
-    searchTakipciController.dispose();
-    searchTakipEdilenController.dispose();
-  }
-
-  bool _resolveIsSelf() => isCurrentUserId(userId);
 }
