@@ -80,33 +80,10 @@ const buildForceKeyFrames = (durationSeconds, firstSegmentSeconds, restSegmentSe
     return marks.join(",");
 };
 const buildTurqCleanVisionFilterComplex = (renditionLabel, scaleFilter) => {
-    const baseLabel = `${renditionLabel}base`;
-    const bloomSourceLabel = `${renditionLabel}bloomsrc`;
-    const bloomLabel = `${renditionLabel}bloom`;
     const outputLabel = `${renditionLabel}out`;
-    const baseChain = [
-        scaleFilter,
-        `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
-        "curves=all='0/0.04 0.22/0.30 0.58/0.75 0.84/0.95 1/1'",
-        "colorbalance=rs=-0.01:bs=0.02",
-        `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
-    ].join(",");
-    const bloomIsolation = [
-        "curves=all='0/0 0.70/0 0.80/0.42 0.90/0.82 1/1'",
-        `gblur=sigma=${TURQ_CLEAN_VISION.bloomSigma}:steps=1`,
-    ].join(",");
-    return [
-        `[0:v]${baseChain},split=2[${baseLabel}][${bloomSourceLabel}]`,
-        `[${bloomSourceLabel}]${bloomIsolation}[${bloomLabel}]`,
-        `[${baseLabel}][${bloomLabel}]blend=all_mode='screen':all_opacity=${TURQ_CLEAN_VISION.bloomOpacity}[${outputLabel}]`,
-    ].join(";");
+    return `[0:v]${scaleFilter}[${outputLabel}]`;
 };
-const buildTurqCleanVisionThumbnailFilter = () => [
-    `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
-    "curves=all='0/0 0.28/0.33 0.62/0.78 0.82/0.94 1/1'",
-    "colorbalance=rs=-0.01:bs=0.02",
-    `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
-].join(",");
+const buildTurqCleanVisionThumbnailFilter = () => "null";
 function resolveTarget(filePath) {
     // Pattern 1: Posts (mevcut)
     const postMatch = filePath.match(/^posts\/([^/]+)\/video[^/]*\.mp4$/i);
