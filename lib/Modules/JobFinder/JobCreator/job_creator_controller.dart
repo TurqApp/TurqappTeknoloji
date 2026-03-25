@@ -38,88 +38,45 @@ class JobCreatorController extends GetxController {
     JobModel? existingJob,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      JobCreatorController(existingJob: existingJob),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      maybeFind(tag: tag) ??
+      Get.put(
+        JobCreatorController(existingJob: existingJob),
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static JobCreatorController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<JobCreatorController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<JobCreatorController>(tag: tag);
-  }
+  static JobCreatorController? maybeFind({String? tag}) =>
+      Get.isRegistered<JobCreatorController>(tag: tag)
+          ? Get.find<JobCreatorController>(tag: tag)
+          : null;
 
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
-  var selection = 0.obs;
-  final isSubmitting = false.obs;
-  TextEditingController brand = TextEditingController();
-  TextEditingController about = TextEditingController();
-  TextEditingController isTanimi = TextEditingController();
-  TextEditingController maas1 = TextEditingController();
-  TextEditingController maas2 = TextEditingController();
+  final selection = 0.obs, isSubmitting = false.obs;
+  final brand = TextEditingController(),
+      about = TextEditingController(),
+      isTanimi = TextEditingController(),
+      maas1 = TextEditingController(),
+      maas2 = TextEditingController();
 
-  String get _currentUid => CurrentUserService.instance.effectiveUserId;
-
-  TextEditingController calismaSaatiBaslangic = TextEditingController();
-  TextEditingController calismaSaatiBitis = TextEditingController();
-  TextEditingController basvuruSayisi = TextEditingController(text: "0");
-  List<String> calismaTuruList = [
-    "Tam Zamanlı",
-    "Yarı Zamanlı",
-    "Part-Time",
-    "Uzaktan",
-    "Hibrit"
-  ];
-  List<String> calismaGunleriList = [
-    "Pazartesi",
-    "Salı",
-    "Çarşamba",
-    "Perşembe",
-    "Cuma",
-    "Cumartesi",
-    "Pazar",
-  ];
-  List<String> yanHaklarList = [
-    "Yemek",
-    "Yol Ücreti",
-    "Servis",
-    "Prim",
-    "Özel Sağlık Sigortası",
-    "Bireysel Emeklilik",
-    "Esnek Çalışma Saatleri",
-    "Uzaktan Çalışma",
-  ];
-
-  RxList<String> selectedCalismaTuruList = <String>[].obs;
-  RxList<String> selectedCalismaGunleri = <String>[].obs;
-  RxList<String> selectedYanHaklar = <String>[].obs;
+  final calismaSaatiBaslangic = TextEditingController(),
+      calismaSaatiBitis = TextEditingController(),
+      basvuruSayisi = TextEditingController(text: '0');
+  final selectedCalismaTuruList = <String>[].obs,
+      selectedCalismaGunleri = <String>[].obs,
+      selectedYanHaklar = <String>[].obs;
+  final _choices = _JobCreatorChoiceLists();
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
-  var meslek = "".obs;
-  TextEditingController ilanBasligi = TextEditingController();
-  TextEditingController pozisyonSayisi = TextEditingController(text: "1");
-  var sehir = "".obs;
-  var ilce = "".obs;
-  var adres = "".obs;
-  var lat = 0.0.obs;
-  var long = 0.0.obs;
-  var maasOpen = true.obs;
+  final meslek = ''.obs;
+  final ilanBasligi = TextEditingController();
+  final pozisyonSayisi = TextEditingController(text: '1');
+  final sehir = ''.obs, ilce = ''.obs, adres = ''.obs;
+  final lat = 0.0.obs, long = 0.0.obs, maasOpen = true.obs;
   final sehirler = <String>[].obs;
 
-  final CropController cropController = CropController();
-  final ImagePicker picker = ImagePicker();
-  final Rx<File?> selectedImage = Rx<File?>(null);
-  final Rx<Uint8List?> croppedImage = Rx<Uint8List?>(null);
-  final RxBool isCropping = false.obs;
-
-  final String loaderTag = "job_creator_loader";
-  final timeStamp = DateTime.now().millisecondsSinceEpoch;
-  bool _ownsLoader = false;
+  final _mediaState = _JobCreatorMediaState();
+  final _runtimeState = _JobCreatorRuntimeState();
 
   final JobModel? existingJob;
   JobCreatorController({this.existingJob});

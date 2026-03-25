@@ -33,79 +33,53 @@ part 'explore_controller_support_part.dart';
 part 'explore_controller_api_part.dart';
 
 class ExploreController extends GetxController {
-  static ExploreController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ExploreController());
-  }
+  static ExploreController ensure() =>
+      maybeFind() ?? Get.put(ExploreController());
+  static ExploreController? maybeFind() => Get.isRegistered<ExploreController>()
+      ? Get.find<ExploreController>()
+      : null;
 
-  static ExploreController? maybeFind() {
-    final isRegistered = Get.isRegistered<ExploreController>();
-    if (!isRegistered) return null;
-    return Get.find<ExploreController>();
-  }
-
-  static const double _verticalExploreAspectMax = 0.7;
-  static const String _recentSearchUsersCachePrefix =
-      'explore_recent_search_users_v1_';
-  static const int _recentSearchUsersLimit = 100;
-  static const Duration _searchDebounceDuration = Duration(milliseconds: 300);
-  var selection = 0.obs;
-  PageController pageController = PageController(initialPage: 0);
-
+  final selection = 0.obs;
+  final pageController = PageController(initialPage: 0);
   final TextEditingController searchController = TextEditingController();
   final FocusNode searchFocus = FocusNode();
-  RxString searchText = "".obs;
-  RxList<OgrenciModel> searchedList = <OgrenciModel>[].obs;
-  RxList<OgrenciModel> recentSearchUsers = <OgrenciModel>[].obs;
-  RxList<HashtagModel> searchedHashtags = <HashtagModel>[].obs;
-  RxList<HashtagModel> searchedTags = <HashtagModel>[].obs;
-  RxBool showAllRecent = false.obs;
-  RxBool isKeyboardOpen = false.obs;
-  RxBool isSearchMode = false.obs;
+  final searchText = ''.obs;
+  final searchedList = <OgrenciModel>[].obs,
+      recentSearchUsers = <OgrenciModel>[].obs;
+  final searchedHashtags = <HashtagModel>[].obs,
+      searchedTags = <HashtagModel>[].obs;
+  final showAllRecent = false.obs,
+      isKeyboardOpen = false.obs,
+      isSearchMode = false.obs;
   final scrollController = ScrollController();
-  RxList<HashtagModel> trendingTags = <HashtagModel>[].obs;
-
-  // -------------- Sana Özel (explorePosts) --------------
+  final trendingTags = <HashtagModel>[].obs;
   final ScrollController exploreScroll = ScrollController();
-  RxList<PostsModel> explorePosts = <PostsModel>[].obs;
+  final explorePosts = <PostsModel>[].obs;
   DocumentSnapshot? lastExploreDoc;
-  RxBool exploreHasMore = true.obs;
-  RxBool exploreIsLoading = false.obs;
+  final exploreHasMore = true.obs, exploreIsLoading = false.obs;
   final RxBool explorePreviewSuspended = false.obs;
   final RxInt explorePreviewFocusIndex = (-1).obs;
-
-  // -------------- Videolar --------------
   final ScrollController videoScroll = ScrollController();
-  RxList<PostsModel> exploreVideos = <PostsModel>[].obs;
+  final exploreVideos = <PostsModel>[].obs;
   DocumentSnapshot? lastVideoDoc;
-  RxBool videoHasMore = true.obs;
-  RxBool videoIsLoading = false.obs;
-
-  // -------------- Fotoğraflar --------------
+  final videoHasMore = true.obs, videoIsLoading = false.obs;
   final ScrollController photoScroll = ScrollController();
-  RxList<PostsModel> explorePhotos = <PostsModel>[].obs;
+  final explorePhotos = <PostsModel>[].obs;
   DocumentSnapshot? lastPhotoDoc;
-  RxBool photoHasMore = true.obs;
-  RxBool photoIsLoading = false.obs;
-
-  // -------------- FLOODS --------------
+  final photoHasMore = true.obs, photoIsLoading = false.obs;
   final ScrollController floodsScroll = ScrollController();
-  RxList<PostsModel> exploreFloods = <PostsModel>[].obs;
+  final exploreFloods = <PostsModel>[].obs;
   DocumentSnapshot? lastFloodsDoc;
-  RxBool floodsHasMore = true.obs;
-  RxBool floodsIsLoading = false.obs;
+  final floodsHasMore = true.obs, floodsIsLoading = false.obs;
   final RxInt floodsVisibleIndex = (-1).obs;
   int? lastFloodVisibleIndex;
   String? _pendingFloodDocId;
-  RxBool showScrollToTop = false.obs;
+  final showScrollToTop = false.obs;
   final RxSet<String> followingIDs = <String>{}.obs;
-  // Boş sayfa tespit sayaçları (filtre sonrası görünür içerik çıkmadığında)
-  int _exploreEmptyScans = 0;
-  int _videoEmptyScans = 0;
-  int _photoEmptyScans = 0;
-  int _floodsEmptyScans = 0;
-  // ... diğer kodlar
+  int _exploreEmptyScans = 0,
+      _videoEmptyScans = 0,
+      _photoEmptyScans = 0,
+      _floodsEmptyScans = 0;
   Worker? _currentUserWorker;
   Timer? _searchDebounce;
   int _searchRequestId = 0;

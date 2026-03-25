@@ -1,5 +1,10 @@
 part of 'explore_controller.dart';
 
+const double _verticalExploreAspectMax = 0.7;
+const String _recentSearchUsersCachePrefix = 'explore_recent_search_users_v1_';
+const int _recentSearchUsersLimit = 100;
+const Duration _searchDebounceDuration = Duration(milliseconds: 300);
+
 extension _ExploreControllerSupportX on ExploreController {
   UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
 

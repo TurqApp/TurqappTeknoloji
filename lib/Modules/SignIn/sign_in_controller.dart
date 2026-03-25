@@ -32,102 +32,38 @@ import 'package:turqappv2/Services/phone_account_limiter.dart';
 
 part 'sign_in_controller_auth_part.dart';
 part 'sign_in_controller_account_part.dart';
+part 'sign_in_controller_fields_part.dart';
 part 'sign_in_controller_lifecycle_part.dart';
 part 'sign_in_controller_signup_part.dart';
 part 'sign_in_controller_support_part.dart';
 
 class SignInController extends GetxController
     with GetSingleTickerProviderStateMixin {
-  static SignInController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      SignInController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  static SignInController ensure({String? tag, bool permanent = false}) =>
+      maybeFind(tag: tag) ??
+      Get.put(SignInController(), tag: tag, permanent: permanent);
 
-  static SignInController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<SignInController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<SignInController>(tag: tag);
-  }
+  static SignInController? maybeFind({String? tag}) =>
+      Get.isRegistered<SignInController>(tag: tag)
+          ? Get.find<SignInController>(tag: tag)
+          : null;
 
-  var selection = 0.obs;
+  final selection = 0.obs;
   final typedBrandLength = 0.obs;
   final showBrandCursor = true.obs;
+  final _controllers = _SignInTextControllers();
+  final _focuses = _SignInFocusNodes();
+  final _state = _SignInStateFields();
 
-  TextEditingController emailcontroller = TextEditingController();
-  TextEditingController passwordcontroller = TextEditingController();
-  TextEditingController nicknamecontroller = TextEditingController();
-  TextEditingController firstNameController = TextEditingController();
-  TextEditingController lastNameController = TextEditingController();
-  TextEditingController phoneNumberController = TextEditingController();
-  TextEditingController otpController = TextEditingController();
-  TextEditingController resetMailController = TextEditingController();
-  TextEditingController resetOtpController = TextEditingController();
-  TextEditingController newPasswordController = TextEditingController();
-  TextEditingController newPasswordRepeatController = TextEditingController();
-
-  Rx<FocusNode> emailFocus = FocusNode().obs;
-  Rx<FocusNode> passwordFocus = FocusNode().obs;
-  Rx<FocusNode> nicknameFocus = FocusNode().obs;
-  Rx<FocusNode> firstNameFocus = FocusNode().obs;
-  Rx<FocusNode> lastNameFocus = FocusNode().obs;
-  Rx<FocusNode> phoneNumberFocus = FocusNode().obs;
-  Rx<FocusNode> otpFocus = FocusNode().obs;
-  Rx<FocusNode> resetMailFocus = FocusNode().obs;
-  Rx<FocusNode> resetOtpFocus = FocusNode().obs;
-  Rx<FocusNode> newPasswordFocus = FocusNode().obs;
-  Rx<FocusNode> newPasswordRepeatFocus = FocusNode().obs;
-
-  var firstName = ''.obs;
-  var lastName = ''.obs;
-  var phoneNumber = ''.obs;
-  var otpCode = ''.obs;
-  var email = ''.obs;
-  var password = ''.obs;
-  var nicknameAvilable = false.obs;
-  var nickname = ''.obs;
-  var resetMail = ''.obs;
-  var resetOtp = ''.obs;
-  var newPassword = "".obs;
-  var newPasswordRepeat = "".obs;
-  var emailAvilable = false.obs;
-  var passwordAvilable = false.obs;
-  var wait = false.obs;
-  var signupIdentityCheckLoading = false.obs;
-  var signupPoliciesAccepted = false.obs;
-  var showPassword = false.obs;
-  var showNewPassword = false.obs;
-  var showNewPasswordRepeat = false.obs;
-
-  var isFormValid = false.obs;
-  final Rxn<StoredAccount> selectedStoredAccount = Rxn<StoredAccount>();
-
-  var otpTimer = 0.obs;
-  Timer? _timer;
-  Timer? _emailAvailabilityDebounce;
-  Timer? _nicknameAvailabilityDebounce;
-  Timer? _typewriterTimer;
-  Timer? _cursorBlinkTimer;
+  final otpTimer = 0.obs;
+  Timer? _timer, _emailAvailabilityDebounce, _nicknameAvailabilityDebounce;
+  Timer? _typewriterTimer, _cursorBlinkTimer;
   Worker? _selectionWorker;
-  var signupCodeRequested = false.obs;
-  var otpRequestInFlight = false.obs;
+  final signupCodeRequested = false.obs, otpRequestInFlight = false.obs;
 
-  var resetPhoneNumber = "".obs;
-  var resetOldPassword = "".obs;
-  var resetUserID = "".obs;
-  var otpTimerReset = 0.obs;
+  final otpTimerReset = 0.obs;
   Timer? _timerReset;
-  var resetCodeRequested = false.obs;
-  var resetOtpRequestInFlight = false.obs;
-
-  var signInEmail = "".obs;
+  final resetCodeRequested = false.obs, resetOtpRequestInFlight = false.obs;
   int _emailAvailabilityRequestId = 0;
   int _nicknameAvailabilityRequestId = 0;
 

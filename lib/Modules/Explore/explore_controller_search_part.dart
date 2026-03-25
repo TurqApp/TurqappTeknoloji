@@ -95,7 +95,7 @@ extension ExploreControllerSearchPart on ExploreController {
     }
 
     isSearchMode.value = true;
-    _searchDebounce = Timer(ExploreController._searchDebounceDuration, () {
+    _searchDebounce = Timer(_searchDebounceDuration, () {
       unawaited(search(normalized));
     });
   }

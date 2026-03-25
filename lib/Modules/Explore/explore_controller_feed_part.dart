@@ -281,8 +281,7 @@ extension ExploreControllerFeedPart on ExploreController {
   bool _performIsEligibleExplorePost(PostsModel post) {
     return post.hasPlayableVideo &&
         post.originalPostID.trim().isEmpty &&
-        post.aspectRatio.toDouble() <
-            ExploreController._verticalExploreAspectMax;
+        post.aspectRatio.toDouble() < _verticalExploreAspectMax;
   }
 
   String _performExploreCanonicalId(PostsModel post) {

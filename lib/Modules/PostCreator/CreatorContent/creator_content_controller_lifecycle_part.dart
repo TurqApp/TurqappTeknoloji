@@ -19,12 +19,14 @@ class _CreatorContentControllerLifecyclePart {
 
   void handleOnInit() {
     WidgetsBinding.instance.addObserver(_controller);
-    _controller.textEdit.addListener(_controller._handleTextEditingChanged);
+    _controller.textEdit
+        .addListener(_controller.refreshHashtagSuggestionsFromCursor);
   }
 
   void handleOnClose() {
     WidgetsBinding.instance.removeObserver(_controller);
-    _controller.textEdit.removeListener(_controller._handleTextEditingChanged);
+    _controller.textEdit
+        .removeListener(_controller.refreshHashtagSuggestionsFromCursor);
     unawaited(_controller._releaseVideoController());
     _controller.isPlaying.value = false;
     _controller.focus.dispose();

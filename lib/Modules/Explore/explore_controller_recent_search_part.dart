@@ -126,7 +126,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
           return bTs.compareTo(aTs);
         });
       return docs
-          .take(ExploreController._recentSearchUsersLimit)
+          .take(_recentSearchUsersLimit)
           .map((d) => d.id.trim())
           .where((e) => e.isNotEmpty)
           .toList(growable: false);
@@ -139,7 +139,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   String? _recentSearchUsersCacheKey() {
     final uid = _currentUid;
     if (uid.isEmpty) return null;
-    return '${ExploreController._recentSearchUsersCachePrefix}$uid';
+    return '$_recentSearchUsersCachePrefix$uid';
   }
 
   Future<void> _loadRecentSearchUsersCache() async {
@@ -181,7 +181,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
       if (key == null) return;
       final prefs = await SharedPreferences.getInstance();
       final payload = recentSearchUsers
-          .take(ExploreController._recentSearchUsersLimit)
+          .take(_recentSearchUsersLimit)
           .map(
             (u) => <String, dynamic>{
               'userID': u.userID,

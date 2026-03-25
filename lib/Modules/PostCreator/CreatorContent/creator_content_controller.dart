@@ -36,61 +36,47 @@ part 'creator_content_controller_runtime_part.dart';
 
 class CreatorContentController extends GetxController
     with WidgetsBindingObserver {
-  void _handleTextEditingChanged() =>
-      _CreatorContentControllerLifecyclePart(this).handleTextEditingChanged();
-
   static CreatorContentController ensure({
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(CreatorContentController(), tag: tag, permanent: permanent);
-  }
+  }) =>
+      maybeFind(tag: tag) ??
+      Get.put(CreatorContentController(), tag: tag, permanent: permanent);
 
-  static CreatorContentController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<CreatorContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<CreatorContentController>(tag: tag);
-  }
+  static CreatorContentController? maybeFind({String? tag}) =>
+      Get.isRegistered<CreatorContentController>(tag: tag)
+          ? Get.find<CreatorContentController>(tag: tag)
+          : null;
 
-  TextEditingController textEdit = TextEditingController();
+  final textEdit = TextEditingController();
   final ImagePicker picker = ImagePicker();
   final CropController cropController = CropController();
 
   final RxList<File> selectedImages = <File>[].obs;
   final Rx<File?> selectedVideo = Rx<File?>(null);
   final RxList<Uint8List?> croppedImages = <Uint8List?>[].obs;
-  final RxBool isCropping = false.obs;
-  final RxBool isPlaying = false.obs;
-  final RxBool hasVideo = false.obs;
-  final RxBool isProcessing = false.obs;
-  FocusNode focus = FocusNode();
-  final RxBool isFocusedOnce = false.obs;
-  final RxBool contentNotEmpty = false.obs;
-  final RxBool textChanged = false.obs;
-  final RxBool waitingVideo = false.obs;
+  final RxBool isCropping = false.obs, isPlaying = false.obs;
+  final RxBool hasVideo = false.obs, isProcessing = false.obs;
+  final focus = FocusNode();
+  final RxBool isFocusedOnce = false.obs, contentNotEmpty = false.obs;
+  final RxBool textChanged = false.obs, waitingVideo = false.obs;
   final RxList<HashtagModel> trendingHashtags = <HashtagModel>[].obs;
   final RxList<HashtagModel> hashtagSuggestions = <HashtagModel>[].obs;
-  final RxBool showHashtagSuggestions = false.obs;
-  final RxBool hashtagSuggestionsLoading = false.obs;
-  final RxString activeHashtagQuery = ''.obs;
-  final RxString reusedVideoUrl = ''.obs;
-  final RxString reusedVideoThumbnail = ''.obs;
-  final RxDouble reusedVideoAspectRatio = 0.0.obs;
-  final RxDouble reusedImageAspectRatio = 0.0.obs;
+  final RxBool showHashtagSuggestions = false.obs,
+      hashtagSuggestionsLoading = false.obs;
+  final RxString activeHashtagQuery = ''.obs,
+      reusedVideoUrl = ''.obs,
+      reusedVideoThumbnail = ''.obs;
+  final RxDouble reusedVideoAspectRatio = 0.0.obs,
+      reusedImageAspectRatio = 0.0.obs;
   final RxList<String> reusedImageUrls = <String>[].obs;
   final RxString videoLookPreset = 'original'.obs;
 
   final Rx<Uint8List?> selectedThumbnail = Rx<Uint8List?>(null);
   final Rxn<Map<String, dynamic>> pollData = Rxn<Map<String, dynamic>>();
-
-  var adres = "".obs;
-  var gif = "".obs;
+  final adres = ''.obs, gif = ''.obs;
   final TopTagsRepository _topTagsRepository = TopTagsRepository.ensure();
-
-  Rx<VideoPlayerController?> rxVideoPlayerController =
-      Rx<VideoPlayerController?>(null);
+  final rxVideoPlayerController = Rx<VideoPlayerController?>(null);
 
   VideoPlayerController? get videoPlayerController =>
       rxVideoPlayerController.value;
