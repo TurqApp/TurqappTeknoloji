@@ -8,6 +8,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'StoryLikes/story_likes.dart';
 import 'StorySeens/story_seens.dart';
 
+part 'user_story_content_controller_facade_part.dart';
 part 'user_story_content_controller_runtime_part.dart';
 
 class UserStoryContentController extends GetxController {
@@ -63,46 +64,4 @@ class UserStoryContentController extends GetxController {
   ];
   final RxMap<String, int> reactionCounts = <String, int>{}.obs;
   final RxString myReaction = ''.obs;
-
-  Future<void> getLikes(String storyID) =>
-      _UserStoryContentControllerRuntimePart(this).getLikes(storyID);
-
-  Future<void> showPostCommentsBottomSheet(
-    String docID,
-    String nickname,
-    bool isMyStory, {
-    void Function(bool)? onClosed,
-  }) =>
-      _UserStoryContentControllerRuntimePart(this).showPostCommentsBottomSheet(
-        docID,
-        nickname,
-        isMyStory,
-        onClosed: onClosed,
-      );
-
-  Future<void> showLikesBottomSheet(
-    String docID, {
-    void Function(bool)? onClosed,
-  }) =>
-      _UserStoryContentControllerRuntimePart(this)
-          .showLikesBottomSheet(docID, onClosed: onClosed);
-
-  Future<void> showSeensBottomSheet(
-    String docID, {
-    void Function(bool)? onClosed,
-  }) =>
-      _UserStoryContentControllerRuntimePart(this)
-          .showSeensBottomSheet(docID, onClosed: onClosed);
-
-  Future<void> getReactions(String storyID) =>
-      _UserStoryContentControllerRuntimePart(this).getReactions(storyID);
-
-  Future<void> react(String storyID, String emoji) =>
-      _UserStoryContentControllerRuntimePart(this).react(storyID, emoji);
-
-  Future<void> like(String storyID) =>
-      _UserStoryContentControllerRuntimePart(this).like(storyID);
-
-  Future<void> setSeen(String storyID) =>
-      _UserStoryContentControllerRuntimePart(this).setSeen(storyID);
 }

@@ -11,6 +11,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'deneme_sinavi_yap_controller_facade_part.dart';
 part 'deneme_sinavi_yap_controller_runtime_part.dart';
 
 class DenemeSinaviYapController extends GetxController
@@ -87,22 +88,4 @@ class DenemeSinaviYapController extends GetxController
     _DenemeSinaviYapControllerRuntimePart(this)
         .didChangeAppLifecycleState(state);
   }
-
-  Future<void> fetchUserData() =>
-      _DenemeSinaviYapControllerRuntimePart(this).fetchUserData();
-
-  Future<void> getSorular() =>
-      _DenemeSinaviYapControllerRuntimePart(this).getSorular();
-
-  void checkInternetConnection() =>
-      _DenemeSinaviYapControllerRuntimePart(this).checkInternetConnection();
-
-  void sinaviGecersizSay() =>
-      _DenemeSinaviYapControllerRuntimePart(this).sinaviGecersizSay();
-
-  Future<void> setData() =>
-      _DenemeSinaviYapControllerRuntimePart(this).setData();
-
-  Future<void> refreshData() =>
-      _DenemeSinaviYapControllerRuntimePart(this).refreshData();
 }

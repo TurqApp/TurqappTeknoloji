@@ -1,6 +1,15 @@
 part of 'job_finder_controller.dart';
 
 extension JobFinderControllerSupportPart on JobFinderController {
+  List<String> get innerTabTitles => [
+        'pasaj.job_finder.tab.explore'.tr,
+        'pasaj.job_finder.tab.create'.tr,
+        'pasaj.job_finder.tab.applications'.tr,
+        'pasaj.job_finder.tab.career_profile'.tr,
+      ];
+
+  String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
+
   bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
     final currentKeys = current
         .map(

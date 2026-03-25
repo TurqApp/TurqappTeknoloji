@@ -3,6 +3,7 @@ import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 
 part 'cikmis_sorular_snapshot_repository_data_part.dart';
+part 'cikmis_sorular_snapshot_repository_facade_part.dart';
 
 class CikmisSorularSnapshotRepository extends GetxService {
   CikmisSorularSnapshotRepository();
@@ -57,51 +58,6 @@ class CikmisSorularSnapshotRepository extends GetxService {
     isEmpty: (docs) => docs.isEmpty,
     liveSource: CachedResourceSource.server,
   );
-
-  Stream<CachedResource<List<Map<String, dynamic>>>> openHome({
-    required String userId,
-    bool forceSync = false,
-  }) {
-    return _homePipeline.open(userId, forceSync: forceSync);
-  }
-
-  Future<CachedResource<List<Map<String, dynamic>>>> loadHome({
-    required String userId,
-    bool forceSync = false,
-  }) {
-    return openHome(
-      userId: userId,
-      forceSync: forceSync,
-    ).last;
-  }
-
-  Stream<CachedResource<List<Map<String, dynamic>>>> openSearch({
-    required String query,
-    required String userId,
-    int limit = 40,
-    bool forceSync = false,
-  }) =>
-      openPastQuestionSearch(
-        this,
-        query: query,
-        userId: userId,
-        limit: limit,
-        forceSync: forceSync,
-      );
-
-  Future<CachedResource<List<Map<String, dynamic>>>> search({
-    required String query,
-    required String userId,
-    int limit = 40,
-    bool forceSync = false,
-  }) {
-    return openSearch(
-      query: query,
-      userId: userId,
-      limit: limit,
-      forceSync: forceSync,
-    ).last;
-  }
 
   Map<String, dynamic> _encodeDocs(List<Map<String, dynamic>> docs) =>
       encodePastQuestionSnapshotDocs(docs);

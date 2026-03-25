@@ -59,12 +59,6 @@ class JobFinderController extends GetxController {
   // Tab management
   final innerTabIndex = 0.obs;
   final innerPageController = PageController();
-  List<String> get innerTabTitles => [
-        'pasaj.job_finder.tab.explore'.tr,
-        'pasaj.job_finder.tab.create'.tr,
-        'pasaj.job_finder.tab.applications'.tr,
-        'pasaj.job_finder.tab.career_profile'.tr,
-      ];
 
   RxList<JobModel> allJobs = <JobModel>[].obs;
   RxList<JobModel> list = <JobModel>[].obs;
@@ -86,8 +80,6 @@ class JobFinderController extends GetxController {
   Position? _lastResolvedPosition;
   StreamSubscription<CachedResource<List<JobModel>>>? _homeSnapshotSub;
   Timer? _deferredLocationTimer;
-
-  String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
 
   @override
   void onInit() {

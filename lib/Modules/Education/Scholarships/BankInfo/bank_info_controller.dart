@@ -10,6 +10,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'bank_info_controller_actions_part.dart';
 part 'bank_info_controller_data_part.dart';
+part 'bank_info_controller_facade_part.dart';
 part 'bank_info_controller_ui_part.dart';
 
 class BankInfoController extends GetxController {
@@ -33,14 +34,12 @@ class BankInfoController extends GetxController {
   static const String _phone = "Telefon";
   static const String _ibanType = "IBAN";
   final UserRepository _userRepository = UserRepository.ensure();
-  // Reactive variables
   final RxInt color = 0xFF000000.obs;
   final RxString selectedBank = _selectBank.obs;
   final RxString kolayAdres = _email.obs;
   final RxBool isLoading = true.obs;
   final TextEditingController iban = TextEditingController();
 
-  // Lists
   final List<String> kolayAdresList = [_email, _phone, _ibanType];
   final List<String> banks = [
     "Akbank",
@@ -72,31 +71,9 @@ class BankInfoController extends GetxController {
     "Ziraat Katılım Bankası",
   ];
 
-  String get defaultBankSelection => _selectBank;
-  String get defaultFastTypeEmail => _email;
-  bool get isIbanSelected => kolayAdres.value == _ibanType;
-  bool get isPhoneSelected => kolayAdres.value == _phone;
-  bool get isEmailSelected => kolayAdres.value == _email;
-
   @override
   void onInit() {
     super.onInit();
-    loadData();
+    BankInfoControllerFacadePart(this).loadData();
   }
-
-  String localizedFastType(String value) =>
-      _BankInfoControllerUiX(this).localizedFastType(value);
-
-  Future<void> loadData() => _BankInfoControllerDataX(this).loadData();
-
-  void showBankBottomSheet(BuildContext context) =>
-      _BankInfoControllerUiX(this).showBankBottomSheet(context);
-
-  void showKolayAdresBottomSheet(BuildContext context) =>
-      _BankInfoControllerUiX(this).showKolayAdresBottomSheet(context);
-
-  Future<void> pasteFromClipboard() =>
-      _BankInfoControllerActionsX(this).pasteFromClipboard();
-
-  void saveData() => _BankInfoControllerActionsX(this).saveData();
 }

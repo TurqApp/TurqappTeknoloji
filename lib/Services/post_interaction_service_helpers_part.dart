@@ -1,6 +1,14 @@
 part of 'post_interaction_service.dart';
 
 extension PostInteractionServiceHelpersPart on PostInteractionService {
+  String? get currentUserID {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    return uid.isEmpty ? null : uid;
+  }
+
+  bool get _isOffline =>
+      !(OfflineModeService.maybeFind()?.isOnline.value ?? true);
+
   DocumentReference<Map<String, dynamic>> _postRef(String postId) =>
       _firestore.collection('Posts').doc(postId);
 
@@ -40,6 +48,38 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
     }
 
     return '';
+  }
+
+  Future<void> _createNotification(String postId, String type) async {
+    final userId = currentUserID;
+    if (userId == null) return;
+
+    try {
+      final postDoc = await _postRef(postId).get();
+      final postData = postDoc.data() ?? const <String, dynamic>{};
+      final ownerId = postData['userID'] as String?;
+      if (ownerId == null || ownerId == userId) return;
+
+      final notification = NotificationModel(
+        type: normalizeNotificationCreateType(type),
+        fromUserID: userId,
+        postID: postId,
+        timeStamp: _nowMs(),
+        read: false,
+      ).toMap();
+      final previewImage = _resolveNotificationPreviewImage(postData);
+      if (previewImage.isNotEmpty) {
+        notification['imageUrl'] = previewImage;
+        notification['thumbnail'] = previewImage;
+      }
+
+      await NotificationsRepository.ensure().createInboxItem(
+        ownerId,
+        notification,
+      );
+    } catch (e) {
+      print('Create notification error: $e');
+    }
   }
 
   Future<void> _toggleLikeArray(

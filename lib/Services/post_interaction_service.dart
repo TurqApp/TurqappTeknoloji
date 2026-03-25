@@ -54,14 +54,6 @@ class PostInteractionService extends GetxController {
   bool _permissionDeniedLogged = false;
   static const String _moderationConfigPath = 'adminConfig/moderation';
 
-  String? get currentUserID {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    return uid.isEmpty ? null : uid;
-  }
-
-  bool get _isOffline =>
-      !(OfflineModeService.maybeFind()?.isOnline.value ?? true);
-
   // ---------------------------------------------------------------------------
   // BEĞENİ
   // ---------------------------------------------------------------------------
@@ -70,36 +62,4 @@ class PostInteractionService extends GetxController {
   // ---------------------------------------------------------------------------
   // BİLDİRİMLER & SAYIMLAR
   // ---------------------------------------------------------------------------
-
-  Future<void> _createNotification(String postId, String type) async {
-    final userId = currentUserID;
-    if (userId == null) return;
-
-    try {
-      final postDoc = await _postRef(postId).get();
-      final postData = postDoc.data() ?? const <String, dynamic>{};
-      final ownerId = postData['userID'] as String?;
-      if (ownerId == null || ownerId == userId) return;
-
-      final notification = NotificationModel(
-        type: normalizeNotificationCreateType(type),
-        fromUserID: userId,
-        postID: postId,
-        timeStamp: _nowMs(),
-        read: false,
-      ).toMap();
-      final previewImage = _resolveNotificationPreviewImage(postData);
-      if (previewImage.isNotEmpty) {
-        notification['imageUrl'] = previewImage;
-        notification['thumbnail'] = previewImage;
-      }
-
-      await NotificationsRepository.ensure().createInboxItem(
-        ownerId,
-        notification,
-      );
-    } catch (e) {
-      print('Create notification error: $e');
-    }
-  }
 }

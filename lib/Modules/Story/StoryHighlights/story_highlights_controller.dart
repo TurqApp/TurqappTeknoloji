@@ -15,6 +15,7 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 import 'story_highlight_model.dart';
 
 part 'story_highlights_controller_cover_part.dart';
+part 'story_highlights_controller_facade_part.dart';
 part 'story_highlights_controller_runtime_part.dart';
 part 'story_highlights_controller_actions_part.dart';
 
@@ -59,44 +60,4 @@ class StoryHighlightsController extends GetxController {
     super.onInit();
     unawaited(_StoryHighlightsControllerRuntimeX(this)._bootstrapHighlights());
   }
-
-  Future<void> loadHighlights({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      _StoryHighlightsControllerRuntimeX(this).loadHighlights(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
-
-  Future<StoryHighlightModel?> createHighlight({
-    required String title,
-    required List<String> storyIds,
-    String coverUrl = '',
-  }) =>
-      _StoryHighlightsControllerActionsX(this).createHighlight(
-        title: title,
-        storyIds: storyIds,
-        coverUrl: coverUrl,
-      );
-
-  Future<void> addStoryToHighlight(String highlightId, String storyId) =>
-      _StoryHighlightsControllerActionsX(this).addStoryToHighlight(
-        highlightId,
-        storyId,
-      );
-
-  Future<void> deleteHighlight(String highlightId) =>
-      _StoryHighlightsControllerActionsX(this).deleteHighlight(highlightId);
-
-  Future<void> updateHighlight(
-    String highlightId,
-    String title,
-    String coverUrl,
-  ) =>
-      _StoryHighlightsControllerActionsX(this).updateHighlight(
-        highlightId,
-        title,
-        coverUrl,
-      );
 }

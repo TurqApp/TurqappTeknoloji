@@ -1,6 +1,52 @@
 part of 'spotify_selector_controller.dart';
 
 extension SpotifySelectorControllerBrowsePart on SpotifySelectorController {
+  List<MusicModel> get forYouTracks {
+    final filtered = _applyQuery(library);
+    final saved =
+        filtered.where((e) => savedTrackIds.contains(e.docID)).toList();
+    final popular = filtered
+        .where((e) => !savedTrackIds.contains(e.docID))
+        .toList()
+      ..sort(_byPopularity);
+    return _sliceVisible([...saved, ...popular]);
+  }
+
+  List<MusicModel> get popularTracks {
+    final filtered = _applyQuery(library).toList(growable: true)
+      ..sort(_byPopularity);
+    return _sliceVisible(filtered);
+  }
+
+  List<MusicModel> get allTracks {
+    final filtered = _applyQuery(library).toList(growable: true)
+      ..sort(_byPopularity);
+    return _sliceVisible(filtered);
+  }
+
+  List<MusicModel> get savedTracks {
+    final filtered = _applyQuery(library)
+        .where((track) => savedTrackIds.contains(track.docID))
+        .toList(growable: true)
+      ..sort((a, b) {
+        final byPopularity = _byPopularity(a, b);
+        if (byPopularity != 0) return byPopularity;
+        return compareNormalizedText(a.title, b.title);
+      });
+    return _sliceVisible(filtered);
+  }
+
+  MusicModel? get currentTrack {
+    final currentUrl = currentPlayingUrl.value.trim();
+    if (currentUrl.isEmpty) return null;
+    for (final track in library) {
+      if (track.audioUrl == currentUrl) {
+        return track;
+      }
+    }
+    return null;
+  }
+
   List<MusicModel> currentTabTracks() {
     switch (selectedTab.value) {
       case 0:
