@@ -18,6 +18,8 @@ import 'network_policy.dart';
 
 part 'prefetch_scheduler_queue_part.dart';
 part 'prefetch_scheduler_worker_part.dart';
+part 'prefetch_scheduler_runtime_part.dart';
+part 'prefetch_scheduler_models_part.dart';
 
 /// Wi-Fi prefetch kuyruğu.
 ///
@@ -75,99 +77,9 @@ class PrefetchScheduler extends GetxController {
   Timer? _watchdogTimer;
   final http.Client _httpClient = http.Client();
 
-  int get activeDownloads => _activeDownloads;
-  int get queueSize => _queue.length;
-  bool get isPaused => _paused;
-  bool get isMobileSeedMode => _mobileSeedMode;
-  double get feedReadyRatio => _lastFeedReadyRatio;
-  int get feedReadyCount => _lastFeedReadyCount;
-  int get feedWindowCount => _lastFeedWindowCount;
-  double get avgQueueDispatchLatencyMs => _avgQueueDispatchLatencyMs;
-  int get maxConcurrentDownloads => _maxConcurrent;
-  bool get _isOnWiFi {
-    try {
-      final network = NetworkAwarenessService.maybeFind();
-      if (network != null) {
-        return network.isOnWiFi;
-      }
-    } catch (_) {}
-    return CacheNetworkPolicy.canPrefetch;
-  }
-
-  int get _breadthCount {
-    final base = _remote?.prefetchBreadthCount ?? _fallbackBreadthCount;
-    return _isOnWiFi
-        ? base < _wifiMinBreadthCount
-            ? _wifiMinBreadthCount
-            : base
-        : base;
-  }
-
-  int get _depthCount {
-    final base = _remote?.prefetchDepthCount ?? _fallbackDepthCount;
-    return _isOnWiFi
-        ? base < _wifiMinDepthCount
-            ? _wifiMinDepthCount
-            : base
-        : base;
-  }
-
-  int get _maxConcurrent {
-    if (_mobileSeedMode) return 1;
-    final base = _remote?.prefetchMaxConcurrent ?? _fallbackMaxConcurrent;
-    return _isOnWiFi
-        ? base < _wifiMinMaxConcurrent
-            ? _wifiMinMaxConcurrent
-            : base
-        : base;
-  }
-
-  int get _feedFullWindow => _isOnWiFi
-      ? (_fallbackFeedFullWindow < _wifiMinFeedFullWindow
-          ? _wifiMinFeedFullWindow
-          : _fallbackFeedFullWindow)
-      : _fallbackFeedFullWindow;
-
-  int get _feedPrepWindow => _isOnWiFi
-      ? (_fallbackFeedPrepWindow < _wifiMinFeedPrepWindow
-          ? _wifiMinFeedPrepWindow
-          : _fallbackFeedPrepWindow)
-      : _fallbackFeedPrepWindow;
-
-  VideoRemoteConfigService? get _remote => VideoRemoteConfigService.maybeFind();
-
-  // ──────────────────────────── Helpers ────────────────────────────
-
-  SegmentCacheManager? _getCacheManager() => SegmentCacheManager.maybeFind();
-
   @override
   void onClose() {
-    _watchdogTimer?.cancel();
-    _workerSub?.cancel();
-    _worker?.stop();
-    if (_pendingDownloadBytes > 0) {
-      final int downloadMb = (_pendingDownloadBytes / (1024 * 1024)).ceil();
-      final network = NetworkAwarenessService.maybeFind();
-      if (network != null) {
-        unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
-      }
-      _pendingDownloadBytes = 0;
-    }
-    _httpClient.close();
+    _handlePrefetchSchedulerClose();
     super.onClose();
   }
-}
-
-class _PrefetchJob {
-  final String docID;
-  final int maxSegments; // Bu job için indirilecek maksimum segment.
-  final int priority; // düşük = önce
-  final double sortScore;
-
-  _PrefetchJob({
-    required this.docID,
-    required this.maxSegments,
-    required this.priority,
-    required this.sortScore,
-  });
 }
