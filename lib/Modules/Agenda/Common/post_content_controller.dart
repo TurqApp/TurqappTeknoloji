@@ -35,92 +35,40 @@ part 'post_content_controller_data_part.dart';
 part 'post_content_controller_profile_part.dart';
 part 'post_content_controller_runtime_part.dart';
 part 'post_content_controller_support_part.dart';
+part 'post_content_controller_fields_part.dart';
 
 class PostContentController extends GetxController {
   static PostContentController ensure({
     required String tag,
     required PostContentController Function() create,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(create(), tag: tag);
-  }
+  }) =>
+      maybeFind(tag: tag) ?? Get.put(create(), tag: tag);
 
-  static PostContentController? maybeFind({required String tag}) {
-    final isRegistered = Get.isRegistered<PostContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<PostContentController>(tag: tag);
-  }
+  static PostContentController? maybeFind({required String tag}) =>
+      Get.isRegistered<PostContentController>(tag: tag)
+          ? Get.find<PostContentController>(tag: tag)
+          : null;
 
   static void invalidateUserProfileCache(String userId) =>
-      userId.trim().isEmpty ? null : _userProfileCache.remove(userId);
-
-  static void clearUserProfileCache() => _userProfileCache.clear();
-
-  static void clearReshareUsersCache() => _reshareUsersCache.clear();
+      _invalidatePostContentUserProfileCache(userId);
+  static void clearUserProfileCache() => _clearPostContentUserProfileCache();
+  static void clearReshareUsersCache() => _clearPostContentReshareUsersCache();
 
   PostContentController({
     required this.model,
     this.enableLegacyCommentSync = false,
     this.scrollFeedToTopOnReshare = false,
-  })  : nickname = model.authorNickname.trim().obs,
-        username = (model.authorNickname.trim().isNotEmpty
-                ? model.authorNickname.trim()
-                : '')
-            .obs,
-        avatarUrl = (model.authorAvatarUrl.trim().isNotEmpty
-                ? resolveAvatarUrl({'avatarUrl': model.authorAvatarUrl.trim()})
-                : kDefaultAvatarUrl)
-            .obs,
-        fullName = model.authorDisplayName.trim().obs,
-        editTime = (model.editTime?.toInt() ?? 0).obs,
-        currentModel = Rx<PostsModel?>(model);
+  })  : _identityState = _PostContentIdentityState.fromModel(model),
+        _controllerState = _PostContentControllerState(model);
 
   final PostsModel model;
   final bool enableLegacyCommentSync;
   final bool scrollFeedToTopOnReshare;
 
-  bool _canSendAdminPush = AdminAccessService.isKnownAdminSync();
-
-  final likes = <String>[].obs;
-  final unLikes = <String>[].obs;
-  final saved = false.obs;
-  final comments = <String>[].obs;
-  final reSharedUsers = <String>[].obs;
-  final isFollowing = true.obs;
-  final followLoading = false.obs;
-  final RxString nickname;
-  final RxString username;
-  final RxString avatarUrl;
-  final RxString fullName;
-  final token = "".obs;
-
-  final reShareUserNickname = "".obs;
-  final reShareUserUserID = "".obs;
-
-  final arsiv = false.obs;
-  final gizlendi = false.obs;
-  final sikayetEdildi = false.obs;
-  final silindi = false.obs;
-  final silindiOpacity = 1.0.obs;
-  final RxInt editTime;
-
-  final Rx<PostsModel?> currentModel;
-
-  final yenidenPaylasildiMi = false.obs;
+  final _PostContentIdentityState _identityState;
+  final _PostContentControllerState _controllerState;
 
   late final AgendaController agendaController = _resolveAgendaController();
-  PostRepositoryState? _postState;
-  StreamSubscription<DocumentSnapshot>? _userSub;
-  StreamSubscription<DocumentSnapshot>? _likeDocSub;
-  StreamSubscription<DocumentSnapshot>? _savedDocSub;
-  StreamSubscription<DocumentSnapshot>? _reshareDocSub;
-  StreamSubscription<DocumentSnapshot>? _postDocSub;
-  StreamSubscription<CurrentUserModel?>? _currentUserStreamSub;
-  Worker? _followingWorker;
-  Worker? _interactionWorker;
-  Worker? _postDataWorker;
-  Worker? _myResharesWorker;
 
   @protected
   void onPostInitialized() {}

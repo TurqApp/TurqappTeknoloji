@@ -14,8 +14,14 @@ final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
 final SocialMediaLinksRepository _socialLinksRepository =
     SocialMediaLinksRepository.ensure();
+const int _profilePageLimit = 10;
 
 extension ProfileControllerSupportPart on ProfileController {
+  int get postLimit => _profilePageLimit;
+  int get scheduledLimit => _profilePageLimit;
+  int get postLimitPhotos => _profilePageLimit;
+  int get postLimitVideos => _profilePageLimit;
+
   String? get _resolvedActiveUid => _performResolvedActiveUid();
 
   ScrollController scrollControllerForSelection(int selection) =>

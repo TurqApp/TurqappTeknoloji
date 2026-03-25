@@ -12,6 +12,16 @@ final countManager = PostCountManager.instance;
 final PostRepository _postRepository = PostRepository.ensure();
 final AdminPushRepository _adminPushRepository = AdminPushRepository.ensure();
 
+void _invalidatePostContentUserProfileCache(String userId) {
+  final trimmed = userId.trim();
+  if (trimmed.isEmpty) return;
+  _userProfileCache.remove(trimmed);
+}
+
+void _clearPostContentUserProfileCache() => _userProfileCache.clear();
+
+void _clearPostContentReshareUsersCache() => _reshareUsersCache.clear();
+
 class _PostContentControllerSupportPart {
   final PostContentController _controller;
 

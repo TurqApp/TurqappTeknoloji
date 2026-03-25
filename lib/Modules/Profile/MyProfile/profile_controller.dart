@@ -32,6 +32,7 @@ part 'profile_controller_lifecycle_part.dart';
 part 'profile_controller_selection_part.dart';
 part 'profile_controller_runtime_part.dart';
 part 'profile_controller_support_part.dart';
+part 'profile_controller_fields_part.dart';
 
 class ProfileController extends GetxController {
   static ProfileController ensure() {
@@ -46,80 +47,10 @@ class ProfileController extends GetxController {
     return Get.find<ProfileController>();
   }
 
-  // 🎯 Using CurrentUserService for optimized user data access
-  // Aktif oturum kullanıcısını izleyip veri setlerini dinamik yenilemek için
-  String? _activeUid;
-  StreamSubscription<User?>? _authSub;
-  StreamSubscription<Map<String, dynamic>?>? _counterSub;
-  Timer? _persistCacheTimer;
-  Worker? _allPostsWorker;
-  Worker? _photosWorker;
-  Worker? _videosWorker;
-  Worker? _resharesWorker;
-  Worker? _scheduledWorker;
-  Worker? _mergedPostsWorker;
-  Worker? _postSelectionWorker;
-  var postSelection = 0.obs;
-
-  final currentVisibleIndex = RxInt(-1);
-  final centeredIndex = 0.obs;
-  int? lastCenteredIndex;
-  String? _pendingCenteredIdentity;
-  final Map<int, double> _visibleFractions = <int, double>{};
-  Timer? _visibilityDebounce;
-
-  var followerCount = 0.obs;
-  var followingCount = 0.obs;
-  final RxString headerNickname = ''.obs;
-  final RxString headerRozet = ''.obs;
-  final RxString headerDisplayName = ''.obs;
-  final RxString headerAvatarUrl = ''.obs;
-  final RxString headerFirstName = ''.obs;
-  final RxString headerLastName = ''.obs;
-  final RxString headerMeslek = ''.obs;
-  final RxString headerBio = ''.obs;
-  final RxString headerAdres = ''.obs;
-
-  final RxList<PostsModel> allPosts = <PostsModel>[].obs;
-  final RxList<Map<String, dynamic>> mergedPosts = <Map<String, dynamic>>[].obs;
-  DocumentSnapshot? lastPostDoc;
-  bool hasMorePosts = true;
-  final int postLimit = 10;
-  bool isLoadingMore = false;
-  DocumentSnapshot<Map<String, dynamic>>? _lastPrimaryDoc;
-  bool _hasMorePrimary = true;
-  bool _isLoadingPrimary = false;
-
-  // İz Bırak (gelecek tarihli) gönderiler
-  final RxList<PostsModel> scheduledPosts = <PostsModel>[].obs;
-  DocumentSnapshot? lastScheduledDoc;
-  bool hasMoreScheduled = true;
-  final int scheduledLimit = 10;
-  bool isLoadingScheduled = false;
-
-  final RxList<PostsModel> photos = <PostsModel>[].obs;
-  DocumentSnapshot? lastPostDocPhotos;
-  bool hasMorePostsPhotos = true;
-  final int postLimitPhotos = 10;
-  bool isLoadingMorePhotos = false;
-
-  final RxList<PostsModel> videos = <PostsModel>[].obs;
-  DocumentSnapshot? lastPostDocVideos;
-  bool hasMorePostsVideos = true;
-  final int postLimitVideos = 10;
-  bool isLoadingMoreVideos = false;
-
-  final RxList<PostsModel> reshares = <PostsModel>[].obs;
-  StreamSubscription<List<UserPostReference>>? _resharesSub;
-  final UserPostLinkService _linkService = UserPostLinkService.ensure();
-  List<UserPostReference> _latestReshareRefs = const [];
-  final Map<String, GlobalKey> _postKeys = {};
-
-  var pausetheall = false.obs;
-  final RxBool showScrollToTop = false.obs;
-  final Map<int, ScrollController> _scrollControllers =
-      <int, ScrollController>{};
-  var showPfImage = false.obs;
+  final _lifecycleState = _ProfileLifecycleState();
+  final _scrollState = _ProfileScrollState();
+  final _headerState = _ProfileHeaderState();
+  final _feedState = _ProfileFeedState();
 
   @override
   void onInit() {

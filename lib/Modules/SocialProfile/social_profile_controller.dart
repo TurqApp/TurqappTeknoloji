@@ -37,6 +37,7 @@ part 'social_profile_controller_feed_selection_part.dart';
 part 'social_profile_controller_runtime_part.dart';
 part 'social_profile_controller_models_part.dart';
 part 'social_profile_controller_support_part.dart';
+part 'social_profile_controller_fields_part.dart';
 
 class SocialProfileController extends GetxController {
   static SocialProfileController ensure({
@@ -59,79 +60,13 @@ class SocialProfileController extends GetxController {
     return Get.find<SocialProfileController>(tag: tag);
   }
 
-  var totalMarket = 0.obs;
-  var totalPosts = 0.obs;
-  var totalLikes = 0.obs;
-  var totalFollower = 0.obs;
-  var totalFollowing = 0.obs;
-  var postSelection = 0.obs;
+  final _stats = _SocialProfileStatsState();
+  final _scrollState = _SocialProfileScrollState();
+  final _feedState = _SocialProfileFeedState();
+  final _SocialProfileProfileState _profileState;
 
-  final currentVisibleIndex = RxInt(-1);
-  final centeredIndex = 0.obs;
-  int? lastCenteredIndex;
-  String? _pendingCenteredIdentity;
-  final Map<int, double> _visibleFractions = <int, double>{};
-  Timer? _visibilityDebounce;
-
-  final ScrollController scrollController = ScrollController();
-  final RxList<SocialMediaModel> socialMediaList = <SocialMediaModel>[].obs;
-  final RxList<PostsModel> reshares = <PostsModel>[].obs;
-  StreamSubscription<List<UserPostReference>>? _resharesSub;
-  final Map<String, GlobalKey> _postKeys = {};
-  var showPfImage = false.obs;
-
-  String userID;
-  SocialProfileController({required this.userID});
-  var nickname = "".obs;
-  var displayName = "".obs;
-  var avatarUrl = "".obs;
-  var firstName = "".obs;
-  var lastName = "".obs;
-  var token = "".obs;
-  var email = "".obs;
-  var rozet = "".obs;
-  var bio = "".obs;
-
-  var adres = "".obs;
-  var phoneNumber = "".obs;
-  var mailIzin = false.obs;
-  var aramaIzin = false.obs;
-  var ban = false.obs;
-  var gizliHesap = false.obs;
-  var hesapOnayi = false.obs;
-  var meslek = "".obs;
-  var blockedUsers = <String>[].obs;
-  var complatedCheck = false.obs;
-  var takipEdiyorum = false.obs;
-  var followLoading = false.obs;
-
-  final RxList<PostsModel> allPosts = <PostsModel>[].obs;
-
-  final RxList<PostsModel> photos = <PostsModel>[].obs;
-  final RxList<PostsModel> scheduledPosts = <PostsModel>[].obs;
-
-  final RxBool isLoadingPosts = false.obs;
-  final RxBool hasMorePosts = true.obs;
-  DocumentSnapshot? lastPostDoc;
-  final int pageSize = 12;
-  DocumentSnapshot<Map<String, dynamic>>? _lastPrimaryDoc;
-  bool _hasMorePrimary = true;
-  bool _isLoadingPrimary = false;
-
-  final RxBool isLoadingPhoto = false.obs;
-  final RxBool hasMorePhoto = true.obs;
-  DocumentSnapshot? lastPostDocPhoto;
-  final int pageSizePhoto = 12;
-
-  // Scheduled (İz Bırak)
-  final RxBool isLoadingScheduled = false.obs;
-  final RxBool hasMoreScheduled = true.obs;
-  DocumentSnapshot? lastScheduledDoc;
-  final int pageSizeScheduled = 12;
-  StoryUserModel? storyUserModel;
-  // Yukarı butonu
-  final RxBool showScrollToTop = false.obs;
-  StreamSubscription<Map<String, dynamic>?>? _userDocSub;
+  SocialProfileController({required String userID})
+      : _profileState = _SocialProfileProfileState(userID);
 
   @override
   void onInit() {
