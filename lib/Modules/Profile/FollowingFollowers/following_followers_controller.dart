@@ -16,27 +16,6 @@ part 'following_followers_controller_mutation_part.dart';
 part 'following_followers_controller_runtime_part.dart';
 
 class FollowingFollowersController extends GetxController {
-  static const Duration _nicknameCacheTtl = Duration(minutes: 5);
-  static const Duration _nicknameCacheStaleRetention = Duration(minutes: 20);
-  static const int _maxNicknameCacheEntries = 300;
-  static const Duration _searchResultCacheTtl = Duration(seconds: 30);
-  static const Duration _searchResultStaleRetention = Duration(minutes: 3);
-  static const int _maxSearchResultEntries = 400;
-  static const Duration _counterCacheTtl = Duration(seconds: 30);
-  static const Duration _counterCacheStaleRetention = Duration(minutes: 3);
-  static const int _maxCounterCacheEntries = 300;
-  static const Duration _relationListCacheTtl = Duration(minutes: 10);
-  static const Duration _relationListCacheStaleRetention = Duration(hours: 1);
-  static const int _maxRelationListCacheEntries = 400;
-  static final Map<String, _NicknameCacheEntry> _nicknameCacheByUserId =
-      <String, _NicknameCacheEntry>{};
-  static final Map<String, _CounterCacheEntry> _counterCacheByUserId =
-      <String, _CounterCacheEntry>{};
-  static final Map<String, _RelationListCacheEntry>
-      _followersListCacheByUserId = <String, _RelationListCacheEntry>{};
-  static final Map<String, _RelationListCacheEntry>
-      _followingsListCacheByUserId = <String, _RelationListCacheEntry>{};
-
   @override
   void onClose() {
     _FollowingFollowersControllerRuntimePart.onClose(this);
@@ -47,13 +26,6 @@ class FollowingFollowersController extends GetxController {
   final PageController pageController = PageController();
   RxList<String> takipciler = <String>[].obs;
   RxList<String> takipEdilenler = <String>[].obs;
-
-  static const int _selfInitialLimit =
-      ReadBudgetRegistry.followRelationPreviewInitialLimit;
-  static const int _selfRefreshLimit =
-      ReadBudgetRegistry.followRelationPreviewInitialLimit;
-  static const int _otherUserLimit =
-      ReadBudgetRegistry.followRelationPreviewInitialLimit;
   bool isLoadingFollowers = false;
   bool isLoadingFollowing = false;
   bool hasMoreFollowers = true;
@@ -65,15 +37,10 @@ class FollowingFollowersController extends GetxController {
   final TextEditingController searchTakipEdilenController =
       TextEditingController();
   final String userId;
-  static const Duration _relationSearchCacheTtl = Duration(seconds: 30);
   final Map<String, _RelationIdSetCacheEntry> _relationIdSetCache =
       <String, _RelationIdSetCacheEntry>{};
   final Map<String, _SearchResultCacheEntry> _searchResultCache =
       <String, _SearchResultCacheEntry>{};
-  Duration get searchResultCacheTtl => _searchResultCacheTtl;
-  Duration get relationSearchCacheTtl => _relationSearchCacheTtl;
-  Duration get searchResultStaleRetention => _searchResultStaleRetention;
-  int get maxSearchResultEntries => _maxSearchResultEntries;
 
   var nickname = "".obs;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -86,25 +53,21 @@ class FollowingFollowersController extends GetxController {
     required int initialPage,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      FollowingFollowersController(
-        userId: userId,
-        initialPage: initialPage,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      maybeFind(tag: tag) ??
+      Get.put(
+        FollowingFollowersController(
+          userId: userId,
+          initialPage: initialPage,
+        ),
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static FollowingFollowersController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<FollowingFollowersController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<FollowingFollowersController>(tag: tag);
-  }
+  static FollowingFollowersController? maybeFind({String? tag}) =>
+      Get.isRegistered<FollowingFollowersController>(tag: tag)
+          ? Get.find<FollowingFollowersController>(tag: tag)
+          : null;
 
   FollowingFollowersController({
     required String userId,
@@ -118,8 +81,6 @@ class FollowingFollowersController extends GetxController {
     super.onInit();
     _FollowingFollowersControllerRuntimePart.onInit(this);
   }
-
-  bool get isSelf => _FollowingFollowersControllerRuntimePart.isSelf(this);
 
   static void applyFollowMutationToCaches({
     required String currentUid,

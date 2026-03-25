@@ -33,17 +33,12 @@ typedef TextUpdate = String;
 
 class NavBarController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
-  static NavBarController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(NavBarController());
-  }
+  static NavBarController ensure() =>
+      maybeFind() ?? Get.put(NavBarController());
 
-  static NavBarController? maybeFind() {
-    final isRegistered = Get.isRegistered<NavBarController>();
-    if (!isRegistered) return null;
-    return Get.find<NavBarController>();
-  }
+  static NavBarController? maybeFind() => Get.isRegistered<NavBarController>()
+      ? Get.find<NavBarController>()
+      : null;
 
   static const String _appVersionDocId = 'appVersion';
   static const String _selectedIndexPrefKeyPrefix = 'nav_selected_index';
@@ -51,33 +46,22 @@ class NavBarController extends GetxController
   static const String _ratingLastShownAtKey = 'rating_prompt_last_shown_at';
   static const String _ratingLastStoreTapAtKey =
       'rating_prompt_last_store_tap_at';
-  var selectedIndex = 0.obs;
-  var showBar = true.obs;
-  ShortController?
-      _shortCtrl; // ⚠️ CRITICAL FIX: Make nullable for safe lazy init
+  var selectedIndex = 0.obs, showBar = true.obs;
+  ShortController? _shortCtrl;
   final String fullText = "TurqApp";
 
-  // ⚠️ CRITICAL FIX: Safe getter for ShortController
   ShortController get shortCtrl => _shortCtrl ??= ShortController.ensure();
 
-  late final Rx<AnimationController> typingController;
-  late final Rx<AnimationController> deletingController;
-  late final Rx<AnimationController> animationController;
-
-  var visibleCharCount = 0.obs;
-  var removeCharCount = 0.obs;
-  var hideAcilis = false.obs;
-
-  // Upload activity indicator for NavBar profile avatar
+  late final Rx<AnimationController> typingController,
+      deletingController,
+      animationController;
+  var visibleCharCount = 0.obs, removeCharCount = 0.obs, hideAcilis = false.obs;
   final uploadingPosts = false.obs;
 
-  // ⚠️ CRITICAL FIX: Track disposal state to prevent animation errors
-  bool _isDisposed = false;
-  bool _proactiveShortPreloadStarted = false;
-  bool _isForceUpdateVisible = false;
-  bool _ratingSheetShownThisSession = false;
-  String _androidMinVersion = '';
-  String _iosMinVersion = '';
+  bool _isDisposed = false,
+      _isForceUpdateVisible = false,
+      _ratingSheetShownThisSession = false;
+  String _androidMinVersion = '', _iosMinVersion = '';
   String _updateTitle = 'app_update.title'.tr;
   String _updateBody = 'app_update.body'.tr;
   String? _androidStoreUrlOverride;
@@ -86,27 +70,13 @@ class NavBarController extends GetxController
   Duration _ratingPromptEnabledAfter = const Duration(days: 7);
   Duration _ratingPromptRepeatAfter = const Duration(days: 7);
   Duration _ratingPromptStoreCooldown = const Duration(days: 90);
-  Timer? _backgroundCacheTimer;
-  Timer? _uploadIndicatorTimer;
-  Timer? _ratingPromptTimer;
-
-  Future<void> restorePersistedIndex() =>
-      _NavBarControllerSupportPart(this).restorePersistedIndex();
-
-  Future<void> _persistSelectedIndex(int index) =>
-      _NavBarControllerSupportPart(this).persistSelectedIndex(index);
+  Timer? _backgroundCacheTimer, _uploadIndicatorTimer, _ratingPromptTimer;
 
   @override
   void onInit() {
     super.onInit();
     _NavBarControllerSupportPart(this).handleOnInit();
   }
-
-  void _startBackgroundCacheLoop() => _startBackgroundCacheLoopImpl();
-
-  void _startUploadIndicatorSync() => _startUploadIndicatorSyncImpl();
-
-  Future<void> _runAcilisAnimation() => _runAcilisAnimationImpl();
 
   @override
   void onClose() {
@@ -125,14 +95,4 @@ class NavBarController extends GetxController
   void suspendFeedForTabExit() => _suspendFeedForTabExitImpl();
 
   void resumeFeedIfNeeded() => _resumeFeedIfNeededImpl();
-
-  Future<void> ensureProactiveShortPreloadStarted() =>
-      _ensureProactiveShortPreloadStartedImpl();
-
-  Future<void> checkAppVersion() => _checkAppVersionImpl();
-
-  void _scheduleRatingPrompt(Duration delay) =>
-      _scheduleRatingPromptImpl(delay);
-
-  Future<void> _launchStore() => _launchStoreImpl();
 }

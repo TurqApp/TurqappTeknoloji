@@ -1,5 +1,10 @@
 part of 'following_followers_controller.dart';
 
+extension _FollowingFollowersControllerRuntimeX
+    on FollowingFollowersController {
+  bool get isSelf => isCurrentUserId(userId);
+}
+
 class _FollowingFollowersControllerRuntimePart {
   static void onInit(FollowingFollowersController controller) {
     controller._loadNicknameCached();
@@ -68,9 +73,5 @@ class _FollowingFollowersControllerRuntimePart {
     controller.pageController.dispose();
     controller.searchTakipciController.dispose();
     controller.searchTakipEdilenController.dispose();
-  }
-
-  static bool isSelf(FollowingFollowersController controller) {
-    return isCurrentUserId(controller.userId);
   }
 }

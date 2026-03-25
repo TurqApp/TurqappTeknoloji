@@ -1,14 +1,44 @@
 part of 'following_followers_controller.dart';
 
+const Duration _followingFollowersNicknameCacheTtl = Duration(minutes: 5);
+const Duration _followingFollowersNicknameCacheStaleRetention =
+    Duration(minutes: 20);
+const int _followingFollowersMaxNicknameCacheEntries = 300;
+const Duration _followingFollowersCounterCacheTtl = Duration(seconds: 30);
+const Duration _followingFollowersCounterCacheStaleRetention =
+    Duration(minutes: 3);
+const int _followingFollowersMaxCounterCacheEntries = 300;
+const Duration _followingFollowersRelationListCacheTtl = Duration(minutes: 10);
+const Duration _followingFollowersRelationListCacheStaleRetention =
+    Duration(hours: 1);
+const int _followingFollowersMaxRelationListCacheEntries = 400;
+const int _followingFollowersSelfInitialLimit =
+    ReadBudgetRegistry.followRelationPreviewInitialLimit;
+const int _followingFollowersSelfRefreshLimit =
+    ReadBudgetRegistry.followRelationPreviewInitialLimit;
+const int _followingFollowersOtherUserLimit =
+    ReadBudgetRegistry.followRelationPreviewInitialLimit;
+
+final Map<String, _NicknameCacheEntry>
+    _followingFollowersNicknameCacheByUserId = <String, _NicknameCacheEntry>{};
+final Map<String, _CounterCacheEntry> _followingFollowersCounterCacheByUserId =
+    <String, _CounterCacheEntry>{};
+final Map<String, _RelationListCacheEntry>
+    _followingFollowersFollowersListCacheByUserId =
+    <String, _RelationListCacheEntry>{};
+final Map<String, _RelationListCacheEntry>
+    _followingFollowersFollowingsListCacheByUserId =
+    <String, _RelationListCacheEntry>{};
+
 extension FollowingFollowersControllerCachePart
     on FollowingFollowersController {
   int _resolveLimit({required bool initial}) {
     if (isSelf) {
       return initial
-          ? FollowingFollowersController._selfInitialLimit
-          : FollowingFollowersController._selfRefreshLimit;
+          ? _followingFollowersSelfInitialLimit
+          : _followingFollowersSelfRefreshLimit;
     }
-    return FollowingFollowersController._otherUserLimit;
+    return _followingFollowersOtherUserLimit;
   }
 
   List<String> _normalizedIds(Iterable<String> ids) {
@@ -21,10 +51,10 @@ extension FollowingFollowersControllerCachePart
 
   Future<void> getCounters() async {
     _pruneCounterCache();
-    final cached = FollowingFollowersController._counterCacheByUserId[userId];
+    final cached = _followingFollowersCounterCacheByUserId[userId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
-            FollowingFollowersController._counterCacheTtl) {
+            _followingFollowersCounterCacheTtl) {
       takipciCounter.value = cached.followers;
       takipedilenCounter.value = cached.followings;
       return;
@@ -39,8 +69,7 @@ extension FollowingFollowersControllerCachePart
       final followings = summary?.followingCount ?? 0;
       takipciCounter.value = followers;
       takipedilenCounter.value = followings;
-      FollowingFollowersController._counterCacheByUserId[userId] =
-          _CounterCacheEntry(
+      _followingFollowersCounterCacheByUserId[userId] = _CounterCacheEntry(
         followers: followers,
         followings: followings,
         cachedAt: DateTime.now(),
@@ -50,10 +79,10 @@ extension FollowingFollowersControllerCachePart
 
   Future<void> _loadNicknameCached() async {
     _pruneNicknameCache();
-    final cached = FollowingFollowersController._nicknameCacheByUserId[userId];
+    final cached = _followingFollowersNicknameCacheByUserId[userId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
-            FollowingFollowersController._nicknameCacheTtl) {
+            _followingFollowersNicknameCacheTtl) {
       nickname.value = cached.nickname;
       return;
     }
@@ -64,8 +93,7 @@ extension FollowingFollowersControllerCachePart
       );
       final name = summary?.nickname.trim() ?? '';
       nickname.value = name;
-      FollowingFollowersController._nicknameCacheByUserId[userId] =
-          _NicknameCacheEntry(
+      _followingFollowersNicknameCacheByUserId[userId] = _NicknameCacheEntry(
         nickname: name,
         cachedAt: DateTime.now(),
       );
@@ -74,25 +102,21 @@ extension FollowingFollowersControllerCachePart
 
   void _pruneNicknameCache() {
     final now = DateTime.now();
-    FollowingFollowersController._nicknameCacheByUserId.removeWhere(
+    _followingFollowersNicknameCacheByUserId.removeWhere(
       (_, entry) =>
           now.difference(entry.cachedAt) >
-          FollowingFollowersController._nicknameCacheStaleRetention,
+          _followingFollowersNicknameCacheStaleRetention,
     );
-    if (FollowingFollowersController._nicknameCacheByUserId.length <=
-        FollowingFollowersController._maxNicknameCacheEntries) {
+    if (_followingFollowersNicknameCacheByUserId.length <=
+        _followingFollowersMaxNicknameCacheEntries) {
       return;
     }
-    final entries = FollowingFollowersController._nicknameCacheByUserId.entries
-        .toList()
+    final entries = _followingFollowersNicknameCacheByUserId.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount =
-        FollowingFollowersController._nicknameCacheByUserId.length -
-            FollowingFollowersController._maxNicknameCacheEntries;
+    final removeCount = _followingFollowersNicknameCacheByUserId.length -
+        _followingFollowersMaxNicknameCacheEntries;
     for (var i = 0; i < removeCount; i++) {
-      FollowingFollowersController._nicknameCacheByUserId.remove(
-        entries[i].key,
-      );
+      _followingFollowersNicknameCacheByUserId.remove(entries[i].key);
     }
   }
 
@@ -165,11 +189,11 @@ extension FollowingFollowersControllerCachePart
   bool _restoreRelationListCache({required bool isFollowers}) {
     _pruneRelationListCache();
     final entry = isFollowers
-        ? FollowingFollowersController._followersListCacheByUserId[userId]
-        : FollowingFollowersController._followingsListCacheByUserId[userId];
+        ? _followingFollowersFollowersListCacheByUserId[userId]
+        : _followingFollowersFollowingsListCacheByUserId[userId];
     if (entry == null) return false;
     if (DateTime.now().difference(entry.cachedAt) >
-        FollowingFollowersController._relationListCacheTtl) {
+        _followingFollowersRelationListCacheTtl) {
       return false;
     }
     if (isFollowers) {
@@ -185,13 +209,13 @@ extension FollowingFollowersControllerCachePart
   void _saveRelationListCache({required bool isFollowers}) {
     final now = DateTime.now();
     if (isFollowers) {
-      FollowingFollowersController._followersListCacheByUserId[userId] =
+      _followingFollowersFollowersListCacheByUserId[userId] =
           _RelationListCacheEntry(
         ids: _normalizedIds(takipciler),
         cachedAt: now,
       );
     } else {
-      FollowingFollowersController._followingsListCacheByUserId[userId] =
+      _followingFollowersFollowingsListCacheByUserId[userId] =
           _RelationListCacheEntry(
         ids: _normalizedIds(takipEdilenler),
         cachedAt: now,
@@ -201,54 +225,51 @@ extension FollowingFollowersControllerCachePart
 
   void _pruneRelationListCache() {
     final now = DateTime.now();
-    FollowingFollowersController._followersListCacheByUserId.removeWhere(
+    _followingFollowersFollowersListCacheByUserId.removeWhere(
       (_, entry) =>
           now.difference(entry.cachedAt) >
-          FollowingFollowersController._relationListCacheStaleRetention,
+          _followingFollowersRelationListCacheStaleRetention,
     );
-    FollowingFollowersController._followingsListCacheByUserId.removeWhere(
+    _followingFollowersFollowingsListCacheByUserId.removeWhere(
       (_, entry) =>
           now.difference(entry.cachedAt) >
-          FollowingFollowersController._relationListCacheStaleRetention,
+          _followingFollowersRelationListCacheStaleRetention,
     );
 
     void trimCache(Map<String, _RelationListCacheEntry> target) {
-      if (target.length <=
-          FollowingFollowersController._maxRelationListCacheEntries) {
+      if (target.length <= _followingFollowersMaxRelationListCacheEntries) {
         return;
       }
       final entries = target.entries.toList()
         ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-      final removeCount = target.length -
-          FollowingFollowersController._maxRelationListCacheEntries;
+      final removeCount =
+          target.length - _followingFollowersMaxRelationListCacheEntries;
       for (var i = 0; i < removeCount; i++) {
         target.remove(entries[i].key);
       }
     }
 
-    trimCache(FollowingFollowersController._followersListCacheByUserId);
-    trimCache(FollowingFollowersController._followingsListCacheByUserId);
+    trimCache(_followingFollowersFollowersListCacheByUserId);
+    trimCache(_followingFollowersFollowingsListCacheByUserId);
   }
 
   void _pruneCounterCache() {
     final now = DateTime.now();
-    FollowingFollowersController._counterCacheByUserId.removeWhere(
+    _followingFollowersCounterCacheByUserId.removeWhere(
       (_, entry) =>
           now.difference(entry.cachedAt) >
-          FollowingFollowersController._counterCacheStaleRetention,
+          _followingFollowersCounterCacheStaleRetention,
     );
-    if (FollowingFollowersController._counterCacheByUserId.length <=
-        FollowingFollowersController._maxCounterCacheEntries) {
+    if (_followingFollowersCounterCacheByUserId.length <=
+        _followingFollowersMaxCounterCacheEntries) {
       return;
     }
-    final entries = FollowingFollowersController._counterCacheByUserId.entries
-        .toList()
+    final entries = _followingFollowersCounterCacheByUserId.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount =
-        FollowingFollowersController._counterCacheByUserId.length -
-            FollowingFollowersController._maxCounterCacheEntries;
+    final removeCount = _followingFollowersCounterCacheByUserId.length -
+        _followingFollowersMaxCounterCacheEntries;
     for (var i = 0; i < removeCount; i++) {
-      FollowingFollowersController._counterCacheByUserId.remove(entries[i].key);
+      _followingFollowersCounterCacheByUserId.remove(entries[i].key);
     }
   }
 }

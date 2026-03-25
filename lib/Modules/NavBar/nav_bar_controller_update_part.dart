@@ -1,6 +1,8 @@
 part of 'nav_bar_controller.dart';
 
 extension _NavBarControllerUpdatePart on NavBarController {
+  Future<void> _launchStore() => _launchStoreImpl();
+
   Future<void> _loadAppVersionConfigImpl({bool forceRefresh = false}) async {
     final repo = ConfigRepository.ensure();
     final doc = await repo.getAdminConfigDoc(

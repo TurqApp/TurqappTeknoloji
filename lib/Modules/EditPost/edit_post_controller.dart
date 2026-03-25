@@ -27,6 +27,7 @@ import '../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'edit_post_controller_media_part.dart';
 part 'edit_post_controller_actions_part.dart';
+part 'edit_post_controller_runtime_part.dart';
 
 class EditPostController extends GetxController {
   static EditPostController ensure({
@@ -73,40 +74,12 @@ class EditPostController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-
-    // Initialize text field
-    text.text = model.metin;
-    yorum.value = model.yorum;
-    // Initialize current location
-    adres.value = model.konum;
-    text.addListener(() {
-      model.metin = text.text;
-    });
-
-    // Load existing video if any
-    if (model.video.isNotEmpty) {
-      waitingVideo.value = true;
-      final netCtrl =
-          HLSVideoAdapter(url: model.playbackUrl, autoPlay: false, loop: true);
-      netCtrl.setLooping(true);
-      netCtrl.addListener(() {
-        isPlaying.value = netCtrl.value.isPlaying;
-      });
-      rxVideoController.value = netCtrl;
-      // Keep the current network url for preview, but don't treat as a new selection
-      videoUrl.value = model.playbackUrl;
-      thumbnail.value = model.thumbnail;
-      waitingVideo.value = false;
-    }
-
-    // Load existing image URLs
-    imageUrls.assignAll(model.img);
+    _handleEditPostControllerInit(this);
   }
 
   @override
   void onClose() {
-    rxVideoController.value?.dispose();
-    text.dispose();
+    _handleEditPostControllerClose(this);
     super.onClose();
   }
 }

@@ -81,10 +81,10 @@ extension _NavBarControllerLifecyclePart on NavBarController {
 
     if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
       if (!IntegrationTestMode.suppressPeriodicSideEffects) {
-        unawaited(checkAppVersion());
-        _scheduleRatingPrompt(const Duration(seconds: 12));
+        unawaited(_checkAppVersionImpl());
+        _scheduleRatingPromptImpl(const Duration(seconds: 12));
       }
-      resumeFeedIfNeeded();
+      _resumeFeedIfNeededImpl();
     }
 
     if (state == AppLifecycleState.resumed &&
@@ -103,7 +103,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     final educationIndex = hasEducation ? 3 : -1;
 
     if (index != previous) {
-      suspendFeedForTabExit();
+      _suspendFeedForTabExitImpl();
       _pauseGlobalTabMediaImpl();
     }
 
@@ -163,14 +163,6 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   void _resumeFeedIfNeededImpl() {
     try {
       AgendaController.maybeFind()?.resumePlaybackAfterOverlay();
-    } catch (_) {}
-  }
-
-  Future<void> _ensureProactiveShortPreloadStartedImpl() async {
-    if (_proactiveShortPreloadStarted) return;
-    _proactiveShortPreloadStarted = true;
-    try {
-      await shortCtrl.backgroundPreload();
     } catch (_) {}
   }
 }

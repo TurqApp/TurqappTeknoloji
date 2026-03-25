@@ -1,5 +1,49 @@
 part of 'personel_info_controller.dart';
 
+class FieldConfig {
+  final String label;
+  final String title;
+  final RxString value;
+  final List<String> items;
+  final Function(String) onSelect;
+  final bool isSearchable;
+
+  FieldConfig({
+    required this.label,
+    required this.title,
+    required this.value,
+    required this.items,
+    required this.onSelect,
+    this.isSearchable = false,
+  });
+}
+
+const String _countryFieldLabel = 'Ülke';
+const String _maritalStatusFieldLabel = 'Medeni Hal';
+const String _genderFieldLabel = 'Cinsiyet';
+const String _disabilityFieldLabel = 'Engel Durumu';
+const String _employmentFieldLabel = 'Çalışma Durumu';
+const String _cityFieldLabel = 'İl';
+const String _districtFieldLabel = 'İlçe';
+const String _countryFieldTitleKey = 'personal_info.select_country_title';
+const String _maritalStatusFieldTitleKey =
+    'personal_info.select_marital_status_title';
+const String _genderFieldTitleKey = 'personal_info.select_gender_title';
+const String _disabilityFieldTitleKey = 'personal_info.select_disability_title';
+const String _employmentFieldTitleKey =
+    'personal_info.select_work_status_title';
+const String _single = 'Bekar';
+const String _married = 'Evli';
+const String _divorced = 'Boşanmış';
+const String _turkey = 'Türkiye';
+const String _selectValue = 'Seçim Yap';
+const String _none = 'Yok';
+const String _working = 'Çalışıyor';
+const String _notWorking = 'Çalışmıyor';
+const String _male = 'Erkek';
+const String _female = 'Kadın';
+const String _hasReport = 'Var';
+
 const List<String> _countryList = [
   "Türkiye",
   "Afganistan",
@@ -479,12 +523,24 @@ const Map<String, Map<String, String>> _countryLabels = {
 };
 
 extension PersonelInfoControllerLabelsPart on PersonelInfoController {
+  String get defaultSelectValue => _selectValue;
+
+  String get turkeyValue => _turkey;
+
+  String get singleValue => _single;
+
+  String get noneValue => _none;
+
+  String get notWorkingValue => _notWorking;
+
+  bool get isTurkeySelected => county.value == _turkey;
+
   String localizedStaticValue(String value) {
     final localizedCountry = localizedCountryValue(value);
     if (localizedCountry != null) return localizedCountry;
 
     switch (value) {
-      case PersonelInfoController._selectValue:
+      case _selectValue:
       case 'Ülke Seç':
       case 'Medeni Hal Seç':
       case 'Cinsiyet Seç':
@@ -493,25 +549,25 @@ extension PersonelInfoControllerLabelsPart on PersonelInfoController {
       case 'İl Seç':
       case 'İlçe Seç':
         return 'common.select'.tr;
-      case PersonelInfoController._turkey:
+      case _turkey:
         return 'common.country_turkey'.tr;
-      case PersonelInfoController._single:
+      case _single:
         return 'personal_info.marital_single'.tr;
-      case PersonelInfoController._married:
+      case _married:
         return 'personal_info.marital_married'.tr;
-      case PersonelInfoController._divorced:
+      case _divorced:
         return 'personal_info.marital_divorced'.tr;
-      case PersonelInfoController._male:
+      case _male:
         return 'personal_info.gender_male'.tr;
-      case PersonelInfoController._female:
+      case _female:
         return 'personal_info.gender_female'.tr;
-      case PersonelInfoController._hasReport:
+      case _hasReport:
         return 'personal_info.disability_yes'.tr;
-      case PersonelInfoController._none:
+      case _none:
         return 'personal_info.disability_no'.tr;
-      case PersonelInfoController._working:
+      case _working:
         return 'personal_info.working_yes'.tr;
-      case PersonelInfoController._notWorking:
+      case _notWorking:
         return 'personal_info.working_no'.tr;
       default:
         return value;
@@ -526,19 +582,19 @@ extension PersonelInfoControllerLabelsPart on PersonelInfoController {
 
   String localizedFieldLabel(String label) {
     switch (label) {
-      case PersonelInfoController._countryFieldLabel:
+      case _countryFieldLabel:
         return 'scholarship.country_label'.tr;
-      case PersonelInfoController._maritalStatusFieldLabel:
+      case _maritalStatusFieldLabel:
         return 'scholarship.applicant.marital_status'.tr;
-      case PersonelInfoController._genderFieldLabel:
+      case _genderFieldLabel:
         return 'scholarship.applicant.gender'.tr;
-      case PersonelInfoController._disabilityFieldLabel:
+      case _disabilityFieldLabel:
         return 'scholarship.applicant.disability_report'.tr;
-      case PersonelInfoController._employmentFieldLabel:
+      case _employmentFieldLabel:
         return 'scholarship.applicant.employment_status'.tr;
-      case PersonelInfoController._cityFieldLabel:
+      case _cityFieldLabel:
         return 'scholarship.applicant.registry_city'.tr;
-      case PersonelInfoController._districtFieldLabel:
+      case _districtFieldLabel:
         return 'scholarship.applicant.registry_district'.tr;
       default:
         return label;
@@ -547,15 +603,15 @@ extension PersonelInfoControllerLabelsPart on PersonelInfoController {
 
   String localizedFieldTitle(String title) {
     switch (title) {
-      case PersonelInfoController._countryFieldTitleKey:
+      case _countryFieldTitleKey:
         return 'scholarship.select_country'.tr;
-      case PersonelInfoController._maritalStatusFieldTitleKey:
+      case _maritalStatusFieldTitleKey:
         return 'personal_info.select_marital_status'.tr;
-      case PersonelInfoController._genderFieldTitleKey:
+      case _genderFieldTitleKey:
         return 'personal_info.select_gender'.tr;
-      case PersonelInfoController._disabilityFieldTitleKey:
+      case _disabilityFieldTitleKey:
         return 'personal_info.select_disability'.tr;
-      case PersonelInfoController._employmentFieldTitleKey:
+      case _employmentFieldTitleKey:
         return 'personal_info.select_employment'.tr;
       case 'İl Seç':
         return 'common.select_city'.tr;
@@ -568,11 +624,11 @@ extension PersonelInfoControllerLabelsPart on PersonelInfoController {
 
   String localizedPlaceholder(String label) {
     switch (label) {
-      case PersonelInfoController._countryFieldLabel:
+      case _countryFieldLabel:
         return 'scholarship.select_country'.tr;
-      case PersonelInfoController._cityFieldLabel:
+      case _cityFieldLabel:
         return 'common.select_city'.tr;
-      case PersonelInfoController._districtFieldLabel:
+      case _districtFieldLabel:
         return 'common.select_district'.tr;
       default:
         return 'personal_info.select_field'

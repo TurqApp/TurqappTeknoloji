@@ -22,5 +22,5 @@ extension _MarketControllerLifecyclePart on MarketController {
   }
 
   String _listingSelectionKeyFor(String uid) =>
-      '${MarketController._listingSelectionPrefKeyPrefix}_$uid';
+      '${_marketListingSelectionPrefKeyPrefix}_$uid';
 }

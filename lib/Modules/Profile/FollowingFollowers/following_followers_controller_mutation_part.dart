@@ -7,7 +7,7 @@ void _applyFollowMutationToCachesImpl({
 }) {
   final now = DateTime.now();
   final myFollowingEntry =
-      FollowingFollowersController._followingsListCacheByUserId[currentUid];
+      _followingFollowersFollowingsListCacheByUserId[currentUid];
   if (myFollowingEntry != null) {
     final list = List<String>.from(myFollowingEntry.ids);
     if (nowFollowing) {
@@ -15,12 +15,12 @@ void _applyFollowMutationToCachesImpl({
     } else {
       list.remove(otherUserID);
     }
-    FollowingFollowersController._followingsListCacheByUserId[currentUid] =
+    _followingFollowersFollowingsListCacheByUserId[currentUid] =
         _RelationListCacheEntry(ids: list, cachedAt: now);
   }
 
   final otherFollowersEntry =
-      FollowingFollowersController._followersListCacheByUserId[otherUserID];
+      _followingFollowersFollowersListCacheByUserId[otherUserID];
   if (otherFollowersEntry != null) {
     final list = List<String>.from(otherFollowersEntry.ids);
     if (nowFollowing) {
@@ -28,32 +28,28 @@ void _applyFollowMutationToCachesImpl({
     } else {
       list.remove(currentUid);
     }
-    FollowingFollowersController._followersListCacheByUserId[otherUserID] =
+    _followingFollowersFollowersListCacheByUserId[otherUserID] =
         _RelationListCacheEntry(ids: list, cachedAt: now);
   }
 
-  final myCounter =
-      FollowingFollowersController._counterCacheByUserId[currentUid];
+  final myCounter = _followingFollowersCounterCacheByUserId[currentUid];
   if (myCounter != null) {
     final nextFollowings = nowFollowing
         ? myCounter.followings + 1
         : (myCounter.followings - 1).clamp(0, 1 << 30);
-    FollowingFollowersController._counterCacheByUserId[currentUid] =
-        _CounterCacheEntry(
+    _followingFollowersCounterCacheByUserId[currentUid] = _CounterCacheEntry(
       followers: myCounter.followers,
       followings: nextFollowings,
       cachedAt: now,
     );
   }
 
-  final otherCounter =
-      FollowingFollowersController._counterCacheByUserId[otherUserID];
+  final otherCounter = _followingFollowersCounterCacheByUserId[otherUserID];
   if (otherCounter != null) {
     final nextFollowers = nowFollowing
         ? otherCounter.followers + 1
         : (otherCounter.followers - 1).clamp(0, 1 << 30);
-    FollowingFollowersController._counterCacheByUserId[otherUserID] =
-        _CounterCacheEntry(
+    _followingFollowersCounterCacheByUserId[otherUserID] = _CounterCacheEntry(
       followers: nextFollowers,
       followings: otherCounter.followings,
       cachedAt: now,

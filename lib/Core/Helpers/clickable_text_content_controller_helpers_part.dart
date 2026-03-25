@@ -1,10 +1,41 @@
 part of 'clickable_text_content.dart';
 
+void _handleClickableTextControllerInit(ClickableTextController controller) {
+  controller._buildSpans();
+}
+
+void _handleClickableTextControllerClose(ClickableTextController controller) {
+  _disposeClickableTextRecognizers(controller.spans);
+}
+
 extension ClickableTextControllerHelpersPart on ClickableTextController {
+  static List<TextSpan> buildSpans({
+    required String text,
+    required TextStyle plainStyle,
+    required TextStyle urlStyle,
+    required TextStyle hashtagStyle,
+    required TextStyle mentionStyle,
+    void Function(String url)? onUrlTap,
+    void Function(String hashtag)? onHashtagTap,
+    void Function(String mention)? onMentionTap,
+    void Function(String plain)? onPlainTextTap,
+  }) =>
+      _buildClickableTextSpans(
+        text: text,
+        plainStyle: plainStyle,
+        urlStyle: urlStyle,
+        hashtagStyle: hashtagStyle,
+        mentionStyle: mentionStyle,
+        onUrlTap: onUrlTap,
+        onHashtagTap: onHashtagTap,
+        onMentionTap: onMentionTap,
+        onPlainTextTap: onPlainTextTap,
+      );
+
   void _buildSpans() {
     _disposeClickableTextRecognizers(spans);
     spans.assignAll(
-      ClickableTextController.buildSpans(
+      ClickableTextControllerHelpersPart.buildSpans(
         text: text,
         plainStyle: _plainStyle(),
         urlStyle: _urlStyle(),
@@ -16,6 +47,10 @@ extension ClickableTextControllerHelpersPart on ClickableTextController {
         onPlainTextTap: onPlainTextTap,
       ),
     );
+  }
+
+  void toggleExpand() {
+    expanded.value = !expanded.value;
   }
 
   void checkIfExceeds(BoxConstraints constraints, TextStyle style) {

@@ -4,13 +4,13 @@ extension PersonelInfoControllerFormPart on PersonelInfoController {
   void initializeFieldConfigs() {
     fieldConfigs = [
       FieldConfig(
-        label: PersonelInfoController._countryFieldLabel,
-        title: PersonelInfoController._countryFieldTitleKey,
+        label: _countryFieldLabel,
+        title: _countryFieldTitleKey,
         value: county,
         items: countryList,
         onSelect: (val) {
           county.value = val;
-          if (val != PersonelInfoController._turkey) {
+          if (val != _turkey) {
             city.value = '';
             town.value = '';
           }
@@ -18,29 +18,29 @@ extension PersonelInfoControllerFormPart on PersonelInfoController {
         isSearchable: true,
       ),
       FieldConfig(
-        label: PersonelInfoController._maritalStatusFieldLabel,
-        title: PersonelInfoController._maritalStatusFieldTitleKey,
+        label: _maritalStatusFieldLabel,
+        title: _maritalStatusFieldTitleKey,
         value: medeniHal,
         items: medeniHalList,
         onSelect: (val) => medeniHal.value = val,
       ),
       FieldConfig(
-        label: PersonelInfoController._genderFieldLabel,
-        title: PersonelInfoController._genderFieldTitleKey,
+        label: _genderFieldLabel,
+        title: _genderFieldTitleKey,
         value: cinsiyet,
         items: cinsiyetList,
         onSelect: (val) => cinsiyet.value = val,
       ),
       FieldConfig(
-        label: PersonelInfoController._disabilityFieldLabel,
-        title: PersonelInfoController._disabilityFieldTitleKey,
+        label: _disabilityFieldLabel,
+        title: _disabilityFieldTitleKey,
         value: engelliRaporu,
         items: engelliRaporuList,
         onSelect: (val) => engelliRaporu.value = val,
       ),
       FieldConfig(
-        label: PersonelInfoController._employmentFieldLabel,
-        title: PersonelInfoController._employmentFieldTitleKey,
+        label: _employmentFieldLabel,
+        title: _employmentFieldTitleKey,
         value: calismaDurumu,
         items: calismaDurumuList,
         onSelect: (val) => calismaDurumu.value = val,
@@ -61,31 +61,24 @@ extension PersonelInfoControllerFormPart on PersonelInfoController {
       });
     }
 
-    _animationControllers[PersonelInfoController._cityFieldLabel] =
-        AnimationController(
+    _animationControllers[_cityFieldLabel] = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _animationTurns[PersonelInfoController._cityFieldLabel] = 0.0.obs;
-    _animationControllers[PersonelInfoController._cityFieldLabel]!
-        .addListener(() {
-      _animationTurns[PersonelInfoController._cityFieldLabel]!.value =
-          _animationControllers[PersonelInfoController._cityFieldLabel]!.value *
-              0.5;
+    _animationTurns[_cityFieldLabel] = 0.0.obs;
+    _animationControllers[_cityFieldLabel]!.addListener(() {
+      _animationTurns[_cityFieldLabel]!.value =
+          _animationControllers[_cityFieldLabel]!.value * 0.5;
     });
 
-    _animationControllers[PersonelInfoController._districtFieldLabel] =
-        AnimationController(
+    _animationControllers[_districtFieldLabel] = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _animationTurns[PersonelInfoController._districtFieldLabel] = 0.0.obs;
-    _animationControllers[PersonelInfoController._districtFieldLabel]!
-        .addListener(() {
-      _animationTurns[PersonelInfoController._districtFieldLabel]!.value =
-          _animationControllers[PersonelInfoController._districtFieldLabel]!
-                  .value *
-              0.5;
+    _animationTurns[_districtFieldLabel] = 0.0.obs;
+    _animationControllers[_districtFieldLabel]!.addListener(() {
+      _animationTurns[_districtFieldLabel]!.value =
+          _animationControllers[_districtFieldLabel]!.value * 0.5;
     });
   }
 
@@ -112,10 +105,10 @@ extension PersonelInfoControllerFormPart on PersonelInfoController {
     animationController.forward();
 
     if ([
-      PersonelInfoController._maritalStatusFieldLabel,
-      PersonelInfoController._genderFieldLabel,
-      PersonelInfoController._disabilityFieldLabel,
-      PersonelInfoController._employmentFieldLabel,
+      _maritalStatusFieldLabel,
+      _genderFieldLabel,
+      _disabilityFieldLabel,
+      _employmentFieldLabel,
     ].contains(config.label)) {
       final localizedItems = config.items.map(localizedStaticValue).toList();
       await AppBottomSheet.show(
@@ -134,8 +127,7 @@ extension PersonelInfoControllerFormPart on PersonelInfoController {
         isSearchable: config.isSearchable,
       );
     } else {
-      final useLocalizedLabels =
-          config.label == PersonelInfoController._countryFieldLabel;
+      final useLocalizedLabels = config.label == _countryFieldLabel;
       await ListBottomSheet.show(
         context: context,
         items: config.items,

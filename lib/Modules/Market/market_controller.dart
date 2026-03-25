@@ -27,9 +27,8 @@ import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Market/market_my_items_view.dart';
 import 'package:turqappv2/Modules/Market/market_offers_view.dart';
 import 'package:turqappv2/Modules/Market/market_saved_view.dart';
+import 'package:turqappv2/Modules/Market/market_schema_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-
-import 'market_schema_service.dart';
 
 part 'market_controller_filter_part.dart';
 part 'market_controller_home_part.dart';
@@ -39,33 +38,12 @@ part 'market_controller_runtime_part.dart';
 part 'market_controller_support_part.dart';
 
 class MarketController extends GetxController {
-  static MarketController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(MarketController(), permanent: permanent);
-  }
+  static MarketController ensure({bool permanent = false}) =>
+      maybeFind() ?? Get.put(MarketController(), permanent: permanent);
 
-  static MarketController? maybeFind() {
-    final isRegistered = Get.isRegistered<MarketController>();
-    if (!isRegistered) return null;
-    return Get.find<MarketController>();
-  }
-
-  static const String _recentSearchesKey = 'market_recent_searches_v1';
-  static const String _listingSelectionPrefKeyPrefix =
-      'pasaj_market_listing_selection';
-  static const List<String> _preferredCategoryOrder = <String>[
-    'Telefon',
-    'Elektronik',
-    'Ev & Yaşam',
-    'Motosiklet',
-    'Giyim',
-    'Kişisel Bakım',
-    'Anne & Bebek',
-    'Hobi',
-    'Ofis',
-    'Spor',
-  ];
+  static MarketController? maybeFind() => Get.isRegistered<MarketController>()
+      ? Get.find<MarketController>()
+      : null;
 
   final MarketSchemaService _schemaService = MarketSchemaService.ensure();
   final MarketSnapshotRepository _marketSnapshotRepository =
@@ -103,10 +81,6 @@ class MarketController extends GetxController {
   StreamSubscription<CachedResource<List<MarketItemModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchRequestId = 0;
-
-  Future<void> _restoreListingSelection() => _performRestoreListingSelection();
-
-  Future<void> _persistListingSelection() => _performPersistListingSelection();
 
   @override
   void onInit() {

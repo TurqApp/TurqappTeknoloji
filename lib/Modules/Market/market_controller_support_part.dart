@@ -1,6 +1,26 @@
 part of 'market_controller.dart';
 
+const String _marketRecentSearchesKey = 'market_recent_searches_v1';
+const String _marketListingSelectionPrefKeyPrefix =
+    'pasaj_market_listing_selection';
+const List<String> _marketPreferredCategoryOrder = <String>[
+  'Telefon',
+  'Elektronik',
+  'Ev & Yaşam',
+  'Motosiklet',
+  'Giyim',
+  'Kişisel Bakım',
+  'Anne & Bebek',
+  'Hobi',
+  'Ofis',
+  'Spor',
+];
+
 extension _MarketControllerSupportX on MarketController {
+  Future<void> _restoreListingSelection() => _performRestoreListingSelection();
+
+  Future<void> _persistListingSelection() => _performPersistListingSelection();
+
   bool _sameStringList(Iterable<String> left, Iterable<String> right) {
     return listEquals(
       left.toList(growable: false),

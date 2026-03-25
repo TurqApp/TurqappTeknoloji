@@ -1,8 +1,3 @@
-// 📁 lib/Services/current_user_service.dart
-// 🎯 Enterprise-grade singleton service for current user management
-// 💾 Features: Local cache (SharedPreferences) + Firebase realtime sync
-// 🚀 Optimized for: Fast startup, reduced network traffic, reactive updates
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -41,28 +36,7 @@ part 'current_user_service_lifecycle_part.dart';
 part 'current_user_service_story_part.dart';
 part 'current_user_service_sync_part.dart';
 
-/// 🎯 Singleton service for managing current user data
-///
-/// **Usage:**
-/// ```dart
-/// // Get instance
-/// final userService = CurrentUserService.instance;
-///
-/// // Access current user
-/// final user = userService.currentUser;
-///
-/// // Listen to changes
-/// userService.userStream.listen((user) {
-///   print('User updated: ${user?.nickname}');
-/// });
-///
-/// // Reactive GetX (if using Obx)
-/// Obx(() => Text(userService.currentUserRx.value?.nickname ?? 'Guest'))
-/// ```
 class CurrentUserService extends GetxController with WidgetsBindingObserver {
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🏗️ Singleton Pattern
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   static CurrentUserService? _instance;
 
   static CurrentUserService get instance {
@@ -86,21 +60,10 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 📦 State Management
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Current user model (null if not logged in)
   CurrentUserModel? _currentUser;
-
-  /// Reactive wrapper for GetX (use with Obx)
   final Rx<CurrentUserModel?> currentUserRx = Rx<CurrentUserModel?>(null);
-
-  /// Stream controller for user updates
   final StreamController<CurrentUserModel?> _userStreamController =
       StreamController<CurrentUserModel?>.broadcast();
-
-  /// Stream of user updates
   Stream<CurrentUserModel?> get userStream => _userStreamController.stream;
 
   String get effectiveUserId => _performEffectiveUserId();
@@ -115,10 +78,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   bool get isVerified => _CurrentUserServiceStoryPart(this).isVerified;
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🧹 Cleanup
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
   @override
   void onClose() {
     _disposeLifecycleResources();
@@ -129,8 +88,4 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _handleLifecycleStateChange(state);
   }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🔍 Debug Info
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 }

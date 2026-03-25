@@ -95,17 +95,4 @@ class ScholarshipApplicationsContentController extends GetxController {
     super.onInit();
     _ScholarshipApplicationsContentControllerDataPart(this).handleOnInit();
   }
-
-  Future<void> loadInitialData() =>
-      _ScholarshipApplicationsContentControllerDataPart(this).loadInitialData();
-
-  Future<void> getData() =>
-      _ScholarshipApplicationsContentControllerDataPart(this).getData();
-
-  Future<void> ogrenciBilgileriniKontrolEt() =>
-      _ScholarshipApplicationsContentControllerDataPart(this)
-          .ogrenciBilgileriniKontrolEt();
-
-  Future<void> toggleDetails() =>
-      _ScholarshipApplicationsContentControllerDataPart(this).toggleDetails();
 }

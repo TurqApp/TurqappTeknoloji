@@ -134,3 +134,19 @@ class _ScholarshipApplicationsContentControllerDataPart {
     _controller.isDetailsLoading.value = false;
   }
 }
+
+extension ScholarshipApplicationsContentControllerDataFacadePart
+    on ScholarshipApplicationsContentController {
+  Future<void> loadInitialData() =>
+      _ScholarshipApplicationsContentControllerDataPart(this).loadInitialData();
+
+  Future<void> getData() =>
+      _ScholarshipApplicationsContentControllerDataPart(this).getData();
+
+  Future<void> ogrenciBilgileriniKontrolEt() =>
+      _ScholarshipApplicationsContentControllerDataPart(this)
+          .ogrenciBilgileriniKontrolEt();
+
+  Future<void> toggleDetails() =>
+      _ScholarshipApplicationsContentControllerDataPart(this).toggleDetails();
+}

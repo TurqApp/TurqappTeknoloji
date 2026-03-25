@@ -24,37 +24,18 @@ class PostCommentController extends GetxController {
     Function(bool increment)? onCommentCountChange,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) {
-      _activeTag = tag;
-      return existing;
-    }
-    final created = Get.put(
-      PostCommentController(
+  }) =>
+      _ensurePostCommentController(
         postID: postID,
         userID: userID,
         collection: collection,
         onCommentCountChange: onCommentCountChange,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-    created.controllerTag = tag;
-    _activeTag = tag;
-    return created;
-  }
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static PostCommentController? maybeFind({String? tag}) {
-    final resolvedTag = (tag ?? _activeTag)?.trim();
-    final isRegistered = Get.isRegistered<PostCommentController>(
-      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
-    );
-    if (!isRegistered) return null;
-    return Get.find<PostCommentController>(
-      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
-    );
-  }
+  static PostCommentController? maybeFind({String? tag}) =>
+      _maybeFindPostCommentController(tag: tag);
 
   PostCommentController({
     required this.postID,
@@ -95,20 +76,15 @@ class PostCommentController extends GetxController {
     if ((controllerTag ?? '').trim().isNotEmpty) {
       _activeTag = controllerTag;
     }
-    PostCommentControllerRuntimePart(this).onInit();
+    _handlePostCommentControllerInit(this);
   }
-
-  void _bindComments() => PostCommentControllerRuntimePart(this).bindComments();
-
-  Future<void> _loadPostOwnerNickname() =>
-      PostCommentControllerRuntimePart(this).loadPostOwnerNickname();
 
   @override
   void onClose() {
     if (_activeTag == controllerTag) {
       _activeTag = null;
     }
-    PostCommentControllerRuntimePart(this).onClose();
+    _handlePostCommentControllerClose(this);
     super.onClose();
   }
 }

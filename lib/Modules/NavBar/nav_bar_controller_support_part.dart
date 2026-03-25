@@ -1,5 +1,10 @@
 part of 'nav_bar_controller.dart';
 
+extension _NavBarControllerSupportFacadePart on NavBarController {
+  Future<void> _persistSelectedIndex(int index) =>
+      _NavBarControllerSupportPart(this).persistSelectedIndex(index);
+}
+
 class _NavBarControllerSupportPart {
   final NavBarController _controller;
 
@@ -70,22 +75,22 @@ class _NavBarControllerSupportPart {
     });
 
     unawaited(restorePersistedIndex());
-    _controller._runAcilisAnimation();
+    _controller._runAcilisAnimationImpl();
     Future.delayed(const Duration(seconds: 2), () {
       if (!_controller._isDisposed &&
           !IntegrationTestMode.suppressPeriodicSideEffects) {
-        unawaited(_controller.checkAppVersion());
+        unawaited(_controller._checkAppVersionImpl());
       }
     });
     if (!IntegrationTestMode.suppressPeriodicSideEffects) {
-      _controller._scheduleRatingPrompt(const Duration(seconds: 25));
+      _controller._scheduleRatingPromptImpl(const Duration(seconds: 25));
     }
 
     if (!GetPlatform.isIOS &&
         !IntegrationTestMode.suppressPeriodicSideEffects) {
-      _controller._startBackgroundCacheLoop();
+      _controller._startBackgroundCacheLoopImpl();
     }
-    _controller._startUploadIndicatorSync();
+    _controller._startUploadIndicatorSyncImpl();
   }
 
   void handleOnClose() {

@@ -15,24 +15,6 @@ part 'personel_info_controller_data_part.dart';
 part 'personel_info_controller_labels_part.dart';
 part 'personel_info_controller_form_part.dart';
 
-class FieldConfig {
-  final String label;
-  final String title;
-  final RxString value;
-  final List<String> items;
-  final Function(String) onSelect;
-  final bool isSearchable;
-
-  FieldConfig({
-    required this.label,
-    required this.title,
-    required this.value,
-    required this.items,
-    required this.onSelect,
-    this.isSearchable = false,
-  });
-}
-
 class PersonelInfoController extends GetxController
     with GetTickerProviderStateMixin {
   static PersonelInfoController ensure({
@@ -50,34 +32,6 @@ class PersonelInfoController extends GetxController
     return Get.find<PersonelInfoController>(tag: tag);
   }
 
-  static const String _countryFieldLabel = 'Ülke';
-  static const String _maritalStatusFieldLabel = 'Medeni Hal';
-  static const String _genderFieldLabel = 'Cinsiyet';
-  static const String _disabilityFieldLabel = 'Engel Durumu';
-  static const String _employmentFieldLabel = 'Çalışma Durumu';
-  static const String _cityFieldLabel = 'İl';
-  static const String _districtFieldLabel = 'İlçe';
-  static const String _countryFieldTitleKey =
-      'personal_info.select_country_title';
-  static const String _maritalStatusFieldTitleKey =
-      'personal_info.select_marital_status_title';
-  static const String _genderFieldTitleKey =
-      'personal_info.select_gender_title';
-  static const String _disabilityFieldTitleKey =
-      'personal_info.select_disability_title';
-  static const String _employmentFieldTitleKey =
-      'personal_info.select_work_status_title';
-  static const String _single = 'Bekar';
-  static const String _married = 'Evli';
-  static const String _divorced = 'Boşanmış';
-  static const String _turkey = 'Türkiye';
-  static const String _selectValue = 'Seçim Yap';
-  static const String _none = 'Yok';
-  static const String _working = 'Çalışıyor';
-  static const String _notWorking = 'Çalışmıyor';
-  static const String _male = 'Erkek';
-  static const String _female = 'Kadın';
-  static const String _hasReport = 'Var';
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();

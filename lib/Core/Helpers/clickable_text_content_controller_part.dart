@@ -83,39 +83,12 @@ class ClickableTextController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _buildSpans();
-  }
-
-  static List<TextSpan> buildSpans({
-    required String text,
-    required TextStyle plainStyle,
-    required TextStyle urlStyle,
-    required TextStyle hashtagStyle,
-    required TextStyle mentionStyle,
-    void Function(String url)? onUrlTap,
-    void Function(String hashtag)? onHashtagTap,
-    void Function(String mention)? onMentionTap,
-    void Function(String plain)? onPlainTextTap,
-  }) =>
-      _buildClickableTextSpans(
-        text: text,
-        plainStyle: plainStyle,
-        urlStyle: urlStyle,
-        hashtagStyle: hashtagStyle,
-        mentionStyle: mentionStyle,
-        onUrlTap: onUrlTap,
-        onHashtagTap: onHashtagTap,
-        onMentionTap: onMentionTap,
-        onPlainTextTap: onPlainTextTap,
-      );
-
-  void toggleExpand() {
-    expanded.value = !expanded.value;
+    _handleClickableTextControllerInit(this);
   }
 
   @override
   void onClose() {
-    _disposeClickableTextRecognizers(spans);
+    _handleClickableTextControllerClose(this);
     super.onClose();
   }
 }

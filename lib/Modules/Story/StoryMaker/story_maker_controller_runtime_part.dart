@@ -1,5 +1,28 @@
 part of 'story_maker_controller.dart';
 
+const List<String> _storyMakerSupportedMediaLookPresets = <String>[
+  'original',
+  'clear',
+  'cinema',
+  'vibe',
+];
+const double _storyMakerTopBarHeight = 60.0;
+const double _storyMakerBottomToolsHeight = 80.0;
+const double _storyMakerMediaLookToolsHeight = 88.0;
+final RxBool _storyMakerIsUploadingStory = false.obs;
+final List<Color> _storyMakerColorOptions = <Color>[
+  Colors.red,
+  Colors.green,
+  Colors.blue,
+  Colors.orange,
+  Colors.purple,
+  Colors.teal,
+  Colors.amber,
+  Colors.white,
+  Colors.grey.withAlpha(50),
+  Colors.black,
+];
+
 void _configureStoryMakerAudioPlayer(AudioPlayer player) {
   try {
     player.setAudioContext(
@@ -60,9 +83,16 @@ void _handleStoryMakerOnClose(StoryMakerController controller) {
 }
 
 extension StoryMakerControllerRuntimePart on StoryMakerController {
+  double _availablePlaygroundHeight({bool includeMediaLookTools = true}) {
+    return _storyMakerAvailablePlaygroundHeight(
+      this,
+      includeMediaLookTools: includeMediaLookTools,
+    );
+  }
+
   void changeCircleColor() {
-    color.value = colorOptions[_colorIndex];
-    _colorIndex = (_colorIndex + 1) % colorOptions.length;
+    color.value = _storyMakerColorOptions[_colorIndex];
+    _colorIndex = (_colorIndex + 1) % _storyMakerColorOptions.length;
   }
 
   StoryElement? get currentBackgroundMediaElement {
@@ -76,7 +106,7 @@ extension StoryMakerControllerRuntimePart on StoryMakerController {
   }
 
   void setCurrentMediaLookPreset(String preset) {
-    if (!StoryMakerController.supportedMediaLookPresets.contains(preset)) {
+    if (!_storyMakerSupportedMediaLookPresets.contains(preset)) {
       return;
     }
     final target = currentBackgroundMediaElement;
@@ -94,10 +124,10 @@ double _storyMakerAvailablePlaygroundHeight(
   final screenH = Get.height;
   final topSafeArea = Get.mediaQuery.padding.top;
   final reservedMediaLook =
-      includeMediaLookTools ? StoryMakerController._mediaLookToolsHeight : 0;
+      includeMediaLookTools ? _storyMakerMediaLookToolsHeight : 0;
   return screenH -
       topSafeArea -
-      StoryMakerController._topBarHeight -
-      StoryMakerController._bottomToolsHeight -
+      _storyMakerTopBarHeight -
+      _storyMakerBottomToolsHeight -
       reservedMediaLook;
 }

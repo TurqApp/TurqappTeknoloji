@@ -37,31 +37,21 @@ class StoryMakerController extends GetxController {
   static StoryMakerController ensure({
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      StoryMakerController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      maybeFind(tag: tag) ??
+      Get.put(
+        StoryMakerController(),
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static StoryMakerController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<StoryMakerController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<StoryMakerController>(tag: tag);
-  }
+  static StoryMakerController? maybeFind({String? tag}) =>
+      Get.isRegistered<StoryMakerController>(tag: tag)
+          ? Get.find<StoryMakerController>(tag: tag)
+          : null;
 
-  static const List<String> supportedMediaLookPresets = <String>[
-    'original',
-    'clear',
-    'cinema',
-    'vibe',
-  ];
-  static const double _topBarHeight = 60.0;
-  static const double _bottomToolsHeight = 80.0;
-  static const double _mediaLookToolsHeight = 88.0;
+  static List<String> get supportedMediaLookPresets =>
+      _storyMakerSupportedMediaLookPresets;
 
   final Rx<Color> color = Colors.transparent.obs;
   RxList<StoryElement> elements = <StoryElement>[].obs;
@@ -72,18 +62,6 @@ class StoryMakerController extends GetxController {
   StoryElement? draggedElement;
   RxBool isElementOverTrash = false.obs;
   Offset? lastFingerPosition;
-  final List<Color> colorOptions = [
-    Colors.red,
-    Colors.green,
-    Colors.blue,
-    Colors.orange,
-    Colors.purple,
-    Colors.teal,
-    Colors.amber,
-    Colors.white,
-    Colors.grey.withAlpha(50),
-    Colors.black,
-  ];
 
   int _colorIndex = 0;
   int _zIndexCounter = 0;
@@ -96,7 +74,7 @@ class StoryMakerController extends GetxController {
   RxBool canUndo = false.obs;
   RxBool canRedo = false.obs;
 
-  static RxBool isUploadingStory = false.obs;
+  static RxBool get isUploadingStory => _storyMakerIsUploadingStory;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   var isMusicPlaying = false.obs;
@@ -115,12 +93,5 @@ class StoryMakerController extends GetxController {
   void onClose() {
     _handleStoryMakerOnClose(this);
     super.onClose();
-  }
-
-  double _availablePlaygroundHeight({bool includeMediaLookTools = true}) {
-    return _storyMakerAvailablePlaygroundHeight(
-      this,
-      includeMediaLookTools: includeMediaLookTools,
-    );
   }
 }
