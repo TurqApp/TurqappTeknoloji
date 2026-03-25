@@ -116,13 +116,6 @@ class ExploreController extends GetxController {
     _handleOnInit();
   }
 
-  void suspendExplorePreview({int focusIndex = -1}) =>
-      _ExploreControllerSupportX(this)
-          .suspendExplorePreview(focusIndex: focusIndex);
-
-  void resumeExplorePreview() =>
-      _ExploreControllerSupportX(this).resumeExplorePreview();
-
   void _bindFollowingListener() => _performBindFollowingListener();
 
   Future<void> _fetchFollowingIDs(String uid) => _performFetchFollowingIDs(uid);
@@ -200,6 +193,4 @@ class ExploreController extends GetxController {
     _handleOnClose();
     super.onClose();
   }
-
-  void goToPage(int index) => _handleGoToPage(index);
 }

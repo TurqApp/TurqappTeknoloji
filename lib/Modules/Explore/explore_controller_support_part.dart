@@ -27,14 +27,19 @@ extension _ExploreControllerSupportX on ExploreController {
 
   void restoreFloodSeriesFocus() => _performRestoreFloodSeriesFocus();
 
-  void capturePendingFloodEntry({int? preferredIndex, PostsModel? model}) =>
-      _performCapturePendingFloodEntry(
-        preferredIndex: preferredIndex,
-        model: model,
-      );
-
   void suspendExplorePreview({int focusIndex = -1}) =>
       _performSuspendExplorePreview(focusIndex: focusIndex);
 
   void resumeExplorePreview() => _performResumeExplorePreview();
+}
+
+extension ExploreControllerPublicPart on ExploreController {
+  void suspendExplorePreview({int focusIndex = -1}) =>
+      _ExploreControllerSupportX(this)
+          .suspendExplorePreview(focusIndex: focusIndex);
+
+  void resumeExplorePreview() =>
+      _ExploreControllerSupportX(this).resumeExplorePreview();
+
+  void goToPage(int index) => _handleGoToPage(index);
 }
