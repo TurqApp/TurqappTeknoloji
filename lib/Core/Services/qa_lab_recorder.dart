@@ -40,6 +40,7 @@ part 'qa_lab_recorder_capture_issue_part.dart';
 part 'qa_lab_recorder_diagnostics_part.dart';
 part 'qa_lab_recorder_diagnostics_surfaces_part.dart';
 part 'qa_lab_recorder_diagnostics_health_part.dart';
+part 'qa_lab_recorder_diagnostics_state_part.dart';
 part 'qa_lab_recorder_diagnostics_playback_part.dart';
 part 'qa_lab_recorder_diagnostics_timeline_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_part.dart';
