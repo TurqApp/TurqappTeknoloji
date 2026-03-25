@@ -69,6 +69,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
+      _persistShortPlaybackState(currentPage, oldVc);
       if (defaultTargetPlatform == TargetPlatform.android) {
         _quietBackgroundPlayback(oldVc);
       } else {
@@ -115,6 +116,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
         controller.loadMoreIfNeeded(currentPage);
       },
     );
+  }
+
+  void _persistShortPlaybackState(int page, HLSVideoAdapter adapter) {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) return;
+    try {
+      VideoStateManager.instance.saveVideoState(
+        _cachedShorts[page].docID,
+        HLSAdapterPlaybackHandle(adapter),
+      );
+    } catch (_) {}
   }
 
   void _enforceSingleActiveAudio(int activePage) {

@@ -73,27 +73,12 @@ extension ShortViewUiPart on _ShortViewState {
     );
   }
 
-  Widget _cachedThumb(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      placeholder: (_, __) => const SizedBox.shrink(),
-      errorWidget: (_, __, ___) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildThumbOverlay(String thumb, double modelAr) {
-    if (thumb.isEmpty) return const SizedBox.shrink();
-    if (modelAr > 1.2) {
-      return Center(
-        child: AspectRatio(
-          aspectRatio: modelAr,
-          child: _cachedThumb(thumb),
-        ),
-      );
-    }
-    return SizedBox.expand(
-      child: _cachedThumb(thumb),
+  Widget _buildVideoLoadingSurface() {
+    return const ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: CupertinoActivityIndicator(color: Colors.white),
+      ),
     );
   }
 
@@ -205,21 +190,12 @@ extension ShortViewUiPart on _ShortViewState {
               onPageChanged: _onPageChanged,
               itemBuilder: (_, idx) {
                 final vp = controller.cache[idx];
-                final thumb = list[idx].thumbnail;
                 final modelAr = list[idx].aspectRatio > 0
                     ? list[idx].aspectRatio.toDouble()
                     : (9 / 16);
 
                 if (vp == null) {
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildThumbOverlay(thumb, modelAr),
-                      const Center(
-                        child: CupertinoActivityIndicator(color: Colors.white),
-                      ),
-                    ],
-                  );
+                  return _buildVideoLoadingSurface();
                 }
 
                 final isActivePage = idx == currentPage;
@@ -235,7 +211,7 @@ extension ShortViewUiPart on _ShortViewState {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _buildThumbOverlay(thumb, modelAr),
+                      const ColoredBox(color: Colors.black),
                       if (isActivePage) videoWidget,
                       if (isActivePage)
                         AnimatedBuilder(
@@ -244,21 +220,17 @@ extension ShortViewUiPart on _ShortViewState {
                             if (vp.value.hasRenderedFirstFrame) {
                               return const SizedBox.shrink();
                             }
-                            return _buildThumbOverlay(thumb, modelAr);
+                            return _buildVideoLoadingSurface();
                           },
                         ),
                       if (isActivePage)
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
-                            if (vp.value.isInitialized) {
+                            if (vp.value.hasRenderedFirstFrame) {
                               return const SizedBox.shrink();
                             }
-                            return const Center(
-                              child: CupertinoActivityIndicator(
-                                color: Colors.white,
-                              ),
-                            );
+                            return _buildVideoLoadingSurface();
                           },
                         ),
                       if (isActivePage)
