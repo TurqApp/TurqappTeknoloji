@@ -77,7 +77,7 @@ class MarketController extends GetxController {
 
   final RxDouble scrollOffset = 0.0.obs;
   final RxBool listingSelectionReady = false.obs;
-  final RxInt listingSelection = 0.obs;
+  final RxInt listingSelection = 1.obs;
   final RxBool isLoading = false.obs;
   final RxBool isSearchLoading = false.obs;
   final RxString searchQuery = ''.obs;

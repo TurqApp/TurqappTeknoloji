@@ -83,9 +83,12 @@ extension DenemeSinaviPreviewSectionsPart on _DenemeSinaviPreviewState {
   }
 
   Widget _buildAuthorCard(DenemeSinaviPreviewController controller) {
+    final displayName = controller.displayName.value.trim();
     final nickname = controller.nickname.value.trim();
     return PasajOwnerCard(
-      title: nickname.isEmpty ? 'common.user'.tr : nickname,
+      title: displayName.isEmpty
+          ? (nickname.isEmpty ? 'common.user'.tr : nickname)
+          : displayName,
       subtitle: nickname.isEmpty ? null : '@$nickname',
       userId: controller.model.userID,
       imageUrl: controller.avatarUrl.value.trim(),

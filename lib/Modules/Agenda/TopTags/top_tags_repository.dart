@@ -10,7 +10,7 @@ class TopTagsRepository extends GetxService {
   final FirebaseFirestore _db;
   static const int _defaultTrendWindowHours = 24;
   static const int _defaultTrendThreshold = 1;
-  static const Duration _ttl = Duration(minutes: 30);
+  static const Duration _ttl = Duration(hours: 1);
   static const String _prefsKey = 'top_tags_repository_v1';
   List<HashtagModel>? _memory;
   DateTime? _memoryAt;

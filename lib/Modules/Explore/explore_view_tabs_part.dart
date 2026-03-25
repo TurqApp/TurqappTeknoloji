@@ -65,7 +65,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                   idx,
                 );
                 if (idx == 0 && controller.trendingTags.isEmpty) {
-                  controller.fetchTrendingTags();
+                  controller.fetchTrendingTags(forceRefresh: true);
                 } else if (idx == 1 &&
                     controller.explorePosts.isEmpty &&
                     !controller.exploreIsLoading.value) {
@@ -95,7 +95,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
         backgroundColor: Colors.black,
         color: Colors.white,
         onRefresh: () async {
-          await controller.fetchTrendingTags();
+          await controller.fetchTrendingTags(forceRefresh: true);
         },
         child: items.isEmpty
             ? ListView(

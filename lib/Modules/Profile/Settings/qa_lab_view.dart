@@ -39,6 +39,15 @@ class _QALabViewState extends State<QALabView> {
     return Scaffold(
       key: const ValueKey<String>(IntegrationTestKeys.screenQaLab),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(CupertinoIcons.back),
+          onPressed: () {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.maybePop();
+            }
+          },
+        ),
         title: Text('settings.diagnostics.qa_lab'.tr),
       ),
       body: SingleChildScrollView(

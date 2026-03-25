@@ -225,7 +225,8 @@ class ExploreController extends GetxController {
   Future<List<PostsModel>> _validatePoolPostsAndPrune(List<PostsModel> posts) =>
       _performValidatePoolPostsAndPrune(posts);
 
-  Future<void> fetchTrendingTags() => _performFetchTrendingTags();
+  Future<void> fetchTrendingTags({bool forceRefresh = false}) =>
+      _performFetchTrendingTags(forceRefresh: forceRefresh);
 
   Future<void> fetchVideo() => _performFetchVideo();
 

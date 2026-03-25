@@ -7,16 +7,16 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
   Future<void> _restoreListingSelectionImpl() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      listingSelection.value = 0;
+      listingSelection.value = 1;
       listingSelectionReady.value = true;
       return;
     }
     try {
       final prefs = await SharedPreferences.getInstance();
-      listingSelection.value =
-          (prefs.getInt(_listingSelectionKeyForImpl(uid)) ?? 0) == 1 ? 1 : 0;
+      final stored = prefs.getInt(_listingSelectionKeyForImpl(uid));
+      listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
     } catch (_) {
-      listingSelection.value = 0;
+      listingSelection.value = 1;
     } finally {
       listingSelectionReady.value = true;
     }

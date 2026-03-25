@@ -1,6 +1,40 @@
 part of 'short_content.dart';
 
 extension ShortsContentActionsPart on _ShortsContentState {
+  static const String _shortLinkFallbackDomain = 'https://turqapp.com';
+
+  String? _shortPreviewImage() {
+    final thumbnail = model.thumbnail.trim();
+    if (thumbnail.isNotEmpty) return thumbnail;
+    if (model.img.isEmpty) return null;
+    final image = model.img.first.trim();
+    return image.isNotEmpty ? image : null;
+  }
+
+  Future<String> _resolveShortPublicUrl() async {
+    final originalPostId = PostStoryShareService.resolveOriginalPostId(model);
+    final sharePostId =
+        originalPostId.isNotEmpty ? originalPostId : model.docID.trim();
+    if (sharePostId.isEmpty) {
+      return _shortLinkFallbackDomain;
+    }
+
+    final currentShortId = model.docID.trim();
+    final url = await ShortLinkService().getPostPublicUrl(
+      postId: sharePostId,
+      desc: model.metin,
+      imageUrl: _shortPreviewImage(),
+      shortId: currentShortId.isNotEmpty && currentShortId != sharePostId
+          ? currentShortId
+          : null,
+    );
+    final normalizedUrl = url.trim();
+    if (normalizedUrl.isNotEmpty && normalizedUrl != _shortLinkFallbackDomain) {
+      return normalizedUrl;
+    }
+    return '$_shortLinkFallbackDomain/p/$sharePostId';
+  }
+
   Widget pulldownmenu(BuildContext context) {
     return PullDownButton(
       itemBuilder: (context) => [
@@ -64,14 +98,7 @@ extension ShortsContentActionsPart on _ShortsContentState {
         ),
         PullDownMenuItem(
           onTap: () async {
-            final previewImage = model.thumbnail.trim().isNotEmpty
-                ? model.thumbnail.trim()
-                : (model.img.isNotEmpty ? model.img.first.trim() : null);
-            final url = await ShortLinkService().getPostPublicUrl(
-              postId: model.docID,
-              desc: model.metin,
-              imageUrl: previewImage,
-            );
+            final url = await _resolveShortPublicUrl();
             await Clipboard.setData(ClipboardData(text: url));
 
             AppSnackbar('common.copied'.tr, 'common.link_copied'.tr);
@@ -82,14 +109,7 @@ extension ShortsContentActionsPart on _ShortsContentState {
         PullDownMenuItem(
           onTap: () async {
             await ShareActionGuard.run(() async {
-              final previewImage = model.thumbnail.trim().isNotEmpty
-                  ? model.thumbnail.trim()
-                  : (model.img.isNotEmpty ? model.img.first.trim() : null);
-              final url = await ShortLinkService().getPostPublicUrl(
-                postId: model.docID,
-                desc: model.metin,
-                imageUrl: previewImage,
-              );
+              final url = await _resolveShortPublicUrl();
               await ShareLinkService.shareUrl(
                 url: url,
                 title: 'common.post_share_title'.tr,
@@ -384,14 +404,7 @@ extension ShortsContentActionsPart on _ShortsContentState {
             child: IconButton(
               onPressed: () async {
                 await ShareActionGuard.run(() async {
-                  final previewImage = model.thumbnail.trim().isNotEmpty
-                      ? model.thumbnail.trim()
-                      : (model.img.isNotEmpty ? model.img.first.trim() : null);
-                  final url = await ShortLinkService().getPostPublicUrl(
-                    postId: model.docID,
-                    desc: model.metin,
-                    imageUrl: previewImage,
-                  );
+                  final url = await _resolveShortPublicUrl();
                   await ShareLinkService.shareUrl(
                     url: url,
                     title: 'post.share_title'.tr,

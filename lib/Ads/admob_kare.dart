@@ -17,8 +17,16 @@ class AdmobKare extends StatefulWidget {
   final bool showChrome;
   final VoidCallback? onImpression;
 
-  static Future<void> warmupPool({int targetCount = 3}) {
-    return _AdmobKareState.warmupPool(targetCount: targetCount);
+  static Future<void> warmupPool({
+    int targetCount = 5,
+    int maxRequestCount = 1,
+    bool bypassMinInterval = false,
+  }) {
+    return _AdmobKareState.warmupPool(
+      targetCount: targetCount,
+      maxRequestCount: maxRequestCount,
+      bypassMinInterval: bypassMinInterval,
+    );
   }
 
   static bool get hasReadyBanner => _AdmobKareState.hasReadyBanner;
@@ -30,13 +38,16 @@ class AdmobKare extends StatefulWidget {
 
 class _AdmobKareState extends State<AdmobKare> {
   static final List<BannerAd> _readyPool = <BannerAd>[];
+  static final Map<String, DateTime> _unitCooldownUntilById =
+      <String, DateTime>{};
   static int _loadingCount = 0;
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
   static int _globalFailureBurstCount = 0;
-  static const int _defaultWarmupCount = 3;
+  static const int _defaultWarmupCount = 5;
   static const int _maxPoolSize = 8;
   static const Duration _warmupAttemptMinInterval = Duration(seconds: 8);
+  static const int _failureBurstBeforeCooldown = 5;
   static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
     'DEBUG_RENDER_ADMOB',
     defaultValue: false,
@@ -81,21 +92,70 @@ class _AdmobKareState extends State<AdmobKare> {
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
-    return AdmobUnitConfigService.ensure().nextSquareAdUnitId(
+    final service = AdmobUnitConfigService.ensure();
+    final availableIds = service.squareAdUnitIdsForCurrentPlatform(
       isTestMode: isTestMode,
     );
+    if (availableIds.isEmpty) {
+      return service.nextSquareAdUnitId(isTestMode: isTestMode);
+    }
+
+    String? fallbackCandidate;
+    for (int i = 0; i < availableIds.length; i++) {
+      final candidate = service.nextSquareAdUnitId(isTestMode: isTestMode);
+      fallbackCandidate ??= candidate;
+      if (_unitCooldownRemaining(candidate) == Duration.zero) {
+        return candidate;
+      }
+    }
+    return fallbackCandidate ?? service.nextSquareAdUnitId(isTestMode: isTestMode);
   }
 
-  static Future<void> warmupPool(
-      {int targetCount = _defaultWarmupCount}) async {
+  static Duration _unitCooldownRemaining(String adUnitId) {
+    final until = _unitCooldownUntilById[adUnitId];
+    if (until == null) {
+      return Duration.zero;
+    }
+    final remaining = until.difference(DateTime.now());
+    if (remaining > Duration.zero) {
+      return remaining;
+    }
+    _unitCooldownUntilById.remove(adUnitId);
+    return Duration.zero;
+  }
+
+  static void _markUnitCooldown(
+    String adUnitId,
+    LoadAdError error,
+  ) {
+    if (error.code == 3) {
+      _unitCooldownUntilById[adUnitId] =
+          DateTime.now().add(const Duration(seconds: 20));
+      return;
+    }
+    final isRetryThrottled = error.code == 1 &&
+        error.message.contains('Too many recently failed requests');
+    if (isRetryThrottled) {
+      _unitCooldownUntilById[adUnitId] =
+          DateTime.now().add(_cooldownRetryDelay);
+    }
+  }
+
+  static Future<void> warmupPool({
+    int targetCount = _defaultWarmupCount,
+    int maxRequestCount = 1,
+    bool bypassMinInterval = false,
+  }) async {
     if (_usePlaceholderOnly) return;
     if (!_supportsSharedPool) return;
     if (targetCount <= 0) return;
+    if (maxRequestCount <= 0) return;
     if (_globalCooldownRemaining() > Duration.zero) return;
 
     final now = DateTime.now();
     final lastAttempt = _lastWarmupAttemptAt;
-    if (lastAttempt != null &&
+    if (!bypassMinInterval &&
+        lastAttempt != null &&
         now.difference(lastAttempt) < _warmupAttemptMinInterval) {
       return;
     }
@@ -104,7 +164,7 @@ class _AdmobKareState extends State<AdmobKare> {
     final missing = targetCount - (_readyPool.length + _loadingCount);
     if (missing <= 0) return;
 
-    final requestCount = missing.clamp(0, 1);
+    final requestCount = missing.clamp(0, maxRequestCount);
     for (int i = 0; i < requestCount; i++) {
       _loadingCount++;
       _createAndLoadBannerForPool();
@@ -122,6 +182,7 @@ class _AdmobKareState extends State<AdmobKare> {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
           _globalFailureBurstCount = 0;
           _globalCooldownUntil = null;
+          _unitCooldownUntilById.remove(adUnitId);
           _log(
               'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
           if (_readyPool.length < _maxPoolSize) {
@@ -132,12 +193,13 @@ class _AdmobKareState extends State<AdmobKare> {
         },
         onAdFailedToLoad: (Ad failedAd, LoadAdError error) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
-          final isNoFill = error.code == 3;
           final isRetryThrottled = error.code == 1 &&
               error.message.contains('Too many recently failed requests');
           _globalFailureBurstCount =
               (_globalFailureBurstCount + 1).clamp(1, 99);
-          if (isNoFill || isRetryThrottled || _globalFailureBurstCount >= 2) {
+          _markUnitCooldown(adUnitId, error);
+          if (isRetryThrottled ||
+              _globalFailureBurstCount >= _failureBurstBeforeCooldown) {
             _globalCooldownUntil = DateTime.now().add(_cooldownRetryDelay);
             _log(
                 'warmup cooldown in ${_cooldownRetryDelay.inMilliseconds}ms after code=${error.code} unit=$adUnitId platform=${Platform.operatingSystem}');
@@ -201,7 +263,9 @@ class _AdmobKareState extends State<AdmobKare> {
       _loadFailed = false;
       _impressionReported = false;
       if (_supportsSharedPool) {
-        unawaited(warmupPool());
+        unawaited(warmupPool(
+          bypassMinInterval: true,
+        ));
       }
       if (mounted && !_isDisposed) {
         setState(() {});
@@ -298,6 +362,7 @@ class _AdmobKareState extends State<AdmobKare> {
           _retryCount = 0;
           _globalFailureBurstCount = 0;
           _globalCooldownUntil = null;
+          _unitCooldownUntilById.remove(adUnitId);
           final latencyMs = _qaRequestStartedAt == null
               ? 0
               : DateTime.now().difference(_qaRequestStartedAt!).inMilliseconds;
@@ -322,18 +387,20 @@ class _AdmobKareState extends State<AdmobKare> {
             });
           }
           if (_supportsSharedPool) {
-            unawaited(warmupPool());
+            unawaited(warmupPool(
+              bypassMinInterval: true,
+            ));
           }
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
           final latencyMs = _qaRequestStartedAt == null
               ? 0
               : DateTime.now().difference(_qaRequestStartedAt!).inMilliseconds;
-          final isNoFill = error.code == 3;
           final isRetryThrottled = error.code == 1 &&
               error.message.contains('Too many recently failed requests');
           _globalFailureBurstCount =
               (_globalFailureBurstCount + 1).clamp(1, 99);
+          _markUnitCooldown(adUnitId, error);
           _log(
               'failed banner code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
           recordQALabAdEvent(
@@ -352,9 +419,8 @@ class _AdmobKareState extends State<AdmobKare> {
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
-          final shouldEnterCooldown = isNoFill ||
-              isRetryThrottled ||
-              _globalFailureBurstCount >= 2 ||
+          final shouldEnterCooldown = isRetryThrottled ||
+              _globalFailureBurstCount >= _failureBurstBeforeCooldown ||
               _retryCount >= _maxRetryCount;
           if (shouldEnterCooldown) {
             _globalCooldownUntil = DateTime.now().add(_cooldownRetryDelay);

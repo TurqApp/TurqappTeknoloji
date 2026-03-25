@@ -76,7 +76,7 @@ class _TopTagsState extends State<TopTags> {
                 onRefresh: () async {
                   controller.resetFeedState();
                   await controller.fetchAgendaBigData(initial: true);
-                  await controller.getTags();
+                  await controller.getTags(forceRefresh: true);
                 },
                 child: Obx(() {
                   final centeredIndex = controller.centeredIndex.value;

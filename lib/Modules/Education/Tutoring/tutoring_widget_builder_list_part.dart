@@ -122,6 +122,7 @@ extension _TutoringWidgetBuilderListPart on TutoringWidgetBuilder {
                               AppHeaderActionButton(
                                 onTap: () => _shareExternally(tutoring),
                                 size: metrics.actionButtonSize,
+                                radius: 6,
                                 child: Icon(
                                   AppIcons.share,
                                   size: metrics.actionIconSize,
@@ -140,6 +141,7 @@ extension _TutoringWidgetBuilderListPart on TutoringWidgetBuilder {
                                     savedController: savedController,
                                   ),
                                   size: metrics.actionButtonSize,
+                                  radius: 6,
                                   child: Icon(
                                     isSaved ? AppIcons.saved : AppIcons.save,
                                     size: metrics.actionIconSize,

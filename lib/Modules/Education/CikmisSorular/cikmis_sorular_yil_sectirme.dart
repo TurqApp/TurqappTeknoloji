@@ -124,6 +124,14 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
     });
   }
 
+  String _denemeLabelForYear(String yil) {
+    final index = yillar.indexOf(yil);
+    final safeIndex = index >= 0 ? index + 1 : 1;
+    return 'past_questions.mock_label'.trParams({
+      'index': safeIndex.toString(),
+    });
+  }
+
   bool _matchesSessionDoc(Map<String, dynamic> doc) {
     if ((doc['anaBaslik'] ?? '').toString() != widget.anaBaslik ||
         (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {

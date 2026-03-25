@@ -3,6 +3,7 @@ part of 'cikmis_sorular_yil_sectirme.dart';
 extension CikmisSorularYilSectirmeActionsPart
     on _CikmisSorularYilSectirmeState {
   void _openYear(BuildContext context, String yil) {
+    final denemeLabel = _denemeLabelForYear(yil);
     if (_isLanguageOrDirectBranch(widget.baslik2)) {
       Navigator.push(
         context,
@@ -11,6 +12,7 @@ extension CikmisSorularYilSectirmeActionsPart
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
             yil: yil,
+            denemeLabel: denemeLabel,
           ),
         ),
       );
@@ -26,6 +28,7 @@ extension CikmisSorularYilSectirmeActionsPart
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
             yil: yil,
+            denemeLabel: denemeLabel,
             baslik2: widget.baslik2,
           ),
         ),

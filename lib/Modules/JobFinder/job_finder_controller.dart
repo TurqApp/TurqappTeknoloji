@@ -70,7 +70,7 @@ class JobFinderController extends GetxController {
   RxList<JobModel> aramaSonucu = <JobModel>[].obs;
 
   TextEditingController search = TextEditingController();
-  var listingSelection = 0.obs;
+  var listingSelection = 1.obs;
   final RxBool listingSelectionReady = false.obs;
   var sehir = "".obs;
   final sehirler = <String>[].obs;

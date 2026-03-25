@@ -39,24 +39,38 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
     await _writeList(cacheKey, raw);
   }
 
-  Future<List<Map<String, dynamic>>> _fetchRootDocsFromFirestore() async {
-    final snap = await _firestore
-        .collection('questions')
-        .get(const GetOptions(source: Source.serverAndCache));
-    final docs = snap.docs
-        .map((doc) => _normalizeRootDoc(doc.id, doc.data()))
-        .where(_isActiveRootDoc)
-        .toList(growable: true);
-    docs.sort((a, b) {
-      final seqA = (a['sira'] as num?)?.toInt() ?? 0;
-      final seqB = (b['sira'] as num?)?.toInt() ?? 0;
-      final bySeq = seqA.compareTo(seqB);
-      if (bySeq != 0) return bySeq;
-      final tsA = (a['timeStamp'] as num?)?.toInt() ?? 0;
-      final tsB = (b['timeStamp'] as num?)?.toInt() ?? 0;
-      return tsB.compareTo(tsA);
-    });
-    return docs;
+  Future<List<Map<String, dynamic>>> _fetchRootDocsFromManifest() async {
+    try {
+      final bytes = await _storage
+          .ref('questions/questions_manifest.json')
+          .getData(4 * 1024 * 1024);
+      if (bytes == null || bytes.isEmpty) return const <Map<String, dynamic>>[];
+      final decoded = jsonDecode(utf8.decode(bytes));
+      final rawItems = switch (decoded) {
+        List<dynamic> list => list,
+        Map<String, dynamic> map => (map['items'] as List<dynamic>?) ?? const [],
+        _ => const <dynamic>[],
+      };
+      final docs = rawItems
+          .whereType<Map>()
+          .map((item) => _normalizeManifestRootDoc(Map<String, dynamic>.from(item)))
+          .where(_isActiveRootDoc)
+          .toList(growable: true);
+      docs.sort(_compareRootDocs);
+      return docs;
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
+  }
+
+  int _compareRootDocs(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final seqA = (a['sira'] as num?)?.toInt() ?? 0;
+    final seqB = (b['sira'] as num?)?.toInt() ?? 0;
+    final bySeq = seqA.compareTo(seqB);
+    if (bySeq != 0) return bySeq;
+    final tsA = (a['timeStamp'] as num?)?.toInt() ?? 0;
+    final tsB = (b['timeStamp'] as num?)?.toInt() ?? 0;
+    return tsB.compareTo(tsA);
   }
 
   Map<String, dynamic> _normalizeRootDoc(
@@ -81,6 +95,16 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
       'iptal': data['iptal'],
       'deleted': data['deleted'],
     };
+  }
+
+  Map<String, dynamic> _normalizeManifestRootDoc(Map<String, dynamic> data) {
+    final docId = (data['_docId'] ?? data['docId'] ?? '').toString();
+    final normalized = _normalizeRootDoc(docId, data);
+    final questionJsonPath = (data['questionJsonPath'] ?? '').toString();
+    if (questionJsonPath.isNotEmpty) {
+      normalized['questionJsonPath'] = questionJsonPath;
+    }
+    return normalized;
   }
 
   bool _isActiveRootDoc(Map<String, dynamic> doc) {

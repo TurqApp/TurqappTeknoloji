@@ -81,7 +81,10 @@ class _CikmisSorularState extends State<CikmisSorular> {
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final item = controller.searchResults[index];
-        final title = (item['title'] ?? item['anaBaslik'] ?? '').toString();
+        final anaBaslik = (item['anaBaslik'] ?? '').toString();
+        final title = anaBaslik.isNotEmpty
+            ? anaBaslik
+            : (item['title'] ?? '').toString();
         final sinavTuru = (item['sinavTuru'] ?? '').toString();
         final yil = (item['yil'] ?? '').toString();
         final baslik2 = (item['baslik2'] ?? '').toString();
@@ -104,7 +107,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
             ),
           ),
           subtitle: Text(
-            [sinavTuru, yil, baslik2, baslik3]
+            [sinavTuru, baslik2, baslik3]
                 .where((e) => e.isNotEmpty)
                 .join(' • '),
             style: const TextStyle(

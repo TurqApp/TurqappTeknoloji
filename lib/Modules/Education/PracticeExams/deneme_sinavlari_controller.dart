@@ -49,7 +49,7 @@ class DenemeSinavlariController extends GetxController {
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
-  final RxInt listingSelection = 0.obs;
+  final RxInt listingSelection = 1.obs;
   final RxBool listingSelectionReady = false.obs;
   final ScrollController scrollController = ScrollController();
   double _previousOffset = 0.0;

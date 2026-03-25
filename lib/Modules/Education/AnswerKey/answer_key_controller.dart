@@ -37,7 +37,7 @@ class AnswerKeyController extends GetxController {
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
-  final RxInt listingSelection = 0.obs;
+  final RxInt listingSelection = 1.obs;
   final RxBool listingSelectionReady = false.obs;
   var bookList = <BookletModel>[].obs;
   var searchResults = <BookletModel>[].obs;

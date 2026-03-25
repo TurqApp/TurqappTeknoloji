@@ -123,6 +123,7 @@ extension _DenemeGridListSectionsPart on DenemeGrid {
               EducationShareIconButton(
                 onTap: _shareExternally,
                 size: metrics.actionButtonSize,
+                radius: 6,
                 iconSize: metrics.actionIconSize,
               ),
               SizedBox(width: metrics.railActionGap),
@@ -134,6 +135,7 @@ extension _DenemeGridListSectionsPart on DenemeGrid {
                             model.docID,
                           ),
                   size: metrics.actionButtonSize,
+                  radius: 6,
                   child: Icon(
                     savedController.savedExamIds.contains(
                       model.docID,

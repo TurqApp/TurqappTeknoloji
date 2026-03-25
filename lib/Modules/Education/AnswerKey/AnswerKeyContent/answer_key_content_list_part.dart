@@ -9,6 +9,7 @@ extension AnswerKeyContentListPart on _AnswerKeyContentState {
       () => AppHeaderActionButton(
         onTap: controller.toggleBookmark,
         size: metrics.actionButtonSize,
+        radius: 6,
         child: Icon(
           controller.isBookmarked.value
               ? CupertinoIcons.bookmark_fill
@@ -141,6 +142,7 @@ extension AnswerKeyContentListPart on _AnswerKeyContentState {
                           EducationShareIconButton(
                             onTap: controller.shareBooklet,
                             size: metrics.actionButtonSize,
+                            radius: 6,
                             iconSize: metrics.actionIconSize,
                           ),
                           SizedBox(width: metrics.railActionGap),

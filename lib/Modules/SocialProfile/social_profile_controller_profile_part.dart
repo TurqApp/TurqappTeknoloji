@@ -109,12 +109,11 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
             SocialProfileController._followCheckCacheTtl) {
       takipEdiyorum.value = cached.isFollowing;
       complatedCheck.value = true;
-      return;
     }
     final isFollowing = await FollowRepository.ensure().isFollowing(
       userID,
       currentUid: currentUid,
-      preferCache: true,
+      preferCache: false,
     );
     takipEdiyorum.value = isFollowing;
     complatedCheck.value = true;

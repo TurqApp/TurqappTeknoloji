@@ -81,7 +81,6 @@ const SCHOLARSHIP_TYPESENSE_REDUCED_FIELDS = new Set([
     "authorDisplayName",
     "authorAvatarUrl",
     "detailsJson",
-    "logo",
     "img",
 ]);
 const TUTORING_TYPESENSE_REDUCED_FIELDS = new Set([
@@ -380,6 +379,7 @@ function requiredFields(entity) {
         { name: "country", type: "string", optional: true },
         { name: "tags", type: "string[]", optional: true },
         { name: "cover", type: "string", optional: true },
+        { name: "logo", type: "string", optional: true },
         { name: "nickname", type: "string", optional: true },
         { name: "displayName", type: "string", optional: true },
         { name: "avatarUrl", type: "string", optional: true },
@@ -638,6 +638,7 @@ function buildScholarshipDoc(docId, data) {
         displayName,
         avatarUrl,
         rozet: asString(data.rozet),
+        logo: asString(data.logo),
         shortDescription: asString(data.shortDescription),
         aciklama: asString(data.aciklama),
         img2: asString(data.img2),
@@ -1028,7 +1029,7 @@ function toHitOutput(hitRaw, collection) {
         aciklama: String(doc.aciklama || ""),
         img: String(doc.cover || ""),
         img2: String(doc.img2 || ""),
-        logo: "",
+        logo: String(doc.logo || ""),
         baslangicTarihi: String(doc.baslangicTarihi || ""),
         bitisTarihi: String(doc.bitisTarihi || ""),
         basvuruKosullari: String(doc.basvuruKosullari || ""),

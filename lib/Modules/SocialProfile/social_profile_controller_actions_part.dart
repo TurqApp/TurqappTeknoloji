@@ -121,13 +121,31 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
 
   Future<void> _performToggleFollowStatus() async {
     if (followLoading.value) return;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
+    if (currentUid.isEmpty || currentUid == userID) return;
     final bool wasFollowing = takipEdiyorum.value;
-    takipEdiyorum.value = !wasFollowing;
     followLoading.value = true;
     try {
+      if (!wasFollowing) {
+        final alreadyFollowing = await FollowRepository.ensure().isFollowing(
+          userID,
+          currentUid: currentUid,
+          preferCache: false,
+        );
+        if (alreadyFollowing) {
+          takipEdiyorum.value = true;
+          SocialProfileController._followCheckCache['$currentUid:$userID'] =
+              _SocialFollowCheckCacheEntry(
+            isFollowing: true,
+            cachedAt: DateTime.now(),
+          );
+          return;
+        }
+      }
+
+      takipEdiyorum.value = !wasFollowing;
       final outcome = await FollowService.toggleFollow(userID);
       takipEdiyorum.value = outcome.nowFollowing;
-      final currentUid = CurrentUserService.instance.effectiveUserId;
       if (currentUid.isNotEmpty) {
         SocialProfileController._followCheckCache['$currentUid:$userID'] =
             _SocialFollowCheckCacheEntry(

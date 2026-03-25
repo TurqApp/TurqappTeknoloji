@@ -14,7 +14,7 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
 
     if (cacheOnly) return const <Map<String, dynamic>>[];
 
-    final docs = await _fetchRootDocsFromFirestore();
+    final docs = await _fetchRootDocsFromManifest();
     await _writeList(cacheKey, docs);
     return docs;
   }
@@ -53,26 +53,16 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
         ids.where((e) => e.trim().isNotEmpty).toList(growable: false);
     if (wanted.isEmpty) return const <Map<String, dynamic>>[];
 
+    final docs = await fetchRootDocs(
+      preferCache: preferCache,
+      forceRefresh: !preferCache,
+    );
     final resolved = <String, Map<String, dynamic>>{};
-    if (preferCache) {
-      final cached = await fetchRootDocs();
-      for (final doc in cached) {
-        final id = (doc['_docId'] ?? '').toString();
-        if (id.isNotEmpty) {
-          resolved[id] = Map<String, dynamic>.from(doc);
-        }
+    for (final doc in docs) {
+      final id = (doc['_docId'] ?? '').toString();
+      if (id.isNotEmpty) {
+        resolved[id] = Map<String, dynamic>.from(doc);
       }
-    }
-
-    final missing = wanted.where((id) => !resolved.containsKey(id)).toList();
-    for (final id in missing) {
-      final doc = await _firestore
-          .collection('questions')
-          .doc(id)
-          .get(const GetOptions(source: Source.serverAndCache));
-      if (!doc.exists) continue;
-      final mapped = _normalizeRootDoc(doc.id, doc.data() ?? const {});
-      resolved[doc.id] = mapped;
     }
 
     return wanted
@@ -154,21 +144,7 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
       await _writeList(cacheKey, fromStorage);
       return fromStorage.map(_questionItemFromMap).toList(growable: false);
     }
-
-    final baseDoc = _firestore.collection('questions').doc(docId);
-    var questionsSnap = await baseDoc
-        .collection('questions')
-        .get(const GetOptions(source: Source.serverAndCache));
-    if (questionsSnap.docs.isEmpty) {
-      questionsSnap = await baseDoc
-          .collection('Sorular')
-          .get(const GetOptions(source: Source.serverAndCache));
-    }
-    final raw = questionsSnap.docs
-        .map((doc) => <String, dynamic>{'_docId': doc.id, ...doc.data()})
-        .toList(growable: false);
-    await _writeList(cacheKey, raw);
-    return raw.map(_questionItemFromMap).toList(growable: false);
+    return const <CikmisSorularinModeli>[];
   }
 
   Future<List<CikmisSoruSonucModel>> fetchUserResults(String uid) async {

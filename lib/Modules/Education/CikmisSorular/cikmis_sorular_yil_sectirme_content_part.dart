@@ -31,11 +31,12 @@ extension CikmisSorularYilSectirmeContentPart
                         ),
                         itemCount: yillar.length,
                         itemBuilder: (context, index) {
+                          final yil = yillar[index];
                           return GestureDetector(
-                            onTap: () => _openYear(context, yillar[index]),
+                            onTap: () => _openYear(context, yil),
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 2),
-                              child: _buildYearCard(yillar[index]),
+                              child: _buildYearCard(yil),
                             ),
                           );
                         },
@@ -52,6 +53,10 @@ extension CikmisSorularYilSectirmeContentPart
   }
 
   Widget _buildYearCard(String yil) {
+    final label = _denemeLabelForYear(yil);
+    final match = RegExp(r'^(.*?)(\d+)$').firstMatch(label.trim());
+    final title = match == null ? label : match.group(1)!.trim();
+    final number = match == null ? '' : match.group(2)!.trim();
     return Column(
       children: [
         Expanded(
@@ -75,14 +80,31 @@ extension CikmisSorularYilSectirmeContentPart
                 ),
               ],
             ),
-            child: Text(
-              yil,
-              textScaler: TextScaler.noScaling,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 25,
-                fontFamily: "MontserratBold",
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  textScaler: TextScaler.noScaling,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: "MontserratBold",
+                  ),
+                ),
+                if (number.isNotEmpty)
+                  Text(
+                    number,
+                    textScaler: TextScaler.noScaling,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontFamily: "MontserratBold",
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

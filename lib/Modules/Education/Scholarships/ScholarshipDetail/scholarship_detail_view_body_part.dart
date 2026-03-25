@@ -229,15 +229,6 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'scholarship.applications_heading'
-                                    .trParams({'title': model.baslik}),
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                              8.ph,
                               Text.rich(
                                 ScholarshipRichText.build(
                                   model.aciklama,

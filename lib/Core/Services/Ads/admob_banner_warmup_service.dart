@@ -10,12 +10,13 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 /// We treat banner inventory as an app-wide warm pool instead of creating
 /// independent speculative warmups on every page.
 class AdmobBannerWarmupService extends GetxService {
-  // Shared pool upper bound is 8, so startup primes most of the inventory
-  // without saturating the pool or triggering rate limiting on low-fill sessions.
-  static const int splashFirstLaunchTarget = 3;
-  static const int splashDefaultTarget = 2;
-  static const int feedEntryTarget = 1;
-  static const int pasajEntryTarget = 2;
+  static const int steadyStateTarget = 5;
+  // Shared pool upper bound is 8, so keeping 5 renderable banners ready leaves
+  // headroom while still rotating through all configured square ad units.
+  static const int splashFirstLaunchTarget = steadyStateTarget;
+  static const int splashDefaultTarget = steadyStateTarget;
+  static const int feedEntryTarget = steadyStateTarget;
+  static const int pasajEntryTarget = steadyStateTarget;
   static const Duration _entryWarmupMinInterval = Duration(seconds: 20);
   static const Duration _secondaryTopUpDelay = Duration(milliseconds: 2500);
 
@@ -60,11 +61,19 @@ class AdmobBannerWarmupService extends GetxService {
 
     final target =
         isFirstLaunch ? splashFirstLaunchTarget : splashDefaultTarget;
-    await AdmobKare.warmupPool(targetCount: target);
+    await AdmobKare.warmupPool(
+      targetCount: target,
+      maxRequestCount: target,
+      bypassMinInterval: true,
+    );
     if (target >= 3) {
       Future<void>.delayed(_secondaryTopUpDelay, () async {
         try {
-          await AdmobKare.warmupPool(targetCount: target);
+          await AdmobKare.warmupPool(
+            targetCount: target,
+            maxRequestCount: target,
+            bypassMinInterval: true,
+          );
         } catch (_) {}
       });
     }
@@ -100,7 +109,11 @@ class AdmobBannerWarmupService extends GetxService {
 
     await ensureInitialized();
     if (!_sdkReady) return;
-    await AdmobKare.warmupPool(targetCount: targetCount);
+    await AdmobKare.warmupPool(
+      targetCount: targetCount,
+      maxRequestCount: targetCount,
+      bypassMinInterval: true,
+    );
   }
 
   Future<void> _initializeInternal() async {

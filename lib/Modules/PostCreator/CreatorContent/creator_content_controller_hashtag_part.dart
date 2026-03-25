@@ -28,14 +28,9 @@ extension _CreatorContentControllerHashtagPart on CreatorContentController {
   void _performRefreshHashtagSuggestionsFromCursor() {
     final value = textEdit.value;
     final selection = value.selection;
-    if (!selection.isValid) {
-      activeHashtagQuery.value = '';
-      hashtagSuggestions.clear();
-      showHashtagSuggestions.value = false;
-      return;
-    }
-    final cursor =
-        selection.baseOffset >= 0 ? selection.baseOffset : value.text.length;
+    final cursor = selection.isValid && selection.baseOffset >= 0
+        ? selection.baseOffset
+        : value.text.length;
     final query = extractComposerHashtagQuery(value.text, cursor);
     if (query == null) {
       activeHashtagQuery.value = '';

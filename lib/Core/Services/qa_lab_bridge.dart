@@ -71,7 +71,7 @@ void _openQALabIfNeeded({required String trigger}) {
     },
   );
   unawaited(
-    Get.offAll<void>(() => const QALabView()) ?? Future<void>.value(),
+    Get.to<void>(() => const QALabView()) ?? Future<void>.value(),
   );
 }
 

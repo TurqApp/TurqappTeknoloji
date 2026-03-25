@@ -18,7 +18,7 @@ class ViewModeController extends GetxController {
   }
 
   static const String _viewModePrefKeyPrefix = 'pasaj_tutoring_view_mode';
-  var isGridView = false.obs;
+  var isGridView = true.obs;
   final RxBool isReady = false.obs;
 
   String _viewModeKeyFor(String uid) => '${_viewModePrefKeyPrefix}_$uid';
@@ -32,15 +32,15 @@ class ViewModeController extends GetxController {
   Future<void> _restoreViewMode() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      isGridView.value = false;
+      isGridView.value = true;
       isReady.value = true;
       return;
     }
     try {
       final prefs = await SharedPreferences.getInstance();
-      isGridView.value = prefs.getBool(_viewModeKeyFor(uid)) ?? false;
+      isGridView.value = prefs.getBool(_viewModeKeyFor(uid)) ?? true;
     } catch (_) {
-      isGridView.value = false;
+      isGridView.value = true;
     } finally {
       isReady.value = true;
     }

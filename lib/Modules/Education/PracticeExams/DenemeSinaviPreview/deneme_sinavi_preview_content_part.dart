@@ -58,6 +58,7 @@ extension DenemeSinaviPreviewContentPart on _DenemeSinaviPreviewState {
                 return const Center(child: CupertinoActivityIndicator());
               }
               if (controller.isInitialized.value &&
+                  controller.displayName.value.isEmpty &&
                   controller.nickname.value.isEmpty) {
                 return Center(
                   child: Padding(

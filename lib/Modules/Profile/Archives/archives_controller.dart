@@ -106,6 +106,32 @@ class ArchiveController extends GetxController {
     }
   }
 
+  void removeArchivedPost(String docId) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    final removedIndex = list.indexWhere(
+      (post) => post.docID.trim() == normalizedDocId,
+    );
+    if (removedIndex < 0) return;
+
+    disposeAgendaContentController(normalizedDocId);
+    list.removeAt(removedIndex);
+
+    if (list.isEmpty) {
+      centeredIndex.value = -1;
+      currentVisibleIndex.value = -1;
+      lastCenteredIndex = null;
+      _pendingCenteredDocId = null;
+      return;
+    }
+
+    final nextIndex = removedIndex.clamp(0, list.length - 1);
+    centeredIndex.value = nextIndex;
+    currentVisibleIndex.value = nextIndex;
+    lastCenteredIndex = nextIndex;
+    capturePendingCenteredEntry(preferredIndex: nextIndex);
+  }
+
   int _resolveRestoreIndex() {
     if (list.isEmpty) return -1;
     final pendingDocId = _pendingCenteredDocId;

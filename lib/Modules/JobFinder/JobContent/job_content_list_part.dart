@@ -112,6 +112,7 @@ extension _JobContentListPart on _JobContentState {
                           AppHeaderActionButton(
                             onTap: () => controller.shareJob(model),
                             size: metrics.actionButtonSize,
+                            radius: 6,
                             child: Icon(
                               AppIcons.share,
                               size: metrics.actionIconSize,
@@ -125,6 +126,7 @@ extension _JobContentListPart on _JobContentState {
                                   ? null
                                   : () => controller.toggleSave(model.docID),
                               size: metrics.actionButtonSize,
+                              radius: 6,
                               child: Icon(
                                 controller.saved.value
                                     ? AppIcons.saved

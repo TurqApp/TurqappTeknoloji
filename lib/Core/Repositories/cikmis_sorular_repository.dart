@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,15 +11,12 @@ part 'cikmis_sorular_repository_detail_part.dart';
 
 class CikmisSorularRepository extends GetxService {
   CikmisSorularRepository({
-    FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  }) : _storage = storage ?? FirebaseStorage.instance;
 
-  final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
   static const Duration _ttl = Duration(hours: 12);
-  static const String _prefsPrefix = 'cikmis_sorular_repository_v1';
+  static const String _prefsPrefix = 'cikmis_sorular_repository_v3';
   final Map<String, _TimedJsonList> _memory = <String, _TimedJsonList>{};
   SharedPreferences? _prefs;
 

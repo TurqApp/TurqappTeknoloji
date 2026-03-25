@@ -86,7 +86,7 @@ extension _ProfileViewResharePart on _ProfileViewState {
                         child: Icon(
                           CupertinoIcons.play_circle_fill,
                           color: Colors.white,
-                          size: 20,
+                          size: 18,
                         ),
                       ),
                     if (model.img.isNotEmpty)

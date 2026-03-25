@@ -69,7 +69,7 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
                         child: Icon(
                           CupertinoIcons.play_circle_fill,
                           color: Colors.white,
-                          size: 20,
+                          size: 18,
                         ),
                       ),
                     if (!model.hasPlayableVideo && model.img.isNotEmpty)
@@ -291,7 +291,7 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
                       child: Icon(
                         CupertinoIcons.play_circle_fill,
                         color: Colors.white,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
                     Positioned(

@@ -9,6 +9,7 @@ class CikmisSorularBaslik3Secimi extends StatefulWidget {
   final String anaBaslik;
   final String sinavTuru;
   final String yil;
+  final String denemeLabel;
   final String baslik2;
   final int? sira;
 
@@ -17,6 +18,7 @@ class CikmisSorularBaslik3Secimi extends StatefulWidget {
     required this.anaBaslik,
     required this.sinavTuru,
     required this.yil,
+    this.denemeLabel = '',
     required this.baslik2,
     this.sira,
   });
@@ -85,8 +87,9 @@ class _CikmisSorularBaslik3SecimiState
                   const SizedBox(width: 8),
                   Expanded(
                     child: AppPageTitle(
-                      'past_questions.sessions_by_year'
-                          .trParams({'year': widget.yil}),
+                      widget.denemeLabel.isEmpty
+                          ? widget.yil
+                          : '${widget.denemeLabel} Oturumlar',
                       fontSize: 25,
                     ),
                   ),

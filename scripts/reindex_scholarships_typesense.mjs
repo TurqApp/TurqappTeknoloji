@@ -153,6 +153,7 @@ function requiredFields() {
     { name: 'country', type: 'string', optional: true },
     { name: 'tags', type: 'string[]', optional: true },
     { name: 'cover', type: 'string', optional: true },
+    { name: 'logo', type: 'string', optional: true },
     { name: 'nickname', type: 'string', optional: true },
     { name: 'displayName', type: 'string', optional: true },
     { name: 'avatarUrl', type: 'string', optional: true },
@@ -230,6 +231,7 @@ function buildScholarshipDoc(docId, data) {
       ...asStringArray(data.tags),
     ]),
     cover: asString(data.img) || asString(data.logo),
+    logo: asString(data.logo),
     nickname: asString(data.nickname) || asString(data.authorNickname),
     displayName:
       asString(data.displayName) ||

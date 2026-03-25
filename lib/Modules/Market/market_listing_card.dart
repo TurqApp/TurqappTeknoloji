@@ -18,6 +18,7 @@ class MarketListingCard extends StatelessWidget {
     required this.isSaved,
     required this.onOpen,
     required this.onToggleSaved,
+    this.actionButtonRadius = 10,
   });
 
   static const MarketContactService _contactService = MarketContactService();
@@ -26,6 +27,7 @@ class MarketListingCard extends StatelessWidget {
   final bool isSaved;
   final Future<void> Function() onOpen;
   final Future<void> Function() onToggleSaved;
+  final double actionButtonRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -145,6 +147,7 @@ class MarketListingCard extends StatelessWidget {
                                 item,
                               ),
                               size: metrics.actionButtonSize,
+                              radius: actionButtonRadius,
                               child: Icon(
                                 AppIcons.share,
                                 color: Colors.black.withValues(alpha: 0.85),
@@ -155,6 +158,7 @@ class MarketListingCard extends StatelessWidget {
                             AppHeaderActionButton(
                               onTap: () async => onToggleSaved(),
                               size: metrics.actionButtonSize,
+                              radius: actionButtonRadius,
                               child: Icon(
                                 isSaved ? AppIcons.saved : AppIcons.save,
                                 color: isSaved

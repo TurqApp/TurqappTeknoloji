@@ -1,13 +1,11 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 
 class CikmisSorularSnapshotRepository extends GetxService {
   CikmisSorularSnapshotRepository();
 
   static const String _homeSurfaceKey = 'past_question_home_snapshot';
-  static const String _searchSurfaceKey = 'past_question_search_snapshot';
 
   static CikmisSorularSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<CikmisSorularSnapshotRepository>();
@@ -27,7 +25,7 @@ class CikmisSorularSnapshotRepository extends GetxService {
       CacheFirstCoordinator<List<Map<String, dynamic>>>(
     memoryStore: MemoryScopedSnapshotStore<List<Map<String, dynamic>>>(),
     snapshotStore: SharedPrefsScopedSnapshotStore<List<Map<String, dynamic>>>(
-      prefsPrefix: 'past_question_snapshot_v1',
+      prefsPrefix: 'past_question_snapshot_v3',
       encode: _encodeDocs,
       decode: _decodeDocs,
     ),
@@ -58,17 +56,6 @@ class CikmisSorularSnapshotRepository extends GetxService {
     liveSource: CachedResourceSource.server,
   );
 
-  late final EducationTypesenseDocIdHydrationAdapter<List<Map<String, dynamic>>>
-      _searchAdapter =
-      EducationTypesenseDocIdHydrationAdapter<List<Map<String, dynamic>>>(
-    surfaceKey: _searchSurfaceKey,
-    coordinator: _coordinator,
-    fetchDocIds: EducationTypesenseDocIdHydrationAdapter.defaultFetchDocIds,
-    hydrate: (docIds) => _repository.fetchRootDocsByIds(docIds),
-    loadWarmSnapshot: _loadWarmSearchSnapshot,
-    isEmpty: (docs) => docs.isEmpty,
-  );
-
   Stream<CachedResource<List<Map<String, dynamic>>>> openHome({
     required String userId,
     bool forceSync = false,
@@ -91,18 +78,50 @@ class CikmisSorularSnapshotRepository extends GetxService {
     required String userId,
     int limit = 40,
     bool forceSync = false,
-  }) {
-    return _searchAdapter.open(
-      EducationTypesenseDocIdQuery(
-        entity: EducationTypesenseEntity.pastQuestion,
-        query: query,
-        limit: limit,
-        page: 1,
-        userId: userId,
-        scopeTag: 'search',
-      ),
-      forceSync: forceSync,
-    );
+  }) async* {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty) {
+      yield const CachedResource<List<Map<String, dynamic>>>(
+        data: <Map<String, dynamic>>[],
+        hasLocalSnapshot: false,
+        isRefreshing: false,
+        isStale: false,
+        hasLiveError: false,
+        snapshotAt: null,
+        source: CachedResourceSource.none,
+      );
+      return;
+    }
+
+    try {
+      final docs = await _repository.fetchRootDocs(
+        preferCache: !forceSync,
+        forceRefresh: forceSync,
+      );
+      yield CachedResource<List<Map<String, dynamic>>>(
+        data: _filterSearchDocs(docs, normalizedQuery, limit: limit),
+        hasLocalSnapshot: !forceSync,
+        isRefreshing: false,
+        isStale: false,
+        hasLiveError: false,
+        snapshotAt: DateTime.now(),
+        source: forceSync
+            ? CachedResourceSource.server
+            : CachedResourceSource.scopedDisk,
+      );
+    } catch (error, stackTrace) {
+      yield CachedResource<List<Map<String, dynamic>>>(
+        data: const <Map<String, dynamic>>[],
+        hasLocalSnapshot: false,
+        isRefreshing: false,
+        isStale: false,
+        hasLiveError: true,
+        snapshotAt: null,
+        source: CachedResourceSource.none,
+        liveError: error,
+        liveErrorStackTrace: stackTrace,
+      );
+    }
   }
 
   Future<CachedResource<List<Map<String, dynamic>>>> search({
@@ -117,25 +136,6 @@ class CikmisSorularSnapshotRepository extends GetxService {
       limit: limit,
       forceSync: forceSync,
     ).last;
-  }
-
-  Future<List<Map<String, dynamic>>?> _loadWarmSearchSnapshot(
-    EducationTypesenseDocIdQuery query,
-  ) async {
-    final raw = await TypesenseEducationSearchService.instance.searchHits(
-      entity: query.entity,
-      query: query.query,
-      limit: query.limit,
-      page: query.page,
-      filterBy: query.filterBy,
-      sortBy: query.sortBy,
-      cacheOnly: true,
-    );
-    final docs = raw.hits
-        .map(_docFromHit)
-        .where((doc) => (doc['_docId'] ?? '').toString().isNotEmpty)
-        .toList(growable: false);
-    return docs.isEmpty ? null : docs;
   }
 
   Map<String, dynamic> _encodeDocs(List<Map<String, dynamic>> docs) {
@@ -155,21 +155,32 @@ class CikmisSorularSnapshotRepository extends GetxService {
         .toList(growable: false);
   }
 
-  Map<String, dynamic> _docFromHit(Map<String, dynamic> hit) {
-    return <String, dynamic>{
-      '_docId': (hit['docId'] ?? hit['id'] ?? '').toString(),
-      'anaBaslik': (hit['anaBaslik'] ?? '').toString(),
-      'sinavTuru': (hit['sinavTuru'] ?? '').toString(),
-      'yil': (hit['yil'] ?? '').toString(),
-      'baslik2': (hit['baslik2'] ?? '').toString(),
-      'baslik3': (hit['baslik3'] ?? '').toString(),
-      'dil': (hit['dil'] ?? '').toString(),
-      'sira': (hit['seq'] as num?)?.toInt() ?? 0,
-      'title': (hit['title'] ?? '').toString(),
-      'subtitle': (hit['subtitle'] ?? '').toString(),
-      'description': (hit['description'] ?? '').toString(),
-      'cover': (hit['cover'] ?? '').toString(),
-      'timeStamp': hit['timeStamp'] ?? 0,
-    };
+  List<Map<String, dynamic>> _filterSearchDocs(
+    List<Map<String, dynamic>> docs,
+    String query, {
+    required int limit,
+  }) {
+    final terms = query
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    if (terms.isEmpty) return const <Map<String, dynamic>>[];
+
+    return docs.where((doc) {
+      final haystack = [
+        doc['anaBaslik'],
+        doc['sinavTuru'],
+        doc['yil'],
+        doc['baslik2'],
+        doc['baslik3'],
+        doc['dil'],
+        doc['title'],
+        doc['subtitle'],
+        doc['description'],
+      ].map((value) => (value ?? '').toString().toLowerCase()).join(' ');
+      return terms.every(haystack.contains);
+    }).take(limit).map(Map<String, dynamic>.from).toList(growable: false);
   }
 }

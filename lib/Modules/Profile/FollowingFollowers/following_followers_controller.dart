@@ -191,12 +191,18 @@ class FollowingFollowersController extends GetxController {
     _loadNicknameCached();
     final followersCached = _restoreRelationListCache(isFollowers: true);
     final followingsCached = _restoreRelationListCache(isFollowers: false);
-    if (!followersCached) {
-      unawaited(getFollowers(initial: true));
-    }
-    if (!followingsCached) {
-      unawaited(getFollowing(initial: true));
-    }
+    unawaited(
+      getFollowers(
+        initial: true,
+        forceServer: followersCached,
+      ),
+    );
+    unawaited(
+      getFollowing(
+        initial: true,
+        forceServer: followingsCached,
+      ),
+    );
     unawaited(
       _reconcileInitialRelations(
         followersCached: followersCached,
@@ -210,12 +216,28 @@ class FollowingFollowersController extends GetxController {
     required bool followingsCached,
   }) async {
     await getCounters();
-    if (takipciCounter.value > 0 && takipciler.isEmpty && !isLoadingFollowers) {
+    final expectedFollowers = takipciCounter.value.clamp(
+      0,
+      ReadBudgetRegistry.followRelationPreviewInitialLimit,
+    );
+    if ((takipciCounter.value > 0 && takipciler.isEmpty && !isLoadingFollowers) ||
+        (followersCached &&
+            !isLoadingFollowers &&
+            takipciler.length < expectedFollowers)) {
       await getFollowers(initial: true, forceServer: true);
     }
+    final expectedFollowing = takipedilenCounter.value.clamp(
+      0,
+      ReadBudgetRegistry.followRelationPreviewInitialLimit,
+    );
     if (takipedilenCounter.value > 0 &&
         takipEdilenler.isEmpty &&
         !isLoadingFollowing) {
+      await getFollowing(initial: true, forceServer: true);
+    }
+    if (followingsCached &&
+        !isLoadingFollowing &&
+        takipEdilenler.length < expectedFollowing) {
       await getFollowing(initial: true, forceServer: true);
     }
   }

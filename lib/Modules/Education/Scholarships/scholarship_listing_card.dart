@@ -24,6 +24,13 @@ class ScholarshipListingCard extends StatelessWidget {
   final Future<void> Function() onToggleSaved;
   final Future<void> Function() onShare;
 
+  static final TextStyle _titleStyle =
+      PasajCardStyles.lineOne.copyWith(fontSize: 14);
+  static final TextStyle _descriptionStyle =
+      PasajCardStyles.lineTwo.copyWith(fontSize: 13);
+  static final TextStyle _deadlineStyle =
+      PasajCardStyles.detail.copyWith(fontSize: 11);
+
   @override
   Widget build(BuildContext context) {
     final burs = scholarshipData['model'] as IndividualScholarshipsModel;
@@ -82,7 +89,7 @@ class ScholarshipListingCard extends StatelessWidget {
                                 burs.baslik,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: PasajCardStyles.lineOne,
+                                style: _titleStyle,
                               ),
                             ),
                           ),
@@ -96,7 +103,7 @@ class ScholarshipListingCard extends StatelessWidget {
                                       description,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: PasajCardStyles.lineTwo,
+                                      style: _descriptionStyle,
                                     )
                                   : const SizedBox.shrink(),
                             ),
@@ -111,7 +118,7 @@ class ScholarshipListingCard extends StatelessWidget {
                                       deadlineLabel,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: PasajCardStyles.detail,
+                                      style: _deadlineStyle,
                                     )
                                   : const SizedBox.shrink(),
                             ),

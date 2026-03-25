@@ -3,8 +3,11 @@ part of 'profile_view.dart';
 extension _ProfileViewProfilePart on _ProfileViewState {
   CurrentUserModel? get _reactiveCurrentUser => userService.currentUserRx.value;
 
-  String get _myUserId =>
-      _reactiveCurrentUser?.userID ?? userService.effectiveUserId;
+  String get _myUserId {
+    final cached = (_reactiveCurrentUser?.userID ?? '').trim();
+    if (cached.isNotEmpty) return cached;
+    return userService.effectiveUserId;
+  }
 
   String get _myNickname => _reactiveCurrentUser?.nickname ?? userService.nickname;
 

@@ -122,7 +122,11 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   bool get isLoggedIn => _currentUser != null;
 
   /// Current user ID (shortcut)
-  String get userId => _currentUser?.userID ?? '';
+  String get userId {
+    final cached = (_currentUser?.userID ?? '').trim();
+    if (cached.isNotEmpty) return cached;
+    return effectiveUserId;
+  }
 
   /// Auth fallback dahil efektif kullanıcı ID'si.
   String get effectiveUserId => _performEffectiveUserId();

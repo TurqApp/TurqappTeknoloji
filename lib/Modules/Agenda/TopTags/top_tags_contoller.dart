@@ -95,9 +95,13 @@ class TopTagsController extends GetxController {
     isLoadingMore = false;
   }
 
-  Future<void> getTags() async {
+  Future<void> getTags({bool forceRefresh = false}) async {
     try {
-      final list = await _repo.fetchTrendingTags(resultLimit: 15);
+      final list = await _repo.fetchTrendingTags(
+        resultLimit: 15,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
       tags.assignAll(list);
     } catch (_) {}
   }

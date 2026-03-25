@@ -25,7 +25,10 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     controller = RecommendedUserListController.ensure();
     _scrollController = ScrollController(keepScrollOffset: false);
     // İlk frame’den sonra görünürlüğe yakınsa prefetch et
-    WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _tryPrefetch();
+    });
   }
 
   @override
@@ -37,7 +40,10 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   @override
   Widget build(BuildContext context) {
     // Her build sonrası konumu tekrar kontrol et (scroll ile tetiklenir)
-    WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _tryPrefetch();
+    });
 
     return Obx(() {
       // Slot akışta sabit kalsın; veri gelene kadar placeholder göster.
@@ -105,6 +111,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   }
 
   void _tryPrefetch() {
+    if (!mounted) return;
     if (_prefetchRequested) return;
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.attached) return;

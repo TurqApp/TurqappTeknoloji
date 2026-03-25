@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 
 class EducationActionIconButton extends StatelessWidget {
   const EducationActionIconButton({
@@ -9,6 +10,7 @@ class EducationActionIconButton extends StatelessWidget {
     this.icon,
     this.child,
     this.size = 28,
+    this.radius = AppIconSurface.kRadius,
     this.iconSize = 17,
     this.iconColor = Colors.black87,
   }) : assert(icon != null || child != null);
@@ -17,6 +19,7 @@ class EducationActionIconButton extends StatelessWidget {
   final IconData? icon;
   final Widget? child;
   final double size;
+  final double radius;
   final double iconSize;
   final Color iconColor;
 
@@ -25,6 +28,7 @@ class EducationActionIconButton extends StatelessWidget {
     return AppHeaderActionButton(
       onTap: onTap,
       size: size,
+      radius: radius,
       child: child ??
           Icon(
             icon,
@@ -40,11 +44,13 @@ class EducationShareIconButton extends StatelessWidget {
     super.key,
     required this.onTap,
     this.size = 28,
+    this.radius = AppIconSurface.kRadius,
     this.iconSize = 18,
   });
 
   final VoidCallback onTap;
   final double size;
+  final double radius;
   final double iconSize;
 
   @override
@@ -53,6 +59,7 @@ class EducationShareIconButton extends StatelessWidget {
       onTap: onTap,
       icon: CupertinoIcons.share_up,
       size: size,
+      radius: radius,
       iconSize: iconSize,
     );
   }

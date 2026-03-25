@@ -216,7 +216,19 @@ extension CreatorContentMediaVideoPart on CreatorContent {
             final labelKey = _videoLookLabelKeys[preset] ?? '';
             final label = labelKey.isNotEmpty ? labelKey.tr : preset;
             final icon = _videoLookIcons[preset] ?? CupertinoIcons.circle;
-            final palette = _lookPalette(preset);
+            final shellColors = isSelected
+                ? const <Color>[Color(0xFF1C1C1E), Color(0xFF111113)]
+                : const <Color>[Color(0xFFFFFFFF), Color(0xFFF6F7F9)];
+            final previewColors = isSelected
+                ? const <Color>[Color(0xFF2B2B2E), Color(0xFF161618)]
+                : const <Color>[Color(0xFFF3F4F6), Color(0xFFE8EBF0)];
+            final borderColor = isSelected
+                ? const Color(0xFF1C1C1E)
+                : const Color(0xFFE2E5EA);
+            final glowColor =
+                isSelected ? const Color(0x22000000) : const Color(0x11000000);
+            final textColor =
+                isSelected ? Colors.white : const Color(0xFF25282C);
             return Padding(
               padding: const EdgeInsets.only(right: 5),
               child: GestureDetector(
@@ -230,20 +242,16 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors:
-                          isSelected ? palette.activeShell : palette.idleShell,
+                      colors: shellColors,
                     ),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSelected
-                          ? palette.borderStrong
-                          : palette.borderSoft,
+                      color: borderColor,
                       width: isSelected ? 1.3 : 1,
                     ),
                     boxShadow: <BoxShadow>[
                       BoxShadow(
-                        color:
-                            isSelected ? palette.glow : const Color(0x11000000),
+                        color: glowColor,
                         blurRadius: isSelected ? 22 : 12,
                         offset: const Offset(0, 10),
                       ),
@@ -264,7 +272,7 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                                   gradient: LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
-                                    colors: palette.preview,
+                                    colors: previewColors,
                                   ),
                                 ),
                               ),
@@ -274,7 +282,10 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                                   width: preset == 'bright' ? 20 : 14,
                                   margin: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(
+                                    color: (isSelected
+                                            ? Colors.white
+                                            : const Color(0xFFCFD5DD))
+                                        .withValues(
                                       alpha: preset == 'bright' ? 0.94 : 0.76,
                                     ),
                                     borderRadius: BorderRadius.circular(99),
@@ -289,8 +300,14 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: <Color>[
-                                        Colors.white.withValues(alpha: 0.92),
-                                        Colors.white.withValues(alpha: 0.18),
+                                        (isSelected
+                                                ? Colors.white
+                                                : const Color(0xFFBFC7D0))
+                                            .withValues(alpha: 0.92),
+                                        (isSelected
+                                                ? Colors.white
+                                                : const Color(0xFFBFC7D0))
+                                            .withValues(alpha: 0.18),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(99),
@@ -301,7 +318,7 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                                 child: Icon(
                                   icon,
                                   size: 10,
-                                  color: palette.text,
+                                  color: textColor,
                                 ),
                               ),
                             ],
@@ -316,7 +333,7 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: palette.text,
+                            color: textColor,
                             fontSize: 7.6,
                             fontFamily: isSelected
                                 ? 'MontserratBold'

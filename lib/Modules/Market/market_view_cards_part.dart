@@ -36,6 +36,7 @@ extension _MarketViewCardsPart on MarketView {
           item,
           showSnackbar: false,
         ),
+        actionButtonRadius: 6,
       ),
     );
   }

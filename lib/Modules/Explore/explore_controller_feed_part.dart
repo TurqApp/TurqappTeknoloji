@@ -359,11 +359,14 @@ extension ExploreControllerFeedPart on ExploreController {
     return valid;
   }
 
-  Future<void> _performFetchTrendingTags() async {
+  Future<void> _performFetchTrendingTags({
+    bool forceRefresh = false,
+  }) async {
     try {
       final tags = await _topTagsRepository.fetchTrendingTags(
         resultLimit: 30,
-        preferCache: true,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
       trendingTags.assignAll(tags);
     } catch (_) {

@@ -35,6 +35,7 @@ class DenemeSinaviPreviewController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
+  var displayName = "".obs;
   var nickname = "".obs;
   var avatarUrl = "".obs;
   var dahaOnceBasvurdu = false.obs;
@@ -88,7 +89,8 @@ class DenemeSinaviPreviewController extends GetxController {
             preferCache: true,
           ) ??
           _userSummaryResolver.resolveFromMaps(model.userID);
-      nickname.value = data.preferredName;
+      displayName.value = data.preferredName;
+      nickname.value = data.nickname.trim();
       avatarUrl.value = data.avatarUrl;
     } catch (error) {
       AppSnackbar('common.error'.tr, 'practice.user_load_failed'.tr);

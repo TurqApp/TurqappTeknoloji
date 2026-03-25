@@ -30,6 +30,7 @@ import '../../Core/Repositories/feed_snapshot_repository.dart';
 import '../../Core/Repositories/job_home_snapshot_repository.dart';
 import '../../Core/Repositories/short_snapshot_repository.dart';
 import '../../Core/Services/CacheFirst/cached_resource.dart';
+import '../../Modules/Agenda/TopTags/top_tags_repository.dart';
 import '../../Modules/Agenda/agenda_controller.dart';
 import '../../Modules/Education/education_controller.dart';
 import '../../Modules/Explore/explore_controller.dart';

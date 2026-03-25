@@ -54,8 +54,11 @@ class PageLineBar extends StatefulWidget {
 
 class _PageLineBarState extends State<PageLineBar> {
   late PageLineBarController controller;
+  final ScrollController _scrollController = ScrollController();
+  late List<GlobalKey> _tabKeys;
   bool _didInit = false;
   bool _ownsController = false;
+  int? _lastRevealedIndex;
 
   void _syncExternalPageController(
     int index, {
@@ -90,6 +93,10 @@ class _PageLineBarState extends State<PageLineBar> {
   @override
   void initState() {
     super.initState();
+    _tabKeys = List<GlobalKey>.generate(
+      widget.barList.length,
+      (_) => GlobalKey(),
+    );
     _ownsController =
         PageLineBarController.maybeFind(tag: widget.pageName) == null;
     controller = PageLineBarController.ensure(
@@ -111,7 +118,36 @@ class _PageLineBarState extends State<PageLineBar> {
   }
 
   @override
+  void didUpdateWidget(covariant PageLineBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.barList.length != widget.barList.length) {
+      _tabKeys = List<GlobalKey>.generate(
+        widget.barList.length,
+        (_) => GlobalKey(),
+      );
+      _lastRevealedIndex = null;
+    }
+  }
+
+  void _scheduleSelectedTabReveal(int index) {
+    if (!widget.isScrollable || _lastRevealedIndex == index) return;
+    _lastRevealedIndex = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || index < 0 || index >= _tabKeys.length) return;
+      final targetContext = _tabKeys[index].currentContext;
+      if (targetContext == null) return;
+      Scrollable.ensureVisible(
+        targetContext,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   void dispose() {
+    _scrollController.dispose();
     if (_ownsController &&
         maybeFindPageLineBarController(widget.pageName) == controller) {
       Get.delete<PageLineBarController>(
@@ -126,12 +162,15 @@ class _PageLineBarState extends State<PageLineBar> {
   Widget build(BuildContext context) {
     return Obx(
       () {
+        final selectedIndex = controller.selection.value;
+        _scheduleSelectedTabReveal(selectedIndex);
         final items = List.generate(
           widget.barList.length,
           (index) => _buildTabItem(index, scrollable: widget.isScrollable),
         );
         if (widget.isScrollable) {
           return SingleChildScrollView(
+            controller: _scrollController,
             scrollDirection: Axis.horizontal,
             child: Padding(
               padding: widget.scrollablePadding,
@@ -149,44 +188,32 @@ class _PageLineBarState extends State<PageLineBar> {
     required bool scrollable,
   }) {
     final item = widget.barList[index];
-    final content = GestureDetector(
-      key: ValueKey(
-        IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
-      ),
-      onTap: () {
-        controller.selection.value = index;
-        _syncExternalPageController(index, animate: true);
-      },
-      child: Container(
-        height: 40,
-        color: Colors.white,
-        padding: scrollable
-            ? EdgeInsets.symmetric(
-                horizontal: widget.scrollableTabHorizontalPadding,
-              )
-            : null,
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: scrollable
-                    ? Text(
-                        item,
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: widget.fontSize,
-                          fontFamily: controller.selection.value == index
-                              ? AppFontFamilies.mbold
-                              : AppFontFamilies.mmedium,
-                        ),
-                      )
-                    : FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
+    final content = KeyedSubtree(
+      key: _tabKeys[index],
+      child: GestureDetector(
+        key: ValueKey(
+          IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
+        ),
+        onTap: () {
+          controller.selection.value = index;
+          _syncExternalPageController(index, animate: true);
+        },
+        child: Container(
+          height: 40,
+          color: Colors.white,
+          padding: scrollable
+              ? EdgeInsets.symmetric(
+                  horizontal: widget.scrollableTabHorizontalPadding,
+                )
+              : null,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: scrollable
+                      ? Text(
                           item,
                           maxLines: 1,
                           softWrap: false,
@@ -197,19 +224,34 @@ class _PageLineBarState extends State<PageLineBar> {
                                 ? AppFontFamilies.mbold
                                 : AppFontFamilies.mmedium,
                           ),
+                        )
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            item,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: widget.fontSize,
+                              fontFamily: controller.selection.value == index
+                                  ? AppFontFamilies.mbold
+                                  : AppFontFamilies.mmedium,
+                            ),
+                          ),
                         ),
-                      ),
-              ),
-            ),
-            if (controller.selection.value == index)
-              Container(
-                height: 3,
-                decoration: const BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.all(Radius.circular(50)),
                 ),
               ),
-          ],
+              if (controller.selection.value == index)
+                Container(
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

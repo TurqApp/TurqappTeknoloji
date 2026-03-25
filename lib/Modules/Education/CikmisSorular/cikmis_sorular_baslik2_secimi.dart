@@ -10,6 +10,7 @@ class CikmisSorularBaslik2Secimi extends StatefulWidget {
   final String anaBaslik;
   final String sinavTuru;
   final String yil;
+  final String denemeLabel;
   final int? sira;
 
   const CikmisSorularBaslik2Secimi({
@@ -17,6 +18,7 @@ class CikmisSorularBaslik2Secimi extends StatefulWidget {
     required this.anaBaslik,
     required this.sinavTuru,
     required this.yil,
+    this.denemeLabel = '',
     this.sira,
   });
 
@@ -84,10 +86,8 @@ class _CikmisSorularBaslik2SecimiState
         child: Column(
           children: [
             BackButtons(
-              text: 'past_questions.tests_by_year'.trParams({
-                'type': _localizedExamType(widget.sinavTuru),
-                'year': widget.yil,
-              }),
+              text:
+                  '${_localizedExamType(widget.sinavTuru)} ${widget.denemeLabel.isEmpty ? widget.yil : widget.denemeLabel}',
             ),
             Expanded(
               child: Container(
@@ -118,6 +118,7 @@ class _CikmisSorularBaslik2SecimiState
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       yil: widget.yil,
+                                      denemeLabel: widget.denemeLabel,
                                       baslik2: basliklar[index],
                                       sira: widget.sira,
                                     ),

@@ -44,6 +44,13 @@ extension _SplashViewStartupPart on _SplashViewState {
       _registerDependencies();
       unawaited(_requestTrackingPermission());
       unawaited(_initAdMob(isFirstLaunch: isFirstLaunch));
+      unawaited(
+        TopTagsRepository.ensure().fetchTrendingTags(
+          resultLimit: 30,
+          preferCache: false,
+          forceRefresh: true,
+        ),
+      );
 
       if (userService.effectiveUserId.isNotEmpty) {
         unawaited(MandatoryFollowService.instance.enforceForCurrentUser());

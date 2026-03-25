@@ -1,6 +1,28 @@
 part of 'follow_repository.dart';
 
 extension FollowRepositoryQueryPart on FollowRepository {
+  Future<List<String>> _fetchRelationPreviewIdsOnce(
+    String uid, {
+    required String relation,
+    required int limit,
+    required Source source,
+  }) async {
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection(relation);
+    try {
+      final snap = await query
+          .orderBy('timeStamp', descending: true)
+          .limit(limit)
+          .get(GetOptions(source: source));
+      return snap.docs.map((doc) => doc.id.trim()).toList(growable: false);
+    } on FirebaseException {
+      final snap = await query.limit(limit).get(GetOptions(source: source));
+      return snap.docs.map((doc) => doc.id.trim()).toList(growable: false);
+    }
+  }
+
   Future<Set<String>> getFollowingIds(
     String uid, {
     bool preferCache = true,
@@ -68,24 +90,34 @@ extension FollowRepositoryQueryPart on FollowRepository {
     final fetchLimit = limit <= 0
         ? ReadBudgetRegistry.followRelationPreviewInitialLimit
         : limit;
-    final source = forceRefresh
+    final initialSource = forceRefresh
         ? Source.server
         : (preferCache ? Source.serverAndCache : Source.server);
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection(relation);
-    try {
-      final snap = await query
-          .orderBy('timeStamp', descending: true)
-          .limit(fetchLimit)
-          .get(GetOptions(source: source));
-      return snap.docs.map((doc) => doc.id).toList(growable: false);
-    } on FirebaseException {
-      final snap =
-          await query.limit(fetchLimit).get(GetOptions(source: source));
-      return snap.docs.map((doc) => doc.id).toList(growable: false);
+    final first = await _fetchRelationPreviewIdsOnce(
+      uid,
+      relation: relation,
+      limit: fetchLimit,
+      source: initialSource,
+    );
+    final normalizedFirst = first
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+
+    if (forceRefresh || !preferCache || normalizedFirst.length >= fetchLimit) {
+      return normalizedFirst;
     }
+
+    final refreshed = await _fetchRelationPreviewIdsOnce(
+      uid,
+      relation: relation,
+      limit: fetchLimit,
+      source: Source.server,
+    );
+    return refreshed
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
   }
 
   Future<Set<String>> getRelationIds(
@@ -152,15 +184,17 @@ extension FollowRepositoryQueryPart on FollowRepository {
     final me = currentUid ?? CurrentUserService.instance.effectiveUserId;
     if (me.isEmpty || otherUid.isEmpty) return false;
 
-    final cached = await getFollowingIds(
-      me,
-      preferCache: preferCache,
-      forceRefresh: false,
-    );
-    if (cached.contains(otherUid)) return true;
+    if (preferCache) {
+      final cached = await getFollowingIds(
+        me,
+        preferCache: true,
+        forceRefresh: false,
+      );
+      if (cached.contains(otherUid)) return true;
 
-    if (preferCache && _hasFreshCache(me)) {
-      return false;
+      if (_hasFreshCache(me)) {
+        return false;
+      }
     }
 
     final doc = await FirebaseFirestore.instance
@@ -168,7 +202,9 @@ extension FollowRepositoryQueryPart on FollowRepository {
         .doc(me)
         .collection('followings')
         .doc(otherUid)
-        .get();
+        .get(GetOptions(
+          source: preferCache ? Source.serverAndCache : Source.server,
+        ));
     if (!doc.exists) return false;
     await applyToggle(
       me,
