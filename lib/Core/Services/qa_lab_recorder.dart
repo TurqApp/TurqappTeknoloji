@@ -37,6 +37,7 @@ part 'qa_lab_recorder_runtime_navigation_part.dart';
 part 'qa_lab_recorder_capture_part.dart';
 part 'qa_lab_recorder_capture_events_part.dart';
 part 'qa_lab_recorder_capture_timeline_part.dart';
+part 'qa_lab_recorder_capture_performance_part.dart';
 part 'qa_lab_recorder_capture_issue_part.dart';
 part 'qa_lab_recorder_diagnostics_part.dart';
 part 'qa_lab_recorder_diagnostics_surfaces_part.dart';
