@@ -34,29 +34,13 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
       final likeDoc = await tx.get(likeDocRef);
       final postSnap = await tx.get(postRef);
       final stats = _statsFromSnapshot(postSnap);
-      final postData = postSnap.data() ?? const <String, dynamic>{};
-      final ownerId = (postData['userID'] ?? '').toString().trim();
       final timestamp = _nowMs();
-      DocumentReference<Map<String, dynamic>>? ownerRef;
-      DocumentSnapshot<Map<String, dynamic>>? ownerSnap;
-      final canAdjustOwnerLikes = ownerId.isNotEmpty;
-      if (canAdjustOwnerLikes) {
-        ownerRef = _firestore.collection('users').doc(ownerId);
-        ownerSnap = await tx.get(ownerRef);
-      }
 
       if (likeDoc.exists) {
         tx.delete(likeDocRef);
         tx.delete(userLikeRef);
         final next = math.max(stats.likeCount - 1, 0);
         tx.update(postRef, {'stats.likeCount': next});
-        final currentOwnerLikes =
-            (ownerSnap?.data()?['counterOfLikes'] as num?)?.toInt() ?? 0;
-        if (ownerRef != null && currentOwnerLikes > 0) {
-          tx.set(ownerRef, {
-            'counterOfLikes': FieldValue.increment(-1),
-          }, SetOptions(merge: true));
-        }
         isLiked = false;
       } else {
         tx.set(likeDocRef,
@@ -66,11 +50,6 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
             UserLikedPostModel(postDocID: postId, timeStamp: timestamp)
                 .toMap());
         tx.update(postRef, {'stats.likeCount': stats.likeCount + 1});
-        if (ownerRef != null) {
-          tx.set(ownerRef, {
-            'counterOfLikes': FieldValue.increment(1),
-          }, SetOptions(merge: true));
-        }
         isLiked = true;
       }
     });

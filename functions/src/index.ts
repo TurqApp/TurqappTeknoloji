@@ -259,6 +259,63 @@ export const enforceMandatoryFollowOnUserCreate = functions.firestore
     }
   });
 
+// LIKE COUNTER MIRROR: keep profile counterOfLikes in sync with post likes.
+export const incrementOwnerLikesOnLikeCreate = functions.firestore
+  .document("Posts/{postId}/likes/{likeId}")
+  .onCreate(async (_snap, context) => {
+    const postId = String(context.params.postId || "").trim();
+    if (!postId) return;
+
+    try {
+      const postRef = db.doc(`Posts/${postId}`);
+      const postSnap = await postRef.get();
+      const ownerId = String(postSnap.data()?.userID || "").trim();
+      if (!ownerId) return;
+
+      await db.doc(`users/${ownerId}`).set(
+        {
+          counterOfLikes: admin.firestore.FieldValue.increment(1),
+          updatedDate: Date.now(),
+        },
+        { merge: true }
+      );
+    } catch (e) {
+      console.error("incrementOwnerLikesOnLikeCreate error", e);
+    }
+  });
+
+export const decrementOwnerLikesOnLikeDelete = functions.firestore
+  .document("Posts/{postId}/likes/{likeId}")
+  .onDelete(async (_snap, context) => {
+    const postId = String(context.params.postId || "").trim();
+    if (!postId) return;
+
+    try {
+      const postRef = db.doc(`Posts/${postId}`);
+      const postSnap = await postRef.get();
+      const ownerId = String(postSnap.data()?.userID || "").trim();
+      if (!ownerId) return;
+
+      const ownerRef = db.doc(`users/${ownerId}`);
+      await db.runTransaction(async (tx) => {
+        const ownerSnap = await tx.get(ownerRef);
+        const current =
+          Number(ownerSnap.data()?.counterOfLikes || 0);
+        if (current <= 0) return;
+        tx.set(
+          ownerRef,
+          {
+            counterOfLikes: admin.firestore.FieldValue.increment(-1),
+            updatedDate: Date.now(),
+          },
+          { merge: true }
+        );
+      });
+    } catch (e) {
+      console.error("decrementOwnerLikesOnLikeDelete error", e);
+    }
+  });
+
 // SAFETY NET: Keep phoneAccounts in sync when a user doc is deleted
 export const onUserDocDelete = functions.firestore
   .document("users/{uid}")

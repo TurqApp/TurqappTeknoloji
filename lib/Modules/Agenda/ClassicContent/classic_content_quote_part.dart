@@ -235,22 +235,40 @@ extension _ClassicContentQuotePart on _ClassicContentState {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildClassicQuoteActionSlot(commentButton(context)),
-          _buildClassicQuoteActionSlot(likeButton()),
-          _buildClassicQuoteActionSlot(reshareButton()),
-          _buildClassicQuoteActionSlot(statButton()),
-          _buildClassicQuoteActionSlot(saveButton()),
+          _buildClassicQuoteActionSlot(
+            commentButton(context),
+            pullTowardSend: true,
+          ),
+          _buildClassicQuoteActionSlot(
+            likeButton(),
+            pullTowardSend: true,
+          ),
+          _buildClassicQuoteActionSlot(
+            reshareButton(),
+            pullTowardSend: true,
+          ),
+          _buildClassicQuoteActionSlot(
+            statButton(),
+            pullTowardSend: true,
+          ),
+          _buildClassicQuoteActionSlot(
+            saveButton(),
+            pullTowardSend: true,
+          ),
           _buildClassicQuoteActionSlot(sendButton()),
         ],
       ),
     );
   }
 
-  Widget _buildClassicQuoteActionSlot(Widget child) {
+  Widget _buildClassicQuoteActionSlot(
+    Widget child, {
+    bool pullTowardSend = false,
+  }) {
     return SizedBox(
       width: 58,
       child: Transform.translate(
-        offset: const Offset(3, 0),
+        offset: Offset(pullTowardSend ? 6 : 3, 0),
         child: Center(child: child),
       ),
     );

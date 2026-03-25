@@ -77,11 +77,26 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildActionSlot(commentButton(context)),
-                    _buildActionSlot(likeButton()),
-                    _buildActionSlot(reshareButton()),
-                    _buildActionSlot(statButton()),
-                    _buildActionSlot(saveButton()),
+                    _buildActionSlot(
+                      commentButton(context),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      likeButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      reshareButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      statButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      saveButton(),
+                      pullTowardSend: true,
+                    ),
                     _buildActionSlot(sendButton()),
                   ],
                 ),

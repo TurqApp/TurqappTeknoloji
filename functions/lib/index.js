@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.backfillHybridFeedForUser = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.decrementOwnerLikesOnLikeDelete = exports.incrementOwnerLikesOnLikeCreate = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.backfillHybridFeedForUser = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -264,6 +264,56 @@ exports.enforceMandatoryFollowOnUserCreate = functions.firestore
     }
     catch (e) {
         console.error("enforceMandatoryFollowOnUserCreate error", e);
+    }
+});
+// LIKE COUNTER MIRROR: keep profile counterOfLikes in sync with post likes.
+exports.incrementOwnerLikesOnLikeCreate = functions.firestore
+    .document("Posts/{postId}/likes/{likeId}")
+    .onCreate(async (_snap, context) => {
+    const postId = String(context.params.postId || "").trim();
+    if (!postId)
+        return;
+    try {
+        const postRef = db.doc(`Posts/${postId}`);
+        const postSnap = await postRef.get();
+        const ownerId = String(postSnap.data()?.userID || "").trim();
+        if (!ownerId)
+            return;
+        await db.doc(`users/${ownerId}`).set({
+            counterOfLikes: admin.firestore.FieldValue.increment(1),
+            updatedDate: Date.now(),
+        }, { merge: true });
+    }
+    catch (e) {
+        console.error("incrementOwnerLikesOnLikeCreate error", e);
+    }
+});
+exports.decrementOwnerLikesOnLikeDelete = functions.firestore
+    .document("Posts/{postId}/likes/{likeId}")
+    .onDelete(async (_snap, context) => {
+    const postId = String(context.params.postId || "").trim();
+    if (!postId)
+        return;
+    try {
+        const postRef = db.doc(`Posts/${postId}`);
+        const postSnap = await postRef.get();
+        const ownerId = String(postSnap.data()?.userID || "").trim();
+        if (!ownerId)
+            return;
+        const ownerRef = db.doc(`users/${ownerId}`);
+        await db.runTransaction(async (tx) => {
+            const ownerSnap = await tx.get(ownerRef);
+            const current = Number(ownerSnap.data()?.counterOfLikes || 0);
+            if (current <= 0)
+                return;
+            tx.set(ownerRef, {
+                counterOfLikes: admin.firestore.FieldValue.increment(-1),
+                updatedDate: Date.now(),
+            }, { merge: true });
+        });
+    }
+    catch (e) {
+        console.error("decrementOwnerLikesOnLikeDelete error", e);
     }
 });
 // SAFETY NET: Keep phoneAccounts in sync when a user doc is deleted
