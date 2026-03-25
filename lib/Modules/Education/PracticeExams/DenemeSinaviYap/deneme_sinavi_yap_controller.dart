@@ -11,6 +11,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'deneme_sinavi_yap_controller_fields_part.dart';
 part 'deneme_sinavi_yap_controller_facade_part.dart';
 part 'deneme_sinavi_yap_controller_runtime_part.dart';
 
@@ -44,15 +45,7 @@ class DenemeSinaviYapController extends GetxController
     return Get.find<DenemeSinaviYapController>(tag: tag);
   }
 
-  var fullName = "".obs;
-  var list = <SoruModel>[].obs;
-  var selectedAnswers = <String>[].obs;
-  var dersSonuclari = <DersVeSonuclar>[].obs;
-  var selection = 0.obs;
-  var isConnected = true.obs;
-  var hataCount = 0.obs;
-  var isLoading = true.obs;
-  var isInitialized = false.obs;
+  final _state = _DenemeSinaviYapControllerState();
 
   final SinavModel model;
   final Function sinaviBitir;

@@ -23,9 +23,7 @@ class PageLineBarController extends GetxController {
 
   final String pageName;
   PageLineBarController({required this.pageName});
-
-  var selection = 0.obs;
-  final PageController pageController = PageController();
+  final _state = _PageLineBarControllerState();
 
   bool _matchesTag(String baseTag) {
     return pageName == baseTag || pageName.startsWith('${baseTag}_');

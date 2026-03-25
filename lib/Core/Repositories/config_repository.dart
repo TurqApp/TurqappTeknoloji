@@ -6,16 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'config_repository_query_part.dart';
 part 'config_repository_storage_part.dart';
-
-class _CachedConfigDoc {
-  final Map<String, dynamic> data;
-  final DateTime cachedAt;
-
-  const _CachedConfigDoc({
-    required this.data,
-    required this.cachedAt,
-  });
-}
+part 'config_repository_models_part.dart';
+part 'config_repository_facade_part.dart';
 
 class ConfigRepository extends GetxService {
   static const Duration _defaultTtl = Duration(minutes: 30);
@@ -43,50 +35,4 @@ class ConfigRepository extends GetxService {
       _prefs = prefs;
     });
   }
-
-  Future<Map<String, dynamic>?> getAdminConfigDoc(
-    String docId, {
-    bool preferCache = true,
-    bool forceRefresh = false,
-    Duration ttl = _defaultTtl,
-  }) =>
-      _getAdminConfigDocImpl(
-        docId,
-        preferCache: preferCache,
-        forceRefresh: forceRefresh,
-        ttl: ttl,
-      );
-
-  Future<void> putAdminConfigDoc(
-    String docId,
-    Map<String, dynamic> data,
-  ) =>
-      _putAdminConfigDocImpl(docId, data);
-
-  Future<void> invalidateAdminConfigDoc(String docId) =>
-      _invalidateAdminConfigDocImpl(docId);
-
-  Stream<Map<String, dynamic>> watchAdminConfigDoc(
-    String docId, {
-    Duration ttl = _defaultTtl,
-  }) =>
-      _watchAdminConfigDocImpl(
-        docId,
-        ttl: ttl,
-      );
-
-  Future<Map<String, dynamic>?> getLegacyConfigDoc({
-    required String collection,
-    required String docId,
-    bool preferCache = true,
-    bool forceRefresh = false,
-    Duration ttl = _defaultTtl,
-  }) =>
-      _getLegacyConfigDocImpl(
-        collection: collection,
-        docId: docId,
-        preferCache: preferCache,
-        forceRefresh: forceRefresh,
-        ttl: ttl,
-      );
 }

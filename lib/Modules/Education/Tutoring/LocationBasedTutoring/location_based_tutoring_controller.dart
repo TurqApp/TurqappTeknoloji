@@ -11,7 +11,9 @@ import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'location_based_tutoring_controller_fields_part.dart';
 part 'location_based_tutoring_controller_runtime_part.dart';
+part 'location_based_tutoring_controller_support_part.dart';
 
 class LocationBasedTutoringController extends GetxController {
   static LocationBasedTutoringController ensure({
@@ -37,45 +39,7 @@ class LocationBasedTutoringController extends GetxController {
   static const String _cacheKey = 'location_tutoring_cache_v1';
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
-  var isLoading = true.obs;
-  var tutoringList = <TutoringModel>[].obs;
-
-  bool _sameTutoringEntries(
-    List<TutoringModel> current,
-    List<TutoringModel> next,
-  ) {
-    final currentKeys = current
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.brans,
-            item.sehir,
-            item.ilce,
-            item.fiyat,
-            item.timeStamp,
-            item.viewCount ?? 0,
-            item.applicationCount ?? 0,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.brans,
-            item.sehir,
-            item.ilce,
-            item.fiyat,
-            item.timeStamp,
-            item.viewCount ?? 0,
-            item.applicationCount ?? 0,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
+  final _state = _LocationBasedTutoringControllerState();
 
   @override
   void onInit() {

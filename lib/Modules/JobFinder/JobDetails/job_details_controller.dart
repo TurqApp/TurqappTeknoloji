@@ -28,6 +28,8 @@ import '../ApplicationReview/application_review.dart';
 
 part 'job_details_controller_data_part.dart';
 part 'job_details_controller_actions_part.dart';
+part 'job_details_controller_fields_part.dart';
+part 'job_details_controller_runtime_part.dart';
 
 class JobDetailsController extends GetxController {
   static JobDetailsController ensure({
@@ -51,15 +53,7 @@ class JobDetailsController extends GetxController {
   }
 
   final Rx<JobModel> model;
-  final saved = false.obs;
-  final basvuruldu = false.obs;
-  final cvVar = false.obs;
-  final nickname = ''.obs;
-  final avatarUrl = kDefaultAvatarUrl.obs;
-  final fullname = ''.obs;
-  final RxList<JobModel> list = <JobModel>[].obs;
-  final reviews = <JobReviewModel>[].obs;
-  final reviewUsers = <String, Map<String, dynamic>>{}.obs;
+  final _state = _JobDetailsControllerState();
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final CvRepository _cvRepository = CvRepository.ensure();
@@ -77,17 +71,6 @@ class JobDetailsController extends GetxController {
   }
 
   void _handleOnInit() {
-    unawaited(_initialize());
-  }
-
-  Future<void> _initialize() async {
-    unawaited(refreshJob());
-    unawaited(cvCheck());
-    unawaited(getUserData(model.value.userID));
-    unawaited(checkSaved(model.value.docID));
-    unawaited(checkBasvuru(model.value.docID));
-    unawaited(bootstrapSimilar());
-    unawaited(bootstrapReviews());
-    unawaited(incrementViewCount());
+    _JobDetailsControllerRuntimeX(this).handleOnInit();
   }
 }

@@ -23,6 +23,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 part 'create_tutoring_controller_form_part.dart';
+part 'create_tutoring_controller_fields_part.dart';
 part 'create_tutoring_controller_runtime_part.dart';
 part 'create_tutoring_controller_submission_part.dart';
 part 'create_tutoring_controller_support_part.dart';
@@ -49,27 +50,7 @@ class CreateTutoringController extends GetxController {
 
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
-  var carouselCurrentIndex = 0.obs;
-  final formKey = GlobalKey<FormState>();
-  final titleController = TextEditingController();
-  final descriptionController = TextEditingController();
-  final branchController = TextEditingController();
-  final priceController = TextEditingController();
-  final cityController = TextEditingController();
-  final districtController = TextEditingController();
-  var selectedLessonPlace = ''.obs;
-  var selectedGender = ''.obs;
-  var city = ''.obs;
-  var town = '';
-  final sehirler = <String>[].obs;
-  final sehirlerVeIlcelerData = <CitiesModel>[].obs;
-  var images = <String>[].obs;
-  var isPhoneOpen = false.obs;
-  var selectedBranch = ''.obs;
-  var isLoading = false.obs;
-
-  /// Müsaitlik takvimi: gün → saat aralıkları listesi
-  final availability = <String, List<String>>{}.obs;
+  final _state = _CreateTutoringControllerState();
 
   static List<String> get weekDays => _createTutoringWeekDays;
   static List<String> get timeSlots => _createTutoringTimeSlots;

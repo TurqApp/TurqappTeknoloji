@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sinav_sorusu_hazirla.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'sinav_hazirla_controller_fields_part.dart';
 part 'sinav_hazirla_controller_form_part.dart';
 part 'sinav_hazirla_controller_submission_part.dart';
 
@@ -51,23 +52,7 @@ class SinavHazirlaController extends GetxController {
     return Get.find<SinavHazirlaController>(tag: tag);
   }
 
-  var sinavIsmi = TextEditingController().obs;
-  var aciklama = TextEditingController().obs;
-  var startDate = DateTime.now().obs;
-  var selectedTime = TimeOfDay(hour: 15, minute: 00).obs;
-  var sinavTuru = 'TYT'.obs;
-  var currentDersler = <String>[].obs;
-  var kpssSecilenLisans = 'Ortaöğretim'.obs;
-  var yanlisDogruyuGotururMu = false.obs;
-  var public = true.obs;
-  var sure = 140.obs;
-  var showCalendar = false.obs;
-  var showSureler = false.obs;
-  var cover = Rx<File?>(null);
-  var isLoadingImage = false.obs;
-  var isSaving = false.obs;
-  var soruSayisiTextFields = <TextEditingController>[].obs;
-  var docID = DateTime.now().millisecondsSinceEpoch.toString().obs;
+  final _state = _SinavHazirlaControllerState();
 
   SinavModel? sinavModel;
 
