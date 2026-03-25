@@ -10,6 +10,9 @@ import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 part 'following_followers_controller_cache_part.dart';
+part 'following_followers_controller_models_part.dart';
+part 'following_followers_controller_search_part.dart';
+part 'following_followers_controller_mutation_part.dart';
 
 class FollowingFollowersController extends GetxController {
   static const Duration _nicknameCacheTtl = Duration(minutes: 5);
@@ -117,75 +120,12 @@ class FollowingFollowersController extends GetxController {
     required String currentUid,
     required String otherUserID,
     required bool nowFollowing,
-  }) {
-    final now = DateTime.now();
-    final myFollowingEntry = _followingsListCacheByUserId[currentUid];
-    if (myFollowingEntry != null) {
-      final list = List<String>.from(myFollowingEntry.ids);
-      if (nowFollowing) {
-        if (!list.contains(otherUserID)) list.insert(0, otherUserID);
-      } else {
-        list.remove(otherUserID);
-      }
-      _followingsListCacheByUserId[currentUid] =
-          _RelationListCacheEntry(ids: list, cachedAt: now);
-    }
-
-    final otherFollowersEntry = _followersListCacheByUserId[otherUserID];
-    if (otherFollowersEntry != null) {
-      final list = List<String>.from(otherFollowersEntry.ids);
-      if (nowFollowing) {
-        if (!list.contains(currentUid)) list.insert(0, currentUid);
-      } else {
-        list.remove(currentUid);
-      }
-      _followersListCacheByUserId[otherUserID] =
-          _RelationListCacheEntry(ids: list, cachedAt: now);
-    }
-
-    final myCounter = _counterCacheByUserId[currentUid];
-    if (myCounter != null) {
-      final nextFollowings = nowFollowing
-          ? myCounter.followings + 1
-          : (myCounter.followings - 1).clamp(0, 1 << 30);
-      _counterCacheByUserId[currentUid] = _CounterCacheEntry(
-        followers: myCounter.followers,
-        followings: nextFollowings,
-        cachedAt: now,
-      );
-    }
-
-    final otherCounter = _counterCacheByUserId[otherUserID];
-    if (otherCounter != null) {
-      final nextFollowers = nowFollowing
-          ? otherCounter.followers + 1
-          : (otherCounter.followers - 1).clamp(0, 1 << 30);
-      _counterCacheByUserId[otherUserID] = _CounterCacheEntry(
-        followers: nextFollowers,
-        followings: otherCounter.followings,
-        cachedAt: now,
-      );
-    }
-
-    final currentController = maybeFind(tag: currentUid);
-    if (currentController != null) {
-      final c = currentController;
-      c._applyLocalMutation(
+  }) =>
+      _applyFollowMutationToCachesImpl(
         currentUid: currentUid,
         otherUserID: otherUserID,
         nowFollowing: nowFollowing,
       );
-    }
-    final otherController = maybeFind(tag: otherUserID);
-    if (otherController != null) {
-      final c = otherController;
-      c._applyLocalMutation(
-        currentUid: currentUid,
-        otherUserID: otherUserID,
-        nowFollowing: nowFollowing,
-      );
-    }
-  }
 
   void _handleOnInit() {
     _loadNicknameCached();
@@ -220,7 +160,9 @@ class FollowingFollowersController extends GetxController {
       0,
       ReadBudgetRegistry.followRelationPreviewInitialLimit,
     );
-    if ((takipciCounter.value > 0 && takipciler.isEmpty && !isLoadingFollowers) ||
+    if ((takipciCounter.value > 0 &&
+            takipciler.isEmpty &&
+            !isLoadingFollowers) ||
         (followersCached &&
             !isLoadingFollowers &&
             takipciler.length < expectedFollowers)) {
@@ -249,229 +191,4 @@ class FollowingFollowersController extends GetxController {
   }
 
   bool _resolveIsSelf() => isCurrentUserId(userId);
-
-  void _applyLocalMutation({
-    required String currentUid,
-    required String otherUserID,
-    required bool nowFollowing,
-  }) {
-    if (userId == currentUid) {
-      if (nowFollowing) {
-        if (!takipEdilenler.contains(otherUserID)) {
-          takipEdilenler.insert(0, otherUserID);
-        }
-      } else {
-        takipEdilenler.remove(otherUserID);
-      }
-      takipedilenCounter.value = nowFollowing
-          ? takipedilenCounter.value + 1
-          : (takipedilenCounter.value - 1).clamp(0, 1 << 30);
-      _saveRelationListCache(isFollowers: false);
-      _relationIdSetCache['followings'] = _RelationIdSetCacheEntry(
-        ids: takipEdilenler.toSet(),
-        cachedAt: DateTime.now(),
-      );
-    }
-    if (userId == otherUserID) {
-      if (nowFollowing) {
-        if (!takipciler.contains(currentUid)) {
-          takipciler.insert(0, currentUid);
-        }
-      } else {
-        takipciler.remove(currentUid);
-      }
-      takipciCounter.value = nowFollowing
-          ? takipciCounter.value + 1
-          : (takipciCounter.value - 1).clamp(0, 1 << 30);
-      _saveRelationListCache(isFollowers: true);
-      _relationIdSetCache['followers'] = _RelationIdSetCacheEntry(
-        ids: takipciler.toSet(),
-        cachedAt: DateTime.now(),
-      );
-    }
-  }
-
-  Future<void> searchTakipci() async {
-    final plan = _RelationSearchPlan(
-      query: normalizeSearchText(searchTakipciController.text),
-      cacheKey: 'followers',
-      relation: 'followers',
-      assignResult: (ids) => takipciler.value = ids,
-    );
-    await _runRelationSearch(plan);
-  }
-
-  Future<void> searchTakipEdilenler() async {
-    final plan = _RelationSearchPlan(
-      query: normalizeSearchText(searchTakipEdilenController.text),
-      cacheKey: 'followings',
-      relation: 'followings',
-      assignResult: (ids) => takipEdilenler.value = ids,
-    );
-    await _runRelationSearch(plan);
-  }
-
-  Future<void> _runRelationSearch(_RelationSearchPlan plan) async {
-    final q = plan.query;
-    if (q.length < 3) return;
-    _pruneSearchResultCache();
-
-    final cacheId = '${plan.cacheKey}:$q';
-    final cached = _searchResultCache[cacheId];
-    if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _searchResultCacheTtl) {
-      plan.assignResult(_normalizedIds(cached.ids));
-      return;
-    }
-
-    final relationIDs = await _getRelationIdsCached(plan.relation);
-    final results = await _filterRelationIdsByQuery(relationIDs, q);
-    _searchResultCache[cacheId] = _SearchResultCacheEntry(
-      ids: List<String>.from(results),
-      cachedAt: DateTime.now(),
-    );
-    plan.assignResult(_normalizedIds(results));
-  }
-
-  Future<Set<String>> _getRelationIdsCached(String relation) async {
-    final now = DateTime.now();
-    final cached = _relationIdSetCache[relation];
-    if (cached != null &&
-        now.difference(cached.cachedAt) <= _relationSearchCacheTtl) {
-      return cached.ids;
-    }
-
-    final ids = relation == 'followers'
-        ? await _followRepository.getFollowerIds(
-            userId,
-            preferCache: true,
-            forceRefresh: false,
-          )
-        : await _visibilityPolicy.loadViewerFollowingIds(
-            viewerUserId: userId,
-            preferCache: true,
-            forceRefresh: false,
-          );
-    _relationIdSetCache[relation] = _RelationIdSetCacheEntry(
-      ids: ids,
-      cachedAt: now,
-    );
-    return ids;
-  }
-
-  Future<List<String>> _filterRelationIdsByQuery(
-    Set<String> relationIds,
-    String q,
-  ) async {
-    if (relationIds.isEmpty) return const <String>[];
-    final normalizedQuery = normalizeSearchText(q);
-    if (normalizedQuery.isEmpty) {
-      return relationIds.toList(growable: false);
-    }
-    final users = await _userSummaryResolver.resolveMany(
-      relationIds.toList(growable: false),
-    );
-    final results = <String>[];
-    for (final id in relationIds) {
-      final data = users[id];
-      final nickname = normalizeSearchText(data?.nickname ?? '');
-      final displayName = normalizeSearchText(data?.displayName ?? '');
-      if (nickname.contains(normalizedQuery) ||
-          displayName.contains(normalizedQuery)) {
-        results.add(id);
-      }
-    }
-    return results;
-  }
-
-  void _pruneSearchResultCache() {
-    final now = DateTime.now();
-    _searchResultCache.removeWhere(
-      (_, entry) =>
-          now.difference(entry.cachedAt) > _searchResultStaleRetention,
-    );
-    if (_searchResultCache.length <= _maxSearchResultEntries) {
-      return;
-    }
-    final entries = _searchResultCache.entries.toList()
-      ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount = _searchResultCache.length - _maxSearchResultEntries;
-    for (var i = 0; i < removeCount; i++) {
-      _searchResultCache.remove(entries[i].key);
-    }
-  }
-
-  void goToPage(int index) {
-    pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-}
-
-class _NicknameCacheEntry {
-  final String nickname;
-  final DateTime cachedAt;
-
-  const _NicknameCacheEntry({
-    required this.nickname,
-    required this.cachedAt,
-  });
-}
-
-class _RelationIdSetCacheEntry {
-  final Set<String> ids;
-  final DateTime cachedAt;
-
-  const _RelationIdSetCacheEntry({
-    required this.ids,
-    required this.cachedAt,
-  });
-}
-
-class _SearchResultCacheEntry {
-  final List<String> ids;
-  final DateTime cachedAt;
-
-  const _SearchResultCacheEntry({
-    required this.ids,
-    required this.cachedAt,
-  });
-}
-
-class _CounterCacheEntry {
-  final int followers;
-  final int followings;
-  final DateTime cachedAt;
-
-  const _CounterCacheEntry({
-    required this.followers,
-    required this.followings,
-    required this.cachedAt,
-  });
-}
-
-class _RelationListCacheEntry {
-  final List<String> ids;
-  final DateTime cachedAt;
-
-  const _RelationListCacheEntry({
-    required this.ids,
-    required this.cachedAt,
-  });
-}
-
-class _RelationSearchPlan {
-  const _RelationSearchPlan({
-    required this.query,
-    required this.cacheKey,
-    required this.relation,
-    required this.assignResult,
-  });
-
-  final String query;
-  final String cacheKey;
-  final String relation;
-  final void Function(List<String> ids) assignResult;
 }
