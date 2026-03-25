@@ -8,6 +8,25 @@ extension AgendaControllerFeedPart on AgendaController {
     if (!_canAutoplayVideoPost(post)) return;
     final manager = VideoStateManager.instance;
     final now = DateTime.now();
+    final isCurrentTargetPlaying = manager.isHandleActivelyPlaying(post.docID);
+    final sameDocRecentDispatch =
+        _lastPlaybackCommandDocId == post.docID &&
+            _lastPlaybackCommandAt != null &&
+            now.difference(_lastPlaybackCommandAt!).inMilliseconds <=
+                QALabMode.duplicatePlaybackDispatchWindowMs &&
+            manager.currentPlayingDocID == post.docID;
+    if (sameDocRecentDispatch) {
+      if (isCurrentTargetPlaying) {
+        _cancelPendingPlaybackReassert();
+      } else {
+        _schedulePlaybackReassert(
+          index: index,
+          docId: post.docID,
+          manager: manager,
+        );
+      }
+      return;
+    }
     final shouldIssueImmediateCommand =
         _lastPlaybackCommandDocId != post.docID ||
             _lastPlaybackCommandAt == null ||
@@ -296,6 +315,13 @@ extension AgendaControllerFeedPart on AgendaController {
         if (centeredIndex.value != index) return;
         if (index < 0 || index >= agendaList.length) return;
         if (agendaList[index].docID != docId) return;
+        if (manager.currentPlayingDocID == docId &&
+            manager.isHandleActivelyPlaying(docId)) {
+          return;
+        }
+        if (!manager.hasInitializedHandle(docId)) {
+          return;
+        }
         manager.reassertOnlyThis(docId);
         _lastPlaybackCommandDocId = docId;
         _lastPlaybackCommandAt = DateTime.now();

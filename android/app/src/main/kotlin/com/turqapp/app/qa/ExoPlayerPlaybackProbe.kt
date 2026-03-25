@@ -1,5 +1,7 @@
 package com.turqapp.app.qa
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -21,6 +23,8 @@ class ExoPlayerPlaybackProbe(
     private val monitor: PlaybackHealthMonitor,
     private val tag: String = "ExoPlayerPlaybackProbe",
 ) : Player.Listener, AnalyticsListener {
+
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val watchdog = PlaybackWatchdog(
         playerProvider = { player },
@@ -117,12 +121,14 @@ class ExoPlayerPlaybackProbe(
     }
 
     override fun onRenderedFirstFrame() {
-        monitor.onFirstFrameRendered()
-        monitor.onFrameRendered()
-        Log.d(
-            tag,
-            "firstFrameRendered position=${player.currentPosition} bitrate=${selectedBitrateKbps}kbps res=$selectedResolution"
-        )
+        mainHandler.post {
+            monitor.onFirstFrameRendered()
+            monitor.onFrameRendered()
+            Log.d(
+                tag,
+                "firstFrameRendered position=${player.currentPosition} bitrate=${selectedBitrateKbps}kbps res=$selectedResolution"
+            )
+        }
     }
 
     override fun onDroppedVideoFrames(
