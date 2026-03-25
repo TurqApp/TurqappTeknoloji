@@ -11,6 +11,8 @@ import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'location_based_tutoring_controller_runtime_part.dart';
+
 class LocationBasedTutoringController extends GetxController {
   static LocationBasedTutoringController ensure({
     String? tag,
@@ -81,130 +83,12 @@ class LocationBasedTutoringController extends GetxController {
     unawaited(_bootstrapData());
   }
 
-  Future<void> _bootstrapData() async {
-    final cached = await _readCache();
-    if (cached.isNotEmpty) {
-      if (!_sameTutoringEntries(tutoringList, cached)) {
-        tutoringList.assignAll(cached);
-      }
-      isLoading.value = false;
-      await fetchLocationBasedTutoring(silent: true);
-      return;
-    }
-    await fetchLocationBasedTutoring();
-  }
+  Future<void> _bootstrapData() =>
+      _LocationBasedTutoringControllerRuntimeX(this).bootstrapData();
 
   Future<void> fetchLocationBasedTutoring({
     bool silent = false,
-  }) async {
-    if (!silent || tutoringList.isEmpty) {
-      isLoading.value = true;
-    }
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.low),
-      );
-      String currentCity = await _getCityFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      final result = await _tutoringSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.effectiveUserId,
-        limit: 250,
-        forceSync: !silent,
-      );
-      final tempList = (result.data ?? const <TutoringModel>[])
-          .where((item) => item.docID.isNotEmpty)
-          .where((item) =>
-              normalizeLocationText(item.sehir) ==
-              normalizeLocationText(currentCity))
-          .toList(growable: true);
-
-      // Mesafeye göre sırala (lat/long olan ilanlar önce, yakından uzağa)
-      tempList.sort((a, b) {
-        final aDist =
-            _distanceKm(position.latitude, position.longitude, a.lat, a.long);
-        final bDist =
-            _distanceKm(position.latitude, position.longitude, b.lat, b.long);
-        return aDist.compareTo(bDist);
-      });
-
-      if (!_sameTutoringEntries(tutoringList, tempList)) {
-        tutoringList.value = tempList;
-      }
-      await _writeCache(tempList);
-    } catch (_) {
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  /// İki nokta arasındaki mesafe (km). lat/long null ise sona at (çok büyük değer).
-  double _distanceKm(double userLat, double userLon, double? lat, double? lon) {
-    if (lat == null || lon == null) return 999999.0;
-    return Geolocator.distanceBetween(userLat, userLon, lat, lon) / 1000.0;
-  }
-
-  Future<String> _getCityFromCoordinates(double lat, double lon) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
-      if (placemarks.isNotEmpty) {
-        return placemarks.first.administrativeArea ??
-            'settings.diagnostics.unknown'.tr;
-      }
-      return 'settings.diagnostics.unknown'.tr;
-    } catch (_) {
-      return 'settings.diagnostics.unknown'.tr;
-    }
-  }
-
-  Future<void> _writeCache(List<TutoringModel> items) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _cacheKey,
-        jsonEncode(
-          items
-              .map((item) => <String, dynamic>{
-                    'docID': item.docID,
-                    'data': item.toJson(),
-                  })
-              .toList(growable: false),
-        ),
-      );
-    } catch (_) {}
-  }
-
-  Future<List<TutoringModel>> _readCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_cacheKey);
-      if (raw == null || raw.isEmpty) return const <TutoringModel>[];
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return const <TutoringModel>[];
-      return decoded
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .map(
-            (item) => TutoringModel.fromJson(
-              Map<String, dynamic>.from(item['data'] as Map? ?? const {}),
-              (item['docID'] ?? '').toString(),
-            ),
-          )
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
-    } catch (_) {
-      return const <TutoringModel>[];
-    }
-  }
+  }) =>
+      _LocationBasedTutoringControllerRuntimeX(this)
+          .fetchLocationBasedTutoring(silent: silent);
 }
