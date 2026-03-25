@@ -114,6 +114,8 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
               issue.code == 'platform_suppressed',
         )
         .length;
+    final topSuppressedNoiseFamilies =
+        _topSuppressedNoiseFamilies(surfaceIssues);
     final permissionBlocks = surfaceIssues
         .where((issue) => issue.source == QALabIssueSource.permission)
         .length;
@@ -159,6 +161,8 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
       'jankEventCount': jankEvents,
       'worstFrameJankMs': worstFrameJankMs,
       'suppressedNoiseCount': suppressedNoiseCount,
+      if (topSuppressedNoiseFamilies.isNotEmpty)
+        'topSuppressedNoiseFamilies': topSuppressedNoiseFamilies,
       'permissionBlockCount': permissionBlocks,
       'lifecycleInterruptionCount': lifecycleInterruptions,
       'blankSnapshotCount': blankSnapshots,

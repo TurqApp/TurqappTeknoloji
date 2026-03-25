@@ -1,6 +1,48 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
+  List<Map<String, dynamic>> _topSuppressedNoiseFamilies(
+    List<QALabIssue> surfaceIssues,
+  ) {
+    final counts = <String, int>{};
+    for (final issue in surfaceIssues) {
+      if (issue.code != 'flutter_suppressed' &&
+          issue.code != 'platform_suppressed') {
+        continue;
+      }
+      final family = _suppressedNoiseFamily(issue);
+      counts.update(family, (value) => value + 1, ifAbsent: () => 1);
+    }
+    final entries = counts.entries.toList(growable: false)
+      ..sort((a, b) {
+        final countCompare = b.value.compareTo(a.value);
+        if (countCompare != 0) return countCompare;
+        return a.key.compareTo(b.key);
+      });
+    return entries
+        .take(3)
+        .map(
+          (entry) => <String, dynamic>{
+            'family': entry.key,
+            'count': entry.value,
+          },
+        )
+        .toList(growable: false);
+  }
+
+  String _suppressedNoiseFamily(QALabIssue issue) {
+    final metadata = issue.metadata;
+    final errorType = (metadata['errorType'] ?? '').toString().trim();
+    if (errorType.isNotEmpty) return errorType;
+    final library = (metadata['library'] ?? '').toString().trim();
+    if (library.isNotEmpty) return library;
+    final sourceLabel = (metadata['sourceLabel'] ?? '').toString().trim();
+    if (sourceLabel.isNotEmpty) return sourceLabel;
+    if (issue.code.trim().isNotEmpty) return issue.code.trim();
+    if (issue.message.trim().isNotEmpty) return issue.message.trim();
+    return 'unknown';
+  }
+
   List<QALabPinpointFinding> _buildSurfaceStateHealthFindings({
     required String surface,
     required Map<String, dynamic> latestProbe,
@@ -48,6 +90,7 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
         surface: surface,
         latestProbe: latestProbe,
         latestCheckpoint: latestCheckpoint,
+        surfaceCheckpoints: surfaceCheckpoints,
         referenceTime: referenceTime,
         route: route,
       ),
@@ -60,6 +103,8 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
               issue.code == 'platform_suppressed',
         )
         .length;
+    final topSuppressedNoiseFamilies =
+        _topSuppressedNoiseFamilies(surfaceIssues);
     if (suppressedNoiseCount >= QALabMode.noiseBurstWarningCount) {
       findings.add(
         QALabPinpointFinding(
@@ -72,6 +117,8 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
           timestamp: referenceTime,
           context: <String, dynamic>{
             'suppressedNoiseCount': suppressedNoiseCount,
+            if (topSuppressedNoiseFamilies.isNotEmpty)
+              'topSuppressedNoiseFamilies': topSuppressedNoiseFamilies,
           },
         ),
       );

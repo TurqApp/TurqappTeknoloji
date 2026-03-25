@@ -5,6 +5,7 @@ extension QALabRecorderDiagnosticsStateSurfacePart on QALabRecorder {
     required String surface,
     required Map<String, dynamic> latestProbe,
     required QALabCheckpoint? latestCheckpoint,
+    required List<QALabCheckpoint> surfaceCheckpoints,
     required DateTime referenceTime,
     required String route,
   }) {
@@ -15,6 +16,7 @@ extension QALabRecorderDiagnosticsStateSurfacePart on QALabRecorder {
         surface: surface,
         latestProbe: latestProbe,
         latestCheckpoint: latestCheckpoint,
+        surfaceCheckpoints: surfaceCheckpoints,
         referenceTime: referenceTime,
         route: route,
       ),

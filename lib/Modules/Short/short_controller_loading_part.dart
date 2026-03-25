@@ -1,6 +1,19 @@
 part of 'short_controller.dart';
 
 extension ShortControllerLoadingPart on ShortController {
+  void _recordShortFetchEvent({
+    required String stage,
+    required String trigger,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    recordQALabFeedFetchEvent(
+      surface: 'short',
+      stage: stage,
+      trigger: trigger,
+      metadata: metadata,
+    );
+  }
+
   void _bindFollowingListener() {
     final myUid = CurrentUserService.instance.effectiveUserId;
     if (myUid.isEmpty) return;
@@ -24,6 +37,7 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<_ShortPageResult> _fetchPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+    String trigger = 'manual',
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
@@ -46,6 +60,28 @@ extension ShortControllerLoadingPart on ShortController {
           posts: const [],
           lastDoc: cursor,
           hasMore: false,
+        );
+      }
+
+      final sourceNotReady = page.posts
+          .where(
+              (post) => post.hasRenderableVideoCard && !post.hasPlayableVideo)
+          .toList(growable: false);
+      if (sourceNotReady.isNotEmpty) {
+        _recordShortFetchEvent(
+          stage: 'source_not_ready',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'count': sourceNotReady.length,
+            'docIds': sourceNotReady
+                .take(6)
+                .map((post) => post.docID)
+                .toList(growable: false),
+            'hlsStatuses': sourceNotReady
+                .take(6)
+                .map((post) => post.hlsStatus)
+                .toList(growable: false),
+          },
         );
       }
 
@@ -172,7 +208,7 @@ extension ShortControllerLoadingPart on ShortController {
       if (applied) {
         await preloadRange(0, range: 0);
         if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
-          unawaited(_loadNextPage());
+          unawaited(_loadNextPage(trigger: 'background_refresh'));
         }
         return;
       }
@@ -182,7 +218,7 @@ extension ShortControllerLoadingPart on ShortController {
       _lastDoc = null;
       clearCache();
       _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
-      await _loadNextPage();
+      await _loadNextPage(trigger: 'initial_empty_bootstrap');
     } else {
       final sanitized =
           shorts.where(_isEligibleShortPost).toList(growable: false);
@@ -326,7 +362,7 @@ extension ShortControllerLoadingPart on ShortController {
     }
     if (currentIndex >= shorts.length - 3) {
       _log('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
-      await _loadNextPage();
+      await _loadNextPage(trigger: 'scroll_near_end');
     } else {
       _log(
         '[Shorts] loadMoreIfNeeded - Not yet time to load (need ${shorts.length - 3} but at $currentIndex)',
@@ -348,23 +384,63 @@ extension ShortControllerLoadingPart on ShortController {
       }
       int loops = 0;
       while (shorts.length < targetCount && hasMore.value && loops < maxPages) {
-        await _loadNextPage();
+        await _loadNextPage(trigger: 'warm_start');
         loops++;
       }
     } catch (_) {}
   }
 
-  Future<void> _loadNextPage() async {
+  Future<void> _loadNextPage({String trigger = 'manual'}) async {
     _log(
       '[Shorts] _loadNextPage başladı - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
     );
-    if (isLoading.value || !hasMore.value) return;
+    _recordShortFetchEvent(
+      stage: 'requested',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'isLoading': isLoading.value,
+        'hasMore': hasMore.value,
+        'currentCount': shorts.length,
+      },
+    );
+    if (isLoading.value || !hasMore.value) {
+      _recordShortFetchEvent(
+        stage: 'skipped',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'isLoading': isLoading.value,
+          'hasMore': hasMore.value,
+          'currentCount': shorts.length,
+        },
+      );
+      return;
+    }
     isLoading.value = true;
+    _recordShortFetchEvent(
+      stage: 'started',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'currentCount': shorts.length,
+      },
+    );
     try {
-      final result = await _fetchPage(startAfter: _lastDoc);
+      final result = await _fetchPage(
+        startAfter: _lastDoc,
+        trigger: trigger,
+      );
 
       if (result.posts.isEmpty) {
         hasMore.value = result.hasMore;
+        _recordShortFetchEvent(
+          stage: 'completed',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'returnedCount': 0,
+            'addedCount': 0,
+            'currentCount': shorts.length,
+            'hasMore': result.hasMore,
+          },
+        );
         if (!result.hasMore) {
           _log('[Shorts] Yeni sayfa bulunamadı, hasMore=false');
         }
@@ -392,7 +468,25 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       hasMore.value = result.hasMore;
+      _recordShortFetchEvent(
+        stage: 'completed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'returnedCount': result.posts.length,
+          'addedCount': incoming.length,
+          'currentCount': shorts.length,
+          'hasMore': result.hasMore,
+        },
+      );
     } catch (e) {
+      _recordShortFetchEvent(
+        stage: 'failed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'currentCount': shorts.length,
+          'error': '$e',
+        },
+      );
       _log('loadNextPage error: $e');
     } finally {
       isLoading.value = false;

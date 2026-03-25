@@ -163,6 +163,53 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
       );
     }
 
+    if (surface == 'short') {
+      final retryEvents = surfaceTimeline
+          .where((event) => event.category == 'playback_dispatch')
+          .where((event) => !event.timestamp.isBefore(latestSettle.timestamp))
+          .where(
+            (event) =>
+                (event.metadata['docId'] ?? '').toString() == expectedDocId,
+          )
+          .where(
+            (event) =>
+                event.code == 'short_watchdog_play_retry' ||
+                event.code == 'short_stall_recovery_play',
+          )
+          .toList(growable: false);
+      if (retryEvents.length >= 2) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: retryEvents.length >= 3 ||
+                    retryEvents.any(
+                      (event) => event.code == 'short_stall_recovery_play',
+                    )
+                ? QALabIssueSeverity.error
+                : QALabIssueSeverity.warning,
+            code: 'short_playback_retry_burst',
+            message:
+                'Short playback needed repeated recovery play commands after page settle.',
+            route: route,
+            surface: surface,
+            timestamp: retryEvents.last.timestamp,
+            context: <String, dynamic>{
+              'docId': expectedDocId,
+              'retryCount': retryEvents.length,
+              'stages': retryEvents
+                  .map((event) => event.code)
+                  .toList(growable: false),
+              'maxRetry': retryEvents
+                  .map((event) => _asInt(event.metadata['retry']))
+                  .fold<int>(0, (left, right) => left > right ? left : right),
+              'elapsedMs': retryEvents.last.timestamp
+                  .difference(latestSettle.timestamp)
+                  .inMilliseconds,
+            },
+          ),
+        );
+      }
+    }
+
     return findings;
   }
 }

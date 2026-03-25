@@ -141,6 +141,9 @@ void main() {
           timestamp: now.subtract(Duration(seconds: i + 1)),
           route: '/NavBar',
           surface: 'feed',
+          metadata: <String, dynamic>{
+            'errorType': i < 2 ? 'SocketException' : 'Choreographer',
+          },
         ),
       );
     }
@@ -164,13 +167,22 @@ void main() {
     final feedDiagnostic = diagnostics.firstWhere(
       (item) => item.surface == 'feed',
     );
+    final noiseFinding = feedDiagnostic.findings.firstWhere(
+      (item) => item.code == 'feed_noise_burst',
+    );
+    final topFamilies =
+        (feedDiagnostic.runtime['topSuppressedNoiseFamilies'] as List<dynamic>)
+            .cast<Map<String, dynamic>>();
+    final findingFamilies =
+        (noiseFinding.context['topSuppressedNoiseFamilies'] as List<dynamic>)
+            .cast<Map<String, dynamic>>();
 
     expect(feedDiagnostic.runtime['jankEventCount'], 1);
     expect(feedDiagnostic.runtime['suppressedNoiseCount'], 3);
-    expect(
-      feedDiagnostic.findings.any((item) => item.code == 'feed_noise_burst'),
-      isTrue,
-    );
+    expect(topFamilies.first['family'], 'SocketException');
+    expect(topFamilies.first['count'], 2);
+    expect(findingFamilies.first['family'], 'SocketException');
+    expect(findingFamilies.first['count'], 2);
   });
 
   test('qa recorder emits runtime findings for observed non-focus surfaces',
@@ -778,6 +790,148 @@ void main() {
     expect(feedSummary.primaryRootCauseCategory, 'feed_trigger_duplication');
   });
 
+  test('qa recorder ignores feed refetch after previous request settled', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_feed_settled',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 4,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'centeredHasRenderableVideoCard': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'tfr1',
+        category: 'feed_fetch',
+        code: 'requested',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 900)),
+        metadata: const <String, dynamic>{'trigger': 'scroll_near_end'},
+      ),
+      QALabTimelineEvent(
+        id: 'tfr2',
+        category: 'feed_fetch',
+        code: 'started',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 780)),
+        metadata: const <String, dynamic>{'trigger': 'scroll_near_end'},
+      ),
+      QALabTimelineEvent(
+        id: 'tfr3',
+        category: 'feed_fetch',
+        code: 'completed',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 620)),
+        metadata: const <String, dynamic>{'trigger': 'scroll_near_end'},
+      ),
+      QALabTimelineEvent(
+        id: 'tfr4',
+        category: 'feed_fetch',
+        code: 'requested',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 300)),
+        metadata: const <String, dynamic>{'trigger': 'scroll_near_end'},
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_duplicate_fetch_trigger'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder flags short duplicate fetch triggers', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_short_fetch',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'short': <String, dynamic>{
+            'registered': true,
+            'count': 4,
+            'activeIndex': 0,
+            'activeDocId': 'short-1',
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'short_fetch_1',
+        category: 'feed_fetch',
+        code: 'requested',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 700)),
+        metadata: const <String, dynamic>{'trigger': 'scroll_near_end'},
+      ),
+      QALabTimelineEvent(
+        id: 'short_fetch_2',
+        category: 'feed_fetch',
+        code: 'started',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 500)),
+        metadata: const <String, dynamic>{'trigger': 'scroll_near_end'},
+      ),
+      QALabTimelineEvent(
+        id: 'short_fetch_3',
+        category: 'feed_fetch',
+        code: 'requested',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 250)),
+        metadata: const <String, dynamic>{'trigger': 'scroll_near_end'},
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_duplicate_fetch_trigger'),
+      isTrue,
+    );
+  });
+
   test('qa recorder flags duplicate playback dispatch bursts', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -857,6 +1011,113 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_duplicate_playback_dispatch'),
       isTrue,
+    );
+  });
+
+  test('qa recorder flags feed video source not ready after grace window', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 1,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-hls-1',
+        'centeredHasPlayableVideo': false,
+        'centeredHasRenderableVideoCard': true,
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp_hls_1',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp_hls_2',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+    final summaries = recorder.buildSurfaceAlertSummaries();
+    final feedSummary = summaries.firstWhere((item) => item.surface == 'feed');
+
+    expect(
+      findings.any((item) => item.code == 'feed_video_source_not_ready'),
+      isTrue,
+    );
+    expect(feedSummary.primaryRootCauseCategory, 'media_pipeline');
+  });
+
+  test('qa recorder flags short source-not-ready fetch observations', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_short_source',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'short': <String, dynamic>{
+            'registered': true,
+            'count': 0,
+            'activeIndex': -1,
+            'activeDocId': '',
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.add(
+      QALabTimelineEvent(
+        id: 'short_source_1',
+        category: 'feed_fetch',
+        code: 'source_not_ready',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 200)),
+        metadata: const <String, dynamic>{
+          'trigger': 'scroll_near_end',
+          'count': 2,
+          'docIds': <String>['short-hls-1', 'short-hls-2'],
+          'hlsStatuses': <String>['processing', 'pending'],
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+    final shortFinding = findings.firstWhere(
+      (item) => item.code == 'short_video_source_not_ready',
+    );
+
+    expect(shortFinding.context['count'], 2);
+    expect(
+      shortFinding.context['docIds'],
+      const <String>['short-hls-1', 'short-hls-2'],
     );
   });
 
@@ -1092,6 +1353,82 @@ void main() {
     expect(
       findings.any((item) => item.code == 'permission_notifications_blocked'),
       isFalse,
+    );
+  });
+
+  test('qa recorder flags short playback retry burst after settle', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_short_retry',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'short': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'activeIndex': 0,
+            'activeDocId': 'short-1',
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'short-1',
+            'registeredHandleCount': 1,
+            'savedStateCount': 0,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'short_settle_retry',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(seconds: 3)),
+        metadata: const <String, dynamic>{'docId': 'short-1'},
+      ),
+      QALabTimelineEvent(
+        id: 'short_retry_1',
+        category: 'playback_dispatch',
+        code: 'short_watchdog_play_retry',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 1800)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'retry': 1,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'short_retry_2',
+        category: 'playback_dispatch',
+        code: 'short_watchdog_play_retry',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(milliseconds: 400)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'retry': 2,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_playback_retry_burst'),
+      isTrue,
     );
   });
 

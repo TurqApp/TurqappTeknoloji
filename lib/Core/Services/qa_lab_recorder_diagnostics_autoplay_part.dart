@@ -35,11 +35,20 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
       final playbackSuspended = surfaceProbe['playbackSuspended'] == true;
       final pauseAll = surfaceProbe['pauseAll'] == true;
       final canClaimPlaybackNow = surfaceProbe['canClaimPlaybackNow'] == true;
+      final centeredHasPlayableVideo =
+          surfaceProbe['centeredHasPlayableVideo'] == true;
+      final centeredHasRenderableVideoCard =
+          surfaceProbe['centeredHasRenderableVideoCard'] == true;
       if (centeredIndex < 0 ||
           centeredIndex >= count ||
           playbackSuspended ||
           pauseAll ||
           !canClaimPlaybackNow) {
+        return null;
+      }
+      if (expectedDocId.isNotEmpty &&
+          centeredHasRenderableVideoCard &&
+          !centeredHasPlayableVideo) {
         return null;
       }
     } else {

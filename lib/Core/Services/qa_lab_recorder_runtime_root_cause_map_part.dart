@@ -32,6 +32,12 @@ extension QALabRecorderRuntimeRootCauseMapPart on QALabRecorder {
         '${diagnostic.surface} issued repeated playback commands against the same item in a tight burst.',
       );
     }
+    if (code.contains('playback_retry_burst')) {
+      return (
+        'buffering_instability',
+        '${diagnostic.surface} needed repeated recovery play attempts after settle, which points to unstable playback startup or stalls.',
+      );
+    }
     if (code.contains('scroll_dispatch') ||
         code.contains('scroll_first_frame')) {
       return (
@@ -116,6 +122,12 @@ extension QALabRecorderRuntimeRootCauseMapPart on QALabRecorder {
       return (
         'media_pipeline',
         '${diagnostic.surface} reported a media pipeline failure.',
+      );
+    }
+    if (code.contains('source_not_ready') || code.contains('hls_not_ready')) {
+      return (
+        'media_pipeline',
+        '${diagnostic.surface} exposed a video card before its playback source became ready.',
       );
     }
     if (code == 'coverage_gap') {

@@ -5,6 +5,7 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
     required String surface,
     required Map<String, dynamic> latestProbe,
     required QALabCheckpoint? latestCheckpoint,
+    required List<QALabCheckpoint> surfaceCheckpoints,
     required DateTime referenceTime,
     required String route,
   }) {
@@ -34,6 +35,43 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
             },
           ),
         );
+      }
+      final centeredDocId = (latestProbe['centeredDocId'] ?? '').toString();
+      final centeredHasPlayableVideo =
+          latestProbe['centeredHasPlayableVideo'] == true;
+      final centeredHasRenderableVideoCard =
+          latestProbe['centeredHasRenderableVideoCard'] == true;
+      if (count > 0 &&
+          centeredDocId.isNotEmpty &&
+          centeredHasRenderableVideoCard &&
+          !centeredHasPlayableVideo) {
+        final observedSince = _playbackObservationStart(
+          surfaceCheckpoints: surfaceCheckpoints,
+          route: route,
+          surface: surface,
+          expectedDocId: centeredDocId,
+        );
+        final elapsedMs =
+            referenceTime.difference(observedSince).inMilliseconds;
+        if (elapsedMs >= QALabMode.autoplayDetectionGraceMs) {
+          findings.add(
+            QALabPinpointFinding(
+              severity: QALabIssueSeverity.warning,
+              code: 'feed_video_source_not_ready',
+              message:
+                  'Feed centered item exposed a video card, but playback source stayed unavailable after the grace window.',
+              route: route,
+              surface: surface,
+              timestamp: referenceTime,
+              context: <String, dynamic>{
+                'docId': centeredDocId,
+                'elapsedMs': elapsedMs,
+                'hasRenderableVideoCard': centeredHasRenderableVideoCard,
+                'hasPlayableVideo': centeredHasPlayableVideo,
+              },
+            ),
+          );
+        }
       }
       final playbackSuspended = latestProbe['playbackSuspended'] == true;
       final pauseAll = latestProbe['pauseAll'] == true;
