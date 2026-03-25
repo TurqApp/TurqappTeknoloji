@@ -1,0 +1,136 @@
+part of 'create_scholarship_controller.dart';
+
+class _CreateScholarshipControllerState {
+  final isLoading = false.obs;
+  final isEditing = false.obs;
+  final scholarshipId = ''.obs;
+  final baslik = ''.obs;
+  final baslikController = TextEditingController();
+  final bursVeren = ''.obs;
+  final bursVerenController = TextEditingController();
+  final aciklama = ''.obs;
+  final aciklamaController = TextEditingController();
+  final basvuruURL = ''.obs;
+  final basvuruURLController = TextEditingController(text: 'https://');
+  final basvuruYapilacakYer = ''.obs;
+  final basvuruYapilacakYerController = TextEditingController();
+  final baslangicTarihi = ''.obs;
+  final bitisTarihi = ''.obs;
+  final tutar = ''.obs;
+  final tutarController = TextEditingController();
+  final ogrenciSayisi = ''.obs;
+  final ogrenciSayisiController = TextEditingController();
+  final egitimKitlesi = ''.obs;
+  final lisansTuru = <String>[].obs;
+  final geriOdemeli = CreateScholarshipController.repayableNoValue.obs;
+  final mukerrerDurumu =
+      CreateScholarshipController.duplicateStatusCanReceiveValue.obs;
+  final hedefKitle = ''.obs;
+  final sehirler = <String>[].obs;
+  final ilceler = <String>[].obs;
+  final universiteler = <String>[].obs;
+  final website = ''.obs;
+  final websiteController = TextEditingController(text: 'https://');
+  final currentSection = 1.obs;
+  final logoPath = ''.obs;
+  final customImagePath = ''.obs;
+  final selectedTemplateIndex = (-1).obs;
+  final formKey = GlobalKey<FormState>();
+  final applicationOption = <String>[
+    CreateScholarshipController.applicationPlaceTurqAppValue,
+    CreateScholarshipController.applicationPlaceWebsiteValue,
+  ].obs;
+  final applicationOptionValue =
+      CreateScholarshipController.applicationPlaceTurqAppValue.obs;
+  final basvuruKosullari = ''.obs;
+  final basvuruKosullariController = TextEditingController();
+  final aylar = <String>[].obs;
+  final aylarController = TextEditingController();
+  final aylarText = ''.obs;
+  final belgeler = <String>[].obs;
+  final belgelerController = TextEditingController();
+  final selectedItems = <String>[].obs;
+  final logo = ''.obs;
+  final templateUrl = ''.obs;
+  final template = ''.obs;
+  final ulke = ''.obs;
+  final bursKosullari = List<String>.of(_defaultScholarshipConditions).obs;
+  final gerekliBelgeler = List<String>.of(_defaultScholarshipRequiredDocuments);
+  final bursVerilecekAylar = List<String>.of(_defaultScholarshipAwardMonths);
+  final iller = <String>[].obs;
+  final ilIlceMap = <String, List<String>>{}.obs;
+  final universiteMap = <String, List<String>>{}.obs;
+  final tumUniversiteler = <String>[].obs;
+  final higherEducationData = <dynamic>[].obs;
+  final firestore = FirebaseFirestore.instance;
+  final storage = FirebaseStorage.instance;
+  final templateKey = GlobalKey();
+  String? controllerTag;
+}
+
+extension CreateScholarshipControllerFieldsPart on CreateScholarshipController {
+  RxBool get isLoading => _state.isLoading;
+  RxBool get isEditing => _state.isEditing;
+  RxString get scholarshipId => _state.scholarshipId;
+  RxString get baslik => _state.baslik;
+  TextEditingController get baslikController => _state.baslikController;
+  RxString get bursVeren => _state.bursVeren;
+  TextEditingController get bursVerenController => _state.bursVerenController;
+  RxString get aciklama => _state.aciklama;
+  TextEditingController get aciklamaController => _state.aciklamaController;
+  RxString get basvuruURL => _state.basvuruURL;
+  TextEditingController get basvuruURLController => _state.basvuruURLController;
+  RxString get basvuruYapilacakYer => _state.basvuruYapilacakYer;
+  TextEditingController get basvuruYapilacakYerController =>
+      _state.basvuruYapilacakYerController;
+  RxString get baslangicTarihi => _state.baslangicTarihi;
+  RxString get bitisTarihi => _state.bitisTarihi;
+  RxString get tutar => _state.tutar;
+  TextEditingController get tutarController => _state.tutarController;
+  RxString get ogrenciSayisi => _state.ogrenciSayisi;
+  TextEditingController get ogrenciSayisiController =>
+      _state.ogrenciSayisiController;
+  RxString get egitimKitlesi => _state.egitimKitlesi;
+  RxList<String> get lisansTuru => _state.lisansTuru;
+  RxString get geriOdemeli => _state.geriOdemeli;
+  RxString get mukerrerDurumu => _state.mukerrerDurumu;
+  RxString get hedefKitle => _state.hedefKitle;
+  RxList<String> get sehirler => _state.sehirler;
+  RxList<String> get ilceler => _state.ilceler;
+  RxList<String> get universiteler => _state.universiteler;
+  RxString get website => _state.website;
+  TextEditingController get websiteController => _state.websiteController;
+  RxInt get currentSection => _state.currentSection;
+  RxString get logoPath => _state.logoPath;
+  RxString get customImagePath => _state.customImagePath;
+  RxInt get selectedTemplateIndex => _state.selectedTemplateIndex;
+  GlobalKey<FormState> get formKey => _state.formKey;
+  RxList<String> get applicationOption => _state.applicationOption;
+  RxString get applicationOptionValue => _state.applicationOptionValue;
+  RxString get basvuruKosullari => _state.basvuruKosullari;
+  TextEditingController get basvuruKosullariController =>
+      _state.basvuruKosullariController;
+  RxList<String> get aylar => _state.aylar;
+  TextEditingController get aylarController => _state.aylarController;
+  RxString get aylarText => _state.aylarText;
+  RxList<String> get belgeler => _state.belgeler;
+  TextEditingController get belgelerController => _state.belgelerController;
+  RxList<String> get selectedItems => _state.selectedItems;
+  RxString get logo => _state.logo;
+  RxString get templateUrl => _state.templateUrl;
+  RxString get template => _state.template;
+  RxString get ulke => _state.ulke;
+  RxList<String> get bursKosullari => _state.bursKosullari;
+  List<String> get gerekliBelgeler => _state.gerekliBelgeler;
+  List<String> get bursVerilecekAylar => _state.bursVerilecekAylar;
+  RxList<String> get iller => _state.iller;
+  RxMap<String, List<String>> get ilIlceMap => _state.ilIlceMap;
+  RxMap<String, List<String>> get universiteMap => _state.universiteMap;
+  RxList<String> get tumUniversiteler => _state.tumUniversiteler;
+  RxList<dynamic> get higherEducationData => _state.higherEducationData;
+  FirebaseFirestore get _firestore => _state.firestore;
+  FirebaseStorage get _storage => _state.storage;
+  GlobalKey get templateKey => _state.templateKey;
+  String? get controllerTag => _state.controllerTag;
+  set controllerTag(String? value) => _state.controllerTag = value;
+}
