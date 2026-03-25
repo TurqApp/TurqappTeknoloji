@@ -415,7 +415,6 @@ class ExoPlayerView(
 
     fun play() {
         player?.let { p ->
-            smokeMonitor.resetForNewPlaybackSession()
             smokeProbe?.onAutoplayRequested()
             if (isSoftHeld) {
                 p.volume = heldVolume

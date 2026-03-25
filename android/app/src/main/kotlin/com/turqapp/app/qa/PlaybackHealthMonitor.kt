@@ -76,6 +76,10 @@ class PlaybackHealthMonitor(
         private set
 
     @Volatile
+    var stallCount: Int = 0
+        private set
+
+    @Volatile
     var lastKnownPlaybackAdvanceAt: Long = 0L
         private set
 
@@ -118,6 +122,7 @@ class PlaybackHealthMonitor(
         surfaceDetachCount = 0
         droppedFramesTotal = 0
         rebufferCount = 0
+        stallCount = 0
         lastKnownPlaybackAdvanceAt = 0L
         fullscreenTransitionStartedAt = 0L
         appBackgroundedAt = 0L
@@ -225,6 +230,9 @@ class PlaybackHealthMonitor(
     fun onBufferingStarted() {
         if (!isBuffering) {
             rebufferCount += 1
+            if (playerReadyObserved || hasRenderedFirstFrame || lastKnownPlaybackPosition > 0L) {
+                stallCount += 1
+            }
             if (rebufferCount >= excessiveRebufferThreshold) {
                 addError("EXCESSIVE_REBUFFERING")
             }
@@ -347,6 +355,7 @@ class PlaybackHealthMonitor(
         "firstFrameRenderedAt" to firstFrameRenderedAt,
         "lastFrameRenderedAt" to lastFrameRenderedAt,
         "lastKnownPlaybackPosition" to lastKnownPlaybackPosition,
+        "lastKnownPlaybackTime" to (lastKnownPlaybackPosition / 1000.0),
         "isPlaybackExpected" to isPlaybackExpected,
         "isPlaying" to isPlaying,
         "hasRenderedFirstFrame" to hasRenderedFirstFrame,
@@ -354,10 +363,15 @@ class PlaybackHealthMonitor(
         "isInFullscreenTransition" to isInFullscreenTransition,
         "surfaceAttachCount" to surfaceAttachCount,
         "surfaceDetachCount" to surfaceDetachCount,
+        "layerAttachCount" to surfaceAttachCount,
+        "isLayerAttached" to hasActiveSurface(),
         "droppedFramesTotal" to droppedFramesTotal,
         "rebufferCount" to rebufferCount,
+        "stallCount" to stallCount,
         "appBackgroundedAt" to appBackgroundedAt,
         "appForegroundedAt" to appForegroundedAt,
+        "appDidEnterBackgroundAt" to appBackgroundedAt,
+        "appWillEnterForegroundAt" to appForegroundedAt,
         "awaitingFullscreenRecovery" to awaitingFullscreenRecovery,
         "awaitingBackgroundRecovery" to awaitingBackgroundRecovery,
         "errors" to getErrors(),
