@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
+part 'post_count_manager_actions_part.dart';
+
 class PostCountManager extends GetxController {
   static PostCountManager? _instance;
 
@@ -71,101 +73,52 @@ class PostCountManager extends GetxController {
     getStatsCount(postID).value = statsCount;
   }
 
-  Future<void> updateLikeCount(String postID, String? originalPostID,
-      {bool increment = true}) async {
-    // Optimistic local update
-    final newCount = increment
-        ? getLikeCount(postID).value + 1
-        : getLikeCount(postID).value - 1;
-    getLikeCount(postID).value = newCount.clamp(0, double.infinity).toInt();
-
-    try {
-      await _updateLinkedPostCounts(
-        postID: postID,
-        originalPostID: originalPostID,
-        fieldPath: "stats.likeCount",
-        increment: increment ? 1 : -1,
-        readLocal: getLikeCount,
+  Future<void> updateLikeCount(
+    String postID,
+    String? originalPostID, {
+    bool increment = true,
+  }) =>
+      _PostCountManagerActionsX(this).updateLikeCount(
+        postID,
+        originalPostID,
+        increment: increment,
       );
-    } catch (e) {
-      print("PostCountManager - updateLikeCount error: $e");
-    }
-  }
 
-  Future<void> updateCommentCount(String postID, String? originalPostID,
-      {bool increment = true}) async {
-    final newCount = increment
-        ? getCommentCount(postID).value + 1
-        : getCommentCount(postID).value - 1;
-    getCommentCount(postID).value = newCount.clamp(0, double.infinity).toInt();
-
-    try {
-      await _updateLinkedPostCounts(
-        postID: postID,
-        originalPostID: originalPostID,
-        fieldPath: "stats.commentCount",
-        increment: increment ? 1 : -1,
-        readLocal: getCommentCount,
+  Future<void> updateCommentCount(
+    String postID,
+    String? originalPostID, {
+    bool increment = true,
+  }) =>
+      _PostCountManagerActionsX(this).updateCommentCount(
+        postID,
+        originalPostID,
+        increment: increment,
       );
-    } catch (e) {
-      print("PostCountManager - updateCommentCount error: $e");
-    }
-  }
 
-  Future<void> updateSavedCount(String postID, String? originalPostID,
-      {bool increment = true}) async {
-    final newCount = increment
-        ? getSavedCount(postID).value + 1
-        : getSavedCount(postID).value - 1;
-    getSavedCount(postID).value = newCount.clamp(0, double.infinity).toInt();
-
-    try {
-      await _updateLinkedPostCounts(
-        postID: postID,
-        originalPostID: originalPostID,
-        fieldPath: "stats.savedCount",
-        increment: increment ? 1 : -1,
-        readLocal: getSavedCount,
+  Future<void> updateSavedCount(
+    String postID,
+    String? originalPostID, {
+    bool increment = true,
+  }) =>
+      _PostCountManagerActionsX(this).updateSavedCount(
+        postID,
+        originalPostID,
+        increment: increment,
       );
-    } catch (e) {
-      print("PostCountManager - updateSavedCount error: $e");
-    }
-  }
 
-  Future<void> updateRetryCount(String postID, String? originalPostID,
-      {bool increment = true}) async {
-    final newCount = increment
-        ? getRetryCount(postID).value + 1
-        : getRetryCount(postID).value - 1;
-    getRetryCount(postID).value = newCount.clamp(0, double.infinity).toInt();
-
-    try {
-      await _updateLinkedPostCounts(
-        postID: postID,
-        originalPostID: originalPostID,
-        fieldPath: "stats.retryCount",
-        increment: increment ? 1 : -1,
-        readLocal: getRetryCount,
+  Future<void> updateRetryCount(
+    String postID,
+    String? originalPostID, {
+    bool increment = true,
+  }) =>
+      _PostCountManagerActionsX(this).updateRetryCount(
+        postID,
+        originalPostID,
+        increment: increment,
       );
-    } catch (e) {
-      print("PostCountManager - updateRetryCount error: $e");
-    }
-  }
 
-  Future<void> updateStatsCount(String postID, {int by = 1}) async {
-    // Always increment by a positive value; clamp to avoid negatives
-    final inc = by < 0 ? 0 : by;
-    final newCount = getStatsCount(postID).value + inc;
-    getStatsCount(postID).value = newCount.clamp(0, double.infinity).toInt();
-
-    try {
-      await FirebaseFirestore.instance.collection("Posts").doc(postID).update({
-        "stats.statsCount": FieldValue.increment(inc),
-      });
-    } catch (e) {
-      print("PostCountManager - updateStatsCount error: $e");
-    }
-  }
+  Future<void> updateStatsCount(String postID, {int by = 1}) =>
+      _PostCountManagerActionsX(this).updateStatsCount(postID, by: by);
 
   void cleanupPost(String postID) {
     _likeCounts.remove(postID);
@@ -181,35 +134,5 @@ class PostCountManager extends GetxController {
     _savedCounts.clear();
     _retryCounts.clear();
     _statsCounts.clear();
-  }
-
-  Future<void> _updateLinkedPostCounts({
-    required String postID,
-    required String? originalPostID,
-    required String fieldPath,
-    required int increment,
-    required RxInt Function(String postId) readLocal,
-  }) async {
-    final firestore = FirebaseFirestore.instance;
-    final batch = firestore.batch();
-
-    batch.update(
-      firestore.collection("Posts").doc(postID),
-      {fieldPath: FieldValue.increment(increment)},
-    );
-
-    if (originalPostID != null &&
-        originalPostID.isNotEmpty &&
-        originalPostID != postID) {
-      final originalNewCount = readLocal(originalPostID).value + increment;
-      readLocal(originalPostID).value =
-          originalNewCount.clamp(0, double.infinity).toInt();
-      batch.update(
-        firestore.collection("Posts").doc(originalPostID),
-        {fieldPath: FieldValue.increment(increment)},
-      );
-    }
-
-    await batch.commit();
   }
 }

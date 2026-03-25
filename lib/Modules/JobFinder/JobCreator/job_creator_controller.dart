@@ -30,6 +30,7 @@ import '../job_localization_utils.dart';
 
 part 'job_creator_controller_form_part.dart';
 part 'job_creator_controller_submission_part.dart';
+part 'job_creator_controller_support_part.dart';
 
 class JobCreatorController extends GetxController {
   static JobCreatorController ensure({
@@ -123,32 +124,13 @@ class JobCreatorController extends GetxController {
   JobCreatorController({this.existingJob});
 
   String localizedWorkTypes(List<String> values) =>
-      values.map(localizeJobWorkType).join(', ');
+      _JobCreatorControllerSupportX(this).localizedWorkTypes(values);
 
   String localizedWorkDays(List<String> values) =>
-      values.map(localizeJobDay).join(', ');
+      _JobCreatorControllerSupportX(this).localizedWorkDays(values);
 
   String localizedBenefits(List<String> values) =>
-      values.map(localizeJobBenefit).join(', ');
-
-  int parseMoneyInput(String value) {
-    return int.tryParse(value.replaceAll('.', '').trim()) ?? 0;
-  }
-
-  String _formatMoneyInput(int value) {
-    final raw = value.toString();
-    final reversed = raw.split('').reversed.join();
-    final chunks = <String>[];
-    for (var i = 0; i < reversed.length; i += 3) {
-      final end = (i + 3 < reversed.length) ? i + 3 : reversed.length;
-      chunks.add(reversed.substring(i, end));
-    }
-    return chunks
-        .map((chunk) => chunk.split('').reversed.join())
-        .toList()
-        .reversed
-        .join('.');
-  }
+      _JobCreatorControllerSupportX(this).localizedBenefits(values);
 
   @override
   void onInit() {
@@ -204,20 +186,7 @@ class JobCreatorController extends GetxController {
 
   @override
   void onClose() {
-    brand.dispose();
-    about.dispose();
-    isTanimi.dispose();
-    maas1.dispose();
-    maas2.dispose();
-    calismaSaatiBaslangic.dispose();
-    calismaSaatiBitis.dispose();
-    basvuruSayisi.dispose();
-    ilanBasligi.dispose();
-    pozisyonSayisi.dispose();
-    final currentLoader = GlobalLoaderController.maybeFind(tag: loaderTag);
-    if (_ownsLoader && currentLoader != null) {
-      Get.delete<GlobalLoaderController>(tag: loaderTag);
-    }
+    _JobCreatorControllerSupportX(this).handleOnClose();
     super.onClose();
   }
 }
