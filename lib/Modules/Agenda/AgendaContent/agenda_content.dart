@@ -51,6 +51,7 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -120,7 +121,12 @@ class _AgendaContentState extends State<AgendaContent>
   String _quotedSourceFutureUserId = '';
   String _quotedSourceFuturePostId = '';
 
-  String get _currentUid => controller.userService.effectiveUserId;
+  String get _currentUid {
+    final cachedUid =
+        (controller.userService.currentUserRx.value?.userID ?? '').trim();
+    if (cachedUid.isNotEmpty) return cachedUid;
+    return controller.userService.authUserId.trim();
+  }
 
   int get _feedCacheWidth {
     final media = MediaQuery.of(context);

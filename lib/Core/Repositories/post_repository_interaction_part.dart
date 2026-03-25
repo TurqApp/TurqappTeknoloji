@@ -35,6 +35,7 @@ extension PostRepositoryInteractionPart on PostRepository {
     final state = attachPost(model);
     final wasLiked = state.liked.value;
     final target = !wasLiked;
+    state.interactionEpoch++;
     state.liked.value = target;
     _applyCountDelta(
       postId: model.docID,
@@ -77,6 +78,7 @@ extension PostRepositoryInteractionPart on PostRepository {
     final state = attachPost(model);
     final wasSaved = state.saved.value;
     final target = !wasSaved;
+    state.interactionEpoch++;
     state.saved.value = target;
     _applyCountDelta(
       postId: model.docID,
@@ -119,6 +121,7 @@ extension PostRepositoryInteractionPart on PostRepository {
     final state = attachPost(model);
     final wasReshared = state.reshared.value;
     final target = !wasReshared;
+    state.interactionEpoch++;
     state.reshared.value = target;
     _applyCountDelta(
       postId: model.docID,
@@ -279,9 +282,13 @@ extension PostRepositoryInteractionPart on PostRepository {
       return;
     }
     state.interactionLoading = true;
+    final requestedEpoch = state.interactionEpoch;
     try {
       final status =
           await _interactionService.getUserInteractionStatus(state.postId);
+      if (state.interactionEpoch != requestedEpoch) {
+        return;
+      }
       state.liked.value = status['liked'] ?? false;
       state.saved.value = status['saved'] ?? false;
       state.reshared.value = status['reshared'] ?? false;

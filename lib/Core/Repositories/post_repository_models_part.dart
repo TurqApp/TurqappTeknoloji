@@ -15,6 +15,7 @@ class PostRepositoryState {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? commentsSub;
   DateTime? interactionFetchedAt;
   bool interactionLoading = false;
+  int interactionEpoch = 0;
   int retainCount = 0;
 }
 

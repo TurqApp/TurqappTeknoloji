@@ -43,6 +43,7 @@ import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -114,7 +115,12 @@ class _ClassicContentState extends State<ClassicContent>
   Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
   String _quotedSourceProfileUserId = '';
 
-  String get _currentUid => controller.userService.effectiveUserId;
+  String get _currentUid {
+    final cachedUid =
+        (controller.userService.currentUserRx.value?.userID ?? '').trim();
+    if (cachedUid.isNotEmpty) return cachedUid;
+    return controller.userService.authUserId.trim();
+  }
 
   int get _feedCacheWidth {
     final media = MediaQuery.of(context);

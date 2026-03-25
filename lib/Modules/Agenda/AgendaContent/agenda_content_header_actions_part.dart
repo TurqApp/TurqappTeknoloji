@@ -415,23 +415,26 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   Widget saveButton() {
-    final bool isSaved = controller.saved.value == true;
-    final Color displayColor =
-        isSaved ? Colors.orange : _AgendaContentState._actionColor;
+    return Obx(() {
+      final bool isSaved = controller.saved.value == true;
+      final Color displayColor =
+          isSaved ? Colors.orange : _AgendaContentState._actionColor;
 
-    return AnimatedActionButton(
-      enabled: true,
-      semanticsLabel: 'common.save'.tr,
-      onTap: controller.save,
-      showTapArea: _AgendaContentState._showActionTapAreas,
-      child: _iconAction(
-        icon: isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
-        color: displayColor,
-        label: NumberFormatter.format(controller.savedCount.value),
-        labelColor: displayColor,
-        iconSize: 17,
-      ),
-    );
+      return AnimatedActionButton(
+        enabled: true,
+        semanticsLabel: 'common.save'.tr,
+        onTap: controller.save,
+        showTapArea: _AgendaContentState._showActionTapAreas,
+        child: _iconAction(
+          icon:
+              isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+          color: displayColor,
+          label: NumberFormatter.format(controller.savedCount.value),
+          labelColor: displayColor,
+          iconSize: 17,
+        ),
+      );
+    });
   }
 
   Widget statButton() {
