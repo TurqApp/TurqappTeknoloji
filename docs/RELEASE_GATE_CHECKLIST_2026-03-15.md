@@ -57,7 +57,7 @@ bash scripts/run_release_gate_checks.sh
 ### Smoke
 - Amaç: script + endpoint + threshold hattını kısa profilde doğrulamak
 - Tüm anlamlı `k6` modları için `ID_TOKEN` gerekir
-- `ID_TOKEN` yoksa release gate script smoke turunu bilinçli olarak atlar
+- `ID_TOKEN` yoksa `scripts/run_k6_smoke.sh` smoke turunu bilinçli olarak atlar
 
 ```bash
 RUN_K6_SMOKE=1 \

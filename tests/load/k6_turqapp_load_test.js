@@ -17,7 +17,7 @@
  * Hedefler (SLO dokümanından):
  *   - feed_ttfc_warm p95 < 500ms
  *   - video_ttff_warm p95 < 400ms
- *   - CF p99 < 500ms
+ *   - Callable p99 < 2000ms
  *   - Error rate < %0.5
  */
 
@@ -34,11 +34,34 @@ const feedColdLatency = new Trend("turq_feed_cold_latency_ms", true);
 const feedWarmLatency = new Trend("turq_feed_warm_latency_ms", true);
 const searchLatency = new Trend("turq_search_latency_ms", true);
 const cfLikeLatency = new Trend("turq_cf_like_latency_ms", true);
+const recordViewLatency = new Trend("turq_record_view_latency_ms", true);
 const cfFollowLatency = new Trend("turq_cf_follow_latency_ms", true);
 const errorRate = new Rate("turq_error_rate");
 const requestCount = new Counter("turq_request_count");
 const PROFILE = __ENV.K6_PROFILE || "full";
 const MODE = __ENV.K6_MODE || "mixed";
+
+function resolveThresholds() {
+  const thresholds = {
+    turq_error_rate: ["rate < 0.005"],
+    http_req_duration: ["p(95) < 1000"],
+    http_req_failed: ["rate < 0.01"],
+  };
+
+  if (MODE === "feed_only" || MODE === "mixed") {
+    thresholds.turq_feed_warm_latency_ms = ["p(95) < 500"];
+  }
+
+  if ((MODE === "interaction_only" || MODE === "mixed") && __ENV.TOGGLE_LIKE_ENDPOINT) {
+    thresholds.turq_cf_like_latency_ms = ["p(99) < 2000"];
+  }
+
+  if (MODE === "interaction_only" || MODE === "mixed") {
+    thresholds.turq_record_view_latency_ms = ["p(99) < 2000"];
+  }
+
+  return thresholds;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // LOAD PROFILE — 100K DAU simülasyonu
@@ -77,14 +100,7 @@ function resolveStages() {
 
 export const options = {
   stages: resolveStages(),
-  thresholds: {
-    // SLO eşikleri — bu aşılırsa test FAIL olur
-    turq_feed_warm_latency_ms: ["p(95) < 500"], // feed_ttfc_warm p95 < 500ms
-    turq_cf_like_latency_ms: ["p(99) < 2000"],  // CF p99 < 2s (network overhead dahil)
-    "turq_error_rate": ["rate < 0.005"],                // Error rate < %0.5
-    http_req_duration: ["p(95) < 1000"],               // Genel HTTP p95 < 1s
-    http_req_failed: ["rate < 0.01"],                  // HTTP failure rate < %1
-  },
+  thresholds: resolveThresholds(),
   summaryTrendStats: ["avg", "min", "med", "max", "p(90)", "p(95)", "p(99)"],
 };
 
@@ -260,11 +276,15 @@ function scenarioRecordView() {
   );
 
   const duration = Date.now() - start;
+  recordViewLatency.add(duration);
   requestCount.add(1);
 
-  check(res, {
+  const ok = check(res, {
     "view: status 200": (r) => r.status === 200,
   });
+
+  if (!ok) errorRate.add(1);
+  else errorRate.add(0);
 
   sleep(0.3);
 }
@@ -316,12 +336,27 @@ export function handleSummary(data) {
   const p95FeedCold = data.metrics["turq_feed_cold_latency_ms"]?.values?.["p(95)"] ?? -1;
   const p95FeedWarm = data.metrics["turq_feed_warm_latency_ms"]?.values?.["p(95)"] ?? -1;
   const p99Like = data.metrics["turq_cf_like_latency_ms"]?.values?.["p(99)"] ?? -1;
+  const p99RecordView = data.metrics["turq_record_view_latency_ms"]?.values?.["p(99)"] ?? -1;
   const errRate = (data.metrics["turq_error_rate"]?.values?.rate ?? 0) * 100;
+  const feedMeasured = MODE === "feed_only" || MODE === "mixed";
+  const interactionMeasured = MODE === "interaction_only" || MODE === "mixed";
   const likeConfigured = !!(ID_TOKEN && TOGGLE_LIKE_ENDPOINT);
+  const recordViewConfigured = !!(ID_TOKEN && RECORD_VIEW_ENDPOINT);
 
   const sloStatus = {
-    feed_ttfc_p95: p95FeedWarm < 500 ? "✅ PASS" : "❌ FAIL",
-    cf_like_p99: !likeConfigured ? "⚪ N/A" : p99Like < 2000 ? "✅ PASS" : "❌ FAIL",
+    feed_ttfc_p95: !feedMeasured ? "⚪ N/A" : p95FeedWarm < 500 ? "✅ PASS" : "❌ FAIL",
+    cf_like_p99:
+      !interactionMeasured || !likeConfigured
+        ? "⚪ N/A"
+        : p99Like < 2000
+          ? "✅ PASS"
+          : "❌ FAIL",
+    record_view_p99:
+      !interactionMeasured || !recordViewConfigured
+        ? "⚪ N/A"
+        : p99RecordView < 2000
+          ? "✅ PASS"
+          : "❌ FAIL",
     error_rate: errRate < 0.5 ? "✅ PASS" : "❌ FAIL",
   };
 
@@ -338,6 +373,8 @@ export function handleSummary(data) {
   console.log(`Feed overall p95 : ${allText}`);
   const likeP99Text = likeConfigured ? `${p99Like.toFixed(0)}ms` : "N/A";
   console.log(`CF like p99      : ${likeP99Text}  ${sloStatus.cf_like_p99}`);
+  const recordViewP99Text = recordViewConfigured ? `${p99RecordView.toFixed(0)}ms` : "N/A";
+  console.log(`Record view p99  : ${recordViewP99Text}  ${sloStatus.record_view_p99}`);
   console.log(`Error rate       : ${errRate.toFixed(2)}%  ${sloStatus.error_rate}`);
   console.log("══════════════════════════════════════\n");
 
