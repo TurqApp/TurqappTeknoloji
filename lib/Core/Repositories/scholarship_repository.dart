@@ -9,6 +9,7 @@ import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 part 'scholarship_repository_query_part.dart';
 part 'scholarship_repository_action_part.dart';
+part 'scholarship_repository_models_part.dart';
 
 class ScholarshipRepository extends GetxService {
   static const Duration _ttl = Duration(hours: 12);
@@ -220,34 +221,4 @@ class ScholarshipRepository extends GetxService {
       return null;
     }
   }
-}
-
-class _TimedScholarship {
-  const _TimedScholarship({
-    required this.data,
-    required this.cachedAt,
-  });
-
-  final Map<String, dynamic> data;
-  final DateTime cachedAt;
-}
-
-class _TimedScholarshipList {
-  const _TimedScholarshipList({
-    required this.items,
-    required this.cachedAt,
-  });
-
-  final List<Map<String, dynamic>> items;
-  final DateTime cachedAt;
-}
-
-class _TimedScholarshipApply {
-  const _TimedScholarshipApply({
-    required this.value,
-    required this.cachedAt,
-  });
-
-  final bool value;
-  final DateTime cachedAt;
 }
