@@ -20,6 +20,8 @@ import 'package:turqappv2/Modules/Profile/Cv/cv_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'cv_controller_sections_part.dart';
+part 'cv_controller_education_part.dart';
+part 'cv_controller_experience_part.dart';
 part 'cv_controller_persistence_part.dart';
 part 'cv_controller_profile_part.dart';
 
