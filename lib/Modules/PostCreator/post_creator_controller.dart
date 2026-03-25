@@ -49,6 +49,7 @@ part 'post_creator_controller_publish_part.dart';
 part 'post_creator_controller_publish_upload_part.dart';
 part 'post_creator_controller_route_part.dart';
 part 'post_creator_controller_ui_part.dart';
+part 'post_creator_controller_fields_part.dart';
 part 'post_creator_controller_models_part.dart';
 part 'post_creator_controller_runtime_part.dart';
 part 'post_creator_controller_support_part.dart';
@@ -66,50 +67,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     return Get.find<PostCreatorController>();
   }
 
-  RxList<PostCreatorModel> postList =
-      <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
-  int _nextComposerItemIndex = 1;
-  final RxBool isKeyboardOpen = false.obs;
-  final RxBool isPublishing = false.obs;
-  var selectedIndex = 0.obs;
-  var comment = true.obs;
-  // 0: Herkes, 1: Onaylı hesaplar, 2: Takip ettiğin hesaplar
-  var commentVisibility = 0.obs;
-  var paylasimSelection = 0.obs;
-  // 0: Şimdi Paylaş, 1: İleri Tarihe İz Bırak
-  var publishMode = 0.obs;
-  Rx<DateTime?> izBirakDateTime = Rx<DateTime?>(null);
-
-  bool _sharedSourceApplied = false;
-  String _sharedSourceFingerprint = "";
-  bool _isSharedAsPost = false;
-  String _sharedOriginalUserID = "";
-  String _sharedOriginalPostID = "";
-
-  String _sharedSourcePostID = "";
-  bool _isQuotedPost = false;
-  String _quotedOriginalText = "";
-  String _quotedSourceUserID = "";
-  String _quotedSourceDisplayName = "";
-  String _quotedSourceUsername = "";
-  String _quotedSourceAvatarUrl = "";
-  bool _editSourceApplied = false;
-  final RxBool isEditMode = false.obs;
-  final RxString editingPostID = ''.obs;
-  final RxBool isSavingEdit = false.obs;
-
-  Timer? _autoSaveTimer;
-  Timer? _queueRingTimer;
-  String _preparedRouteId = '';
-
-  bool get isQuotedPost => _isQuotedPost;
-  String get quotedOriginalText => _quotedOriginalText;
-  String get quotedSourceUserID => _quotedSourceUserID;
-  String get quotedSourceDisplayName => _quotedSourceDisplayName;
-  String get quotedSourceUsername => _quotedSourceUsername;
-  String get quotedSourceAvatarUrl => _quotedSourceAvatarUrl;
-  String get sharedOriginalUserID => _sharedOriginalUserID;
-  String get sharedOriginalPostID => _sharedOriginalPostID;
+  final _state = _PostCreatorControllerState();
 
   @override
   void onInit() {

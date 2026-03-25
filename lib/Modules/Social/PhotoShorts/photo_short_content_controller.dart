@@ -26,6 +26,7 @@ import '../../../Core/Services/typesense_post_service.dart';
 import '../../../Services/current_user_service.dart';
 
 part 'photo_short_content_controller_post_part.dart';
+part 'photo_short_content_controller_fields_part.dart';
 part 'photo_short_content_controller_runtime_part.dart';
 part 'photo_short_content_controller_social_part.dart';
 
@@ -53,6 +54,7 @@ class PhotoShortsContentController extends GetxController {
 
   PostsModel model;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final _state = _PhotoShortsControllerState();
 
   PhotoShortsContentController({required this.model});
 
@@ -60,36 +62,11 @@ class PhotoShortsContentController extends GetxController {
     return AdminAccessService.isKnownAdminSync();
   }
 
-  var avatarUrl = "".obs;
-  var nickname = "".obs;
-  var token = "".obs;
-  var fullName = "".obs;
-  var takipEdiyorum = false.obs;
-  var followLoading = false.obs;
-  var fullScreen = false.obs;
-
-  var likes = [].obs;
-  var unLikes = [].obs;
-  var saved = [].obs;
-  var comments = [].obs;
-  var seens = [].obs;
-  var reSharedUsers = [].obs;
-  var userComments = [].obs; // Kullanıcının yaptığı yorumlar
-  RxBool isLiked = false.obs;
-  RxBool isSaved = false.obs;
-  RxBool isReshared = false.obs;
-  RxBool isReported = false.obs;
   final agendaController = AgendaController.ensure();
   final countManager = PostCountManager.instance;
   late final PostInteractionService _interactionService;
   late final PostRepository _postRepository;
   late final AdminPushRepository _adminPushRepository;
-  PostRepositoryState? _postState;
-  StreamSubscription<DocumentSnapshot>? _likeDocSub;
-  StreamSubscription<DocumentSnapshot>? _savedDocSub;
-  StreamSubscription<DocumentSnapshot>? _reshareDocSub;
-  StreamSubscription<DocumentSnapshot>? _postDocSub;
-  Worker? _interactionWorker;
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   // Reactive count variables using centralized manager
@@ -97,14 +74,6 @@ class PhotoShortsContentController extends GetxController {
   RxInt get commentCount => countManager.getCommentCount(model.docID);
   RxInt get savedCount => countManager.getSavedCount(model.docID);
   RxInt get retryCount => countManager.getRetryCount(model.docID);
-
-  var arsiv = false.obs;
-  var gizlendi = false.obs;
-  var sikayetEdildi = false.obs;
-  var silindi = false.obs;
-  var silindiOpacity = 1.0.obs;
-
-  var yenidenPaylasildiMi = false.obs;
 
   @override
   void onInit() {

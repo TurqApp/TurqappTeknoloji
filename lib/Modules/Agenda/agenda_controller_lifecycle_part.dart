@@ -44,6 +44,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     scrollController.dispose();
   }
 
+  // ignore: unused_element
   Future<void> _performAddNewReshareEntryWithoutScroll(
     String postId,
     String reshareUserID,
@@ -105,6 +106,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     }
   }
 
+  // ignore: unused_element
   void _performRemoveReshareEntry(String postId, String reshareUserID) {
     try {
       feedReshareEntries.removeWhere((entry) {
