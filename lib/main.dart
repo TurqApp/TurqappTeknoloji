@@ -105,6 +105,7 @@ Future<void> main() async {
   await AppLanguageService.ensureInitialized();
 
   runApp(const MyApp());
+  scheduleQALabAutoOpenOnLaunch();
 
   _appLifecycleListener = AppLifecycleListener(
     onResume: _handleAppResumeTransition,
