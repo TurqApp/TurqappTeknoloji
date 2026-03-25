@@ -83,9 +83,9 @@ extension ProfileControllerRuntimePart on ProfileController {
 
     if (newUid != _activeUid) {
       _activeUid = newUid;
-      _clearInMemoryPostLists();
+      _performClearInMemoryPostLists();
       _listenToCounterChanges();
-      unawaited(_restoreCachedListsForActiveUser());
+      unawaited(_performRestoreCachedListsForActiveUser());
       refreshAll();
     }
   }

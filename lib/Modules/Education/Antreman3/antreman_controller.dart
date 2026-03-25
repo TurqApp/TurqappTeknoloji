@@ -24,6 +24,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'antreman_controller_actions_part.dart';
 part 'antreman_controller_category_part.dart';
+part 'antreman_controller_models_part.dart';
 part 'antreman_controller_question_actions_part.dart';
 
 class AntremanController extends GetxController {
@@ -55,113 +56,9 @@ class AntremanController extends GetxController {
   }
 
   String get _mainCategoryPrefKey => '$_mainCategoryPrefKeyPrefix:$_activeUid';
-  final Map<String, Map<String, List<String>>> subjects = {
-    "LGS": {
-      "LGS": [
-        "Türkçe",
-        "Matematik",
-        "Fen Bilimleri",
-        "İnkilap Tarihi",
-        "Din Kültürü",
-        "Yabancı Dil",
-      ],
-    },
-    "YKS": {
-      "TYT": ["Türkçe", "Temel Matematik", "Fen Bilimleri", "Sosyal Bilimler"],
-      "AYT": [
-        "Edebiyat - Sosyal Bilimler 1",
-        "Matematik",
-        "Sosyal Bilimler 2",
-        "Fen Bilimleri",
-      ],
-      "YDT": ["İngilizce", "Almanca", "Arapça", "Fransızca", "Rusça"],
-    },
-    "KPSS": {
-      "Orta Öğretim": ["Genel Kültür", "Genel Yetenek"],
-      "Ön Lisans": ["Genel Kültür", "Genel Yetenek"],
-      "Lisans": [
-        "Genel Kültür",
-        "Genel Yetenek",
-        "Eğitim Bilimleri",
-        "Çalışma Ekonomisi",
-        "İstatistik",
-        "Uluslararası İlişkiler",
-        "Kamu Yönetimi",
-        "Hukuk",
-        "İktisat",
-        "İşletme",
-        "Maliye",
-        "Muhasebe",
-        "Almanca Öğretmenliği",
-        "Beden Eğitimi",
-        "Biyoloji Öğretmenliği",
-        "Coğrafya Öğretmenliği",
-        "Din Kültürü",
-        "Edebiyat Öğretmenliği",
-        "Fen Bilimleri Öğretmenliği",
-        "Fizik Öğretmenliği",
-        "Matematik Öğretmenliği",
-        "İmam Hatip Öğretmenliği",
-        "İngilizce Öğretmenliği",
-        "Kimya Öğretmenliği",
-        "Lise Matematik Öğretmenliği",
-        "Okul Öncesi Öğretmenliği",
-        "Rehberlik",
-        "Sınıf Öğretmenliği",
-        "Sosyal Bilgiler Öğretmenliği",
-        "Tarih Öğretmenliği",
-        "Türkçe Öğretmenliği",
-        "Eğitim Bilimleri"
-      ]
-    },
-    "YDS": {
-      "İngilizce": ["Test Of English"],
-      "Almanca": ["DeutschTest"],
-      "Fransızca": ["Test De Français"],
-      "Rusça": ["ТЕСТ НА ЗНАНИЕ РУССКОГО ЯЗЫКА"],
-      "Arapça": ["Arapça"],
-    },
-    "ALES": {
-      "ALES": [
-        "Sözel",
-        "Sayısal",
-        "Sözel 1",
-        "Sözel 2",
-        "Sayısal 1",
-        "Sayısal 2"
-      ]
-    },
-    "DGS": {
-      "DGS": ["Sayısal", "Sözel"]
-    },
-    "DUS": {
-      "DUS": ["Temel Bilimler", "Klinik Bilimler"]
-    },
-    "TUS": {
-      "TTBT": ["Temel Tıp Bilimleri"],
-      "KTBT": ["Klinik Tıp Bilimleri"],
-    }
-  };
+  final Map<String, Map<String, List<String>>> subjects = _antremanSubjects;
 
-  final Map<String, IconData> icons = {
-    "LGS": CupertinoIcons.lightbulb,
-    "YKS": CupertinoIcons.book_fill,
-    "TYT": CupertinoIcons.book_fill,
-    "AYT": CupertinoIcons.doc_text,
-    "YDT": CupertinoIcons.flag,
-    "ALES": CupertinoIcons.graph_square_fill,
-    "DGS": CupertinoIcons.archivebox,
-    "YDS": CupertinoIcons.pen,
-    "TUS": CupertinoIcons.pencil,
-    "DUS": CupertinoIcons.doc_on_clipboard,
-    "KPSS Ortaöğretim": CupertinoIcons.person_3_fill,
-    "KPSS Ön Lisans": CupertinoIcons.list_bullet,
-    "KPSS GY-GK": CupertinoIcons.info_circle_fill,
-    "KPSS Eğitim Bilimleri": CupertinoIcons.book,
-    "KPSS Alan Bilgisi": CupertinoIcons.briefcase_fill,
-    "KPSS A Grubu 1": CupertinoIcons.lock_fill,
-    "KPSS A Grubu 2": CupertinoIcons.wrench_fill,
-  };
+  final Map<String, IconData> icons = _antremanIcons;
   var expandedIndex = RxInt(-1);
   final RxString selectedSubject = ''.obs;
   final RxString selectedSinavTuru = ''.obs;

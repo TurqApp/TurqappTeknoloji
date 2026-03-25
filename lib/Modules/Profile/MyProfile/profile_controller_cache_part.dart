@@ -6,7 +6,7 @@ extension ProfileControllerCachePart on ProfileController {
     if (uid == null || uid.isEmpty) return;
     _persistCacheTimer?.cancel();
     _persistCacheTimer = Timer(const Duration(milliseconds: 400), () {
-      unawaited(_persistPostCaches(uid));
+      unawaited(_performPersistPostCaches(uid));
     });
   }
 
@@ -32,7 +32,7 @@ extension ProfileControllerCachePart on ProfileController {
       limit: postLimit,
     );
     _applyProfileBuckets(resource.data);
-    unawaited(_warmProfileSurfaceCache());
+    unawaited(_performWarmProfileSurfaceCache());
   }
 
   Future<void> _performWarmProfileSurfaceCache() async {
@@ -102,7 +102,7 @@ extension ProfileControllerCachePart on ProfileController {
     hasMorePostsPhotos = true;
     hasMorePostsVideos = true;
     hasMoreScheduled = true;
-    unawaited(_warmProfileSurfaceCache());
+    unawaited(_performWarmProfileSurfaceCache());
   }
 
   bool _performApplyProfileBuckets(ProfileBuckets? buckets) {

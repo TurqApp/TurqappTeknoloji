@@ -104,7 +104,9 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     }
     _lastReactiveSignature = nextSignature;
     currentUserRx.value = user;
-    _emitUserEvent(user);
+    if (!_userStreamController.isClosed) {
+      _userStreamController.add(user);
+    }
     return true;
   }
 
@@ -150,7 +152,9 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
       _currentUser = null;
       viewSelectionRx.value = 1;
       currentUserRx.value = null;
-      _emitUserEvent(null);
+      if (!_userStreamController.isClosed) {
+        _userStreamController.add(null);
+      }
 
       _isInitialized = false;
       _isSyncing = false;

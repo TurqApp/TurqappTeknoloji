@@ -175,7 +175,7 @@ extension ProfileControllerPrimaryPart on ProfileController {
       hasMorePostsPhotos = _hasMorePrimary;
       hasMorePostsVideos = _hasMorePrimary;
       hasMoreScheduled = _hasMorePrimary;
-      unawaited(_warmProfileSurfaceCache());
+      unawaited(_performWarmProfileSurfaceCache());
     } catch (e) {
       print('_fetchPrimaryBuckets error: $e');
     } finally {

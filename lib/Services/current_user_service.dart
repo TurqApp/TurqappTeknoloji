@@ -37,6 +37,7 @@ part 'current_user_service_facade_part.dart';
 part 'current_user_service_account_part.dart';
 part 'current_user_service_auth_part.dart';
 part 'current_user_service_lifecycle_part.dart';
+part 'current_user_service_story_part.dart';
 part 'current_user_service_sync_part.dart';
 
 class _TimedValue<T> {
@@ -111,11 +112,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   /// Stream of user updates
   Stream<CurrentUserModel?> get userStream => _userStreamController.stream;
 
-  void _emitUserEvent(CurrentUserModel? user) {
-    if (_userStreamController.isClosed) return;
-    _userStreamController.add(user);
-  }
-
   String get effectiveUserId => _performEffectiveUserId();
 
   final RxInt viewSelectionRx = 1.obs;
@@ -172,15 +168,13 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   DateTime? _lastEmailPromptAt;
   Duration _emailPromptCooldown = const Duration(days: 7);
 
-  bool hasReadStory(String storyId) {
-    return _currentUser?.readStories.contains(storyId) ?? false;
-  }
+  bool hasReadStory(String storyId) =>
+      _CurrentUserServiceStoryPart(this).hasReadStory(storyId);
 
-  int? getStoryReadTime(String userId) {
-    return _currentUser?.readStoriesTimes[userId];
-  }
+  int? getStoryReadTime(String userId) =>
+      _CurrentUserServiceStoryPart(this).getStoryReadTime(userId);
 
-  bool get isVerified => _currentUser?.isVerified ?? false;
+  bool get isVerified => _CurrentUserServiceStoryPart(this).isVerified;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🧹 Cleanup

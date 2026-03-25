@@ -32,7 +32,7 @@ extension ProfileControllerLifecyclePart on ProfileController {
 
   Future<void> _performRefreshAll({bool forceSync = false}) async {
     try {
-      await _bootstrapHeaderFromTypesense();
+      await _performBootstrapHeaderFromTypesense();
       await getCounters();
 
       await Future.wait([
@@ -87,8 +87,8 @@ extension ProfileControllerLifecyclePart on ProfileController {
     _activeUid = _resolvedActiveUid;
     _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
 
-    _bindCacheWorkers();
-    unawaited(_bootstrapProfileData());
+    _performBindCacheWorkers();
+    unawaited(_performBootstrapProfileData());
     for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
       scrollControllerForSelection(selection);
     }

@@ -11,8 +11,8 @@ extension ProfileControllerHeaderPart on ProfileController {
   }
 
   Future<void> _performBootstrapProfileData() async {
-    await _restoreCachedListsForActiveUser();
-    await _bootstrapHeaderFromTypesense();
+    await _performRestoreCachedListsForActiveUser();
+    await _performBootstrapHeaderFromTypesense();
     getCounters();
     _listenToCounterChanges();
     _bindResharesRealtime();
@@ -37,8 +37,8 @@ extension ProfileControllerHeaderPart on ProfileController {
       final bootstrapData = cachedRaw ??
           (summary != null ? summary.toMap() : const <String, dynamic>{});
       if (bootstrapData.isEmpty) return;
-      _applyHeaderCard(bootstrapData);
-      if (_needsHeaderSupplementalData(bootstrapData)) {
+      _performApplyHeaderCard(bootstrapData);
+      if (_performNeedsHeaderSupplementalData(bootstrapData)) {
         final raw = await _userRepository.getUserRaw(
           uid,
           preferCache: false,
@@ -46,7 +46,7 @@ extension ProfileControllerHeaderPart on ProfileController {
         );
         if (raw != null && raw.isNotEmpty) {
           await _userRepository.putUserRaw(uid, raw);
-          _applyHeaderCard(raw);
+          _performApplyHeaderCard(raw);
         }
       }
     } catch (e) {

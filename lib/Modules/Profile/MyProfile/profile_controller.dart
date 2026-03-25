@@ -168,42 +168,6 @@ class ProfileController extends GetxController {
     super.onClose();
   }
 
-  Future<void> _bootstrapProfileData() => _performBootstrapProfileData();
-
-  Future<void> _bootstrapHeaderFromTypesense() =>
-      _performBootstrapHeaderFromTypesense();
-
-  bool _needsHeaderSupplementalData(Map<String, dynamic> data) =>
-      _performNeedsHeaderSupplementalData(data);
-
-  void _applyHeaderCard(Map<String, dynamic> data) =>
-      _performApplyHeaderCard(data);
-
-  void _bindCacheWorkers() => _performBindCacheWorkers();
-
-  void _rebuildMergedPosts() => _performRebuildMergedPosts();
-
-  int _resolveInitialCenteredIndex() => _performResolveInitialCenteredIndex();
-
-  bool _canAutoplayMergedEntry(Map<String, dynamic> entry) =>
-      _performCanAutoplayMergedEntry(entry);
-
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
       _performOnPostVisibilityChanged(modelIndex, visibleFraction);
-
-  void _scheduleVisibilityEvaluation() =>
-      _performScheduleVisibilityEvaluation();
-
-  void _evaluateCenteredPlayback() => _performEvaluateCenteredPlayback();
-
-  void _schedulePersistPostCaches() => _performSchedulePersistPostCaches();
-
-  Future<void> _persistPostCaches(String uid) => _performPersistPostCaches(uid);
-
-  Future<void> _restoreCachedListsForActiveUser() =>
-      _performRestoreCachedListsForActiveUser();
-
-  Future<void> _warmProfileSurfaceCache() => _performWarmProfileSurfaceCache();
-
-  void _clearInMemoryPostLists() => _performClearInMemoryPostLists();
 }

@@ -78,17 +78,19 @@ extension ProfileControllerSelectionPart on ProfileController {
   }
 
   void _performBindCacheWorkers() {
-    _allPostsWorker = ever(allPosts, (_) => _schedulePersistPostCaches());
-    _photosWorker = ever(photos, (_) => _schedulePersistPostCaches());
-    _videosWorker = ever(videos, (_) => _schedulePersistPostCaches());
-    _resharesWorker = ever(reshares, (_) => _schedulePersistPostCaches());
+    _allPostsWorker =
+        ever(allPosts, (_) => _performSchedulePersistPostCaches());
+    _photosWorker = ever(photos, (_) => _performSchedulePersistPostCaches());
+    _videosWorker = ever(videos, (_) => _performSchedulePersistPostCaches());
+    _resharesWorker =
+        ever(reshares, (_) => _performSchedulePersistPostCaches());
     _scheduledWorker =
-        ever(scheduledPosts, (_) => _schedulePersistPostCaches());
+        ever(scheduledPosts, (_) => _performSchedulePersistPostCaches());
     _mergedPostsWorker = everAll(
       [allPosts, reshares],
-      (_) => _rebuildMergedPosts(),
+      (_) => _performRebuildMergedPosts(),
     );
-    _rebuildMergedPosts();
+    _performRebuildMergedPosts();
   }
 
   void _performRebuildMergedPosts() {
@@ -112,7 +114,7 @@ extension ProfileControllerSelectionPart on ProfileController {
     _profileRenderCoordinator.applyPatch(mergedPosts, patch);
     _visibleFractions.removeWhere((index, _) => index >= mergedPosts.length);
     if (centeredIndex.value < 0 || centeredIndex.value >= mergedPosts.length) {
-      final target = _resolveInitialCenteredIndex();
+      final target = _performResolveInitialCenteredIndex();
       if (target >= 0) {
         centeredIndex.value = target;
         currentVisibleIndex.value = target;
@@ -156,7 +158,7 @@ extension ProfileControllerSelectionPart on ProfileController {
     if (postSelection.value != 0) return;
     if (pausetheall.value || showPfImage.value) return;
     if (modelIndex < 0 || modelIndex >= mergedPosts.length) return;
-    if (!_canAutoplayMergedEntry(mergedPosts[modelIndex])) return;
+    if (!_performCanAutoplayMergedEntry(mergedPosts[modelIndex])) return;
 
     final prev = _visibleFractions[modelIndex];
     if (GetPlatform.isAndroid &&
@@ -171,7 +173,7 @@ extension ProfileControllerSelectionPart on ProfileController {
       _visibleFractions[modelIndex] = visibleFraction;
     }
 
-    _scheduleVisibilityEvaluation();
+    _performScheduleVisibilityEvaluation();
   }
 
   void _performScheduleVisibilityEvaluation() {
@@ -180,7 +182,7 @@ extension ProfileControllerSelectionPart on ProfileController {
       GetPlatform.isAndroid
           ? const Duration(milliseconds: 24)
           : const Duration(milliseconds: 40),
-      _evaluateCenteredPlayback,
+      _performEvaluateCenteredPlayback,
     );
   }
 
@@ -198,7 +200,7 @@ extension ProfileControllerSelectionPart on ProfileController {
 
     _visibleFractions.forEach((index, fraction) {
       if (index < 0 || index >= mergedPosts.length) return;
-      if (!_canAutoplayMergedEntry(mergedPosts[index])) return;
+      if (!_performCanAutoplayMergedEntry(mergedPosts[index])) return;
       if (fraction > fallbackFraction) {
         fallbackFraction = fraction;
         fallbackIndex = index;

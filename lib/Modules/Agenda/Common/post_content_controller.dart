@@ -34,6 +34,7 @@ part 'post_content_controller_actions_part.dart';
 part 'post_content_controller_data_part.dart';
 part 'post_content_controller_profile_part.dart';
 part 'post_content_controller_runtime_part.dart';
+part 'post_content_controller_support_part.dart';
 
 class PostContentController extends GetxController {
   static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
@@ -94,41 +95,14 @@ class PostContentController extends GetxController {
 
   bool _canSendAdminPush = AdminAccessService.isKnownAdminSync();
 
-  bool get canSendAdminPush {
-    return _canSendAdminPush || AdminAccessService.isKnownAdminSync();
-  }
+  bool get canSendAdminPush =>
+      _PostContentControllerSupportPart(this).canSendAdminPush;
 
-  ({String title, String body}) _buildPostPushCopy() {
-    final senderName = fullName.value.trim().isNotEmpty
-        ? fullName.value.trim()
-        : nickname.value.trim();
-    final safeSender = senderName.isNotEmpty ? senderName : 'app.name'.tr;
-    final hasVideo = model.video.trim().isNotEmpty;
-    final hasImage = model.img.isNotEmpty;
-    final text = model.metin.trim();
+  ({String title, String body}) _buildPostPushCopy() =>
+      _PostContentControllerSupportPart(this).buildPostPushCopy();
 
-    final preview =
-        text.length > 90 ? '${text.substring(0, 90).trim()}...' : text;
-    final title = '$safeSender yeni bir gonderi paylasti';
-    final body = preview.isNotEmpty
-        ? preview
-        : hasVideo
-            ? 'Yeni video gonderisi'
-            : hasImage
-                ? 'Yeni fotograf gonderisi'
-                : 'Yeni gonderi paylasti';
-    return (title: title, body: body);
-  }
-
-  String? _pushPreviewImageUrl() {
-    if (model.img.isNotEmpty) {
-      final firstImage = model.img.first.trim();
-      if (firstImage.isNotEmpty) return firstImage;
-    }
-    final thumbnail = model.thumbnail.trim();
-    if (thumbnail.isNotEmpty) return thumbnail;
-    return null;
-  }
+  String? _pushPreviewImageUrl() =>
+      _PostContentControllerSupportPart(this).pushPreviewImageUrl();
 
   final likes = <String>[].obs;
   final unLikes = <String>[].obs;
@@ -190,13 +164,8 @@ class PostContentController extends GetxController {
   Worker? _postDataWorker;
   Worker? _myResharesWorker;
 
-  String get reshareTargetPostId {
-    final originalPostId = model.originalPostID.trim();
-    if (originalPostId.isNotEmpty && model.quotedPost != true) {
-      return originalPostId;
-    }
-    return model.docID;
-  }
+  String get reshareTargetPostId =>
+      _PostContentControllerSupportPart(this).reshareTargetPostId;
 
   @protected
   void onPostInitialized() {}
