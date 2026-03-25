@@ -28,6 +28,7 @@ extension EducationControllerPasajPart on EducationController {
 
   void _disposeEducationController() {
     _pasajConfigSub?.cancel();
+    _didRunVisibleSurfaceReset = false;
     NavBarController.maybeFind()?.showBar.value = true;
     tabScrollController.dispose();
     searchController.dispose();
@@ -162,6 +163,32 @@ extension EducationControllerPasajPart on EducationController {
         pageController.jumpToPage(0);
       }
       resetActivePasajSurfaceToTop();
+    });
+  }
+
+  void _ensureVisibleSurfaceResetImpl() {
+    if (_didRunVisibleSurfaceReset) return;
+    _didRunVisibleSurfaceReset = true;
+
+    void resetSelectedSurface() {
+      if (!hasVisibleTabs) return;
+      final visibleIndex = visibleIndexForActual(selectedTab.value);
+      if (pageController.hasClients &&
+          pageController.page?.round() != visibleIndex) {
+        pageController.jumpToPage(visibleIndex);
+      }
+      _syncTabBarPosition(visibleIndex);
+      resetActivePasajSurfaceToTop();
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      resetSelectedSurface();
+      Future<void>.delayed(const Duration(milliseconds: 120), () {
+        resetSelectedSurface();
+      });
+      Future<void>.delayed(const Duration(milliseconds: 260), () {
+        resetSelectedSurface();
+      });
     });
   }
 

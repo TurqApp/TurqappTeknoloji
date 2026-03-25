@@ -46,6 +46,7 @@ class EducationController extends GetxController {
   final visibleTabIndexes = List<int>.generate(pasajTabs.length, (i) => i).obs;
   final pasajConfigLoaded = false.obs;
   DateTime _lastNavToggleAt = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _didRunVisibleSurfaceReset = false;
   final SettingsController settingsController = SettingsController.ensure();
   StreamSubscription<Map<String, dynamic>>? _pasajConfigSub;
   final Map<String, bool> _adminPasajVisibility = <String, bool>{};
@@ -66,4 +67,6 @@ class EducationController extends GetxController {
 
   void resetSurfaceForTabTransition() =>
       _performResetSurfaceForTabTransition();
+
+  void ensureVisibleSurfaceReset() => _ensureVisibleSurfaceResetImpl();
 }

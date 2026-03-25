@@ -76,6 +76,7 @@ class EducationView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    controller.ensureVisibleSurfaceReset();
     return _buildEducationScaffold(context);
   }
 }

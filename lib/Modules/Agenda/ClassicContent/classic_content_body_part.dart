@@ -711,7 +711,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
     return SizedBox(
       width: 58,
       child: Transform.translate(
-        offset: Offset(pullTowardSend ? 6 : 3, 0),
+        offset: const Offset(3, 0),
         child: Center(child: child),
       ),
     );
