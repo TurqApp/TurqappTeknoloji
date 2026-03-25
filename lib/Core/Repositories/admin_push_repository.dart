@@ -40,6 +40,9 @@ class AdminPushTargetFilters {
 }
 
 class AdminPushRepository extends GetxService {
+  static const String _defaultPushImageUrl =
+      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/logoblack.png?alt=media&token=23085c34-c823-48d9-a650-2342ec801d23';
+
   static AdminPushRepository? maybeFind() {
     final isRegistered = Get.isRegistered<AdminPushRepository>();
     if (!isRegistered) return null;
@@ -109,12 +112,14 @@ class AdminPushRepository extends GetxService {
     required String body,
     required String type,
     required List<String> targetUids,
+    String? imageUrl,
   }) =>
       _sendPushImpl(
         title: title,
         body: body,
         type: type,
         targetUids: targetUids,
+        imageUrl: imageUrl,
       );
 
   Future<int> sendPostPush({

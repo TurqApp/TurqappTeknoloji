@@ -31,6 +31,7 @@ if (admin.apps.length === 0) {
 }
 const db = admin.firestore();
 const DEFAULT_SIGNUP_FOLLOW_UID = "fzP4AVdMugTi5oe11UTj6ljnfCj2";
+const PUSH_TOKEN_FIELDS = ["fcmToken", "pushToken", "token", "fcm_token"];
 function _firstNonEmptyString(...values) {
     for (const value of values) {
         if (typeof value === "string" && value.trim().length > 0) {
@@ -50,6 +51,11 @@ function _pickPostPreviewImage(data) {
     if (!data)
         return "";
     return _firstNonEmptyString(data.imageUrl, data.thumbnail, data.imageURL, data.coverImageUrl, data.logo, data.avatarUrl, data.img, data.images);
+}
+function _resolveUserPushToken(data) {
+    if (!data)
+        return "";
+    return _firstNonEmptyString(data.fcmToken, data.pushToken, data.token, data.fcm_token);
 }
 async function _resolveNotificationImageUrl(data) {
     const direct = _firstNonEmptyString(data.imageUrl, data.thumbnail, data.imageURL, data.avatarUrl, data.applicantPfImage, data.tutorImage, data.companyLogo, data.logo, data.coverImageUrl, data.img, data.images);
@@ -508,7 +514,7 @@ exports.onUserNotificationCreate = functions.firestore
         }
         const userDoc = await db.collection("users").doc(uid).get();
         const userData = (userDoc.data() || {});
-        const token = String(userData.fcmToken || "");
+        const token = _resolveUserPushToken(userData);
         if (!token) {
             console.log("onUserNotificationCreate skip:no_token", {
                 type,
@@ -580,9 +586,17 @@ exports.onUserNotificationCreate = functions.firestore
         if (code === "messaging/registration-token-not-registered") {
             try {
                 const uid = context.params.uid;
-                await db.collection("users").doc(uid).set({
-                    fcmToken: admin.firestore.FieldValue.delete(),
-                }, { merge: true });
+                const userDoc = await db.collection("users").doc(uid).get();
+                const userData = (userDoc.data() || {});
+                const invalidToken = _resolveUserPushToken(userData);
+                const cleanup = {};
+                for (const key of PUSH_TOKEN_FIELDS) {
+                    const raw = _firstNonEmptyString(userData[key]);
+                    if (!raw || raw === invalidToken) {
+                        cleanup[key] = admin.firestore.FieldValue.delete();
+                    }
+                }
+                await db.collection("users").doc(uid).set(cleanup, { merge: true });
                 console.log("onUserNotificationCreate cleared_invalid_token", {
                     uid,
                 });

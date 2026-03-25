@@ -136,8 +136,13 @@ service cloud.firestore {
       return canManageAdminPanels()
         && get(/databases/$(database)/documents/adminConfig/admin).data.pushSend == true;
     }
+    function hasAdminPushTaskAccess() {
+      return hasAssignedAdminTask('admin_push')
+        && exists(/databases/$(database)/documents/adminConfig/admin)
+        && get(/databases/$(database)/documents/adminConfig/admin).data.pushSend == true;
+    }
     function canUseAdminPushBypass() {
-      return isAdmin() || isAllowlistedPushSender();
+      return isAdmin() || isAllowlistedPushSender() || hasAdminPushTaskAccess();
     }
     function isQATelemetryEnabled() {
       return exists(/databases/$(database)/documents/adminConfig/qa)

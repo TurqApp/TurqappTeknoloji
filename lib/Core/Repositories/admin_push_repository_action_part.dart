@@ -1,6 +1,14 @@
 part of 'admin_push_repository.dart';
 
 extension AdminPushRepositoryActionPart on AdminPushRepository {
+  String _resolvePushImageUrlImpl(String? preferred) {
+    final direct = (preferred ?? '').trim();
+    if (direct.isNotEmpty) return direct;
+    final avatar = CurrentUserService.instance.avatarUrl.trim();
+    if (avatar.isNotEmpty) return avatar;
+    return AdminPushRepository._defaultPushImageUrl;
+  }
+
   Future<void> _deleteReportImpl(String reportId) async {
     if (reportId.isEmpty) return;
     await _reportsRef.doc(reportId).delete();
@@ -57,12 +65,14 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
     required String body,
     required String type,
     required List<String> targetUids,
+    required String? imageUrl,
   }) async {
     if (targetUids.isEmpty) return;
     final senderUid = CurrentUserService.instance.effectiveUserId.isNotEmpty
         ? CurrentUserService.instance.effectiveUserId
         : 'admin';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final resolvedImageUrl = _resolvePushImageUrlImpl(imageUrl);
     const batchSize = 400;
 
     for (var i = 0; i < targetUids.length; i += batchSize) {
@@ -78,6 +88,7 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
             'body': body,
             'fromUserID': senderUid,
             'postID': 'admin-manual-push',
+            'imageUrl': resolvedImageUrl,
             'adminPush': true,
             'hideInAppInbox': true,
             'timeStamp': nowMs,
@@ -103,6 +114,7 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
         ? CurrentUserService.instance.effectiveUserId
         : 'admin';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final resolvedImageUrl = _resolvePushImageUrlImpl(imageUrl);
     const batchSize = 400;
     var written = 0;
 
@@ -117,8 +129,7 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
             'type': 'posts',
             'fromUserID': senderUid,
             'postID': postId,
-            if (imageUrl != null && imageUrl.trim().isNotEmpty)
-              'imageUrl': imageUrl,
+            'imageUrl': resolvedImageUrl,
             'adminPush': true,
             'hideInAppInbox': true,
             'timeStamp': nowMs,

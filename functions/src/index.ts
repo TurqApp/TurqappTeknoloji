@@ -28,6 +28,7 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 const DEFAULT_SIGNUP_FOLLOW_UID = "fzP4AVdMugTi5oe11UTj6ljnfCj2";
+const PUSH_TOKEN_FIELDS = ["fcmToken", "pushToken", "token", "fcm_token"] as const;
 
 function _firstNonEmptyString(...values: unknown[]): string {
   for (const value of values) {
@@ -58,6 +59,18 @@ function _pickPostPreviewImage(
     data.avatarUrl,
     data.img,
     data.images,
+  );
+}
+
+function _resolveUserPushToken(
+  data: Record<string, unknown> | undefined,
+): string {
+  if (!data) return "";
+  return _firstNonEmptyString(
+    data.fcmToken,
+    data.pushToken,
+    data.token,
+    data.fcm_token,
   );
 }
 
@@ -537,7 +550,7 @@ export const onUserNotificationCreate = functions.firestore
 
       const userDoc = await db.collection("users").doc(uid).get();
       const userData = (userDoc.data() || {}) as any;
-      const token = String((userData.fcmToken as string) || "");
+      const token = _resolveUserPushToken(userData);
       if (!token) {
         console.log("onUserNotificationCreate skip:no_token", {
           type,
@@ -611,10 +624,18 @@ export const onUserNotificationCreate = functions.firestore
       if (code === "messaging/registration-token-not-registered") {
         try {
           const uid = context.params.uid as string;
+          const userDoc = await db.collection("users").doc(uid).get();
+          const userData = (userDoc.data() || {}) as Record<string, unknown>;
+          const invalidToken = _resolveUserPushToken(userData);
+          const cleanup: Record<string, admin.firestore.FieldValue> = {};
+          for (const key of PUSH_TOKEN_FIELDS) {
+            const raw = _firstNonEmptyString((userData as Record<string, unknown>)[key]);
+            if (!raw || raw === invalidToken) {
+              cleanup[key] = admin.firestore.FieldValue.delete();
+            }
+          }
           await db.collection("users").doc(uid).set(
-            {
-              fcmToken: admin.firestore.FieldValue.delete(),
-            },
+            cleanup,
             { merge: true }
           );
           console.log("onUserNotificationCreate cleared_invalid_token", {
