@@ -14,6 +14,7 @@ import 'cache_metrics.dart';
 import 'models.dart';
 
 part 'cache_manager_eviction_part.dart';
+part 'cache_manager_facade_part.dart';
 part 'cache_manager_runtime_part.dart';
 part 'cache_manager_storage_part.dart';
 part 'cache_manager_write_part.dart';
@@ -63,78 +64,9 @@ class SegmentCacheManager extends GetxController {
   final Map<String, double> _lastPersistedProgress = {};
   final Map<String, DateTime> _lastPersistedProgressAt = {};
 
-  /// Başlatma: cache dizinini oluştur, index'i disk'ten yükle, recovery çalıştır.
-  Future<void> init() => _SegmentCacheManagerRuntimeX(this).init();
-
-  String get cacheDir => _SegmentCacheManagerRuntimeX(this).cacheDir;
-  int get entryCount => _SegmentCacheManagerRuntimeX(this).entryCount;
-  int get totalSizeBytes => _SegmentCacheManagerRuntimeX(this).totalSizeBytes;
-  int get cachedVideoCount =>
-      _SegmentCacheManagerRuntimeX(this).cachedVideoCount;
-  int get totalSegmentCount =>
-      _SegmentCacheManagerRuntimeX(this).totalSegmentCount;
-  List<String> get recentlyPlayed =>
-      _SegmentCacheManagerRuntimeX(this).recentlyPlayed;
-  int get softLimitBytes => _SegmentCacheManagerRuntimeX(this).softLimitBytes;
-  int get hardLimitBytes => _SegmentCacheManagerRuntimeX(this).hardLimitBytes;
-
-  // ──────────────────────────── Cache Okuma ────────────────────────────
-
-  /// Segment index'te varsa File döner, yoksa null.
-  /// Disk varlığını senkron kontrol ETMEZ — index'e güvenir (startup recovery zaten tutarlılık sağlıyor).
-  /// Bu sayede segment serving yolunda senkron I/O olmaz, segment geçişlerinde takılma azalır.
-  File? getSegmentFile(String docID, String segmentKey) =>
-      _SegmentCacheManagerRuntimeX(this).getSegmentFile(docID, segmentKey);
-
-  /// m3u8 playlist disk'te varsa File döner, yoksa null.
-  File? getPlaylistFile(String relativePath) =>
-      _SegmentCacheManagerRuntimeX(this).getPlaylistFile(relativePath);
-
-  /// Video entry varsa döner.
-  VideoCacheEntry? getEntry(String docID) =>
-      _SegmentCacheManagerRuntimeX(this).getEntry(docID);
-
-  // ──────────────────────────── Cache Yazma ────────────────────────────
-
-  // ──────────────────────────── State Yönetimi ────────────────────────────
-
-  /// Video oynatılmaya başladığında çağır.
-  void markPlaying(String docID) =>
-      _SegmentCacheManagerRuntimeX(this).markPlaying(docID);
-
-  /// İzlenme progress'ini güncelle. %90+ ise watched state'ine geç.
-  void updateWatchProgress(String docID, double progress) =>
-      _SegmentCacheManagerRuntimeX(this).updateWatchProgress(docID, progress);
-
-  /// Erişim zamanını güncelle (cache hit'lerde).
-  void touchEntry(String docID) =>
-      _SegmentCacheManagerRuntimeX(this).touchEntry(docID);
-
-  // ──────────────────────────── Eviction ────────────────────────────
-
-  /// Hedef limit altına düşene kadar en düşük skorlu video'yu sil.
-  Future<void> evictIfNeeded({int? targetBytes}) async {
-    final target = targetBytes ?? softLimitBytes;
-    while (_index.totalSizeBytes > target) {
-      if (cachedVideoCount <= ContentPolicy.minGlobalCachedVideos) {
-        break;
-      }
-      final candidate = _findEvictionCandidate(preferLowQuality: true);
-      if (candidate == null) break; // Silinecek aday kalmadı
-      await _evictEntry(candidate);
-    }
-  }
-
-  /// Coalesced eviction: birden fazla writeSegment aynı anda eviction tetiklerse
-  /// tek bir eviction çalışır, diğerleri aynı Future'ı bekler.
-  void _scheduleEvictionIfNeeded() =>
-      _SegmentCacheManagerRuntimeX(this)._scheduleEvictionIfNeeded();
-
-  // ──────────────────────────── Cleanup ────────────────────────────
-
   @override
   Future<void> onClose() async {
-    await _SegmentCacheManagerRuntimeX(this).disposeRuntime();
+    await _handleSegmentCacheManagerOnClose();
     super.onClose();
   }
 }
