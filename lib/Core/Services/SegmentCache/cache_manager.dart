@@ -14,6 +14,7 @@ import 'cache_metrics.dart';
 import 'models.dart';
 
 part 'cache_manager_eviction_part.dart';
+part 'cache_manager_runtime_part.dart';
 part 'cache_manager_storage_part.dart';
 part 'cache_manager_write_part.dart';
 
@@ -63,132 +64,57 @@ class SegmentCacheManager extends GetxController {
   final Map<String, DateTime> _lastPersistedProgressAt = {};
 
   /// Başlatma: cache dizinini oluştur, index'i disk'ten yükle, recovery çalıştır.
-  Future<void> init() async {
-    final appDir = await getApplicationSupportDirectory();
-    _cacheDir = '${appDir.path}/hls_cache';
-    await Directory(_cacheDir).create(recursive: true);
-    await _loadIndex();
-    // Recovery pahalı olabildiği için açılışı bloklamadan arka planda çalıştır.
-    unawaited(_recoverIndex());
-    metrics.startPeriodicLog();
-    // Periyodik totalSizeBytes reconciliation — drift'i düzeltir (5 dakikada bir)
-    _reconcileTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      _reconcileTotalSize();
-    });
-  }
+  Future<void> init() => _SegmentCacheManagerRuntimeX(this).init();
 
-  String get cacheDir => _cacheDir;
-  int get entryCount => _index.entries.length;
-  int get totalSizeBytes => _index.totalSizeBytes;
+  String get cacheDir => _SegmentCacheManagerRuntimeX(this).cacheDir;
+  int get entryCount => _SegmentCacheManagerRuntimeX(this).entryCount;
+  int get totalSizeBytes => _SegmentCacheManagerRuntimeX(this).totalSizeBytes;
   int get cachedVideoCount =>
-      _index.entries.values.where((e) => e.cachedSegmentCount > 0).length;
+      _SegmentCacheManagerRuntimeX(this).cachedVideoCount;
   int get totalSegmentCount =>
-      _index.entries.values.fold(0, (sum, e) => sum + e.cachedSegmentCount);
-  List<String> get recentlyPlayed => List.unmodifiable(_recentlyPlayed);
-  int get softLimitBytes => _softLimitBytes;
-  int get hardLimitBytes => _hardLimitBytes;
-  int get _softLimitBytes =>
-      _userSoftLimitBytes ??
-      _remote?.cacheSoftLimitBytes ??
-      CacheIndex.softLimitBytes;
-  int get _hardLimitBytes =>
-      _userHardLimitBytes ??
-      _remote?.cacheHardLimitBytes ??
-      CacheIndex.maxSizeBytes;
-  int get _recentPlayCount {
-    final remoteFloor = _remote?.cacheRecentProtectCount ?? 3;
-    final budgetManager = StorageBudgetManager.maybeFind();
-    if (budgetManager == null) return remoteFloor;
-    return budgetManager.recentProtectionWindow(
-      streamUsageBytes: _index.totalSizeBytes,
-      remoteFloor: remoteFloor,
-    );
-  }
-
-  VideoRemoteConfigService? get _remote => VideoRemoteConfigService.maybeFind();
+      _SegmentCacheManagerRuntimeX(this).totalSegmentCount;
+  List<String> get recentlyPlayed =>
+      _SegmentCacheManagerRuntimeX(this).recentlyPlayed;
+  int get softLimitBytes => _SegmentCacheManagerRuntimeX(this).softLimitBytes;
+  int get hardLimitBytes => _SegmentCacheManagerRuntimeX(this).hardLimitBytes;
 
   // ──────────────────────────── Cache Okuma ────────────────────────────
 
   /// Segment index'te varsa File döner, yoksa null.
   /// Disk varlığını senkron kontrol ETMEZ — index'e güvenir (startup recovery zaten tutarlılık sağlıyor).
   /// Bu sayede segment serving yolunda senkron I/O olmaz, segment geçişlerinde takılma azalır.
-  File? getSegmentFile(String docID, String segmentKey) {
-    final entry = _index.entries[docID];
-    if (entry == null) return null;
-    final seg = entry.segments[segmentKey];
-    if (seg == null) return null;
-    return File(seg.diskPath);
-  }
+  File? getSegmentFile(String docID, String segmentKey) =>
+      _SegmentCacheManagerRuntimeX(this).getSegmentFile(docID, segmentKey);
 
   /// m3u8 playlist disk'te varsa File döner, yoksa null.
-  File? getPlaylistFile(String relativePath) {
-    final file = File('$_cacheDir/$relativePath');
-    return file.existsSync() ? file : null;
-  }
+  File? getPlaylistFile(String relativePath) =>
+      _SegmentCacheManagerRuntimeX(this).getPlaylistFile(relativePath);
 
   /// Video entry varsa döner.
-  VideoCacheEntry? getEntry(String docID) => _index.entries[docID];
+  VideoCacheEntry? getEntry(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).getEntry(docID);
 
   // ──────────────────────────── Cache Yazma ────────────────────────────
 
   // ──────────────────────────── State Yönetimi ────────────────────────────
 
   /// Video oynatılmaya başladığında çağır.
-  void markPlaying(String docID) {
-    final entry = _index.entries[docID];
-    if (entry == null) return;
-    entry.state = VideoCacheState.playing;
-    entry.lastAccessedAt = DateTime.now();
-
-    // Son N oynatılan listeyi güncelle (eviction koruması)
-    _recentlyPlayed.remove(docID);
-    _recentlyPlayed.add(docID);
-    if (_recentlyPlayed.length > _recentPlayCount) {
-      _recentlyPlayed.removeAt(0);
-    }
-
-    _markDirty();
-  }
+  void markPlaying(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).markPlaying(docID);
 
   /// İzlenme progress'ini güncelle. %90+ ise watched state'ine geç.
-  void updateWatchProgress(String docID, double progress) {
-    final entry = _index.entries[docID];
-    if (entry == null) return;
-    final normalized = progress.clamp(0.0, 1.0);
-    entry.watchProgress = normalized;
-    entry.lastAccessedAt = DateTime.now();
-    if (normalized >= 0.9 && entry.state == VideoCacheState.playing) {
-      entry.state = VideoCacheState.watched;
-    }
-
-    // Index yazımını agresif azalt: %3 değişim veya 6 sn'de bir.
-    final lastProgress = _lastPersistedProgress[docID] ?? -1.0;
-    final lastAt = _lastPersistedProgressAt[docID];
-    final now = DateTime.now();
-    final changedEnough = (normalized - lastProgress).abs() >= 0.03;
-    final timeEnough = lastAt == null || now.difference(lastAt).inSeconds >= 6;
-    final reachedEdge = normalized >= 0.98 || normalized <= 0.02;
-
-    if (changedEnough || timeEnough || reachedEdge) {
-      _lastPersistedProgress[docID] = normalized;
-      _lastPersistedProgressAt[docID] = now;
-      _markDirty();
-    }
-  }
+  void updateWatchProgress(String docID, double progress) =>
+      _SegmentCacheManagerRuntimeX(this).updateWatchProgress(docID, progress);
 
   /// Erişim zamanını güncelle (cache hit'lerde).
-  void touchEntry(String docID) {
-    final entry = _index.entries[docID];
-    if (entry == null) return;
-    entry.lastAccessedAt = DateTime.now();
-    _markDirty();
-  }
+  void touchEntry(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).touchEntry(docID);
 
   // ──────────────────────────── Eviction ────────────────────────────
 
   /// Hedef limit altına düşene kadar en düşük skorlu video'yu sil.
   Future<void> evictIfNeeded({int? targetBytes}) async {
-    final target = targetBytes ?? _softLimitBytes;
+    final target = targetBytes ?? softLimitBytes;
     while (_index.totalSizeBytes > target) {
       if (cachedVideoCount <= ContentPolicy.minGlobalCachedVideos) {
         break;
@@ -201,30 +127,14 @@ class SegmentCacheManager extends GetxController {
 
   /// Coalesced eviction: birden fazla writeSegment aynı anda eviction tetiklerse
   /// tek bir eviction çalışır, diğerleri aynı Future'ı bekler.
-  void _scheduleEvictionIfNeeded() {
-    if (_index.totalSizeBytes <= _softLimitBytes) return;
-    if (_evictionInFlight != null) return; // zaten çalışıyor
-
-    final target = _index.totalSizeBytes > _hardLimitBytes
-        ? _hardLimitBytes
-        : _softLimitBytes;
-
-    _evictionInFlight = evictIfNeeded(targetBytes: target).whenComplete(() {
-      _evictionInFlight = null;
-    });
-  }
+  void _scheduleEvictionIfNeeded() =>
+      _SegmentCacheManagerRuntimeX(this)._scheduleEvictionIfNeeded();
 
   // ──────────────────────────── Cleanup ────────────────────────────
 
   @override
   Future<void> onClose() async {
-    _persistTimer?.cancel();
-    _reconcileTimer?.cancel();
-    metrics.stopPeriodicLog();
-    if (_persistDirty) {
-      _persistDirty = false;
-      await persistIndex();
-    }
+    await _SegmentCacheManagerRuntimeX(this).disposeRuntime();
     super.onClose();
   }
 }

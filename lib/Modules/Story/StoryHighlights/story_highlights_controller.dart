@@ -15,6 +15,7 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 import 'story_highlight_model.dart';
 
 part 'story_highlights_controller_cover_part.dart';
+part 'story_highlights_controller_runtime_part.dart';
 
 class StoryHighlightsController extends GetxController {
   static StoryHighlightsController ensure({
@@ -55,51 +56,17 @@ class StoryHighlightsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapHighlights());
-  }
-
-  Future<void> _bootstrapHighlights() async {
-    final cached = await _repository.getHighlights(
-      userId,
-      preferCache: true,
-      cacheOnly: true,
-    );
-    if (cached.isNotEmpty) {
-      highlights.assignAll(cached);
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'story:highlights:$userId',
-        minInterval: _silentRefreshInterval,
-      )) {
-        unawaited(loadHighlights(silent: true, forceRefresh: true));
-      }
-      unawaited(_hydrateMissingCoverUrls());
-      return;
-    }
-    await loadHighlights();
+    unawaited(_StoryHighlightsControllerRuntimeX(this)._bootstrapHighlights());
   }
 
   Future<void> loadHighlights({
     bool silent = false,
     bool forceRefresh = false,
-  }) async {
-    try {
-      if (!silent) {
-        isLoading.value = true;
-      }
-      final loaded = await _repository.getHighlights(
-        userId,
-        preferCache: !forceRefresh,
+  }) =>
+      _StoryHighlightsControllerRuntimeX(this).loadHighlights(
+        silent: silent,
         forceRefresh: forceRefresh,
       );
-      highlights.assignAll(loaded);
-      SilentRefreshGate.markRefreshed('story:highlights:$userId');
-      await _hydrateMissingCoverUrls();
-    } catch (_) {
-    } finally {
-      isLoading.value = false;
-    }
-  }
 
   Future<StoryHighlightModel?> createHighlight({
     required String title,
