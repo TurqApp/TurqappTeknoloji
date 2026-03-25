@@ -29,7 +29,6 @@ import '../../../Models/job_model.dart';
 import '../job_localization_utils.dart';
 
 part 'job_creator_controller_form_part.dart';
-part 'job_creator_controller_runtime_part.dart';
 part 'job_creator_controller_submission_part.dart';
 
 class JobCreatorController extends GetxController {
