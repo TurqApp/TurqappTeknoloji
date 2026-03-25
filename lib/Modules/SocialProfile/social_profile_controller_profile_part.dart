@@ -1,21 +1,6 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerProfilePart on SocialProfileController {
-  String _performResolveNickname(
-    Map<String, dynamic> raw,
-    Map<String, dynamic> profile,
-  ) {
-    final nickname =
-        (raw["nickname"] ?? profile["nickname"] ?? "").toString().trim();
-    final username =
-        (raw["username"] ?? profile["username"] ?? "").toString().trim();
-    final displayName =
-        (raw["displayName"] ?? profile["displayName"] ?? "").toString().trim();
-    if (nickname.isNotEmpty) return nickname;
-    if (username.isNotEmpty) return username;
-    return displayName;
-  }
-
   Future<void> _performLogProfileVisitIfNeeded() async {
     try {
       final current = CurrentUserService.instance.effectiveUserId;
@@ -39,10 +24,9 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
   Future<void> _performGetCounters() async {
     try {
       _pruneCaches();
-      final cached = SocialProfileController._counterCache[userID];
+      final cached = _counterCache[userID];
       if (cached != null &&
-          DateTime.now().difference(cached.cachedAt) <=
-              SocialProfileController._counterCacheTtl) {
+          DateTime.now().difference(cached.cachedAt) <= _counterCacheTtl) {
         totalFollower.value = cached.followers;
         totalFollowing.value = cached.followings;
         return;
@@ -72,7 +56,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         totalFollower.value = followers.length;
         totalFollowing.value = followings.length;
       }
-      SocialProfileController._counterCache[userID] = _SocialCounterCacheEntry(
+      _counterCache[userID] = _SocialCounterCacheEntry(
         followers: totalFollower.value,
         followings: totalFollowing.value,
         cachedAt: DateTime.now(),
@@ -103,10 +87,9 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     if (currentUid.isEmpty) return;
     _pruneCaches();
     final cacheKey = '$currentUid:$userID';
-    final cached = SocialProfileController._followCheckCache[cacheKey];
+    final cached = _followCheckCache[cacheKey];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <=
-            SocialProfileController._followCheckCacheTtl) {
+        DateTime.now().difference(cached.cachedAt) <= _followCheckCacheTtl) {
       takipEdiyorum.value = cached.isFollowing;
       complatedCheck.value = true;
     }
@@ -117,8 +100,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     );
     takipEdiyorum.value = isFollowing;
     complatedCheck.value = true;
-    SocialProfileController._followCheckCache[cacheKey] =
-        _SocialFollowCheckCacheEntry(
+    _followCheckCache[cacheKey] = _SocialFollowCheckCacheEntry(
       isFollowing: isFollowing,
       cachedAt: DateTime.now(),
     );
@@ -258,24 +240,21 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
 
   void _performPruneCaches() {
     final now = DateTime.now();
-    bool isStale(DateTime t) =>
-        now.difference(t) > SocialProfileController._cacheStaleRetention;
-    SocialProfileController._followCheckCache
-        .removeWhere((_, v) => isStale(v.cachedAt));
-    SocialProfileController._counterCache
-        .removeWhere((_, v) => isStale(v.cachedAt));
-    _trimMap(SocialProfileController._followCheckCache, (v) => v.cachedAt);
-    _trimMap(SocialProfileController._counterCache, (v) => v.cachedAt);
+    bool isStale(DateTime t) => now.difference(t) > _cacheStaleRetention;
+    _followCheckCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _counterCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _trimMap(_followCheckCache, (v) => v.cachedAt);
+    _trimMap(_counterCache, (v) => v.cachedAt);
   }
 
   void _performTrimMap<T>(
     Map<String, T> map,
     DateTime Function(T value) cachedAt,
   ) {
-    if (map.length <= SocialProfileController._maxCacheEntries) return;
+    if (map.length <= _maxCacheEntries) return;
     final entries = map.entries.toList()
       ..sort((a, b) => cachedAt(a.value).compareTo(cachedAt(b.value)));
-    final removeCount = map.length - SocialProfileController._maxCacheEntries;
+    final removeCount = map.length - _maxCacheEntries;
     for (var i = 0; i < removeCount; i++) {
       map.remove(entries[i].key);
     }

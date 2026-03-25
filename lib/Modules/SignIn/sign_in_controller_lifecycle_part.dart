@@ -82,11 +82,11 @@ extension SignInControllerLifecyclePart on SignInController {
     _selectionWorker?.dispose();
   }
 
-  String get typedBrandText => SignInController._loginWord.substring(
+  String get typedBrandText => _loginWord.substring(
       0,
       typedBrandLength.value.clamp(
         0,
-        SignInController._loginWord.length,
+        _loginWord.length,
       ));
 
   void _startBrandTypewriter() {
@@ -95,8 +95,7 @@ extension SignInControllerLifecyclePart on SignInController {
     typedBrandLength.value = 1;
     showBrandCursor.value = true;
 
-    final remainingChars = (SignInController._loginWord.length - 1)
-        .clamp(0, SignInController._loginWord.length);
+    final remainingChars = (_loginWord.length - 1).clamp(0, _loginWord.length);
     if (remainingChars == 0) {
       showBrandCursor.value = false;
       return;
@@ -109,7 +108,7 @@ extension SignInControllerLifecyclePart on SignInController {
           timer.cancel();
           return;
         }
-        if (typedBrandLength.value >= SignInController._loginWord.length) {
+        if (typedBrandLength.value >= _loginWord.length) {
           showBrandCursor.value = false;
           timer.cancel();
           return;
@@ -125,7 +124,7 @@ extension SignInControllerLifecyclePart on SignInController {
           timer.cancel();
           return;
         }
-        if (typedBrandLength.value >= SignInController._loginWord.length) {
+        if (typedBrandLength.value >= _loginWord.length) {
           showBrandCursor.value = false;
           timer.cancel();
           return;

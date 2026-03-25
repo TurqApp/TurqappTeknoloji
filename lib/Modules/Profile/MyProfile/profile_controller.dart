@@ -29,6 +29,7 @@ part 'profile_controller_cache_part.dart';
 part 'profile_controller_lifecycle_part.dart';
 part 'profile_controller_selection_part.dart';
 part 'profile_controller_runtime_part.dart';
+part 'profile_controller_support_part.dart';
 
 class ProfileController extends GetxController {
   static ProfileController ensure() {
@@ -44,24 +45,10 @@ class ProfileController extends GetxController {
   }
 
   // 🎯 Using CurrentUserService for optimized user data access
-  final userService = CurrentUserService.instance;
   // Aktif oturum kullanıcısını izleyip veri setlerini dinamik yenilemek için
   String? _activeUid;
   StreamSubscription<User?>? _authSub;
   StreamSubscription<Map<String, dynamic>?>? _counterSub;
-  final ProfileRepository _profileRepository = ProfileRepository.ensure();
-  final ProfilePostsSnapshotRepository _profileSnapshotRepository =
-      ProfilePostsSnapshotRepository.ensure();
-  final ProfileRenderCoordinator _profileRenderCoordinator =
-      ProfileRenderCoordinator.ensure();
-  final FollowRepository _followRepository = FollowRepository.ensure();
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
-  final UserRepository _userRepository = UserRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
-  final SocialMediaLinksRepository _socialLinksRepository =
-      SocialMediaLinksRepository.ensure();
   Timer? _persistCacheTimer;
   Worker? _allPostsWorker;
   Worker? _photosWorker;
@@ -132,42 +119,15 @@ class ProfileController extends GetxController {
       <int, ScrollController>{};
   var showPfImage = false.obs;
 
-  String? get _resolvedActiveUid => _performResolvedActiveUid();
-
-  ScrollController scrollControllerForSelection(int selection) =>
-      _performScrollControllerForSelection(selection);
-
-  ScrollController get currentScrollController =>
-      _performCurrentScrollController();
-
-  ScrollPosition? get currentScrollPosition => _performCurrentScrollPosition();
-
-  double get currentScrollOffset => _performCurrentScrollOffset();
-
-  Future<void> animateCurrentSelectionToTop() =>
-      _performAnimateCurrentSelectionToTop();
-
-  void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
-
   @override
   void onInit() {
     super.onInit();
     _performOnInit();
   }
 
-  int resolveResumeCenteredIndex() => _performResolveResumeCenteredIndex();
-
-  void resumeCenteredPost() => _performResumeCenteredPost();
-
-  void capturePendingCenteredEntry({int? preferredIndex}) =>
-      _performCapturePendingCenteredEntry(preferredIndex: preferredIndex);
-
   @override
   void onClose() {
     _performOnClose();
     super.onClose();
   }
-
-  void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
-      _performOnPostVisibilityChanged(modelIndex, visibleFraction);
 }

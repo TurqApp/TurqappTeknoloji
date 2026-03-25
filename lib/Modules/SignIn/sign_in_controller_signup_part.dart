@@ -293,7 +293,7 @@ extension SignInControllerSignupPart on SignInController {
 
     try {
       final response = await _dio.post(
-        SignInController._signupAvailabilityUrl,
+        _signupAvailabilityUrl,
         data: {
           if (normalizedEmail.isNotEmpty) 'email': normalizedEmail,
           if (normalizedNickname.isNotEmpty) 'nickname': normalizedNickname,

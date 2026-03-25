@@ -134,7 +134,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
         );
         if (alreadyFollowing) {
           takipEdiyorum.value = true;
-          SocialProfileController._followCheckCache['$currentUid:$userID'] =
+          _followCheckCache['$currentUid:$userID'] =
               _SocialFollowCheckCacheEntry(
             isFollowing: true,
             cachedAt: DateTime.now(),
@@ -147,8 +147,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
       final outcome = await FollowService.toggleFollow(userID);
       takipEdiyorum.value = outcome.nowFollowing;
       if (currentUid.isNotEmpty) {
-        SocialProfileController._followCheckCache['$currentUid:$userID'] =
-            _SocialFollowCheckCacheEntry(
+        _followCheckCache['$currentUid:$userID'] = _SocialFollowCheckCacheEntry(
           isFollowing: outcome.nowFollowing,
           cachedAt: DateTime.now(),
         );

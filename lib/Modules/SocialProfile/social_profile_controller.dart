@@ -34,6 +34,7 @@ part 'social_profile_controller_feed_part.dart';
 part 'social_profile_controller_feed_selection_part.dart';
 part 'social_profile_controller_runtime_part.dart';
 part 'social_profile_controller_models_part.dart';
+part 'social_profile_controller_support_part.dart';
 
 class SocialProfileController extends GetxController {
   static SocialProfileController ensure({
@@ -72,15 +73,6 @@ class SocialProfileController extends GetxController {
   final RxList<SocialMediaModel> socialMediaList = <SocialMediaModel>[].obs;
   final RxList<PostsModel> reshares = <PostsModel>[].obs;
   StreamSubscription<List<UserPostReference>>? _resharesSub;
-  final UserRepository _userRepository = UserRepository.ensure();
-  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
-  final FollowRepository _followRepository = FollowRepository.ensure();
-  final SocialMediaLinksRepository _socialLinksRepository =
-      SocialMediaLinksRepository.ensure();
-  final StoryRepository _storyRepository = StoryRepository.ensure();
-  final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
-  final UserPostLinkService _linkService = UserPostLinkService.ensure();
   final Map<String, GlobalKey> _postKeys = {};
   var showPfImage = false.obs;
 
@@ -108,14 +100,6 @@ class SocialProfileController extends GetxController {
   var complatedCheck = false.obs;
   var takipEdiyorum = false.obs;
   var followLoading = false.obs;
-  static const Duration _followCheckCacheTtl = Duration(seconds: 20);
-  static const Duration _counterCacheTtl = Duration(seconds: 30);
-  static const Duration _cacheStaleRetention = Duration(minutes: 3);
-  static const int _maxCacheEntries = 500;
-  static final Map<String, _SocialFollowCheckCacheEntry> _followCheckCache =
-      <String, _SocialFollowCheckCacheEntry>{};
-  static final Map<String, _SocialCounterCacheEntry> _counterCache =
-      <String, _SocialCounterCacheEntry>{};
 
   final RxList<PostsModel> allPosts = <PostsModel>[].obs;
 
@@ -126,8 +110,6 @@ class SocialProfileController extends GetxController {
   final RxBool hasMorePosts = true.obs;
   DocumentSnapshot? lastPostDoc;
   final int pageSize = 12;
-  final ProfileRepository _profileRepository = ProfileRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   DocumentSnapshot<Map<String, dynamic>>? _lastPrimaryDoc;
   bool _hasMorePrimary = true;
   bool _isLoadingPrimary = false;
@@ -146,27 +128,6 @@ class SocialProfileController extends GetxController {
   // Yukarı butonu
   final RxBool showScrollToTop = false.obs;
   StreamSubscription<Map<String, dynamic>?>? _userDocSub;
-
-  String _resolveNickname(
-    Map<String, dynamic> raw,
-    Map<String, dynamic> profile,
-  ) =>
-      _performResolveNickname(raw, profile);
-
-  int resolveResumeCenteredIndex() => _performResolveResumeCenteredIndex();
-
-  void resumeCenteredPost() => _performResumeCenteredPost();
-
-  void capturePendingCenteredEntry({
-    int? preferredIndex,
-    PostsModel? model,
-    bool isReshare = false,
-  }) =>
-      _performCapturePendingCenteredEntry(
-        preferredIndex: preferredIndex,
-        model: model,
-        isReshare: isReshare,
-      );
 
   @override
   void onInit() {

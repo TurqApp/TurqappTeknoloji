@@ -27,6 +27,7 @@ import 'package:path_provider/path_provider.dart';
 part 'create_scholarship_controller_form_part.dart';
 part 'create_scholarship_controller_submission_part.dart';
 part 'create_scholarship_controller_labels_part.dart';
+part 'create_scholarship_controller_support_part.dart';
 
 class CreateScholarshipController extends GetxController {
   static CreateScholarshipController ensure({
@@ -68,11 +69,6 @@ class CreateScholarshipController extends GetxController {
   static const String degreePhdValue = 'Doktora';
   static const String educationAudienceAllExpandedValue =
       'Ortaokul, Lise, Lisans';
-  final UserRepository _userRepository = UserRepository.ensure();
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
-  final EducationReferenceDataService _referenceDataService =
-      EducationReferenceDataService.ensure();
   var isLoading = false.obs;
   var isEditing = false.obs;
   var scholarshipId = ''.obs;
@@ -124,54 +120,9 @@ class CreateScholarshipController extends GetxController {
   final templateUrl = ''.obs;
   final template = ''.obs;
   final ulke = ''.obs;
-
-  String get _currentUid => CurrentUserService.instance.effectiveUserId;
-
-  final bursKosullari = <String>[
-    "T.C. vatandaşı olmak.",
-    "En az lise düzeyinde öğrenim görüyor olmak.",
-    "Herhangi bir disiplin cezası almamış olmak.",
-    "Ailesinin aylık toplam gelirinin belirli bir seviyenin altında olması.",
-    "Başka bir kurumdan karşılıksız burs almıyor olmak.",
-    "Örgün öğretim programında kayıtlı öğrenci olmak.",
-    "Akademik not ortalamasının en az 2.50/4.00 olması.",
-    "Adli sicil kaydının temiz olması.",
-    "İlan edilen son başvuru tarihine kadar başvuru yapılmış olması.",
-    "Belirtilen belgelerin eksiksiz şekilde teslim edilmiş olması.",
-    "Burs başvuru formunun eksiksiz doldurulması.",
-    "Burs verilen il/ilçede ikamet ediyor olmak (gerekiyorsa).",
-    "Eğitim süresi boyunca düzenli olarak başarı göstereceğini taahhüt etmek.",
-    "Başvuru sırasında gerçeğe aykırı beyanda bulunmamak.",
-    "Bursu sağlayan kurumun düzenlediği mülakat veya değerlendirme süreçlerine katılmak.",
-  ].obs;
-
-  final gerekliBelgeler = <String>[
-    "Kimlik Kart Fotoğrafı",
-    "Öğrenci Belgesi (E Devlet)",
-    "Transkript Belgesi",
-    "Adli Sicil Kaydı (E Devlet)",
-    "Aile Nüfus Kayıt Belgesi (E Devlet)",
-    "YKS - AYT Sonuç Belgesi (ÖSYM)",
-    "SGK Hizmet Dökümü (E Devlet Kendisi)",
-    "SGK Hizmet Dökümü (E Devlet Anne Ve Baba)",
-    "Tapu Tescil Belgesi (E Devlet Kendisi)",
-    "Engelli Sağlık Kurulu Raporu",
-  ];
-
-  final bursVerilecekAylar = <String>[
-    "Eylül",
-    "Ekim",
-    "Kasım",
-    "Aralık",
-    "Ocak",
-    "Şubat",
-    "Mart",
-    "Nisan",
-    "Mayıs",
-    "Haziran",
-    "Temmuz",
-    "Ağustos",
-  ];
+  final bursKosullari = List<String>.of(_defaultScholarshipConditions).obs;
+  final gerekliBelgeler = List<String>.of(_defaultScholarshipRequiredDocuments);
+  final bursVerilecekAylar = List<String>.of(_defaultScholarshipAwardMonths);
 
   final iller = <String>[].obs;
   final ilIlceMap = <String, List<String>>{}.obs;
@@ -185,8 +136,6 @@ class CreateScholarshipController extends GetxController {
 
   final GlobalKey templateKey = GlobalKey();
   String? controllerTag;
-
-  String get turkeyValue => turkeyCountryValue;
 
   @override
   void onInit() {
