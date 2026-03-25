@@ -207,38 +207,30 @@ extension CreatorContentMediaVideoPart on CreatorContent {
   Widget _buildMediaLookSelector() {
     return Obx(() {
       final presets = CreatorContentController.supportedVideoLookPresets;
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          const spacing = 5.0;
-          final availableWidth = constraints.maxWidth.isFinite &&
-                  constraints.maxWidth > 0
-              ? constraints.maxWidth
-              : (presets.length * 54.0) + ((presets.length - 1) * spacing);
-          final tileWidth =
-              (availableWidth - ((presets.length - 1) * spacing)) /
-                  presets.length;
-          return Row(
-            children: presets.asMap().entries.map((entry) {
-              final index = entry.key;
-              final preset = entry.value;
-            final isSelected = controller.videoLookPreset.value == preset;
-            final labelKey = _videoLookLabelKeys[preset] ?? '';
-            final label = labelKey.isNotEmpty ? labelKey.tr : preset;
-            final icon = _videoLookIcons[preset] ?? CupertinoIcons.circle;
-            final shellColors = isSelected
-                ? const <Color>[Color(0xFF1C1C1E), Color(0xFF111113)]
-                : const <Color>[Color(0xFFFFFFFF), Color(0xFFF6F7F9)];
-            final previewColors = isSelected
-                ? const <Color>[Color(0xFF2B2B2E), Color(0xFF161618)]
-                : const <Color>[Color(0xFFF3F4F6), Color(0xFFE8EBF0)];
-            final borderColor = isSelected
-                ? const Color(0xFF1C1C1E)
-                : const Color(0xFFE2E5EA);
-            final glowColor =
-                isSelected ? const Color(0x22000000) : const Color(0x11000000);
-            final textColor =
-                isSelected ? Colors.white : const Color(0xFF25282C);
-            return Padding(
+      const spacing = 5.0;
+      return Row(
+        children: presets.asMap().entries.map((entry) {
+          final index = entry.key;
+          final preset = entry.value;
+          final isSelected = controller.videoLookPreset.value == preset;
+          final labelKey = _videoLookLabelKeys[preset] ?? '';
+          final label = labelKey.isNotEmpty ? labelKey.tr : preset;
+          final icon = _videoLookIcons[preset] ?? CupertinoIcons.circle;
+          final shellColors = isSelected
+              ? const <Color>[Color(0xFF1C1C1E), Color(0xFF111113)]
+              : const <Color>[Color(0xFFFFFFFF), Color(0xFFF6F7F9)];
+          final previewColors = isSelected
+              ? const <Color>[Color(0xFF2B2B2E), Color(0xFF161618)]
+              : const <Color>[Color(0xFFF3F4F6), Color(0xFFE8EBF0)];
+          final borderColor = isSelected
+              ? const Color(0xFF1C1C1E)
+              : const Color(0xFFE2E5EA);
+          final glowColor =
+              isSelected ? const Color(0x22000000) : const Color(0x11000000);
+          final textColor =
+              isSelected ? Colors.white : const Color(0xFF25282C);
+          return Expanded(
+            child: Padding(
               padding: EdgeInsets.only(
                 right: index == presets.length - 1 ? 0 : spacing,
               ),
@@ -247,7 +239,6 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOutCubic,
-                  width: tileWidth,
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -356,10 +347,9 @@ extension CreatorContentMediaVideoPart on CreatorContent {
                   ),
                 ),
               ),
-            );
-          }).toList(),
+            ),
           );
-        },
+        }).toList(),
       );
     });
   }
