@@ -31,7 +31,8 @@ class NotificationModel {
       type: json['type'] ?? '',
       postID: json['postID'] ?? '',
       postType: json['postType'] ?? '',
-      thumbnail: json['thumbnail'] ?? '',
+      thumbnail:
+          json['thumbnail'] ?? json['imageUrl'] ?? json['imageURL'] ?? '',
       timeStamp: json['timeStamp'] ?? 0,
       title: json['title'] ?? '',
       userID: json['userID'] ?? '',

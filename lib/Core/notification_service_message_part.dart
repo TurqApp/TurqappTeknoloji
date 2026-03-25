@@ -23,11 +23,20 @@ extension NotificationServiceMessagePart on NotificationService {
       return;
     }
     if (title.isNotEmpty || body.isNotEmpty) {
-      final imageUrl = (msg.data['imageUrl'] ?? '').toString();
+      final imageUrl = _notificationImageUrlFromPayload(msg.data);
       AndroidBitmap<Object>? largeIcon;
+      StyleInformation? styleInformation;
       if (imageUrl.isNotEmpty) {
         final bitmap = await _fetchImageBitmap(imageUrl);
-        if (bitmap != null) largeIcon = bitmap;
+        if (bitmap != null) {
+          largeIcon = bitmap;
+          styleInformation = BigPictureStyleInformation(
+            bitmap,
+            largeIcon: bitmap,
+            contentTitle: title,
+            summaryText: body,
+          );
+        }
       }
       await _localNotifications.show(
         id: Object.hash(title, body, type),
@@ -43,6 +52,7 @@ extension NotificationServiceMessagePart on NotificationService {
             icon: '@drawable/ic_notification_small',
             color: const Color(0xFF4F718E),
             largeIcon: largeIcon,
+            styleInformation: styleInformation,
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,
@@ -53,6 +63,32 @@ extension NotificationServiceMessagePart on NotificationService {
         payload: jsonEncode(msg.data),
       );
     }
+  }
+
+  String _notificationImageUrlFromPayload(Map<String, dynamic> data) {
+    final direct = (data['imageUrl'] ?? data['thumbnail'] ?? data['imageURL'])
+        .toString()
+        .trim();
+    if (direct.isNotEmpty) return direct;
+    for (final key in const [
+      'avatarUrl',
+      'applicantPfImage',
+      'tutorImage',
+      'companyLogo',
+      'logo',
+      'coverImageUrl',
+    ]) {
+      final next = (data[key] ?? '').toString().trim();
+      if (next.isNotEmpty) return next;
+    }
+    final images = data['img'] ?? data['images'];
+    if (images is Iterable) {
+      for (final entry in images) {
+        final next = entry.toString().trim();
+        if (next.isNotEmpty) return next;
+      }
+    }
+    return '';
   }
 
   Future<ByteArrayAndroidBitmap?> _fetchImageBitmap(String url) async {

@@ -29,6 +29,108 @@ if (admin.apps.length === 0) {
 const db = admin.firestore();
 const DEFAULT_SIGNUP_FOLLOW_UID = "fzP4AVdMugTi5oe11UTj6ljnfCj2";
 
+function _firstNonEmptyString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === "string" && entry.trim().length > 0) {
+          return entry.trim();
+        }
+      }
+    }
+  }
+  return "";
+}
+
+function _pickPostPreviewImage(
+  data: Record<string, unknown> | undefined,
+): string {
+  if (!data) return "";
+  return _firstNonEmptyString(
+    data.imageUrl,
+    data.thumbnail,
+    data.imageURL,
+    data.coverImageUrl,
+    data.logo,
+    data.avatarUrl,
+    data.img,
+    data.images,
+  );
+}
+
+async function _resolveNotificationImageUrl(
+  data: Record<string, unknown>,
+): Promise<string> {
+  const direct = _firstNonEmptyString(
+    data.imageUrl,
+    data.thumbnail,
+    data.imageURL,
+    data.avatarUrl,
+    data.applicantPfImage,
+    data.tutorImage,
+    data.companyLogo,
+    data.logo,
+    data.coverImageUrl,
+    data.img,
+    data.images,
+  );
+  if (direct) return direct;
+
+  const rawType = String(data.type || "").trim().toLowerCase();
+  const postId = String(data.postID || data.chatID || "").trim();
+  if (postId) {
+    if (
+      rawType === "posts" ||
+      rawType === "post" ||
+      rawType === "like" ||
+      rawType === "comment" ||
+      rawType === "reshared_posts" ||
+      rawType === "shared_as_posts"
+    ) {
+      const postSnap = await db.collection("Posts").doc(postId).get();
+      if (postSnap.exists) {
+        const preview = _pickPostPreviewImage(
+          postSnap.data() as Record<string, unknown> | undefined,
+        );
+        if (preview) return preview;
+      }
+    } else if (rawType === "job_application") {
+      const jobSnap = await db.collection("isBul").doc(postId).get();
+      if (jobSnap.exists) {
+        const preview = _pickPostPreviewImage(
+          jobSnap.data() as Record<string, unknown> | undefined,
+        );
+        if (preview) return preview;
+      }
+    } else if (
+      rawType === "tutoring_application" ||
+      rawType === "tutoring_status"
+    ) {
+      const tutoringSnap = await db.collection("educators").doc(postId).get();
+      if (tutoringSnap.exists) {
+        const preview = _pickPostPreviewImage(
+          tutoringSnap.data() as Record<string, unknown> | undefined,
+        );
+        if (preview) return preview;
+      }
+    }
+  }
+
+  const fromUserID = String(data.fromUserID || "").trim();
+  if (fromUserID) {
+    const userSnap = await db.collection("users").doc(fromUserID).get();
+    if (userSnap.exists) {
+      const avatarUrl = normalizeAvatarUrl(userSnap.data()?.avatarUrl);
+      if (avatarUrl) return avatarUrl;
+    }
+  }
+
+  return "";
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -461,11 +563,15 @@ export const onUserNotificationCreate = functions.firestore
 
       const title = String(data.title || "TurqApp");
       const body = String(data.body || notificationBodyFromType(type));
-      const imageUrl = String(data.imageUrl || "");
+      const imageUrl = await _resolveNotificationImageUrl(data);
 
       await admin.messaging().send({
         token,
-        notification: { title, body },
+        notification: {
+          title,
+          body,
+          ...(imageUrl ? { imageUrl } : {}),
+        },
         data: {
           docID: targetDocID,
           type,
@@ -485,6 +591,7 @@ export const onUserNotificationCreate = functions.firestore
         },
         apns: {
           headers: { "apns-priority": "10" },
+          ...(imageUrl ? { fcmOptions: { imageUrl } } : {}),
           payload: {
             aps: {
               alert: { title, body },

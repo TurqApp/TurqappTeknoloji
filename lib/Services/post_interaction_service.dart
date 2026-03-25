@@ -101,7 +101,8 @@ class PostInteractionService extends GetxController {
 
     try {
       final postDoc = await _postRef(postId).get();
-      final ownerId = postDoc.data()?['userID'] as String?;
+      final postData = postDoc.data() ?? const <String, dynamic>{};
+      final ownerId = postData['userID'] as String?;
       if (ownerId == null || ownerId == userId) return;
 
       final notification = NotificationModel(
@@ -111,6 +112,11 @@ class PostInteractionService extends GetxController {
         timeStamp: _nowMs(),
         read: false,
       ).toMap();
+      final previewImage = _resolveNotificationPreviewImage(postData);
+      if (previewImage.isNotEmpty) {
+        notification['imageUrl'] = previewImage;
+        notification['thumbnail'] = previewImage;
+      }
 
       await NotificationsRepository.ensure().createInboxItem(
         ownerId,
@@ -145,6 +151,25 @@ class PostInteractionService extends GetxController {
   PostStats _statsFromSnapshot(DocumentSnapshot<Map<String, dynamic>> snap) {
     final data = snap.data() ?? const {};
     return PostStats.fromPostData(data);
+  }
+
+  String _resolveNotificationPreviewImage(Map<String, dynamic> data) {
+    final thumbnail = (data['thumbnail'] ?? '').toString().trim();
+    if (thumbnail.isNotEmpty) return thumbnail;
+
+    final imageUrl =
+        (data['imageUrl'] ?? data['imageURL'] ?? '').toString().trim();
+    if (imageUrl.isNotEmpty) return imageUrl;
+
+    final img = data['img'];
+    if (img is Iterable) {
+      for (final entry in img) {
+        final next = entry.toString().trim();
+        if (next.isNotEmpty) return next;
+      }
+    }
+
+    return '';
   }
 
   Future<void> _toggleLikeArray(

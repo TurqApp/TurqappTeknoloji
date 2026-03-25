@@ -86,7 +86,9 @@ extension NotificationsSnapshotRepositoryQueryPart
           postID: (data['postID'] ?? '').toString(),
           postType: notificationPostTypeFromEventType(
               (data['type'] ?? '').toString()),
-          thumbnail: (data['thumbnail'] ?? '').toString(),
+          thumbnail:
+              (data['thumbnail'] ?? data['imageUrl'] ?? data['imageURL'] ?? '')
+                  .toString(),
           timeStamp: _asInt(data['timeStamp']),
           title: (data['title'] ?? '').toString(),
           userID: (data['fromUserID'] ?? '').toString(),
