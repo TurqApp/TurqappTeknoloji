@@ -10,6 +10,7 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'optics_and_books_published_controller_runtime_part.dart';
+part 'optics_and_books_published_controller_data_part.dart';
 
 class OpticsAndBooksPublishedController extends GetxController {
   static OpticsAndBooksPublishedController ensure({bool permanent = false}) {
@@ -34,78 +35,6 @@ class OpticsAndBooksPublishedController extends GetxController {
   final isLoading = true.obs;
   final RxDouble scrollOffset = 0.0.obs;
   int _lastOpenRefreshAt = 0;
-
-  bool _sameBookletEntries(
-    List<BookletModel> current,
-    List<BookletModel> next,
-  ) {
-    final currentKeys = current
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.sinavTuru,
-            item.yayinEvi,
-            item.basimTarihi,
-            item.dil,
-            item.timeStamp,
-            item.viewCount,
-            item.cover,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (item) => [
-            item.docID,
-            item.baslik,
-            item.sinavTuru,
-            item.yayinEvi,
-            item.basimTarihi,
-            item.dil,
-            item.timeStamp,
-            item.viewCount,
-            item.cover,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
-
-  bool _sameOpticalEntries(
-    List<OpticalFormModel> current,
-    List<OpticalFormModel> next,
-  ) {
-    final currentKeys = current
-        .map(
-          (item) => [
-            item.docID,
-            item.name,
-            item.userID,
-            item.cevaplar.length,
-            item.max,
-            item.baslangic,
-            item.bitis,
-            item.kisitlama,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (item) => [
-            item.docID,
-            item.name,
-            item.userID,
-            item.cevaplar.length,
-            item.max,
-            item.baslangic,
-            item.bitis,
-            item.kisitlama,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
 
   @override
   void onInit() {
