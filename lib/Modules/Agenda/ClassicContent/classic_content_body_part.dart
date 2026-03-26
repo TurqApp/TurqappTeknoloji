@@ -561,11 +561,17 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
+                      final hasStableVideoFrame =
+                          v.hasRenderedFirstFrame &&
+                              !v.isCompleted &&
+                              (v.isPlaying ||
+                                  v.position >
+                                      const Duration(milliseconds: 180));
                       return IgnorePointer(
                         ignoring: true,
                         child: AnimatedOpacity(
-                          opacity: _hasStableVideoFrame(v) ? 0 : 1,
-                          duration: AppTokens.thumbnailFadeOut,
+                          opacity: hasStableVideoFrame ? 0 : 1,
+                          duration: AppDuration.thumbnailFadeOut,
                           curve: Curves.easeOut,
                           child: child!,
                         ),

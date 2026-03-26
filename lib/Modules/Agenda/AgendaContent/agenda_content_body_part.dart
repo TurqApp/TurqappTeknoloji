@@ -236,14 +236,22 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
+                                              final hasStableVideoFrame =
+                                                  v.hasRenderedFirstFrame &&
+                                                      !v.isCompleted &&
+                                                      (v.isPlaying ||
+                                                          v.position >
+                                                              const Duration(
+                                                                  milliseconds:
+                                                                      180));
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(
                                                   opacity:
-                                                      _hasStableVideoFrame(v)
+                                                      hasStableVideoFrame
                                                           ? 0
                                                           : 1,
-                                                  duration: AppTokens
+                                                  duration: AppDuration
                                                       .thumbnailFadeOut,
                                                   curve: Curves.easeOut,
                                                   child: child!,

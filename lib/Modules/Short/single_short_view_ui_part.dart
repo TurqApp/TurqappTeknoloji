@@ -105,7 +105,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
               ignoring: true,
               child: AnimatedOpacity(
                 opacity: hasStableVideoFrame ? 0 : 1,
-                duration: AppTokens.thumbnailFadeOut,
+                duration: AppDuration.thumbnailFadeOut,
                 curve: Curves.easeOut,
                 child: thumb,
               ),
@@ -204,7 +204,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                     ignoring: true,
                     child: AnimatedOpacity(
                       opacity: hasStableVideoFrame ? 0 : 1,
-                      duration: AppTokens.thumbnailFadeOut,
+                      duration: AppDuration.thumbnailFadeOut,
                       curve: Curves.easeOut,
                       child: overlay,
                     ),
