@@ -8,6 +8,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
       return const SizedBox.shrink();
     }
     return Obx(() {
+      const itemSpacing = 10.0;
       final mixedItems = <Map<String, dynamic>>[];
       for (final social in controller.socialMediaList) {
         mixedItems.add({
@@ -37,10 +38,11 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             itemCount: mixedItems.length,
             itemBuilder: (context, index) {
               final item = mixedItems[index];
+              final isLastItem = index == mixedItems.length - 1;
               if (item['type'] == 'link') {
                 final social = item['data'] as SocialMediaModel;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 18),
+                  padding: EdgeInsets.only(right: isLastItem ? 0 : itemSpacing),
                   child: SizedBox(
                     width: 70,
                     child: GestureDetector(
@@ -54,7 +56,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
               }
               final hl = item['data'] as StoryHighlightModel;
               return Padding(
-                padding: const EdgeInsets.only(right: 18),
+                padding: EdgeInsets.only(right: isLastItem ? 0 : itemSpacing),
                 child: StoryHighlightCircle(
                   highlight: hl,
                   onTap: () => HighlightStoryViewerService.openHighlight(

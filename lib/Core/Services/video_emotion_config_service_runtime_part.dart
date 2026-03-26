@@ -13,13 +13,20 @@ extension VideoRemoteConfigServiceRuntimePart on VideoRemoteConfigService {
       );
 
       await _remoteConfig.setDefaults({
-        'video_prefetch_breadth_count': _defaultPrefetchBreadthCount,
-        'video_prefetch_breadth_segments': _defaultPrefetchBreadthSegments,
-        'video_prefetch_depth_count': _defaultPrefetchDepthCount,
-        'video_prefetch_max_concurrent': _defaultPrefetchMaxConcurrent,
-        'video_cache_soft_limit_mb': _defaultCacheSoftLimitMb,
-        'video_cache_hard_limit_mb': _defaultCacheHardLimitMb,
-        'video_cache_recent_protect_count': _defaultCacheRecentProtectCount,
+        'video_prefetch_breadth_count':
+            VideoRemoteConfigService._defaultPrefetchBreadthCount,
+        'video_prefetch_breadth_segments':
+            VideoRemoteConfigService._defaultPrefetchBreadthSegments,
+        'video_prefetch_depth_count':
+            VideoRemoteConfigService._defaultPrefetchDepthCount,
+        'video_prefetch_max_concurrent':
+            VideoRemoteConfigService._defaultPrefetchMaxConcurrent,
+        'video_cache_soft_limit_mb':
+            VideoRemoteConfigService._defaultCacheSoftLimitMb,
+        'video_cache_hard_limit_mb':
+            VideoRemoteConfigService._defaultCacheHardLimitMb,
+        'video_cache_recent_protect_count':
+            VideoRemoteConfigService._defaultCacheRecentProtectCount,
       });
 
       await _remoteConfig.fetchAndActivate();

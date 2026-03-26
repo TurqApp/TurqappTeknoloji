@@ -13,7 +13,7 @@ extension _ProfileViewSocialPart on _ProfileViewState {
     return Obx(() {
       const rowHeight = 90.0;
       const itemWidth = 70.0;
-      const itemSpacing = 18.0;
+      const itemSpacing = 10.0;
       final mixedItems = <Map<String, dynamic>>[];
       for (final model in socialMediaController.list) {
         mixedItems.add({
