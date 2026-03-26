@@ -17,35 +17,5 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
+part 'my_q_r_code_controller_class_part.dart';
 part 'my_q_r_code_controller_runtime_part.dart';
-
-class MyQRCodeController extends GetxController {
-  static MyQRCodeController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      MyQRCodeController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static MyQRCodeController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<MyQRCodeController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<MyQRCodeController>(tag: tag);
-  }
-
-  final CurrentUserService userService = CurrentUserService.instance;
-  final ShortLinkService _shortLinkService = ShortLinkService();
-  final RxString profileLink = ''.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    unawaited(_handleOnInit());
-  }
-}
