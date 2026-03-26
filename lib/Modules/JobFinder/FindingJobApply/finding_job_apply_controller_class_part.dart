@@ -9,8 +9,4 @@ class FindingJobApplyController extends GetxController {
     super.onInit();
     _handleFindingJobApplyControllerInit(this);
   }
-
-  Future<void> cvCheck() => _checkFindingJobCv(this);
-
-  Future<void> toggleFindingJob() => _toggleFindingJobState(this);
 }

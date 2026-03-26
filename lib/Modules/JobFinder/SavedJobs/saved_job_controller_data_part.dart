@@ -34,7 +34,7 @@ extension SavedJobsControllerDataPart on SavedJobsController {
         if (list.isNotEmpty) {
           if (SilentRefreshGate.shouldRefresh(
             'jobs:saved:$uid',
-            minInterval: SavedJobsController._silentRefreshInterval,
+            minInterval: _savedJobsSilentRefreshInterval,
           )) {
             unawaited(getStartData(silent: true, forceRefresh: true));
           }
@@ -102,7 +102,7 @@ extension SavedJobsControllerDataPart on SavedJobsController {
 
       for (final chunk in _chunkListImpl(
         savedIds,
-        SavedJobsController._whereInChunkSize,
+        _savedJobsWhereInChunkSize,
       )) {
         final fetched = await _jobRepository.fetchByIds(
           chunk,

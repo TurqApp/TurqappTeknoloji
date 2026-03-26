@@ -1,14 +1,6 @@
 part of 'notification_content_controller_library.dart';
 
 class NotificationContentController extends _NotificationContentControllerBase {
-  static const String _userType = kNotificationPostTypeUserLower;
-  static const String _commentType = kNotificationPostTypeCommentLower;
-  static const String _chatType = kNotificationPostTypeChatLower;
-  static const String _jobApplicationType =
-      kNotificationPostTypeJobApplicationLower;
-  static const String _tutoringApplicationType =
-      kNotificationPostTypeTutoringApplicationLower;
-
   NotificationContentController({
     required super.userID,
     required super.notification,

@@ -1,6 +1,8 @@
 part of 'scholarship_applications_content_controller.dart';
 
 class _ScholarshipApplicationsContentControllerState {
+  final UserRepository userRepository = UserRepository.ensure();
+  final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   Future<Map<String, dynamic>?>? userRawFuture;
   final fullName = ''.obs;
   final nickname = ''.obs;
@@ -45,6 +47,8 @@ class _ScholarshipApplicationsContentControllerState {
 
 extension ScholarshipApplicationsContentControllerFieldsPart
     on ScholarshipApplicationsContentController {
+  UserRepository get _userRepository => _state.userRepository;
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   Future<Map<String, dynamic>?>? get _userRawFuture => _state.userRawFuture;
   set _userRawFuture(Future<Map<String, dynamic>?>? value) =>
       _state.userRawFuture = value;

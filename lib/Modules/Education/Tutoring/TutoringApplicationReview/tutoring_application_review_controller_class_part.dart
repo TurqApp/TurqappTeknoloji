@@ -4,9 +4,7 @@ class TutoringApplicationReviewController extends GetxController {
   final _state;
 
   TutoringApplicationReviewController({required String tutoringDocID})
-      : _state = _TutoringApplicationReviewControllerState(
-          tutoringDocID: tutoringDocID,
-        );
+      : _state = _buildTutoringApplicationReviewState(tutoringDocID);
 
   @override
   void onInit() {

@@ -10,6 +10,14 @@ class _TutoringApplicationReviewControllerState {
   final isLoading = false.obs;
 }
 
+_TutoringApplicationReviewControllerState _buildTutoringApplicationReviewState(
+  String tutoringDocID,
+) {
+  return _TutoringApplicationReviewControllerState(
+    tutoringDocID: tutoringDocID,
+  );
+}
+
 extension TutoringApplicationReviewControllerFieldsPart
     on TutoringApplicationReviewController {
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;

@@ -26,3 +26,9 @@ Future<void> _toggleFindingJobState(
   controller.isFinding.value = next;
   await controller._cvRepository.updateCvFields(uid, {'findingJob': next});
 }
+
+extension FindingJobApplyControllerRuntimeX on FindingJobApplyController {
+  Future<void> cvCheck() => _checkFindingJobCv(this);
+
+  Future<void> toggleFindingJob() => _toggleFindingJobState(this);
+}

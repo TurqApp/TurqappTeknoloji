@@ -96,7 +96,7 @@ class _NotificationContentControllerRuntimePart {
             ? post.metin.trim()
             : post.konum.trim();
     final normalizedPreview = preview.replaceAll(RegExp(r'\s+'), ' ').trim();
-    final prefix = normalizedType == NotificationContentController._commentType
+    final prefix = normalizedType == _notificationContentCommentType
         ? 'notification.hint.comments'.tr
         : 'notification.hint.post'.tr;
     if (normalizedPreview.isEmpty) return prefix;
@@ -104,24 +104,23 @@ class _NotificationContentControllerRuntimePart {
   }
 
   String _fallbackHint(String normalizedType) {
-    if (normalizedType == NotificationContentController._commentType) {
+    if (normalizedType == _notificationContentCommentType) {
       return 'notification.hint.comments'.tr;
     }
     if (isJobNotificationType(normalizedType) ||
-        normalizedType == NotificationContentController._jobApplicationType) {
+        normalizedType == _notificationContentJobApplicationType) {
       return 'notification.hint.listing'.tr;
     }
     if (isTutoringNotificationType(normalizedType) ||
-        normalizedType ==
-            NotificationContentController._tutoringApplicationType) {
+        normalizedType == _notificationContentTutoringApplicationType) {
       return 'notification.hint.tutoring'.tr;
     }
     if (normalizedType == 'message' ||
-        normalizedType == NotificationContentController._chatType) {
+        normalizedType == _notificationContentChatType) {
       return 'notification.hint.chat'.tr;
     }
     if (normalizedType == 'follow' ||
-        normalizedType == NotificationContentController._userType) {
+        normalizedType == _notificationContentUserType) {
       return 'notification.hint.profile'.tr;
     }
     return 'notification.hint.post'.tr;
