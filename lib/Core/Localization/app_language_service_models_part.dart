@@ -1,11 +1,7 @@
 part of 'app_language_service.dart';
 
 class AppLanguageOption {
-  const AppLanguageOption({
-    required this.code,
-    required this.locale,
-    required this.nativeLabel,
-  });
+  const AppLanguageOption(this.code, this.locale, this.nativeLabel);
 
   final String code;
   final Locale locale;

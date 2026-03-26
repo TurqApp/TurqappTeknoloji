@@ -12,36 +12,12 @@ const List<Locale> _appLanguageSupportedLocales = <Locale>[
 ];
 
 const List<AppLanguageOption> _appLanguageOptions = <AppLanguageOption>[
-  AppLanguageOption(
-    code: 'tr_TR',
-    locale: Locale('tr', 'TR'),
-    nativeLabel: 'Türkçe',
-  ),
-  AppLanguageOption(
-    code: 'en_US',
-    locale: Locale('en', 'US'),
-    nativeLabel: 'English',
-  ),
-  AppLanguageOption(
-    code: 'de_DE',
-    locale: Locale('de', 'DE'),
-    nativeLabel: 'Deutsch',
-  ),
-  AppLanguageOption(
-    code: 'fr_FR',
-    locale: Locale('fr', 'FR'),
-    nativeLabel: 'Français',
-  ),
-  AppLanguageOption(
-    code: 'it_IT',
-    locale: Locale('it', 'IT'),
-    nativeLabel: 'Italiano',
-  ),
-  AppLanguageOption(
-    code: 'ru_RU',
-    locale: Locale('ru', 'RU'),
-    nativeLabel: 'Русский',
-  ),
+  AppLanguageOption('tr_TR', Locale('tr', 'TR'), 'Türkçe'),
+  AppLanguageOption('en_US', Locale('en', 'US'), 'English'),
+  AppLanguageOption('de_DE', Locale('de', 'DE'), 'Deutsch'),
+  AppLanguageOption('fr_FR', Locale('fr', 'FR'), 'Français'),
+  AppLanguageOption('it_IT', Locale('it', 'IT'), 'Italiano'),
+  AppLanguageOption('ru_RU', Locale('ru', 'RU'), 'Русский'),
 ];
 
 Locale _appLanguageLocaleForCode(String? code) {

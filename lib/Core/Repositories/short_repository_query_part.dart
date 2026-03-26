@@ -54,19 +54,15 @@ extension ShortRepositoryQueryPart on ShortRepository {
     }
 
     if (snap.docs.isEmpty) {
-      return ShortPageResult(
-        posts: const <PostsModel>[],
-        lastDoc: startAfter,
-        hasMore: false,
-      );
+      return ShortPageResult(const <PostsModel>[], startAfter, false);
     }
 
     return ShortPageResult(
-      posts: snap.docs
-          .map((d) => PostsModel.fromMap(d.data(), d.id))
-          .toList(growable: false),
-      lastDoc: snap.docs.last,
-      hasMore: snap.docs.length == pageSize,
+      snap.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList(
+            growable: false,
+          ),
+      snap.docs.last,
+      snap.docs.length == pageSize,
     );
   }
 }
