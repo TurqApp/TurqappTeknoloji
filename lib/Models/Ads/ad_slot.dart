@@ -6,10 +6,5 @@ class AdSlot {
   final int indexHint;
   final bool enabled;
 
-  const AdSlot({
-    required this.slotId,
-    required this.placement,
-    required this.indexHint,
-    required this.enabled,
-  });
+  const AdSlot(this.slotId, this.placement, this.indexHint, this.enabled);
 }
