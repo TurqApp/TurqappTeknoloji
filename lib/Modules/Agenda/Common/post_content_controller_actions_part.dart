@@ -302,7 +302,7 @@ extension PostContentControllerActionsPart on PostContentController {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: Colors.white, // Alt barda arka plan rengi
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black54, // Gri karartma rengi
     ).then((v) {
       if (onClosed != null) onClosed();

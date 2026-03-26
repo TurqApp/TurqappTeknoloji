@@ -95,7 +95,7 @@ extension PhotoShortContentControllerSocialPart
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black54,
     );
   }

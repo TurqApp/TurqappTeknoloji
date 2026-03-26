@@ -74,6 +74,7 @@ extension PostControllerActionsPart on PostController {
       context: context,
       isScrollControlled: true,
       isDismissible: true,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -97,7 +98,7 @@ extension PostControllerActionsPart on PostController {
         final previewImage = model.thumbnail.trim().isNotEmpty
             ? model.thumbnail.trim()
             : (model.img.isNotEmpty ? model.img.first.trim() : null);
-        final shortUrl = await ShortLinkService().getPostPublicUrl(
+        final shortUrl = ShortLinkService().getPostPublicUrlForImmediateShare(
           postId: model.docID,
           desc: model.metin,
           imageUrl: previewImage,
