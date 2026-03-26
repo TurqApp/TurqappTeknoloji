@@ -61,11 +61,10 @@ class ClickableTextController extends GetxController {
         onPlainTextTap: onPlainTextTap,
       );
 
-  final _ClickableTextControllerConfig _config;
-  final RxBool expanded = false.obs, showExpandButton = false.obs;
-  final RxList<TextSpan> spans = <TextSpan>[].obs;
+  final _ClickableTextControllerState _state;
 
-  ClickableTextController._(this._config);
+  ClickableTextController._(_ClickableTextControllerConfig config)
+      : _state = _ClickableTextControllerState(config);
 
   @override
   void onInit() {

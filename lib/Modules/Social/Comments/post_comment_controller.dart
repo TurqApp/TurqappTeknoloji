@@ -12,6 +12,7 @@ import '../../../Services/current_user_service.dart';
 import '../../../Services/post_interaction_service.dart';
 
 part 'post_comment_controller_actions_part.dart';
+part 'post_comment_controller_facade_part.dart';
 part 'post_comment_controller_fields_part.dart';
 part 'post_comment_controller_runtime_part.dart';
 
@@ -26,7 +27,7 @@ class PostCommentController extends GetxController {
     String? tag,
     bool permanent = false,
   }) =>
-      _ensurePostCommentController(
+      _ensurePostCommentControllerFacade(
         postID: postID,
         userID: userID,
         collection: collection,
@@ -36,7 +37,7 @@ class PostCommentController extends GetxController {
       );
 
   static PostCommentController? maybeFind({String? tag}) =>
-      _maybeFindPostCommentController(tag: tag);
+      _maybeFindPostCommentControllerFacade(tag: tag);
 
   PostCommentController({
     required this.postID,
@@ -60,18 +61,12 @@ class PostCommentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if ((controllerTag ?? '').trim().isNotEmpty) {
-      _activeTag = controllerTag;
-    }
-    _handlePostCommentControllerInit(this);
+    _handlePostCommentControllerOnInit(this);
   }
 
   @override
   void onClose() {
-    if (_activeTag == controllerTag) {
-      _activeTag = null;
-    }
-    _handlePostCommentControllerClose(this);
+    _handlePostCommentControllerOnClose(this);
     super.onClose();
   }
 }

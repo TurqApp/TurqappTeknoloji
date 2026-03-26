@@ -17,6 +17,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'antreman_comments_controller_data_part.dart';
 part 'antreman_comments_controller_actions_part.dart';
+part 'antreman_comments_controller_facade_part.dart';
+part 'antreman_comments_controller_fields_part.dart';
 part 'antreman_comments_controller_models_part.dart';
 part 'antreman_comments_controller_runtime_part.dart';
 
@@ -25,53 +27,30 @@ class AntremanCommentsController extends GetxController {
     required QuestionBankModel question,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      AntremanCommentsController(question),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureAntremanCommentsController(
+        question: question,
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static AntremanCommentsController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<AntremanCommentsController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<AntremanCommentsController>(tag: tag);
-  }
+  static AntremanCommentsController? maybeFind({String? tag}) =>
+      _maybeFindAntremanCommentsController(tag: tag);
 
-  final QuestionBankModel question;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
-  final String userID = CurrentUserService.instance.effectiveUserId;
-  final FocusNode focusNode = FocusNode();
-  final ScrollController scrollController = ScrollController();
+  final _AntremanCommentsControllerState _state;
 
-  AntremanCommentsController(this.question);
-
-  final RxList<Comment> comments = <Comment>[].obs;
-  final RxMap<String, List<Reply>> replies = <String, List<Reply>>{}.obs;
-  final RxMap<String, bool> repliesVisible = <String, bool>{}.obs;
-  final RxString replyingToCommentDocID = ''.obs;
-  final TextEditingController commentController = TextEditingController();
-  final Map<String, Map<String, dynamic>> userInfoCache = {};
-  final RxString editingCommentDocID = ''.obs;
-  final RxString editingReplyDocID = ''.obs;
-  final RxBool isTextFieldNotEmpty = false.obs;
-  final RxBool isLoading = true.obs;
-  final Rx<File?> selectedImage = Rx<File?>(null);
-  final ImagePicker picker = ImagePicker();
+  AntremanCommentsController(QuestionBankModel question)
+      : _state = _AntremanCommentsControllerState(question);
 
   @override
   void onInit() {
     super.onInit();
-    _handleCommentsInit();
+    _handleAntremanCommentsInit(this);
   }
 
   @override
   void onClose() {
-    _handleCommentsClose();
+    _handleAntremanCommentsClose(this);
     super.onClose();
   }
 }

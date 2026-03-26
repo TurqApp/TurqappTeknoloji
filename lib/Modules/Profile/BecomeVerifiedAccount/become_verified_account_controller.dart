@@ -10,67 +10,36 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/verified_account_model.dart';
 
 part 'become_verified_account_controller_form_part.dart';
+part 'become_verified_account_controller_facade_part.dart';
+part 'become_verified_account_controller_fields_part.dart';
 part 'become_verified_account_controller_runtime_part.dart';
 
 class BecomeVerifiedAccountController extends GetxController {
   static BecomeVerifiedAccountController ensure({
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      BecomeVerifiedAccountController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureBecomeVerifiedAccountController(
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static BecomeVerifiedAccountController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<BecomeVerifiedAccountController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<BecomeVerifiedAccountController>(tag: tag);
-  }
+  static BecomeVerifiedAccountController? maybeFind({String? tag}) =>
+      _maybeFindBecomeVerifiedAccountController(tag: tag);
 
-  final VerifiedAccountRepository _verifiedAccountRepository =
-      VerifiedAccountRepository.ensure();
-  final RxString aciklamaText = "".obs;
-  final RxBool canSubmitApplication = false.obs;
-  final RxBool isSubmitting = false.obs;
-  final RxBool hasAcceptedConsent = false.obs;
-  final RxString existingApplicationStatus = ''.obs;
-  var selected = Rx<VerifiedAccountModel?>(null);
-  Rx<String> selectedColor = "2196F3".obs;
-  var selectedInt = 0.obs;
-  var bodySelection = 0.obs;
-
-  final instagram = TextEditingController();
-  final twitter = TextEditingController();
-  final linkedin = TextEditingController();
-  final tiktok = TextEditingController();
-  final youtube = TextEditingController();
-  final website = TextEditingController();
-
-  final nickname = TextEditingController();
-  final aciklama = TextEditingController();
-
-  final eDevletBarcodeNo = TextEditingController();
-
-  var show = false.obs;
+  final _state = _BecomeVerifiedAccountControllerState();
 
   @override
   void onInit() {
     super.onInit();
-    _BecomeVerifiedAccountControllerRuntimeX(this).handleOnInit();
+    _handleBecomeVerifiedAccountInit(this);
   }
 
   @override
   void onClose() {
-    _BecomeVerifiedAccountControllerRuntimeX(this).handleOnClose();
+    _handleBecomeVerifiedAccountClose(this);
     super.onClose();
   }
 
-  Future<bool> submitApplication() =>
-      _BecomeVerifiedAccountControllerRuntimeX(this).submitApplication();
+  Future<bool> submitApplication() => _submitVerifiedAccountApplication(this);
 }

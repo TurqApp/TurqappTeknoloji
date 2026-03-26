@@ -1,0 +1,86 @@
+part of 'list_bottom_sheet.dart';
+
+ListBottomSheetController _ensureListBottomSheetController({
+  String? tag,
+  bool permanent = false,
+}) =>
+    _maybeFindListBottomSheetController(tag: tag) ??
+    Get.put(
+      ListBottomSheetController(),
+      tag: tag,
+      permanent: permanent,
+    );
+
+ListBottomSheetController? _maybeFindListBottomSheetController({
+  String? tag,
+}) =>
+    Get.isRegistered<ListBottomSheetController>(tag: tag)
+        ? Get.find<ListBottomSheetController>(tag: tag)
+        : null;
+
+void _initListBottomSheetSingleSelection(
+  ListBottomSheetController controller, {
+  required List<dynamic> items,
+  required dynamic initialSelection,
+}) {
+  controller.list.value = items;
+  controller.startSelection.value = initialSelection?.toString() ?? '';
+  controller.list.value = items;
+}
+
+void _initListBottomSheetMultiSelection(
+  ListBottomSheetController controller,
+  List<String> initialSelections,
+) {
+  controller.selectedItems.value = initialSelections;
+}
+
+void _selectListBottomSheetItem(
+  ListBottomSheetController controller,
+  dynamic item,
+  Function(dynamic) onBackData,
+) {
+  controller.startSelection.value = item.toString();
+  onBackData(item);
+  Get.back();
+}
+
+void _toggleListBottomSheetSelection(
+  ListBottomSheetController controller,
+  String item,
+) {
+  if (controller.selectedItems.contains(item)) {
+    controller.selectedItems.remove(item);
+  } else {
+    controller.selectedItems.add(item);
+  }
+}
+
+void _confirmListBottomSheetMultiSelection(
+  ListBottomSheetController controller,
+  Function(List<String>) onBackData,
+) {
+  onBackData(controller.selectedItems);
+  Get.back();
+}
+
+void _filterListBottomSheetItems(
+  ListBottomSheetController controller, {
+  required String query,
+  required List<dynamic> originalList,
+  String Function(dynamic item)? searchTextBuilder,
+}) {
+  controller.searchQuery.value = query;
+  if (query.isEmpty) {
+    controller.list.value = originalList;
+    return;
+  }
+  final normalizedQuery = normalizeSearchText(query);
+  controller.list.value = originalList
+      .where(
+        (item) => normalizeSearchText(
+          searchTextBuilder?.call(item) ?? item.toString(),
+        ).contains(normalizedQuery),
+      )
+      .toList();
+}

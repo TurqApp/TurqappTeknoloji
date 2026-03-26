@@ -1,17 +1,11 @@
 part of 'progress_indicators.dart';
 
 class UploadProgressController extends GetxController {
-  static UploadProgressController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(UploadProgressController(), permanent: permanent);
-  }
+  static UploadProgressController ensure({bool permanent = false}) =>
+      _ensureUploadProgressController(permanent: permanent);
 
-  static UploadProgressController? maybeFind() {
-    final isRegistered = Get.isRegistered<UploadProgressController>();
-    if (!isRegistered) return null;
-    return Get.find<UploadProgressController>();
-  }
+  static UploadProgressController? maybeFind() =>
+      _maybeFindUploadProgressController();
 
   final RxDouble progress = 0.0.obs;
   final RxString status = ''.obs;
@@ -26,58 +20,34 @@ class UploadProgressController extends GetxController {
   void startProgress({
     required int total,
     required String initialStatus,
-  }) {
-    totalFiles.value = total;
-    currentIndex.value = 0;
-    progress.value = 0.0;
-    status.value = initialStatus;
-    isVisible.value = true;
-    isPaused.value = false;
-    hasError.value = false;
-    errorMessage.value = '';
-  }
+  }) =>
+      _startUploadProgress(
+        this,
+        total: total,
+        initialStatus: initialStatus,
+      );
 
   void updateProgress({
     required int current,
     required String fileName,
     required String statusText,
     double? progressValue,
-  }) {
-    currentIndex.value = current;
-    currentFile.value = fileName;
-    status.value = statusText;
+  }) =>
+      _updateUploadProgress(
+        this,
+        current: current,
+        fileName: fileName,
+        statusText: statusText,
+        progressValue: progressValue,
+      );
 
-    if (progressValue != null) {
-      progress.value = progressValue;
-    } else {
-      progress.value = current / totalFiles.value;
-    }
-  }
+  void setError(String error) => _setUploadProgressError(this, error);
 
-  void setError(String error) {
-    hasError.value = true;
-    errorMessage.value = error;
-    status.value = 'progress.error_occurred'.tr;
-  }
+  void complete(String message) => _completeUploadProgress(this, message);
 
-  void complete(String message) {
-    progress.value = 1.0;
-    status.value = message;
-    Future.delayed(const Duration(seconds: 2), () {
-      isVisible.value = false;
-    });
-  }
+  void hide() => _hideUploadProgress(this);
 
-  void hide() {
-    isVisible.value = false;
-  }
+  void pause() => _pauseUploadProgress(this);
 
-  void pause() {
-    isPaused.value = true;
-    status.value = 'progress.paused'.tr;
-  }
-
-  void resume() {
-    isPaused.value = false;
-  }
+  void resume() => _resumeUploadProgress(this);
 }
