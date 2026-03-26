@@ -813,7 +813,7 @@ class _AdmobKareState extends State<AdmobKare> {
                 'TurqApp önerisi',
                 style: TextStyle(
                   color: palette.titleColor,
-                  fontSize: 11,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
