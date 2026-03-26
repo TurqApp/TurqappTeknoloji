@@ -281,9 +281,11 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
       for (var i = 0; i < 3; i++) {
         if (!mounted || ctrl.isDisposed) return;
-        await ctrl.play();
-        _requestExclusivePlayback(docId);
-        _scheduleVolumeRestore(ctrl);
+        await _playSingleShortWhenReady(
+          currentPage,
+          ctrl,
+          source: 'single_short_injected_initial',
+        );
         await Future.delayed(const Duration(milliseconds: 120));
         if (ctrl.value.isPlaying) break;
       }
@@ -320,18 +322,13 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     if (index < 0 || index >= shorts.length) return;
     final ctrl = _videoControllers[index];
     if (ctrl == null || ctrl.isDisposed) return;
-    try {
-      ctrl.setVolume(volume ? 1 : 0);
-    } catch (_) {}
-    _scheduleVolumeRestore(ctrl);
-    unawaited(ctrl.play());
-    _requestExclusivePlayback(shorts[index].docID);
-    if (index == currentPage) {
-      _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);
-    }
-    if (index == currentPage) {
-      _beginTelemetryForCurrentPage(ctrl);
-    }
+    unawaited(
+      _playSingleShortWhenReady(
+        index,
+        ctrl,
+        source: 'single_short_prime_playback',
+      ),
+    );
   }
 
   Widget _buildFullscreenVideoSurface(

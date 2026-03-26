@@ -7,6 +7,7 @@ import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/SegmentCache/cache_manager.dart';
+import '../../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_state_manager.dart';
@@ -83,7 +84,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _navSelectionWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
+  Timer? _autoplaySegmentGateTimer;
   bool _playbackIntentTracked = false;
+  DateTime? _autoplaySegmentGateStartedAt;
+  bool _autoplaySegmentGateTimedOut = false;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
@@ -91,6 +95,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       ValueNotifier(const HLSVideoValue());
   static const Duration _stableFramePositionThreshold =
       Duration(milliseconds: 180);
+  static const Duration _autoplaySegmentGateTimeout =
+      Duration(milliseconds: 950);
+  static const Duration _autoplaySegmentGatePollInterval =
+      Duration(milliseconds: 120);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -102,12 +110,20 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get isVideoFromCache {
     if (!widget.model.hasPlayableVideo) return false;
     try {
-      final entry =
-          SegmentCacheManager.maybeFind()?.getEntry(widget.model.docID);
-      if (entry == null) return false;
-      return entry.cachedSegmentCount > 0;
+      return cachedSegmentCountForCurrentVideo > 0;
     } catch (_) {
       return false;
+    }
+  }
+
+  int get cachedSegmentCountForCurrentVideo {
+    if (!widget.model.hasPlayableVideo) return 0;
+    try {
+      final entry =
+          SegmentCacheManager.maybeFind()?.getEntry(widget.model.docID);
+      return entry?.cachedSegmentCount ?? 0;
+    } catch (_) {
+      return 0;
     }
   }
 

@@ -25,14 +25,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
               if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
                 return;
               }
-              _videoAdapter!.setVolume(1.0);
-              _videoAdapter!.play();
-              videoStateManager.playOnlyThis(playbackHandleKey);
+              _applyPlaybackVolume();
+              _resumePlaybackIfEligible(source: 'standalone_init_delay');
               Future.delayed(const Duration(milliseconds: 220), () {
                 if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
                   return;
                 }
-                _videoAdapter!.setVolume(1.0);
+                _applyPlaybackVolume();
               });
             });
           }
@@ -66,6 +65,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
 
     _lazyInitTimer?.cancel();
     _playbackRecoveryTimer?.cancel();
+    _autoplaySegmentGateTimer?.cancel();
     _replayAdHideTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
     if (isStandalonePostInstance) {
@@ -86,12 +86,14 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   void _handleDidUpdateWidget(T oldWidget) {
     if (oldWidget.shouldPlay != widget.shouldPlay) {
       if (widget.shouldPlay) {
+        _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
         if (isStandalonePostInstance) {
           videoStateManager.enterExclusiveMode(playbackHandleKey);
         }
         _resumePlaybackIfEligible(source: 'widget_should_play_changed');
       } else {
+        _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
         if (_blockPause) return;
         if (_skipNextPause) {
@@ -172,7 +174,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
 
     if (v.isInitialized && !_hasAutoPlayed) {
       if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
-        _startPlayback(source: 'video_initialized');
+        _startPlaybackWhenReady(source: 'video_initialized');
       } else {
         _applyPlaybackVolume();
       }

@@ -165,6 +165,8 @@ class _ShortViewState extends State<ShortView> {
   Timer? _tierDebounce;
   Timer? _engagementRescoreTimer;
   Timer? _playbackWatchdogTimer;
+  DateTime? _autoplaySegmentGateStartedAt;
+  bool _autoplaySegmentGateTimedOut = false;
 
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
@@ -176,6 +178,10 @@ class _ShortViewState extends State<ShortView> {
   Timer? _stallWatchdogTimer;
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
+  static const Duration _shortAutoplaySegmentGateTimeout =
+      Duration(milliseconds: 950);
+  static const Duration _shortAutoplaySegmentGatePollInterval =
+      Duration(milliseconds: 120);
 
   // Liste değişimlerini takip eden worker
   Worker? _shortsWorker;

@@ -3,6 +3,83 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewPlaybackPart on _SingleShortViewState {
+  void _resetSingleShortAutoplaySegmentGate() {
+    _autoplaySegmentGateTimer?.cancel();
+    _autoplaySegmentGateTimer = null;
+    _autoplaySegmentGateStartedAt = null;
+    _autoplaySegmentGateTimedOut = false;
+  }
+
+  bool _hasReadySingleShortSegment(int index) {
+    if (index < 0 || index >= shorts.length) return true;
+    try {
+      final entry =
+          SegmentCacheManager.maybeFind()?.getEntry(shorts[index].docID);
+      return (entry?.cachedSegmentCount ?? 0) >= 1;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  void _boostSingleShortSegments(int index) {
+    if (index < 0 || index >= shorts.length) return;
+    try {
+      ensurePrefetchScheduler().boostDoc(
+        shorts[index].docID,
+        readySegments: 2,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _playSingleShortWhenReady(
+    int index,
+    HLSVideoAdapter ctrl, {
+    required String source,
+  }) async {
+    if (!mounted || ctrl.isDisposed || index < 0 || index >= shorts.length) {
+      return;
+    }
+    _boostSingleShortSegments(index);
+    final shouldGate = !_autoplaySegmentGateTimedOut &&
+        ctrl.value.position <= Duration.zero &&
+        !ctrl.value.isPlaying &&
+        !_hasReadySingleShortSegment(index);
+    if (shouldGate) {
+      _autoplaySegmentGateStartedAt ??= DateTime.now();
+      final elapsed = DateTime.now().difference(_autoplaySegmentGateStartedAt!);
+      if (elapsed < _SingleShortViewState._autoplaySegmentGateTimeout) {
+        _autoplaySegmentGateTimer?.cancel();
+        _autoplaySegmentGateTimer = Timer(
+          _SingleShortViewState._autoplaySegmentGatePollInterval,
+          () {
+            _autoplaySegmentGateTimer = null;
+            if (!mounted || ctrl.isDisposed || index != currentPage) return;
+            unawaited(
+              _playSingleShortWhenReady(
+                index,
+                ctrl,
+                source: source,
+              ),
+            );
+          },
+        );
+        return;
+      }
+      _autoplaySegmentGateTimedOut = true;
+    } else {
+      _resetSingleShortAutoplaySegmentGate();
+    }
+
+    ctrl.setVolume(volume ? 1 : 0);
+    _scheduleVolumeRestore(ctrl);
+    await ctrl.play();
+    _requestExclusivePlayback(shorts[index].docID);
+    if (index == currentPage) {
+      _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);
+      _beginTelemetryForCurrentPage(ctrl);
+    }
+  }
+
   void _initializeSingleShortView() {
     final hasInjectedPlayingController = widget.injectedController != null &&
         !widget.injectedController!.isDisposed &&
@@ -49,6 +126,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
     currentPage = page;
     showControls = true;
+    _resetSingleShortAutoplaySegmentGate();
     _pageActivatedAt = DateTime.now();
     if (currentPage >= 0 && currentPage < shorts.length) {
       try {
@@ -159,6 +237,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     pageController.dispose();
     unawaited(_endActiveTelemetrySession());
     _fullscreenPlaybackGuardTimer?.cancel();
+    _autoplaySegmentGateTimer?.cancel();
     _fullscreenPlaybackGuardTimer = null;
     _clearAllControllers();
     try {

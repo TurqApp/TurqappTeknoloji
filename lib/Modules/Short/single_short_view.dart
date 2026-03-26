@@ -173,6 +173,10 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   static const Duration _engagementRescoreDelay = Duration(milliseconds: 2500);
   static const Duration _progressPersistInterval = Duration(seconds: 2);
   static const double _progressPersistDelta = 0.10;
+  static const Duration _autoplaySegmentGateTimeout =
+      Duration(milliseconds: 950);
+  static const Duration _autoplaySegmentGatePollInterval =
+      Duration(milliseconds: 120);
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
@@ -182,8 +186,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   List<PostsModel> _renderedShorts = <PostsModel>[];
   Timer? _engagementRescoreTimer;
   Timer? _fullscreenPlaybackGuardTimer;
+  Timer? _autoplaySegmentGateTimer;
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
+  DateTime? _autoplaySegmentGateStartedAt;
+  bool _autoplaySegmentGateTimedOut = false;
   bool _telemetryFirstFrame = false;
   HLSVideoAdapter? _telemetryAdapter;
   String? _activeTelemetryVideoId;
