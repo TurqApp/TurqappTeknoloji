@@ -1,5 +1,13 @@
 part of 'admob_unit_config_service.dart';
 
+class AdmobUnitConfigService extends _AdmobUnitConfigServiceBase {
+  @override
+  void onClose() {
+    _disposeAdmobConfigRuntime(this);
+    super.onClose();
+  }
+}
+
 AdmobUnitConfigService? maybeFindAdmobUnitConfigService() {
   final isRegistered = Get.isRegistered<AdmobUnitConfigService>();
   if (!isRegistered) return null;

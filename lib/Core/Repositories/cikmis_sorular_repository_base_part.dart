@@ -1,5 +1,9 @@
 part of 'cikmis_sorular_repository_parts.dart';
 
+const Duration _cikmisSorularRepositoryTtl = Duration(hours: 12);
+const String _cikmisSorularRepositoryPrefsPrefix =
+    'cikmis_sorular_repository_v3';
+
 abstract class _CikmisSorularRepositoryBase extends GetxService {
   _CikmisSorularRepositoryBase({
     required FirebaseStorage storage,

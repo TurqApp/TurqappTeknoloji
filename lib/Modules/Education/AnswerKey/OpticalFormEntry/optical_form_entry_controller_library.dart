@@ -11,5 +11,4 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'optical_form_entry_controller_data_part.dart';
 part 'optical_form_entry_controller_actions_part.dart';
 part 'optical_form_entry_controller_facade_part.dart';
-part 'optical_form_entry_controller_class_part.dart';
 part 'optical_form_entry_controller_fields_part.dart';
