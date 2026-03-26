@@ -225,6 +225,8 @@ extension EducationViewActionsPart on EducationView {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
         return ScholarshipsController.maybeFind()?.scrollController;
+      case PasajTabIds.practiceExams:
+        return CikmisSorularController.maybeFind()?.scrollController;
       case PasajTabIds.onlineExam:
         return DenemeSinavlariController.maybeFind()?.scrollController;
       case PasajTabIds.answerKey:
@@ -242,6 +244,9 @@ extension EducationViewActionsPart on EducationView {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
         return (ScholarshipsController.maybeFind()?.scrollOffset.value ?? 0) <=
+            350;
+      case PasajTabIds.practiceExams:
+        return (CikmisSorularController.maybeFind()?.scrollOffset.value ?? 0) <=
             350;
       case PasajTabIds.onlineExam:
         return (DenemeSinavlariController.maybeFind()?.scrollOffset.value ??

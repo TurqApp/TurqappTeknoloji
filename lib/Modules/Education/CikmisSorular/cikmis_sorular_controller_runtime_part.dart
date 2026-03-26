@@ -2,11 +2,20 @@ part of 'cikmis_sorular_controller.dart';
 
 extension CikmisSorularControllerRuntimeX on CikmisSorularController {
   Future<void> _handleOnInit() async {
+    _attachScrollTracking();
     final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _snapshotRepository
         .openHome(userId: userId)
         .listen(_applyHomeSnapshotResource);
+  }
+
+  void _attachScrollTracking() {
+    scrollController.addListener(() {
+      if (!scrollController.hasClients) return;
+      final currentOffset = scrollController.position.pixels;
+      scrollOffset.value = currentOffset;
+    });
   }
 
   Future<void> refreshData({bool silent = false}) async {
@@ -118,6 +127,7 @@ extension CikmisSorularControllerRuntimeX on CikmisSorularController {
   void _handleOnClose() {
     _homeSnapshotSub?.cancel();
     _searchDebounce?.cancel();
+    scrollController.dispose();
   }
 
   void _applyHomeSnapshotResource(

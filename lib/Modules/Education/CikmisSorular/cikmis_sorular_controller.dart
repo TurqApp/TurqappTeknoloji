@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
@@ -30,6 +30,8 @@ class CikmisSorularController extends GetxController {
   final isLoading = true.obs;
   final isSearchLoading = false.obs;
   final RxString searchQuery = ''.obs;
+  final scrollController = ScrollController();
+  final scrollOffset = 0.0.obs;
 
   Timer? _searchDebounce;
   int _searchToken = 0;

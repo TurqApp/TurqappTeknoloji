@@ -208,6 +208,13 @@ extension EducationControllerPasajPart on EducationController {
           scholarships.scrollOffset.value = 0;
         }
         break;
+      case PasajTabIds.practiceExams:
+        final practiceExams = CikmisSorularController.maybeFind();
+        if (practiceExams != null) {
+          _resetTrackedScrollController(practiceExams.scrollController);
+          practiceExams.scrollOffset.value = 0;
+        }
+        break;
       case PasajTabIds.onlineExam:
         final exams = DenemeSinavlariController.maybeFind();
         if (exams != null) {

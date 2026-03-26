@@ -36,6 +36,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SinavHazirla/sinav_haz
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSonuclarim/sinav_sonuclarim.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular.dart';
+import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_soru_sonuclar.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_view.dart';

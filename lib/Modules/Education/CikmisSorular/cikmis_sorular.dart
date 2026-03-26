@@ -31,29 +31,17 @@ class CikmisSorular extends StatefulWidget {
 class _CikmisSorularState extends State<CikmisSorular> {
   final CikmisSorularController controller =
       CikmisSorularController.ensure(permanent: true);
-  final ScrollController _scrollController = ScrollController();
-  double _previousOffset = 0.0;
-  bool showButons = false;
+  ScrollController get _scrollController => controller.scrollController;
 
   @override
   void initState() {
     super.initState();
-    scrolControlcu();
-  }
-
-  void scrolControlcu() {
-    _scrollController.addListener(() {
-      final currentOffset = _scrollController.position.pixels;
-
-      if (currentOffset > _previousOffset || currentOffset < _previousOffset) {
-        if (mounted && showButons) {
-          setState(() {
-            showButons = false;
-          });
-        }
-      }
-
-      _previousOffset = currentOffset;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      try {
+        _scrollController.jumpTo(0);
+        controller.scrollOffset.value = 0;
+      } catch (_) {}
     });
   }
 
