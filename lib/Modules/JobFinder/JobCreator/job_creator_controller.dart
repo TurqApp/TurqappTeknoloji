@@ -31,6 +31,7 @@ import '../job_localization_utils.dart';
 part 'job_creator_controller_class_part.dart';
 part 'job_creator_controller_facade_part.dart';
 part 'job_creator_controller_form_part.dart';
+part 'job_creator_controller_base_part.dart';
 part 'job_creator_controller_fields_part.dart';
 part 'job_creator_controller_submission_part.dart';
 part 'job_creator_controller_support_part.dart';

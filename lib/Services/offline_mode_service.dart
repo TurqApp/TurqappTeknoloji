@@ -16,6 +16,7 @@ part 'offline_mode_service_queue_part.dart';
 part 'offline_mode_service_persistence_part.dart';
 part 'offline_mode_service_action_part.dart';
 part 'offline_mode_service_facade_part.dart';
+part 'offline_mode_service_base_part.dart';
 part 'offline_mode_service_fields_part.dart';
 part 'offline_mode_service_runtime_part.dart';
 part 'offline_mode_service_config_part.dart';

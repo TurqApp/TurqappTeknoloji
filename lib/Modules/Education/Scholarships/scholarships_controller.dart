@@ -27,6 +27,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_i
 
 part 'scholarships_controller_data_part.dart';
 part 'scholarships_controller_actions_part.dart';
+part 'scholarships_controller_base_part.dart';
 part 'scholarships_controller_class_part.dart';
 part 'scholarships_controller_facade_part.dart';
 part 'scholarships_controller_fields_part.dart';

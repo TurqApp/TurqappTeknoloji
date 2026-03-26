@@ -13,6 +13,7 @@ import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_ke
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'answer_key_controller_data_part.dart';
+part 'answer_key_controller_base_part.dart';
 part 'answer_key_controller_class_part.dart';
 part 'answer_key_controller_fields_part.dart';
 part 'answer_key_controller_facade_part.dart';

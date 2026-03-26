@@ -41,4 +41,5 @@ part 'social_profile_controller_shell_part.dart';
 part 'social_profile_controller_shell_content_part.dart';
 part 'social_profile_controller_facade_part.dart';
 part 'social_profile_controller_support_part.dart';
+part 'social_profile_controller_base_part.dart';
 part 'social_profile_controller_fields_part.dart';
