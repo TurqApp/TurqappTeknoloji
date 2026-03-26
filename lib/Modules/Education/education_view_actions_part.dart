@@ -54,7 +54,7 @@ extension EducationViewActionsPart on EducationView {
   }
 
   ViewModeController _viewModeController() {
-    return ViewModeController.ensure(permanent: true);
+    return ensureViewModeController(permanent: true);
   }
 
   DenemeSinavlariController? _activePracticeExamController() {

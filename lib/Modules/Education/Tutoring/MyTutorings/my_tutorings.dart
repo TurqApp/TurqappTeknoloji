@@ -40,7 +40,7 @@ class _MyTutoringsState extends State<MyTutorings> {
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
-        ViewModeController.ensure(permanent: true);
+        ensureViewModeController(permanent: true);
 
     return Obx(
       () {

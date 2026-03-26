@@ -12,7 +12,7 @@ extension _StoryHighlightsControllerRuntimeX on StoryHighlightsController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'story:highlights:$userId',
-        minInterval: StoryHighlightsController._silentRefreshInterval,
+        minInterval: _storyHighlightsSilentRefreshInterval,
       )) {
         unawaited(loadHighlights(silent: true, forceRefresh: true));
       }

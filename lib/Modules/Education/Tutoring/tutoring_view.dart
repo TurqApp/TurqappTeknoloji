@@ -46,7 +46,7 @@ class TutoringView extends StatelessWidget {
   final TutoringController tutoringController =
       ensureTutoringController(permanent: true);
   final ViewModeController viewModeController =
-      ViewModeController.ensure(permanent: true);
+      ensureViewModeController(permanent: true);
   final TutoringFilterController filterController =
       ensureTutoringFilterController(permanent: true);
   final applyFilterTrigger = false.obs;

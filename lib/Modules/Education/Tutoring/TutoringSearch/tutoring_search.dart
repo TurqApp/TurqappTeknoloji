@@ -40,7 +40,7 @@ class _TutoringSearchState extends State<TutoringSearch> {
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
-        ViewModeController.ensure(permanent: true);
+        ensureViewModeController(permanent: true);
 
     return SearchResetOnPageReturnScope(
       onReset: controller.resetSearch,
