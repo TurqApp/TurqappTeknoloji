@@ -11,6 +11,7 @@ part 'notifications_snapshot_repository_query_part.dart';
 part 'notifications_snapshot_repository_action_part.dart';
 part 'notifications_snapshot_repository_fields_part.dart';
 part 'notifications_snapshot_repository_base_part.dart';
+part 'notifications_snapshot_repository_facade_part.dart';
 part 'notifications_snapshot_repository_class_part.dart';
 
 class NotificationsSnapshotQuery {

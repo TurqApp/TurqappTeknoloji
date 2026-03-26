@@ -26,6 +26,7 @@ import '../../../Core/Services/typesense_post_service.dart';
 import '../../../Services/current_user_service.dart';
 
 part 'photo_short_content_controller_post_part.dart';
+part 'photo_short_content_controller_base_part.dart';
 part 'photo_short_content_controller_fields_part.dart';
 part 'photo_short_content_controller_runtime_part.dart';
 part 'photo_short_content_controller_shell_part.dart';

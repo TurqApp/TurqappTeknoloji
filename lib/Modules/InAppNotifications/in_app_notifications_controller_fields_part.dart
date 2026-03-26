@@ -15,7 +15,7 @@ class _InAppNotificationsControllerState {
   final unreadTotal = 0.obs;
   final notificationsRepository = NotificationsRepository.ensure();
   final notificationsSnapshotRepository =
-      NotificationsSnapshotRepository.ensure();
+      ensureNotificationsSnapshotRepository();
   bool markAllReadQueued = false;
   bool inboxSeenRequested = false;
 }

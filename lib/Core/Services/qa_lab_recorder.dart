@@ -60,4 +60,5 @@ part 'qa_lab_recorder_diagnostics_timeline_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_helpers_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_dispatch_part.dart';
+part 'qa_lab_recorder_base_part.dart';
 part 'qa_lab_recorder_shell_part.dart';
