@@ -4,6 +4,8 @@ class NotificationsSnapshotRepository
     extends _NotificationsSnapshotRepositoryBase {
   NotificationsSnapshotRepository();
 
+  static const String _surfaceKey = _notificationsInboxSnapshotSurfaceKey;
+
   static NotificationsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<NotificationsSnapshotRepository>();
     if (!isRegistered) return null;
