@@ -419,7 +419,7 @@ extension ShortsContentActionsPart on _ShortsContentState {
             child: IconButton(
               onPressed: () async {
                 await ShareActionGuard.run(() async {
-                  final url = await _resolveShortPublicUrl();
+                  final url = _resolveShortPublicUrlForImmediateShare();
                   await ShareLinkService.shareUrl(
                     url: url,
                     title: 'post.share_title'.tr,
