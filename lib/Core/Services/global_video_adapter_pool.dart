@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
+part 'global_video_adapter_pool_fields_part.dart';
 part 'global_video_adapter_pool_runtime_part.dart';
 
 class GlobalVideoAdapterPool extends GetxService {
@@ -22,10 +23,7 @@ class GlobalVideoAdapterPool extends GetxService {
     return Get.put(GlobalVideoAdapterPool(), permanent: true);
   }
 
-  final Map<String, _WarmAdapterEntry> _warmAdapters = {};
-  final List<String> _warmOrder = <String>[];
-  final Map<HLSVideoAdapter, String> _leasedKeys = <HLSVideoAdapter, String>{};
-  final Map<String, int> _leaseCounts = <String, int>{};
+  final _state = _GlobalVideoAdapterPoolState();
 
   HLSVideoAdapter acquire({
     required String cacheKey,
@@ -70,16 +68,4 @@ Future<void> resetPlaybackForSurfaceRefresh() async {
   VideoStateManager.instance.pauseAllVideos(force: true);
   VideoStateManager.instance.clearAllStates();
   await GlobalVideoAdapterPool.ensure().clear();
-}
-
-class _WarmAdapterEntry {
-  const _WarmAdapterEntry({
-    required this.adapter,
-    required this.url,
-    required this.coordinateAudioFocus,
-  });
-
-  final HLSVideoAdapter adapter;
-  final String url;
-  final bool coordinateAudioFocus;
 }

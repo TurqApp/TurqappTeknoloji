@@ -13,6 +13,7 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_utils.da
 part 'ads_center_controller_stream_part.dart';
 part 'ads_center_controller_actions_part.dart';
 part 'ads_center_controller_runtime_part.dart';
+part 'ads_center_controller_fields_part.dart';
 
 class AdsCenterController extends GetxController {
   static AdsCenterController ensure({bool permanent = false}) {
@@ -44,31 +45,7 @@ class AdsCenterController extends GetxController {
         deliveryService = deliveryService ?? AdsDeliveryService(),
         targetingService = targetingService ?? const AdsTargetingService(),
         analyticsService = analyticsService ?? const AdsAnalyticsService();
-
-  final RxBool canAccess = false.obs;
-  final RxBool loading = false.obs;
-  final RxnString errorText = RxnString();
-
-  final RxMap<String, dynamic> dashboard = <String, dynamic>{}.obs;
-  final RxList<AdCampaign> campaigns = <AdCampaign>[].obs;
-  final RxList<AdCreative> creatives = <AdCreative>[].obs;
-  final RxList<AdAdvertiser> advertisers = <AdAdvertiser>[].obs;
-  final RxList<AdStatsSnapshot> dailyStats = <AdStatsSnapshot>[].obs;
-  final RxList<Map<String, dynamic>> deliveryLogs =
-      <Map<String, dynamic>>[].obs;
-
-  final Rx<AdDeliveryResult> previewResult = AdDeliveryResult.empty.obs;
-  final RxBool previewLoading = false.obs;
-
-  final Rxn<AdCampaignStatus> filterStatus = Rxn<AdCampaignStatus>();
-  final Rxn<AdPlacementType> filterPlacement = Rxn<AdPlacementType>();
-  final RxBool filterIncludeTest = true.obs;
-
-  StreamSubscription<List<AdCampaign>>? _campaignSub;
-  StreamSubscription<List<AdCreative>>? _creativeSub;
-  StreamSubscription<List<AdAdvertiser>>? _advertiserSub;
-  StreamSubscription<List<AdStatsSnapshot>>? _statsSub;
-  StreamSubscription<List<Map<String, dynamic>>>? _logSub;
+  final _state = _AdsCenterControllerState();
 
   @override
   void onInit() {

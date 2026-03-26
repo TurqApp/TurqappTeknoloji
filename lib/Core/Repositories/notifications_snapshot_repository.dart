@@ -9,6 +9,7 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 
 part 'notifications_snapshot_repository_query_part.dart';
 part 'notifications_snapshot_repository_action_part.dart';
+part 'notifications_snapshot_repository_fields_part.dart';
 
 class NotificationsSnapshotQuery {
   const NotificationsSnapshotQuery({
@@ -44,42 +45,6 @@ class NotificationsSnapshotRepository extends GetxService {
     return Get.put(NotificationsSnapshotRepository(), permanent: true);
   }
 
-  final NotificationsRepository _notificationsRepository =
-      NotificationsRepository.ensure();
-  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
-
-  late final CacheFirstCoordinator<List<NotificationModel>> _coordinator =
-      CacheFirstCoordinator<List<NotificationModel>>(
-    memoryStore: MemoryScopedSnapshotStore<List<NotificationModel>>(),
-    snapshotStore: SharedPrefsScopedSnapshotStore<List<NotificationModel>>(
-      prefsPrefix: 'notifications_snapshot_v1',
-      encode: _encodeItems,
-      decode: _decodeItems,
-    ),
-    telemetry: const CacheFirstKpiTelemetry<List<NotificationModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 10),
-      minLiveSyncInterval: Duration(seconds: 20),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
-    ),
-  );
-
-  late final CacheFirstQueryPipeline<NotificationsSnapshotQuery,
-          List<NotificationModel>, List<NotificationModel>> _pipeline =
-      CacheFirstQueryPipeline<NotificationsSnapshotQuery,
-          List<NotificationModel>, List<NotificationModel>>(
-    surfaceKey: _surfaceKey,
-    coordinator: _coordinator,
-    userIdResolver: (query) => query.userId.trim(),
-    scopeIdBuilder: (query) => query.scopeId,
-    fetchRaw: _fetchServerSnapshot,
-    resolve: (items) => items,
-    loadWarmSnapshot: _loadWarmSnapshot,
-    isEmpty: (items) => items.isEmpty,
-    liveSource: CachedResourceSource.server,
-  );
+  late final _NotificationsSnapshotRepositoryState _state =
+      _NotificationsSnapshotRepositoryState(this);
 }

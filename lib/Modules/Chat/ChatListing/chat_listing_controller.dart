@@ -16,6 +16,7 @@ import '../CreateChat/create_chat.dart';
 
 part 'chat_listing_controller_data_part.dart';
 part 'chat_listing_controller_actions_part.dart';
+part 'chat_listing_controller_fields_part.dart';
 
 class ChatListingController extends GetxController {
   static ChatListingController ensure() {
@@ -30,18 +31,7 @@ class ChatListingController extends GetxController {
     return Get.find<ChatListingController>();
   }
 
-  RxList<ChatListingModel> list = <ChatListingModel>[].obs;
-  RxList<ChatListingModel> filteredList = <ChatListingModel>[].obs;
-  RxString selectedTab = "all".obs;
-
-  TextEditingController search = TextEditingController();
-  var waiting = false.obs;
-  Timer? _searchDebounce;
-  Timer? _syncTimer;
-  Timer? _realtimeRefreshDebounce;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _conversationsSub;
-  bool _isRefreshing = false;
-  bool _cacheLoaded = false;
+  final _state = _ChatListingControllerState();
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
 

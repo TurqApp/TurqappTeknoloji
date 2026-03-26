@@ -9,6 +9,7 @@ import 'm3u8_parser.dart';
 part 'hls_data_usage_probe_record_part.dart';
 part 'hls_data_usage_probe_snapshot_part.dart';
 part 'hls_data_usage_probe_models_part.dart';
+part 'hls_data_usage_probe_fields_part.dart';
 
 enum HlsTrafficSource {
   playback,
@@ -34,25 +35,7 @@ class HlsDataUsageProbe extends GetxController {
     return Get.put(HlsDataUsageProbe(), permanent: true);
   }
 
-  final List<HlsTransferEvent> _events = <HlsTransferEvent>[];
-  final Map<String, int> _segmentDownloads = <String, int>{};
-  final Map<String, int> _segmentCacheHits = <String, int>{};
-  final Map<String, _VariantCatalog> _variantCatalogs =
-      <String, _VariantCatalog>{};
-  final Map<String, _DocAccumulator> _docUsage = <String, _DocAccumulator>{};
-  final Map<String, _InFlightTransfer> _inFlight =
-      <String, _InFlightTransfer>{};
-  final math.Random _random = math.Random(7);
-
-  DateTime _startedAt = DateTime.now();
-  String _label = 'default';
-  String? _visibleDocId;
-  HlsDebugNetworkProfile _networkProfile = HlsDebugNetworkProfile.fast;
-  int _peakConcurrentDownloads = 0;
-  int _peakParallelDocDownloads = 0;
-  int _peakOffscreenParallelDownloads = 0;
-  int _variantSwitchesObserved = 0;
-  String? _lastVisibleVariantKey;
+  final _state = _HlsDataUsageProbeState();
 
   String get sessionLabel => _label;
   HlsDebugNetworkProfile get networkProfile => _networkProfile;
