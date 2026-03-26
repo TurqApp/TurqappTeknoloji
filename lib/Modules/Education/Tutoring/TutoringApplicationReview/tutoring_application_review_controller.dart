@@ -6,4 +6,3 @@ import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 part 'tutoring_application_review_controller_fields_part.dart';
 part 'tutoring_application_review_controller_actions_part.dart';
 part 'tutoring_application_review_controller_facade_part.dart';
-part 'tutoring_application_review_controller_class_part.dart';

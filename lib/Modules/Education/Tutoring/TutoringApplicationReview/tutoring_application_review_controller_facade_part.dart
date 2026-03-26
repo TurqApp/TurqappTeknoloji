@@ -1,5 +1,18 @@
 part of 'tutoring_application_review_controller.dart';
 
+class TutoringApplicationReviewController extends GetxController {
+  final _state;
+
+  TutoringApplicationReviewController({required String tutoringDocID})
+      : _state = _buildTutoringApplicationReviewState(tutoringDocID);
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadApplicants();
+  }
+}
+
 TutoringApplicationReviewController ensureTutoringApplicationReviewController({
   required String tutoringDocID,
   String? tag,

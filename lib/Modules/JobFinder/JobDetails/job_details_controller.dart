@@ -31,4 +31,3 @@ part 'job_details_controller_actions_part.dart';
 part 'job_details_controller_facade_part.dart';
 part 'job_details_controller_fields_part.dart';
 part 'job_details_controller_runtime_part.dart';
-part 'job_details_controller_class_part.dart';
