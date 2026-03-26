@@ -156,6 +156,162 @@ class TopScreenSliderPlacements {
   ];
 }
 
+enum ManagedAdPlacementKind {
+  suggestionSlot,
+  topSlider,
+}
+
+class ManagedAdPlacement {
+  const ManagedAdPlacement({
+    required this.id,
+    required this.title,
+    required this.sliderId,
+    required this.surfaceSummary,
+    required this.kind,
+    this.suggestionPlacement,
+  });
+
+  final String id;
+  final String title;
+  final String sliderId;
+  final String surfaceSummary;
+  final ManagedAdPlacementKind kind;
+  final TurqAppSuggestionPlacement? suggestionPlacement;
+
+  bool get supportsFallbackText => suggestionPlacement != null;
+}
+
+class ManagedAdPlacements {
+  static final List<ManagedAdPlacement> entries = <ManagedAdPlacement>[
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.feed.id,
+      title: TurqAppSuggestionPlacements.feed.title,
+      sliderId: TurqAppSuggestionPlacements.feed.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.feed.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.feed,
+    ),
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.profile.id,
+      title: TurqAppSuggestionPlacements.profile.title,
+      sliderId: TurqAppSuggestionPlacements.profile.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.profile.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.profile,
+    ),
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.market.id,
+      title: TurqAppSuggestionPlacements.market.title,
+      sliderId: TurqAppSuggestionPlacements.market.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.market.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.market,
+    ),
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.scholarship.id,
+      title: TurqAppSuggestionPlacements.scholarship.title,
+      sliderId: TurqAppSuggestionPlacements.scholarship.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.scholarship.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.scholarship,
+    ),
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.answerKey.id,
+      title: TurqAppSuggestionPlacements.answerKey.title,
+      sliderId: TurqAppSuggestionPlacements.answerKey.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.answerKey.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.answerKey,
+    ),
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.job.id,
+      title: TurqAppSuggestionPlacements.job.title,
+      sliderId: TurqAppSuggestionPlacements.job.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.job.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.job,
+    ),
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.practiceExam.id,
+      title: TurqAppSuggestionPlacements.practiceExam.title,
+      sliderId: TurqAppSuggestionPlacements.practiceExam.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.practiceExam.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.practiceExam,
+    ),
+    ManagedAdPlacement(
+      id: TurqAppSuggestionPlacements.tutoring.id,
+      title: TurqAppSuggestionPlacements.tutoring.title,
+      sliderId: TurqAppSuggestionPlacements.tutoring.sliderId,
+      surfaceSummary: TurqAppSuggestionPlacements.tutoring.surfaceSummary,
+      kind: ManagedAdPlacementKind.suggestionSlot,
+      suggestionPlacement: TurqAppSuggestionPlacements.tutoring,
+    ),
+    ManagedAdPlacement(
+      id: TopScreenSliderPlacements.market.id,
+      title: TopScreenSliderPlacements.market.title,
+      sliderId: TopScreenSliderPlacements.market.sliderId,
+      surfaceSummary: TopScreenSliderPlacements.market.surfaceSummary,
+      kind: ManagedAdPlacementKind.topSlider,
+    ),
+    ManagedAdPlacement(
+      id: TopScreenSliderPlacements.answerKey.id,
+      title: TopScreenSliderPlacements.answerKey.title,
+      sliderId: TopScreenSliderPlacements.answerKey.sliderId,
+      surfaceSummary: TopScreenSliderPlacements.answerKey.surfaceSummary,
+      kind: ManagedAdPlacementKind.topSlider,
+    ),
+    ManagedAdPlacement(
+      id: TopScreenSliderPlacements.job.id,
+      title: TopScreenSliderPlacements.job.title,
+      sliderId: TopScreenSliderPlacements.job.sliderId,
+      surfaceSummary: TopScreenSliderPlacements.job.surfaceSummary,
+      kind: ManagedAdPlacementKind.topSlider,
+    ),
+    ManagedAdPlacement(
+      id: TopScreenSliderPlacements.practiceExam.id,
+      title: TopScreenSliderPlacements.practiceExam.title,
+      sliderId: TopScreenSliderPlacements.practiceExam.sliderId,
+      surfaceSummary: TopScreenSliderPlacements.practiceExam.surfaceSummary,
+      kind: ManagedAdPlacementKind.topSlider,
+    ),
+    ManagedAdPlacement(
+      id: TopScreenSliderPlacements.tutoring.id,
+      title: TopScreenSliderPlacements.tutoring.title,
+      sliderId: TopScreenSliderPlacements.tutoring.sliderId,
+      surfaceSummary: TopScreenSliderPlacements.tutoring.surfaceSummary,
+      kind: ManagedAdPlacementKind.topSlider,
+    ),
+    ManagedAdPlacement(
+      id: TopScreenSliderPlacements.previousQuestions.id,
+      title: TopScreenSliderPlacements.previousQuestions.title,
+      sliderId: TopScreenSliderPlacements.previousQuestions.sliderId,
+      surfaceSummary:
+          TopScreenSliderPlacements.previousQuestions.surfaceSummary,
+      kind: ManagedAdPlacementKind.topSlider,
+    ),
+  ];
+
+  static final List<ManagedAdPlacement> suggestionEntries =
+      entries.where((entry) => entry.supportsFallbackText).toList(
+            growable: false,
+          );
+
+  static final List<ManagedAdPlacement> topSliderEntries =
+      entries.where((entry) => !entry.supportsFallbackText).toList(
+            growable: false,
+          );
+
+  static ManagedAdPlacement? byId(String placementId) {
+    for (final entry in entries) {
+      if (entry.id == placementId) {
+        return entry;
+      }
+    }
+    return null;
+  }
+}
+
 class SliderRuntimeSummary {
   const SliderRuntimeSummary({
     required this.totalItems,
@@ -174,6 +330,51 @@ class SliderRuntimeSummary {
   final int uniqueViewCount;
 
   bool get hasActiveItems => activeItems > 0;
+}
+
+class ManagedAdInventoryItem {
+  const ManagedAdInventoryItem({
+    required this.placement,
+    required this.sliderSummary,
+    this.config,
+  });
+
+  final ManagedAdPlacement placement;
+  final SliderRuntimeSummary sliderSummary;
+  final TurqAppSuggestionConfig? config;
+
+  bool get hasManagedAd => sliderSummary.hasActiveItems;
+  bool get usesFallbackCopy => placement.supportsFallbackText && !hasManagedAd;
+}
+
+class ManagedAdInventoryOverview {
+  const ManagedAdInventoryOverview({
+    required this.items,
+    required this.totalPlacements,
+    required this.suggestionPlacementCount,
+    required this.topSliderPlacementCount,
+    required this.activePlacementCount,
+    required this.fallbackPlacementCount,
+    required this.totalItems,
+    required this.activeItems,
+    required this.scheduledItems,
+    required this.expiredItems,
+    required this.viewCount,
+    required this.uniqueViewCount,
+  });
+
+  final List<ManagedAdInventoryItem> items;
+  final int totalPlacements;
+  final int suggestionPlacementCount;
+  final int topSliderPlacementCount;
+  final int activePlacementCount;
+  final int fallbackPlacementCount;
+  final int totalItems;
+  final int activeItems;
+  final int scheduledItems;
+  final int expiredItems;
+  final int viewCount;
+  final int uniqueViewCount;
 }
 
 class TurqAppSuggestionConfig {
@@ -394,6 +595,86 @@ class TurqAppSuggestionConfigService {
       viewCount: viewCount,
       uniqueViewCount: uniqueViewCount,
     );
+  }
+
+  Future<ManagedAdInventoryOverview> getManagedInventoryOverview({
+    bool forceRefresh = false,
+  }) async {
+    final configs = await loadAll(forceRefresh: forceRefresh);
+    final items = await Future.wait<ManagedAdInventoryItem>(
+      ManagedAdPlacements.entries.map((placement) async {
+        final summary = await getSliderSummary(placement.sliderId);
+        final suggestionPlacement = placement.suggestionPlacement;
+        final config = suggestionPlacement == null
+            ? null
+            : configs[suggestionPlacement.id] ??
+                TurqAppSuggestionConfig.defaultsFor(suggestionPlacement);
+        return ManagedAdInventoryItem(
+          placement: placement,
+          sliderSummary: summary,
+          config: config,
+        );
+      }),
+    );
+
+    var activePlacementCount = 0;
+    var fallbackPlacementCount = 0;
+    var totalItems = 0;
+    var activeItems = 0;
+    var scheduledItems = 0;
+    var expiredItems = 0;
+    var viewCount = 0;
+    var uniqueViewCount = 0;
+
+    for (final item in items) {
+      if (item.hasManagedAd) {
+        activePlacementCount++;
+      }
+      if (item.usesFallbackCopy) {
+        fallbackPlacementCount++;
+      }
+      totalItems += item.sliderSummary.totalItems;
+      activeItems += item.sliderSummary.activeItems;
+      scheduledItems += item.sliderSummary.scheduledItems;
+      expiredItems += item.sliderSummary.expiredItems;
+      viewCount += item.sliderSummary.viewCount;
+      uniqueViewCount += item.sliderSummary.uniqueViewCount;
+    }
+
+    return ManagedAdInventoryOverview(
+      items: items,
+      totalPlacements: items.length,
+      suggestionPlacementCount: ManagedAdPlacements.suggestionEntries.length,
+      topSliderPlacementCount: ManagedAdPlacements.topSliderEntries.length,
+      activePlacementCount: activePlacementCount,
+      fallbackPlacementCount: fallbackPlacementCount,
+      totalItems: totalItems,
+      activeItems: activeItems,
+      scheduledItems: scheduledItems,
+      expiredItems: expiredItems,
+      viewCount: viewCount,
+      uniqueViewCount: uniqueViewCount,
+    );
+  }
+
+  Future<Map<String, dynamic>> getManagedDashboardMetrics({
+    bool forceRefresh = false,
+  }) async {
+    final overview =
+        await getManagedInventoryOverview(forceRefresh: forceRefresh);
+    return <String, dynamic>{
+      'managedPlacementCount': overview.totalPlacements,
+      'managedSuggestionPlacementCount': overview.suggestionPlacementCount,
+      'managedTopSliderPlacementCount': overview.topSliderPlacementCount,
+      'managedActivePlacementCount': overview.activePlacementCount,
+      'managedFallbackPlacementCount': overview.fallbackPlacementCount,
+      'managedTotalItems': overview.totalItems,
+      'managedActiveItems': overview.activeItems,
+      'managedScheduledItems': overview.scheduledItems,
+      'managedExpiredItems': overview.expiredItems,
+      'managedViewCount': overview.viewCount,
+      'managedUniqueViewCount': overview.uniqueViewCount,
+    };
   }
 
   Future<TurqAppSuggestionConfig> _readRemoteConfig(

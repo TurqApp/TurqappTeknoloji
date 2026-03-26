@@ -31,6 +31,12 @@ extension AdsCenterControllerStreamPart on AdsCenterController {
     if (!canAccess.value) return;
     try {
       final metrics = await repository.getDashboardMetrics();
+      try {
+        metrics.addAll(
+          await TurqAppSuggestionConfigService.instance
+              .getManagedDashboardMetrics(),
+        );
+      } catch (_) {}
       dashboard.assignAll(metrics);
       errorText.value = null;
     } catch (e) {

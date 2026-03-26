@@ -6,6 +6,19 @@ abstract class _OpticalPreviewControllerBase extends GetxController {
   final _OpticalPreviewControllerState _state;
 }
 
+class OpticalPreviewController extends _OpticalPreviewControllerBase {
+  OpticalPreviewController(OpticalFormModel model, Function? onUpdate)
+      : super(_buildOpticalPreviewControllerState(model, onUpdate)) {
+    _initializeOpticalPreviewController(this);
+  }
+
+  @override
+  void onClose() {
+    _handleOpticalPreviewClose(this);
+    super.onClose();
+  }
+}
+
 void _initializeOpticalPreviewController(OpticalPreviewController controller) {
   controller.cevaplar.value = List.generate(
     controller.model.cevaplar.length,

@@ -57,6 +57,65 @@ extension AdsDashboardViewSectionsPart on AdsDashboardView {
     );
   }
 
+  Widget _buildManagedInventorySection(Map<String, dynamic> metrics) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Yönetilen Envanter'),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _metricCard(
+              'Toplam alan',
+              '${metrics['managedPlacementCount'] ?? 0}',
+            ),
+            _metricCard(
+              'Ana başlık alanı',
+              '${metrics['managedSuggestionPlacementCount'] ?? 0}',
+            ),
+            _metricCard(
+              'Üst slider alanı',
+              '${metrics['managedTopSliderPlacementCount'] ?? 0}',
+            ),
+            _metricCard(
+              'Aktif yönetilen alan',
+              '${metrics['managedActivePlacementCount'] ?? 0}',
+            ),
+            _metricCard(
+              'Fallback çalışan alan',
+              '${metrics['managedFallbackPlacementCount'] ?? 0}',
+            ),
+            _metricCard(
+              'Toplam kreatif',
+              '${metrics['managedTotalItems'] ?? 0}',
+            ),
+            _metricCard(
+              'Aktif kreatif',
+              '${metrics['managedActiveItems'] ?? 0}',
+            ),
+            _metricCard(
+              'Planlı kreatif',
+              '${metrics['managedScheduledItems'] ?? 0}',
+            ),
+            _metricCard(
+              'Süresi biten',
+              '${metrics['managedExpiredItems'] ?? 0}',
+            ),
+            _metricCard(
+              'Görüntülenme',
+              '${metrics['managedViewCount'] ?? 0}',
+            ),
+            _metricCard(
+              'Kişi',
+              '${metrics['managedUniqueViewCount'] ?? 0}',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildFeatureFlagsSection({
     required AdsCenterController controller,
     required AdFeatureFlags flags,

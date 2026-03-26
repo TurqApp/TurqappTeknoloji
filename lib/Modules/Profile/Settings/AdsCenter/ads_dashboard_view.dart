@@ -28,6 +28,8 @@ class AdsDashboardView extends StatelessWidget {
           children: [
             _buildSummarySection(metrics),
             const SizedBox(height: 16),
+            _buildManagedInventorySection(metrics),
+            const SizedBox(height: 16),
             _buildFeatureFlagsSection(
               controller: controller,
               flags: flags,

@@ -7,7 +7,6 @@ import 'package:turqappv2/Models/posts_model.dart';
 
 part 'profile_repository_cache_part.dart';
 part 'profile_repository_base_part.dart';
-part 'profile_repository_class_part.dart';
 part 'profile_repository_facade_part.dart';
 part 'profile_repository_fields_part.dart';
 part 'profile_repository_models_part.dart';
