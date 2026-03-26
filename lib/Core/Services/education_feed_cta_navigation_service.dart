@@ -24,7 +24,7 @@ class EducationFeedCtaNavigationService {
   ScholarshipRepository get _scholarshipRepository =>
       ScholarshipRepository.ensure();
   NotifyLookupRepository get _notifyLookupRepository =>
-      NotifyLookupRepository.ensure();
+      ensureNotifyLookupRepository();
 
   Future<bool> openFromInternalUrl(String url) async {
     final target = _parseInternalEducationTarget(url);
@@ -71,8 +71,8 @@ class EducationFeedCtaNavigationService {
     }
 
     final resolved = resolveMeta(meta ?? const <String, dynamic>{});
-    final hasEducationCta = resolved.type.isNotEmpty ||
-        isTurqAppEducationLink(normalized);
+    final hasEducationCta =
+        resolved.type.isNotEmpty || isTurqAppEducationLink(normalized);
     if (!hasEducationCta) {
       return normalized;
     }
@@ -131,7 +131,8 @@ class EducationFeedCtaNavigationService {
         await _openMarket(docId);
         return;
       default:
-        AppSnackbar('common.error'.tr, 'education_feed.content_type_unsupported'.tr);
+        AppSnackbar(
+            'common.error'.tr, 'education_feed.content_type_unsupported'.tr);
     }
   }
 

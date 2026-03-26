@@ -14,8 +14,9 @@ extension MessageContentControllerDataPart on MessageContentController {
   }
 
   Future<void> getPost() async {
-    final lookup =
-        await NotifyLookupRepository.ensure().getPostLookup(model.postID);
+    final lookup = await ensureNotifyLookupRepository().getPostLookup(
+      model.postID,
+    );
     if (!lookup.exists || lookup.model == null) {
       postModel.value = PostsModel.empty();
       return;

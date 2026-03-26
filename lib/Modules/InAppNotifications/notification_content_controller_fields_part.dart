@@ -6,7 +6,7 @@ class _NotificationContentControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository followRepository = FollowRepository.ensure();
   final NotifyLookupRepository notifyLookupRepository =
-      NotifyLookupRepository.ensure();
+      ensureNotifyLookupRepository();
   final avatarUrl = ''.obs;
   final nickname = ''.obs;
   final following = false.obs;

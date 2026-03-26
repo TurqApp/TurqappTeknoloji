@@ -14,7 +14,7 @@ class NotifyReaderController extends GetxController {
   }
 
   final NotifyLookupRepository _lookupRepository =
-      NotifyLookupRepository.ensure();
+      ensureNotifyLookupRepository();
   final RxString lastOpenedNotificationId = ''.obs;
   final RxString lastOpenedNotificationType = ''.obs;
   final RxString lastOpenedRouteKind = ''.obs;

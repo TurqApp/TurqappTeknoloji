@@ -2,7 +2,7 @@ part of 'search_deneme_controller.dart';
 
 class SearchDenemeController extends GetxController {
   final PracticeExamSnapshotRepository _practiceExamSnapshotRepository =
-      PracticeExamSnapshotRepository.ensure();
+      ensurePracticeExamSnapshotRepository();
   final filteredList = <SinavModel>[].obs;
   final isLoading = false.obs;
   final TextEditingController searchController = TextEditingController();

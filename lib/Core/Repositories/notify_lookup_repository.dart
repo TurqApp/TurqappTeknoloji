@@ -11,3 +11,4 @@ part 'notify_lookup_repository_query_part.dart';
 part 'notify_lookup_repository_cache_part.dart';
 part 'notify_lookup_repository_models_part.dart';
 part 'notify_lookup_repository_class_part.dart';
+part 'notify_lookup_repository_facade_part.dart';

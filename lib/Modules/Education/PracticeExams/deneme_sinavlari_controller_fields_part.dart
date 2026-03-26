@@ -2,8 +2,7 @@ part of 'deneme_sinavlari_controller.dart';
 
 class _DenemeSinavlariControllerState {
   final userSummaryResolver = UserSummaryResolver.ensure();
-  final practiceExamSnapshotRepository =
-      PracticeExamSnapshotRepository.ensure();
+  final practiceExamSnapshotRepository = ensurePracticeExamSnapshotRepository();
   final practiceExamRepository = PracticeExamRepository.ensure();
   final list = <SinavModel>[].obs;
   final okul = false.obs;

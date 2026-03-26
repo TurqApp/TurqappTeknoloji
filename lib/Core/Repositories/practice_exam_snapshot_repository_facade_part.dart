@@ -1,5 +1,17 @@
 part of 'practice_exam_snapshot_repository.dart';
 
+PracticeExamSnapshotRepository? maybeFindPracticeExamSnapshotRepository() {
+  final isRegistered = Get.isRegistered<PracticeExamSnapshotRepository>();
+  if (!isRegistered) return null;
+  return Get.find<PracticeExamSnapshotRepository>();
+}
+
+PracticeExamSnapshotRepository ensurePracticeExamSnapshotRepository() {
+  final existing = maybeFindPracticeExamSnapshotRepository();
+  if (existing != null) return existing;
+  return Get.put(PracticeExamSnapshotRepository(), permanent: true);
+}
+
 extension PracticeExamSnapshotRepositoryFacadePart
     on PracticeExamSnapshotRepository {
   Stream<CachedResource<List<SinavModel>>> openHome({
