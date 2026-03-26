@@ -66,7 +66,7 @@ class _StoryViewerState extends State<StoryViewer>
   @override
   void initState() {
     super.initState();
-    AgendaController.maybeFind()?.suspendPlaybackForOverlay();
+    maybeFindAgendaController()?.suspendPlaybackForOverlay();
     VideoStateManager.instance.pauseAllVideos(force: true);
     currentPageIndex = widget.storyOwnerUsers
         .indexWhere((u) => u.userID == widget.startedUser.userID);
@@ -111,7 +111,7 @@ class _StoryViewerState extends State<StoryViewer>
 
   @override
   void dispose() {
-    AgendaController.maybeFind()?.resumePlaybackAfterOverlay();
+    maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     _returnController.dispose();
     pageController.dispose();
     _screenshotChannel.setMethodCallHandler(null);

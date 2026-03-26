@@ -93,7 +93,7 @@ extension _ProfileViewProfilePart on _ProfileViewState {
           .any((user) => user.userID == _myUserId && user.stories.isNotEmpty);
 
   List<StoryUserModel> get storyOwnerUsers {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) {
       return const <StoryUserModel>[];
     }

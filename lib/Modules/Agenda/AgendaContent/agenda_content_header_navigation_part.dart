@@ -2,7 +2,7 @@ part of 'agenda_content.dart';
 
 extension AgendaContentHeaderNavigationPart on _AgendaContentState {
   List<StoryUserModel> _storyUsersSnapshot() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return const [];
     return rowController.users.toList(growable: false);
   }

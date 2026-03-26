@@ -2,7 +2,7 @@ part of 'post_content_controller.dart';
 
 extension PostContentControllerRuntimePart on PostContentController {
   AgendaController _performResolveAgendaController() {
-    return AgendaController.ensure();
+    return ensureAgendaController();
   }
 
   Future<void> _performOnReshareAdded(

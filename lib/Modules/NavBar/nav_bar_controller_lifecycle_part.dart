@@ -11,7 +11,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       }
 
       try {
-        AgendaController.maybeFind()?.ensureFeedCacheWarm();
+        maybeFindAgendaController()?.ensureFeedCacheWarm();
       } catch (_) {}
 
       try {
@@ -22,7 +22,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       } catch (_) {}
 
       try {
-        final storyController = StoryRowController.maybeFind();
+        final storyController = maybeFindStoryRowController();
         if (storyController != null && storyController.users.length < 30) {
           await storyController.loadStories(
             limit: 30,
@@ -127,7 +127,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     required int educationIndex,
   }) {
     try {
-      AgendaController.maybeFind()?.resetSurfaceForTabTransition();
+      maybeFindAgendaController()?.resetSurfaceForTabTransition();
     } catch (_) {}
     try {
       ExploreController.maybeFind()?.resetSurfaceForTabTransition();
@@ -152,7 +152,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   }
 
   void _suspendFeedForTabExitImpl() {
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda == null) return;
     final prevIndex = agenda.lastCenteredIndex;
     agenda.lastCenteredIndex = prevIndex;
@@ -162,7 +162,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
 
   void _resumeFeedIfNeededImpl() {
     try {
-      AgendaController.maybeFind()?.resumePlaybackAfterOverlay();
+      maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     } catch (_) {}
   }
 }

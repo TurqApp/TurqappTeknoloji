@@ -89,7 +89,7 @@ extension SignInControllerSignupPart on SignInController {
       } catch (_) {}
 
       try {
-        final storyController = StoryRowController.maybeFind();
+        final storyController = maybeFindStoryRowController();
         if (storyController == null) return;
         await storyController.loadStories(limit: 100, cacheFirst: false);
         if (storyController.users.isEmpty) {
@@ -99,7 +99,7 @@ extension SignInControllerSignupPart on SignInController {
 
       late AgendaController agendaController;
       try {
-        agendaController = AgendaController.ensure();
+        agendaController = ensureAgendaController();
 
         await agendaController.refreshAgenda();
 
@@ -112,7 +112,7 @@ extension SignInControllerSignupPart on SignInController {
           retries++;
         }
       } catch (_) {
-        agendaController = AgendaController.ensure();
+        agendaController = ensureAgendaController();
       }
 
       try {

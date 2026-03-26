@@ -185,7 +185,7 @@ extension _NavBarViewShellPart on NavBarView {
     required int index,
   }) async {
     if (index == 0 && controller.selectedIndex.value == 0) {
-      final agendaCtrl = AgendaController.maybeFind();
+      final agendaCtrl = maybeFindAgendaController();
       if (agendaCtrl != null && agendaCtrl.scrollController.hasClients) {
         await agendaCtrl.scrollController.animateTo(
           0,

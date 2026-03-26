@@ -63,7 +63,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
   }
 
   Future<void> _handleTap() async {
-    final cont = AgendaController.maybeFind();
+    final cont = maybeFindAgendaController();
     final prevIndex = cont?.lastCenteredIndex;
     cont?.lastCenteredIndex = prevIndex;
     cont?.centeredIndex.value = -1;
@@ -101,7 +101,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
     final isMe = myId.isNotEmpty && widget.model.userID == myId;
     if (!isMe) return;
 
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     final prevIndex = agenda?.lastCenteredIndex;
     if (agenda != null) {
       agenda.lastCenteredIndex = prevIndex;
@@ -120,7 +120,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
   }
 
   void _openStoryMaker() {
-    final cont = AgendaController.maybeFind();
+    final cont = maybeFindAgendaController();
     final prevIndex = cont?.lastCenteredIndex;
     cont?.lastCenteredIndex = prevIndex;
     cont?.centeredIndex.value = -1;

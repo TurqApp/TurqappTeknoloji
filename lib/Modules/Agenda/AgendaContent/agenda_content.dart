@@ -21,6 +21,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
@@ -325,7 +326,7 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   StoryUserModel? _resolveStoryUser() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return null;
     final users = rowController.users;
     for (final user in users) {

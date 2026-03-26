@@ -309,7 +309,7 @@ extension SignInControllerAuthPart on SignInController {
       );
 
       try {
-        final storyController = StoryRowController.maybeFind();
+        final storyController = maybeFindStoryRowController();
         if (storyController == null) return;
         await storyController.loadStories(limit: 100, cacheFirst: false);
         if (storyController.users.isEmpty) {
@@ -319,7 +319,7 @@ extension SignInControllerAuthPart on SignInController {
 
       late AgendaController agendaController;
       try {
-        agendaController = AgendaController.ensure();
+        agendaController = ensureAgendaController();
 
         await agendaController.refreshAgenda();
 
@@ -332,7 +332,7 @@ extension SignInControllerAuthPart on SignInController {
           retries++;
         }
       } catch (_) {
-        agendaController = AgendaController.ensure();
+        agendaController = ensureAgendaController();
       }
 
       try {
@@ -442,7 +442,7 @@ extension SignInControllerAuthPart on SignInController {
       unawaited(CurrentUserService.instance.forceRefresh());
 
       try {
-        final storyController = StoryRowController.maybeFind();
+        final storyController = maybeFindStoryRowController();
         if (storyController == null) return;
         await Future.any([
           storyController.loadStories(limit: 100, cacheFirst: false),
@@ -455,7 +455,7 @@ extension SignInControllerAuthPart on SignInController {
 
       try {
         final agendaController =
-            AgendaController.maybeFind() ?? AgendaController.ensure();
+            maybeFindAgendaController() ?? ensureAgendaController();
         await Future.any([
           agendaController.refreshAgenda(),
           Future.delayed(const Duration(seconds: 3)),

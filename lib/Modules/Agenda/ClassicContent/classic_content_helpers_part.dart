@@ -184,7 +184,7 @@ extension ClassicContentHelpersPart on _ClassicContentState {
   }
 
   StoryUserModel? _resolveStoryUser() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return null;
     final users = rowController.users;
     for (final user in users) {
@@ -236,7 +236,7 @@ extension ClassicContentHelpersPart on _ClassicContentState {
     agendaController.centeredIndex.value = -1;
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
-      final users = StoryRowController.maybeFind()?.users.toList(
+      final users = maybeFindStoryRowController()?.users.toList(
                 growable: false,
               ) ??
           const <StoryUserModel>[];

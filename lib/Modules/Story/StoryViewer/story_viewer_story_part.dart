@@ -13,7 +13,7 @@ extension StoryViewerStoryPart on _StoryViewerState {
 
   Future<void> _refreshStoryRowAndExit() async {
     try {
-      await StoryRowController.refreshStoriesGlobally();
+      await refreshStoryRowGlobally();
       print('🔄 Story row refreshed after viewing stories');
     } catch (_) {
     } finally {

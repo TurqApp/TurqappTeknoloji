@@ -27,11 +27,11 @@ class _StoryRowState extends State<StoryRow> {
   @override
   void initState() {
     super.initState();
-    final existingController = StoryRowController.maybeFind();
+    final existingController = maybeFindStoryRowController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = StoryRowController.ensure();
+      controller = ensureStoryRowController();
       _ownsController = true;
     }
   }
@@ -39,7 +39,7 @@ class _StoryRowState extends State<StoryRow> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(StoryRowController.maybeFind(), controller)) {
+        identical(maybeFindStoryRowController(), controller)) {
       Get.delete<StoryRowController>();
     }
     super.dispose();

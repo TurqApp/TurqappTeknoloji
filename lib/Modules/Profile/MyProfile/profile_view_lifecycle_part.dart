@@ -83,7 +83,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
 
   void _refreshUserState() {
     userService.forceRefresh();
-    StoryRowController.refreshStoriesGlobally();
+    refreshStoryRowGlobally();
     unawaited(_loadMarketItems(force: true));
   }
 

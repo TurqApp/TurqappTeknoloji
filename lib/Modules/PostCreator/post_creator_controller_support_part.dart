@@ -6,7 +6,7 @@ const int _maxScheduledWindowDays = 90;
 int _lastModerationSnackbarAtMs = 0;
 
 final PostRepository _postRepository = PostRepository.ensure();
-final agendaController = AgendaController.ensure();
+final agendaController = ensureAgendaController();
 final ErrorHandlingService _errorService = ErrorHandlingService.ensure();
 final NetworkAwarenessService _networkService =
     NetworkAwarenessService.ensure();
@@ -38,4 +38,37 @@ extension PostCreatorControllerSupportPart on PostCreatorController {
 
   Future<void> showCommentOptions() =>
       _PostCreatorControllerUiX(this)._showCommentOptions();
+
+  Future<void> persistUploadedPostsToHomeFeed(
+    List<PostsModel> posts,
+  ) async {
+    final normalizedPosts = posts
+        .where((post) => post.docID.trim().isNotEmpty)
+        .toList(growable: false);
+    if (normalizedPosts.isEmpty) return;
+
+    final userId = _currentUid.trim();
+    if (userId.isEmpty) return;
+
+    final repository = FeedSnapshotRepository.ensure();
+    final snapshot = await repository.bootstrapHome(
+      userId: userId,
+      limit: 40,
+    );
+    final merged = <String, PostsModel>{
+      for (final post in normalizedPosts) post.docID: post,
+    };
+    for (final existing in snapshot.data ?? const <PostsModel>[]) {
+      merged.putIfAbsent(existing.docID, () => existing);
+    }
+
+    final ordered = merged.values.toList(growable: false)
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    await repository.persistHomeSnapshot(
+      userId: userId,
+      posts: ordered,
+      limit: 40,
+      source: CachedResourceSource.memory,
+    );
+  }
 }

@@ -19,7 +19,7 @@ class SinglePost extends StatefulWidget {
 }
 
 class _SinglePostState extends State<SinglePost> {
-  late final AgendaController put = AgendaController.ensure();
+  late final AgendaController put = ensureAgendaController();
 
   @override
   void initState() {

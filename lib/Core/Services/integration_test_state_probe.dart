@@ -83,7 +83,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _feedSnapshot() {
-    final controller = AgendaController.maybeFind();
+    final controller = maybeFindAgendaController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }

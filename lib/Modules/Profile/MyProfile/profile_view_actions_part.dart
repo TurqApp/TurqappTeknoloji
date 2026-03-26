@@ -321,7 +321,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
       exploreController!.exploreVideos[index5].arsiv = true;
     }
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     if (store8 != null) {
       final index8 = store8.agendaList.indexOf(model);
       if (index8 >= 0) store8.agendaList[index8].arsiv = true;

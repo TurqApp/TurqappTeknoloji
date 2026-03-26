@@ -75,7 +75,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
       exploreController!.exploreVideos[index5].gizlendi = true;
     }
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].gizlendi = true;
 
@@ -111,7 +111,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
       exploreController!.exploreVideos[index5].gizlendi = false;
     }
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].gizlendi = false;
 
@@ -142,7 +142,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
     final index5 = exploreController?.exploreVideos.indexOf(model) ?? -1;
     if (index5 >= 0) exploreController!.exploreVideos[index5].arsiv = true;
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].arsiv = true;
 
@@ -174,7 +174,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
       exploreController!.exploreVideos[index5].arsiv = false;
     }
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].arsiv = false;
 
@@ -213,7 +213,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
         explore.explorePosts.refresh();
       }
 
-      final agenda = AgendaController.maybeFind();
+      final agenda = maybeFindAgendaController();
       if (agenda != null) {
         final idx = agenda.agendaList.indexWhere((e) => e.docID == model.docID);
         if (idx != -1) {

@@ -53,7 +53,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   StoryUserModel? _resolveStoryUser() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return null;
     for (final user in rowController.users) {
       if (user.userID == widget.model.userID && user.stories.isNotEmpty) {
@@ -64,7 +64,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   }
 
   List<StoryUserModel> _storyUsersSnapshot() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return const <StoryUserModel>[];
     return rowController.users.toList(growable: false);
   }

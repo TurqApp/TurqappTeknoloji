@@ -186,7 +186,7 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
         originalPostID: finalOriginalPostID,
       );
 
-      final agendaController = AgendaController.maybeFind();
+      final agendaController = maybeFindAgendaController();
       if (agendaController != null) {
         agendaController.addUploadedPostsAtTop([newPost]);
 

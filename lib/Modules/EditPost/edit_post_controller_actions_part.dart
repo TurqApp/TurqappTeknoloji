@@ -254,7 +254,7 @@ extension EditPostControllerActionsPart on EditPostController {
       await docRef.update(data);
 
       try {
-        final agendaCtrl = AgendaController.maybeFind();
+        final agendaCtrl = maybeFindAgendaController();
         if (agendaCtrl != null) {
           final index =
               agendaCtrl.agendaList.indexWhere((e) => e.docID == model.docID);

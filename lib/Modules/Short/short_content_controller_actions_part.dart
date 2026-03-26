@@ -66,7 +66,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
     if (index5 >= 0) explore!.exploreVideos[index5].gizlendi = true;
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].gizlendi = true;
 
@@ -96,7 +96,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
     if (index5 >= 0) explore!.exploreVideos[index5].gizlendi = false;
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].gizlendi = false;
 
@@ -128,7 +128,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
     if (index5 >= 0) explore!.exploreVideos[index5].arsiv = true;
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].arsiv = true;
 
@@ -157,7 +157,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
     if (index5 >= 0) explore!.exploreVideos[index5].arsiv = false;
 
-    final store8 = AgendaController.maybeFind();
+    final store8 = maybeFindAgendaController();
     final index8 = store8?.agendaList.indexOf(model) ?? -1;
     if (index8 >= 0) store8!.agendaList[index8].arsiv = false;
 

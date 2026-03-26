@@ -197,7 +197,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
             .update(update);
       }
 
-      final agenda = AgendaController.maybeFind();
+      final agenda = maybeFindAgendaController();
       if (agenda != null) {
         final idx = agenda.agendaList
             .indexWhere((e) => e.docID == docID || e.docID == targetDocID);

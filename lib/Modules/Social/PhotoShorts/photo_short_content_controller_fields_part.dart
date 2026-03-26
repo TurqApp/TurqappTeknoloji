@@ -5,7 +5,7 @@ class _PhotoShortsControllerState {
 
   PostsModel model;
   final userSummaryResolver = UserSummaryResolver.ensure();
-  final agendaController = AgendaController.ensure();
+  final agendaController = ensureAgendaController();
   final countManager = PostCountManager.instance;
   PostInteractionService? interactionService;
   PostRepository? postRepository;

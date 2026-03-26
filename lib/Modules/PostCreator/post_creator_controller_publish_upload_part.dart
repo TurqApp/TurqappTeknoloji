@@ -45,7 +45,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
 
           await _networkService.trackDataUsage(uploadMB: totalUploadMB);
 
-          final agendaController = AgendaController.maybeFind();
+          final agendaController = maybeFindAgendaController();
           await Future.delayed(const Duration(milliseconds: 150));
 
           final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -71,6 +71,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             agendaController.scrollController.jumpTo(0);
           }
 
+          await persistUploadedPostsToHomeFeed(nowPosts);
           ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
           progressController.complete('post_creator.upload_success'.tr);
         } else {

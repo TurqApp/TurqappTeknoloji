@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
+import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/typesense_post_service.dart';
@@ -140,7 +142,7 @@ class MarketFeedPostShareService {
           yorumMap: const {'visibility': 0},
         );
 
-        final agendaController = AgendaController.maybeFind();
+        final agendaController = maybeFindAgendaController();
         if (agendaController != null) {
           agendaController.addUploadedPostsAtTop([newPost]);
           if (agendaController.scrollController.hasClients) {
@@ -152,6 +154,7 @@ class MarketFeedPostShareService {
           }
         }
 
+        await _persistToHomeFeedSnapshot(currentUid, newPost);
         ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
 
         AppSnackbar('common.success'.tr, 'market_feed_share.shared'.tr);
@@ -169,5 +172,30 @@ class MarketFeedPostShareService {
       '${item.price.toStringAsFixed(0)} ${marketCurrencyLabel(item.currency)}',
       if (item.locationText.trim().isNotEmpty) item.locationText.trim(),
     ].join('\n');
+  }
+
+  Future<void> _persistToHomeFeedSnapshot(
+      String userId, PostsModel post) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty || post.docID.trim().isEmpty) return;
+
+    final repository = FeedSnapshotRepository.ensure();
+    final snapshot = await repository.bootstrapHome(
+      userId: normalizedUserId,
+      limit: 40,
+    );
+    final merged = <String, PostsModel>{post.docID: post};
+    for (final existing in snapshot.data ?? const <PostsModel>[]) {
+      merged.putIfAbsent(existing.docID, () => existing);
+    }
+
+    final ordered = merged.values.toList(growable: false)
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    await repository.persistHomeSnapshot(
+      userId: normalizedUserId,
+      posts: ordered,
+      limit: 40,
+      source: CachedResourceSource.memory,
+    );
   }
 }

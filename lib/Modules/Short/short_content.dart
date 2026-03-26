@@ -80,7 +80,7 @@ class _ShortsContentState extends State<ShortsContent> {
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   StoryUserModel? _resolveStoryUser() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return null;
     for (final user in rowController.users) {
       if (user.userID == model.userID && user.stories.isNotEmpty) {
@@ -91,7 +91,7 @@ class _ShortsContentState extends State<ShortsContent> {
   }
 
   List<StoryUserModel> _storyUsersSnapshot() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return const <StoryUserModel>[];
     return rowController.users.toList(growable: false);
   }

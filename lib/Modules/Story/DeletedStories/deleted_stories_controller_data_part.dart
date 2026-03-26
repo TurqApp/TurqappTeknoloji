@@ -89,7 +89,7 @@ extension DeletedStoriesControllerDataPart on DeletedStoriesController {
       await _persistCache(uid);
     }
     try {
-      await StoryRowController.refreshStoriesGlobally();
+      await refreshStoryRowGlobally();
     } catch (_) {}
   }
 
@@ -97,7 +97,7 @@ extension DeletedStoriesControllerDataPart on DeletedStoriesController {
     final storyId = await _storyRepository.repostDeletedStory(story);
     if (storyId.isEmpty) return;
     try {
-      await StoryRowController.refreshStoriesGlobally();
+      await refreshStoryRowGlobally();
     } catch (_) {}
   }
 
@@ -111,7 +111,7 @@ extension DeletedStoriesControllerDataPart on DeletedStoriesController {
       await _persistCache(uid);
     }
     try {
-      await StoryRowController.refreshStoriesGlobally();
+      await refreshStoryRowGlobally();
     } catch (_) {}
   }
 }

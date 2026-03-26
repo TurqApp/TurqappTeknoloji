@@ -1,8 +1,22 @@
 part of 'story_row_controller.dart';
 
+StoryRowController? maybeFindStoryRowController() {
+  final isRegistered = Get.isRegistered<StoryRowController>();
+  if (!isRegistered) return null;
+  return Get.find<StoryRowController>();
+}
+
+StoryRowController ensureStoryRowController() {
+  final existing = maybeFindStoryRowController();
+  if (existing != null) return existing;
+  return Get.put(StoryRowController());
+}
+
+Future<void> refreshStoryRowGlobally() => _refreshStoryRowGlobally();
+
 Future<void> _refreshStoryRowGlobally() async {
   try {
-    final controller = StoryRowController.maybeFind();
+    final controller = maybeFindStoryRowController();
     if (controller == null) return;
     await controller.loadStories();
   } catch (e) {

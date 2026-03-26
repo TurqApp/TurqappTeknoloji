@@ -169,7 +169,7 @@ void _handleAppResumeTransition() {
 Future<void> _restorePlaybackAfterAppResume() async {
   await Future<void>.delayed(const Duration(milliseconds: 260));
   try {
-    AgendaController.maybeFind()?.resumeFeedPlayback();
+    maybeFindAgendaController()?.resumeFeedPlayback();
   } catch (_) {}
 }
 
@@ -180,7 +180,7 @@ void _handleAppBackgroundTransition(String state) {
     VideoStateManager.maybeFind()?.pauseAllVideos(force: true);
   } catch (_) {}
   try {
-    final agendaController = AgendaController.maybeFind();
+    final agendaController = maybeFindAgendaController();
     if (agendaController != null) {
       unawaited(agendaController.persistWarmLaunchCache());
     }

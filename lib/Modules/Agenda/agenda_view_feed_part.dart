@@ -14,7 +14,7 @@ extension _AgendaViewFeedPart on AgendaView {
           print("Unread messages refresh error: $e");
         }
         try {
-          await StoryRowController.maybeFind()?.loadStories();
+          await maybeFindStoryRowController()?.loadStories();
         } catch (e) {
           print("Story refresh error: $e");
         }
@@ -270,7 +270,8 @@ extension _AgendaViewFeedPart on AgendaView {
   Widget _buildPromoSlot(Map<String, dynamic> entry) {
     final promoType = (entry['promoType'] ?? '').toString();
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
-    final isModernView = CurrentUserService.instance.effectiveViewSelection == 1;
+    final isModernView =
+        CurrentUserService.instance.effectiveViewSelection == 1;
     final isAndroidClassic = GetPlatform.isAndroid && !isModernView;
     final liveAdOffsetX = isModernView
         ? 5.0

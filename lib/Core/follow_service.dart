@@ -40,7 +40,7 @@ class FollowService {
     );
 
     // Agenda'nın followingIDs listesini lokal olarak güncelle (SWR)
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null) {
       if (result.nowFollowing) {
         agenda.followingIDs.add(otherUserID);
@@ -77,7 +77,7 @@ class FollowService {
         otherUserID,
         nowFollowing: actualFollowing,
       );
-      final agenda = AgendaController.maybeFind();
+      final agenda = maybeFindAgendaController();
       if (agenda != null) {
         if (actualFollowing) {
           agenda.followingIDs.add(otherUserID);
@@ -117,7 +117,7 @@ class FollowService {
       todayKey: _todayKey(),
     );
 
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (created && agenda != null) {
       agenda.followingIDs.add(otherUserID);
     }
@@ -146,7 +146,7 @@ class FollowService {
       otherUid: other,
       timestampMs: timestampMs,
     );
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null && me == CurrentUserService.instance.effectiveUserId) {
       agenda.followingIDs.add(other);
     }
@@ -164,7 +164,7 @@ class FollowService {
       currentUid: me,
       otherUid: other,
     );
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null && me == CurrentUserService.instance.effectiveUserId) {
       agenda.followingIDs.remove(other);
     }

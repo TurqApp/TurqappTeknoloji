@@ -43,9 +43,9 @@ class NavBarView extends StatelessWidget {
   // Ensure controllers are available
   void _ensureControllersReady() {
     final isIOS = GetPlatform.isIOS;
-    AgendaController.ensure();
+    ensureAgendaController();
     if (!isIOS) {
-      StoryRowController.ensure();
+      ensureStoryRowController();
     }
 
     // Deep link çözümleme her NavBar açılışında tetiklensin.

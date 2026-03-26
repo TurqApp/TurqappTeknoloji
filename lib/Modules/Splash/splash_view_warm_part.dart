@@ -6,9 +6,9 @@ extension _SplashViewWarmPart on _SplashViewState {
   }) async {
     try {
       final onWiFi = _isOnWiFiNow();
-      final storyController = StoryRowController.maybeFind();
+      final storyController = maybeFindStoryRowController();
       if (storyController == null) return;
-      final agendaController = AgendaController.ensure();
+      final agendaController = ensureAgendaController();
       final recommendedController = RecommendedUserListController.ensure();
 
       await Future.wait([
@@ -137,7 +137,7 @@ extension _SplashViewWarmPart on _SplashViewState {
   Future<void> _performRunWarmStartLoads({required bool isFirstLaunch}) async {
     try {
       final onWiFi = _isOnWiFiNow();
-      final storyController = StoryRowController.maybeFind();
+      final storyController = maybeFindStoryRowController();
       if (storyController == null) return;
       final shortTarget =
           onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 4 : 6);
@@ -226,12 +226,12 @@ extension _SplashViewWarmPart on _SplashViewState {
   }
 
   bool _isFeedReady() {
-    return (AgendaController.maybeFind()?.agendaList.length ?? 0) >=
+    return (maybeFindAgendaController()?.agendaList.length ?? 0) >=
         _SplashViewState._minFeedPostsForNav;
   }
 
   bool _isStoryReady() {
-    final storyController = StoryRowController.maybeFind();
+    final storyController = maybeFindStoryRowController();
     if (storyController == null) return false;
     return storyController.users.length >=
         _SplashViewState._minStoryUsersForNav;

@@ -141,7 +141,7 @@ extension EducationFeedPostShareServicePublishPart
           yorumMap: const {'visibility': 0},
         );
 
-        final agendaController = AgendaController.maybeFind();
+        final agendaController = maybeFindAgendaController();
         if (agendaController != null) {
           agendaController.addUploadedPostsAtTop([newPost]);
           if (agendaController.scrollController.hasClients) {
@@ -153,6 +153,7 @@ extension EducationFeedPostShareServicePublishPart
           }
         }
 
+        await _persistToHomeFeedSnapshot(currentUid, newPost);
         ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
 
         AppSnackbar(
@@ -197,5 +198,30 @@ extension EducationFeedPostShareServicePublishPart
       }
     }
     return '';
+  }
+
+  Future<void> _persistToHomeFeedSnapshot(
+      String userId, PostsModel post) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty || post.docID.trim().isEmpty) return;
+
+    final repository = FeedSnapshotRepository.ensure();
+    final snapshot = await repository.bootstrapHome(
+      userId: normalizedUserId,
+      limit: 40,
+    );
+    final merged = <String, PostsModel>{post.docID: post};
+    for (final existing in snapshot.data ?? const <PostsModel>[]) {
+      merged.putIfAbsent(existing.docID, () => existing);
+    }
+
+    final ordered = merged.values.toList(growable: false)
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    await repository.persistHomeSnapshot(
+      userId: normalizedUserId,
+      posts: ordered,
+      limit: 40,
+      source: CachedResourceSource.memory,
+    );
   }
 }

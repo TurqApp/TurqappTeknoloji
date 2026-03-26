@@ -5,18 +5,6 @@ class StoryRowController extends GetxController {
 
   bool get _shouldLogDebug => kDebugMode && !IntegrationTestMode.enabled;
 
-  static StoryRowController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(StoryRowController());
-  }
-
-  static StoryRowController? maybeFind() {
-    final isRegistered = Get.isRegistered<StoryRowController>();
-    if (!isRegistered) return null;
-    return Get.find<StoryRowController>();
-  }
-
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
   final userService = CurrentUserService.instance;
   UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
@@ -30,8 +18,6 @@ class StoryRowController extends GetxController {
   final StoryRepository _storyRepository = StoryRepository.ensure();
 
   String get _currentUid => userService.effectiveUserId;
-
-  static Future<void> refreshStoriesGlobally() => _refreshStoryRowGlobally();
 
   @override
   void onInit() {

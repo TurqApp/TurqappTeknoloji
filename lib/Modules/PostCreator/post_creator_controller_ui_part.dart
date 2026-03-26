@@ -59,7 +59,7 @@ extension _PostCreatorControllerUiX on PostCreatorController {
       final uploadedPosts = await uploadAllPosts(progressController);
 
       if (uploadedPosts.isNotEmpty) {
-        final agendaController = AgendaController.maybeFind();
+        final agendaController = maybeFindAgendaController();
         await Future.delayed(const Duration(milliseconds: 150));
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         final nowPosts =

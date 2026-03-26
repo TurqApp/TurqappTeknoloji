@@ -70,6 +70,6 @@ extension EditorNicknameControllerActionsPart on EditorNicknameController {
     await UserProfileCacheService.invalidateIfRegistered(uid);
     invalidatePostContentUserProfileCache(uid);
     await CurrentUserService.instance.forceRefresh();
-    await StoryRowController.refreshStoriesGlobally();
+    await refreshStoryRowGlobally();
   }
 }

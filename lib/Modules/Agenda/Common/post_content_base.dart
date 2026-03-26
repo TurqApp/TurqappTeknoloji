@@ -93,7 +93,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       Duration(milliseconds: 180);
 
   AgendaController _resolveAgendaController() {
-    return AgendaController.ensure();
+    return ensureAgendaController();
   }
 
   /// videoController benzeri erişim — mevcut widget'lar uyumlu çalışır

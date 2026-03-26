@@ -124,7 +124,8 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           }
           final ts = DateTime.now().millisecondsSinceEpoch;
           if (e.type == StoryElementType.video) {
-            final validation = await UploadValidationService.validateVideo(file);
+            final validation =
+                await UploadValidationService.validateVideo(file);
             if (!validation.isValid) {
               AppSnackbar(
                 "common.error".tr,
@@ -225,7 +226,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       }
 
       try {
-        await StoryRowController.maybeFind()?.loadStories();
+        await maybeFindStoryRowController()?.loadStories();
       } catch (e) {
         debugPrint("Story UI refresh error: $e");
       }

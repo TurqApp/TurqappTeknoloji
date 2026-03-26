@@ -321,7 +321,7 @@ extension EducationControllerPasajPart on EducationController {
     }
 
     try {
-      AgendaController.maybeFind()?.suspendPlaybackForOverlay();
+      maybeFindAgendaController()?.suspendPlaybackForOverlay();
     } catch (_) {}
     try {
       nav?.pauseGlobalTabMedia();

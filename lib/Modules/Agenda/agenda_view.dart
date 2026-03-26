@@ -42,7 +42,7 @@ class AgendaView extends StatelessWidget {
   static bool _unreadListenersStarted = false;
 
   AgendaController get controller {
-    return AgendaController.ensure();
+    return ensureAgendaController();
   }
 
   GlobalLoaderController get loader {

@@ -189,7 +189,7 @@ class PostDeleteService {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Agenda akışı
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null) {
       agenda.agendaList.removeWhere((e) => e.docID == docID);
       agenda.mergedFeedEntries

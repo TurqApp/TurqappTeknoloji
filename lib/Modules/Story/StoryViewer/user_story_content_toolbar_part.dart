@@ -519,7 +519,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
 
     // Story refresh
     try {
-      await StoryRowController.maybeFind()?.loadStories();
+      await maybeFindStoryRowController()?.loadStories();
     } catch (e) {
       debugPrint("Story delete refresh error: $e");
     }
