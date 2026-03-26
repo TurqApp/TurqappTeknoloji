@@ -7,18 +7,6 @@ class AdmobUnitConfigService extends GetxService {
   static const String _androidSquareCursorKey = 'android_square';
   static const String _androidInterstitialCursorKey = 'android_interstitial';
 
-  static AdmobUnitConfigService? maybeFind() {
-    final isRegistered = Get.isRegistered<AdmobUnitConfigService>();
-    if (!isRegistered) return null;
-    return Get.find<AdmobUnitConfigService>();
-  }
-
-  static AdmobUnitConfigService ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AdmobUnitConfigService(), permanent: permanent);
-  }
-
   _AdmobUnitConfig _config = _AdmobUnitConfig.defaults;
   final Map<String, int> _cursorByKey = <String, int>{};
   StreamSubscription<Map<String, dynamic>>? _sub;

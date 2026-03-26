@@ -8,19 +8,6 @@ class QALabRemoteUploader extends GetxService {
         _authOverride = auth,
         _state = _QALabRemoteUploaderState();
 
-  static QALabRemoteUploader ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(QALabRemoteUploader(), permanent: true);
-  }
-
-  static QALabRemoteUploader? maybeFind() {
-    if (!Get.isRegistered<QALabRemoteUploader>()) {
-      return null;
-    }
-    return Get.find<QALabRemoteUploader>();
-  }
-
   final FirebaseFirestore? _firestoreOverride;
   final FirebaseAuth? _authOverride;
   final _QALabRemoteUploaderState _state;

@@ -13,6 +13,8 @@ extension _QALabRecorderSessionPart on QALabRecorder {
     timelineEvents.clear();
     lastNativePlaybackSnapshot.clear();
     nativePlaybackSamples.clear();
+    appFramePerformance.clear();
+    framePerformanceBySurface.clear();
     lastExportPath.value = '';
     lastLifecycleState.value = '';
     lastPermissionStatuses.clear();
@@ -161,7 +163,7 @@ extension _QALabRecorderSessionPart on QALabRecorder {
       );
     }
 
-    QALabRemoteUploader.maybeFind()?.resetLocalState();
+    maybeFindQALabRemoteUploader()?.resetLocalState();
     _startSessionImpl(trigger: 'fresh_start:$trigger');
     captureCheckpoint(
       label: 'fresh_start_applied',

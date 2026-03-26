@@ -1,5 +1,19 @@
 part of 'admob_unit_config_service.dart';
 
+AdmobUnitConfigService? maybeFindAdmobUnitConfigService() {
+  final isRegistered = Get.isRegistered<AdmobUnitConfigService>();
+  if (!isRegistered) return null;
+  return Get.find<AdmobUnitConfigService>();
+}
+
+AdmobUnitConfigService ensureAdmobUnitConfigService({
+  bool permanent = false,
+}) {
+  final existing = maybeFindAdmobUnitConfigService();
+  if (existing != null) return existing;
+  return Get.put(AdmobUnitConfigService(), permanent: permanent);
+}
+
 extension AdmobUnitConfigServiceFacadePart on AdmobUnitConfigService {
   Future<AdmobUnitConfigService> init() async {
     if (_initialized) return this;

@@ -23,7 +23,9 @@ const String kFollowersSocialProfilePageLineBarTag =
     'followers_social_profile_page_line_bar';
 
 PageLineBarController? maybeFindPageLineBarController(String tag) {
-  return PageLineBarController.maybeFind(tag: tag);
+  final isRegistered = Get.isRegistered<PageLineBarController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<PageLineBarController>(tag: tag);
 }
 
 void syncPageLineBarSelection(String tag, int index) {
@@ -101,9 +103,8 @@ class _PageLineBarState extends State<PageLineBar> {
       widget.barList.length,
       (_) => GlobalKey(),
     );
-    _ownsController =
-        PageLineBarController.maybeFind(tag: widget.pageName) == null;
-    controller = PageLineBarController.ensure(
+    _ownsController = maybeFindPageLineBarController(widget.pageName) == null;
+    controller = ensurePageLineBarController(
       pageName: widget.pageName,
       tag: widget.pageName,
     );

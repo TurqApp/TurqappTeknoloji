@@ -1,7 +1,7 @@
 part of 'qa_lab_recorder.dart';
 
 Map<String, dynamic> _qaLabRemoteSyncSnapshot(QALabRecorder recorder) {
-  final uploader = QALabRemoteUploader.maybeFind();
+  final uploader = maybeFindQALabRemoteUploader();
   return <String, dynamic>{
     'enabled': QALabMode.remoteUploadEnabled,
     'scope': QALabMode.remoteUploadScope,
@@ -26,6 +26,14 @@ Map<String, dynamic> _qaLabRemoteRuntimeSummary(Map<String, dynamic> runtime) {
     'cacheFailureCount',
     'jankEventCount',
     'worstFrameJankMs',
+    'frameSampleCount',
+    'frameCount',
+    'slowFrameCount',
+    'slowFrameRatio',
+    'averageFrameTotalMs',
+    'maxFrameTotalMs',
+    'maxFrameBuildMs',
+    'maxFrameRasterMs',
     'duplicateFeedTriggerCount',
     'duplicatePlaybackDispatchCount',
     'latestScrollDispatchLatencyMs',

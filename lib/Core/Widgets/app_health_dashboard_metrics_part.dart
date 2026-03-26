@@ -314,7 +314,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getDraftStats() {
-    final draftService = DraftService.maybeFind();
+    final draftService = maybeFindDraftService();
     if (draftService != null) {
       return draftService.getDraftStats();
     }

@@ -11,7 +11,7 @@ const Duration _interstitialLifecycleTimeout = Duration(seconds: 15);
 /// Production modda gerçek reklamları kullanır
 Future<bool> showUnskippableInterstitialAd() async {
   final bool isTestMode = kDebugMode;
-  final config = AdmobUnitConfigService.ensure();
+  final config = ensureAdmobUnitConfigService();
   final availableIds = config.interstitialAdUnitIdsForCurrentPlatform(
     isTestMode: isTestMode,
   );

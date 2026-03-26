@@ -1,5 +1,19 @@
 part of 'page_line_bar.dart';
 
+PageLineBarController ensurePageLineBarController({
+  required String pageName,
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = maybeFindPageLineBarController(tag);
+  if (existing != null) return existing;
+  return Get.put(
+    PageLineBarController(pageName: pageName),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
 extension PageLineBarControllerSupportPart on PageLineBarController {
   bool _matchesTag(String baseTag) {
     return pageName == baseTag || pageName.startsWith('${baseTag}_');

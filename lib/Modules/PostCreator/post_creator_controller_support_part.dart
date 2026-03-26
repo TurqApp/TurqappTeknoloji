@@ -11,7 +11,7 @@ final ErrorHandlingService _errorService = ensureErrorHandlingService();
 final NetworkAwarenessService _networkService =
     NetworkAwarenessService.ensure();
 final UploadQueueService _uploadQueueService = UploadQueueService.ensure();
-final DraftService _draftService = DraftService.ensure();
+final DraftService _draftService = ensureDraftService();
 
 String get _currentUid => CurrentUserService.instance.effectiveUserId;
 

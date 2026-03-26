@@ -4,18 +4,6 @@ class PostLikeListingController extends GetxController {
   PostLikeListingController({required this.postID});
   static const int _pageSize = 20;
 
-  static PostLikeListingController ensure({required String tag}) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(PostLikeListingController(postID: tag), tag: tag);
-  }
-
-  static PostLikeListingController? maybeFind({required String tag}) {
-    final isRegistered = Get.isRegistered<PostLikeListingController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<PostLikeListingController>(tag: tag);
-  }
-
   final String postID;
   final _state = _PostLikeListingControllerState();
 

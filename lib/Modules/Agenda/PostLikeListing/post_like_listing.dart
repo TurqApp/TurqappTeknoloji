@@ -22,8 +22,8 @@ class _PostLikeListingState extends State<PostLikeListing> {
   @override
   void initState() {
     super.initState();
-    final existing = PostLikeListingController.maybeFind(tag: widget.postID);
-    controller = PostLikeListingController.ensure(tag: widget.postID);
+    final existing = maybeFindPostLikeListingController(tag: widget.postID);
+    controller = ensurePostLikeListingController(tag: widget.postID);
     _ownsController = existing == null;
   }
 
@@ -31,7 +31,7 @@ class _PostLikeListingState extends State<PostLikeListing> {
   void dispose() {
     if (_ownsController &&
         identical(
-          PostLikeListingController.maybeFind(tag: widget.postID),
+          maybeFindPostLikeListingController(tag: widget.postID),
           controller,
         )) {
       Get.delete<PostLikeListingController>(tag: widget.postID, force: true);

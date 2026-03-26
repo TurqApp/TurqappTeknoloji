@@ -308,7 +308,7 @@ extension _SplashViewStartupPart on _SplashViewState {
 
   Future<void> _initAdMob({required bool isFirstLaunch}) async {
     try {
-      await AdmobUnitConfigService.ensure().init();
+      await ensureAdmobUnitConfigService().init();
       await ensureAdmobBannerWarmupService().warmFromSplash(
         isFirstLaunch: isFirstLaunch,
       );
@@ -321,7 +321,7 @@ extension _SplashViewStartupPart on _SplashViewState {
 
     GlobalLoaderController.ensure();
     ensureAdmobBannerWarmupService();
-    AdmobUnitConfigService.ensure(permanent: true);
+    ensureAdmobUnitConfigService(permanent: true);
     StoryInteractionOptimizer.ensure();
     Get.lazyPut(() => UnreadMessagesController());
     Get.lazyPut(() => NavBarController());

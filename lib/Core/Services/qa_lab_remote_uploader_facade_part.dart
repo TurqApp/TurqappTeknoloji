@@ -1,5 +1,18 @@
 part of 'qa_lab_remote_uploader.dart';
 
+QALabRemoteUploader ensureQALabRemoteUploader() {
+  final existing = maybeFindQALabRemoteUploader();
+  if (existing != null) return existing;
+  return Get.put(QALabRemoteUploader(), permanent: true);
+}
+
+QALabRemoteUploader? maybeFindQALabRemoteUploader() {
+  if (!Get.isRegistered<QALabRemoteUploader>()) {
+    return null;
+  }
+  return Get.find<QALabRemoteUploader>();
+}
+
 extension QALabRemoteUploaderFacadePart on QALabRemoteUploader {
   Future<void> scheduleUpload({
     required Map<String, dynamic> sessionDocument,

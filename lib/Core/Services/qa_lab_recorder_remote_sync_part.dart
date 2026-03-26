@@ -17,7 +17,7 @@ Future<void> _qaLabSyncRemoteSummary(
     reason: reason,
     extendedDeviceInfoOverride: extendedDeviceInfoOverride,
   );
-  await QALabRemoteUploader.ensure().scheduleUpload(
+  await ensureQALabRemoteUploader().scheduleUpload(
     sessionDocument: Map<String, dynamic>.from(
       payload['session'] as Map<String, dynamic>? ?? const <String, dynamic>{},
     ),
@@ -105,6 +105,11 @@ Future<Map<String, dynamic>> _qaLabBuildRemoteSessionDocument(
       'reason': reason,
     },
     'healthScore': recorder.healthScore,
+    'performance': <String, dynamic>{
+      'app': _qaLabSanitizeRemoteValue(
+        Map<String, dynamic>.from(recorder.appFramePerformance),
+      ),
+    },
     'permissions': Map<String, String>.from(recorder.lastPermissionStatuses),
     'counts': <String, dynamic>{
       'blocking': recorder.blockingIssueCount,

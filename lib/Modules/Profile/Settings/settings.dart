@@ -167,7 +167,7 @@ class _SettingsViewState extends State<SettingsView> {
     ensureErrorHandlingService();
     NetworkAwarenessService.ensure();
     UploadQueueService.ensure();
-    DraftService.ensure();
+    ensureDraftService();
     ensurePostEditingService();
     ensureMediaEnhancementService();
     ensureOfflineModeService();

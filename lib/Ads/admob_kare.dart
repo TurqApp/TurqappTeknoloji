@@ -187,7 +187,7 @@ class _AdmobKareState extends State<AdmobKare> {
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
-    final service = AdmobUnitConfigService.ensure();
+    final service = ensureAdmobUnitConfigService();
     final availableIds = service.squareAdUnitIdsForCurrentPlatform(
       isTestMode: isTestMode,
     );
@@ -203,7 +203,8 @@ class _AdmobKareState extends State<AdmobKare> {
         return candidate;
       }
     }
-    return fallbackCandidate ?? service.nextSquareAdUnitId(isTestMode: isTestMode);
+    return fallbackCandidate ??
+        service.nextSquareAdUnitId(isTestMode: isTestMode);
   }
 
   static Duration _unitCooldownRemaining(String adUnitId) {
@@ -890,7 +891,7 @@ class _AdmobKareState extends State<AdmobKare> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5),
       child: SizedBox(
-      height: 34,
+        height: 34,
         child: Row(
           children: [
             Expanded(

@@ -28,7 +28,7 @@ class _QALabViewState extends State<QALabView> {
   void initState() {
     super.initState();
     _recorder = QALabRecorder.ensure();
-    _remoteUploader = QALabRemoteUploader.ensure();
+    _remoteUploader = ensureQALabRemoteUploader();
     if (_recorder.sessionId.value.isEmpty) {
       _recorder.startSession(trigger: 'qa_lab_open');
     }

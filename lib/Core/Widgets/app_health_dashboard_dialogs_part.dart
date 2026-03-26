@@ -5,7 +5,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
     ensureErrorHandlingService();
     NetworkAwarenessService.ensure();
     UploadQueueService.ensure();
-    DraftService.ensure();
+    ensureDraftService();
     ensurePostEditingService();
     ensureMediaEnhancementService();
     StorageBudgetManager.ensure();
@@ -122,7 +122,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   }
 
   void _showDraftStats() {
-    final draftService = DraftService.maybeFind();
+    final draftService = maybeFindDraftService();
     if (draftService != null) {
       final stats = draftService.getDraftStats();
 
