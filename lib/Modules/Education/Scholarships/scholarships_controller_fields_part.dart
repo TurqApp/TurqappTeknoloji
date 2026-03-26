@@ -2,7 +2,7 @@ part of 'scholarships_controller.dart';
 
 class _ScholarshipsControllerState {
   final followRepository = FollowRepository.ensure();
-  final scholarshipRepository = ScholarshipRepository.ensure();
+  final scholarshipRepository = ensureScholarshipRepository();
   final scholarshipSnapshotRepository = ensureScholarshipSnapshotRepository();
   final scrollController = ScrollController();
   final allScholarships = <Map<String, dynamic>>[].obs;

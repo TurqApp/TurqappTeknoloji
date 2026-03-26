@@ -3,7 +3,7 @@ part of 'my_scholarship_controller.dart';
 class _MyScholarshipControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final ScholarshipRepository scholarshipRepository =
-      ScholarshipRepository.ensure();
+      ensureScholarshipRepository();
   final RxBool isLoading = true.obs;
   final RxList<Map<String, dynamic>> myScholarships =
       <Map<String, dynamic>>[].obs;

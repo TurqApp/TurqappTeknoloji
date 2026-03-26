@@ -3,7 +3,7 @@ part of 'scholarship_detail_controller.dart';
 class _ScholarshipDetailControllerState {
   final UserRepository userRepository = UserRepository.ensure();
   final ScholarshipRepository scholarshipRepository =
-      ScholarshipRepository.ensure();
+      ensureScholarshipRepository();
   final FollowRepository followRepository = FollowRepository.ensure();
   final RxBool showAllUniversities = false.obs;
   final RxInt hiddenUniversityCount = 0.obs;

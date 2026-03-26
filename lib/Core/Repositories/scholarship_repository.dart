@@ -13,18 +13,10 @@ part 'scholarship_repository_cache_part.dart';
 part 'scholarship_repository_facade_part.dart';
 part 'scholarship_repository_fields_part.dart';
 part 'scholarship_repository_models_part.dart';
+part 'scholarship_repository_support_part.dart';
 
 class ScholarshipRepository extends GetxService {
-  static const Duration _ttl = Duration(hours: 12);
-  static const String _prefsPrefix = 'scholarship_repository_v1:';
-  static const String _applyPrefix = 'scholarship_apply_repository_v1:';
-  static const String _countKey = 'scholarship_total_count_v1';
   final _state = _ScholarshipRepositoryState();
-
-  static ScholarshipRepository? maybeFind() =>
-      _maybeFindScholarshipRepository();
-
-  static ScholarshipRepository ensure() => _ensureScholarshipRepository();
 
   @override
   void onInit() {

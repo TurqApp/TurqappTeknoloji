@@ -46,7 +46,7 @@ class DenemeGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DenemeGridController controller = DenemeGridController.ensure(
+    final DenemeGridController controller = ensureDenemeGridController(
       tag: model.docID,
     );
     final SavedPracticeExamsController savedController =

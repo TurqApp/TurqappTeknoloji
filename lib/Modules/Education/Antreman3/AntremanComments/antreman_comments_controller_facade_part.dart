@@ -1,5 +1,21 @@
 part of 'antreman_comments_controller.dart';
 
+AntremanCommentsController ensureAntremanCommentsController({
+  required QuestionBankModel question,
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureAntremanCommentsController(
+      question: question,
+      tag: tag,
+      permanent: permanent,
+    );
+
+AntremanCommentsController? maybeFindAntremanCommentsController({
+  String? tag,
+}) =>
+    _maybeFindAntremanCommentsController(tag: tag);
+
 AntremanCommentsController _ensureAntremanCommentsController({
   required QuestionBankModel question,
   String? tag,

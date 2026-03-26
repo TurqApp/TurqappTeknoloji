@@ -170,14 +170,14 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
     bool forceRefresh = false,
   }) async {
     if (!forceRefresh && preferCache) {
-      final cached = await _getRawDoc(ScholarshipRepository._countKey);
+      final cached = await _getRawDoc(_scholarshipRepositoryCountKey);
       final count = (cached?['count'] as num?)?.toInt();
       if (count != null) return count;
     }
     final agg = await ScholarshipFirestorePath.collection().count().get();
     final count = agg.count ?? 0;
     await _storeRawDoc(
-      ScholarshipRepository._countKey,
+      _scholarshipRepositoryCountKey,
       <String, dynamic>{'count': count},
     );
     return count;

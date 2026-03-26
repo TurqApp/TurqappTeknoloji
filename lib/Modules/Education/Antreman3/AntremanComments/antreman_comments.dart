@@ -45,7 +45,7 @@ class _AntremanCommentsState extends State<AntremanComments> {
     super.initState();
     _controllerTag =
         'antreman_comments_${widget.question.docID}_${identityHashCode(this)}';
-    controller = AntremanCommentsController.ensure(
+    controller = ensureAntremanCommentsController(
       question: widget.question,
       tag: _controllerTag,
     );
@@ -53,7 +53,7 @@ class _AntremanCommentsState extends State<AntremanComments> {
 
   @override
   void dispose() {
-    final existing = AntremanCommentsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindAntremanCommentsController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<AntremanCommentsController>(tag: _controllerTag);
     }

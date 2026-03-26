@@ -3,7 +3,7 @@ part of 'tutoring_filter_controller.dart';
 class TutoringFilterController extends GetxController {
   final TutoringController tutoringController = ensureTutoringController();
   final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
+      ensureCityDirectoryService();
   final isLoading = true.obs;
 
   var selectedBranch = Rx<String?>(null);

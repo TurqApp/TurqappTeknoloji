@@ -22,7 +22,7 @@ class EducationFeedCtaNavigationService {
   PracticeExamRepository get _practiceExamRepository =>
       PracticeExamRepository.ensure();
   ScholarshipRepository get _scholarshipRepository =>
-      ScholarshipRepository.ensure();
+      ensureScholarshipRepository();
   NotifyLookupRepository get _notifyLookupRepository =>
       ensureNotifyLookupRepository();
 

@@ -9,7 +9,7 @@ class SavedItemsController extends GetxController {
   final pageController = PageController();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ScholarshipRepository _scholarshipRepository =
-      ScholarshipRepository.ensure();
+      ensureScholarshipRepository();
 
   @override
   void onInit() {

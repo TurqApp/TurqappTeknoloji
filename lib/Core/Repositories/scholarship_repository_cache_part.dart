@@ -5,7 +5,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     final cached = _memory[docId];
     if (cached == null) return null;
     if (DateTime.now().difference(cached.cachedAt) >
-        ScholarshipRepository._ttl) {
+        _scholarshipRepositoryTtl) {
       _memory.remove(docId);
       return null;
     }
@@ -14,15 +14,14 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
 
   Future<Map<String, dynamic>?> _readPrefs(String docId) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw =
-        _prefs?.getString('${ScholarshipRepository._prefsPrefix}$docId');
+    final raw = _prefs?.getString('$_scholarshipRepositoryPrefsPrefix$docId');
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
       if (savedAt <= 0) return null;
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
-      if (DateTime.now().difference(cachedAt) > ScholarshipRepository._ttl) {
+      if (DateTime.now().difference(cachedAt) > _scholarshipRepositoryTtl) {
         return null;
       }
       final data = decoded['data'];
@@ -40,7 +39,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     );
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      '${ScholarshipRepository._prefsPrefix}$docId',
+      '$_scholarshipRepositoryPrefsPrefix$docId',
       jsonEncode({
         'savedAt': DateTime.now().millisecondsSinceEpoch,
         'data': data,
@@ -52,7 +51,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     final cached = _queryMemory[key];
     if (cached == null) return null;
     if (DateTime.now().difference(cached.cachedAt) >
-        ScholarshipRepository._ttl) {
+        _scholarshipRepositoryTtl) {
       _queryMemory.remove(key);
       return null;
     }
@@ -61,14 +60,14 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
 
   Future<List<Map<String, dynamic>>?> _readQueryPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('${ScholarshipRepository._prefsPrefix}:$key');
+    final raw = _prefs?.getString('$_scholarshipRepositoryPrefsPrefix:$key');
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
       if (savedAt <= 0) return null;
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
-      if (DateTime.now().difference(cachedAt) > ScholarshipRepository._ttl) {
+      if (DateTime.now().difference(cachedAt) > _scholarshipRepositoryTtl) {
         return null;
       }
       final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
@@ -91,7 +90,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     );
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      '${ScholarshipRepository._prefsPrefix}:$key',
+      '$_scholarshipRepositoryPrefsPrefix:$key',
       jsonEncode({
         'savedAt': DateTime.now().millisecondsSinceEpoch,
         'items': items,
@@ -105,11 +104,11 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs.getKeys().where((key) {
-      if (!key.startsWith('${ScholarshipRepository._prefsPrefix}:')) {
+      if (!key.startsWith('$_scholarshipRepositoryPrefsPrefix:')) {
         return false;
       }
       final scoped =
-          key.substring('${ScholarshipRepository._prefsPrefix}:'.length);
+          key.substring('$_scholarshipRepositoryPrefsPrefix:'.length);
       return scoped.startsWith(prefix);
     }).toList(growable: false);
     for (final key in keys) {
@@ -121,7 +120,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     final cached = _applyMemory[key];
     if (cached == null) return null;
     if (DateTime.now().difference(cached.cachedAt) >
-        ScholarshipRepository._ttl) {
+        _scholarshipRepositoryTtl) {
       _applyMemory.remove(key);
       return null;
     }
@@ -130,14 +129,14 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
 
   Future<bool?> _readApplyPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('${ScholarshipRepository._applyPrefix}$key');
+    final raw = _prefs?.getString('$_scholarshipRepositoryApplyPrefix$key');
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
       if (savedAt <= 0) return null;
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
-      if (DateTime.now().difference(cachedAt) > ScholarshipRepository._ttl) {
+      if (DateTime.now().difference(cachedAt) > _scholarshipRepositoryTtl) {
         return null;
       }
       final value = decoded['value'];
@@ -155,7 +154,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     );
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      '${ScholarshipRepository._applyPrefix}$key',
+      '$_scholarshipRepositoryApplyPrefix$key',
       jsonEncode({
         'savedAt': DateTime.now().millisecondsSinceEpoch,
         'value': value,
@@ -166,7 +165,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      '${ScholarshipRepository._prefsPrefix}:$cacheKey',
+      '$_scholarshipRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
         'data': data,
@@ -177,7 +176,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   Future<Map<String, dynamic>?> _getRawDoc(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw =
-        _prefs?.getString('${ScholarshipRepository._prefsPrefix}:$cacheKey');
+        _prefs?.getString('$_scholarshipRepositoryPrefsPrefix:$cacheKey');
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -185,7 +184,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       if (ts <= 0) return null;
       final fresh =
           DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) <=
-              ScholarshipRepository._ttl;
+              _scholarshipRepositoryTtl;
       if (!fresh) return null;
       return Map<String, dynamic>.from(
         (decoded['data'] as Map?) ?? const <String, dynamic>{},

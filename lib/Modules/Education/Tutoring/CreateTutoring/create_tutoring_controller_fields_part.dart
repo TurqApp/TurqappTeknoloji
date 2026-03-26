@@ -1,7 +1,7 @@
 part of 'create_tutoring_controller.dart';
 
 class _CreateTutoringControllerState {
-  final cityDirectoryService = CityDirectoryService.ensure();
+  final cityDirectoryService = ensureCityDirectoryService();
   final carouselCurrentIndex = 0.obs;
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();

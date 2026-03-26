@@ -3,7 +3,7 @@ part of 'personel_info_controller.dart';
 class _PersonelInfoControllerState {
   final UserRepository userRepository = UserRepository.ensure();
   final CityDirectoryService cityDirectoryService =
-      CityDirectoryService.ensure();
+      ensureCityDirectoryService();
   final tc = ''.obs;
   final medeniHal = _single.obs;
   final county = _turkey.obs;

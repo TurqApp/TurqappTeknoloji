@@ -3,7 +3,7 @@ part of 'scholarship_providers_controller.dart';
 class _ScholarshipProvidersControllerState {
   final UserRepository userRepository = UserRepository.ensure();
   final ScholarshipRepository scholarshipRepository =
-      ScholarshipRepository.ensure();
+      ensureScholarshipRepository();
   final RxBool isLoading = true.obs;
   final RxList<Map<String, dynamic>> providers = <Map<String, dynamic>>[].obs;
 }

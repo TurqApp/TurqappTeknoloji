@@ -13,7 +13,7 @@ class _DormitoryInfoControllerState {
 
   final UserRepository userRepository = UserRepository.ensure();
   final CityDirectoryService cityDirectoryService =
-      CityDirectoryService.ensure();
+      ensureCityDirectoryService();
   final EducationReferenceDataService referenceDataService =
       EducationReferenceDataService.ensure();
   final RxBool isLoading = true.obs;

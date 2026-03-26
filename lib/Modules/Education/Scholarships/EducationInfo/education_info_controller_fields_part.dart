@@ -4,7 +4,7 @@ class _EducationInfoControllerState {
   final UserRepository userRepository = UserRepository.ensure();
   final CurrentUserService currentUserService = CurrentUserService.instance;
   final CityDirectoryService cityDirectoryService =
-      CityDirectoryService.ensure();
+      ensureCityDirectoryService();
   final EducationReferenceDataService referenceDataService =
       EducationReferenceDataService.ensure();
   final RxString selectedEducationLevel = ''.obs;

@@ -1,7 +1,7 @@
 part of 'job_creator_controller.dart';
 
 class _JobCreatorShellState {
-  final cityDirectoryService = CityDirectoryService.ensure();
+  final cityDirectoryService = ensureCityDirectoryService();
   final selection = 0.obs;
   final isSubmitting = false.obs;
   final brand = TextEditingController();

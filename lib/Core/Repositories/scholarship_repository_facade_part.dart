@@ -1,5 +1,11 @@
 part of 'scholarship_repository.dart';
 
+ScholarshipRepository? maybeFindScholarshipRepository() =>
+    _maybeFindScholarshipRepository();
+
+ScholarshipRepository ensureScholarshipRepository() =>
+    _ensureScholarshipRepository();
+
 ScholarshipRepository? _maybeFindScholarshipRepository() =>
     Get.isRegistered<ScholarshipRepository>()
         ? Get.find<ScholarshipRepository>()

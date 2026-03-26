@@ -4,7 +4,7 @@ class _MarketControllerState {
   final schemaService = ensureMarketSchemaService();
   final marketSnapshotRepository = MarketSnapshotRepository.ensure();
   final repository = MarketRepository.ensure();
-  final cityDirectoryService = CityDirectoryService.ensure();
+  final cityDirectoryService = ensureCityDirectoryService();
   final scrollController = ScrollController();
   final search = TextEditingController();
   final scrollOffset = 0.0.obs;

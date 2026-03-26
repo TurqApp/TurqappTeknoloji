@@ -1,5 +1,19 @@
 part of 'city_directory_service.dart';
 
+const _cityDirectoryAssetPath = 'assets/data/CityDistrict.json';
+
+CityDirectoryService? maybeFindCityDirectoryService() {
+  final isRegistered = Get.isRegistered<CityDirectoryService>();
+  if (!isRegistered) return null;
+  return Get.find<CityDirectoryService>();
+}
+
+CityDirectoryService ensureCityDirectoryService() {
+  final existing = maybeFindCityDirectoryService();
+  if (existing != null) return existing;
+  return Get.put(CityDirectoryService(), permanent: true);
+}
+
 extension CityDirectoryServiceFacadePart on CityDirectoryService {
   Future<List<CitiesModel>> getCitiesAndDistricts() {
     final cached = _cachedCities;
@@ -35,8 +49,7 @@ extension CityDirectoryServiceFacadePart on CityDirectoryService {
 
   Future<List<CitiesModel>> _loadCities() async {
     try {
-      final response =
-          await rootBundle.loadString(CityDirectoryService._assetPath);
+      final response = await rootBundle.loadString(_cityDirectoryAssetPath);
       final decoded = await compute(_decodeCityDirectory, response);
       final parsed = decoded.map(CitiesModel.fromJson).toList(growable: false);
       _cachedCities = List<CitiesModel>.from(parsed);

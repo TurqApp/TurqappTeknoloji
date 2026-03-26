@@ -2,7 +2,7 @@ part of 'family_info_controller.dart';
 
 class _FamilyInfoControllerState {
   final userRepository = UserRepository.ensure();
-  final cityDirectoryService = CityDirectoryService.ensure();
+  final cityDirectoryService = ensureCityDirectoryService();
   final isLoading = true.obs;
   final familyInfo = ''.obs;
   final fatherName = TextEditingController().obs;

@@ -17,18 +17,5 @@ List<Map<String, dynamic>> _decodeCityDirectory(String response) {
 }
 
 class CityDirectoryService extends GetxService {
-  static const String _assetPath = 'assets/data/CityDistrict.json';
   final _state = _CityDirectoryServiceState();
-
-  static CityDirectoryService? maybeFind() {
-    final isRegistered = Get.isRegistered<CityDirectoryService>();
-    if (!isRegistered) return null;
-    return Get.find<CityDirectoryService>();
-  }
-
-  static CityDirectoryService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(CityDirectoryService(), permanent: true);
-  }
 }

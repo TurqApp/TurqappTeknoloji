@@ -1,8 +1,7 @@
 part of 'create_scholarship_controller.dart';
 
 final UserRepository _userRepository = UserRepository.ensure();
-final CityDirectoryService _cityDirectoryService =
-    CityDirectoryService.ensure();
+final CityDirectoryService _cityDirectoryService = ensureCityDirectoryService();
 final EducationReferenceDataService _referenceDataService =
     EducationReferenceDataService.ensure();
 
