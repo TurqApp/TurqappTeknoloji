@@ -11,6 +11,7 @@ import 'hls_data_usage_probe.dart';
 import 'm3u8_parser.dart';
 import 'network_policy.dart';
 
+part 'hls_proxy_server_fields_part.dart';
 part 'hls_proxy_server_class_part.dart';
 part 'hls_proxy_server_facade_part.dart';
 part 'hls_proxy_server_playlist_part.dart';

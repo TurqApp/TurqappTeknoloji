@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 part 'answer_key_snapshot_repository_class_part.dart';
+part 'answer_key_snapshot_repository_members_part.dart';
 part 'answer_key_snapshot_repository_facade_part.dart';
 part 'answer_key_snapshot_repository_support_part.dart';
 part 'answer_key_snapshot_repository_runtime_part.dart';
