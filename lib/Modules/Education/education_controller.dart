@@ -18,6 +18,7 @@ import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
+part 'education_controller_fields_part.dart';
 part 'education_controller_pasaj_part.dart';
 part 'education_controller_search_part.dart';
 
@@ -34,24 +35,7 @@ class EducationController extends GetxController {
     return Get.find<EducationController>();
   }
 
-  final searchController = TextEditingController();
-  final searchFocus = FocusNode();
-  final isSearchMode = false.obs;
-  final searchText = ''.obs;
-  final Map<int, String> tabSearchQueries = <int, String>{};
-  final isKeyboardOpen = false.obs;
-  final selectedTab = 0.obs;
-  final pageController = PageController();
-  final tabScrollController = ScrollController();
-  final visibleTabIndexes = List<int>.generate(pasajTabs.length, (i) => i).obs;
-  final pasajConfigLoaded = false.obs;
-  DateTime _lastNavToggleAt = DateTime.fromMillisecondsSinceEpoch(0);
-  bool _didRunVisibleSurfaceReset = false;
-  final SettingsController settingsController = SettingsController.ensure();
-  StreamSubscription<Map<String, dynamic>>? _pasajConfigSub;
-  final Map<String, bool> _adminPasajVisibility = <String, bool>{};
-
-  List<String> get titles => pasajTabs;
+  final _state = _EducationControllerState();
 
   @override
   void onInit() {
@@ -65,8 +49,7 @@ class EducationController extends GetxController {
     super.onClose();
   }
 
-  void resetSurfaceForTabTransition() =>
-      _performResetSurfaceForTabTransition();
+  void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
 
   void ensureVisibleSurfaceReset() => _ensureVisibleSurfaceResetImpl();
 }

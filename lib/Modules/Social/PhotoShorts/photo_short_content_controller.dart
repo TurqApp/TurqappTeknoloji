@@ -52,11 +52,10 @@ class PhotoShortsContentController extends GetxController {
     return Get.find<PhotoShortsContentController>(tag: tag);
   }
 
-  PostsModel model;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final _state = _PhotoShortsControllerState();
+  final _PhotoShortsControllerState _state;
 
-  PhotoShortsContentController({required this.model});
+  PhotoShortsContentController({required PostsModel model})
+      : _state = _PhotoShortsControllerState(model: model);
 
   @override
   void onInit() {

@@ -45,13 +45,6 @@ class MarketController extends GetxController {
   static MarketController? maybeFind() => Get.isRegistered<MarketController>()
       ? Get.find<MarketController>()
       : null;
-
-  final MarketSchemaService _schemaService = MarketSchemaService.ensure();
-  final MarketSnapshotRepository _marketSnapshotRepository =
-      MarketSnapshotRepository.ensure();
-  final MarketRepository _repository = MarketRepository.ensure();
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
   final _state = _MarketControllerState();
 
   @override
@@ -65,8 +58,4 @@ class MarketController extends GetxController {
     _handleLifecycleClose();
     super.onClose();
   }
-
-  List<String> get availableCities => _computeAvailableCities();
-
-  bool get hasAdvancedFilters => _computeHasAdvancedFilters();
 }

@@ -40,23 +40,18 @@ class PostCommentController extends GetxController {
       _maybeFindPostCommentControllerFacade(tag: tag);
 
   PostCommentController({
-    required this.postID,
-    required this.userID,
-    required this.collection,
-    this.onCommentCountChange,
-  });
+    required String postID,
+    required String userID,
+    required String collection,
+    Function(bool increment)? onCommentCountChange,
+  }) : _state = _PostCommentControllerState(
+          postID: postID,
+          userID: userID,
+          collection: collection,
+          onCommentCountChange: onCommentCountChange,
+        );
 
-  final String postID;
-  final String collection;
-  final String userID;
-  final Function(bool increment)? onCommentCountChange;
-  String? controllerTag;
-
-  final CurrentUserService userService = CurrentUserService.instance;
-  final PostInteractionService _interactionService =
-      PostInteractionService.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final _state = _PostCommentControllerState();
+  final _PostCommentControllerState _state;
 
   @override
   void onInit() {

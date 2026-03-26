@@ -17,6 +17,10 @@ const List<String> _marketPreferredCategoryOrder = <String>[
 ];
 
 extension _MarketControllerSupportX on MarketController {
+  List<String> get availableCities => _computeAvailableCities();
+
+  bool get hasAdvancedFilters => _computeHasAdvancedFilters();
+
   Future<void> _restoreListingSelection() => _performRestoreListingSelection();
 
   Future<void> _persistListingSelection() => _performPersistListingSelection();

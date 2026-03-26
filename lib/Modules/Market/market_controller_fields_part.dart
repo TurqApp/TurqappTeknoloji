@@ -1,6 +1,10 @@
 part of 'market_controller.dart';
 
 class _MarketControllerState {
+  final schemaService = MarketSchemaService.ensure();
+  final marketSnapshotRepository = MarketSnapshotRepository.ensure();
+  final repository = MarketRepository.ensure();
+  final cityDirectoryService = CityDirectoryService.ensure();
   final scrollController = ScrollController();
   final search = TextEditingController();
   final scrollOffset = 0.0.obs;
@@ -31,6 +35,11 @@ class _MarketControllerState {
 }
 
 extension MarketControllerFieldsPart on MarketController {
+  MarketSchemaService get _schemaService => _state.schemaService;
+  MarketSnapshotRepository get _marketSnapshotRepository =>
+      _state.marketSnapshotRepository;
+  MarketRepository get _repository => _state.repository;
+  CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
   ScrollController get scrollController => _state.scrollController;
   TextEditingController get search => _state.search;
   RxDouble get scrollOffset => _state.scrollOffset;

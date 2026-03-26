@@ -28,6 +28,7 @@ import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'deep_link_service_fields_part.dart';
 part 'deep_link_service_lookup_part.dart';
 part 'deep_link_service_facade_part.dart';
 part 'deep_link_service_models_part.dart';
@@ -40,11 +41,6 @@ class DeepLinkService extends GetxService {
   static DeepLinkService ensure() => _ensureDeepLinkService();
 
   static DeepLinkService? maybeFind() => _maybeFindDeepLinkService();
-
-  final ShortLinkService _shortLinkService = ShortLinkService();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
   static const Duration _lookupTtl = Duration(seconds: 30);
   static final Map<String, _PostLookupCache> _postLookupCache =
       <String, _PostLookupCache>{};
@@ -60,9 +56,7 @@ class DeepLinkService extends GetxService {
       <String, _StoryDocLookupCache>{};
   static const Duration _staleRetention = Duration(minutes: 3);
   static const int _maxLookupEntries = 400;
-  bool _started = false;
-  bool _handling = false;
-  final RxBool initialLinkResolved = false.obs;
+  final _state = _DeepLinkServiceState();
 
   @override
   void onClose() {

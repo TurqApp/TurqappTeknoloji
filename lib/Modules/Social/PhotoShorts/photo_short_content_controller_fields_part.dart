@@ -1,6 +1,10 @@
 part of 'photo_short_content_controller.dart';
 
 class _PhotoShortsControllerState {
+  _PhotoShortsControllerState({required this.model});
+
+  PostsModel model;
+  final userSummaryResolver = UserSummaryResolver.ensure();
   final agendaController = AgendaController.ensure();
   final countManager = PostCountManager.instance;
   PostInteractionService? interactionService;
@@ -40,6 +44,9 @@ class _PhotoShortsControllerState {
 
 extension PhotoShortsContentControllerFieldsPart
     on PhotoShortsContentController {
+  PostsModel get model => _state.model;
+  set model(PostsModel value) => _state.model = value;
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   bool get canSendAdminPush => AdminAccessService.isKnownAdminSync();
   AgendaController get agendaController => _state.agendaController;
   PostCountManager get countManager => _state.countManager;

@@ -48,15 +48,11 @@ class MarketCreateController extends GetxController {
     return Get.find<MarketCreateController>(tag: tag);
   }
 
-  MarketCreateController({this.initialItem});
+  MarketCreateController({MarketItemModel? initialItem})
+      : _state = _MarketCreateControllerState(initialItem: initialItem);
 
-  final MarketSchemaService _schemaService = MarketSchemaService.ensure();
-  final MarketRepository _repository = MarketRepository.ensure();
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
-  final MarketItemModel? initialItem;
-  final _state = _MarketCreateControllerState();
   static const int maxImages = 4;
+  final _MarketCreateControllerState _state;
 
   @override
   void onInit() {

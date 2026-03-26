@@ -1,6 +1,13 @@
 part of 'short_content_controller.dart';
 
 class _ShortContentControllerState {
+  _ShortContentControllerState({
+    required this.postID,
+    required this.model,
+  });
+
+  String postID;
+  PostsModel model;
   final avatarUrl = ''.obs;
   final nickname = ''.obs;
   final fullName = ''.obs;
@@ -35,6 +42,10 @@ class _ShortContentControllerState {
 }
 
 extension ShortContentControllerFieldsPart on ShortContentController {
+  String get postID => _state.postID;
+  set postID(String value) => _state.postID = value;
+  PostsModel get model => _state.model;
+  set model(PostsModel value) => _state.model = value;
   RxString get avatarUrl => _state.avatarUrl;
   RxString get nickname => _state.nickname;
   RxString get fullName => _state.fullName;

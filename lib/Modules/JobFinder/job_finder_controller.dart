@@ -45,17 +45,6 @@ class JobFinderController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_job_listing_selection';
   static const String _allTurkeyRaw = 'Tüm Türkiye';
-
-  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
-      JobHomeSnapshotRepository.ensure();
-  final JobRepository _jobRepository = JobRepository.ensure();
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
-  final List<String> imgList = [
-    AppAssets.practice1,
-    AppAssets.practice2,
-    AppAssets.practice3,
-  ];
   final _state = _JobFinderControllerState();
 
   @override

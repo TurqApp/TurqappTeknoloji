@@ -1,6 +1,12 @@
 part of 'market_create_controller.dart';
 
 class _MarketCreateControllerState {
+  _MarketCreateControllerState({required this.initialItem});
+
+  final schemaService = MarketSchemaService.ensure();
+  final repository = MarketRepository.ensure();
+  final cityDirectoryService = CityDirectoryService.ensure();
+  final MarketItemModel? initialItem;
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final priceController = TextEditingController();
@@ -26,6 +32,10 @@ class _MarketCreateControllerState {
 }
 
 extension MarketCreateControllerFieldsPart on MarketCreateController {
+  MarketSchemaService get _schemaService => _state.schemaService;
+  MarketRepository get _repository => _state.repository;
+  CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
+  MarketItemModel? get initialItem => _state.initialItem;
   TextEditingController get titleController => _state.titleController;
   TextEditingController get descriptionController =>
       _state.descriptionController;

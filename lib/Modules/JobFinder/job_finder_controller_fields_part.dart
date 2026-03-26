@@ -1,6 +1,14 @@
 part of 'job_finder_controller.dart';
 
 class _JobFinderControllerState {
+  final jobHomeSnapshotRepository = JobHomeSnapshotRepository.ensure();
+  final jobRepository = JobRepository.ensure();
+  final cityDirectoryService = CityDirectoryService.ensure();
+  final imgList = <String>[
+    AppAssets.practice1,
+    AppAssets.practice2,
+    AppAssets.practice3,
+  ];
   final innerTabIndex = 0.obs;
   final innerPageController = PageController();
   final allJobs = <JobModel>[].obs;
@@ -25,6 +33,11 @@ class _JobFinderControllerState {
 }
 
 extension JobFinderControllerFieldsPart on JobFinderController {
+  JobHomeSnapshotRepository get _jobHomeSnapshotRepository =>
+      _state.jobHomeSnapshotRepository;
+  JobRepository get _jobRepository => _state.jobRepository;
+  CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
+  List<String> get imgList => _state.imgList;
   RxInt get innerTabIndex => _state.innerTabIndex;
   PageController get innerPageController => _state.innerPageController;
   RxList<JobModel> get allJobs => _state.allJobs;

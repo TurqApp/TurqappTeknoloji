@@ -21,14 +21,7 @@ part 'short_content_controller_data_part.dart';
 part 'short_content_controller_actions_part.dart';
 part 'short_content_controller_fields_part.dart';
 part 'short_content_controller_runtime_part.dart';
-
-final PostInteractionService _shortInteractionService =
-    PostInteractionService.ensure();
-final PostRepository _shortPostRepository = PostRepository.ensure();
-final UserSummaryResolver _shortUserSummaryResolver =
-    UserSummaryResolver.ensure();
-
-String get _shortCurrentUserId => CurrentUserService.instance.effectiveUserId;
+part 'short_content_controller_support_part.dart';
 
 class ShortContentController extends GetxController {
   static ShortContentController ensure({
@@ -52,11 +45,11 @@ class ShortContentController extends GetxController {
     return Get.find<ShortContentController>(tag: tag);
   }
 
-  String postID;
-  PostsModel model;
-  final _state = _ShortContentControllerState();
-
-  ShortContentController({required this.postID, required this.model});
+  ShortContentController({
+    required String postID,
+    required PostsModel model,
+  }) : _state = _ShortContentControllerState(postID: postID, model: model);
+  final _ShortContentControllerState _state;
 
   @override
   void onInit() {
