@@ -41,21 +41,13 @@ extension JobDetailsControllerActionsPart on JobDetailsController {
       return;
     }
     await ShareActionGuard.run(() async {
-      var shortUrl = '';
-      try {
-        shortUrl = await ShortLinkService().getJobPublicUrl(
-          jobId: current.docID,
-          title: current.ilanBasligi.isNotEmpty
-              ? current.ilanBasligi
-              : current.meslek,
-          desc: current.about.isNotEmpty ? current.about : current.isTanimi,
-          imageUrl: current.logo,
-        );
-      } catch (_) {}
-
-      if (shortUrl.trim().isEmpty) {
-        shortUrl = 'https://turqapp.com/i/job:${current.docID}';
-      }
+      final shortUrl = ShortLinkService().getJobPublicUrlForImmediateShare(
+        jobId: current.docID,
+        title:
+            current.ilanBasligi.isNotEmpty ? current.ilanBasligi : current.meslek,
+        desc: current.about.isNotEmpty ? current.about : current.isTanimi,
+        imageUrl: current.logo,
+      );
 
       final title =
           current.ilanBasligi.isNotEmpty ? current.ilanBasligi : current.meslek;

@@ -512,23 +512,20 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
         ? burs.baslik.trim()
         : 'scholarship.share_detail_title'.tr;
 
-    var shortUrl = fallbackUrl;
-    try {
-      shortUrl = await _shortLinkService.getEducationPublicUrl(
-        shareId: shareId,
-        title: title,
-        desc: _pickScholarshipShareDesc(burs),
-        imageUrl: _pickScholarshipShareImage(burs),
-      );
-    } catch (_) {}
-
-    if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
-      shortUrl = fallbackUrl;
-    }
+    final shortUrl = _shortLinkService.getEducationPublicUrlForImmediateShare(
+      shareId: shareId,
+      title: title,
+      desc: _pickScholarshipShareDesc(burs),
+      imageUrl: _pickScholarshipShareImage(burs),
+    );
+    final resolvedUrl =
+        shortUrl.trim().isNotEmpty && shortUrl.trim() != 'https://turqapp.com'
+            ? shortUrl
+            : fallbackUrl;
 
     try {
       await ShareLinkService.shareUrl(
-        url: shortUrl,
+        url: resolvedUrl,
         title: title,
         subject: title,
       );

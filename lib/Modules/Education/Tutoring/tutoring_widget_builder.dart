@@ -45,29 +45,14 @@ class TutoringWidgetBuilder extends StatelessWidget {
   Future<void> _shareExternally(TutoringModel tutoring) async {
     await ShareActionGuard.run(() async {
       final shareId = 'tutoring:${tutoring.docID}';
-      final shortTail = tutoring.docID.length >= 8
-          ? tutoring.docID.substring(0, 8)
-          : tutoring.docID;
-      final fallbackId = 'tutoring-$shortTail';
-      final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
-
-      String shortUrl = fallbackUrl;
-      try {
-        shortUrl = await ShortLinkService().getEducationPublicUrl(
-          shareId: shareId,
-          title: tutoring.baslik,
-          desc: tutoring.brans.isNotEmpty ? tutoring.brans : 'Özel ders ilanı',
-          imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
-              ? tutoring.imgs!.first
-              : null,
-        );
-      } catch (_) {
-        shortUrl = fallbackUrl;
-      }
-
-      if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
-        shortUrl = fallbackUrl;
-      }
+      final shortUrl = ShortLinkService().getEducationPublicUrlForImmediateShare(
+        shareId: shareId,
+        title: tutoring.baslik,
+        desc: tutoring.brans.isNotEmpty ? tutoring.brans : 'Özel ders ilanı',
+        imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
+            ? tutoring.imgs!.first
+            : null,
+      );
 
       await ShareLinkService.shareUrl(
         url: shortUrl,

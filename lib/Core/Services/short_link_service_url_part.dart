@@ -72,6 +72,14 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     return getPostDirectUrl(normalized);
   }
 
+  String getStoryDirectUrl(String storyId) {
+    final normalized = storyId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+    return 'https://${ShortLinkService._defaultDomain}/s/$normalized';
+  }
+
   Future<String> getStoryPublicUrl({
     required String storyId,
     String? title,
@@ -94,6 +102,51 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     );
     if (url.isNotEmpty) ShortLinkService._storyUrlCache[storyId] = url;
     return url;
+  }
+
+  String getStoryPublicUrlForImmediateShare({
+    required String storyId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    int? expiresAt,
+  }) {
+    final normalized = storyId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+
+    final cached = ShortLinkService._storyUrlCache[normalized];
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
+    if (!ShortLinkService._storyUrlWarmupInFlight.contains(normalized)) {
+      ShortLinkService._storyUrlWarmupInFlight.add(normalized);
+      unawaited(() async {
+        try {
+          await getStoryPublicUrl(
+            storyId: normalized,
+            title: title,
+            desc: desc,
+            imageUrl: imageUrl,
+            expiresAt: expiresAt,
+          );
+        } finally {
+          ShortLinkService._storyUrlWarmupInFlight.remove(normalized);
+        }
+      }());
+    }
+
+    return getStoryDirectUrl(normalized);
+  }
+
+  String getEducationDirectUrl(String shareId) {
+    final normalized = shareId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+    return 'https://${ShortLinkService._defaultDomain}/e/$normalized';
   }
 
   Future<String> getEducationPublicUrl({
@@ -121,6 +174,52 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     return url;
   }
 
+  String getEducationPublicUrlForImmediateShare({
+    required String shareId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    String? shortId,
+  }) {
+    final normalized = shareId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+
+    final cached = ShortLinkService._eduUrlCache[normalized];
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
+    final warmupKey = '$normalized|${shortId?.trim() ?? ''}';
+    if (!ShortLinkService._eduUrlWarmupInFlight.contains(warmupKey)) {
+      ShortLinkService._eduUrlWarmupInFlight.add(warmupKey);
+      unawaited(() async {
+        try {
+          await getEducationPublicUrl(
+            shareId: normalized,
+            title: title,
+            desc: desc,
+            imageUrl: imageUrl,
+            shortId: shortId,
+          );
+        } finally {
+          ShortLinkService._eduUrlWarmupInFlight.remove(warmupKey);
+        }
+      }());
+    }
+
+    return getEducationDirectUrl(normalized);
+  }
+
+  String getJobDirectUrl(String jobId) {
+    final normalized = jobId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+    return 'https://${ShortLinkService._defaultDomain}/i/job:$normalized';
+  }
+
   Future<String> getJobPublicUrl({
     required String jobId,
     String? title,
@@ -141,6 +240,49 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     );
     if (url.isNotEmpty) ShortLinkService._jobUrlCache[jobId] = url;
     return url;
+  }
+
+  String getJobPublicUrlForImmediateShare({
+    required String jobId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+  }) {
+    final normalized = jobId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+
+    final cached = ShortLinkService._jobUrlCache[normalized];
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
+    if (!ShortLinkService._jobUrlWarmupInFlight.contains(normalized)) {
+      ShortLinkService._jobUrlWarmupInFlight.add(normalized);
+      unawaited(() async {
+        try {
+          await getJobPublicUrl(
+            jobId: normalized,
+            title: title,
+            desc: desc,
+            imageUrl: imageUrl,
+          );
+        } finally {
+          ShortLinkService._jobUrlWarmupInFlight.remove(normalized);
+        }
+      }());
+    }
+
+    return getJobDirectUrl(normalized);
+  }
+
+  String getMarketDirectUrl(String itemId) {
+    final normalized = itemId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+    return 'https://${ShortLinkService._defaultDomain}/m/$normalized';
   }
 
   Future<String> getMarketPublicUrl({
@@ -166,6 +308,44 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     );
     if (url.isNotEmpty) ShortLinkService._marketUrlCache[itemId] = url;
     return url;
+  }
+
+  String getMarketPublicUrlForImmediateShare({
+    required String itemId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    String? shortId,
+  }) {
+    final normalized = itemId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+
+    final cached = ShortLinkService._marketUrlCache[normalized];
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
+    final warmupKey = '$normalized|${shortId?.trim() ?? ''}';
+    if (!ShortLinkService._marketUrlWarmupInFlight.contains(warmupKey)) {
+      ShortLinkService._marketUrlWarmupInFlight.add(warmupKey);
+      unawaited(() async {
+        try {
+          await getMarketPublicUrl(
+            itemId: normalized,
+            title: title,
+            desc: desc,
+            imageUrl: imageUrl,
+            shortId: shortId,
+          );
+        } finally {
+          ShortLinkService._marketUrlWarmupInFlight.remove(warmupKey);
+        }
+      }());
+    }
+
+    return getMarketDirectUrl(normalized);
   }
 
   Future<String> getInternalEducationPublicUrl({

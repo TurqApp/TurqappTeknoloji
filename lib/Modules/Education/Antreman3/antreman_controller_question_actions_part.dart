@@ -62,33 +62,18 @@ extension AntremanControllerQuestionActionsPart on AntremanController {
     try {
       await ShareActionGuard.run(() async {
         final shareId = 'question:${question.docID}';
-        final shortTail = question.docID.length >= 8
-            ? question.docID.substring(0, 8)
-            : question.docID;
-        final fallbackId = 'question-$shortTail';
-        final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
-        String shortUrl = '';
-        try {
-          shortUrl = await ShortLinkService().getEducationPublicUrl(
-            shareId: shareId,
-            title: 'training.share_question_link_title'.trParams({
-              'exam': question.sinavTuru,
-              'lesson': question.ders,
-              'number': question.soruNo.toString(),
-            }),
-            desc: question.anaBaslik.isNotEmpty
-                ? question.anaBaslik
-                : 'training.share_question_desc'.tr,
-            imageUrl: question.soru.isNotEmpty ? question.soru : null,
-          );
-        } catch (_) {
-          shortUrl = fallbackUrl;
-        }
-
-        if (shortUrl.trim().isEmpty ||
-            shortUrl.trim() == 'https://turqapp.com') {
-          shortUrl = fallbackUrl;
-        }
+        final shortUrl = ShortLinkService().getEducationPublicUrlForImmediateShare(
+          shareId: shareId,
+          title: 'training.share_question_link_title'.trParams({
+            'exam': question.sinavTuru,
+            'lesson': question.ders,
+            'number': question.soruNo.toString(),
+          }),
+          desc: question.anaBaslik.isNotEmpty
+              ? question.anaBaslik
+              : 'training.share_question_desc'.tr,
+          imageUrl: question.soru.isNotEmpty ? question.soru : null,
+        );
 
         await ShareLinkService.shareUrl(
           url: shortUrl,

@@ -202,30 +202,20 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
     final shareImageUrl = _pickScholarshipImageFromData(scholarshipData, burs);
     try {
       await ShareActionGuard.run(() async {
-        var shortUrl = '';
-        try {
-          shortUrl = await ShortLinkService().getEducationPublicUrl(
-            shareId: shareId,
-            title: title,
-            desc: desc,
-            imageUrl: shareImageUrl,
-          );
-          if (shortUrl.trim().isNotEmpty &&
-              shortUrl.trim() != 'https://turqapp.com') {
-            _shortLinkCache[shareId] = shortUrl;
-          }
-        } catch (_) {
-          shortUrl = fallbackUrl;
-        }
-
-        if (shortUrl.trim().isEmpty ||
-            shortUrl.trim() == 'https://turqapp.com') {
-          shortUrl =
-              existingShortUrl.isNotEmpty ? existingShortUrl : fallbackUrl;
-        }
+        final shortUrl =
+            ShortLinkService().getEducationPublicUrlForImmediateShare(
+          shareId: shareId,
+          title: title,
+          desc: desc,
+          imageUrl: shareImageUrl,
+        );
+        final resolvedUrl =
+            shortUrl.trim().isNotEmpty && shortUrl.trim() != 'https://turqapp.com'
+                ? shortUrl
+                : (existingShortUrl.isNotEmpty ? existingShortUrl : fallbackUrl);
 
         await ShareLinkService.shareUrl(
-          url: shortUrl,
+          url: resolvedUrl,
           title: title,
           subject: title,
         );

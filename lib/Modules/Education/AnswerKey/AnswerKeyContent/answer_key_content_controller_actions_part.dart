@@ -157,31 +157,18 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
       return;
     }
     final shareId = 'answer-key:${model.docID}';
-    final shortTail =
-        model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
-    final fallbackId = 'answer-key-$shortTail';
-    final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
 
     try {
       await ShareActionGuard.run(() async {
-        String shortUrl = '';
-        try {
-          shortUrl = await ShortLinkService().getEducationPublicUrl(
-            shareId: shareId,
-            title: model.baslik,
-            desc: model.yayinEvi.isNotEmpty
-                ? model.yayinEvi
-                : '${model.sinavTuru} ${'answer_key.book_answer_key_desc'.tr}',
-            imageUrl: model.cover.isNotEmpty ? model.cover : null,
-          );
-        } catch (_) {
-          shortUrl = fallbackUrl;
-        }
-
-        if (shortUrl.trim().isEmpty ||
-            shortUrl.trim() == 'https://turqapp.com') {
-          shortUrl = fallbackUrl;
-        }
+        final shortUrl =
+            ShortLinkService().getEducationPublicUrlForImmediateShare(
+          shareId: shareId,
+          title: model.baslik,
+          desc: model.yayinEvi.isNotEmpty
+              ? model.yayinEvi
+              : '${model.sinavTuru} ${'answer_key.book_answer_key_desc'.tr}',
+          imageUrl: model.cover.isNotEmpty ? model.cover : null,
+        );
 
         await ShareLinkService.shareUrl(
           url: shortUrl,

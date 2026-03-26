@@ -4,28 +4,13 @@ extension _DenemeGridActionsPart on DenemeGrid {
   Future<void> _shareExternally() async {
     await ShareActionGuard.run(() async {
       final shareId = 'practice-exam:${model.docID}';
-      final shortTail =
-          model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
-      final fallbackId = 'practice-exam-$shortTail';
-      final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
-
-      String shortUrl = fallbackUrl;
-      try {
-        shortUrl = await ShortLinkService().getEducationPublicUrl(
-          shareId: shareId,
-          title: model.sinavAdi,
-          desc: model.sinavAciklama.isNotEmpty
-              ? model.sinavAciklama
-              : model.sinavTuru,
-          imageUrl: model.cover.isNotEmpty ? model.cover : null,
-        );
-      } catch (_) {
-        shortUrl = fallbackUrl;
-      }
-
-      if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
-        shortUrl = fallbackUrl;
-      }
+      final shortUrl = ShortLinkService().getEducationPublicUrlForImmediateShare(
+        shareId: shareId,
+        title: model.sinavAdi,
+        desc:
+            model.sinavAciklama.isNotEmpty ? model.sinavAciklama : model.sinavTuru,
+        imageUrl: model.cover.isNotEmpty ? model.cover : null,
+      );
 
       await ShareLinkService.shareUrl(
         url: shortUrl,

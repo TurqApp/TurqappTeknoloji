@@ -396,7 +396,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                             .content;
                       }
                       final shortUrl =
-                          await ShortLinkService().getStoryPublicUrl(
+                          ShortLinkService().getStoryPublicUrlForImmediateShare(
                         storyId: currentStory.id,
                         title: 'story.share_title'
                             .trParams({'name': widget.user.nickname}),

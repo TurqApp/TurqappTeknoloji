@@ -62,20 +62,12 @@ extension JobContentControllerActionsPart on JobContentController {
       return;
     }
     await ShareActionGuard.run(() async {
-      var shortUrl = '';
-      try {
-        shortUrl = await ShortLinkService().getJobPublicUrl(
-          jobId: model.docID,
-          title:
-              model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
-          desc: model.about.isNotEmpty ? model.about : model.isTanimi,
-          imageUrl: model.logo,
-        );
-      } catch (_) {}
-
-      if (shortUrl.trim().isEmpty) {
-        shortUrl = 'https://turqapp.com/i/job:${model.docID}';
-      }
+      final shortUrl = ShortLinkService().getJobPublicUrlForImmediateShare(
+        jobId: model.docID,
+        title: model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
+        desc: model.about.isNotEmpty ? model.about : model.isTanimi,
+        imageUrl: model.logo,
+      );
 
       final title =
           model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek;

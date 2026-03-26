@@ -15,7 +15,7 @@ class MarketShareService {
   }
 
   Future<void> shareItem(MarketItemModel item) async {
-    final shortUrl = await ShortLinkService().getMarketPublicUrl(
+    final shortUrl = ShortLinkService().getMarketPublicUrlForImmediateShare(
       itemId: item.id,
       title: item.title,
       desc: item.description,
