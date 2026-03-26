@@ -31,6 +31,7 @@ import '../../../Core/Repositories/admin_push_repository.dart';
 /// Shared interaction/controller layer for both Modern and Classic agenda views.
 
 part 'post_content_controller_class_part.dart';
+part 'post_content_controller_base_part.dart';
 part 'post_content_controller_actions_part.dart';
 part 'post_content_controller_data_part.dart';
 part 'post_content_controller_profile_part.dart';

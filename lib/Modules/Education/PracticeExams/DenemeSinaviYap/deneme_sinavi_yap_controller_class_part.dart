@@ -1,15 +1,12 @@
 part of 'deneme_sinavi_yap_controller.dart';
 
-class DenemeSinaviYapController extends GetxController
-    with WidgetsBindingObserver {
-  final _DenemeSinaviYapControllerShellState _shellState;
-
+class DenemeSinaviYapController extends _DenemeSinaviYapControllerBase {
   DenemeSinaviYapController({
     required SinavModel model,
     required Function sinaviBitir,
     required Function showGecersizAlert,
     required bool uyariAtla,
-  }) : _shellState = _buildDenemeSinaviYapControllerShellState(
+  }) : super(
           model: model,
           sinaviBitir: sinaviBitir,
           showGecersizAlert: showGecersizAlert,

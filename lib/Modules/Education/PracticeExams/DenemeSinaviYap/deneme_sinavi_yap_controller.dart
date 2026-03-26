@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deneme_sinavi_yap_controller_class_part.dart';
+part 'deneme_sinavi_yap_controller_base_part.dart';
 part 'deneme_sinavi_yap_controller_fields_part.dart';
 part 'deneme_sinavi_yap_controller_config_part.dart';
 part 'deneme_sinavi_yap_controller_facade_part.dart';

@@ -1,13 +1,11 @@
 part of 'post_content_controller.dart';
 
-class PostContentController extends GetxController {
-  final _PostContentShellState _shellState;
-
+class PostContentController extends _PostContentControllerBase {
   PostContentController({
     required PostsModel model,
     bool enableLegacyCommentSync = false,
     bool scrollFeedToTopOnReshare = false,
-  }) : _shellState = _PostContentShellState(
+  }) : super(
           model: model,
           enableLegacyCommentSync: enableLegacyCommentSync,
           scrollFeedToTopOnReshare: scrollFeedToTopOnReshare,

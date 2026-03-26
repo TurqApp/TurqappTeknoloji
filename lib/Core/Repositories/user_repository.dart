@@ -11,12 +11,10 @@ import 'package:turqappv2/Models/current_user_model.dart';
 part 'user_repository_profile_part.dart';
 part 'user_repository_query_part.dart';
 part 'user_repository_models_part.dart';
+part 'user_repository_fields_part.dart';
 
 class UserRepository extends GetxService {
-  final Map<String, _TimedUserLookup<bool>> _existsCache =
-      <String, _TimedUserLookup<bool>>{};
-  final Map<String, _TimedUserLookup<Map<String, dynamic>?>> _queryCache =
-      <String, _TimedUserLookup<Map<String, dynamic>?>>{};
+  final _state = _UserRepositoryState();
 
   static UserRepository? maybeFind() {
     final isRegistered = Get.isRegistered<UserRepository>();
@@ -28,9 +26,5 @@ class UserRepository extends GetxService {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UserRepository(), permanent: true);
-  }
-
-  UserProfileCacheService get _cache {
-    return ensureUserProfileCacheService();
   }
 }
