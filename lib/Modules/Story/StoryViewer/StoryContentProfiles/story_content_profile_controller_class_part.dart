@@ -1,11 +1,6 @@
 part of 'story_content_profile_controller.dart';
 
-class StoryContentProfileController extends GetxController {
-  var nickname = "".obs;
-  var avatarUrl = "".obs;
-  var fullName = "".obs;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-
+class StoryContentProfileController extends _StoryContentProfileControllerBase {
   Future<void> getUserData(String userID) async {
     final summary = await _userSummaryResolver.resolve(
       userID,

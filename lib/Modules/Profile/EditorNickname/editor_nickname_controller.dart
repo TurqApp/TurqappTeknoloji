@@ -15,5 +15,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'editor_nickname_controller_data_part.dart';
 part 'editor_nickname_controller_actions_part.dart';
 part 'editor_nickname_controller_facade_part.dart';
+part 'editor_nickname_controller_base_part.dart';
 part 'editor_nickname_controller_fields_part.dart';
 part 'editor_nickname_controller_class_part.dart';
