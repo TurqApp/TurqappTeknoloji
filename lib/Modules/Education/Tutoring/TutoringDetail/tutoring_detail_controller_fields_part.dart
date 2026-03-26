@@ -1,4 +1,4 @@
-part of 'tutoring_detail_controller.dart';
+part of 'tutoring_detail_controller_library.dart';
 
 class _TutoringDetailControllerState {
   final isLoading = true.obs;

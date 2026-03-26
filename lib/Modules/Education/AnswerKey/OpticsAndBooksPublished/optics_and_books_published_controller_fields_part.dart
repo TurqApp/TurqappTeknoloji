@@ -1,4 +1,4 @@
-part of 'optics_and_books_published_controller.dart';
+part of 'optics_and_books_published_controller_library.dart';
 
 class _OpticsAndBooksPublishedControllerState {
   final BookletRepository bookletRepository = ensureBookletRepository();

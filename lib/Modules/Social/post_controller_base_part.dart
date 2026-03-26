@@ -1,4 +1,4 @@
-part of 'post_controller.dart';
+part of 'post_controller_library.dart';
 
 abstract class _PostControllerBase extends GetxController {
   _PostControllerBase({

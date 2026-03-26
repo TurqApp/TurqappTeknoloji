@@ -1,4 +1,4 @@
-part of 'notify_lookup_repository.dart';
+part of 'notify_lookup_repository_library.dart';
 
 const Duration _notifyPostLookupTtl = Duration(seconds: 30);
 const Duration _notifyChatLookupTtl = Duration(seconds: 30);

@@ -1,4 +1,4 @@
-part of 'tutoring_detail_controller.dart';
+part of 'tutoring_detail_controller_library.dart';
 
 class TutoringDetailController extends GetxController {
   final _state = _TutoringDetailControllerState();

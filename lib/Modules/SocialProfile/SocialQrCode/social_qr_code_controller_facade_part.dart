@@ -1,4 +1,4 @@
-part of 'social_qr_code_controller.dart';
+part of 'social_qr_code_controller_library.dart';
 
 SocialQrCodeController ensureSocialQrCodeController({
   required String userID,

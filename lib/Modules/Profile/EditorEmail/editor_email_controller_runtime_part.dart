@@ -1,4 +1,4 @@
-part of 'editor_email_controller.dart';
+part of 'editor_email_controller_library.dart';
 
 extension _EditorEmailControllerRuntimeX on EditorEmailController {
   void seedFromCurrentSources() {

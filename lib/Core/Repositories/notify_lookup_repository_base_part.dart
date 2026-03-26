@@ -1,4 +1,4 @@
-part of 'notify_lookup_repository.dart';
+part of 'notify_lookup_repository_library.dart';
 
 abstract class _NotifyLookupRepositoryBase extends GetxService {
   _NotifyLookupRepositoryBase({FirebaseFirestore? firestore})

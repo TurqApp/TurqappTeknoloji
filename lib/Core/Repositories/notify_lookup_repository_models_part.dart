@@ -1,4 +1,4 @@
-part of 'notify_lookup_repository.dart';
+part of 'notify_lookup_repository_library.dart';
 
 class NotifyPostLookup {
   const NotifyPostLookup({

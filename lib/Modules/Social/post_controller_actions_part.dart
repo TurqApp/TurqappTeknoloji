@@ -1,4 +1,4 @@
-part of 'post_controller.dart';
+part of 'post_controller_library.dart';
 
 void _initializePostState(PostController controller) {
   controller.getYorumCount(controller.postID);

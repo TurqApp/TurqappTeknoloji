@@ -1,4 +1,4 @@
-part of 'editor_email_controller.dart';
+part of 'editor_email_controller_library.dart';
 
 abstract class _EditorEmailControllerBase extends GetxController {
   final _EditorEmailControllerState _state = _EditorEmailControllerState();

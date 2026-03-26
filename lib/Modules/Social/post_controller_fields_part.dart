@@ -1,4 +1,4 @@
-part of 'post_controller.dart';
+part of 'post_controller_library.dart';
 
 class _PostControllerState {
   _PostControllerState({

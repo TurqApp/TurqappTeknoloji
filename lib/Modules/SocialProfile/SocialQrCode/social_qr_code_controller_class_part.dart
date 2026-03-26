@@ -1,4 +1,4 @@
-part of 'social_qr_code_controller.dart';
+part of 'social_qr_code_controller_library.dart';
 
 class SocialQrCodeController extends GetxController {
   String userID;

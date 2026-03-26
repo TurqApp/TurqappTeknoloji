@@ -1,3 +1,3 @@
-part of 'editor_email_controller.dart';
+part of 'editor_email_controller_library.dart';
 
 class EditorEmailController extends _EditorEmailControllerBase {}
