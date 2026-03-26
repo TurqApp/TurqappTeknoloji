@@ -6,7 +6,8 @@ abstract class _CreateChatControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    debounce<String>(query, (val) async {
+    final controller = this as CreateChatController;
+    debounce<String>(controller.query, (val) async {
       final q = normalizeSearchText(val);
       final followers = maybeFindFollowingFollowersController();
       if (followers == null) return;
@@ -21,7 +22,7 @@ abstract class _CreateChatControllerBase extends GetxController {
 
   @override
   void onClose() {
-    search.dispose();
+    (this as CreateChatController).search.dispose();
     super.onClose();
   }
 }

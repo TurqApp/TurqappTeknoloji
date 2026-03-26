@@ -18,12 +18,12 @@ abstract class _AdsCenterControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleRuntimeInit();
+    (this as AdsCenterController)._handleRuntimeInit();
   }
 
   @override
   void onClose() {
-    _handleRuntimeClose();
+    (this as AdsCenterController)._handleRuntimeClose();
     super.onClose();
   }
 }

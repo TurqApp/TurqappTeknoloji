@@ -5,6 +5,8 @@ class AgendaController extends _AgendaControllerBase {
   static const int _reshareScanPostLimit = 12;
 
   RxList<PostsModel> get agendaList => _state.agendaList;
+  RxBool get isMuted => _state.isMuted;
+  RxBool get pauseAll => _state.pauseAll;
 
   RxInt get centeredIndex => _state.centeredIndex;
 

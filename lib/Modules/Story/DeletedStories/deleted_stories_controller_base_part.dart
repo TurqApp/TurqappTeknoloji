@@ -7,15 +7,16 @@ abstract class _DeletedStoriesControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleDeletedStoriesInit();
+    (this as DeletedStoriesController)._handleDeletedStoriesInit();
   }
 
   @override
-  Future<void> refresh() => _handleDeletedStoriesRefresh();
+  Future<void> refresh() =>
+      (this as DeletedStoriesController)._handleDeletedStoriesRefresh();
 
   @override
   void onClose() {
-    _handleDeletedStoriesClose();
+    (this as DeletedStoriesController)._handleDeletedStoriesClose();
     super.onClose();
   }
 }

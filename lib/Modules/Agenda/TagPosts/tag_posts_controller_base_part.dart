@@ -15,13 +15,13 @@ abstract class _TagPostsControllerBase extends GetxController {
 
   @override
   void onClose() {
-    _handleTagPostsClose();
+    (this as TagPostsController)._handleTagPostsClose();
     super.onClose();
   }
 
   @override
   void onInit() {
     super.onInit();
-    _handleTagPostsInit();
+    (this as TagPostsController)._handleTagPostsInit();
   }
 }

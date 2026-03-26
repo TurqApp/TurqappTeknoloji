@@ -14,12 +14,12 @@ abstract class _DormitoryInfoControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeDormitoryInfoController();
+    (this as DormitoryInfoController)._initializeDormitoryInfoController();
   }
 
   @override
   void onClose() {
-    _disposeDormitoryInfoController();
+    (this as DormitoryInfoController)._disposeDormitoryInfoController();
     super.onClose();
   }
 }

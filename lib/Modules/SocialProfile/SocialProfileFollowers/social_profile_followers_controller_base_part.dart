@@ -6,7 +6,7 @@ abstract class _SocialProfileFollowersControllerBase extends GetxController {
     required String userID,
   }) {
     _configureSocialProfileFollowersController(
-      this,
+      this as SocialProfileFollowersController,
       initialPage: initialPage,
       userID: userID,
     );
@@ -17,12 +17,16 @@ abstract class _SocialProfileFollowersControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleSocialProfileFollowersControllerOnInit(this);
+    _handleSocialProfileFollowersControllerOnInit(
+      this as SocialProfileFollowersController,
+    );
   }
 
   @override
   void onClose() {
-    _handleSocialProfileFollowersControllerOnClose(this);
+    _handleSocialProfileFollowersControllerOnClose(
+      this as SocialProfileFollowersController,
+    );
     super.onClose();
   }
 }

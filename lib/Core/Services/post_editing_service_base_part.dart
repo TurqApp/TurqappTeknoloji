@@ -6,6 +6,6 @@ abstract class _PostEditingServiceBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _startSuggestionGeneration();
+    (this as PostEditingService)._startSuggestionGeneration();
   }
 }

@@ -9,12 +9,12 @@ abstract class _ProfileControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _performOnInit();
+    (this as ProfileController)._performOnInit();
   }
 
   @override
   void onClose() {
-    _performOnClose();
+    (this as ProfileController)._performOnClose();
     super.onClose();
   }
 }
