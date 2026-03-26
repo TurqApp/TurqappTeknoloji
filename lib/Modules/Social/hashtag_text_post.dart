@@ -9,6 +9,7 @@ part 'hashtag_text_post_controller_class_part.dart';
 part 'hashtag_text_post_controller_facade_part.dart';
 part 'hashtag_text_post_controller_fields_part.dart';
 part 'hashtag_text_post_controller_runtime_part.dart';
+part 'hashtag_text_post_controller_support_part.dart';
 
 class HashtagTextVideoPost extends StatelessWidget {
   final String text;

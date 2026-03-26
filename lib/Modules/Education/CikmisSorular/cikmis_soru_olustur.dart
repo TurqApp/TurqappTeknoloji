@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 
 part 'cikmis_soru_olustur_form_part.dart';
 part 'cikmis_soru_olustur_shell_part.dart';
+part 'cikmis_soru_olustur_shell_content_part.dart';
 
 class CikmisSoruOlustur extends StatefulWidget {
   const CikmisSoruOlustur({super.key});

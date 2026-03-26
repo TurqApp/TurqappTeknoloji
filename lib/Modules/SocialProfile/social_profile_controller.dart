@@ -38,5 +38,6 @@ part 'social_profile_controller_feed_selection_part.dart';
 part 'social_profile_controller_runtime_part.dart';
 part 'social_profile_controller_models_part.dart';
 part 'social_profile_controller_shell_part.dart';
+part 'social_profile_controller_shell_content_part.dart';
 part 'social_profile_controller_support_part.dart';
 part 'social_profile_controller_fields_part.dart';

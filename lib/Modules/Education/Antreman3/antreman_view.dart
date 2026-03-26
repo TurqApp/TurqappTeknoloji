@@ -14,6 +14,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'antreman_view_content_part.dart';
 part 'antreman_view_shell_part.dart';
+part 'antreman_view_shell_content_part.dart';
 
 class AntremanView2 extends StatelessWidget {
   AntremanView2({
