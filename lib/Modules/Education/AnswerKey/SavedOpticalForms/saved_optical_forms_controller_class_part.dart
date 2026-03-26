@@ -28,30 +28,9 @@ class SavedOpticalFormsController extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
-  bool _sameBookletEntries(
-    List<BookletModel> current,
-    List<BookletModel> next,
-  ) =>
-      SavedOpticalFormsControllerRuntimePart(this).sameBookletEntries(
-        current,
-        next,
-      );
-
   @override
   void onInit() {
     super.onInit();
     unawaited(_bootstrapData());
   }
-
-  Future<void> _bootstrapData() =>
-      SavedOpticalFormsControllerRuntimePart(this).bootstrapData();
-
-  Future<void> getData({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      SavedOpticalFormsControllerRuntimePart(this).getData(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
 }
