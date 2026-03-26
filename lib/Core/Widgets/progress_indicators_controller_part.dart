@@ -7,15 +7,8 @@ class UploadProgressController extends GetxController {
   static UploadProgressController? maybeFind() =>
       _maybeFindUploadProgressController();
 
-  final RxDouble progress = 0.0.obs;
-  final RxString status = ''.obs;
-  final RxString currentFile = ''.obs;
-  final RxInt currentIndex = 0.obs;
-  final RxInt totalFiles = 0.obs;
-  final RxBool isVisible = false.obs;
-  final RxBool isPaused = false.obs;
-  final RxBool hasError = false.obs;
-  final RxString errorMessage = ''.obs;
+  final _UploadProgressControllerState _state =
+      _UploadProgressControllerState();
 
   void startProgress({
     required int total,

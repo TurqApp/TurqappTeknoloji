@@ -5,37 +5,20 @@ class SinavSonuclariPreviewController extends GetxController {
     required String tag,
     required SinavModel model,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      SinavSonuclariPreviewController(model: model),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureSinavSonuclariPreviewController(
+        tag: tag,
+        model: model,
+        permanent: permanent,
+      );
 
-  static SinavSonuclariPreviewController? maybeFind({required String tag}) {
-    final isRegistered =
-        Get.isRegistered<SinavSonuclariPreviewController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<SinavSonuclariPreviewController>(tag: tag);
-  }
+  static SinavSonuclariPreviewController? maybeFind({required String tag}) =>
+      _maybeFindSinavSonuclariPreviewController(tag: tag);
 
-  var yanitlar = <String>[].obs;
-  var timeStamp = (0 as num).obs;
-  var soruList = <SoruModel>[].obs;
-  var expandedCategories = <String, bool>{}.obs;
-  var dersVeSonuclar = <DersVeSonuclarDB>[].obs;
-  var yanitID = "".obs;
-  var isLoading = false.obs;
-  var isInitialized = false.obs;
+  final _SinavSonuclariPreviewControllerState _state;
 
-  final SinavModel model;
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
-
-  SinavSonuclariPreviewController({required this.model});
+  SinavSonuclariPreviewController({required SinavModel model})
+      : _state = _SinavSonuclariPreviewControllerState(model: model);
 
   @override
   void onInit() {

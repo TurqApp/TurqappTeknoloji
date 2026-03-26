@@ -22,27 +22,14 @@ class SpeedometerController extends GetxController
     return Get.find<SpeedometerController>(tag: tag);
   }
 
-  final double targetValue;
-  final currentValue = 0.0.obs;
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  late final _SpeedometerControllerState _state;
 
-  SpeedometerController(this.targetValue) {
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
+  SpeedometerController(double targetValue) {
+    _state = _buildSpeedometerControllerState(
+      targetValue: targetValue,
+      tickerProvider: this,
+      onTick: (value) => currentValue.value = value,
     );
-
-    _animation = Tween<double>(
-      begin: 0.0,
-      end: targetValue,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _animation.addListener(() {
-      currentValue.value = _animation.value;
-    });
-
-    _controller.forward();
   }
 
   @override
