@@ -16,7 +16,7 @@ const List<String> _marketPreferredCategoryOrder = <String>[
   'Spor',
 ];
 
-extension _MarketControllerSupportX on MarketController {
+extension MarketControllerSupportPart on MarketController {
   List<String> get availableCities => _computeAvailableCities();
 
   bool get hasAdvancedFilters => _computeHasAdvancedFilters();
