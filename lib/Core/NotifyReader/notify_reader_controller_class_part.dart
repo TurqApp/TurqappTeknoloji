@@ -1,18 +1,6 @@
 part of 'notify_reader_controller.dart';
 
 class NotifyReaderController extends GetxController {
-  static NotifyReaderController ensure({String? tag}) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(NotifyReaderController(), tag: tag);
-  }
-
-  static NotifyReaderController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<NotifyReaderController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<NotifyReaderController>(tag: tag);
-  }
-
   final NotifyLookupRepository _lookupRepository =
       ensureNotifyLookupRepository();
   final RxString lastOpenedNotificationId = ''.obs;

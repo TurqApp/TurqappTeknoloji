@@ -319,7 +319,7 @@ class IntegrationTestStateProbe {
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
-    final notifyReader = NotifyReaderController.maybeFind();
+    final notifyReader = maybeFindNotifyReaderController();
     return <String, dynamic>{
       'registered': true,
       'count': controller.list.length,

@@ -6,12 +6,6 @@ class PostReshareListingController extends GetxController {
 
   static const int _pageSize = 20;
 
-  static PostReshareListingController ensure({required String tag}) =>
-      _ensurePostReshareListingController(tag: tag);
-
-  static PostReshareListingController? maybeFind({required String tag}) =>
-      _maybeFindPostReshareListingController(tag: tag);
-
   final _PostReshareListingControllerState _state;
 
   @override

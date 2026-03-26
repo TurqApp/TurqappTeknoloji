@@ -5,7 +5,7 @@ class SearchAnswerKeyController extends GetxController {
   final filteredList = <BookletModel>[].obs;
   final isLoading = false.obs;
   final AnswerKeySnapshotRepository _answerKeySnapshotRepository =
-      AnswerKeySnapshotRepository.ensure();
+      ensureAnswerKeySnapshotRepository();
   int _searchToken = 0;
 
   @override

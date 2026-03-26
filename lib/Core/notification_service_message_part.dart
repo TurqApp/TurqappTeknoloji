@@ -143,7 +143,7 @@ extension NotificationServiceMessagePart on NotificationService {
         ),
       );
 
-      final controller = NotifyReaderController.ensure();
+      final controller = ensureNotifyReaderController();
 
       final normalized = normalizeSearchText(type.toString());
       try {

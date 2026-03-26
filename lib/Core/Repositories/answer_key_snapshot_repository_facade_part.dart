@@ -1,5 +1,11 @@
 part of 'answer_key_snapshot_repository.dart';
 
+AnswerKeySnapshotRepository? maybeFindAnswerKeySnapshotRepository() =>
+    _maybeFindAnswerKeySnapshotRepository();
+
+AnswerKeySnapshotRepository ensureAnswerKeySnapshotRepository() =>
+    _ensureAnswerKeySnapshotRepository();
+
 extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
   Stream<CachedResource<List<BookletModel>>> openHome({
     required String userId,

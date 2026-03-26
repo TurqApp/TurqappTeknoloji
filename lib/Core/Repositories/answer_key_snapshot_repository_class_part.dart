@@ -6,12 +6,6 @@ class AnswerKeySnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'answer_key_home_snapshot';
   static const String _searchSurfaceKey = 'answer_key_search_snapshot';
 
-  static AnswerKeySnapshotRepository? maybeFind() =>
-      _maybeFindAnswerKeySnapshotRepository();
-
-  static AnswerKeySnapshotRepository ensure() =>
-      _ensureAnswerKeySnapshotRepository();
-
   final BookletRepository _bookletRepository = ensureBookletRepository();
 
   late final CacheFirstCoordinator<List<BookletModel>> _coordinator =

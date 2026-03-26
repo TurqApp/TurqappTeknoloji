@@ -13,6 +13,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'tutoring_controller_data_part.dart';
 part 'tutoring_controller_class_part.dart';
+part 'tutoring_controller_fields_part.dart';
 part 'tutoring_controller_model_extension_part.dart';
 part 'tutoring_controller_runtime_part.dart';
 part 'tutoring_controller_search_part.dart';

@@ -14,5 +14,6 @@ import '../../Modules/SocialProfile/social_profile.dart';
 import '../../Models/notification_model.dart';
 
 part 'notify_reader_controller_class_part.dart';
+part 'notify_reader_controller_facade_part.dart';
 part 'notify_reader_controller_navigation_part.dart';
 part 'notify_reader_controller_runtime_part.dart';

@@ -2,7 +2,7 @@ part of 'answer_key_controller.dart';
 
 class _AnswerKeyControllerState {
   final AnswerKeySnapshotRepository answerKeySnapshotRepository =
-      AnswerKeySnapshotRepository.ensure();
+      ensureAnswerKeySnapshotRepository();
   final BookletRepository bookletRepository = ensureBookletRepository();
   final RxBool isLoading = false.obs;
   final RxBool isSearchLoading = false.obs;

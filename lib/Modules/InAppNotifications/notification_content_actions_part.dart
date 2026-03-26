@@ -22,7 +22,7 @@ extension NotificationContentActionsPart on _NotificationContentState {
   }
 
   Future<void> _openNotification() async {
-    final notifyReader = NotifyReaderController.ensure();
+    final notifyReader = ensureNotifyReaderController();
     await notifyReader.openNotification(
       model,
       returnToNavbarOnClose: false,

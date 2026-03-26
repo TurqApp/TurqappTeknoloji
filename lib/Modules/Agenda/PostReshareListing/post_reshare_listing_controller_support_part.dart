@@ -1,5 +1,15 @@
 part of 'post_reshare_listing_controller.dart';
 
+PostReshareListingController ensurePostReshareListingController({
+  required String tag,
+}) =>
+    _ensurePostReshareListingController(tag: tag);
+
+PostReshareListingController? maybeFindPostReshareListingController({
+  required String tag,
+}) =>
+    _maybeFindPostReshareListingController(tag: tag);
+
 PostReshareListingController _ensurePostReshareListingController({
   required String tag,
 }) {

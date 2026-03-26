@@ -23,8 +23,8 @@ class _PostReshareListingState extends State<PostReshareListing> {
   @override
   void initState() {
     super.initState();
-    final existing = PostReshareListingController.maybeFind(tag: widget.postID);
-    controller = PostReshareListingController.ensure(tag: widget.postID);
+    final existing = maybeFindPostReshareListingController(tag: widget.postID);
+    controller = ensurePostReshareListingController(tag: widget.postID);
     _ownsController = existing == null;
   }
 
@@ -32,7 +32,7 @@ class _PostReshareListingState extends State<PostReshareListing> {
   void dispose() {
     if (_ownsController &&
         identical(
-          PostReshareListingController.maybeFind(tag: widget.postID),
+          maybeFindPostReshareListingController(tag: widget.postID),
           controller,
         )) {
       Get.delete<PostReshareListingController>(
