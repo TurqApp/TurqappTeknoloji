@@ -282,8 +282,8 @@ extension _AgendaViewFeedPart on AgendaView {
           key: ValueKey('agenda-feed-ad-$slotNumber'),
           contentPadding: EdgeInsets.zero,
           liveAdOffsetX: liveAdOffsetX,
-          promoFallbackOffsetX: isModernView ? 0 : -43.0,
-          promoFallbackExtraWidth: isModernView ? 0 : 43.0,
+          promoFallbackOffsetX: isModernView ? 0 : -22.0,
+          promoFallbackExtraWidth: 0,
           forceSingleLinePromoChips: true,
         ),
       );

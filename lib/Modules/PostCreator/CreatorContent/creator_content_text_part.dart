@@ -166,95 +166,101 @@ extension CreatorContentTextPart on CreatorContent {
               return Container(
                 margin: const EdgeInsets.only(top: 8),
                 constraints: const BoxConstraints(maxHeight: 280),
-                decoration: BoxDecoration(
+                child: Material(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.black.withValues(alpha: 0.08),
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x12000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ListView.separated(
-                  primary: false,
-                  shrinkWrap: true,
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.manual,
-                  physics: const ClampingScrollPhysics(),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 1,
-                    color: Colors.grey.withValues(alpha: 0.14),
-                  ),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    final hashtag = normalizeComposerHashtag(item.hashtag);
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () =>
-                          controller.applyTrendingHashtagSelection(item),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.black.withValues(alpha: 0.08),
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x12000000),
+                          blurRadius: 18,
+                          offset: Offset(0, 8),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF4F5F7),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Text(
-                                '#',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
+                      ],
+                    ),
+                    child: ListView.separated(
+                      primary: false,
+                      shrinkWrap: true,
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.manual,
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => Divider(
+                        height: 1,
+                        color: Colors.grey.withValues(alpha: 0.14),
+                      ),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final hashtag = normalizeComposerHashtag(item.hashtag);
+                        return InkWell(
+                          onTap: () =>
+                              controller.applyTrendingHashtagSelection(item),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    hashtag,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  alignment: Alignment.center,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF4F5F7),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Text(
+                                    '#',
+                                    style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 15,
                                       fontFamily: "MontserratBold",
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'explore.tab.trending'.tr,
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 13,
-                                      fontFamily: "MontserratMedium",
-                                    ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        hashtag,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 15,
+                                          fontFamily: "MontserratBold",
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'explore.tab.trending'.tr,
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 13,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               );
             }),

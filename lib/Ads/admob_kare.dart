@@ -76,7 +76,7 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _isVisible = false;
   bool _showPromoFallback = false;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
-  static const Duration _fallbackPromoDelay = Duration(milliseconds: 650);
+  static const Duration _fallbackPromoDelay = Duration(milliseconds: 2500);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
 
@@ -274,6 +274,20 @@ class _AdmobKareState extends State<AdmobKare> {
     }
   }
 
+  void _showPromoFallbackNow() {
+    _fallbackPromoTimer?.cancel();
+    if (_showPromoFallback || _isDisposed || !_isVisible || !widget.showChrome) {
+      return;
+    }
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _showPromoFallback = true;
+      });
+    } else {
+      _showPromoFallback = true;
+    }
+  }
+
   void _attachBannerOrLoad() {
     if (!_canStartOrRetryLoad()) {
       return;
@@ -462,6 +476,7 @@ class _AdmobKareState extends State<AdmobKare> {
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
+          _showPromoFallbackNow();
           final shouldEnterCooldown = isRetryThrottled ||
               _globalFailureBurstCount >= _failureBurstBeforeCooldown ||
               _retryCount >= _maxRetryCount;
@@ -736,48 +751,16 @@ class _AdmobKareState extends State<AdmobKare> {
               ),
             ),
             const Spacer(),
-            widget.forceSingleLinePromoChips
-                ? const Row(
-                    children: [
-                      Expanded(
-                        child: _PromoChip(
-                          label: 'MobilPazar',
-                          expandedLayout: true,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: _PromoChip(
-                          label: 'İş İlanları',
-                          expandedLayout: true,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: _PromoChip(
-                          label: 'Denemeler',
-                          expandedLayout: true,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: _PromoChip(
-                          label: 'Burslar',
-                          expandedLayout: true,
-                        ),
-                      ),
-                    ],
-                  )
-                : const Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _PromoChip(label: 'MobilPazar'),
-                      _PromoChip(label: 'İş İlanları'),
-                      _PromoChip(label: 'Denemeler'),
-                      _PromoChip(label: 'Burslar'),
-                    ],
-                  ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final useSingleLinePromoChips =
+                    widget.forceSingleLinePromoChips ||
+                        constraints.maxWidth >= 248;
+                return useSingleLinePromoChips
+                    ? _buildSingleLinePromoChips()
+                    : _buildWrappedPromoChips();
+              },
+            ),
           ],
         ),
       ),
@@ -810,6 +793,64 @@ class _AdmobKareState extends State<AdmobKare> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSingleLinePromoChips() {
+    return const SizedBox(
+      height: 34,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 76,
+              child: _PromoChip(
+                label: 'MobilPazar',
+                expandedLayout: true,
+              ),
+            ),
+            SizedBox(width: 6),
+            SizedBox(
+              width: 76,
+              child: _PromoChip(
+                label: 'İş İlanları',
+                expandedLayout: true,
+              ),
+            ),
+            SizedBox(width: 6),
+            SizedBox(
+              width: 76,
+              child: _PromoChip(
+                label: 'Denemeler',
+                expandedLayout: true,
+              ),
+            ),
+            SizedBox(width: 6),
+            SizedBox(
+              width: 76,
+              child: _PromoChip(
+                label: 'Burslar',
+                expandedLayout: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWrappedPromoChips() {
+    return const Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _PromoChip(label: 'MobilPazar'),
+        _PromoChip(label: 'İş İlanları'),
+        _PromoChip(label: 'Denemeler'),
+        _PromoChip(label: 'Burslar'),
+      ],
     );
   }
 }
