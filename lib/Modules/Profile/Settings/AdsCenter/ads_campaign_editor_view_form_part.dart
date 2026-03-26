@@ -113,7 +113,7 @@ extension _AdsCampaignEditorViewFormPart on _AdsCampaignEditorViewState {
           .map(
             (e) => DropdownMenuItem(
               value: e,
-              child: Text((e as dynamic).name.toString()),
+              child: Text(_enumLabel(e)),
             ),
           )
           .toList(growable: false),
@@ -121,6 +121,22 @@ extension _AdsCampaignEditorViewFormPart on _AdsCampaignEditorViewState {
         if (v != null) onChanged(v);
       },
     );
+  }
+
+  String _enumLabel<T>(T value) {
+    if (value is AdCampaignStatus) {
+      return value.displayName;
+    }
+    if (value is AdBidType) {
+      return value.displayName;
+    }
+    if (value is AdBudgetType) {
+      return value.displayName;
+    }
+    if (value is AdCreativeType) {
+      return value.displayName;
+    }
+    return (value as dynamic).name.toString();
   }
 
   InputDecoration _d(String label) => InputDecoration(

@@ -22,7 +22,7 @@ class AdsCampaignListView extends StatelessWidget {
                   ...AdCampaignStatus.values.map(
                     (status) => DropdownMenuItem(
                       value: status,
-                      child: Text(status.name),
+                      child: Text(status.displayName),
                     ),
                   ),
                 ],
@@ -168,7 +168,7 @@ class AdsCampaignListView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${'ads_center.status'.tr}: ${campaign.status.name} • ${'ads_center.bid'.tr}: ${campaign.bidType.name} ${campaign.bidAmount.toStringAsFixed(2)}',
+                '${'ads_center.status'.tr}: ${campaign.status.displayName} • ${'ads_center.bid'.tr}: ${campaign.bidType.displayName} ${campaign.bidAmount.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 12,

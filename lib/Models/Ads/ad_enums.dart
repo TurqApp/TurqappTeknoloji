@@ -108,6 +108,64 @@ extension AdPlacementTypeLabelPart on AdPlacementType {
   }
 }
 
+extension AdBidTypeLabelPart on AdBidType {
+  String get displayName {
+    switch (this) {
+      case AdBidType.cpm:
+        return 'Bin gösterim';
+      case AdBidType.cpc:
+        return 'Tıklama';
+      case AdBidType.cpv:
+        return 'Video izlenme';
+    }
+  }
+}
+
+extension AdCampaignStatusLabelPart on AdCampaignStatus {
+  String get displayName {
+    switch (this) {
+      case AdCampaignStatus.draft:
+        return 'Taslak';
+      case AdCampaignStatus.pendingReview:
+        return 'İnceleme bekliyor';
+      case AdCampaignStatus.approved:
+        return 'Onaylandı';
+      case AdCampaignStatus.paused:
+        return 'Duraklatıldı';
+      case AdCampaignStatus.active:
+        return 'Aktif';
+      case AdCampaignStatus.ended:
+        return 'Bitti';
+      case AdCampaignStatus.rejected:
+        return 'Reddedildi';
+    }
+  }
+}
+
+extension AdBudgetTypeLabelPart on AdBudgetType {
+  String get displayName {
+    switch (this) {
+      case AdBudgetType.daily:
+        return 'Günlük';
+      case AdBudgetType.lifetime:
+        return 'Toplam';
+    }
+  }
+}
+
+extension AdCreativeTypeLabelPart on AdCreativeType {
+  String get displayName {
+    switch (this) {
+      case AdCreativeType.image:
+        return 'Görsel';
+      case AdCreativeType.video:
+        return 'Video';
+      case AdCreativeType.hlsVideo:
+        return 'HLS video';
+    }
+  }
+}
+
 T parseEnum<T>(
   String? raw,
   List<T> values,

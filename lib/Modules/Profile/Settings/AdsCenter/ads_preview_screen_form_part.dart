@@ -4,8 +4,6 @@ extension AdsPreviewScreenFormPart on _AdsPreviewScreenState {
   Widget _buildPreviewForm() {
     return Column(
       children: [
-        TextField(controller: _userId, decoration: _d('ads_center.user_id'.tr)),
-        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
@@ -64,7 +62,7 @@ extension AdsPreviewScreenFormPart on _AdsPreviewScreenState {
                 country: _country.text.trim(),
                 city: _city.text.trim(),
                 age: int.tryParse(_age.text.trim()),
-                userId: _userId.text.trim(),
+                userId: _currentUid,
               );
             },
       icon: _controller.previewLoading.value

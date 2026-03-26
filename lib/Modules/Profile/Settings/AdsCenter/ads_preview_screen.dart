@@ -18,7 +18,6 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
   final _country = TextEditingController(text: 'TR');
   final _city = TextEditingController(text: 'Istanbul');
   final _age = TextEditingController(text: '28');
-  final _userId = TextEditingController();
   AdPlacementType _placement = AdPlacementType.feed;
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
@@ -27,7 +26,6 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
   void initState() {
     super.initState();
     _controller = ensureAdsCenterController();
-    _userId.text = _currentUid;
   }
 
   @override
@@ -35,7 +33,6 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
     _country.dispose();
     _city.dispose();
     _age.dispose();
-    _userId.dispose();
     super.dispose();
   }
 
