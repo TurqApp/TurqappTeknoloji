@@ -13,36 +13,21 @@ class DraftService extends GetxController {
     return Get.find<DraftService>();
   }
 
-  final RxList<PostDraft> _drafts = <PostDraft>[].obs;
-  final RxBool _autoSaveEnabled = true.obs;
-  final RxInt _autoSaveInterval = 30.obs; // seconds
-  StreamSubscription<User?>? _authSub;
+  final _state = _DraftServiceState();
 
   static const String _draftsKeyPrefix = 'post_drafts';
   static const String _autoSaveKey = 'auto_save_enabled';
   static const int _maxDrafts = 20;
 
-  List<PostDraft> get drafts => _drafts;
-  bool get autoSaveEnabled => _autoSaveEnabled.value;
-  int get autoSaveInterval => _autoSaveInterval.value;
-
   @override
   void onInit() {
     super.onInit();
-    _loadDraftsFromStorage();
-    _loadSettings();
-    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((_) {
-      unawaited(_loadDraftsFromStorage());
-    });
-  }
-
-  String get _activeDraftsKey {
-    return userScopedKey(_draftsKeyPrefix);
+    _handleDraftServiceInit(this);
   }
 
   @override
   void onClose() {
-    _authSub?.cancel();
+    _handleDraftServiceClose(this);
     super.onClose();
   }
 }

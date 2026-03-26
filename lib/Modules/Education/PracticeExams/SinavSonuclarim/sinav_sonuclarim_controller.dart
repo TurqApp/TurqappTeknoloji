@@ -10,4 +10,6 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'sinav_sonuclarim_controller_class_part.dart';
+part 'sinav_sonuclarim_controller_facade_part.dart';
+part 'sinav_sonuclarim_controller_fields_part.dart';
 part 'sinav_sonuclarim_controller_runtime_part.dart';

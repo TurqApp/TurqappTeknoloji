@@ -2,11 +2,6 @@ part of 'social_profile_followers_controller.dart';
 
 class SocialProfileFollowersController extends GetxController {
   final _state = _SocialProfileFollowersControllerState();
-  static const Duration _relationCacheTtl = Duration(seconds: 30);
-  static const Duration _relationCacheStaleRetention = Duration(minutes: 3);
-  static const int _maxRelationCacheEntries = 400;
-  static final Map<String, _RelationListCacheEntry> _relationCache =
-      <String, _RelationListCacheEntry>{};
 
   static SocialProfileFollowersController ensure({
     required int initialPage,
@@ -28,20 +23,22 @@ class SocialProfileFollowersController extends GetxController {
     required int initialPage,
     required String userID,
   }) {
-    this.userID = userID;
-    selection.value = initialPage;
-    pageController = PageController(initialPage: initialPage);
+    _configureSocialProfileFollowersController(
+      this,
+      initialPage: initialPage,
+      userID: userID,
+    );
   }
 
   @override
   void onInit() {
     super.onInit();
-    _handleOnInit();
+    _handleSocialProfileFollowersControllerOnInit(this);
   }
 
   @override
   void onClose() {
-    _handleOnClose();
+    _handleSocialProfileFollowersControllerOnClose(this);
     super.onClose();
   }
 }

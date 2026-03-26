@@ -9,4 +9,5 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 
 part 'tests_controller_data_part.dart';
 part 'tests_controller_class_part.dart';
+part 'tests_controller_fields_part.dart';
 part 'tests_controller_scroll_part.dart';

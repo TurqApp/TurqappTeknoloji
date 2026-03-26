@@ -11,10 +11,10 @@ extension SocialProfileFollowersControllerRuntimeX
     _pruneRelationCache();
     final followersCacheKey = 'followers:$userID';
     final cachedFollowers =
-        SocialProfileFollowersController._relationCache[followersCacheKey];
+        _socialProfileFollowersRelationCache[followersCacheKey];
     if (cachedFollowers != null &&
         DateTime.now().difference(cachedFollowers.cachedAt) <=
-            SocialProfileFollowersController._relationCacheTtl) {
+            _socialProfileFollowersRelationCacheTtl) {
       takipciler.value = List<String>.from(cachedFollowers.ids);
       hasMoreFollowers = false;
       return;
@@ -29,7 +29,7 @@ extension SocialProfileFollowersControllerRuntimeX
       forceRefresh: false,
     );
     takipciler.value = ids.take(limit).toList();
-    SocialProfileFollowersController._relationCache[followersCacheKey] =
+    _socialProfileFollowersRelationCache[followersCacheKey] =
         _RelationListCacheEntry(
       ids: List<String>.from(takipciler),
       cachedAt: DateTime.now(),
@@ -43,10 +43,10 @@ extension SocialProfileFollowersControllerRuntimeX
     _pruneRelationCache();
     final followingsCacheKey = 'followings:$userID';
     final cachedFollowings =
-        SocialProfileFollowersController._relationCache[followingsCacheKey];
+        _socialProfileFollowersRelationCache[followingsCacheKey];
     if (cachedFollowings != null &&
         DateTime.now().difference(cachedFollowings.cachedAt) <=
-            SocialProfileFollowersController._relationCacheTtl) {
+            _socialProfileFollowersRelationCacheTtl) {
       takipEdilenler.value = List<String>.from(cachedFollowings.ids);
       hasMoreFollowing = false;
       return;
@@ -61,7 +61,7 @@ extension SocialProfileFollowersControllerRuntimeX
       forceRefresh: false,
     );
     takipEdilenler.value = ids.take(limit).toList();
-    SocialProfileFollowersController._relationCache[followingsCacheKey] =
+    _socialProfileFollowersRelationCache[followingsCacheKey] =
         _RelationListCacheEntry(
       ids: List<String>.from(takipEdilenler),
       cachedAt: DateTime.now(),
@@ -81,22 +81,21 @@ extension SocialProfileFollowersControllerRuntimeX
 
   void _pruneRelationCache() {
     final now = DateTime.now();
-    SocialProfileFollowersController._relationCache.removeWhere(
+    _socialProfileFollowersRelationCache.removeWhere(
       (_, entry) =>
           now.difference(entry.cachedAt) >
-          SocialProfileFollowersController._relationCacheStaleRetention,
+          _socialProfileFollowersRelationCacheStaleRetention,
     );
-    if (SocialProfileFollowersController._relationCache.length <=
-        SocialProfileFollowersController._maxRelationCacheEntries) {
+    if (_socialProfileFollowersRelationCache.length <=
+        _socialProfileFollowersMaxRelationCacheEntries) {
       return;
     }
-    final entries = SocialProfileFollowersController._relationCache.entries
-        .toList()
+    final entries = _socialProfileFollowersRelationCache.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount = SocialProfileFollowersController._relationCache.length -
-        SocialProfileFollowersController._maxRelationCacheEntries;
+    final removeCount = _socialProfileFollowersRelationCache.length -
+        _socialProfileFollowersMaxRelationCacheEntries;
     for (var i = 0; i < removeCount; i++) {
-      SocialProfileFollowersController._relationCache.remove(entries[i].key);
+      _socialProfileFollowersRelationCache.remove(entries[i].key);
     }
   }
 

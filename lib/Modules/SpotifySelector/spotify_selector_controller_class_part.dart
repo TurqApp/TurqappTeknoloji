@@ -13,32 +13,13 @@ class SpotifySelectorController extends GetxController {
     return Get.find<SpotifySelectorController>(tag: tag);
   }
 
-  final RxList<MusicModel> library = <MusicModel>[].obs;
-  final RxSet<String> savedTrackIds = <String>{}.obs;
-  final RxBool isLoading = true.obs;
-  final RxString currentPlayingUrl = ''.obs;
-  final RxInt selectedTab = 0.obs;
-  final RxString query = ''.obs;
-  final RxInt visibleCount = 20.obs;
-  final TextEditingController searchController = TextEditingController();
-  final ScrollController scrollController = ScrollController();
-
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final _state = _SpotifySelectorControllerState();
 
   @override
   void onInit() {
     super.onInit();
     SpotifySelectorControllerRuntimePart(this).onInit();
   }
-
-  Future<void> _loadTracks() =>
-      SpotifySelectorControllerRuntimePart(this).loadTracks();
-
-  Future<void> playMusic(MusicModel track) =>
-      SpotifySelectorControllerRuntimePart(this).playMusic(track);
-
-  Future<void> toggleSaved(MusicModel track) =>
-      SpotifySelectorControllerRuntimePart(this).toggleSaved(track);
 
   @override
   void onClose() {

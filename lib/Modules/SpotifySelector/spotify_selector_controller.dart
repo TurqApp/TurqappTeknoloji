@@ -10,4 +10,6 @@ import 'package:turqappv2/Models/music_model.dart';
 
 part 'spotify_selector_controller_browse_part.dart';
 part 'spotify_selector_controller_class_part.dart';
+part 'spotify_selector_controller_facade_part.dart';
+part 'spotify_selector_controller_fields_part.dart';
 part 'spotify_selector_controller_runtime_part.dart';

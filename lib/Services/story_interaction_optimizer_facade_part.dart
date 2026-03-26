@@ -43,3 +43,28 @@ Future<void> _forceFlushStoryInteraction(StoryInteractionOptimizer service) =>
 
 Future<void> _cleanupStoryInteraction(StoryInteractionOptimizer service) =>
     _StoryInteractionOptimizerRuntimePart(service).cleanup();
+
+extension StoryInteractionOptimizerFacadePart on StoryInteractionOptimizer {
+  Future<void> markStoryViewed(
+    String storyOwnerId,
+    String storyId,
+    int storyTime,
+  ) =>
+      _markStoryInteractionViewed(
+        this,
+        storyOwnerId,
+        storyId,
+        storyTime,
+      );
+
+  bool areAllStoriesSeenCached(String storyOwnerId, List<dynamic> stories) =>
+      _readAllStoriesSeenCached(
+        this,
+        storyOwnerId,
+        stories,
+      );
+
+  Future<void> forceFlush() => _forceFlushStoryInteraction(this);
+
+  Future<void> cleanup() => _cleanupStoryInteraction(this);
+}

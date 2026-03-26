@@ -16,29 +16,6 @@ class StoryInteractionOptimizer extends GetxService {
     _handleStoryInteractionOptimizerInit(this);
   }
 
-  Future<void> markStoryViewed(
-    String storyOwnerId,
-    String storyId,
-    int storyTime,
-  ) =>
-      _markStoryInteractionViewed(
-        this,
-        storyOwnerId,
-        storyId,
-        storyTime,
-      );
-
-  bool areAllStoriesSeenCached(String storyOwnerId, List<dynamic> stories) =>
-      _readAllStoriesSeenCached(
-        this,
-        storyOwnerId,
-        stories,
-      );
-
-  Future<void> forceFlush() => _forceFlushStoryInteraction(this);
-
-  Future<void> cleanup() => _cleanupStoryInteraction(this);
-
   @override
   void onClose() {
     _handleStoryInteractionOptimizerClose(this);

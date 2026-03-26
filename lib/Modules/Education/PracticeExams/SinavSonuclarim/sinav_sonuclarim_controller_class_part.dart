@@ -13,37 +13,18 @@ class SinavSonuclarimController extends GetxController {
     return Get.find<SinavSonuclarimController>();
   }
 
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  var list = <SinavModel>[].obs;
-  var ustBar = true.obs;
-  var isLoading = true.obs;
-  final ScrollController scrollController = ScrollController();
-  double _previousOffset = 0.0;
+  final _state = _SinavSonuclarimControllerState();
 
   @override
   void onInit() {
     super.onInit();
-    scrolControlcu();
-    unawaited(_SinavSonuclarimControllerRuntimeX(this).bootstrapData());
+    _handleSinavSonuclarimControllerInit(this);
   }
-
-  void scrolControlcu() =>
-      _SinavSonuclarimControllerRuntimeX(this).setupScrollController();
-
-  Future<void> findAndGetSinavlar({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      _SinavSonuclarimControllerRuntimeX(this).findAndGetSinavlar(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
 
   @override
   void onClose() {
-    scrollController.dispose();
+    _handleSinavSonuclarimControllerClose(this);
     super.onClose();
   }
 }
