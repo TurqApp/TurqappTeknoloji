@@ -22,6 +22,7 @@ import '../../../Core/BottomSheets/no_yes_alert.dart';
 
 import '../../../Core/Services/optimized_nsfw_service.dart';
 part 'edit_profile_controller_actions_part.dart';
+part 'edit_profile_controller_base_part.dart';
 part 'edit_profile_controller_class_part.dart';
 part 'edit_profile_controller_data_part.dart';
 part 'edit_profile_controller_facade_part.dart';

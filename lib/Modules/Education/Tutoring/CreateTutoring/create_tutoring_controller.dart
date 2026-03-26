@@ -22,6 +22,7 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+part 'create_tutoring_controller_base_part.dart';
 part 'create_tutoring_controller_class_part.dart';
 part 'create_tutoring_controller_form_part.dart';
 part 'create_tutoring_controller_fields_part.dart';

@@ -26,6 +26,7 @@ import '../Agenda/agenda_controller.dart';
 import '../Agenda/AgendaContent/agenda_content_controller.dart';
 import '../Agenda/Common/post_content_controller.dart';
 
+part 'edit_post_controller_base_part.dart';
 part 'edit_post_controller_class_part.dart';
 part 'edit_post_controller_facade_part.dart';
 part 'edit_post_controller_media_part.dart';
