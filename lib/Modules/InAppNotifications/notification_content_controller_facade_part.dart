@@ -39,3 +39,12 @@ Future<void> _toggleNotificationContentFollowStatus(
 ) =>
     _NotificationContentControllerActionsPart(controller)
         .toggleFollowStatus(userID);
+
+extension NotificationContentControllerFacadePart
+    on NotificationContentController {
+  Future<void> getPostData(String docID) =>
+      _loadNotificationContentPostData(this, docID);
+
+  Future<void> toggleFollowStatus(String userID) =>
+      _toggleNotificationContentFollowStatus(this, userID);
+}

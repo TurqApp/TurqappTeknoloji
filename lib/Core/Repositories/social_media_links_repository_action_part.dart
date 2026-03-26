@@ -18,12 +18,13 @@ extension SocialMediaLinksRepositoryActionPart on SocialMediaLinksRepository {
       'logo': model.logo,
     }, SetOptions(merge: true));
 
-    final current = await getLinks(uid, preferCache: true, forceRefresh: false);
+    final current =
+        await this.getLinks(uid, preferCache: true, forceRefresh: false);
     final next = List<SocialMediaModel>.from(current)
       ..removeWhere((e) => e.docID == model.docID)
       ..add(model)
       ..sort((a, b) => a.sira.compareTo(b.sira));
-    await setLinks(uid, next);
+    await this.setLinks(uid, next);
   }
 
   Future<void> _deleteLinkImpl(String uid, String docId) async {
@@ -35,9 +36,10 @@ extension SocialMediaLinksRepositoryActionPart on SocialMediaLinksRepository {
         .doc(docId)
         .delete();
 
-    final current = await getLinks(uid, preferCache: true, forceRefresh: false);
+    final current =
+        await this.getLinks(uid, preferCache: true, forceRefresh: false);
     final next = current.where((e) => e.docID != docId).toList(growable: false);
-    await setLinks(uid, next);
+    await this.setLinks(uid, next);
   }
 
   Future<void> _reorderLinksImpl(
@@ -68,6 +70,6 @@ extension SocialMediaLinksRepositoryActionPart on SocialMediaLinksRepository {
       );
     }
     await batch.commit();
-    await setLinks(uid, normalized);
+    await this.setLinks(uid, normalized);
   }
 }

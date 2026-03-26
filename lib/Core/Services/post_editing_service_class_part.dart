@@ -13,12 +13,7 @@ class PostEditingService extends GetxController {
     return Get.put(PostEditingService());
   }
 
-  final RxList<EditAction> _undoStack = <EditAction>[].obs;
-  final RxList<EditAction> _redoStack = <EditAction>[].obs;
-  final Rx<TextFormatting> _currentFormatting = TextFormatting().obs;
-  final RxList<SmartSuggestion> _suggestions = <SmartSuggestion>[].obs;
-  final RxBool _smartSuggestionsEnabled = true.obs;
-  final RxString _currentText = ''.obs;
+  final _PostEditingServiceState _state = _PostEditingServiceState();
 
   static const int _maxUndoActions = 50;
   static const List<String> _commonHashtags = [
@@ -35,14 +30,6 @@ class PostEditingService extends GetxController {
     '#doga',
     '#arkadas'
   ];
-
-  List<EditAction> get undoStack => _undoStack;
-  List<EditAction> get redoStack => _redoStack;
-  TextFormatting get currentFormatting => _currentFormatting.value;
-  List<SmartSuggestion> get suggestions => _suggestions;
-  bool get smartSuggestionsEnabled => _smartSuggestionsEnabled.value;
-  bool get canUndo => _undoStack.isNotEmpty;
-  bool get canRedo => _redoStack.isNotEmpty;
 
   @override
   void onInit() {

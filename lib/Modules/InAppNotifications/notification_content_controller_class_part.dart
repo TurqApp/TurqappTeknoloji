@@ -25,28 +25,19 @@ class NotificationContentController extends GetxController {
   static const String _tutoringApplicationType =
       kNotificationPostTypeTutoringApplicationLower;
 
-  String userID;
-  final NotificationModel notification;
   final _state = _NotificationContentControllerState();
 
   NotificationContentController({
-    required this.userID,
-    required this.notification,
-  });
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final FollowRepository _followRepository = FollowRepository.ensure();
-  final NotifyLookupRepository _notifyLookupRepository =
-      NotifyLookupRepository.ensure();
+    required String userID,
+    required NotificationModel notification,
+  }) {
+    _state.userID = userID;
+    _state.notification = notification;
+  }
 
   @override
   void onInit() {
     super.onInit();
     _handleNotificationContentInit(this);
   }
-
-  Future<void> getPostData(String docID) =>
-      _loadNotificationContentPostData(this, docID);
-
-  Future<void> toggleFollowStatus(String userID) =>
-      _toggleNotificationContentFollowStatus(this, userID);
 }
