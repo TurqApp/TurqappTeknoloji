@@ -1,6 +1,26 @@
 part of 'profile_view.dart';
 
 extension _ProfileViewLifecyclePart on _ProfileViewState {
+  bool _isProfileSurfaceActive() {
+    final nav = NavBarController.maybeFind();
+    if (nav == null) {
+      final route = Get.currentRoute.trim();
+      if (route == '/NavBarView' || route == 'NavBarView') {
+        return false;
+      }
+      return true;
+    }
+    final settings = SettingsController.maybeFind();
+    final hasEducation = settings?.educationScreenIsOn.value ?? false;
+    final profileIndex = hasEducation ? 4 : 3;
+    return nav.selectedIndex.value == profileIndex;
+  }
+
+  void _refreshProfileSurfaceMetaIfActive({bool force = false}) {
+    if (!_isProfileSurfaceActive()) return;
+    unawaited(_refreshProfileSurfaceMeta(force: force));
+  }
+
   void _initializeProfileView() {
     final existingController = ProfileController.maybeFind();
     if (existingController != null) {
@@ -24,20 +44,22 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_refreshProfileSurfaceMeta(force: false));
+      _refreshProfileSurfaceMetaIfActive(force: false);
     });
     _marketUserWorker = ever(userService.currentUserRx, (_) {
-      unawaited(_refreshProfileSurfaceMeta(force: false));
+      _refreshProfileSurfaceMetaIfActive(force: false);
     });
-
-    final highlightsController = _ensureProfileHighlightsController();
-    if (highlightsController != null) {
-      unawaited(highlightsController.loadHighlights());
+    final nav = NavBarController.maybeFind();
+    if (nav != null) {
+      _profileTabWorker = ever<int>(nav.selectedIndex, (_) {
+        _refreshProfileSurfaceMetaIfActive(force: false);
+      });
     }
   }
 
   void _disposeProfileView() {
     _marketUserWorker?.dispose();
+    _profileTabWorker?.dispose();
     if (_ownsHighlightsController) {
       final uid = _myUserId;
       final tag = uid.isEmpty ? '' : 'highlights_$uid';

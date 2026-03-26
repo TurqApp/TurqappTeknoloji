@@ -112,6 +112,7 @@ extension _ProfileViewProfilePart on _ProfileViewState {
   }
 
   Future<void> _refreshProfileSurfaceMeta({bool force = false}) async {
+    if (!_isProfileSurfaceActive()) return;
     final uid = _myUserId.trim();
     if (uid.isEmpty) return;
     await controller.refreshAll(forceSync: force);

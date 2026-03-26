@@ -53,6 +53,7 @@ extension _StoryHighlightsControllerCoverPartX on StoryHighlightsController {
       if ((data['deleted'] ?? false) == true) continue;
       final extracted = _extractPreviewUrlFromStoryData(data);
       if (extracted.isNotEmpty) return extracted;
+      if (!_canMutateOwnedHighlights) continue;
       final generated = await _generateHighlightThumbnailFromStoryData(
         data,
         highlightId: highlightId,

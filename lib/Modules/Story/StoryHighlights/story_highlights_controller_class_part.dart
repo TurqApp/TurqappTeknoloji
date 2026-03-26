@@ -29,7 +29,7 @@ class StoryHighlightsController extends GetxController {
     final ownerUid = _ownerUid;
     if (ownerUid.isEmpty) return false;
     final authUid = _userService.authUserId.trim();
-    if (authUid.isEmpty) return true;
+    if (authUid.isEmpty) return false;
     return authUid == ownerUid;
   }
 

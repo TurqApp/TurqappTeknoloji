@@ -58,6 +58,7 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 import '../../../Core/text_styles.dart';
 import '../../Agenda/agenda_controller.dart';
 import '../../Explore/explore_controller.dart';
+import '../../NavBar/nav_bar_controller.dart';
 import '../../Short/short_controller.dart';
 import '../../Story/StoryMaker/story_maker.dart';
 import '../../Story/StoryRow/story_row_controller.dart';
@@ -69,6 +70,7 @@ import '../../../Core/Services/iz_birak_subscription_service.dart';
 import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/video_state_manager.dart';
 import '../SocialMediaLinks/social_media_links_controller.dart';
+import '../Settings/settings_controller.dart';
 import '../../../Models/social_media_model.dart';
 
 part 'profile_view_lifecycle_part.dart';
@@ -103,6 +105,7 @@ class _ProfileViewState extends State<ProfileView> {
   bool _ownsSocialMediaController = false;
   bool _ownsHighlightsController = false;
   Worker? _marketUserWorker;
+  Worker? _profileTabWorker;
 
   @override
   void initState() {

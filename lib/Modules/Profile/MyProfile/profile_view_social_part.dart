@@ -6,8 +6,9 @@ extension _ProfileViewSocialPart on _ProfileViewState {
     if (uid.isEmpty) return const SizedBox.shrink();
 
     final tag = 'highlights_$uid';
-    final hlController =
-        StoryHighlightsController.ensure(userId: uid, tag: tag);
+    final hlController = _isProfileSurfaceActive()
+        ? _ensureProfileHighlightsController()
+        : StoryHighlightsController.maybeFind(tag: tag);
 
     return Obx(() {
       const rowHeight = 90.0;
@@ -21,12 +22,14 @@ extension _ProfileViewSocialPart on _ProfileViewState {
           'data': model,
         });
       }
-      for (final hl in hlController.highlights) {
-        mixedItems.add({
-          'type': 'highlight',
-          'id': hl.id,
-          'data': hl,
-        });
+      if (hlController != null) {
+        for (final hl in hlController.highlights) {
+          mixedItems.add({
+            'type': 'highlight',
+            'id': hl.id,
+            'data': hl,
+          });
+        }
       }
       if (mixedItems.isEmpty) return const SizedBox.shrink();
 
@@ -63,7 +66,7 @@ extension _ProfileViewSocialPart on _ProfileViewState {
     BuildContext context,
     Map<String, dynamic> item,
     String uid,
-    StoryHighlightsController hlController,
+    StoryHighlightsController? hlController,
     double width,
   ) {
     if (item['type'] == 'link') {
@@ -91,8 +94,9 @@ extension _ProfileViewSocialPart on _ProfileViewState {
           userId: uid,
           highlight: highlight,
         ),
-        onLongPress: () =>
-            _showHighlightDeleteConfirmation(hlController, highlight),
+        onLongPress: hlController == null
+            ? null
+            : () => _showHighlightDeleteConfirmation(hlController, highlight),
       ),
     );
   }
