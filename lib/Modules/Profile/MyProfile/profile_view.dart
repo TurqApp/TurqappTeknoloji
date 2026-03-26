@@ -136,12 +136,12 @@ class _ProfileViewState extends State<ProfileView> {
         children: [
           _buildTopHeaderRow(),
           _buildImageAndButtonsRow(),
-          12.ph,
+          8.ph,
           textInfoBody(),
           _buildLinksAndHighlightsRow(),
           Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: postButtons(context),
           ),
           Divider(

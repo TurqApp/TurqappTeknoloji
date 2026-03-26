@@ -34,7 +34,7 @@ extension _ProfileViewSocialPart on _ProfileViewState {
       if (mixedItems.isEmpty) return const SizedBox.shrink();
 
       return Padding(
-        padding: const EdgeInsets.only(top: 2, bottom: 4),
+        padding: const EdgeInsets.only(top: 0, bottom: 2),
         child: SizedBox(
           height: rowHeight,
           child: ListView.builder(

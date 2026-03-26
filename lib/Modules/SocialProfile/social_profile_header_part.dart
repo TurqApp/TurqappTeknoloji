@@ -151,13 +151,13 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
             ],
           ),
           imageAndFollowButtons(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           textInfoBody(),
           if (!controller.isBlockedByCurrentViewer(widget.userID))
             _buildLinksAndHighlightsRow(),
           Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: postButtons(context),
           ),
           Divider(

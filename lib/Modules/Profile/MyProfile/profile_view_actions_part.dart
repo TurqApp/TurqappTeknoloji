@@ -104,7 +104,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
 
   Widget _buildTopHeaderRow() {
     return Padding(
-      padding: const EdgeInsets.only(left: 15, right: 15, bottom: 8),
+      padding: const EdgeInsets.only(left: 15, right: 15, bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

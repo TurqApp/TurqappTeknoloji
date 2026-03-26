@@ -29,7 +29,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           (a, b) => (b['createdAt'] as int).compareTo(a['createdAt'] as int));
 
       return Padding(
-        padding: const EdgeInsets.only(top: 7, bottom: 4),
+        padding: const EdgeInsets.only(top: 2, bottom: 2),
         child: SizedBox(
           height: 90,
           child: ListView.builder(
