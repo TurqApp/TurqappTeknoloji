@@ -1,9 +1,7 @@
 class AntremanCommentModel {
-  String metin;
-  String userID;
+  String metin, userID, docID;
   num timeStamp;
   List<String> begeniler;
-  String docID;
 
   AntremanCommentModel({
     required this.docID,
