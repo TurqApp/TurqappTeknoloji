@@ -13,7 +13,7 @@ extension ScholarshipSnapshotRepositoryStatePart
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
 
   CacheFirstCoordinator<ScholarshipListingSnapshot> get _coordinator =>
-      _state.coordinator ??= _createScholarshipSnapshotCoordinator();
+      _state.coordinator ??= _createScholarshipSnapshotCoordinator(this);
 
   EducationTypesenseCacheFirstAdapter<ScholarshipListingSnapshot>
       get _homeAdapter =>
@@ -25,13 +25,15 @@ extension ScholarshipSnapshotRepositoryStatePart
 }
 
 CacheFirstCoordinator<ScholarshipListingSnapshot>
-    _createScholarshipSnapshotCoordinator() {
+    _createScholarshipSnapshotCoordinator(
+  ScholarshipSnapshotRepository controller,
+) {
   return CacheFirstCoordinator<ScholarshipListingSnapshot>(
     memoryStore: MemoryScopedSnapshotStore<ScholarshipListingSnapshot>(),
     snapshotStore: SharedPrefsScopedSnapshotStore<ScholarshipListingSnapshot>(
       prefsPrefix: 'scholarship_snapshot_v1',
-      encode: _encodeSnapshot,
-      decode: _decodeSnapshot,
+      encode: controller._encodeSnapshot,
+      decode: controller._decodeSnapshot,
     ),
     telemetry: const CacheFirstKpiTelemetry<ScholarshipListingSnapshot>(),
     policy: const CacheFirstPolicy(
