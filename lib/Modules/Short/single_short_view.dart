@@ -25,6 +25,9 @@ import '../Agenda/FloodListing/flood_listing.dart';
 
 part 'single_short_view_helpers_part.dart';
 part 'single_short_view_controller_part.dart';
+part 'single_short_view_controller_bootstrap_part.dart';
+part 'single_short_view_controller_listener_part.dart';
+part 'single_short_view_controller_sync_part.dart';
 part 'single_short_view_playback_part.dart';
 part 'single_short_view_ui_part.dart';
 
