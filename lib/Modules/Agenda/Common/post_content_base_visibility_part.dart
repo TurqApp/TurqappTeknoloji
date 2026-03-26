@@ -90,7 +90,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
     }
 
     if (surfaceTag.startsWith('tag_post_')) {
-      final tagPostsController = TagPostsController.maybeFind();
+      final tagPostsController = maybeFindTagPostsController();
       if (tagPostsController == null) return;
       final tagPostIndex = tagPostsController.list
           .indexWhere((p) => p.docID == widget.model.docID);

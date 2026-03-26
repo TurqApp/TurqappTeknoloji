@@ -204,7 +204,7 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                               title: 'common.delete'.tr,
                               message: 'story.comment_delete_message'.tr,
                               onYesPressed: () {
-                                final store = StoryCommentsController.maybeFind(
+                                final store = maybeFindStoryCommentsController(
                                   tag: widget.storyID,
                                 );
                                 final index =

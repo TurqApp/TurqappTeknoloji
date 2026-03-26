@@ -26,15 +26,15 @@ class _MyApplicationsState extends State<MyApplications> {
     super.initState();
     _controllerTag = 'my_applications_${identityHashCode(this)}';
     _ownsController =
-        MyApplicationsController.maybeFind(tag: _controllerTag) == null;
-    controller = MyApplicationsController.ensure(tag: _controllerTag);
+        maybeFindMyApplicationsController(tag: _controllerTag) == null;
+    controller = ensureMyApplicationsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          MyApplicationsController.maybeFind(tag: _controllerTag),
+          maybeFindMyApplicationsController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<MyApplicationsController>(tag: _controllerTag);

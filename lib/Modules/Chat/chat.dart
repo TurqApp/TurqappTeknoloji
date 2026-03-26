@@ -46,14 +46,14 @@ class ChatView extends StatelessWidget {
     this.isNewChat,
     this.openKeyboard,
   });
-  ChatController get controller => ChatController.ensure(
+  ChatController get controller => ensureChatController(
         chatID: chatID,
         userID: userID,
         tag: chatID,
       );
 
   void _disposeChatControllerIfAny() {
-    if (ChatController.maybeFind(tag: chatID) != null) {
+    if (maybeFindChatController(tag: chatID) != null) {
       Get.delete<ChatController>(tag: chatID, force: true);
     }
   }

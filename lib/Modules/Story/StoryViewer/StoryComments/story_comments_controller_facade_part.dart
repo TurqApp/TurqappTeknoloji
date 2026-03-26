@@ -2,6 +2,22 @@ part of 'story_comments_controller.dart';
 
 String? _storyCommentsActiveTag;
 
+StoryCommentsController ensureStoryCommentsController({
+  required String nickname,
+  required String storyID,
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureStoryCommentsController(
+      nickname: nickname,
+      storyID: storyID,
+      tag: tag,
+      permanent: permanent,
+    );
+
+StoryCommentsController? maybeFindStoryCommentsController({String? tag}) =>
+    _maybeFindStoryCommentsController(tag: tag);
+
 StoryCommentsController _ensureStoryCommentsController({
   required String nickname,
   required String storyID,

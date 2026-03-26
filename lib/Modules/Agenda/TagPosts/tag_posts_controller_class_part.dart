@@ -4,9 +4,6 @@ class TagPostsController extends GetxController {
   static String _normalizeTag(String tag) => tag.trim();
   static String? _activeTag;
 
-  static TagPostsController? maybeFind({String? tag}) =>
-      _maybeFindTagPostsController(tag: tag);
-
   final _TagPostsControllerState _state;
 
   TagPostsController({
@@ -18,9 +15,6 @@ class TagPostsController extends GetxController {
           controllerTag: controllerTag,
           repository: repository,
         );
-
-  static TagPostsController ensure({required String tag}) =>
-      _ensureTagPostsController(tag: tag);
 
   @override
   void onClose() {

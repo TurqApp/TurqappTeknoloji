@@ -13,10 +13,6 @@ part 'top_tags_contoller_scroll_part.dart';
 part 'top_tags_contoller_lifecycle_part.dart';
 
 class TopTagsController extends GetxController {
-  static TopTagsController ensure() => ensureTopTagsController();
-
-  static TopTagsController? maybeFind() => maybeFindTopTagsController();
-
   final TopTagsRepository _repo;
   TopTagsController({TopTagsRepository? repository})
       : _repo = repository ?? TopTagsRepository.ensure();

@@ -1,21 +1,6 @@
 part of 'editor_email_controller.dart';
 
 class EditorEmailController extends GetxController {
-  static EditorEmailController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(
-      EditorEmailController(),
-      permanent: permanent,
-    );
-  }
-
-  static EditorEmailController? maybeFind() {
-    final isRegistered = Get.isRegistered<EditorEmailController>();
-    if (!isRegistered) return null;
-    return Get.find<EditorEmailController>();
-  }
-
   final _EditorEmailControllerState _state = _EditorEmailControllerState();
 
   @override

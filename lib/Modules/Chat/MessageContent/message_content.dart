@@ -125,7 +125,7 @@ class MessageContent extends StatelessWidget {
       mainID: mainID,
       tag: model.docID,
     );
-    chatController = ChatController.ensure(
+    chatController = ensureChatController(
       chatID: mainID,
       userID: model.userID,
       tag: mainID,

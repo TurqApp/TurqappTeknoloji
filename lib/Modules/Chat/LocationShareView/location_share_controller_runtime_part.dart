@@ -62,7 +62,7 @@ extension LocationShareControllerRuntimePart on LocationShareController {
     print("Konum paylaşıldı: ${pos.latitude}, ${pos.longitude}");
     print("Adres: ${currentAddress.value}");
 
-    final controller = ChatController.maybeFind(tag: chatID);
+    final controller = maybeFindChatController(tag: chatID);
     if (controller == null) return;
     controller.textEditingController.text = currentAddress.value;
     controller.sendMessage(

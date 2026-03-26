@@ -81,7 +81,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final tagPostsController = TagPostsController.maybeFind();
+    final tagPostsController = maybeFindTagPostsController();
     if (tagPostsController != null) {
       final tagPostIndex = tagPostsController.list
           .indexWhere((p) => p.docID == widget.model.docID);
@@ -181,7 +181,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final tagPostsController = TagPostsController.maybeFind();
+    final tagPostsController = maybeFindTagPostsController();
     if (tagPostsController != null) {
       final tagPostIndex = tagPostsController.list
           .indexWhere((p) => p.docID == widget.model.docID);

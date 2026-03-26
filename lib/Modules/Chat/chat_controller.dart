@@ -43,6 +43,7 @@ part 'chat_controller_conversation.dart';
 part 'chat_controller_conversation_sync_part.dart';
 part 'chat_controller_actions_part.dart';
 part 'chat_controller_composer_part.dart';
+part 'chat_controller_facade_part.dart';
 part 'chat_controller_fields_part.dart';
 part 'chat_controller_forwarding_part.dart';
 part 'chat_controller_lifecycle_part.dart';

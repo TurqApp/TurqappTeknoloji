@@ -195,7 +195,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _chatConversationSnapshot() {
-    final controller = ChatController.maybeFind();
+    final controller = maybeFindChatController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -362,7 +362,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _storyCommentsSnapshot() {
-    final controller = StoryCommentsController.maybeFind();
+    final controller = maybeFindStoryCommentsController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }

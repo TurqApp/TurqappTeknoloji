@@ -18,12 +18,12 @@ class _EditorEmailState extends State<EditorEmail> {
   @override
   void initState() {
     super.initState();
-    final existingController = EditorEmailController.maybeFind();
+    final existingController = maybeFindEditorEmailController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = EditorEmailController.ensure();
+      controller = ensureEditorEmailController();
       _ownsController = true;
     }
   }
@@ -31,7 +31,7 @@ class _EditorEmailState extends State<EditorEmail> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(EditorEmailController.maybeFind(), controller)) {
+        identical(maybeFindEditorEmailController(), controller)) {
       Get.delete<EditorEmailController>(force: true);
     }
     super.dispose();

@@ -26,9 +26,8 @@ class _TagPostsState extends State<TagPosts> {
   void initState() {
     super.initState();
     _controllerTag = widget.tag.trim();
-    final existingController =
-        TagPostsController.maybeFind(tag: _controllerTag);
-    controller = TagPostsController.ensure(tag: widget.tag);
+    final existingController = maybeFindTagPostsController(tag: _controllerTag);
+    controller = ensureTagPostsController(tag: widget.tag);
     _ownsController = existingController == null;
     scrollController.addListener(_onScroll);
   }
@@ -39,7 +38,7 @@ class _TagPostsState extends State<TagPosts> {
     scrollController.dispose();
     if (_ownsController &&
         identical(
-          TagPostsController.maybeFind(tag: _controllerTag),
+          maybeFindTagPostsController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<TagPostsController>(tag: _controllerTag, force: true);
