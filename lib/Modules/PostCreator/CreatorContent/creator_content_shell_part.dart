@@ -8,25 +8,23 @@ extension CreatorContentShellPart on CreatorContent {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Obx(() {
-        final showHashtagSuggestions =
-            controller.showHashtagSuggestions.value;
-        return GestureDetector(
-          behavior: HitTestBehavior.deferToChild,
-          onTap: showHashtagSuggestions
-              ? null
-              : () {
-                  if (!isSelected) {
-                    final position = mainController.postList.indexWhere(
-                      (post) => post.index == model.index,
-                    );
-                    if (position != -1) {
-                      mainController.selectedIndex.value = position;
-                    }
-                  }
-                  controller.focus.requestFocus();
-                },
-          child: () {
+      child: GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        onTap: () {
+          if (controller.showHashtagSuggestions.value) {
+            return;
+          }
+          if (!isSelected) {
+            final position = mainController.postList.indexWhere(
+              (post) => post.index == model.index,
+            );
+            if (position != -1) {
+              mainController.selectedIndex.value = position;
+            }
+          }
+          controller.focus.requestFocus();
+        },
+        child: Obx(() {
             final userService = CurrentUserService.instance;
             final currentUser = userService.currentUserRx.value;
             final threadIndex = mainController.postList.indexWhere(
@@ -242,9 +240,8 @@ extension CreatorContentShellPart on CreatorContent {
                 ],
               ),
             );
-          }(),
-        );
-      }),
+        }),
+      ),
     );
   }
 }
