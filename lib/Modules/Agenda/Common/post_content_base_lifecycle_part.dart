@@ -3,7 +3,7 @@ part of 'post_content_base.dart';
 extension PostContentBaseLifecyclePart<T extends PostContentBase>
     on PostContentBaseState<T> {
   void _handleLifecycleInit() {
-    controller = PostContentController.ensure(
+    controller = ensurePostContentController(
       tag: controllerTag,
       create: widget.createController,
     );

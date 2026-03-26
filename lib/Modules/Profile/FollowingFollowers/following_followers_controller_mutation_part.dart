@@ -56,7 +56,7 @@ void _applyFollowMutationToCachesImpl({
     );
   }
 
-  final currentController = FollowingFollowersController.maybeFind(
+  final currentController = maybeFindFollowingFollowersController(
     tag: currentUid,
   );
   if (currentController != null) {
@@ -66,7 +66,7 @@ void _applyFollowMutationToCachesImpl({
       nowFollowing: nowFollowing,
     );
   }
-  final otherController = FollowingFollowersController.maybeFind(
+  final otherController = maybeFindFollowingFollowersController(
     tag: otherUserID,
   );
   if (otherController != null) {

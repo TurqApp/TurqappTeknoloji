@@ -41,6 +41,27 @@ void _clearPostContentControllerReshareUsersCache() {
   _clearPostContentReshareUsersCache();
 }
 
+PostContentController ensurePostContentController({
+  required String tag,
+  required PostContentController Function() create,
+}) =>
+    _ensurePostContentController(tag: tag, create: create);
+
+PostContentController? maybeFindPostContentController({required String tag}) =>
+    _maybeFindPostContentController(tag: tag);
+
+void invalidatePostContentUserProfileCache(String userId) {
+  _invalidatePostContentControllerUserProfileCache(userId);
+}
+
+void clearPostContentUserProfileCache() {
+  _clearPostContentControllerUserProfileCache();
+}
+
+void clearPostContentReshareUsersCache() {
+  _clearPostContentControllerReshareUsersCache();
+}
+
 void _invalidatePostContentUserProfileCache(String userId) {
   final trimmed = userId.trim();
   if (trimmed.isEmpty) return;

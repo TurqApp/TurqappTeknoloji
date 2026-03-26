@@ -31,7 +31,7 @@ extension FollowerControllerActionsPart on FollowerController {
           isFollowed: outcome.nowFollowing,
           cachedAt: DateTime.now(),
         );
-        FollowingFollowersController.applyFollowMutationToCaches(
+        applyFollowingFollowersMutationToCaches(
           currentUid: myUid,
           otherUserID: otherUserID,
           nowFollowing: outcome.nowFollowing,

@@ -22,7 +22,7 @@ class CreateChatController extends GetxController {
     super.onInit();
     debounce<String>(query, (val) async {
       final q = normalizeSearchText(val);
-      final followers = FollowingFollowersController.maybeFind();
+      final followers = maybeFindFollowingFollowersController();
       if (followers == null) return;
       followers.searchTakipEdilenController.text = q;
       if (q.length >= 2) {

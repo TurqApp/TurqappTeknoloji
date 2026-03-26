@@ -41,3 +41,33 @@ void _applyFollowingFollowersMutationToCaches({
       otherUserID: otherUserID,
       nowFollowing: nowFollowing,
     );
+
+FollowingFollowersController ensureFollowingFollowersController({
+  required String userId,
+  required int initialPage,
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureFollowingFollowersController(
+      userId: userId,
+      initialPage: initialPage,
+      tag: tag,
+      permanent: permanent,
+    );
+
+FollowingFollowersController? maybeFindFollowingFollowersController({
+  String? tag,
+}) =>
+    _maybeFindFollowingFollowersController(tag: tag);
+
+void applyFollowingFollowersMutationToCaches({
+  required String currentUid,
+  required String otherUserID,
+  required bool nowFollowing,
+}) {
+  _applyFollowingFollowersControllerMutationToCaches(
+    currentUid: currentUid,
+    otherUserID: otherUserID,
+    nowFollowing: nowFollowing,
+  );
+}

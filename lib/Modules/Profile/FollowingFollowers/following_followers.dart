@@ -48,11 +48,11 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
     super.initState();
     final controllerTag = _normalizedUserId;
     final existingController =
-        FollowingFollowersController.maybeFind(tag: controllerTag);
+        maybeFindFollowingFollowersController(tag: controllerTag);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = FollowingFollowersController.ensure(
+      controller = ensureFollowingFollowersController(
         userId: _normalizedUserId,
         initialPage: widget.selection,
         tag: controllerTag,
@@ -70,7 +70,7 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
     _followingScrollController.dispose();
     if (_ownsController &&
         identical(
-          FollowingFollowersController.maybeFind(tag: _normalizedUserId),
+          maybeFindFollowingFollowersController(tag: _normalizedUserId),
           controller,
         )) {
       Get.delete<FollowingFollowersController>(
