@@ -4,6 +4,11 @@ extension AdsPreviewScreenFormPart on _AdsPreviewScreenState {
   Widget _buildPreviewForm() {
     return Column(
       children: [
+        TextField(
+          controller: _nickname,
+          decoration: _d('ads_center.nickname'.tr),
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
@@ -57,12 +62,29 @@ extension AdsPreviewScreenFormPart on _AdsPreviewScreenState {
       onPressed: _controller.previewLoading.value
           ? null
           : () async {
+              final resolvedUserId = await _resolvePreviewUserId();
+              if (resolvedUserId == null || resolvedUserId.trim().isEmpty) {
+                final nickname = _nickname.text.trim();
+                final displayNickname = nickname.isEmpty
+                    ? '@'
+                    : nickname.startsWith('@')
+                        ? nickname
+                        : '@$nickname';
+                _controller.previewResult.value = AdDeliveryResult(
+                  hasAd: false,
+                  message:
+                      'ads_center.nickname_not_found'.trParams(<String, String>{
+                    'nickname': displayNickname,
+                  }),
+                );
+                return;
+              }
               await _controller.runPreview(
                 placement: _placement,
                 country: _country.text.trim(),
                 city: _city.text.trim(),
                 age: int.tryParse(_age.text.trim()),
-                userId: _currentUid,
+                userId: resolvedUserId,
               );
             },
       icon: _controller.previewLoading.value
