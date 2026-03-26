@@ -160,12 +160,24 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
     _hasAutoPlayed = true;
+    final managerPendingPlay =
+        !isStandalonePostInstance &&
+        videoStateManager.hasPendingPlayFor(playbackHandleKey);
     if (!adapter.value.isPlaying) {
-      _recordPlaybackDispatch(
-        'feed_card_adapter_play',
-        source: source,
-      );
-      unawaited(adapter.play());
+      if (managerPendingPlay) {
+        _recordPlaybackDispatch(
+          'feed_card_adapter_play_skipped',
+          source: source,
+          dispatchIssued: false,
+          skipReason: 'manager_pending_play',
+        );
+      } else {
+        _recordPlaybackDispatch(
+          'feed_card_adapter_play',
+          source: source,
+        );
+        unawaited(adapter.play());
+      }
     } else {
       _recordPlaybackDispatch(
         'feed_card_adapter_play_skipped',

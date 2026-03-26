@@ -3,12 +3,6 @@ part of 'following_followers_controller.dart';
 class FollowingFollowersController extends GetxController {
   final _FollowingFollowersControllerState _state;
 
-  @override
-  void onClose() {
-    _handleFollowingFollowersControllerClose(this);
-    super.onClose();
-  }
-
   static FollowingFollowersController ensure({
     required String userId,
     required int initialPage,
@@ -37,6 +31,12 @@ class FollowingFollowersController extends GetxController {
   void onInit() {
     super.onInit();
     _handleFollowingFollowersControllerInit(this);
+  }
+
+  @override
+  void onClose() {
+    _handleFollowingFollowersControllerClose(this);
+    super.onClose();
   }
 
   static void applyFollowMutationToCaches({

@@ -37,12 +37,6 @@ class PostCommentContentController extends GetxController {
     _handlePostCommentContentInit(this);
   }
 
-  Future<void> toggleLike() =>
-      _PostCommentContentControllerActionsPart(this).toggleLike();
-
-  Future<bool> deleteComment() =>
-      _PostCommentContentControllerActionsPart(this).deleteComment();
-
   @override
   void onClose() {
     _handlePostCommentContentClose(this);

@@ -37,3 +37,12 @@ void _handlePostCommentContentInit(PostCommentContentController controller) {
 void _handlePostCommentContentClose(PostCommentContentController controller) {
   controller._replySub?.cancel();
 }
+
+extension PostCommentContentControllerFacadePart
+    on PostCommentContentController {
+  Future<void> toggleLike() =>
+      _PostCommentContentControllerActionsPart(this).toggleLike();
+
+  Future<bool> deleteComment() =>
+      _PostCommentContentControllerActionsPart(this).deleteComment();
+}

@@ -1,8 +1,6 @@
 part of 'story_comments_controller.dart';
 
 class StoryCommentsController extends GetxController {
-  static String? _activeTag;
-
   static StoryCommentsController ensure({
     required String nickname,
     required String storyID,
@@ -28,16 +26,6 @@ class StoryCommentsController extends GetxController {
           nickname: nickname,
           storyID: storyID,
         );
-
-  Future<void> getData() => _getStoryCommentsData(this);
-
-  Future<void> getLast() => _getLastStoryComment(this);
-
-  Future<void> setComment() => _setStoryComment(this);
-
-  Future<void> pickGif(BuildContext context) => _pickStoryGif(this, context);
-
-  void clearSelectedGif() => _clearStorySelectedGif(this);
 
   @override
   void onClose() {

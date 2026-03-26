@@ -33,6 +33,13 @@ class VideoStateManager extends GetxController {
 
   String? get currentPlayingDocID => _currentPlayingDocID;
 
+  bool hasPendingPlayFor(String docID) {
+    final timer = _pendingPlayTimer;
+    return timer != null &&
+        timer.isActive &&
+        _currentPlayingDocID == docID;
+  }
+
   @override
   void onClose() {
     _pendingPlayTimer?.cancel();

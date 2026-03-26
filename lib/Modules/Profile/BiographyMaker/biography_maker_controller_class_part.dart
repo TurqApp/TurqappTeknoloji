@@ -1,20 +1,11 @@
 part of 'biography_maker_controller.dart';
 
 class BiographyMakerController extends GetxController {
-  static BiographyMakerController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(
-      BiographyMakerController(),
-      permanent: permanent,
-    );
-  }
+  static BiographyMakerController ensure({bool permanent = false}) =>
+      _ensureBiographyMakerController(permanent: permanent);
 
-  static BiographyMakerController? maybeFind() {
-    final isRegistered = Get.isRegistered<BiographyMakerController>();
-    if (!isRegistered) return null;
-    return Get.find<BiographyMakerController>();
-  }
+  static BiographyMakerController? maybeFind() =>
+      _maybeFindBiographyMakerController();
 
   final _state = _BiographyMakerControllerState();
 
@@ -29,6 +20,4 @@ class BiographyMakerController extends GetxController {
     _handleBiographyMakerClose(this);
     super.onClose();
   }
-
-  Future<void> setData() => _saveBiographyData(this);
 }

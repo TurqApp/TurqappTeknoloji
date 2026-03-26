@@ -9,10 +9,11 @@ extension AgendaControllerFeedPart on AgendaController {
     final manager = VideoStateManager.instance;
     final now = DateTime.now();
     final shouldIssueImmediateCommand =
-        _lastPlaybackCommandDocId != post.docID ||
-            _lastPlaybackCommandAt == null ||
-            now.difference(_lastPlaybackCommandAt!) >
-                const Duration(milliseconds: 180);
+        manager.currentPlayingDocID != post.docID &&
+            (_lastPlaybackCommandDocId != post.docID ||
+                _lastPlaybackCommandAt == null ||
+                now.difference(_lastPlaybackCommandAt!) >
+                    const Duration(milliseconds: 180));
     if (shouldIssueImmediateCommand) {
       recordQALabPlaybackDispatch(
         surface: 'feed',
@@ -296,6 +297,7 @@ extension AgendaControllerFeedPart on AgendaController {
         if (centeredIndex.value != index) return;
         if (index < 0 || index >= agendaList.length) return;
         if (agendaList[index].docID != docId) return;
+        if (manager.currentPlayingDocID == docId) return;
         manager.reassertOnlyThis(docId);
         _lastPlaybackCommandDocId = docId;
         _lastPlaybackCommandAt = DateTime.now();

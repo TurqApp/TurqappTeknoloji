@@ -1,5 +1,7 @@
 part of 'story_comments_controller.dart';
 
+String? _storyCommentsActiveTag;
+
 StoryCommentsController _ensureStoryCommentsController({
   required String nickname,
   required String storyID,
@@ -8,7 +10,7 @@ StoryCommentsController _ensureStoryCommentsController({
 }) {
   final existing = _maybeFindStoryCommentsController(tag: tag);
   if (existing != null) {
-    StoryCommentsController._activeTag = tag;
+    _storyCommentsActiveTag = tag;
     return existing;
   }
   final created = Get.put(
@@ -20,12 +22,12 @@ StoryCommentsController _ensureStoryCommentsController({
     permanent: permanent,
   );
   created.controllerTag = tag;
-  StoryCommentsController._activeTag = tag;
+  _storyCommentsActiveTag = tag;
   return created;
 }
 
 StoryCommentsController? _maybeFindStoryCommentsController({String? tag}) {
-  final resolvedTag = (tag ?? StoryCommentsController._activeTag)?.trim();
+  final resolvedTag = (tag ?? _storyCommentsActiveTag)?.trim();
   final effectiveTag = resolvedTag?.isEmpty == true ? null : resolvedTag;
   final isRegistered = Get.isRegistered<StoryCommentsController>(
     tag: effectiveTag,
@@ -57,3 +59,15 @@ void _clearStorySelectedGif(StoryCommentsController controller) =>
 
 void _handleStoryCommentsClose(StoryCommentsController controller) =>
     controller._handleClose();
+
+extension StoryCommentsControllerFacadePart on StoryCommentsController {
+  Future<void> getData() => _getStoryCommentsData(this);
+
+  Future<void> getLast() => _getLastStoryComment(this);
+
+  Future<void> setComment() => _setStoryComment(this);
+
+  Future<void> pickGif(BuildContext context) => _pickStoryGif(this, context);
+
+  void clearSelectedGif() => _clearStorySelectedGif(this);
+}
