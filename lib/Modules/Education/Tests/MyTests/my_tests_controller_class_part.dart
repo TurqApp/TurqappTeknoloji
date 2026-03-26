@@ -20,7 +20,7 @@ class MyTestsController extends GetxController {
     return Get.find<MyTestsController>(tag: tag);
   }
 
-  final TestRepository _testRepository = TestRepository.ensure();
+  final TestRepository _testRepository = ensureTestRepository();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;
   final isLoading = true.obs;

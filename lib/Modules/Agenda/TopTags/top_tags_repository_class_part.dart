@@ -15,18 +15,6 @@ class TopTagsRepository extends GetxService {
   TopTagsRepository({FirebaseFirestore? firestore})
       : _db = firestore ?? FirebaseFirestore.instance;
 
-  static TopTagsRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<TopTagsRepository>();
-    if (!isRegistered) return null;
-    return Get.find<TopTagsRepository>();
-  }
-
-  static TopTagsRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(TopTagsRepository(), permanent: true);
-  }
-
   @override
   void onInit() {
     super.onInit();

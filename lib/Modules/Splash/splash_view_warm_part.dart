@@ -303,7 +303,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final warmLimit = onWiFi ? 18 : 10;
       final userId = CurrentUserService.instance.effectiveUserId;
-      final cached = await JobHomeSnapshotRepository.ensure()
+      final cached = await ensureJobHomeSnapshotRepository()
           .openHome(
             userId: userId,
             limit: warmLimit,
@@ -320,7 +320,7 @@ extension _SplashViewWarmPart on _SplashViewState {
         return;
       }
 
-      await JobHomeSnapshotRepository.ensure().loadHome(
+      await ensureJobHomeSnapshotRepository().loadHome(
         userId: userId,
         limit: warmLimit,
         forceSync: true,

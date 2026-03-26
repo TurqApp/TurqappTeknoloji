@@ -1,5 +1,9 @@
 part of 'test_repository.dart';
 
+TestRepository? maybeFindTestRepository() => _maybeFindTestRepository();
+
+TestRepository ensureTestRepository() => _ensureTestRepository();
+
 TestRepository? _maybeFindTestRepository() =>
     Get.isRegistered<TestRepository>() ? Get.find<TestRepository>() : null;
 

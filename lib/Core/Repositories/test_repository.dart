@@ -23,10 +23,6 @@ class TestRepository extends GetxService {
   final Map<String, _TimedTests> _memory = <String, _TimedTests>{};
   SharedPreferences? _prefs;
 
-  static TestRepository? maybeFind() => _maybeFindTestRepository();
-
-  static TestRepository ensure() => _ensureTestRepository();
-
   @override
   void onInit() {
     super.onInit();

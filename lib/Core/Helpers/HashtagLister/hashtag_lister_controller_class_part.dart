@@ -2,7 +2,7 @@ part of 'hashtag_lister_controller.dart';
 
 class HashtagListerController extends GetxController {
   RxList<HashtagModel> hashtags = <HashtagModel>[].obs;
-  final TopTagsRepository _topTagsRepository = TopTagsRepository.ensure();
+  final TopTagsRepository _topTagsRepository = ensureTopTagsRepository();
 
   @override
   void onInit() {

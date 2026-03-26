@@ -15,18 +15,6 @@ class JobHomeSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'jobs_home_snapshot';
   static const String _searchSurfaceKey = 'jobs_search_snapshot';
 
-  static JobHomeSnapshotRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<JobHomeSnapshotRepository>();
-    if (!isRegistered) return null;
-    return Get.find<JobHomeSnapshotRepository>();
-  }
-
-  static JobHomeSnapshotRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(JobHomeSnapshotRepository(), permanent: true);
-  }
-
   final _JobHomeSnapshotRepositoryState _state;
 
   JobHomeSnapshotRepository() : _state = _JobHomeSnapshotRepositoryState() {

@@ -31,7 +31,7 @@ class _SolveTestControllerState {
   });
 
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
-  final TestRepository testRepository = TestRepository.ensure();
+  final TestRepository testRepository = ensureTestRepository();
   final String testID;
   final Function showSucces;
   final RxList<TestReadinessModel> soruList = <TestReadinessModel>[].obs;

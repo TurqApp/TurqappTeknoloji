@@ -5,7 +5,7 @@ class _TestEntryControllerState {
   final focusNode = FocusNode();
   final model = Rx<TestsModel?>(null);
   final isLoading = false.obs;
-  final testRepository = TestRepository.ensure();
+  final testRepository = ensureTestRepository();
   final helper = CreateTestController(null);
 }
 

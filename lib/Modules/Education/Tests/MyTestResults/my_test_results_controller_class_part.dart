@@ -23,7 +23,7 @@ class MyTestResultsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;
   final isLoading = true.obs;
-  final TestRepository _testRepository = TestRepository.ensure();
+  final TestRepository _testRepository = ensureTestRepository();
 
   @override
   void onInit() {

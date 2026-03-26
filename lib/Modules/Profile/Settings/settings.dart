@@ -164,7 +164,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _ensureDiagnosticsServices() {
-    ErrorHandlingService.ensure();
+    ensureErrorHandlingService();
     NetworkAwarenessService.ensure();
     UploadQueueService.ensure();
     DraftService.ensure();

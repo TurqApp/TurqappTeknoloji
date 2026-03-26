@@ -20,7 +20,7 @@ SearchTestsController? _maybeFindSearchTestsController({String? tag}) {
 }
 
 class _SearchTestsControllerState {
-  final TestRepository testRepository = TestRepository.ensure();
+  final TestRepository testRepository = ensureTestRepository();
   final RxList<TestsModel> list = <TestsModel>[].obs;
   final RxList<TestsModel> filteredList = <TestsModel>[].obs;
   final RxBool isLoading = true.obs;

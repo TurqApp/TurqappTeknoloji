@@ -15,7 +15,7 @@ part 'top_tags_contoller_lifecycle_part.dart';
 class TopTagsController extends GetxController {
   final TopTagsRepository _repo;
   TopTagsController({TopTagsRepository? repository})
-      : _repo = repository ?? TopTagsRepository.ensure();
+      : _repo = repository ?? ensureTopTagsRepository();
   final _state = _TopTagsControllerState();
 
   @override

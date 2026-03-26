@@ -135,7 +135,7 @@ extension _SettingsViewDiagnosticsDetailPart on _SettingsViewState {
   }
 
   void _showLastErrorSummary() {
-    final errorService = ErrorHandlingService.ensure();
+    final errorService = ensureErrorHandlingService();
     final last = errorService.getLastErrorSummary();
 
     Get.dialog(

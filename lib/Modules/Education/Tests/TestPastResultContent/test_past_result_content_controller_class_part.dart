@@ -6,7 +6,7 @@ class TestPastResultContentController extends GetxController {
   final count = 0.obs;
   final isLoading = true.obs;
   final timeStamp = 0.obs;
-  final TestRepository _testRepository = TestRepository.ensure();
+  final TestRepository _testRepository = ensureTestRepository();
 
   TestPastResultContentController(this.model);
 

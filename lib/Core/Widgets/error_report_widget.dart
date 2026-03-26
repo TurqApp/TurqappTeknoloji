@@ -11,7 +11,7 @@ class ErrorReportWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final errorService = ErrorHandlingService.ensure();
+    final errorService = ensureErrorHandlingService();
 
     return Scaffold(
       appBar: AppBar(

@@ -12,7 +12,7 @@ class _MyPastTestResultsPreviewControllerState {
   final RxInt bosSayisi = 0.obs;
   final RxDouble totalPuan = 0.0.obs;
   final RxBool isLoading = true.obs;
-  final TestRepository testRepository = TestRepository.ensure();
+  final TestRepository testRepository = ensureTestRepository();
 }
 
 extension MyPastTestResultsPreviewControllerFieldsPart

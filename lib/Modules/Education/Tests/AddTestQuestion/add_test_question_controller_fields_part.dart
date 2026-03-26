@@ -19,7 +19,7 @@ class _AddTestQuestionControllerState {
   final selections = ['A'].obs;
   final isLoading = true.obs;
   final picker = ImagePicker();
-  final testRepository = TestRepository.ensure();
+  final testRepository = ensureTestRepository();
 }
 
 extension AddTestQuestionControllerFieldsPart on AddTestQuestionController {

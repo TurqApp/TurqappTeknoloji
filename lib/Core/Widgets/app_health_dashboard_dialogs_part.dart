@@ -2,7 +2,7 @@ part of 'app_health_dashboard.dart';
 
 extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   void _ensureDashboardServices() {
-    ErrorHandlingService.ensure();
+    ensureErrorHandlingService();
     NetworkAwarenessService.ensure();
     UploadQueueService.ensure();
     DraftService.ensure();
@@ -14,7 +14,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   }
 
   void _showErrorStats() {
-    final errorService = ErrorHandlingService.maybeFind();
+    final errorService = maybeFindErrorHandlingService();
     if (errorService != null) {
       final stats = errorService.getErrorStats();
 

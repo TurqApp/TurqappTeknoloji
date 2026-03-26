@@ -9,7 +9,7 @@ class _TestsGridControllerState {
   final RxBool isFavorite = false.obs;
   final RxString appStore = ''.obs;
   final RxString googlePlay = ''.obs;
-  final TestRepository testRepository = TestRepository.ensure();
+  final TestRepository testRepository = ensureTestRepository();
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
 }
 

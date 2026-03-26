@@ -11,7 +11,7 @@ extension _ExploreControllerSupportX on ExploreController {
   UserSubcollectionRepository get _subcollectionRepository =>
       ensureUserSubcollectionRepository();
 
-  TopTagsRepository get _topTagsRepository => TopTagsRepository.ensure();
+  TopTagsRepository get _topTagsRepository => ensureTopTagsRepository();
 
   ExploreRepository get _exploreRepository => ExploreRepository.ensure();
 

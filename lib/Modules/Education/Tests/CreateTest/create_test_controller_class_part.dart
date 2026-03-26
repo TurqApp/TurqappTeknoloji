@@ -3,7 +3,7 @@ part of 'create_test_controller.dart';
 class CreateTestController extends GetxController {
   final TestsModel? model;
   final _state = _CreateTestControllerState();
-  final TestRepository _testRepository = TestRepository.ensure();
+  final TestRepository _testRepository = ensureTestRepository();
 
   CreateTestController(this.model);
 

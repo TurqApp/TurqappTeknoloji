@@ -46,7 +46,7 @@ extension _SplashViewStartupPart on _SplashViewState {
         unawaited(_requestTrackingPermission());
         unawaited(_initAdMob(isFirstLaunch: isFirstLaunch));
         unawaited(
-          TopTagsRepository.ensure().fetchTrendingTags(
+          ensureTopTagsRepository().fetchTrendingTags(
             resultLimit: 30,
             preferCache: false,
             forceRefresh: true,

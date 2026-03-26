@@ -1,7 +1,7 @@
 part of 'creator_content_controller.dart';
 
 class _CreatorContentControllerState {
-  final topTagsRepository = TopTagsRepository.ensure();
+  final topTagsRepository = ensureTopTagsRepository();
   final textEdit = TextEditingController();
   final picker = ImagePicker();
   final cropController = CropController();

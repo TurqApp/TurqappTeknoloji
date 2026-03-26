@@ -1,7 +1,7 @@
 part of 'tests_controller.dart';
 
 class _TestsControllerState {
-  final TestRepository testRepository = TestRepository.ensure();
+  final TestRepository testRepository = ensureTestRepository();
   final RxList<TestsModel> list = <TestsModel>[].obs;
   final RxBool showButtons = false.obs;
   final RxBool ustBar = true.obs;

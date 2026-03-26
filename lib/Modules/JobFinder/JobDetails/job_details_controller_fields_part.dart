@@ -4,7 +4,7 @@ class _JobDetailsControllerState {
   final userRepository = UserRepository.ensure();
   final userSummaryResolver = UserSummaryResolver.ensure();
   final cvRepository = ensureCvRepository();
-  final jobHomeSnapshotRepository = JobHomeSnapshotRepository.ensure();
+  final jobHomeSnapshotRepository = ensureJobHomeSnapshotRepository();
   final jobRepository = JobRepository.ensure();
   final saved = false.obs;
   final basvuruldu = false.obs;

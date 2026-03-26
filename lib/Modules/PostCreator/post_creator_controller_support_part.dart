@@ -7,7 +7,7 @@ int _lastModerationSnackbarAtMs = 0;
 
 final PostRepository _postRepository = PostRepository.ensure();
 final agendaController = ensureAgendaController();
-final ErrorHandlingService _errorService = ErrorHandlingService.ensure();
+final ErrorHandlingService _errorService = ensureErrorHandlingService();
 final NetworkAwarenessService _networkService =
     NetworkAwarenessService.ensure();
 final UploadQueueService _uploadQueueService = UploadQueueService.ensure();

@@ -1,18 +1,6 @@
 part of 'error_handling_service.dart';
 
 class ErrorHandlingService extends GetxController {
-  static ErrorHandlingService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ErrorHandlingService());
-  }
-
-  static ErrorHandlingService? maybeFind() {
-    final isRegistered = Get.isRegistered<ErrorHandlingService>();
-    if (!isRegistered) return null;
-    return Get.find<ErrorHandlingService>();
-  }
-
   final RxList<AppError> _errorHistory = <AppError>[].obs;
   final RxBool _isOnline = true.obs;
   final RxInt _totalErrors = 0.obs;

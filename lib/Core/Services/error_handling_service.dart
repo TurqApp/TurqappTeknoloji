@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 
 part 'error_handling_service_class_part.dart';
+part 'error_handling_service_facade_part.dart';
 part 'error_handling_service_processing_part.dart';
 part 'error_handling_service_history_part.dart';
 part 'error_handling_service_models_part.dart';

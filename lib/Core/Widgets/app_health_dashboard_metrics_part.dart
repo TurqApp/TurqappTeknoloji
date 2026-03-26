@@ -258,7 +258,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getSystemHealth() {
-    final errorService = ErrorHandlingService.maybeFind();
+    final errorService = maybeFindErrorHandlingService();
     if (errorService != null) {
       return errorService.getSystemHealth();
     }
@@ -271,7 +271,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getErrorStats() {
-    final errorService = ErrorHandlingService.maybeFind();
+    final errorService = maybeFindErrorHandlingService();
     if (errorService != null) {
       return errorService.getErrorStats();
     }

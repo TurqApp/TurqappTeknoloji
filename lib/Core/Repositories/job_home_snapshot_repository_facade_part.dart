@@ -1,5 +1,17 @@
 part of 'job_home_snapshot_repository.dart';
 
+JobHomeSnapshotRepository? maybeFindJobHomeSnapshotRepository() {
+  final isRegistered = Get.isRegistered<JobHomeSnapshotRepository>();
+  if (!isRegistered) return null;
+  return Get.find<JobHomeSnapshotRepository>();
+}
+
+JobHomeSnapshotRepository ensureJobHomeSnapshotRepository() {
+  final existing = maybeFindJobHomeSnapshotRepository();
+  if (existing != null) return existing;
+  return Get.put(JobHomeSnapshotRepository(), permanent: true);
+}
+
 extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
   Stream<CachedResource<List<JobModel>>> openHome({
     required String userId,

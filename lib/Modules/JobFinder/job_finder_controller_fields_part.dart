@@ -1,7 +1,7 @@
 part of 'job_finder_controller.dart';
 
 class _JobFinderControllerState {
-  final jobHomeSnapshotRepository = JobHomeSnapshotRepository.ensure();
+  final jobHomeSnapshotRepository = ensureJobHomeSnapshotRepository();
   final jobRepository = JobRepository.ensure();
   final cityDirectoryService = CityDirectoryService.ensure();
   final imgList = <String>[
