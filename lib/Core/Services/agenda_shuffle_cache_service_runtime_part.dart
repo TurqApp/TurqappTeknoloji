@@ -8,6 +8,22 @@ AgendaShuffleCacheService ensureAgendaShuffleCacheService() =>
 
 extension AgendaShuffleCacheServiceRuntimePart on AgendaShuffleCacheService {
   List<PostsModel> takeCurrentVisible() => _takeCurrentAgendaVisiblePosts(this);
+
+  void clear() => _clearAgendaShuffleCache(this);
+
+  void removePosts(Iterable<String> docIds) =>
+      _removeAgendaShufflePosts(this, docIds);
+
+  void replace(List<PostsModel> posts) =>
+      _replaceAgendaShufflePosts(this, posts);
+
+  void reshuffle() => _reshuffleAgendaPosts(this);
+
+  List<PostsModel> takeNext(int limit) =>
+      _takeNextAgendaShufflePosts(this, limit);
+
+  void mergeBackground(List<PostsModel> visibleItems) =>
+      _mergeAgendaShuffleBackground(this, visibleItems);
 }
 
 AgendaShuffleCacheService? _maybeFindAgendaShuffleCacheService() {
