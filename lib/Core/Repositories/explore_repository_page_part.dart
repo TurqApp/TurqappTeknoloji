@@ -20,9 +20,10 @@ extension ExploreRepositoryPagePart on ExploreRepository {
         .take(pageLimit)
         .toList(growable: false);
     return ExploreQueryPage(
-      items,
-      snap.docs.isEmpty ? null : snap.docs.last,
-      snap.docs.length >= (excludeSeriesRoots ? pageLimit * 3 : pageLimit),
+      items: items,
+      lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
+      hasMore:
+          snap.docs.length >= (excludeSeriesRoots ? pageLimit * 3 : pageLimit),
     );
   }
 }
