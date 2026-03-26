@@ -8,27 +8,18 @@ class HashtagTextVideoPostController extends GetxController {
     required void Function(bool) volume,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      HashtagTextVideoPostController(
+  }) =>
+      _ensureHashtagTextVideoPostController(
         text: text,
         nickname: nickname,
         color: color,
         volume: volume,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static HashtagTextVideoPostController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<HashtagTextVideoPostController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<HashtagTextVideoPostController>(tag: tag);
-  }
+  static HashtagTextVideoPostController? maybeFind({String? tag}) =>
+      _maybeFindHashtagTextVideoPostController(tag: tag);
 
   final _HashtagTextVideoPostControllerState _state;
 

@@ -10,3 +10,4 @@ part 'test_entry_controller_class_part.dart';
 part 'test_entry_controller_fields_part.dart';
 part 'test_entry_controller_actions_part.dart';
 part 'test_entry_controller_runtime_part.dart';
+part 'test_entry_controller_facade_part.dart';

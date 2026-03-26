@@ -7,3 +7,4 @@ import 'tag_posts_repository.dart';
 part 'tag_posts_controller_runtime_part.dart';
 part 'tag_posts_controller_data_part.dart';
 part 'tag_posts_controller_class_part.dart';
+part 'tag_posts_controller_fields_part.dart';
