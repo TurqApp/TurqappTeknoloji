@@ -1,5 +1,119 @@
 part of 'clickable_text_content.dart';
 
+class _ClickableTextControllerConfig {
+  const _ClickableTextControllerConfig({
+    required this.text,
+    this.onUrlTap,
+    this.onHashtagTap,
+    this.onMentionTap,
+    this.onPlainTextTap,
+    this.fontSize,
+    this.fontColor,
+    this.urlColor,
+    this.mentionColor,
+    this.hashtagColor,
+    this.startWith7line = false,
+    this.interactiveColor,
+  });
+
+  final String text;
+  final void Function(String)? onUrlTap,
+      onHashtagTap,
+      onMentionTap,
+      onPlainTextTap;
+  final double? fontSize;
+  final Color? fontColor,
+      urlColor,
+      mentionColor,
+      hashtagColor,
+      interactiveColor;
+  final bool startWith7line;
+}
+
+extension _ClickableTextControllerConfigPart on ClickableTextController {
+  String get text => _config.text;
+  void Function(String)? get onUrlTap => _config.onUrlTap;
+  void Function(String)? get onHashtagTap => _config.onHashtagTap;
+  void Function(String)? get onMentionTap => _config.onMentionTap;
+  void Function(String)? get onPlainTextTap => _config.onPlainTextTap;
+  double? get fontSize => _config.fontSize;
+  Color? get fontColor => _config.fontColor;
+  Color? get urlColor => _config.urlColor;
+  Color? get mentionColor => _config.mentionColor;
+  Color? get hashtagColor => _config.hashtagColor;
+  Color? get interactiveColor => _config.interactiveColor;
+  bool get startWith7line => _config.startWith7line;
+}
+
+ClickableTextController _ensureClickableTextController({
+  required String text,
+  void Function(String url)? onUrlTap,
+  void Function(String hashtag)? onHashtagTap,
+  void Function(String mention)? onMentionTap,
+  void Function(String plain)? onPlainTextTap,
+  double? fontSize,
+  Color? fontColor,
+  Color? urlColor,
+  Color? mentionColor,
+  Color? hashtagColor,
+  bool startWith7line = false,
+  Color? interactiveColor,
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = _maybeFindClickableTextController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(
+    ClickableTextController._(
+      _ClickableTextControllerConfig(
+        text: text,
+        onUrlTap: onUrlTap,
+        onHashtagTap: onHashtagTap,
+        onMentionTap: onMentionTap,
+        onPlainTextTap: onPlainTextTap,
+        fontSize: fontSize,
+        fontColor: fontColor,
+        urlColor: urlColor,
+        mentionColor: mentionColor,
+        hashtagColor: hashtagColor,
+        startWith7line: startWith7line,
+        interactiveColor: interactiveColor,
+      ),
+    ),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
+ClickableTextController? _maybeFindClickableTextController({String? tag}) {
+  final isRegistered = Get.isRegistered<ClickableTextController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<ClickableTextController>(tag: tag);
+}
+
+List<TextSpan> _buildClickableTextControllerSpans({
+  required String text,
+  required TextStyle plainStyle,
+  required TextStyle urlStyle,
+  required TextStyle hashtagStyle,
+  required TextStyle mentionStyle,
+  void Function(String url)? onUrlTap,
+  void Function(String hashtag)? onHashtagTap,
+  void Function(String mention)? onMentionTap,
+  void Function(String plain)? onPlainTextTap,
+}) =>
+    _buildClickableTextSpans(
+      text: text,
+      plainStyle: plainStyle,
+      urlStyle: urlStyle,
+      hashtagStyle: hashtagStyle,
+      mentionStyle: mentionStyle,
+      onUrlTap: onUrlTap,
+      onHashtagTap: onHashtagTap,
+      onMentionTap: onMentionTap,
+      onPlainTextTap: onPlainTextTap,
+    );
+
 void _handleClickableTextControllerInit(ClickableTextController controller) {
   controller._buildSpans();
 }
@@ -9,33 +123,10 @@ void _handleClickableTextControllerClose(ClickableTextController controller) {
 }
 
 extension ClickableTextControllerHelpersPart on ClickableTextController {
-  static List<TextSpan> buildSpans({
-    required String text,
-    required TextStyle plainStyle,
-    required TextStyle urlStyle,
-    required TextStyle hashtagStyle,
-    required TextStyle mentionStyle,
-    void Function(String url)? onUrlTap,
-    void Function(String hashtag)? onHashtagTap,
-    void Function(String mention)? onMentionTap,
-    void Function(String plain)? onPlainTextTap,
-  }) =>
-      _buildClickableTextSpans(
-        text: text,
-        plainStyle: plainStyle,
-        urlStyle: urlStyle,
-        hashtagStyle: hashtagStyle,
-        mentionStyle: mentionStyle,
-        onUrlTap: onUrlTap,
-        onHashtagTap: onHashtagTap,
-        onMentionTap: onMentionTap,
-        onPlainTextTap: onPlainTextTap,
-      );
-
   void _buildSpans() {
     _disposeClickableTextRecognizers(spans);
     spans.assignAll(
-      ClickableTextControllerHelpersPart.buildSpans(
+      _buildClickableTextControllerSpans(
         text: text,
         plainStyle: _plainStyle(),
         urlStyle: _urlStyle(),
