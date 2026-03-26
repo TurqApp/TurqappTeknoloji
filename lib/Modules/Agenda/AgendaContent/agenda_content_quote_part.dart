@@ -1,6 +1,27 @@
 part of 'agenda_content.dart';
 
 extension _AgendaContentQuotePart on _AgendaContentState {
+  double _quotedFeedPreviewAspectRatio() {
+    if (_isIzBirakPost) return 0.92;
+    if (widget.model.floodCount > 1) return 1.0;
+    if (widget.model.hasPlayableVideo) return 0.80;
+
+    final type = _AgendaContentState._ctaNavigationService
+        .resolveMeta(widget.model.reshareMap)
+        .type;
+    switch (type) {
+      case 'market':
+      case 'practice-exam':
+      case 'tutoring':
+      case 'job':
+        return 1.0;
+      case 'scholarship':
+        return 4 / 3;
+      default:
+        return 0.80;
+    }
+  }
+
   void _refreshQuotedSourceFuture() {
     final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
         ? widget.model.quotedSourceUserID.trim()
@@ -304,7 +325,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
     switch (images.length) {
       case 1:
         return AspectRatio(
-          aspectRatio: 0.80,
+          aspectRatio: _quotedFeedPreviewAspectRatio(),
           child: _buildImage(
             images[0],
             radius: BorderRadius.circular(12),
@@ -328,7 +349,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
-          aspectRatio: 0.80,
+          aspectRatio: _quotedFeedPreviewAspectRatio(),
           child: Stack(
             fit: StackFit.expand,
             children: [
