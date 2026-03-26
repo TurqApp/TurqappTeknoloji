@@ -34,7 +34,7 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
                         enabled
                             ? CupertinoIcons.bell_fill
                             : CupertinoIcons.bell,
-                        color: Colors.black,
+                        color: enabled ? Colors.green : Colors.black,
                         size: AppIconSurface.kIconSize,
                       ),
                       Positioned(
