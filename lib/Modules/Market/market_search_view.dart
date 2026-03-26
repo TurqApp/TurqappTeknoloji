@@ -11,6 +11,7 @@ import 'package:turqappv2/Modules/Market/market_filter_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 
 part 'market_search_view_shell_part.dart';
+part 'market_search_view_search_part.dart';
 part 'market_search_view_content_part.dart';
 
 class MarketSearchView extends StatefulWidget {

@@ -24,6 +24,7 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'answer_key_shell_part.dart';
+part 'answer_key_shell_content_part.dart';
 part 'answer_key_sections_part.dart';
 
 String _answerKeyExamLabel(String raw) {

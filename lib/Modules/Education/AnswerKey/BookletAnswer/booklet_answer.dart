@@ -6,6 +6,7 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answer_controller.dart';
 
 part 'booklet_answer_shell_part.dart';
+part 'booklet_answer_content_part.dart';
 part 'booklet_answer_result_part.dart';
 
 class BookletAnswer extends StatefulWidget {

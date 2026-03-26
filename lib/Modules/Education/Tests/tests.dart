@@ -22,6 +22,7 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'tests_shell_part.dart';
+part 'tests_shell_content_part.dart';
 part 'tests_sections_part.dart';
 
 class Tests extends StatefulWidget {
