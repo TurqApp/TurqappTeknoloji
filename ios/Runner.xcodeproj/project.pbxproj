@@ -459,7 +459,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin\n\nNATIVE_OBJECTIVE_C_FRAMEWORK=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/objective_c.framework\"\nif [ -d \"$NATIVE_OBJECTIVE_C_FRAMEWORK\" ] && [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ]; then\n  /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements \"$NATIVE_OBJECTIVE_C_FRAMEWORK\"\nfi";
 		};
 		91E300EEC7343C03A4EA2A7A /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
