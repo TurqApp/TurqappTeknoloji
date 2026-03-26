@@ -53,8 +53,8 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
 
       list.add(
         HashtagModel(
-          hashtag: tag,
-          count: count,
+          tag,
+          count,
           hasHashtag: rawTag.startsWith("#") ||
               (((data["hashtagCount"] ?? 0) as num) > 0),
           lastSeenTs: effectiveLastSeenTs,

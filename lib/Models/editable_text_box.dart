@@ -5,9 +5,5 @@ class EditableTextBox {
   Rx<Offset> position;
   TextEditingController controller;
   RxBool isEditing;
-  EditableTextBox({
-    required this.position,
-    required this.controller,
-    required this.isEditing,
-  });
+  EditableTextBox(this.position, this.controller, this.isEditing);
 }

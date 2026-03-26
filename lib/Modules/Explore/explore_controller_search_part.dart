@@ -149,11 +149,7 @@ extension ExploreControllerSearchPart on ExploreController {
             final tag = (entry['tag'] ?? '').toString().trim();
             final count = (entry['count'] as num?) ?? 0;
             final hasHashtag = entry['hasHashtag'] == true;
-            return HashtagModel(
-              hashtag: tag,
-              count: count,
-              hasHashtag: hasHashtag,
-            );
+            return HashtagModel(tag, count, hasHashtag: hasHashtag);
           })
           .where((entry) => entry.hashtag.isNotEmpty)
           .toList();

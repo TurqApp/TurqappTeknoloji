@@ -28,10 +28,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (entry != null && entry.isFullyCached) continue;
 
       _queue.add(_PrefetchJob(
-        docID: docID,
-        maxSegments: _prefetchSchedulerTargetReadySegments,
-        priority: 0,
-        sortScore: _buildJobScore(
+        docID,
+        _prefetchSchedulerTargetReadySegments,
+        0,
+        _buildJobScore(
           currentIndex: safeCurrent,
           currentDocId: currentDocId,
           targetIndex: idx,
@@ -49,10 +49,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final entry = cacheManager.getEntry(docID);
       if (entry == null || !entry.isFullyCached) {
         _queue.add(_PrefetchJob(
-          docID: docID,
-          maxSegments: _prefetchSchedulerTargetReadySegments,
-          priority: 1,
-          sortScore: _buildJobScore(
+          docID,
+          _prefetchSchedulerTargetReadySegments,
+          1,
+          _buildJobScore(
             currentIndex: safeCurrent,
             currentDocId: currentDocId,
             targetIndex: safeCurrent,
@@ -74,10 +74,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (entry != null && entry.isFullyCached) continue;
 
       _queue.add(_PrefetchJob(
-        docID: docID,
-        maxSegments: _prefetchSchedulerTargetReadySegments,
-        priority: 2,
-        sortScore: _buildJobScore(
+        docID,
+        _prefetchSchedulerTargetReadySegments,
+        2,
+        _buildJobScore(
           currentIndex: safeCurrent,
           currentDocId: currentDocId,
           targetIndex: idx,
@@ -138,10 +138,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final entry = cacheManager.getEntry(docID);
       if (entry != null && entry.isFullyCached) return;
       _queue.add(_PrefetchJob(
-        docID: docID,
-        maxSegments: _prefetchSchedulerTargetReadySegments,
-        priority: priority,
-        sortScore: _buildJobScore(
+        docID,
+        _prefetchSchedulerTargetReadySegments,
+        priority,
+        _buildJobScore(
           currentIndex: safeCurrent,
           currentDocId: docIDs[safeCurrent],
           targetIndex: index,
@@ -205,12 +205,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _queue.removeWhere((job) => job.docID == docID);
     _queue.add(
       _PrefetchJob(
-        docID: docID,
-        maxSegments: readySegments,
-        priority: -1,
-        sortScore:
-            (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0))
-                .toDouble(),
+        docID,
+        readySegments,
+        -1,
+        (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0)).toDouble(),
       ),
     );
     _jobEnqueuedAt[docID] = DateTime.now();

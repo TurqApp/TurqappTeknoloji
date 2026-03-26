@@ -46,8 +46,8 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
           .map((e) => e as Map)
           .map(
             (e) => HashtagModel(
-              hashtag: (e['hashtag'] ?? '').toString(),
-              count: ((e['count'] ?? 0) as num).toInt(),
+              (e['hashtag'] ?? '').toString(),
+              ((e['count'] ?? 0) as num).toInt(),
               hasHashtag: e['hasHashtag'] == true,
               lastSeenTs: ((e['lastSeenTs'] ?? 0) as num?)?.toInt(),
             ),
