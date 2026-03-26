@@ -5,8 +5,7 @@ class _ViewModeControllerRuntimePart {
 
   final ViewModeController controller;
 
-  String viewModeKeyFor(String uid) =>
-      '${ViewModeController._viewModePrefKeyPrefix}_$uid';
+  String viewModeKeyFor(String uid) => '${_viewModePrefKeyPrefix}_$uid';
 
   Future<void> restoreViewMode() async {
     final uid = CurrentUserService.instance.effectiveUserId;

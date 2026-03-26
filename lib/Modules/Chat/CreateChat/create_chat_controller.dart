@@ -4,5 +4,6 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 
 part 'create_chat_controller_class_part.dart';
+part 'create_chat_controller_base_part.dart';
 part 'create_chat_controller_facade_part.dart';
 part 'create_chat_controller_fields_part.dart';

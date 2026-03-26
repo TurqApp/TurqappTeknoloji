@@ -1,6 +1,6 @@
 part of 'notification_content_controller.dart';
 
-class NotificationContentController extends GetxController {
+class NotificationContentController extends _NotificationContentControllerBase {
   static const String _userType = kNotificationPostTypeUserLower;
   static const String _commentType = kNotificationPostTypeCommentLower;
   static const String _chatType = kNotificationPostTypeChatLower;
@@ -17,11 +17,5 @@ class NotificationContentController extends GetxController {
   }) {
     _state.userID = userID;
     _state.notification = notification;
-  }
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleNotificationContentInit(this);
   }
 }

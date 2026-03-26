@@ -1,6 +1,6 @@
 part of 'my_scholarship_controller.dart';
 
-class MyScholarshipController extends GetxController {
+class MyScholarshipController extends _MyScholarshipControllerBase {
   static MyScholarshipController ensure({
     required String tag,
     bool permanent = false,
@@ -17,11 +17,4 @@ class MyScholarshipController extends GetxController {
   }
 
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  final _MyScholarshipControllerState _state = _MyScholarshipControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    unawaited(bootstrapMyScholarships());
-  }
 }

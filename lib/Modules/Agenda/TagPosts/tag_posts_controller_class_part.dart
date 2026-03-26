@@ -1,27 +1,9 @@
 part of 'tag_posts_controller.dart';
 
-class TagPostsController extends GetxController {
-  final _TagPostsControllerState _state;
-
+class TagPostsController extends _TagPostsControllerBase {
   TagPostsController({
-    required String tag,
-    required String controllerTag,
-    TagPostsRepository? repository,
-  }) : _state = _TagPostsControllerState(
-          tag: tag,
-          controllerTag: controllerTag,
-          repository: repository,
-        );
-
-  @override
-  void onClose() {
-    _handleTagPostsClose();
-    super.onClose();
-  }
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleTagPostsInit();
-  }
+    required super.tag,
+    required super.controllerTag,
+    super.repository,
+  });
 }

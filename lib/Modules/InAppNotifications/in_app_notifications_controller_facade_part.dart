@@ -40,3 +40,10 @@ void _handleInAppNotificationsClose(InAppNotificationsController controller) {
   controller._settingsSub?.cancel();
   controller.pageController.dispose();
 }
+
+extension InAppNotificationsControllerFacadePart
+    on InAppNotificationsController {
+  void goToPage(int index) => _goToInAppNotificationsPage(this, index);
+
+  int get unreadCount => _readInAppNotificationsUnreadCount(this);
+}

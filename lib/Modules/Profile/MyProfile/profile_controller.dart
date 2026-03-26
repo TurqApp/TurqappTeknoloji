@@ -27,6 +27,7 @@ import '../../../Services/user_post_link_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'profile_controller_header_part.dart';
+part 'profile_controller_base_part.dart';
 part 'profile_controller_class_part.dart';
 part 'profile_controller_primary_part.dart';
 part 'profile_controller_cache_part.dart';

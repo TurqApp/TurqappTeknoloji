@@ -1,6 +1,6 @@
 part of 'view_mode_controller.dart';
 
-class ViewModeController extends GetxController {
+class ViewModeController extends _ViewModeControllerBase {
   static ViewModeController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
@@ -12,16 +12,4 @@ class ViewModeController extends GetxController {
     if (!isRegistered) return null;
     return Get.find<ViewModeController>();
   }
-
-  static const String _viewModePrefKeyPrefix = 'pasaj_tutoring_view_mode';
-  var isGridView = true.obs;
-  final RxBool isReady = false.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    unawaited(_ViewModeControllerRuntimePart(this).restoreViewMode());
-  }
-
-  void toggleView() => _ViewModeControllerRuntimePart(this).toggleView();
 }

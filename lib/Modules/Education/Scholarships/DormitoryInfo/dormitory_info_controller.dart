@@ -15,6 +15,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'dormitory_info_controller_labels_part.dart';
 part 'dormitory_info_controller_data_part.dart';
 part 'dormitory_info_controller_actions_part.dart';
+part 'dormitory_info_controller_base_part.dart';
 part 'dormitory_info_controller_class_part.dart';
 part 'dormitory_info_controller_fields_part.dart';
 part 'dormitory_info_controller_support_part.dart';
