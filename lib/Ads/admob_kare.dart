@@ -550,14 +550,20 @@ class _AdmobKareState extends State<AdmobKare> {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
         } else {
+          final fallbackSurface = SizedBox(
+            height: _promoSlotHeight,
+            child: _buildPromoFrame(
+              child: _buildPromoFallbackSurface(),
+            ),
+          );
           child = Padding(
             padding: widget.contentPadding,
-            child: SizedBox(
-              height: _promoSlotHeight,
-              child: _buildPromoFrame(
-                child: _buildPromoFallbackSurface(),
-              ),
-            ),
+            child: widget.promoFallbackOffsetX == 0
+                ? fallbackSurface
+                : Transform.translate(
+                    offset: Offset(widget.promoFallbackOffsetX, 0),
+                    child: fallbackSurface,
+                  ),
           );
         }
       } else {
@@ -737,8 +743,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildPromoFallbackSurface() {
-    if (widget.promoFallbackOffsetX == 0 &&
-        widget.promoFallbackExtraWidth == 0) {
+    if (widget.promoFallbackExtraWidth == 0) {
       return _buildPromoFallbackCard();
     }
 
@@ -752,13 +757,6 @@ class _AdmobKareState extends State<AdmobKare> {
           width: targetWidth,
           child: _buildPromoFallbackCard(),
         );
-
-        if (widget.promoFallbackExtraWidth == 0) {
-          return Transform.translate(
-            offset: Offset(widget.promoFallbackOffsetX, 0),
-            child: fallbackCard,
-          );
-        }
 
         return SizedBox(
           width: constraints.maxWidth,

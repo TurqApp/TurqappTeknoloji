@@ -280,7 +280,7 @@ extension _AgendaViewFeedPart on AgendaView {
             : -32.0;
     final edgeInsets = isModernView
         ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
-        : const EdgeInsets.fromLTRB(48, 8, 5, 8);
+        : const EdgeInsets.fromLTRB(5, 8, 5, 8);
     if (promoType == 'ad') {
       return Padding(
         padding: edgeInsets,
@@ -288,7 +288,7 @@ extension _AgendaViewFeedPart on AgendaView {
           key: ValueKey('agenda-feed-ad-$slotNumber'),
           contentPadding: EdgeInsets.zero,
           liveAdOffsetX: liveAdOffsetX,
-          promoFallbackOffsetX: isModernView ? 0 : -20.0,
+          promoFallbackOffsetX: 0,
           promoFallbackExtraWidth: 0,
           forceSingleLinePromoChips: true,
         ),
