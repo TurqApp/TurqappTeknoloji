@@ -137,19 +137,28 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
       context: context,
       builder: (ctx) {
         return CupertinoActionSheet(
-          title: const Text('Bildirim tercihleri'),
-          message: Text('@${controller.nickname.value} için tüm gönderiler'),
+          title: const Text('Tüm gönderiler'),
+          message: Text('@${controller.nickname.value}'),
           actions: [
             CupertinoActionSheetAction(
               onPressed: () async {
                 Navigator.of(ctx).pop();
-                await controller.togglePostNotifications();
+                if (!enabled) {
+                  await controller.togglePostNotifications();
+                }
               },
               isDefaultAction: !enabled,
+              child: const Text('Aç'),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                if (enabled) {
+                  await controller.togglePostNotifications();
+                }
+              },
               isDestructiveAction: enabled,
-              child: Text(
-                enabled ? 'Tüm gönderileri kapat' : 'Tüm gönderileri aç',
-              ),
+              child: const Text('Kapat'),
             ),
           ],
           cancelButton: CupertinoActionSheetAction(
