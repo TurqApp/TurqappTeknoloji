@@ -1,5 +1,17 @@
 part of 'support_message_repository.dart';
 
+SupportMessageRepository? maybeFindSupportMessageRepository() {
+  final isRegistered = Get.isRegistered<SupportMessageRepository>();
+  if (!isRegistered) return null;
+  return Get.find<SupportMessageRepository>();
+}
+
+SupportMessageRepository ensureSupportMessageRepository() {
+  final existing = maybeFindSupportMessageRepository();
+  if (existing != null) return existing;
+  return Get.put(SupportMessageRepository(), permanent: true);
+}
+
 extension SupportMessageRepositoryFacadePart on SupportMessageRepository {
   CollectionReference<Map<String, dynamic>> get _ref =>
       FirebaseFirestore.instance.collection('supportMessages');

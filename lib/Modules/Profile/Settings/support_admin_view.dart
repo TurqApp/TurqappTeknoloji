@@ -16,8 +16,7 @@ class SupportAdminView extends StatefulWidget {
 }
 
 class _SupportAdminViewState extends State<SupportAdminView> {
-  final SupportMessageRepository _repository =
-      SupportMessageRepository.ensure();
+  final SupportMessageRepository _repository = ensureSupportMessageRepository();
   late final Future<bool> _accessFuture;
 
   @override

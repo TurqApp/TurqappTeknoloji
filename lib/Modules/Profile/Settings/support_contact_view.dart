@@ -14,8 +14,7 @@ class SupportContactView extends StatefulWidget {
 
 class _SupportContactViewState extends State<SupportContactView> {
   final TextEditingController _messageController = TextEditingController();
-  final SupportMessageRepository _repository =
-      SupportMessageRepository.ensure();
+  final SupportMessageRepository _repository = ensureSupportMessageRepository();
   bool _sending = false;
   String _selectedTopicKey = _supportTopicKeys.first;
 
