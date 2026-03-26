@@ -39,6 +39,8 @@ class SearchAnswerKeyController extends GetxController {
     super.onClose();
   }
 
+  void resetSearch() => _resetSearchState();
+
   void navigateToPreview(BookletModel model) {
     Get.to(() => BookletPreview(model: model));
   }

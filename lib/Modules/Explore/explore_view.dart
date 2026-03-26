@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -91,27 +92,30 @@ class _ExploreViewState extends State<ExploreView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: const ValueKey(IntegrationTestKeys.screenExplore),
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _buildSearchHeader(context),
-                _buildExploreOrSearchBody(context),
-              ],
-            ),
-            _buildScrollToTopButton(),
-            IgnorePointer(
-              ignoring: true,
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ExploreAdPlacementHook(index: 0),
+    return SearchResetOnPageReturnScope(
+      onReset: controller.resetSearchToDefault,
+      child: Scaffold(
+        key: const ValueKey(IntegrationTestKeys.screenExplore),
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  _buildSearchHeader(context),
+                  _buildExploreOrSearchBody(context),
+                ],
               ),
-            ),
-          ],
+              _buildScrollToTopButton(),
+              IgnorePointer(
+                ignoring: true,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ExploreAdPlacementHook(index: 0),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

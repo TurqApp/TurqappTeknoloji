@@ -27,7 +27,7 @@ OpticsAndBooksPublishedController?
 void _handleOpticsAndBooksPublishedInit(
   OpticsAndBooksPublishedController controller,
 ) {
-  unawaited(controller._bootstrapData());
+  unawaited(_bootstrapOpticsAndBooksData(controller));
 }
 
 void _setOpticsAndBooksSelection(
@@ -44,7 +44,7 @@ void _refreshOpticsAndBooksOnOpen(
   if (controller.isLoading.value) return;
   if (now - controller._lastOpenRefreshAt < 800) return;
   controller._lastOpenRefreshAt = now;
-  controller.loadData(forceRefresh: true);
+  unawaited(_loadOpticsAndBooksData(controller, forceRefresh: true));
 }
 
 Future<void> _bootstrapOpticsAndBooksData(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
@@ -41,57 +42,60 @@ class _TutoringSearchState extends State<TutoringSearch> {
     final ViewModeController viewModeController =
         ViewModeController.ensure(permanent: true);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 10, 15, 0),
-              child: Row(
-                children: [
-                  const AppBackButton(),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TurqSearchBar(
-                      controller: controller.searchController,
-                      hintText: 'common.search'.tr,
-                      onChanged: controller.updateSearchQuery,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            12.ph,
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Obx(() {
-                  if (!viewModeController.isReady.value) {
-                    return const Center(child: CupertinoActivityIndicator());
-                  }
-                  if (controller.isLoading.value) {
-                    return const Center(child: CupertinoActivityIndicator());
-                  } else if (controller.searchResults.isEmpty) {
-                    return Center(
-                      child: Text('tutoring.search_empty'.tr),
-                    );
-                  } else {
-                    return SingleChildScrollView(
-                      child: TutoringWidgetBuilder(
-                        tutoringList: controller.searchResults,
-                        isGridView: viewModeController.isGridView.value,
-                        infoMessage: Infomessage(
-                          infoMessage: 'tutoring.search_empty_info'.tr,
-                        ),
+    return SearchResetOnPageReturnScope(
+      onReset: controller.resetSearch,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(15, 10, 15, 0),
+                child: Row(
+                  children: [
+                    const AppBackButton(),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TurqSearchBar(
+                        controller: controller.searchController,
+                        hintText: 'common.search'.tr,
+                        onChanged: controller.updateSearchQuery,
                       ),
-                    );
-                  }
-                }),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              12.ph,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Obx(() {
+                    if (!viewModeController.isReady.value) {
+                      return const Center(child: CupertinoActivityIndicator());
+                    }
+                    if (controller.isLoading.value) {
+                      return const Center(child: CupertinoActivityIndicator());
+                    } else if (controller.searchResults.isEmpty) {
+                      return Center(
+                        child: Text('tutoring.search_empty'.tr),
+                      );
+                    } else {
+                      return SingleChildScrollView(
+                        child: TutoringWidgetBuilder(
+                          tutoringList: controller.searchResults,
+                          isGridView: viewModeController.isGridView.value,
+                          infoMessage: Infomessage(
+                            infoMessage: 'tutoring.search_empty_info'.tr,
+                          ),
+                        ),
+                      );
+                    }
+                  }),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

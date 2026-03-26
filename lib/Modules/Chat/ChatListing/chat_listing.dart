@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListingContent/chat_listing_content.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
@@ -56,5 +57,10 @@ class _ChatListingState extends State<ChatListing> {
   }
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) => SearchResetOnPageReturnScope(
+        onReset: () {
+          controller.search.clear();
+        },
+        child: _buildPage(context),
+      );
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/SearchAnswerKey/search_answer_key_controller.dart';
@@ -45,24 +46,27 @@ class _SearchAnswerKeyState extends State<SearchAnswerKey> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: 'common.search'.tr),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                child: Column(
-                  children: [
-                    _buildSearchBar(context, controller),
-                    _buildBookletList(context, controller),
-                  ],
+    return SearchResetOnPageReturnScope(
+      onReset: controller.resetSearch,
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              BackButtons(text: 'common.search'.tr),
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      _buildSearchBar(context, controller),
+                      _buildBookletList(context, controller),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

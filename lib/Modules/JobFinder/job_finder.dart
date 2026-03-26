@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
@@ -86,75 +87,79 @@ class JobFinder extends StatelessWidget {
       );
     }
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // Standalone header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const AppBackButton(),
-                    const SizedBox(width: 8),
-                    TypewriterText(text: "pasaj.job_finder.title".tr),
-                  ],
-                ),
-                Obx(() {
-                  return TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () => controller.showIlSec(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined,
-                              color: Colors.red),
-                          const SizedBox(width: 3),
-                          Text(
-                            controller.sehir.value.isNotEmpty
-                                ? controller.sehir.value
-                                : "pasaj.common.all_turkiye".tr,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
+    return SearchResetOnPageReturnScope(
+      onReset: () {
+        controller.search.clear();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const AppBackButton(),
+                      const SizedBox(width: 8),
+                      TypewriterText(text: "pasaj.job_finder.title".tr),
+                    ],
+                  ),
+                  Obx(() {
+                    return TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => controller.showIlSec(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined,
+                                color: Colors.red),
+                            const SizedBox(width: 3),
+                            Text(
+                              controller.sehir.value.isNotEmpty
+                                  ? controller.sehir.value
+                                  : "pasaj.common.all_turkiye".tr,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratBold",
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+              Expanded(child: content),
+              GlobalLoader(),
+            ],
+          ),
+        ),
+        floatingActionButton: AdminAccessService.isKnownAdminSync()
+            ? ActionButton(
+                context: context,
+                menuItems: [
+                  PullDownMenuItem(
+                    icon: CupertinoIcons.slider_horizontal_3,
+                    title: 'pasaj.common.slider_admin'.tr,
+                    onTap: () => Get.to(
+                      () => SliderAdminView(
+                        sliderId: 'is_bul',
+                        title: 'pasaj.job_finder.title'.tr,
                       ),
                     ),
-                  );
-                }),
-              ],
-            ),
-            Expanded(child: content),
-            GlobalLoader(),
-          ],
-        ),
-      ),
-      floatingActionButton: AdminAccessService.isKnownAdminSync()
-          ? ActionButton(
-              context: context,
-              menuItems: [
-                PullDownMenuItem(
-                  icon: CupertinoIcons.slider_horizontal_3,
-                  title: 'pasaj.common.slider_admin'.tr,
-                  onTap: () => Get.to(
-                    () => SliderAdminView(
-                      sliderId: 'is_bul',
-                      title: 'pasaj.job_finder.title'.tr,
-                    ),
                   ),
-                ),
-              ],
-            )
-          : null,
+                ],
+              )
+            : null,
+      ),
     );
   }
 }

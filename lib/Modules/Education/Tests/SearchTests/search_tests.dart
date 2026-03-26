@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/skeleton_loader.dart';
 import 'package:turqappv2/Modules/Education/Tests/SearchTests/search_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
@@ -41,7 +42,14 @@ class _SearchTestsState extends State<SearchTests> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildPage();
+    return SearchResetOnPageReturnScope(
+      onReset: () {
+        controller.focusNode.unfocus();
+        controller.searchController.clear();
+        controller.filterSearchResults('');
+      },
+      child: _buildPage(),
+    );
   }
 
   Widget _buildPage() {

@@ -1,6 +1,15 @@
 part of 'tutoring_search_controller.dart';
 
 extension TutoringSearchControllerRuntimeX on TutoringSearchController {
+  void _handleResetSearch() {
+    searchController.clear();
+    searchQuery.value = '';
+    if (!_sameTutoringEntries(searchResults, _initialTutorings)) {
+      searchResults.value = _initialTutorings;
+    }
+    isLoading.value = false;
+  }
+
   bool _sameTutoringEntries(
     List<TutoringModel> current,
     List<TutoringModel> next,

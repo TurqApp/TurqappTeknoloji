@@ -1,6 +1,19 @@
 part of 'education_controller.dart';
 
 extension EducationControllerSearchPart on EducationController {
+  void _performResetVisibleSearchOnReturn() {
+    final activeTab = selectedTab.value;
+    searchFocus.unfocus();
+    tabSearchQueries[activeTab] = '';
+    if (searchController.text.isNotEmpty) {
+      searchController.clear();
+    }
+    searchText.value = '';
+    isKeyboardOpen.value = false;
+    isSearchMode.value = false;
+    _clearModuleSearch(activeTab);
+  }
+
   void clearSearch(BuildContext context) {
     searchFocus.unfocus();
     tabSearchQueries[selectedTab.value] = '';

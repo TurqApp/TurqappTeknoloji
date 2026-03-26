@@ -1,6 +1,16 @@
 part of 'search_deneme_controller.dart';
 
 extension SearchDenemeControllerRuntimePart on SearchDenemeController {
+  void _resetSearchState() {
+    _searchToken++;
+    focusNode.unfocus();
+    searchController.clear();
+    if (filteredList.isNotEmpty) {
+      filteredList.clear();
+    }
+    isLoading.value = false;
+  }
+
   void _handleSearchDenemeOnInit() {
     Future<void>.delayed(const Duration(milliseconds: 100), () {
       focusNode.requestFocus();

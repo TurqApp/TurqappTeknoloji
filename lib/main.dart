@@ -19,6 +19,7 @@ import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
@@ -310,7 +311,7 @@ class MyApp extends StatelessWidget {
     final languageService = AppLanguageService.maybeFind();
     return GetMaterialApp(
       navigatorKey: navigatorKey,
-      navigatorObservers: [routeObserver],
+      navigatorObservers: [routeObserver, searchResetNavigatorObserver],
       routingCallback: (routing) {
         if (routing == null) return;
         final current = routing.current;

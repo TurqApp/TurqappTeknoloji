@@ -40,4 +40,6 @@ class TutoringSearchController extends GetxController {
     _handleOnClose();
     super.onClose();
   }
+
+  void resetSearch() => _handleResetSearch();
 }

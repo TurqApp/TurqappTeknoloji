@@ -32,6 +32,8 @@ class SearchDenemeController extends GetxController {
   Future<void> filterSearchResults(String query) =>
       _performFilterSearchResults(query);
 
+  void resetSearch() => _resetSearchState();
+
   @override
   void onClose() {
     _handleSearchDenemeOnClose();

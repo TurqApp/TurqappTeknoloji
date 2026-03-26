@@ -30,4 +30,6 @@ class EducationController extends GetxController {
   void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
 
   void ensureVisibleSurfaceReset() => _ensureVisibleSurfaceResetImpl();
+
+  void resetVisibleSearchOnReturn() => _performResetVisibleSearchOnReturn();
 }

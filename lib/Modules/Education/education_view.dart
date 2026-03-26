@@ -5,6 +5,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
@@ -78,6 +79,9 @@ class EducationView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     controller.ensureVisibleSurfaceReset();
-    return _buildEducationScaffold(context);
+    return SearchResetOnPageReturnScope(
+      onReset: controller.resetVisibleSearchOnReturn,
+      child: _buildEducationScaffold(context),
+    );
   }
 }

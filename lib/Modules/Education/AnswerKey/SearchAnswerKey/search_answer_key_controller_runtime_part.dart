@@ -1,6 +1,15 @@
 part of 'search_answer_key_controller.dart';
 
 extension SearchAnswerKeyControllerRuntimePart on SearchAnswerKeyController {
+  void _resetSearchState() {
+    _searchToken++;
+    searchController.clear();
+    if (filteredList.isNotEmpty) {
+      filteredList.clear();
+    }
+    isLoading.value = false;
+  }
+
   void _handleSearchAnswerKeyOnInit() {
     searchController.addListener(() {
       onSearchChanged(searchController.text);

@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
@@ -94,21 +95,27 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       );
     }
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _buildHeader(),
-                _buildSearchField(),
-                _buildBody(),
-              ],
-            ),
-            _buildScrollToTopButton(),
-            _buildActionButton(context),
-          ],
+    return SearchResetOnPageReturnScope(
+      onReset: () {
+        _searchController.clear();
+        controller.resetSearch();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  _buildHeader(),
+                  _buildSearchField(),
+                  _buildBody(),
+                ],
+              ),
+              _buildScrollToTopButton(),
+              _buildActionButton(context),
+            ],
+          ),
         ),
       ),
     );
