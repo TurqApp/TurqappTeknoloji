@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.decrementOwnerLikesOnLikeDelete = exports.incrementOwnerLikesOnLikeCreate = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.backfillHybridFeedForUser = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.decrementOwnerLikesOnLikeDelete = exports.incrementOwnerLikesOnLikeCreate = exports.decrementFollowCountersOnFollowingDelete = exports.incrementFollowCountersOnFollowingCreate = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.backfillHybridFeedForUser = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.toggleLikeBatch = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -124,6 +124,7 @@ Object.defineProperty(exports, "onVideoUpload", { enumerable: true, get: functio
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 var counterShards_1 = require("./counterShards");
 Object.defineProperty(exports, "recordViewBatch", { enumerable: true, get: function () { return counterShards_1.recordViewBatch; } });
+Object.defineProperty(exports, "toggleLikeBatch", { enumerable: true, get: function () { return counterShards_1.toggleLikeBatch; } });
 Object.defineProperty(exports, "aggregateCounterShards", { enumerable: true, get: function () { return counterShards_1.aggregateCounterShards; } });
 Object.defineProperty(exports, "initCounterShards", { enumerable: true, get: function () { return counterShards_1.initCounterShards; } });
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -319,26 +320,74 @@ exports.enforceMandatoryFollowOnUserCreate = functions.firestore
         const now = Date.now();
         const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
         const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
-        const meRootRef = db.doc(`users/${uid}`);
-        const targetRootRef = db.doc(`users/${targetUid}`);
         await db.runTransaction(async (tx) => {
             const existing = await tx.get(myFollowingRef);
             if (existing.exists)
                 return;
             tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
             tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
-            tx.set(meRootRef, {
+        });
+    }
+    catch (e) {
+        console.error("enforceMandatoryFollowOnUserCreate error", e);
+    }
+});
+exports.incrementFollowCountersOnFollowingCreate = functions.firestore
+    .document("users/{uid}/followings/{targetUid}")
+    .onCreate(async (_snap, context) => {
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = String(context.params.targetUid || "").trim();
+    if (!uid || !targetUid || uid == targetUid)
+        return;
+    try {
+        const now = Date.now();
+        await db.runTransaction(async (tx) => {
+            tx.set(db.doc(`users/${uid}`), {
                 counterOfFollowings: admin.firestore.FieldValue.increment(1),
                 updatedDate: now,
             }, { merge: true });
-            tx.set(targetRootRef, {
+            tx.set(db.doc(`users/${targetUid}`), {
                 counterOfFollowers: admin.firestore.FieldValue.increment(1),
                 updatedDate: now,
             }, { merge: true });
         });
     }
     catch (e) {
-        console.error("enforceMandatoryFollowOnUserCreate error", e);
+        console.error("incrementFollowCountersOnFollowingCreate error", e);
+    }
+});
+exports.decrementFollowCountersOnFollowingDelete = functions.firestore
+    .document("users/{uid}/followings/{targetUid}")
+    .onDelete(async (_snap, context) => {
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = String(context.params.targetUid || "").trim();
+    if (!uid || !targetUid || uid == targetUid)
+        return;
+    try {
+        const now = Date.now();
+        const meRef = db.doc(`users/${uid}`);
+        const targetRef = db.doc(`users/${targetUid}`);
+        await db.runTransaction(async (tx) => {
+            const meSnap = await tx.get(meRef);
+            const targetSnap = await tx.get(targetRef);
+            const myCount = Number(meSnap.data()?.counterOfFollowings || 0);
+            const targetCount = Number(targetSnap.data()?.counterOfFollowers || 0);
+            if (myCount > 0) {
+                tx.set(meRef, {
+                    counterOfFollowings: admin.firestore.FieldValue.increment(-1),
+                    updatedDate: now,
+                }, { merge: true });
+            }
+            if (targetCount > 0) {
+                tx.set(targetRef, {
+                    counterOfFollowers: admin.firestore.FieldValue.increment(-1),
+                    updatedDate: now,
+                }, { merge: true });
+            }
+        });
+    }
+    catch (e) {
+        console.error("decrementFollowCountersOnFollowingDelete error", e);
     }
 });
 // LIKE COUNTER MIRROR: keep profile counterOfLikes in sync with post likes.
@@ -499,6 +548,7 @@ exports.onUserNotificationCreate = functions.firestore
         const targetDocID = String(data.postID || data.chatID || data.userID || "");
         const cfg = await _loadNotificationPushConfig();
         const userPrefs = await _loadUserNotificationPreferences(uid);
+        const isAdminPush = data.adminPush === true;
         // Self-notification push göndermeyelim.
         if (fromUserID && fromUserID === uid)
             return;
@@ -522,19 +572,21 @@ exports.onUserNotificationCreate = functions.firestore
             });
             return;
         }
-        const canSendPush = await _claimInteractionPushWindow({
-            uid,
-            type,
-            postId: targetDocID,
-            fromUserID,
-        });
-        if (!canSendPush) {
-            console.log("onUserNotificationCreate skip:rate_limited", {
+        if (!isAdminPush) {
+            const canSendPush = await _claimInteractionPushWindow({
                 uid,
                 type,
-                targetPresent: targetDocID.length > 0,
+                postId: targetDocID,
+                fromUserID,
             });
-            return;
+            if (!canSendPush) {
+                console.log("onUserNotificationCreate skip:rate_limited", {
+                    uid,
+                    type,
+                    targetPresent: targetDocID.length > 0,
+                });
+                return;
+            }
         }
         const title = String(data.title || "TurqApp");
         const body = String(data.body || (0, notificationPushPolicy_1.notificationBodyFromType)(type));

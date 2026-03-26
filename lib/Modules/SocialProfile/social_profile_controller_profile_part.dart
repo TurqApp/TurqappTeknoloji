@@ -84,7 +84,12 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
 
   Future<void> _performIsFollowingCheck() async {
     final currentUid = CurrentUserService.instance.effectiveUserId;
-    if (currentUid.isEmpty) return;
+    if (currentUid.isEmpty) {
+      takipEdiyorum.value = false;
+      complatedCheck.value = true;
+      postNotificationsEnabled.value = false;
+      return;
+    }
     _pruneCaches();
     final cacheKey = '$currentUid:$userID';
     final cached = _followCheckCache[cacheKey];
@@ -92,6 +97,11 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         DateTime.now().difference(cached.cachedAt) <= _followCheckCacheTtl) {
       takipEdiyorum.value = cached.isFollowing;
       complatedCheck.value = true;
+      if (cached.isFollowing) {
+        unawaited(refreshPostNotificationSubscription());
+      } else {
+        postNotificationsEnabled.value = false;
+      }
     }
     final isFollowing = await FollowRepository.ensure().isFollowing(
       userID,
@@ -100,10 +110,39 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     );
     takipEdiyorum.value = isFollowing;
     complatedCheck.value = true;
+    if (isFollowing) {
+      await refreshPostNotificationSubscription();
+    } else {
+      postNotificationsEnabled.value = false;
+    }
     _followCheckCache[cacheKey] = _SocialFollowCheckCacheEntry(
       isFollowing: isFollowing,
       cachedAt: DateTime.now(),
     );
+  }
+
+  Future<void> _performRefreshPostNotificationSubscription() async {
+    final currentUid = CurrentUserService.instance.effectiveUserId;
+    if (currentUid.isEmpty ||
+        currentUid == userID ||
+        takipEdiyorum.value == false) {
+      postNotificationsEnabled.value = false;
+      return;
+    }
+
+    try {
+      final entry = await _userSubcollectionRepository.getEntry(
+        userID,
+        subcollection: 'postNotificationSubscribers',
+        docId: currentUid,
+        preferCache: true,
+        forceRefresh: false,
+      );
+      postNotificationsEnabled.value = entry != null;
+    } catch (e) {
+      postNotificationsEnabled.value = false;
+      print('SocialProfile refreshPostNotificationSubscription error: $e');
+    }
   }
 
   Future<void> _performGetUserData() async {

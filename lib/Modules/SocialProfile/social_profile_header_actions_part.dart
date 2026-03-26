@@ -1,6 +1,138 @@
 part of 'social_profile.dart';
 
 extension _SocialProfileHeaderActionsPart on _SocialProfileState {
+  Widget buildPostNotificationHeaderButton() {
+    return Obx(() {
+      final canShow = controller.complatedCheck.value &&
+          controller.takipEdiyorum.value &&
+          _myUserId.isNotEmpty &&
+          _myUserId != widget.userID &&
+          !controller.isBlockedByCurrentViewer(widget.userID);
+      if (!canShow) return const SizedBox.shrink();
+
+      final enabled = controller.postNotificationsEnabled.value;
+      final loading = controller.postNotificationsLoading.value;
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 32,
+            child: TextButton(
+              onPressed: loading ? null : _onPostNotificationPressed,
+              style: TextButton.styleFrom(
+                backgroundColor:
+                    enabled ? Colors.black : Colors.grey.withAlpha(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                minimumSize: Size.zero,
+                padding: EdgeInsets.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: SizedBox(
+                height: 32,
+                child: Center(
+                  child: loading
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              enabled ? Colors.white : Colors.black,
+                            ),
+                          ),
+                        )
+                      : Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(
+                              enabled
+                                  ? CupertinoIcons.bell_fill
+                                  : CupertinoIcons.bell,
+                              color: enabled ? Colors.white : Colors.black,
+                              size: 17,
+                            ),
+                            Positioned(
+                              right: -4,
+                              top: -2,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: enabled
+                                      ? Colors.white
+                                      : const Color(0xFF34C759),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    CupertinoIcons.add,
+                                    size: 8,
+                                    color:
+                                        enabled ? Colors.black : Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
+      );
+    });
+  }
+
+  Future<void> _onPostNotificationPressed() async {
+    if (controller.postNotificationsLoading.value) return;
+    if (controller.postNotificationsEnabled.value == false) {
+      final status = await Permission.notification.status;
+      final canNotify =
+          status.isGranted || status.isLimited || status.isProvisional;
+      if (!canNotify) {
+        await _showPostNotificationPermissionDialog();
+        return;
+      }
+    }
+    await controller.togglePostNotifications();
+  }
+
+  Future<void> _showPostNotificationPermissionDialog() async {
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return CupertinoAlertDialog(
+          title: const Text('Bildirim ayarlarını aç'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '@${controller.nickname.value} gönderi yayınladığında bildirim almak için cihaz ayarlarında bildirimleri açman gerek.',
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                await openAppSettings();
+              },
+              isDefaultAction: true,
+              child: const Text('Ayarlar ve gizlilik'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('İptal et'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget followButtons() {
     return Expanded(
       child: Column(

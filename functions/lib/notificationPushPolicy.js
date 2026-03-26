@@ -31,7 +31,9 @@ const notificationPreferenceDefaults = {
         directMessages: true,
     },
     posts: {
+        posts: true,
         comments: true,
+        likes: true,
         postActivity: true,
     },
     followers: {
@@ -154,11 +156,14 @@ function isUserNotificationTypeEnabled(type, rawPrefs) {
         case "comment":
             return readBool(prefs, "posts.comments");
         case "like":
+        case "comment_like":
+            return (readBool(prefs, "posts.likes") ||
+                readBool(prefs, "posts.postActivity"));
         case "reshared_posts":
         case "shared_as_posts":
         case "posts":
-        case "comment_like":
-            return readBool(prefs, "posts.postActivity");
+            return (readBool(prefs, "posts.posts") ||
+                readBool(prefs, "posts.postActivity"));
         case "follow":
             return readBool(prefs, "followers.follows");
         case "job_application":

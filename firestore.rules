@@ -907,6 +907,19 @@ service cloud.firestore {
         allow read: if isAuth();
         allow write: if isOwner(uid);
       }
+      match /postNotificationSubscribers/{subscriberUid} {
+        allow read: if isAuth() && (isOwner(uid) || request.auth.uid == subscriberUid);
+        allow create, update: if isAuth()
+          && request.auth.uid == subscriberUid
+          && exists(/databases/$(database)/documents/users/$(subscriberUid)/followings/$(uid))
+          && request.resource.data.subscriberId is string
+          && request.resource.data.subscriberId == subscriberUid
+          && request.resource.data.authorId is string
+          && request.resource.data.authorId == uid
+          && request.resource.data.createdAt is int
+          && request.resource.data.updatedAt is int;
+        allow delete: if isAuth() && request.auth.uid == subscriberUid;
+      }
 
       // User interaction subcollections
       match /liked_posts/{postId} {

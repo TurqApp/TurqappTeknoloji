@@ -22,6 +22,7 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { buildInboxPayload } from "./notificationInbox";
 
 const db = () => admin.firestore();
 
@@ -33,6 +34,150 @@ const FAN_OUT_BATCH_SIZE = 450; // Firestore batch limiti 500, güvenli margin
 
 /// Feed item'ın geçerlilik süresi: 7 gün
 const FEED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const FOLLOWED_POST_NOTIFICATION_FIELD = "followedPostNotificationSentAt";
+const FOLLOWED_POST_SUBCOLLECTION = "postNotificationSubscribers";
+const NOTIFICATION_BATCH_SIZE = 400;
+
+function asTrimmedString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function firstNonEmptyString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === "string" && entry.trim().length > 0) {
+          return entry.trim();
+        }
+      }
+    }
+  }
+  return "";
+}
+
+function resolveAuthorTitle(data: admin.firestore.DocumentData | undefined): string {
+  return firstNonEmptyString(
+    data?.authorDisplayName,
+    data?.authorNickname,
+    data?.nickname,
+    data?.username,
+    data?.fullName,
+    "TurqApp",
+  );
+}
+
+function resolveAuthorAvatarUrl(
+  data: admin.firestore.DocumentData | undefined,
+): string {
+  return firstNonEmptyString(
+    data?.authorAvatarUrl,
+    data?.avatarUrl,
+    data?.profileImage,
+  );
+}
+
+function resolvePostPreviewImage(
+  data: admin.firestore.DocumentData | undefined,
+): string {
+  return firstNonEmptyString(
+    data?.thumbnail,
+    data?.imageUrl,
+    data?.imageURL,
+    data?.coverImageUrl,
+    data?.images,
+    data?.img,
+  );
+}
+
+async function claimFollowedPostNotification(
+  postRef: admin.firestore.DocumentReference,
+): Promise<boolean> {
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(postRef);
+    if (!snap.exists) return false;
+    const data = snap.data() || {};
+    if (Number(data[FOLLOWED_POST_NOTIFICATION_FIELD] || 0) > 0) {
+      return false;
+    }
+    tx.set(
+      postRef,
+      {
+        [FOLLOWED_POST_NOTIFICATION_FIELD]: Date.now(),
+      },
+      { merge: true },
+    );
+    return true;
+  });
+}
+
+async function notifyFollowedPostSubscribers(args: {
+  postId: string;
+  postRef: admin.firestore.DocumentReference;
+  data: admin.firestore.DocumentData;
+}): Promise<void> {
+  const { postId, postRef, data } = args;
+  const authorId = asTrimmedString(data.userID);
+  if (!postId || !authorId || !isVisiblePostRecord(data)) return;
+
+  const claimed = await claimFollowedPostNotification(postRef);
+  if (!claimed) return;
+
+  const timeStamp = Number(data.timeStamp) || Date.now();
+  const title = resolveAuthorTitle(data);
+  const body = "yeni bir gönderi paylaştı";
+  const avatarUrl = resolveAuthorAvatarUrl(data);
+  const imageUrl = resolvePostPreviewImage(data);
+  let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+
+  while (true) {
+    let query: admin.firestore.Query = db()
+      .collection("users")
+      .doc(authorId)
+      .collection(FOLLOWED_POST_SUBCOLLECTION)
+      .orderBy(admin.firestore.FieldPath.documentId())
+      .limit(NOTIFICATION_BATCH_SIZE);
+
+    if (lastDoc) query = query.startAfter(lastDoc);
+
+    const subscribersSnap = await query.get();
+    if (subscribersSnap.empty) break;
+
+    const batch = db().batch();
+    for (const subscriberDoc of subscribersSnap.docs) {
+      const subscriberUid = subscriberDoc.id.trim();
+      if (!subscriberUid || subscriberUid == authorId) continue;
+
+      const payload = buildInboxPayload(subscriberUid, {
+        fromUserID: authorId,
+        postID: postId,
+        type: "posts",
+        title,
+        body,
+        desc: body,
+        timeStamp,
+        ...(avatarUrl ? { avatarUrl } : {}),
+        ...(imageUrl ? { imageUrl, thumbnail: imageUrl } : {}),
+      });
+
+      batch.set(
+        db()
+          .collection("users")
+          .doc(subscriberUid)
+          .collection("notifications")
+          .doc(`followed_post_${postId}`),
+        payload,
+        { merge: true },
+      );
+    }
+
+    await batch.commit();
+    lastDoc = subscribersSnap.docs[subscribersSnap.docs.length - 1];
+    if (subscribersSnap.docs.length < NOTIFICATION_BATCH_SIZE) break;
+  }
+}
 
 function isCountedRootPost(
   data: admin.firestore.DocumentData | undefined,
@@ -406,6 +551,16 @@ export const onPostCreate = functions
     }
 
     try {
+      await notifyFollowedPostSubscribers({
+        postId,
+        postRef: snap.ref,
+        data,
+      });
+    } catch (e) {
+      console.error("[HybridFeed] onPostCreate notify followers error:", e);
+    }
+
+    try {
       if (isCountedRootPost(data)) {
         await adjustAuthorPostCount(authorId, 1);
       }
@@ -454,6 +609,16 @@ export const onPostBecomeVisible = functions
         console.log("[HybridFeed] Visibility upsert complete");
       } catch (e) {
         console.error("[HybridFeed] onPostBecomeVisible error:", e);
+      }
+
+      try {
+        await notifyFollowedPostSubscribers({
+          postId,
+          postRef: change.after.ref,
+          data: after,
+        });
+      } catch (e) {
+        console.error("[HybridFeed] onPostBecomeVisible notify followers error:", e);
       }
     }
 

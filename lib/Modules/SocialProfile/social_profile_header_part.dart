@@ -40,6 +40,7 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
                   ],
                 ),
               ),
+              buildPostNotificationHeaderButton(),
               const SizedBox(width: 12),
               PullDownButton(
                 itemBuilder: (context) => [

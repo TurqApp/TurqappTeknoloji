@@ -152,6 +152,11 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
   Future<void> getUserStoryUserModelAndPrint(String userId) =>
       _performGetUserStoryUserModelAndPrint(userId);
 
+  Future<void> refreshPostNotificationSubscription() =>
+      _performRefreshPostNotificationSubscription();
+
+  Future<void> togglePostNotifications() => _performTogglePostNotifications();
+
   void _pruneCaches() => _performPruneCaches();
 
   void _trimMap<T>(Map<String, T> map, DateTime Function(T value) cachedAt) =>

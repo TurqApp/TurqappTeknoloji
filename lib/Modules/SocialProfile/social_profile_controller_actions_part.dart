@@ -158,6 +158,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
 
       if (outcome.nowFollowing && !wasFollowing) {
         totalFollower.value++;
+        postNotificationsEnabled.value = false;
         NotificationService.instance.sendNotification(
           token: token.value,
           title: CurrentUserService.instance.nickname,
@@ -167,6 +168,12 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
         );
       } else if (!outcome.nowFollowing && wasFollowing) {
         totalFollower.value--;
+        postNotificationsEnabled.value = false;
+        await _userSubcollectionRepository.deleteEntry(
+          userID,
+          subcollection: 'postNotificationSubscribers',
+          docId: currentUid,
+        );
       }
 
       if (outcome.limitReached) {
@@ -177,6 +184,55 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
       print("Bir hata oluştu: $e");
     } finally {
       followLoading.value = false;
+    }
+  }
+
+  Future<void> _performTogglePostNotifications() async {
+    if (postNotificationsLoading.value) return;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
+    if (currentUid.isEmpty ||
+        currentUid == userID ||
+        takipEdiyorum.value == false) {
+      return;
+    }
+
+    final enable = postNotificationsEnabled.value == false;
+    postNotificationsLoading.value = true;
+    try {
+      if (enable) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        await _userSubcollectionRepository.upsertEntry(
+          userID,
+          subcollection: 'postNotificationSubscribers',
+          docId: currentUid,
+          data: {
+            'subscriberId': currentUid,
+            'authorId': userID,
+            'createdAt': now,
+            'updatedAt': now,
+          },
+        );
+        postNotificationsEnabled.value = true;
+        AppSnackbar(
+          'Bildirimler açıldı',
+          '@${nickname.value} yeni gönderi paylaştığında bildirim alacaksın',
+        );
+      } else {
+        await _userSubcollectionRepository.deleteEntry(
+          userID,
+          subcollection: 'postNotificationSubscribers',
+          docId: currentUid,
+        );
+        postNotificationsEnabled.value = false;
+        AppSnackbar(
+          'Bildirimler kapatıldı',
+          '@${nickname.value} için gönderi bildirimi kapatıldı',
+        );
+      }
+    } catch (e) {
+      print('SocialProfile togglePostNotifications error: $e');
+    } finally {
+      postNotificationsLoading.value = false;
     }
   }
 

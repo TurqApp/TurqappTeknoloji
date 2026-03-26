@@ -49,6 +49,8 @@ class _SocialProfileProfileState {
   final complatedCheck = false.obs;
   final takipEdiyorum = false.obs;
   final followLoading = false.obs;
+  final postNotificationsEnabled = false.obs;
+  final postNotificationsLoading = false.obs;
   StoryUserModel? storyUserModel;
   StreamSubscription<Map<String, dynamic>?>? userDocSub;
 }
@@ -128,6 +130,10 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   RxBool get complatedCheck => _profileState.complatedCheck;
   RxBool get takipEdiyorum => _profileState.takipEdiyorum;
   RxBool get followLoading => _profileState.followLoading;
+  RxBool get postNotificationsEnabled =>
+      _profileState.postNotificationsEnabled;
+  RxBool get postNotificationsLoading =>
+      _profileState.postNotificationsLoading;
   StoryUserModel? get storyUserModel => _profileState.storyUserModel;
   set storyUserModel(StoryUserModel? value) =>
       _profileState.storyUserModel = value;
