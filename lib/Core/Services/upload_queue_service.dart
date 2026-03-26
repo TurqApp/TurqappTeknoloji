@@ -27,6 +27,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'upload_queue_service_helpers_part.dart';
 part 'upload_queue_service_facade_part.dart';
+part 'upload_queue_service_fields_part.dart';
 part 'upload_queue_service_queue_part.dart';
 part 'upload_queue_service_lifecycle_part.dart';
 part 'upload_queue_service_models_part.dart';
@@ -50,19 +51,10 @@ class UploadQueueService extends GetxController {
   static int get _maxVideoBytesForStorageRule =>
       UploadValidationService.currentMaxVideoSizeBytes;
   static const Duration _recentDuplicateWindow = Duration(minutes: 15);
-  final RxList<QueuedUpload> _queue = <QueuedUpload>[].obs;
-  final RxBool _isProcessing = false.obs;
-  final RxBool _isPaused = false.obs;
-  final RxInt _failedCount = 0.obs;
-  final RxInt _completedCount = 0.obs;
-  StreamSubscription<User?>? _authSub;
+  final _state = _UploadQueueServiceState();
 
   static const String _queueKeyPrefix = 'upload_queue';
   static const int _maxRetries = 3;
-
-  void _notifyQueueUpdated() {
-    _queue.refresh();
-  }
 
   @override
   void onInit() {

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+part 'swr_controller_facade_part.dart';
+part 'swr_controller_fields_part.dart';
 part 'swr_controller_runtime_part.dart';
 
 /// Stale-While-Revalidate (SWR) GetX Controller Base
@@ -33,16 +35,11 @@ part 'swr_controller_runtime_part.dart';
 /// ```
 abstract class SWRController<T> extends GetxController {
   // ─── Public state ──────────────────────────────────────────────
-  final RxList<T> items = <T>[].obs;
-  final RxBool isLoading = false.obs;
-  final RxBool isRevalidating = false.obs;
-  final RxBool hasMore = true.obs;
+  final _state = _SWRControllerState<T>();
 
   // ─── Configuration ─────────────────────────────────────────────
   /// Cache TTL: bu süre içinde bir önceki tazelemedeyse ağa gitme
   Duration get revalidateTTL => const Duration(minutes: 5);
-
-  DateTime? _lastRevalidated;
 
   // ─── Abstract interface ────────────────────────────────────────
 
@@ -72,15 +69,6 @@ abstract class SWRController<T> extends GetxController {
     _SWRControllerRuntimePart<T>(this).handleOnInit();
   }
 
-  /// Ağdan taze veri çek ve items'ı güncelle.
-  /// [force] = TTL'yi görmezden gel ve her zaman ağa git.
-  Future<void> revalidate({bool force = false}) =>
-      _SWRControllerRuntimePart<T>(this).revalidate(force: force);
-
-  /// Sayfayı sıfırla ve baştan yükle.
   @override
   Future<void> refresh() => _SWRControllerRuntimePart<T>(this).refresh();
-
-  /// Sonraki sayfayı yükle (infinite scroll).
-  Future<void> loadMore() => _SWRControllerRuntimePart<T>(this).loadMore();
 }

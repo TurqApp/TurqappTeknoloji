@@ -1,6 +1,8 @@
 part of 'current_user_service.dart';
 
 extension CurrentUserServiceFacadePart on CurrentUserService {
+  String get effectiveUserId => _performEffectiveUserId();
+
   CurrentUserModel? get currentUser => _currentUser;
 
   bool get isLoggedIn => _currentUser != null;

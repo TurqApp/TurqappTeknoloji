@@ -50,44 +50,33 @@ part 'post_creator_controller_publish_upload_part.dart';
 part 'post_creator_controller_route_part.dart';
 part 'post_creator_controller_ui_part.dart';
 part 'post_creator_controller_fields_part.dart';
+part 'post_creator_controller_lifecycle_part.dart';
 part 'post_creator_controller_models_part.dart';
 part 'post_creator_controller_runtime_part.dart';
 part 'post_creator_controller_support_part.dart';
 
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
-  static PostCreatorController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(PostCreatorController(), permanent: permanent);
-  }
+  static PostCreatorController ensure({bool permanent = false}) =>
+      _ensurePostCreatorController(permanent: permanent);
 
-  static PostCreatorController? maybeFind() {
-    final isRegistered = Get.isRegistered<PostCreatorController>();
-    if (!isRegistered) return null;
-    return Get.find<PostCreatorController>();
-  }
+  static PostCreatorController? maybeFind() =>
+      _maybeFindPostCreatorController();
 
   final _state = _PostCreatorControllerState();
 
   @override
   void onInit() {
     super.onInit();
-    WidgetsBinding.instance.addObserver(this);
-    _initializeServices();
-    _startAutoSave();
+    _PostCreatorControllerLifecyclePart(this).handleOnInit();
   }
 
   @override
   void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _autoSaveTimer?.cancel();
-    _queueRingTimer?.cancel();
-    _saveCurrentDraft();
+    _PostCreatorControllerLifecyclePart(this).handleOnClose();
     super.onClose();
   }
 
   @override
-  void didChangeMetrics() {
-    _PostCreatorControllerRouteX(this)._handleDidChangeMetrics();
-  }
+  void didChangeMetrics() =>
+      _PostCreatorControllerLifecyclePart(this).handleDidChangeMetrics();
 }

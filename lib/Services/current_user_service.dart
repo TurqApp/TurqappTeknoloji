@@ -63,16 +63,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   final _state = _CurrentUserServiceState();
 
-  String get effectiveUserId => _performEffectiveUserId();
-
-  bool hasReadStory(String storyId) =>
-      _CurrentUserServiceStoryPart(this).hasReadStory(storyId);
-
-  int? getStoryReadTime(String userId) =>
-      _CurrentUserServiceStoryPart(this).getStoryReadTime(userId);
-
-  bool get isVerified => _CurrentUserServiceStoryPart(this).isVerified;
-
   @override
   void onClose() {
     _disposeLifecycleResources();

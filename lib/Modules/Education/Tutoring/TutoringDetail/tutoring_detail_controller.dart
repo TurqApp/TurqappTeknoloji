@@ -9,6 +9,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'tutoring_detail_controller_reviews_part.dart';
 part 'tutoring_detail_controller_runtime_part.dart';
 part 'tutoring_detail_controller_actions_part.dart';
+part 'tutoring_detail_controller_fields_part.dart';
 part 'tutoring_detail_controller_models_part.dart';
 
 class TutoringDetailController extends GetxController {
@@ -31,25 +32,7 @@ class TutoringDetailController extends GetxController {
     return Get.find<TutoringDetailController>(tag: tag);
   }
 
-  var isLoading = true.obs;
-  var tutoring = buildEmptyTutoringModel().obs;
-  var users = <String, Map<String, dynamic>>{}.obs;
-  var carouselCurrentIndex = 0.obs;
-
-  // Application state
-  final basvuruldu = false.obs;
-
-  // Similar listings
-  final similarList = <TutoringModel>[].obs;
-  final similarUsers = <String, Map<String, dynamic>>{}.obs;
-
-  // Reviews
-  final reviews = <TutoringReviewModel>[].obs;
-  final reviewUsers = <String, Map<String, dynamic>>{}.obs;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
-
-  String get _uid => CurrentUserService.instance.effectiveUserId;
+  final _state = _TutoringDetailControllerState();
 
   @override
   void onInit() {

@@ -19,6 +19,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'create_book_controller_form_part.dart';
 part 'create_book_controller_submission_part.dart';
 part 'create_book_controller_answer_key_part.dart';
+part 'create_book_controller_facade_part.dart';
 part 'create_book_controller_fields_part.dart';
 
 class CreateBookController extends GetxController {
@@ -54,8 +55,6 @@ class CreateBookController extends GetxController {
         existingBook?.docID ?? DateTime.now().millisecondsSinceEpoch.toString();
   }
 
-  bool get isEditMode => existingBook != null;
-
   @override
   void onInit() {
     super.onInit();
@@ -68,21 +67,5 @@ class CreateBookController extends GetxController {
     yayinEviController.dispose();
     basimTarihiController.dispose();
     super.onClose();
-  }
-
-  void handleBack() {
-    if (selection.value != 0) {
-      selection.value--;
-    } else {
-      Get.back();
-    }
-  }
-
-  void nextStep() {
-    selection.value++;
-  }
-
-  void selectSinavTuru(String value) {
-    sinavTuru.value = value;
   }
 }

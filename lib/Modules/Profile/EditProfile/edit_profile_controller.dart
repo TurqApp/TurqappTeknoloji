@@ -23,6 +23,7 @@ import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/Services/optimized_nsfw_service.dart';
 part 'edit_profile_controller_actions_part.dart';
 part 'edit_profile_controller_data_part.dart';
+part 'edit_profile_controller_facade_part.dart';
 part 'edit_profile_controller_fields_part.dart';
 
 class EditProfileController extends GetxController {
@@ -51,16 +52,6 @@ class EditProfileController extends GetxController {
   final userService = CurrentUserService.instance;
   final UserRepository _userRepository = UserRepository.ensure();
 
-  String get _currentUid => userService.effectiveUserId;
-
-  // Varsayılan avatar URL'si ve yardımcı durum hesaplaması
-  String get defaultAvatarUrl => kDefaultAvatarUrl;
-
-  bool get hasCustomProfilePhoto {
-    final avatarUrl = userService.currentUser?.avatarUrl ?? '';
-    return !isDefaultAvatarUrl(avatarUrl);
-  }
-
   @override
   void onInit() {
     super.onInit();
@@ -72,15 +63,4 @@ class EditProfileController extends GetxController {
     _handleLifecycleClose();
     super.onClose();
   }
-
-  Future<void> fetchAndSetUserData() => _fetchAndSetUserDataImpl();
-
-  Future<void> pickImage({required ImageSource source}) =>
-      _pickImageImpl(source: source);
-
-  void showCropDialog() => _showCropDialogImpl();
-
-  Future<void> updateProfileInfo() => _updateProfileInfoImpl();
-
-  Future<void> removeProfilePhoto() => _removeProfilePhotoImpl();
 }

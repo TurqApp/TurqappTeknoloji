@@ -17,18 +17,20 @@ import 'package:turqappv2/Models/posts_model.dart';
 part 'feed_snapshot_repository_fetch_part.dart';
 part 'feed_snapshot_repository_codec_part.dart';
 part 'feed_snapshot_repository_facade_part.dart';
+part 'feed_snapshot_repository_fields_part.dart';
 part 'feed_snapshot_repository_visibility_part.dart';
 part 'feed_snapshot_repository_models_part.dart';
 part 'feed_snapshot_repository_runtime_part.dart';
 
 class FeedSnapshotRepository extends GetxService {
-  FeedSnapshotRepository();
+  FeedSnapshotRepository() {
+    _state = _FeedSnapshotRepositoryState(this);
+  }
 
   static const String _homeSurfaceKey = 'feed_home_snapshot';
   static const int _defaultPersistLimit = 40;
   static final Set<String> _hybridBackfillRequested = <String>{};
-
-  bool get _shouldLogDiagnostics => kDebugMode && !IntegrationTestMode.enabled;
+  late final _FeedSnapshotRepositoryState _state;
 
   static FeedSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<FeedSnapshotRepository>();
@@ -41,50 +43,4 @@ class FeedSnapshotRepository extends GetxService {
     if (existing != null) return existing;
     return Get.put(FeedSnapshotRepository(), permanent: true);
   }
-
-  final PostRepository _postRepository = PostRepository.ensure();
-  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
-  final WarmLaunchPool _warmLaunchPool = WarmLaunchPool.ensure();
-
-  late final MemoryScopedSnapshotStore<List<PostsModel>> _memoryStore =
-      MemoryScopedSnapshotStore<List<PostsModel>>();
-  late final SharedPrefsScopedSnapshotStore<List<PostsModel>> _snapshotStore =
-      SharedPrefsScopedSnapshotStore<List<PostsModel>>(
-    prefsPrefix: 'feed_snapshot_v1',
-    encode: _encodePosts,
-    decode: _decodePosts,
-  );
-  late final CacheFirstCoordinator<List<PostsModel>> _coordinator =
-      CacheFirstCoordinator<List<PostsModel>>(
-    memoryStore: _memoryStore,
-    snapshotStore: _snapshotStore,
-    telemetry: const CacheFirstKpiTelemetry<List<PostsModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 10),
-      minLiveSyncInterval: Duration(seconds: 20),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
-    ),
-  );
-
-  late final CacheFirstQueryPipeline<FeedSnapshotQuery, List<PostsModel>,
-          List<PostsModel>> _homePipeline =
-      CacheFirstQueryPipeline<FeedSnapshotQuery, List<PostsModel>,
-          List<PostsModel>>(
-    surfaceKey: _homeSurfaceKey,
-    coordinator: _coordinator,
-    userIdResolver: (query) => query.userId.trim(),
-    scopeIdBuilder: (query) => query.scopeId,
-    fetchRaw: _fetchHomeSnapshot,
-    resolve: (items) => items,
-    loadWarmSnapshot: _loadWarmHomeSnapshot,
-    isEmpty: (items) => items.isEmpty,
-    liveSource: CachedResourceSource.server,
-  );
 }
