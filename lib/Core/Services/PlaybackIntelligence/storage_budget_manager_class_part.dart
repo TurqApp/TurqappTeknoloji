@@ -9,31 +9,6 @@ class StorageBudgetManager extends GetxService {
   static const int _maxRecentProtectionWindow = 50;
   final _state = _StorageBudgetManagerState();
 
-  int get selectedPlanGb => _selectedPlanGb.value;
-  StorageBudgetProfile get currentProfile =>
-      profileForPlanGb(_selectedPlanGb.value);
-
-  Future<StorageBudgetProfile> applyPlanGb(int gb) =>
-      _applyStorageBudgetPlanGb(this, gb);
-
-  StorageBudgetUsageSnapshot usageSnapshot({
-    required int streamUsageBytes,
-  }) =>
-      _storageBudgetUsageSnapshot(
-        this,
-        streamUsageBytes: streamUsageBytes,
-      );
-
-  int recentProtectionWindow({
-    required int streamUsageBytes,
-    int remoteFloor = 3,
-  }) =>
-      _storageBudgetRecentProtectionWindow(
-        this,
-        streamUsageBytes: streamUsageBytes,
-        remoteFloor: remoteFloor,
-      );
-
   static StorageBudgetUsageSnapshot usageSnapshotForProfile(
     StorageBudgetProfile profile, {
     required int streamUsageBytes,

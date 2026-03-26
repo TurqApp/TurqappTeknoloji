@@ -28,30 +28,4 @@ part 'short_controller_cache_part.dart';
 part 'short_controller_fields_part.dart';
 part 'short_controller_runtime_part.dart';
 part 'short_controller_models_part.dart';
-
-/// Kısa videoları Firestore'dan çekip saklayan ve
-/// range bazlı (±7 etrafında) preload & prune desteği sunan controller
-/// + AKILLI DİNAMİK KARIŞTIRMA SİSTEMİ
-class ShortController extends GetxController {
-  static ShortController ensure() => _ensureShortController();
-
-  static ShortController? maybeFind() => _maybeFindShortController();
-
-  void _log(String message) => _ShortControllerRuntimeX(this).log(message);
-  final _state = _ShortControllerState();
-
-  bool _isEligibleShortPost(PostsModel post) =>
-      _ShortControllerRuntimeX(this).isEligibleShortPost(post);
-
-  @override
-  void onInit() {
-    super.onInit();
-    _ShortControllerRuntimeX(this).handleOnInit();
-  }
-
-  @override
-  void onClose() {
-    _ShortControllerRuntimeX(this).handleOnClose();
-    super.onClose();
-  }
-}
+part 'short_controller_class_part.dart';

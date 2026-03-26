@@ -17,42 +17,11 @@ class ViewModeController extends GetxController {
   var isGridView = true.obs;
   final RxBool isReady = false.obs;
 
-  String _viewModeKeyFor(String uid) => '${_viewModePrefKeyPrefix}_$uid';
-
   @override
   void onInit() {
     super.onInit();
-    unawaited(_restoreViewMode());
+    unawaited(_ViewModeControllerRuntimePart(this).restoreViewMode());
   }
 
-  Future<void> _restoreViewMode() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      isGridView.value = true;
-      isReady.value = true;
-      return;
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      isGridView.value = prefs.getBool(_viewModeKeyFor(uid)) ?? true;
-    } catch (_) {
-      isGridView.value = true;
-    } finally {
-      isReady.value = true;
-    }
-  }
-
-  Future<void> _persistViewMode() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_viewModeKeyFor(uid), isGridView.value);
-    } catch (_) {}
-  }
-
-  void toggleView() {
-    isGridView.value = !isGridView.value;
-    unawaited(_persistViewMode());
-  }
+  void toggleView() => _ViewModeControllerRuntimePart(this).toggleView();
 }

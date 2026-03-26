@@ -42,3 +42,31 @@ int _storageBudgetRecentProtectionWindow(
     remoteFloor: remoteFloor,
   );
 }
+
+extension StorageBudgetManagerFacadePart on StorageBudgetManager {
+  int get selectedPlanGb => _selectedPlanGb.value;
+
+  StorageBudgetProfile get currentProfile =>
+      StorageBudgetManager.profileForPlanGb(_selectedPlanGb.value);
+
+  Future<StorageBudgetProfile> applyPlanGb(int gb) =>
+      _applyStorageBudgetPlanGb(this, gb);
+
+  StorageBudgetUsageSnapshot usageSnapshot({
+    required int streamUsageBytes,
+  }) =>
+      _storageBudgetUsageSnapshot(
+        this,
+        streamUsageBytes: streamUsageBytes,
+      );
+
+  int recentProtectionWindow({
+    required int streamUsageBytes,
+    int remoteFloor = 3,
+  }) =>
+      _storageBudgetRecentProtectionWindow(
+        this,
+        streamUsageBytes: streamUsageBytes,
+        remoteFloor: remoteFloor,
+      );
+}
