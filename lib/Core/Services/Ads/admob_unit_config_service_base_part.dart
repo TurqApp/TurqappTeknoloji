@@ -6,10 +6,4 @@ abstract class _AdmobUnitConfigServiceBase extends GetxService {
   StreamSubscription<Map<String, dynamic>>? _sub;
   Future<void>? _initFuture;
   bool _initialized = false;
-
-  @override
-  void onClose() {
-    _disposeAdmobConfigRuntime(this as AdmobUnitConfigService);
-    super.onClose();
-  }
 }

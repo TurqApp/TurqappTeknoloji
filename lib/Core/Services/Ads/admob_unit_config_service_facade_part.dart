@@ -43,14 +43,14 @@ extension AdmobUnitConfigServiceFacadePart on AdmobUnitConfigService {
       return _nextAdmobUnitId(
         this,
         ids: _config.ios.squareIds,
-        cursorKey: AdmobUnitConfigService._iosSquareCursorKey,
+        cursorKey: _iosSquareCursorKey,
         fallback: _AdmobUnitConfig.defaultIosSquareIds.first,
       );
     }
     return _nextAdmobUnitId(
       this,
       ids: _config.android.squareIds,
-      cursorKey: AdmobUnitConfigService._androidSquareCursorKey,
+      cursorKey: _androidSquareCursorKey,
       fallback: _AdmobUnitConfig.defaultAndroidSquareIds.first,
     );
   }
@@ -78,14 +78,14 @@ extension AdmobUnitConfigServiceFacadePart on AdmobUnitConfigService {
       return _nextAdmobUnitId(
         this,
         ids: _config.ios.interstitialIds,
-        cursorKey: AdmobUnitConfigService._iosInterstitialCursorKey,
+        cursorKey: _iosInterstitialCursorKey,
         fallback: _AdmobUnitConfig.defaultIosInterstitialIds.first,
       );
     }
     return _nextAdmobUnitId(
       this,
       ids: _config.android.interstitialIds,
-      cursorKey: AdmobUnitConfigService._androidInterstitialCursorKey,
+      cursorKey: _androidInterstitialCursorKey,
       fallback: _AdmobUnitConfig.defaultAndroidInterstitialIds.first,
     );
   }

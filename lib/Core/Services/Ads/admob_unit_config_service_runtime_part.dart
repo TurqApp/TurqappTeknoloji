@@ -12,7 +12,7 @@ Future<void> _initInternalAdmobConfig(AdmobUnitConfigService service) async {
       await _writeRemoteAdmobConfig(service, service._config.toMap());
     } else {
       final legacyData = await ensureConfigRepository().getAdminConfigDoc(
-        AdmobUnitConfigService._legacyDocId,
+        _legacyDocId,
         preferCache: true,
         ttl: const Duration(hours: 6),
       );
