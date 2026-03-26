@@ -1,34 +1,23 @@
 part of 'deneme_sinavi_yap_controller.dart';
 
 class _DenemeSinaviYapControllerConfig {
-  const _DenemeSinaviYapControllerConfig({
+  _DenemeSinaviYapControllerConfig({
     required this.model,
     required this.sinaviBitir,
     required this.showGecersizAlert,
     required this.uyariAtla,
-  });
+  })  : userSummaryResolver = UserSummaryResolver.ensure(),
+        practiceExamRepository = PracticeExamRepository.ensure();
 
   final SinavModel model;
   final Function sinaviBitir;
   final Function showGecersizAlert;
   final bool uyariAtla;
-  final UserSummaryResolver userSummaryResolver =
-      const _DenemeUserSummaryHolder().resolver;
-  final PracticeExamRepository practiceExamRepository =
-      const _DenemePracticeExamHolder().repository;
+  final UserSummaryResolver userSummaryResolver;
+  final PracticeExamRepository practiceExamRepository;
 }
 
-class _DenemeUserSummaryHolder {
-  const _DenemeUserSummaryHolder();
-  UserSummaryResolver get resolver => UserSummaryResolver.ensure();
-}
-
-class _DenemePracticeExamHolder {
-  const _DenemePracticeExamHolder();
-  PracticeExamRepository get repository => PracticeExamRepository.ensure();
-}
-
-extension _DenemeSinaviYapControllerConfigPart on DenemeSinaviYapController {
+extension DenemeSinaviYapControllerConfigX on DenemeSinaviYapController {
   SinavModel get model => _config.model;
   Function get sinaviBitir => _config.sinaviBitir;
   Function get showGecersizAlert => _config.showGecersizAlert;

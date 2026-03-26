@@ -2,12 +2,6 @@ part of 'agenda_controller.dart';
 
 extension AgendaControllerLifecyclePart on AgendaController {
   void _handleLifecycleInit() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (playbackSuspended.value) return;
-      if (agendaList.isEmpty && !isLoading.value) {
-        unawaited(ensureInitialFeedLoaded());
-      }
-    });
     scrollController.addListener(_onScroll);
     navBarController = NavBarController.ensure();
     _bindFollowingListener();

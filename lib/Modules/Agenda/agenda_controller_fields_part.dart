@@ -48,7 +48,10 @@ class _AgendaControllerState {
   double lastOffset = 0.0;
   bool ensureInitialLoadInFlight = false;
   Future<void>? ensureInitialLoadFuture;
+  Future<void>? surfaceBootstrapFuture;
+  Future<void>? headSyncFuture;
   DateTime? lastEnsureInitialLoadAt;
+  DateTime? lastHeadSyncAt;
   DateTime? lastDeferredInitialNetworkBootstrapAt;
   DateTime? lastPlaybackCommandAt;
   DateTime? qaScrollStartedAt;
@@ -151,9 +154,16 @@ extension AgendaControllerFieldsPart on AgendaController {
   Future<void>? get _ensureInitialLoadFuture => _state.ensureInitialLoadFuture;
   set _ensureInitialLoadFuture(Future<void>? value) =>
       _state.ensureInitialLoadFuture = value;
+  Future<void>? get _surfaceBootstrapFuture => _state.surfaceBootstrapFuture;
+  set _surfaceBootstrapFuture(Future<void>? value) =>
+      _state.surfaceBootstrapFuture = value;
+  Future<void>? get _headSyncFuture => _state.headSyncFuture;
+  set _headSyncFuture(Future<void>? value) => _state.headSyncFuture = value;
   DateTime? get _lastEnsureInitialLoadAt => _state.lastEnsureInitialLoadAt;
   set _lastEnsureInitialLoadAt(DateTime? value) =>
       _state.lastEnsureInitialLoadAt = value;
+  DateTime? get _lastHeadSyncAt => _state.lastHeadSyncAt;
+  set _lastHeadSyncAt(DateTime? value) => _state.lastHeadSyncAt = value;
   DateTime? get _lastDeferredInitialNetworkBootstrapAt =>
       _state.lastDeferredInitialNetworkBootstrapAt;
   set _lastDeferredInitialNetworkBootstrapAt(DateTime? value) =>

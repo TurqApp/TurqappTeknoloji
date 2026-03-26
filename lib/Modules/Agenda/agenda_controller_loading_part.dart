@@ -1,6 +1,8 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
+  static const int _initialHeadSyncLimit = 24;
+
   void _performResetSurfaceForTabTransition() {
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
@@ -379,6 +381,128 @@ extension AgendaControllerLoadingPart on AgendaController {
         _ensureInitialLoadFuture = null;
       }
     }
+  }
+
+  Future<void> ensureFeedSurfaceReady() async {
+    final inFlight = _surfaceBootstrapFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+    final future = _performEnsureFeedSurfaceReady();
+    _surfaceBootstrapFuture = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_surfaceBootstrapFuture, future)) {
+        _surfaceBootstrapFuture = null;
+      }
+    }
+  }
+
+  Future<void> _performEnsureFeedSurfaceReady() async {
+    if (agendaList.isEmpty && !isLoading.value) {
+      await hydrateInitialFeedFromCache(
+        targetCount: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
+      );
+    }
+
+    if (agendaList.isNotEmpty) {
+      if (centeredIndex.value == -1) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+            primeInitialCenteredPost();
+          }
+        });
+      }
+      unawaited(syncFeedHeadAfterSurfaceOpen());
+      return;
+    }
+
+    if (!isLoading.value) {
+      await ensureInitialFeedLoaded();
+    }
+  }
+
+  Future<void> syncFeedHeadAfterSurfaceOpen() async {
+    if (!ContentPolicy.isConnected || agendaList.isEmpty || isLoading.value) {
+      return;
+    }
+
+    final inFlight = _headSyncFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastHeadSyncAt != null &&
+        now.difference(_lastHeadSyncAt!) < const Duration(seconds: 12)) {
+      return;
+    }
+    _lastHeadSyncAt = now;
+
+    final future = _performSyncFeedHeadAfterSurfaceOpen();
+    _headSyncFuture = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_headSyncFuture, future)) {
+        _headSyncFuture = null;
+      }
+    }
+  }
+
+  Future<void> _performSyncFeedHeadAfterSurfaceOpen() async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cutoffMs = _agendaCutoffMs(nowMs);
+    final page = await _loadAgendaSourcePage(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: _initialHeadSyncLimit,
+      startAfter: null,
+      preferCache: false,
+      cacheOnly: false,
+    );
+    final visibleItems = page.items;
+
+    _usePrimaryFeedPaging = page.usesPrimaryFeed;
+    if (page.lastDoc != null) {
+      lastDoc = page.lastDoc;
+      hasMore.value = true;
+    } else if (visibleItems.length < _initialHeadSyncLimit) {
+      hasMore.value = false;
+    }
+
+    if (visibleItems.isEmpty) {
+      return;
+    }
+
+    final existingIndexById = <String, int>{
+      for (int i = 0; i < agendaList.length; i++) agendaList[i].docID: i,
+    };
+    final added = <PostsModel>[];
+    for (final post in visibleItems) {
+      final existingIndex = existingIndexById[post.docID];
+      if (existingIndex == null) {
+        agendaList.add(post);
+        existingIndexById[post.docID] = agendaList.length - 1;
+        added.add(post);
+        continue;
+      }
+      agendaList[existingIndex] = post;
+    }
+
+    if (added.isNotEmpty) {
+      _scheduleFeedPrefetch();
+      _scheduleReshareFetchForPosts(added, perPostLimit: 1);
+    }
+
+    await _saveFeedPostsToPool(
+      _buildOrderedAgendaSnapshot(limit: 40),
+      const <String, Map<String, dynamic>>{},
+      source: CachedResourceSource.server,
+    );
   }
 
   Future<void> refreshAgenda() async {

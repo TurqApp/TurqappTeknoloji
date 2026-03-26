@@ -54,7 +54,6 @@ extension _JobCreatorControllerSupportX on JobCreatorController {
   CropController get cropController => _mediaState.cropController;
   ImagePicker get picker => _mediaState.picker;
   Rx<File?> get selectedImage => _mediaState.selectedImage;
-  Rx<Uint8List?> get croppedImage => _mediaState.croppedImage;
   bool get _ownsLoader => _runtimeState.ownsLoader;
   set _ownsLoader(bool value) => _runtimeState.ownsLoader = value;
 
