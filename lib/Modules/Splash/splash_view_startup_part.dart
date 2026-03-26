@@ -265,7 +265,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       await cache.init();
       await _applyGlobalMediaCacheQuota();
 
-      PrefetchScheduler.ensure(permanent: true);
+      ensurePrefetchScheduler(permanent: true);
       _SplashViewState._globalCacheProxyReady = true;
     } catch (_) {
       _SplashViewState._globalCacheProxyReady = false;

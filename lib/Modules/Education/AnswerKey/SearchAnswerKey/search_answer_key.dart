@@ -27,14 +27,14 @@ class _SearchAnswerKeyState extends State<SearchAnswerKey> {
     super.initState();
     _controllerTag = 'answer_key_search_${identityHashCode(this)}';
     _ownsController =
-        SearchAnswerKeyController.maybeFind(tag: _controllerTag) == null;
-    controller = SearchAnswerKeyController.ensure(tag: _controllerTag);
+        maybeFindSearchAnswerKeyController(tag: _controllerTag) == null;
+    controller = ensureSearchAnswerKeyController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = SearchAnswerKeyController.maybeFind(
+      final registeredController = maybeFindSearchAnswerKeyController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

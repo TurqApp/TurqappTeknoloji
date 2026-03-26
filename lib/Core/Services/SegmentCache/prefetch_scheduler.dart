@@ -17,6 +17,7 @@ import 'm3u8_parser.dart';
 import 'network_policy.dart';
 
 part 'prefetch_scheduler_class_part.dart';
+part 'prefetch_scheduler_facade_part.dart';
 part 'prefetch_scheduler_queue_part.dart';
 part 'prefetch_scheduler_worker_part.dart';
 part 'prefetch_scheduler_runtime_part.dart';

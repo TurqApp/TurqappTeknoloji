@@ -663,7 +663,7 @@ extension ExploreControllerFeedPart on ExploreController {
 
   void _performScheduleExplorePrefetchFromPosts(List<PostsModel> source) {
     if (source.isEmpty) return;
-    final prefetch = PrefetchScheduler.maybeFind();
+    final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
 
     final docIds = source

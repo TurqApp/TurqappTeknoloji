@@ -113,7 +113,7 @@ extension AgendaControllerFeedPart on AgendaController {
     final docIds = videoPosts.map((p) => p.docID).toList();
 
     try {
-      PrefetchScheduler.maybeFind()?.updateFeedQueue(docIds, safeCurrent);
+      maybeFindPrefetchScheduler()?.updateFeedQueue(docIds, safeCurrent);
     } catch (_) {}
   }
 

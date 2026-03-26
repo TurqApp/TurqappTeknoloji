@@ -5,7 +5,7 @@ part of 'package:turqappv2/Modules/Profile/Settings/settings.dart';
 extension _SettingsViewDiagnosticsMenuPart on _SettingsViewState {
   void _showVideoCacheDetails() {
     final cache = SegmentCacheManager.maybeFind();
-    final prefetch = PrefetchScheduler.maybeFind();
+    final prefetch = maybeFindPrefetchScheduler();
 
     final metrics = cache?.metrics.toJson() ?? {};
     final hitRate = (metrics['cacheHitRate'] ?? '0.0%').toString();

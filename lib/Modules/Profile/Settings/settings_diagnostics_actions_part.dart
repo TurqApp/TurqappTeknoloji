@@ -67,7 +67,7 @@ extension _SettingsViewDiagnosticsActionsPart on _SettingsViewState {
                 title: Text("settings.diagnostics.pause_prefetch".tr),
                 onTap: () {
                   Get.back();
-                  final prefetch = PrefetchScheduler.maybeFind();
+                  final prefetch = maybeFindPrefetchScheduler();
                   if (prefetch != null) {
                     prefetch.pause();
                     AppSnackbar("common.success".tr,
@@ -83,7 +83,7 @@ extension _SettingsViewDiagnosticsActionsPart on _SettingsViewState {
                 title: Text("settings.diagnostics.resume_prefetch".tr),
                 onTap: () {
                   Get.back();
-                  final prefetch = PrefetchScheduler.maybeFind();
+                  final prefetch = maybeFindPrefetchScheduler();
                   if (prefetch != null) {
                     prefetch.resume();
                     AppSnackbar("common.success".tr,

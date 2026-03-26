@@ -159,7 +159,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           },
         );
       }
-      final prefetch = PrefetchScheduler.maybeFind();
+      final prefetch = maybeFindPrefetchScheduler();
       if (prefetch != null) {
         try {
           prefetch.updateQueue(

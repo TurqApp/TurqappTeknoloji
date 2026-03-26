@@ -7,18 +7,6 @@ part of 'prefetch_scheduler.dart';
 /// 2. Aktif videoda ilk 2 segment hazır
 /// 3. İzleme sırasında yalnızca 1 sonraki segment hazırlanır
 class PrefetchScheduler extends GetxController {
-  static PrefetchScheduler ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(PrefetchScheduler(), permanent: permanent);
-  }
-
-  static PrefetchScheduler? maybeFind() {
-    final isRegistered = Get.isRegistered<PrefetchScheduler>();
-    if (!isRegistered) return null;
-    return Get.find<PrefetchScheduler>();
-  }
-
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
   static const Map<String, String> _cdnHeaders = {
     'X-Turq-App': 'turqapp-mobile',

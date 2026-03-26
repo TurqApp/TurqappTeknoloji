@@ -54,7 +54,7 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
         break;
       }
     }
-    final scheduler = PrefetchScheduler.maybeFind();
+    final scheduler = maybeFindPrefetchScheduler();
     final pressureLabel = usage == null
         ? null
         : usage.crossedHardStop

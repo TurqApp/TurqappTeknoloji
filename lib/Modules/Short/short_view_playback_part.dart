@@ -380,7 +380,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
       }
       try {
-        PrefetchScheduler.maybeFind()?.updateQueue(
+        maybeFindPrefetchScheduler()?.updateQueue(
           _cachedShorts.map((s) => s.docID).toList(growable: false),
           currentPage,
         );

@@ -25,7 +25,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       _currentNetwork.value = NetworkType.none;
     }
 
-    final scheduler = PrefetchScheduler.maybeFind();
+    final scheduler = maybeFindPrefetchScheduler();
     if (scheduler == null) return;
     if (_currentNetwork.value == NetworkType.wifi) {
       scheduler.resume();
@@ -36,7 +36,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
 
   void debugSetNetworkOverride(NetworkType? type) {
     _debugOverrideNetwork = type;
-    final scheduler = PrefetchScheduler.maybeFind();
+    final scheduler = maybeFindPrefetchScheduler();
     if (scheduler == null) return;
     if (isOnWiFi) {
       scheduler.resume();

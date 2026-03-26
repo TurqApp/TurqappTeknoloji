@@ -106,7 +106,7 @@ extension _SplashViewWarmPart on _SplashViewState {
 
   void _primeShortVideoSegments(ShortController shorts) {
     try {
-      final prefetch = PrefetchScheduler.maybeFind();
+      final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
       final docIds = shorts.shorts
           .where((p) => p.hasPlayableVideo)
@@ -121,7 +121,7 @@ extension _SplashViewWarmPart on _SplashViewState {
 
   void _primeFeedVideoSegments(AgendaController agendaController) {
     try {
-      final prefetch = PrefetchScheduler.maybeFind();
+      final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
       final docIds = agendaController.agendaList
           .where((p) => p.hasPlayableVideo)

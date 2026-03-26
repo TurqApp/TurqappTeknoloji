@@ -40,7 +40,7 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
   }
 
   PrefetchScheduler? get _prefetch {
-    return PrefetchScheduler.maybeFind();
+    return maybeFindPrefetchScheduler();
   }
 
   @override
