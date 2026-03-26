@@ -12,6 +12,7 @@ class StoryModel {
   final String musicTitle;
   final String musicArtist;
   final String musicCoverUrl;
+  final String hlsVideoUrl;
   final List<StoryElement> elements;
 
   StoryModel({
@@ -24,12 +25,14 @@ class StoryModel {
     required this.musicTitle,
     required this.musicArtist,
     required this.musicCoverUrl,
+    required this.hlsVideoUrl,
     required this.elements,
   });
 
   /// Firestore dokümanından StoryModel’a dönüştürür
   factory StoryModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
+    final normalizedHlsVideoUrl = (data['hlsVideoUrl'] as String? ?? '').trim();
     // elements dizisini Map’lerden StoryElement nesnelerine dönüştür
     final elems =
         (data['elements'] as List).cast<Map<String, dynamic>>().map((m) {
@@ -46,7 +49,10 @@ class StoryModel {
       );
       return StoryElement(
         type: type,
-        content: m['content'] as String,
+        content: type == StoryElementType.video &&
+                normalizedHlsVideoUrl.isNotEmpty
+            ? normalizedHlsVideoUrl
+            : m['content'] as String,
         width: (m['width'] as num).toDouble(),
         height: (m['height'] as num).toDouble(),
         position: pos,
@@ -97,6 +103,7 @@ class StoryModel {
       musicTitle: data['musicTitle'] as String? ?? "",
       musicArtist: data['musicArtist'] as String? ?? "",
       musicCoverUrl: data['musicCoverUrl'] as String? ?? "",
+      hlsVideoUrl: normalizedHlsVideoUrl,
       elements: elems,
     );
   }
@@ -111,6 +118,7 @@ class StoryModel {
         'musicTitle': musicTitle,
         'musicArtist': musicArtist,
         'musicCoverUrl': musicCoverUrl,
+        'hlsVideoUrl': hlsVideoUrl,
         'elements': elements
             .map(
               (e) => {
@@ -155,6 +163,7 @@ class StoryModel {
         'musicTitle': musicTitle,
         'musicArtist': musicArtist,
         'musicCoverUrl': musicCoverUrl,
+        'hlsVideoUrl': hlsVideoUrl,
         'elements': elements
             .map(
               (e) => {
@@ -189,6 +198,7 @@ class StoryModel {
       };
 
   factory StoryModel.fromCacheMap(Map<String, dynamic> data) {
+    final normalizedHlsVideoUrl = (data['hlsVideoUrl'] ?? '').toString().trim();
     final rawElements =
         (data['elements'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
     final elems = rawElements.map((m) {
@@ -205,7 +215,10 @@ class StoryModel {
       );
       return StoryElement(
         type: type,
-        content: (m['content'] ?? '').toString(),
+        content: type == StoryElementType.video &&
+                normalizedHlsVideoUrl.isNotEmpty
+            ? normalizedHlsVideoUrl
+            : (m['content'] ?? '').toString(),
         width: (m['width'] as num?)?.toDouble() ?? 0.0,
         height: (m['height'] as num?)?.toDouble() ?? 0.0,
         position: pos,
@@ -245,6 +258,7 @@ class StoryModel {
       musicTitle: (data['musicTitle'] ?? '').toString(),
       musicArtist: (data['musicArtist'] ?? '').toString(),
       musicCoverUrl: (data['musicCoverUrl'] ?? '').toString(),
+      hlsVideoUrl: normalizedHlsVideoUrl,
       elements: elems,
     );
   }
