@@ -70,13 +70,10 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _impressionReported = false;
   int _retryCount = 0;
   Timer? _retryTimer;
-  Timer? _fallbackPromoTimer;
   DateTime? _qaRequestStartedAt;
   late final Key _visibilityKey;
   bool _isVisible = false;
-  bool _showPromoFallback = false;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
-  static const Duration _fallbackPromoDelay = Duration(milliseconds: 2500);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
 
@@ -250,44 +247,6 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_usePlaceholderOnly) return;
   }
 
-  void _schedulePromoFallback() {
-    if (_showPromoFallback || _isDisposed || !_isVisible) return;
-    _fallbackPromoTimer?.cancel();
-    _fallbackPromoTimer = Timer(_fallbackPromoDelay, () {
-      if (!mounted || _isDisposed || !_isVisible) return;
-      if (_canRenderAd(_bannerAd)) return;
-      setState(() {
-        _showPromoFallback = true;
-      });
-    });
-  }
-
-  void _resetPromoFallback() {
-    _fallbackPromoTimer?.cancel();
-    if (!_showPromoFallback) return;
-    if (mounted && !_isDisposed) {
-      setState(() {
-        _showPromoFallback = false;
-      });
-    } else {
-      _showPromoFallback = false;
-    }
-  }
-
-  void _showPromoFallbackNow() {
-    _fallbackPromoTimer?.cancel();
-    if (_showPromoFallback || _isDisposed || !_isVisible || !widget.showChrome) {
-      return;
-    }
-    if (mounted && !_isDisposed) {
-      setState(() {
-        _showPromoFallback = true;
-      });
-    } else {
-      _showPromoFallback = true;
-    }
-  }
-
   void _attachBannerOrLoad() {
     if (!_canStartOrRetryLoad()) {
       return;
@@ -313,7 +272,6 @@ class _AdmobKareState extends State<AdmobKare> {
       _isAdLoaded = true;
       _loadFailed = false;
       _impressionReported = false;
-      _resetPromoFallback();
       if (_supportsSharedPool) {
         unawaited(warmupPool(
           bypassMinInterval: true,
@@ -362,11 +320,9 @@ class _AdmobKareState extends State<AdmobKare> {
     _isVisible = nextVisible;
     if (!_isVisible) {
       _retryTimer?.cancel();
-      _fallbackPromoTimer?.cancel();
       return;
     }
     if (_bannerAd == null || !_isAdLoaded) {
-      _schedulePromoFallback();
       _attachBannerOrLoad();
     }
   }
@@ -406,7 +362,6 @@ class _AdmobKareState extends State<AdmobKare> {
       });
     }
     _impressionReported = false;
-    _schedulePromoFallback();
 
     _bannerAd = BannerAd(
       adUnitId: adUnitId,
@@ -439,10 +394,8 @@ class _AdmobKareState extends State<AdmobKare> {
             setState(() {
               _isAdLoaded = true;
               _loadFailed = false;
-              _showPromoFallback = false;
             });
           }
-          _fallbackPromoTimer?.cancel();
           if (_supportsSharedPool) {
             unawaited(warmupPool(
               bypassMinInterval: true,
@@ -476,7 +429,6 @@ class _AdmobKareState extends State<AdmobKare> {
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
-          _showPromoFallbackNow();
           final shouldEnterCooldown = isRetryThrottled ||
               _globalFailureBurstCount >= _failureBurstBeforeCooldown ||
               _retryCount >= _maxRetryCount;
@@ -556,7 +508,6 @@ class _AdmobKareState extends State<AdmobKare> {
   void dispose() {
     _isDisposed = true;
     _retryTimer?.cancel();
-    _fallbackPromoTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;
@@ -596,19 +547,10 @@ class _AdmobKareState extends State<AdmobKare> {
       if (_loadFailed || !_canRenderAd(ad)) {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
-        } else if (_showPromoFallback) {
-          child = Padding(
-            padding: widget.contentPadding,
-            child: _buildPromoFallbackSurface(),
-          );
         } else {
           child = Padding(
             padding: widget.contentPadding,
-            child: Container(
-              height: 250,
-              alignment: Alignment.center,
-              child: const CupertinoActivityIndicator(),
-            ),
+            child: _buildPromoFallbackSurface(),
           );
         }
       } else {
