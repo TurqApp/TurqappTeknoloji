@@ -1,4 +1,4 @@
-part of 'location_based_tutoring_controller.dart';
+part of 'location_based_tutoring_controller_library.dart';
 
 LocationBasedTutoringController ensureLocationBasedTutoringController({
   String? tag,

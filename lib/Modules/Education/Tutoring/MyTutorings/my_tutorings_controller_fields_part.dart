@@ -1,4 +1,4 @@
-part of 'my_tutorings_controller.dart';
+part of 'my_tutorings_controller_library.dart';
 
 class _MyTutoringsControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();

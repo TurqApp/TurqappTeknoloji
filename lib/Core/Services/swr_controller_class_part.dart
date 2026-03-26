@@ -1,4 +1,4 @@
-part of 'swr_controller.dart';
+part of 'swr_controller_library.dart';
 
 abstract class SWRController<T> extends GetxController
     with _SWRControllerBasePart<T> {

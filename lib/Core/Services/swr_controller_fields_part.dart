@@ -1,4 +1,4 @@
-part of 'swr_controller.dart';
+part of 'swr_controller_library.dart';
 
 class _SWRControllerState<T> {
   final RxList<T> items = <T>[].obs;

@@ -1,4 +1,4 @@
-part of 'swr_controller.dart';
+part of 'swr_controller_library.dart';
 
 extension SWRControllerFacadePart<T> on SWRController<T> {
   Duration get revalidateTTL => const Duration(minutes: 5);

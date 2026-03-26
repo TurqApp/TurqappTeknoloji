@@ -1,4 +1,4 @@
-part of 'family_info_controller.dart';
+part of 'family_info_controller_library.dart';
 
 class _FamilyInfoControllerState {
   final userRepository = UserRepository.ensure();

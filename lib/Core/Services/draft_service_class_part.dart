@@ -1,4 +1,4 @@
-part of 'draft_service.dart';
+part of 'draft_service_library.dart';
 
 class DraftService extends _DraftServiceBase {
   static const String _draftsKeyPrefix = 'post_drafts';

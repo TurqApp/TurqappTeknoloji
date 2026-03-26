@@ -1,4 +1,4 @@
-part of 'family_info_controller.dart';
+part of 'family_info_controller_library.dart';
 
 const String _familyInfoSelectValue = 'Seçiniz';
 const String _familyInfoSelectHomeOwnership = 'Seçim Yap';

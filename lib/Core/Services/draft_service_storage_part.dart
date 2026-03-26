@@ -1,4 +1,4 @@
-part of 'draft_service.dart';
+part of 'draft_service_library.dart';
 
 extension DraftServiceStoragePart on DraftService {
   Future<List<String>> _saveMediaFiles(

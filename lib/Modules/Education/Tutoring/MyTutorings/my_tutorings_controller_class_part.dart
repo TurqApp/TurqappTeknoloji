@@ -1,4 +1,4 @@
-part of 'my_tutorings_controller.dart';
+part of 'my_tutorings_controller_library.dart';
 
 class MyTutoringsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

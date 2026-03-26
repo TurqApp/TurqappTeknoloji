@@ -1,4 +1,4 @@
-part of 'draft_service.dart';
+part of 'draft_service_library.dart';
 
 abstract class _DraftServiceBase extends GetxController {
   final _state = _DraftServiceState();

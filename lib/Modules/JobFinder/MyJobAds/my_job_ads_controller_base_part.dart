@@ -1,4 +1,4 @@
-part of 'my_job_ads_controller.dart';
+part of 'my_job_ads_controller_library.dart';
 
 const Duration _myJobAdsSilentRefreshInterval = Duration(minutes: 5);
 

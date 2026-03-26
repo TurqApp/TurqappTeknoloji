@@ -1,4 +1,4 @@
-part of 'draft_service.dart';
+part of 'draft_service_library.dart';
 
 class _DraftServiceState {
   final RxList<PostDraft> drafts = <PostDraft>[].obs;

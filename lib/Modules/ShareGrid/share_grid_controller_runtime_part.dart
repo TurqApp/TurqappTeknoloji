@@ -1,4 +1,4 @@
-part of 'share_grid_controller.dart';
+part of 'share_grid_controller_library.dart';
 
 extension ShareGridControllerRuntimePart on ShareGridController {
   void _handleShareGridInit() {
