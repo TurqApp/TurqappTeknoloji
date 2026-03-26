@@ -1,6 +1,12 @@
 part of 'agenda_content.dart';
 
 extension _AgendaContentQuotePart on _AgendaContentState {
+  double _quotedPhotoPreviewAspectRatio() {
+    final raw = widget.model.aspectRatio.toDouble();
+    if (raw.isFinite && raw > 0) return raw;
+    return _quotedFeedPreviewAspectRatio();
+  }
+
   double _quotedFeedPreviewAspectRatio() {
     if (_isIzBirakPost) return 0.92;
     if (widget.model.floodCount > 1) return 1.0;
@@ -325,7 +331,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
     switch (images.length) {
       case 1:
         return AspectRatio(
-          aspectRatio: _quotedFeedPreviewAspectRatio(),
+          aspectRatio: _quotedPhotoPreviewAspectRatio(),
           child: _buildImage(
             images[0],
             radius: BorderRadius.circular(12),
