@@ -22,27 +22,16 @@ class TutoringApplicationReviewController extends GetxController {
     return Get.find<TutoringApplicationReviewController>(tag: tag);
   }
 
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
-  final String tutoringDocID;
-  final _state = _TutoringApplicationReviewControllerState();
+  final _state;
 
-  TutoringApplicationReviewController({required this.tutoringDocID});
+  TutoringApplicationReviewController({required String tutoringDocID})
+      : _state = _TutoringApplicationReviewControllerState(
+          tutoringDocID: tutoringDocID,
+        );
 
   @override
   void onInit() {
     super.onInit();
     loadApplicants();
   }
-
-  Future<void> loadApplicants() =>
-      _TutoringApplicationReviewControllerActionsX(this).loadApplicants();
-
-  Future<Map<String, dynamic>?> getApplicantProfile(String userID) =>
-      _TutoringApplicationReviewControllerActionsX(this)
-          .getApplicantProfile(userID);
-
-  Future<void> updateStatus(String userID, String newStatus) =>
-      _TutoringApplicationReviewControllerActionsX(this)
-          .updateStatus(userID, newStatus);
 }

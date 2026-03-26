@@ -13,24 +13,7 @@ class CikmisSorularController extends GetxController {
     return Get.find<CikmisSorularController>();
   }
 
-  final CikmisSorularSnapshotRepository _snapshotRepository =
-      CikmisSorularSnapshotRepository.ensure();
-
-  final covers = <Map<String, dynamic>>[].obs;
-  final searchResults = <Map<String, dynamic>>[].obs;
-  final isLoading = true.obs;
-  final isSearchLoading = false.obs;
-  final RxString searchQuery = ''.obs;
-  final scrollController = ScrollController();
-  final scrollOffset = 0.0.obs;
-  final pendingScrollReset = false.obs;
-
-  Timer? _searchDebounce;
-  int _searchToken = 0;
-  StreamSubscription<CachedResource<List<Map<String, dynamic>>>>?
-      _homeSnapshotSub;
-
-  bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
+  final _state = _CikmisSorularControllerState();
 
   @override
   void onInit() {
@@ -43,6 +26,4 @@ class CikmisSorularController extends GetxController {
     _handleOnClose();
     super.onClose();
   }
-
-  void requestScrollReset() => _requestScrollReset();
 }

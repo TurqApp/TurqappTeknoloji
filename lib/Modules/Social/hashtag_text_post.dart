@@ -30,7 +30,7 @@ class HashtagTextVideoPost extends StatelessWidget {
     String colorKey(Color c) => c.toARGB32().toRadixString(16);
     final tag =
         'htvp_${text.hashCode}_${colorKey(color)}_${nickname?.hashCode ?? 0}';
-    final ctrl = HashtagTextVideoPostController.ensure(
+    final ctrl = ensureHashtagTextVideoPostController(
       text: text,
       nickname: nickname,
       color: color,
@@ -53,7 +53,7 @@ class HashtagTextVideoPost extends StatelessWidget {
       )..layout(maxWidth: constraints.maxWidth);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (HashtagTextVideoPostController.maybeFind(tag: tag) != null) {
+        if (maybeFindHashtagTextVideoPostController(tag: tag) != null) {
           ctrl.checkOverflow(tp);
         }
       });

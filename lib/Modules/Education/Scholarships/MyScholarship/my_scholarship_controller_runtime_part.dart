@@ -22,7 +22,7 @@ class MyScholarshipControllerRuntimePart {
       );
       if (cachedRaw.isNotEmpty) {
         controller.myScholarships.assignAll(
-          await controller._buildScholarshipCards(
+          await controller.buildScholarshipCards(
             cachedRaw,
             userCacheOnly: true,
           ),
@@ -69,7 +69,7 @@ class MyScholarshipControllerRuntimePart {
         forceRefresh: forceRefresh,
       );
       controller.myScholarships.value =
-          await controller._buildScholarshipCards(rawScholarships);
+          await controller.buildScholarshipCards(rawScholarships);
       SilentRefreshGate.markRefreshed('scholarships:mine:$userId');
     } catch (_) {
       AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);

@@ -22,27 +22,6 @@ class MyScholarshipController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapMyScholarships());
+    unawaited(bootstrapMyScholarships());
   }
-
-  Future<void> _bootstrapMyScholarships() =>
-      MyScholarshipControllerRuntimePart(this).bootstrapMyScholarships();
-
-  Future<void> fetchMyScholarships({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      MyScholarshipControllerRuntimePart(this).fetchMyScholarships(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
-
-  Future<List<Map<String, dynamic>>> _buildScholarshipCards(
-    List<Map<String, dynamic>> rawScholarships, {
-    bool userCacheOnly = false,
-  }) =>
-      MyScholarshipControllerRuntimePart(this).buildScholarshipCards(
-        rawScholarships,
-        userCacheOnly: userCacheOnly,
-      );
 }

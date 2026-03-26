@@ -21,18 +21,7 @@ class MyTutoringsController extends GetxController {
   }
 
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
-  final RxList<TutoringModel> myTutorings = <TutoringModel>[].obs;
-  final RxMap<String, Map<String, dynamic>> users =
-      <String, Map<String, dynamic>>{}.obs;
-  final RxString errorMessage = ''.obs;
-  final RxList<TutoringModel> activeTutorings = <TutoringModel>[].obs;
-  final RxList<TutoringModel> expiredTutorings = <TutoringModel>[].obs;
-  final PageController pageController = PageController();
-  final RxInt selection = 0.obs;
-  final RxBool isLoading = true.obs;
+  final _state = _MyTutoringsControllerState();
 
   @override
   void onInit() {
