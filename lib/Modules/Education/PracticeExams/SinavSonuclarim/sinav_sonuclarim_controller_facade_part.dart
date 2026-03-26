@@ -1,5 +1,19 @@
 part of 'sinav_sonuclarim_controller.dart';
 
+SinavSonuclarimController ensureSinavSonuclarimController({
+  bool permanent = false,
+}) {
+  final existing = maybeFindSinavSonuclarimController();
+  if (existing != null) return existing;
+  return Get.put(SinavSonuclarimController(), permanent: permanent);
+}
+
+SinavSonuclarimController? maybeFindSinavSonuclarimController() {
+  final isRegistered = Get.isRegistered<SinavSonuclarimController>();
+  if (!isRegistered) return null;
+  return Get.find<SinavSonuclarimController>();
+}
+
 void _handleSinavSonuclarimControllerInit(
   SinavSonuclarimController controller,
 ) {

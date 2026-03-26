@@ -25,7 +25,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       ]);
 
       late final bool isFirstLaunch;
-      final userService = CurrentUserService.ensure();
+      final userService = ensureCurrentUserService();
       final accountCenter = ensureAccountCenterService();
       await accountCenter.init();
 

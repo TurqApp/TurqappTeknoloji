@@ -1,11 +1,11 @@
 part of 'deneme_sinavi_preview_controller.dart';
 
-DenemeSinaviPreviewController _ensureDenemeSinaviPreviewController({
+DenemeSinaviPreviewController ensureDenemeSinaviPreviewController({
   required String tag,
   required SinavModel model,
   bool permanent = false,
 }) {
-  final existing = _maybeFindDenemeSinaviPreviewController(tag: tag);
+  final existing = maybeFindDenemeSinaviPreviewController(tag: tag);
   if (existing != null) return existing;
   return Get.put(
     DenemeSinaviPreviewController(model: model),
@@ -14,7 +14,7 @@ DenemeSinaviPreviewController _ensureDenemeSinaviPreviewController({
   );
 }
 
-DenemeSinaviPreviewController? _maybeFindDenemeSinaviPreviewController({
+DenemeSinaviPreviewController? maybeFindDenemeSinaviPreviewController({
   required String tag,
 }) {
   final isRegistered =

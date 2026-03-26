@@ -102,7 +102,7 @@ class OptimizedNSFWService {
 
   static _NsfwPolicy get _activeNsfwPolicy {
     try {
-      final userService = CurrentUserService.maybeFind();
+      final userService = maybeFindCurrentUserService();
       if (userService == null) return _NsfwPolicy.strict;
       final normalizedRozet = normalizeRozetValue(userService.rozet);
       switch (normalizedRozet) {

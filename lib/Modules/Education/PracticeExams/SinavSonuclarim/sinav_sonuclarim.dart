@@ -19,15 +19,15 @@ class _SinavSonuclarimState extends State<SinavSonuclarim> {
   @override
   void initState() {
     super.initState();
-    final existing = SinavSonuclarimController.maybeFind();
+    final existing = maybeFindSinavSonuclarimController();
     _ownsController = existing == null;
-    controller = existing ?? SinavSonuclarimController.ensure();
+    controller = existing ?? ensureSinavSonuclarimController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(SinavSonuclarimController.maybeFind(), controller)) {
+        identical(maybeFindSinavSonuclarimController(), controller)) {
       Get.delete<SinavSonuclarimController>();
     }
     super.dispose();

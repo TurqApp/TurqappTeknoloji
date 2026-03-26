@@ -43,17 +43,17 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
     super.initState();
     _tag =
         'practice_exam_preview_${widget.model.docID}_${identityHashCode(this)}';
-    final existing = DenemeSinaviPreviewController.maybeFind(tag: _tag);
+    final existing = maybeFindDenemeSinaviPreviewController(tag: _tag);
     _ownsController = existing == null;
     controller = existing ??
-        DenemeSinaviPreviewController.ensure(tag: _tag, model: widget.model);
+        ensureDenemeSinaviPreviewController(tag: _tag, model: widget.model);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          DenemeSinaviPreviewController.maybeFind(tag: _tag),
+          maybeFindDenemeSinaviPreviewController(tag: _tag),
           controller,
         )) {
       Get.delete<DenemeSinaviPreviewController>(tag: _tag);

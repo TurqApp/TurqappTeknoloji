@@ -5,17 +5,23 @@ CurrentUserService _currentUserServiceInstance() {
   return CurrentUserService._instance!;
 }
 
-CurrentUserService? _maybeFindCurrentUserService() {
+CurrentUserService? maybeFindCurrentUserService() {
   final isRegistered = Get.isRegistered<CurrentUserService>();
   if (!isRegistered) return null;
   return Get.find<CurrentUserService>();
 }
 
-CurrentUserService _ensureCurrentUserService({bool permanent = false}) {
-  final existing = _maybeFindCurrentUserService();
+CurrentUserService ensureCurrentUserService({bool permanent = false}) {
+  final existing = maybeFindCurrentUserService();
   if (existing != null) return existing;
   return Get.put(CurrentUserService.instance, permanent: permanent);
 }
+
+CurrentUserService? _maybeFindCurrentUserService() =>
+    maybeFindCurrentUserService();
+
+CurrentUserService _ensureCurrentUserService({bool permanent = false}) =>
+    ensureCurrentUserService(permanent: permanent);
 
 void _handleCurrentUserServiceClose(CurrentUserService controller) {
   controller._disposeLifecycleResources();
