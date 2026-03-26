@@ -31,9 +31,9 @@ class _MyPastTestResultsPreviewState extends State<MyPastTestResultsPreview> {
     _controllerTag =
         'test_results_preview_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        MyPastTestResultsPreviewController.maybeFind(tag: _controllerTag) ==
+        maybeFindMyPastTestResultsPreviewController(tag: _controllerTag) ==
             null;
-    controller = MyPastTestResultsPreviewController.ensure(
+    controller = ensureMyPastTestResultsPreviewController(
       widget.model,
       tag: _controllerTag,
     );
@@ -43,7 +43,7 @@ class _MyPastTestResultsPreviewState extends State<MyPastTestResultsPreview> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          MyPastTestResultsPreviewController.maybeFind(tag: _controllerTag);
+          maybeFindMyPastTestResultsPreviewController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<MyPastTestResultsPreviewController>(
           tag: _controllerTag,

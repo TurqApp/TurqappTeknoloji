@@ -30,11 +30,11 @@ class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
   void initState() {
     super.initState();
     final existingController =
-        SocialProfileFollowersController.maybeFind(tag: widget.userID);
+        maybeFindSocialProfileFollowersController(tag: widget.userID);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = SocialProfileFollowersController.ensure(
+      controller = ensureSocialProfileFollowersController(
         initialPage: widget.selection,
         userID: widget.userID,
         tag: widget.userID,
@@ -47,7 +47,7 @@ class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
   void dispose() {
     if (_ownsController &&
         identical(
-          SocialProfileFollowersController.maybeFind(tag: widget.userID),
+          maybeFindSocialProfileFollowersController(tag: widget.userID),
           controller,
         )) {
       Get.delete<SocialProfileFollowersController>(

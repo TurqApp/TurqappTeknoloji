@@ -27,11 +27,9 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       _ownsController = true;
     }
     final highlightsTag = 'highlights_${widget.userID}';
-    if (StoryHighlightsController.maybeFind(tag: highlightsTag) == null) {
-      StoryHighlightsController.ensure(
-        userId: widget.userID,
-        tag: highlightsTag,
-      );
+    if (maybeFindStoryHighlightsController(tag: highlightsTag) == null) {
+      ensureStoryHighlightsController(
+          userId: widget.userID, tag: highlightsTag);
       _ownsHighlightsController = true;
     }
     for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
@@ -46,7 +44,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
     }
     if (_ownsHighlightsController) {
       final highlightsTag = 'highlights_${widget.userID}';
-      if (StoryHighlightsController.maybeFind(tag: highlightsTag) != null) {
+      if (maybeFindStoryHighlightsController(tag: highlightsTag) != null) {
         Get.delete<StoryHighlightsController>(
           tag: highlightsTag,
           force: true,

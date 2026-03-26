@@ -34,7 +34,7 @@ class _PostReshareContentState extends State<PostReshareContent> {
     _followTag =
         'post_reshare_follow_${item.userID}_${DateTime.now().microsecondsSinceEpoch}';
     if (!isCurrentUserId(item.userID)) {
-      _followController = FollowerController.ensure(tag: _followTag);
+      _followController = ensureFollowerController(tag: _followTag);
       _refreshFollowState();
     }
   }
@@ -42,7 +42,7 @@ class _PostReshareContentState extends State<PostReshareContent> {
   @override
   void dispose() {
     if (identical(
-      FollowerController.maybeFind(tag: _followTag),
+      maybeFindFollowerController(tag: _followTag),
       _followController,
     )) {
       Get.delete<FollowerController>(tag: _followTag, force: true);

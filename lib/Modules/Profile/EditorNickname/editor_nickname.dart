@@ -25,12 +25,12 @@ class _EditorNicknameState extends State<EditorNickname> {
   @override
   void initState() {
     super.initState();
-    final existingController = EditorNicknameController.maybeFind();
+    final existingController = maybeFindEditorNicknameController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = EditorNicknameController.ensure();
+      controller = ensureEditorNicknameController();
       _ownsController = true;
     }
   }
@@ -38,7 +38,7 @@ class _EditorNicknameState extends State<EditorNickname> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(EditorNicknameController.maybeFind(), controller)) {
+        identical(maybeFindEditorNicknameController(), controller)) {
       Get.delete<EditorNicknameController>(force: true);
     }
     super.dispose();

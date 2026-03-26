@@ -28,8 +28,8 @@ class _PostSharerTileState extends State<_PostSharerTile> {
         'post_sharer_follow_${widget.sharer.userID}_${DateTime.now().microsecondsSinceEpoch}';
     if (widget.sharer.userID != _currentUid) {
       _ownsFollowController =
-          FollowerController.maybeFind(tag: _followTag) == null;
-      _followController = FollowerController.ensure(tag: _followTag);
+          maybeFindFollowerController(tag: _followTag) == null;
+      _followController = ensureFollowerController(tag: _followTag);
       _refreshFollowState();
     }
   }
@@ -38,7 +38,7 @@ class _PostSharerTileState extends State<_PostSharerTile> {
   void dispose() {
     if (_ownsFollowController &&
         identical(
-          FollowerController.maybeFind(tag: _followTag),
+          maybeFindFollowerController(tag: _followTag),
           _followController,
         )) {
       Get.delete<FollowerController>(tag: _followTag, force: true);

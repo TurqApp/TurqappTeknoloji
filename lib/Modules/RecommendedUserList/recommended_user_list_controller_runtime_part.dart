@@ -78,7 +78,7 @@ extension _RecommendedUserListControllerRuntimeX
               ? usersLimitInitial
               : requiredCount);
 
-      var candidates = await RecommendedUsersRepository.ensure()
+      var candidates = await ensureRecommendedUsersRepository()
           .fetchCandidates(limit: fetchLimit, preferCache: true)
           .timeout(
             const Duration(seconds: 10),
@@ -87,7 +87,7 @@ extension _RecommendedUserListControllerRuntimeX
 
       var filtered = _filterCandidates(candidates, currentUserId);
       if (filtered.length < requiredCount && fetchLimit < usersLimitFull) {
-        candidates = await RecommendedUsersRepository.ensure()
+        candidates = await ensureRecommendedUsersRepository()
             .fetchCandidates(limit: usersLimitFull, preferCache: false)
             .timeout(
               const Duration(seconds: 10),

@@ -33,7 +33,7 @@ class _FollowerContentState extends State<FollowerContent> {
   void initState() {
     super.initState();
     _followTag = 'follower_content_${widget.userID}_${identityHashCode(this)}';
-    controller = FollowerController.ensure(tag: _followTag);
+    controller = ensureFollowerController(tag: _followTag);
     controller.getData(widget.userID);
     if (widget.userID != _currentUid) {
       controller.followControl(widget.userID);
@@ -42,7 +42,7 @@ class _FollowerContentState extends State<FollowerContent> {
 
   @override
   void dispose() {
-    final existing = FollowerController.maybeFind(tag: _followTag);
+    final existing = maybeFindFollowerController(tag: _followTag);
     if (identical(existing, controller)) {
       Get.delete<FollowerController>(tag: _followTag, force: true);
     }

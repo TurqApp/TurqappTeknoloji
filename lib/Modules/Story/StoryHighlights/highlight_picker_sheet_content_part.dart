@@ -8,7 +8,7 @@ extension _HighlightPickerSheetContentPart on _HighlightPickerSheetState {
     final topInset = media.padding.top;
     final bottomInset = media.viewInsets.bottom;
     final tag = 'highlights_$uid';
-    final controller = StoryHighlightsController.ensure(userId: uid, tag: tag);
+    final controller = ensureStoryHighlightsController(userId: uid, tag: tag);
 
     return SafeArea(
       top: false,

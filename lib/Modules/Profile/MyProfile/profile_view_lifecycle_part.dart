@@ -64,7 +64,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       final uid = _myUserId;
       final tag = uid.isEmpty ? '' : 'highlights_$uid';
       if (tag.isNotEmpty &&
-          StoryHighlightsController.maybeFind(tag: tag) != null) {
+          maybeFindStoryHighlightsController(tag: tag) != null) {
         Get.delete<StoryHighlightsController>(tag: tag, force: true);
       }
     }

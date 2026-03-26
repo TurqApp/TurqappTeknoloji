@@ -1,25 +1,6 @@
 part of 'follower_controller.dart';
 
 class FollowerController extends GetxController {
-  static FollowerController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      FollowerController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static FollowerController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<FollowerController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<FollowerController>(tag: tag);
-  }
-
   final _state = _FollowerControllerState();
   static const Duration _followStateCacheTtl = Duration(seconds: 20);
   static const Duration _followStateStaleRetention = Duration(minutes: 3);
@@ -35,10 +16,4 @@ class FollowerController extends GetxController {
   final FollowRepository _followRepository = FollowRepository.ensure();
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
-
-  Future<void> getData(String userID) =>
-      _FollowerControllerCacheX(this).getData(userID);
-
-  Future<void> followControl(String userID) =>
-      _FollowerControllerCacheX(this).followControl(userID);
 }

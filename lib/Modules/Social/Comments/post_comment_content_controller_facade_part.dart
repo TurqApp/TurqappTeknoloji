@@ -1,5 +1,25 @@
 part of 'post_comment_content_controller.dart';
 
+PostCommentContentController ensurePostCommentContentController({
+  required PostCommentModel model,
+  required String postID,
+  required String commentControllerTag,
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensurePostCommentContentController(
+      model: model,
+      postID: postID,
+      commentControllerTag: commentControllerTag,
+      tag: tag,
+      permanent: permanent,
+    );
+
+PostCommentContentController? maybeFindPostCommentContentController({
+  String? tag,
+}) =>
+    _maybeFindPostCommentContentController(tag: tag);
+
 PostCommentContentController _ensurePostCommentContentController({
   required PostCommentModel model,
   required String postID,

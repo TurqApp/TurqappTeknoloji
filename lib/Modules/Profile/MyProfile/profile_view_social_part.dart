@@ -8,7 +8,7 @@ extension _ProfileViewSocialPart on _ProfileViewState {
     final tag = 'highlights_$uid';
     final hlController = _isProfileSurfaceActive()
         ? _ensureProfileHighlightsController()
-        : StoryHighlightsController.maybeFind(tag: tag);
+        : maybeFindStoryHighlightsController(tag: tag);
 
     return Obx(() {
       const rowHeight = 90.0;

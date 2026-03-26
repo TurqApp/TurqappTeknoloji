@@ -59,8 +59,8 @@ class _PostCommentContentState extends State<PostCommentContent> {
     _controllerTag =
         'post_comment_content_${widget.postID}_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        PostCommentContentController.maybeFind(tag: _controllerTag) == null;
-    controller = PostCommentContentController.ensure(
+        maybeFindPostCommentContentController(tag: _controllerTag) == null;
+    controller = ensurePostCommentContentController(
       model: widget.model,
       postID: widget.postID,
       commentControllerTag: widget.commentControllerTag,
@@ -72,7 +72,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
   void dispose() {
     if (_ownsController &&
         identical(
-          PostCommentContentController.maybeFind(tag: _controllerTag),
+          maybeFindPostCommentContentController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PostCommentContentController>(tag: _controllerTag);
@@ -289,8 +289,8 @@ class _PostCommentContentState extends State<PostCommentContent> {
           if (!isPending)
             Obx(() {
               final viewerUid = _resolveViewerUid(userService);
-              final hasLiked = viewerUid.isNotEmpty &&
-                  controller.likes.contains(viewerUid);
+              final hasLiked =
+                  viewerUid.isNotEmpty && controller.likes.contains(viewerUid);
               return GestureDetector(
                 key: ValueKey(
                   IntegrationTestKeys.commentLikeButton(model.docID),

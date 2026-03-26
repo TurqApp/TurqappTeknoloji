@@ -1,9 +1,9 @@
 part of 'editor_nickname_controller.dart';
 
-EditorNicknameController _ensureEditorNicknameController({
+EditorNicknameController ensureEditorNicknameController({
   bool permanent = false,
 }) {
-  final existing = _maybeFindEditorNicknameController();
+  final existing = maybeFindEditorNicknameController();
   if (existing != null) return existing;
   return Get.put(
     EditorNicknameController(),
@@ -11,7 +11,7 @@ EditorNicknameController _ensureEditorNicknameController({
   );
 }
 
-EditorNicknameController? _maybeFindEditorNicknameController() {
+EditorNicknameController? maybeFindEditorNicknameController() {
   final isRegistered = Get.isRegistered<EditorNicknameController>();
   if (!isRegistered) return null;
   return Get.find<EditorNicknameController>();
@@ -42,4 +42,12 @@ bool _editorNicknameCanSave(EditorNicknameController controller) {
       userHasInteracted &&
       !controller.isChecking.value &&
       !controller.isCooldownActive.value;
+}
+
+extension EditorNicknameControllerFacadePart on EditorNicknameController {
+  String get currentNormalized => _editorNicknameCurrentNormalized(this);
+
+  bool get canSave => _editorNicknameCanSave(this);
+
+  Future<void> setData() => _setDataImpl();
 }

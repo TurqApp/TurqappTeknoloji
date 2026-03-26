@@ -9,7 +9,8 @@ extension _ProfileViewProfilePart on _ProfileViewState {
     return userService.effectiveUserId;
   }
 
-  String get _myNickname => _reactiveCurrentUser?.nickname ?? userService.nickname;
+  String get _myNickname =>
+      _reactiveCurrentUser?.nickname ?? userService.nickname;
 
   String get _myIosSafeNickname {
     final controllerNickname = controller.headerNickname.value.trim();
@@ -103,12 +104,12 @@ extension _ProfileViewProfilePart on _ProfileViewState {
     final uid = _myUserId.trim();
     if (uid.isEmpty) return null;
     final tag = 'highlights_$uid';
-    final existing = StoryHighlightsController.maybeFind(tag: tag);
+    final existing = maybeFindStoryHighlightsController(tag: tag);
     if (existing != null) {
       return existing;
     }
     _ownsHighlightsController = true;
-    return StoryHighlightsController.ensure(userId: uid, tag: tag);
+    return ensureStoryHighlightsController(userId: uid, tag: tag);
   }
 
   Future<void> _refreshProfileSurfaceMeta({bool force = false}) async {

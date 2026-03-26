@@ -34,7 +34,7 @@ class _PostLikeContentState extends State<PostLikeContent> {
     _followTag =
         'post_like_follow_${item.userID}_${DateTime.now().microsecondsSinceEpoch}';
     if (!isCurrentUserId(item.userID)) {
-      _followController = FollowerController.ensure(tag: _followTag);
+      _followController = ensureFollowerController(tag: _followTag);
       _refreshFollowState();
     }
   }
@@ -42,7 +42,7 @@ class _PostLikeContentState extends State<PostLikeContent> {
   @override
   void dispose() {
     if (identical(
-      FollowerController.maybeFind(tag: _followTag),
+      maybeFindFollowerController(tag: _followTag),
       _followController,
     )) {
       Get.delete<FollowerController>(tag: _followTag, force: true);

@@ -26,14 +26,14 @@ class _OpticalFormEntryState extends State<OpticalFormEntry> {
     super.initState();
     _controllerTag = 'optical_form_entry_${identityHashCode(this)}';
     _ownsController =
-        OpticalFormEntryController.maybeFind(tag: _controllerTag) == null;
-    controller = OpticalFormEntryController.ensure(tag: _controllerTag);
+        maybeFindOpticalFormEntryController(tag: _controllerTag) == null;
+    controller = ensureOpticalFormEntryController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = OpticalFormEntryController.maybeFind(
+      final registeredController = maybeFindOpticalFormEntryController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

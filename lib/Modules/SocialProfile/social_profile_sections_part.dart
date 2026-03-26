@@ -3,7 +3,7 @@ part of 'social_profile.dart';
 extension _SocialProfileSectionsPart on _SocialProfileState {
   Widget _buildLinksAndHighlightsRow() {
     final tag = 'highlights_${widget.userID}';
-    final hlController = StoryHighlightsController.maybeFind(tag: tag);
+    final hlController = maybeFindStoryHighlightsController(tag: tag);
     if (hlController == null) {
       return const SizedBox.shrink();
     }
