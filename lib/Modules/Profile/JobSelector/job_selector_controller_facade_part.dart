@@ -68,7 +68,9 @@ void _selectJobValue(JobSelectorController controller, String value) {
 void _filterJobOptions(JobSelectorController controller, String query) {
   final q = normalizeSearchText(query);
   if (q.isEmpty) {
-    controller.filteredJobs.assignAll(controller._initialWithSelected());
+    controller.filteredJobs.assignAll(
+      _jobSelectorInitialWithSelected(controller),
+    );
     return;
   }
   controller.filteredJobs.assignAll(

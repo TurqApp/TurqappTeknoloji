@@ -17,8 +17,7 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
         children: [
           AppHeaderActionButton(
             onTap: loading ? null : _onPostNotificationPressed,
-            surfaceColor:
-                enabled ? const Color(0xFFE8F5E9) : const Color(0xFFFFFFFF),
+            surfaceColor: const Color(0xFFFFFFFF),
             child: loading
                 ? const SizedBox(
                     width: 14,
@@ -33,10 +32,8 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
                     alignment: Alignment.center,
                     children: [
                       Icon(
-                        enabled
-                            ? CupertinoIcons.bell_fill
-                            : CupertinoIcons.bell,
-                        color: enabled ? Colors.green : Colors.black,
+                        CupertinoIcons.bell,
+                        color: Colors.black,
                         size: AppIconSurface.kIconSize,
                       ),
                       Positioned(
@@ -69,16 +66,18 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
 
   Future<void> _onPostNotificationPressed() async {
     if (controller.postNotificationsLoading.value) return;
-    var status = await Permission.notification.status;
-    if (!status.isGranted &&
-        !status.isLimited &&
-        !status.isProvisional &&
-        !status.isRestricted &&
-        !status.isPermanentlyDenied) {
-      status = await Permission.notification.request();
+    final messaging = FirebaseMessaging.instance;
+    var settings = await messaging.getNotificationSettings();
+    if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+      settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
     }
-    final canNotify =
-        status.isGranted || status.isLimited || status.isProvisional;
+    final canNotify = settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
     if (!canNotify) {
       await _showPostNotificationPermissionDialog();
       return;
