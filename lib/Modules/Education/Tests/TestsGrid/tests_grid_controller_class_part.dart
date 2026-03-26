@@ -24,26 +24,9 @@ class TestsGridController extends GetxController {
 
   final TestsModel model;
   final Function? onUpdate;
-
-  final fullName = ''.obs;
-  final avatarUrl = ''.obs;
-  final nickname = ''.obs;
-  final secim = ''.obs;
-  final totalYanit = 0.obs;
-  final isFavorite = false.obs;
-  final appStore = ''.obs;
-  final googlePlay = ''.obs;
-  final TestRepository _testRepository = TestRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final _state = _TestsGridControllerState();
 
   TestsGridController(this.model, this.onUpdate) {
-    _initialize();
-  }
-
-  void _initialize() {
-    checkIfFavorite();
-    getUygulamaLinks();
-    getUserData();
-    getTotalYanit();
+    _initializeTestsGridController(this);
   }
 }

@@ -17,17 +17,7 @@ class PostLikeListingController extends GetxController {
   }
 
   final String postID;
-  final PostRepository _postRepository = PostRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final RxList<LikeUserItem> users = <LikeUserItem>[].obs;
-  final RxList<LikeUserItem> filteredUsers = <LikeUserItem>[].obs;
-  final RxString query = ''.obs;
-  final TextEditingController searchController = TextEditingController();
-  final ScrollController scrollController = ScrollController();
-  final RxBool isLoadingMore = false.obs;
-  final RxBool hasMore = true.obs;
-  DocumentSnapshot<Map<String, dynamic>>? _lastLikeDoc;
-  bool _isFetching = false;
+  final _state = _PostLikeListingControllerState();
 
   @override
   void onInit() {
@@ -40,10 +30,4 @@ class PostLikeListingController extends GetxController {
     _PostLikeListingControllerRuntimePart(this).handleOnClose();
     super.onClose();
   }
-
-  void onSearchChanged(String value) =>
-      _PostLikeListingControllerRuntimePart(this).onSearchChanged(value);
-
-  Future<void> getLikes() =>
-      _PostLikeListingControllerRuntimePart(this).getLikes();
 }

@@ -22,28 +22,14 @@ class CreateChatContentController extends GetxController {
     return Get.find<CreateChatContentController>(tag: tag);
   }
 
-  var nickname = "".obs;
-  var fullName = "".obs;
-  var avatarUrl = "".obs;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final _state = _CreateChatContentControllerState();
   String userID;
+
   CreateChatContentController({required this.userID});
+
   @override
   void onInit() {
     super.onInit();
-    unawaited(_loadUser());
-  }
-
-  Future<void> _loadUser() async {
-    final user = await _userSummaryResolver.resolve(
-      userID,
-      preferCache: true,
-    );
-    if (user == null) return;
-    nickname.value = user.nickname.isNotEmpty
-        ? user.nickname
-        : (user.username.isNotEmpty ? user.username : user.displayName);
-    avatarUrl.value = user.avatarUrl;
-    fullName.value = user.displayName;
+    _handleCreateChatContentInit(this);
   }
 }

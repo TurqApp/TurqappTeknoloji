@@ -4,18 +4,12 @@ class ProfileRepository extends GetxService {
   ProfileRepository({
     FirebaseFirestore? firestore,
     ProfilePostsCacheService? cacheService,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _cacheService = cacheService ?? ProfilePostsCacheService();
+  }) : _state = _ProfileRepositoryState(
+          firestore: firestore ?? FirebaseFirestore.instance,
+          cacheService: cacheService ?? ProfilePostsCacheService(),
+        );
 
-  final FirebaseFirestore _firestore;
-  final ProfilePostsCacheService _cacheService;
-  final PostRepository _postRepository = PostRepository.ensure();
-  final Map<String, ProfileBuckets> _memory = <String, ProfileBuckets>{};
-  final Map<String, List<PostsModel>> _archiveMemory =
-      <String, List<PostsModel>>{};
-  final Map<String, PostsModel?> _latestPostMemory = <String, PostsModel?>{};
-  final Map<String, PostsModel?> _latestResharePostMemory =
-      <String, PostsModel?>{};
+  final _ProfileRepositoryState _state;
 
   static ProfileRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfileRepository>();
