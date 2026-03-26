@@ -15,28 +15,55 @@ extension _JobContentGridPart on _JobContentState {
         ),
       ),
       overlay: Obx(
-        () => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: model.docID.trim().isEmpty
-              ? null
-              : () => controller.toggleSave(model.docID),
-          child: SizedBox(
-            width: PasajListCardMetrics.gridOverlayButtonSize,
-            height: PasajListCardMetrics.gridOverlayButtonSize,
-            child: Center(
-              child: Icon(
-                controller.saved.value ? AppIcons.saved : AppIcons.save,
-                size: PasajListCardMetrics.gridOverlayIconSize,
-                color: Colors.white,
-                shadows: const [
-                  Shadow(
-                    color: Color(0x66000000),
-                    blurRadius: 8,
+        () => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => controller.shareJob(model),
+              child: SizedBox(
+                width: PasajListCardMetrics.gridOverlayButtonSize,
+                height: PasajListCardMetrics.gridOverlayButtonSize,
+                child: Center(
+                  child: Icon(
+                    AppIcons.share,
+                    size: PasajListCardMetrics.gridOverlayIconSize,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(
+                        color: Color(0x66000000),
+                        blurRadius: 8,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: model.docID.trim().isEmpty
+                  ? null
+                  : () => controller.toggleSave(model.docID),
+              child: SizedBox(
+                width: PasajListCardMetrics.gridOverlayButtonSize,
+                height: PasajListCardMetrics.gridOverlayButtonSize,
+                child: Center(
+                  child: Icon(
+                    controller.saved.value ? AppIcons.saved : AppIcons.save,
+                    size: PasajListCardMetrics.gridOverlayIconSize,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(
+                        color: Color(0x66000000),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       lines: [

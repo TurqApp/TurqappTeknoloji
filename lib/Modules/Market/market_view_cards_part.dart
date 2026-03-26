@@ -1,27 +1,48 @@
 part of 'market_view.dart';
 
 extension _MarketViewCardsPart on MarketView {
-  Widget _buildGridSavedOverlay(MarketItemModel item) {
-    return Obx(
-      () => GestureDetector(
-        onTap: () => controller.toggleSaved(item, showSnackbar: false),
-        child: SizedBox(
-          width: PasajListCardMetrics.gridOverlayButtonSize,
-          height: PasajListCardMetrics.gridOverlayButtonSize,
-          child: Center(
-            child: Icon(
-              controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
-              color: Colors.white,
-              size: PasajListCardMetrics.gridOverlayIconSize,
-              shadows: const [
-                Shadow(
-                  color: Color(0x55000000),
-                  blurRadius: 6,
-                ),
-              ],
-            ),
+  Widget _buildGridActionIcon({
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: PasajListCardMetrics.gridOverlayButtonSize,
+        height: PasajListCardMetrics.gridOverlayButtonSize,
+        child: Center(
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: PasajListCardMetrics.gridOverlayIconSize,
+            shadows: const [
+              Shadow(
+                color: Color(0x55000000),
+                blurRadius: 6,
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGridActionOverlay(MarketItemModel item) {
+    return Obx(
+      () => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildGridActionIcon(
+            onTap: () => const MarketShareService().shareItem(item),
+            icon: AppIcons.share,
+          ),
+          const SizedBox(width: 6),
+          _buildGridActionIcon(
+            onTap: () => controller.toggleSaved(item, showSnackbar: false),
+            icon: controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
+          ),
+        ],
       ),
     );
   }
@@ -55,7 +76,7 @@ extension _MarketViewCardsPart on MarketView {
         fallbackBuilder: (marketItem, marketAccent) =>
             _buildItemFallback(marketItem, marketAccent),
       ),
-      overlay: _buildGridSavedOverlay(item),
+      overlay: _buildGridActionOverlay(item),
       lines: [
         Text(
           item.title,
