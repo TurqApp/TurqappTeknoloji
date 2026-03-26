@@ -2,8 +2,7 @@ part of 'notification_preferences_repository.dart';
 
 class _NotificationPreferencesRepositoryState {
   SharedPreferences? prefs;
-  final Map<String, _CachedNotificationPreferences> memory =
-      <String, _CachedNotificationPreferences>{};
+  final memory = <String, _CachedNotificationPreferences>{};
 }
 
 extension NotificationPreferencesRepositoryFieldsPart

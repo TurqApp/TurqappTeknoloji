@@ -1,6 +1,8 @@
 part of 'rozet_content.dart';
 
 extension _RozetControllerRuntimeX on RozetController {
+  UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
+
   Future<void> loadRozet() async {
     _pruneStaleCache();
     final nowMs = DateTime.now().millisecondsSinceEpoch;

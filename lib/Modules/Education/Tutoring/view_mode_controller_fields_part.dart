@@ -1,10 +1,7 @@
 part of 'view_mode_controller.dart';
 
-const String _viewModePrefKeyPrefix = 'pasaj_tutoring_view_mode';
-
 class _ViewModeControllerState {
-  final RxBool isGridView = true.obs;
-  final RxBool isReady = false.obs;
+  final RxBool isGridView = true.obs, isReady = false.obs;
 }
 
 extension ViewModeControllerFieldsPart on ViewModeController {

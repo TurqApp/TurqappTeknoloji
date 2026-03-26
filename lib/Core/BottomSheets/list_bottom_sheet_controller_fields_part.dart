@@ -1,10 +1,8 @@
 part of 'list_bottom_sheet.dart';
 
 class _ListBottomSheetControllerState {
-  final list = <dynamic>[].obs;
-  final selectedItems = <String>[].obs;
-  final startSelection = ''.obs;
-  final searchQuery = ''.obs;
+  final list = <dynamic>[].obs, selectedItems = <String>[].obs;
+  final startSelection = ''.obs, searchQuery = ''.obs;
 }
 
 extension ListBottomSheetControllerFieldsPart on ListBottomSheetController {
