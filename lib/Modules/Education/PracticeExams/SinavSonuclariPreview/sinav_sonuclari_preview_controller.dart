@@ -6,6 +6,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
 part 'sinav_sonuclari_preview_controller_class_part.dart';
+part 'sinav_sonuclari_preview_controller_base_part.dart';
 part 'sinav_sonuclari_preview_controller_facade_part.dart';
 part 'sinav_sonuclari_preview_controller_fields_part.dart';
 part 'sinav_sonuclari_preview_controller_support_part.dart';

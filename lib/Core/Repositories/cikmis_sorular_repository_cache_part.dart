@@ -1,24 +1,21 @@
 part of 'cikmis_sorular_repository.dart';
 
-extension _CikmisSorularRepositoryCachePart on CikmisSorularRepository {
+extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
   Future<List<Map<String, dynamic>>?> _readList(String key) async {
     final memory = _memory[key];
     if (memory != null &&
         DateTime.now().difference(memory.cachedAt) <=
-            CikmisSorularRepository._ttl) {
+            _cikmisSorularRepositoryTtl) {
       return List<Map<String, dynamic>>.from(memory.items);
     }
     final prefs = _prefs ??= await SharedPreferences.getInstance();
-    final raw =
-        prefs.getString('${CikmisSorularRepository._prefsPrefix}::$key');
+    final raw = prefs.getString('$_cikmisSorularRepositoryPrefsPrefix::$key');
     if (raw == null || raw.isEmpty) return null;
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     final cachedAt = DateTime.tryParse(decoded['cachedAt'] as String? ?? '');
     if (cachedAt == null ||
-        DateTime.now().difference(cachedAt) >
-            CikmisSorularRepository._ttl) {
-      await prefs
-          .remove('${CikmisSorularRepository._prefsPrefix}::$key');
+        DateTime.now().difference(cachedAt) > _cikmisSorularRepositoryTtl) {
+      await prefs.remove('$_cikmisSorularRepositoryPrefsPrefix::$key');
       return null;
     }
     final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
@@ -35,7 +32,7 @@ extension _CikmisSorularRepositoryCachePart on CikmisSorularRepository {
     );
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     await prefs.setString(
-      '${CikmisSorularRepository._prefsPrefix}::$key',
+      '$_cikmisSorularRepositoryPrefsPrefix::$key',
       jsonEncode(<String, dynamic>{
         'cachedAt': DateTime.now().toIso8601String(),
         'items': items,

@@ -29,7 +29,7 @@ CacheFirstQueryPipeline<String, List<Map<String, dynamic>>,
 ) {
   return CacheFirstQueryPipeline<String, List<Map<String, dynamic>>,
       List<Map<String, dynamic>>>(
-    surfaceKey: CikmisSorularSnapshotRepository._homeSurfaceKey,
+    surfaceKey: _pastQuestionHomeSnapshotSurfaceKey,
     coordinator: repository._coordinator,
     userIdResolver: (userId) => userId,
     scopeIdBuilder: (_) => 'home',
