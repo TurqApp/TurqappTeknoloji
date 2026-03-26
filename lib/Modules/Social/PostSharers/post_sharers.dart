@@ -12,6 +12,7 @@ import 'package:turqappv2/Models/post_sharers_model.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 part 'post_sharers_shell_part.dart';
+part 'post_sharers_shell_content_part.dart';
 part 'post_sharers_tile_part.dart';
 
 class PostSharers extends StatefulWidget {

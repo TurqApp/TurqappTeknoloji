@@ -32,6 +32,7 @@ part 'market_detail_view_actions_part.dart';
 part 'market_detail_view_reviews_part.dart';
 part 'market_detail_view_ui_part.dart';
 part 'market_detail_view_shell_part.dart';
+part 'market_detail_view_shell_content_part.dart';
 part 'market_detail_view_content_part.dart';
 
 class MarketDetailView extends StatefulWidget {
