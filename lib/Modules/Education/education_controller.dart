@@ -21,4 +21,5 @@ import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 part 'education_controller_fields_part.dart';
 part 'education_controller_pasaj_part.dart';
 part 'education_controller_search_part.dart';
+part 'education_controller_facade_part.dart';
 part 'education_controller_class_part.dart';

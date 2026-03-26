@@ -25,7 +25,7 @@ class _CreateChatContentState extends State<CreateChatContent> {
     cont = ensureCreateChatController();
     _controllerTag =
         'create_chat_content_${widget.userID}_${identityHashCode(this)}';
-    controller = CreateChatContentController.ensure(
+    controller = ensureCreateChatContentController(
       userID: widget.userID,
       tag: _controllerTag,
     );
@@ -33,7 +33,7 @@ class _CreateChatContentState extends State<CreateChatContent> {
 
   @override
   void dispose() {
-    final existing = CreateChatContentController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindCreateChatContentController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<CreateChatContentController>(tag: _controllerTag);
     }

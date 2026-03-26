@@ -343,16 +343,15 @@ class _SavedJobsTabState extends State<_SavedJobsTab> {
   void initState() {
     super.initState();
     _controllerTag = 'saved_jobs_embedded_${identityHashCode(this)}';
-    _ownsController =
-        SavedJobsController.maybeFind(tag: _controllerTag) == null;
-    _controller = SavedJobsController.ensure(tag: _controllerTag);
+    _ownsController = maybeFindSavedJobsController(tag: _controllerTag) == null;
+    _controller = ensureSavedJobsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          SavedJobsController.maybeFind(tag: _controllerTag),
+          maybeFindSavedJobsController(tag: _controllerTag),
           _controller,
         )) {
       Get.delete<SavedJobsController>(tag: _controllerTag);

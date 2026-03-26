@@ -27,7 +27,7 @@ extension _NavBarViewShellPart on NavBarView {
     final educationIndex = hasEducation ? 3 : 0;
 
     if (hasEducation && controller.selectedIndex.value == educationIndex) {
-      final educationController = EducationController.maybeFind();
+      final educationController = maybeFindEducationController();
       if (educationController == null) return false;
       if (educationController.canExitToFeed) {
         controller.changeIndex(0);

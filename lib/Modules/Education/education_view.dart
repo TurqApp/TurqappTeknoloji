@@ -72,7 +72,7 @@ part 'education_view_body_part.dart';
 class EducationView extends StatelessWidget {
   EducationView({super.key});
 
-  final EducationController controller = EducationController.ensure(
+  final EducationController controller = ensureEducationController(
     permanent: true,
   );
 

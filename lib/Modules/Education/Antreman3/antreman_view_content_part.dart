@@ -2,7 +2,7 @@ part of 'antreman_view.dart';
 
 extension _AntremanViewContentPart on AntremanView2 {
   void _dismissSharedEducationSearchFocus() {
-    final educationController = EducationController.maybeFind();
+    final educationController = maybeFindEducationController();
     if (educationController == null) return;
     if (educationController.searchFocus.hasFocus) {
       educationController.searchFocus.unfocus();

@@ -164,7 +164,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _educationSnapshot() {
-    final controller = EducationController.maybeFind();
+    final controller = maybeFindEducationController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }

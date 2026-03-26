@@ -91,7 +91,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
         educationIndex >= 0 &&
         selectedIndex.value == educationIndex) {
       try {
-        EducationController.maybeFind()?.resetActivePasajSurfaceToTop();
+        maybeFindEducationController()?.resetActivePasajSurfaceToTop();
       } catch (_) {}
     }
   }
@@ -137,7 +137,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     } catch (_) {}
     if (educationIndex >= 0) {
       try {
-        EducationController.maybeFind()?.resetSurfaceForTabTransition();
+        maybeFindEducationController()?.resetSurfaceForTabTransition();
       } catch (_) {}
     }
   }
