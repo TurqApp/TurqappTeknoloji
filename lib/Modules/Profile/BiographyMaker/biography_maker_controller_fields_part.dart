@@ -2,8 +2,7 @@ part of 'biography_maker_controller.dart';
 
 class _BiographyMakerControllerState {
   final bioController = TextEditingController();
-  final currentLength = 0.obs;
-  final isSaving = false.obs;
+  final currentLength = 0.obs, isSaving = false.obs;
 }
 
 extension BiographyMakerControllerFieldsPart on BiographyMakerController {

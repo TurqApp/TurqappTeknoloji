@@ -7,8 +7,7 @@ ApplicationsController ensureApplicationsController({
     maybeFindApplicationsController(tag: tag) ??
     Get.put(ApplicationsController(), tag: tag, permanent: permanent);
 
-ApplicationsController? maybeFindApplicationsController(
-        {required String tag}) =>
-    Get.isRegistered<ApplicationsController>(tag: tag)
-        ? Get.find<ApplicationsController>(tag: tag)
-        : null;
+ApplicationsController? maybeFindApplicationsController({required String tag}) {
+  if (!Get.isRegistered<ApplicationsController>(tag: tag)) return null;
+  return Get.find<ApplicationsController>(tag: tag);
+}

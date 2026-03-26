@@ -7,8 +7,7 @@ extension _TopTagsControllerLifecyclePart on TopTagsController {
     fetchAgendaBigData(initial: true);
   }
 
-  void handleOnClose() {
-    scrollController.removeListener(_onScroll);
-    scrollController.dispose();
-  }
+  void handleOnClose() => scrollController
+    ..removeListener(_onScroll)
+    ..dispose();
 }
