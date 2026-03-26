@@ -1,13 +1,10 @@
 part of 'optical_form_repository.dart';
 
-OpticalFormRepository? maybeFindOpticalFormRepository() {
-  final isRegistered = Get.isRegistered<OpticalFormRepository>();
-  if (!isRegistered) return null;
-  return Get.find<OpticalFormRepository>();
-}
+OpticalFormRepository? maybeFindOpticalFormRepository() =>
+    Get.isRegistered<OpticalFormRepository>()
+        ? Get.find<OpticalFormRepository>()
+        : null;
 
-OpticalFormRepository ensureOpticalFormRepository() {
-  final existing = maybeFindOpticalFormRepository();
-  if (existing != null) return existing;
-  return Get.put(OpticalFormRepository(), permanent: true);
-}
+OpticalFormRepository ensureOpticalFormRepository() =>
+    maybeFindOpticalFormRepository() ??
+    Get.put(OpticalFormRepository(), permanent: true);

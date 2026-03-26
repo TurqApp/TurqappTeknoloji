@@ -1,5 +1,12 @@
 part of 'optical_form_repository.dart';
 
+class _TimedValue<T> {
+  const _TimedValue({required this.value, required this.cachedAt});
+
+  final T value;
+  final DateTime cachedAt;
+}
+
 class OpticalFormRepository extends _OpticalFormRepositoryBase {
   static const Duration _ttl = _OpticalFormRepositoryBase._ttl;
   static const String _prefsPrefix = _OpticalFormRepositoryBase._prefsPrefix;

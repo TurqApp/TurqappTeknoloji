@@ -8,6 +8,5 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 part 'booklet_repository_query_part.dart';
 part 'booklet_repository_action_part.dart';
-part 'booklet_repository_models_part.dart';
 part 'booklet_repository_cache_part.dart';
 part 'booklet_repository_facade_part.dart';
