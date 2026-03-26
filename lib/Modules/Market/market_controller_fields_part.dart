@@ -1,7 +1,7 @@
 part of 'market_controller.dart';
 
 class _MarketControllerState {
-  final schemaService = MarketSchemaService.ensure();
+  final schemaService = ensureMarketSchemaService();
   final marketSnapshotRepository = MarketSnapshotRepository.ensure();
   final repository = MarketRepository.ensure();
   final cityDirectoryService = CityDirectoryService.ensure();

@@ -1,5 +1,29 @@
 part of 'sinav_sorusu_hazirla_controller.dart';
 
+SinavSorusuHazirlaController ensureSinavSorusuHazirlaController({
+  required String tag,
+  required String docID,
+  required String sinavTuru,
+  required List<String> tumDersler,
+  required List<String> derslerinSoruSayilari,
+  required Function() complated,
+  bool permanent = false,
+}) =>
+    _ensureSinavSorusuHazirlaController(
+      tag: tag,
+      docID: docID,
+      sinavTuru: sinavTuru,
+      tumDersler: tumDersler,
+      derslerinSoruSayilari: derslerinSoruSayilari,
+      complated: complated,
+      permanent: permanent,
+    );
+
+SinavSorusuHazirlaController? maybeFindSinavSorusuHazirlaController({
+  required String tag,
+}) =>
+    _maybeFindSinavSorusuHazirlaController(tag: tag);
+
 SinavSorusuHazirlaController _ensureSinavSorusuHazirlaController({
   required String tag,
   required String docID,

@@ -9,5 +9,7 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 
 part 'create_test_question_content_controller_actions_part.dart';
+part 'create_test_question_content_controller_support_part.dart';
+part 'create_test_question_content_controller_fields_part.dart';
 part 'create_test_question_content_controller_class_part.dart';
 part 'create_test_question_content_controller_data_part.dart';

@@ -6,18 +6,6 @@ class MarketSchemaService extends GetxService {
   static const String _assetPath = 'assets/data/market_schema.json';
   final _state = _MarketSchemaServiceState();
 
-  static MarketSchemaService? maybeFind() {
-    final isRegistered = Get.isRegistered<MarketSchemaService>();
-    if (!isRegistered) return null;
-    return Get.find<MarketSchemaService>();
-  }
-
-  static MarketSchemaService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(MarketSchemaService(), permanent: true);
-  }
-
   @override
   void onInit() {
     super.onInit();
@@ -26,18 +14,8 @@ class MarketSchemaService extends GetxService {
     });
   }
 
-  Future<Map<String, dynamic>> loadSchema({bool forceRefresh = false}) =>
-      _MarketSchemaServiceRuntimePart(this)
-          .loadSchema(forceRefresh: forceRefresh);
-
-  List<Map<String, dynamic>> roundMenuItems() =>
-      MarketSchemaServiceLabelsPart(this).roundMenuItems();
-
   String? _roundMenuLabelFor(String key) =>
       MarketSchemaServiceLabelsPart(this).roundMenuLabelFor(key);
-
-  List<Map<String, dynamic>> categories() =>
-      MarketSchemaServiceLabelsPart(this).categories();
 
   Map<String, dynamic> _localizedCategoryNode(Map<String, dynamic> node) =>
       MarketSchemaServiceLabelsPart(this).localizedCategoryNode(node);

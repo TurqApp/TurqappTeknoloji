@@ -3,7 +3,7 @@ part of 'market_create_controller.dart';
 class _MarketCreateControllerState {
   _MarketCreateControllerState({required this.initialItem});
 
-  final schemaService = MarketSchemaService.ensure();
+  final schemaService = ensureMarketSchemaService();
   final repository = MarketRepository.ensure();
   final cityDirectoryService = CityDirectoryService.ensure();
   final MarketItemModel? initialItem;

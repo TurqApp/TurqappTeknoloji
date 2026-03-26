@@ -40,9 +40,9 @@ class _CreateTestQuestionContentState extends State<CreateTestQuestionContent> {
     _controllerTag =
         'test_question_${widget.testID}_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        CreateTestQuestionContentController.maybeFind(tag: _controllerTag) ==
+        maybeFindCreateTestQuestionContentController(tag: _controllerTag) ==
             null;
-    controller = CreateTestQuestionContentController.ensure(
+    controller = ensureCreateTestQuestionContentController(
       model: widget.model,
       testID: widget.testID,
       index: widget.index,
@@ -54,7 +54,7 @@ class _CreateTestQuestionContentState extends State<CreateTestQuestionContent> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          CreateTestQuestionContentController.maybeFind(tag: _controllerTag);
+          maybeFindCreateTestQuestionContentController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<CreateTestQuestionContentController>(tag: _controllerTag);
       }
