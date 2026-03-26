@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -138,6 +137,8 @@ class _AdmobKareState extends State<AdmobKare> {
   static final List<BannerAd> _readyPool = <BannerAd>[];
   static final Map<String, DateTime> _unitCooldownUntilById =
       <String, DateTime>{};
+  static final Map<String, int> _managedSuggestionNextIndexByPlacement =
+      <String, int>{};
   static int _loadingCount = 0;
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
@@ -170,6 +171,7 @@ class _AdmobKareState extends State<AdmobKare> {
   final SliderCacheService _sliderCacheService = SliderCacheService();
   TurqAppSuggestionConfig? _suggestionConfig;
   List<String> _suggestionSliderSources = const <String>[];
+  int _visibleSuggestionIndex = 0;
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
@@ -182,6 +184,8 @@ class _AdmobKareState extends State<AdmobKare> {
       _readyPool.any((ad) => ad.responseInfo != null);
   bool get _usesManagedSuggestion =>
       (widget.suggestionPlacementId?.trim().isNotEmpty ?? false);
+  String get _managedSuggestionPlacementId =>
+      widget.suggestionPlacementId?.trim() ?? '';
 
   static Duration _globalCooldownRemaining() {
     final until = _globalCooldownUntil;
@@ -358,6 +362,7 @@ class _AdmobKareState extends State<AdmobKare> {
     }
     _suggestionConfig = null;
     _suggestionSliderSources = const <String>[];
+    _visibleSuggestionIndex = 0;
     if (nextPlacement.isNotEmpty) {
       unawaited(_bootstrapManagedSuggestion(forceRefresh: true));
     }
@@ -438,6 +443,7 @@ class _AdmobKareState extends State<AdmobKare> {
       setState(() {
         _suggestionSliderSources = snapshot.items;
       });
+      _ensureVisibleSuggestionIndexInRange();
       unawaited(_sliderCacheService.warmImages(snapshot.items));
     }
 
@@ -451,7 +457,42 @@ class _AdmobKareState extends State<AdmobKare> {
       setState(() {
         _suggestionSliderSources = remote;
       });
+      _ensureVisibleSuggestionIndexInRange();
     } catch (_) {}
+  }
+
+  void _ensureVisibleSuggestionIndexInRange() {
+    final sources = _suggestionSliderSources;
+    if (sources.isEmpty) {
+      _visibleSuggestionIndex = 0;
+      return;
+    }
+    if (_visibleSuggestionIndex >= sources.length) {
+      _visibleSuggestionIndex = 0;
+    }
+  }
+
+  void _advanceManagedSuggestionIndex() {
+    final placementId = _managedSuggestionPlacementId;
+    final sources = _suggestionSliderSources;
+    if (placementId.isEmpty || sources.isEmpty) {
+      return;
+    }
+    final nextIndex =
+        (_managedSuggestionNextIndexByPlacement[placementId] ?? 0) %
+            sources.length;
+    _managedSuggestionNextIndexByPlacement[placementId] =
+        (nextIndex + 1) % sources.length;
+    if (_visibleSuggestionIndex == nextIndex) {
+      return;
+    }
+    if (!mounted || _isDisposed) {
+      _visibleSuggestionIndex = nextIndex;
+      return;
+    }
+    setState(() {
+      _visibleSuggestionIndex = nextIndex;
+    });
   }
 
   void _scheduleRetry({
@@ -480,6 +521,12 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
     _isVisible = nextVisible;
+    if (_usesManagedSuggestion) {
+      if (_isVisible) {
+        _advanceManagedSuggestionIndex();
+      }
+      return;
+    }
     if (!_isVisible) {
       _retryTimer?.cancel();
       return;
@@ -977,19 +1024,17 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildManagedSliderCard() {
+    if (_suggestionSliderSources.isEmpty) {
+      return _buildPromoFallbackCard();
+    }
+    final source = _suggestionSliderSources[
+        _visibleSuggestionIndex.clamp(0, _suggestionSliderSources.length - 1)];
     return ColoredBox(
       color: CupertinoColors.systemGrey6,
-      child: CarouselSlider(
-        items: _suggestionSliderSources
-            .map((source) => _buildManagedSliderItem(source))
-            .toList(growable: false),
-        options: CarouselOptions(
-          autoPlay: _suggestionSliderSources.length > 1,
-          height: _promoSlotHeight,
-          viewportFraction: 1,
-          enlargeCenterPage: false,
-          autoPlayInterval: const Duration(seconds: 3),
-        ),
+      child: SizedBox(
+        height: _promoSlotHeight,
+        width: double.infinity,
+        child: _buildManagedSliderItem(source),
       ),
     );
   }
