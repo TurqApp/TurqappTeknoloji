@@ -25,8 +25,8 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
 
   void _bindController() {
     _ownsController =
-        ClickableTextController.maybeFind(tag: _controllerTag) == null;
-    controller = ClickableTextController.ensure(
+        maybeFindClickableTextController(tag: _controllerTag) == null;
+    controller = ensureClickableTextController(
       text: widget.text,
       onUrlTap: widget.onUrlTap,
       onHashtagTap: widget.onHashtagTap,
@@ -46,7 +46,7 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
   void _disposeOwnedController() {
     if (_ownsController &&
         identical(
-          ClickableTextController.maybeFind(tag: _controllerTag),
+          maybeFindClickableTextController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ClickableTextController>(tag: _controllerTag);
@@ -89,7 +89,7 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
       builder: (context, constraints) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          if (ClickableTextController.maybeFind(tag: _controllerTag) != null) {
+          if (maybeFindClickableTextController(tag: _controllerTag) != null) {
             controller.checkIfExceeds(constraints, baseStyle);
           }
         });

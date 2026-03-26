@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 
-part 'clickable_text_content_controller_part.dart';
+part 'clickable_text_content_controller_class_part.dart';
 part 'clickable_text_content_controller_fields_part.dart';
 part 'clickable_text_content_controller_helpers_part.dart';
 part 'clickable_text_content_view_part.dart';

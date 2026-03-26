@@ -58,7 +58,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
           children: [
             TextSpan(text: nickname, style: nameStyle),
             const TextSpan(text: '  '),
-            ...ClickableTextController.buildSpans(
+            ...buildClickableTextControllerSpans(
               text: text,
               plainStyle: bodyStyle,
               urlStyle: bodyStyle.copyWith(color: Colors.blue),

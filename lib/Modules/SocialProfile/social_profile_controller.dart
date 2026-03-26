@@ -30,6 +30,7 @@ import '../Agenda/AgendaContent/agenda_content_controller.dart';
 import '../Profile/SocialMediaLinks/social_media_links_controller.dart';
 import '../Story/StoryRow/story_user_model.dart';
 
+part 'social_profile_controller_class_part.dart';
 part 'social_profile_controller_profile_part.dart';
 part 'social_profile_controller_actions_part.dart';
 part 'social_profile_controller_feed_part.dart';
@@ -39,33 +40,3 @@ part 'social_profile_controller_models_part.dart';
 part 'social_profile_controller_shell_part.dart';
 part 'social_profile_controller_support_part.dart';
 part 'social_profile_controller_fields_part.dart';
-
-class SocialProfileController extends GetxController {
-  static SocialProfileController ensure({
-    required String userID,
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureSocialProfileController(
-          userID: userID, tag: tag, permanent: permanent);
-
-  static SocialProfileController? maybeFind({String? tag}) =>
-      _maybeFindSocialProfileController(tag: tag);
-
-  final _SocialProfileShellState _shellState;
-
-  SocialProfileController({required String userID})
-      : _shellState = _SocialProfileShellState(userID: userID);
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleLifecycleInit();
-  }
-
-  @override
-  void onClose() {
-    _handleLifecycleClose();
-    super.onClose();
-  }
-}

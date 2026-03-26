@@ -25,46 +25,8 @@ import '../../Core/Services/webp_upload_service.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Agenda/AgendaContent/agenda_content_controller.dart';
 
+part 'edit_post_controller_class_part.dart';
 part 'edit_post_controller_media_part.dart';
 part 'edit_post_controller_actions_part.dart';
 part 'edit_post_controller_fields_part.dart';
 part 'edit_post_controller_runtime_part.dart';
-
-class EditPostController extends GetxController {
-  static EditPostController ensure({
-    required EditPostModel model,
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      EditPostController(model: model),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static EditPostController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<EditPostController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<EditPostController>(tag: tag);
-  }
-
-  final EditPostModel model;
-  final _state = _EditPostControllerState();
-
-  EditPostController({required this.model});
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleEditPostControllerInit(this);
-  }
-
-  @override
-  void onClose() {
-    _handleEditPostControllerClose(this);
-    super.onClose();
-  }
-}

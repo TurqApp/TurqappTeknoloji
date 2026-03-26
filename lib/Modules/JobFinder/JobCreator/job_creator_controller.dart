@@ -28,43 +28,9 @@ import '../../../Models/cities_model.dart';
 import '../../../Models/job_model.dart';
 import '../job_localization_utils.dart';
 
+part 'job_creator_controller_class_part.dart';
 part 'job_creator_controller_form_part.dart';
 part 'job_creator_controller_fields_part.dart';
 part 'job_creator_controller_submission_part.dart';
 part 'job_creator_controller_support_part.dart';
 part 'job_creator_controller_runtime_part.dart';
-
-class JobCreatorController extends GetxController {
-  static JobCreatorController ensure({
-    JobModel? existingJob,
-    String? tag,
-    bool permanent = false,
-  }) =>
-      maybeFind(tag: tag) ??
-      Get.put(
-        JobCreatorController(existingJob: existingJob),
-        tag: tag,
-        permanent: permanent,
-      );
-
-  static JobCreatorController? maybeFind({String? tag}) =>
-      Get.isRegistered<JobCreatorController>(tag: tag)
-          ? Get.find<JobCreatorController>(tag: tag)
-          : null;
-
-  final _shellState = _JobCreatorShellState();
-  final JobModel? existingJob;
-  JobCreatorController({this.existingJob});
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleOnInit();
-  }
-
-  @override
-  void onClose() {
-    _JobCreatorControllerSupportX(this).handleOnClose();
-    super.onClose();
-  }
-}

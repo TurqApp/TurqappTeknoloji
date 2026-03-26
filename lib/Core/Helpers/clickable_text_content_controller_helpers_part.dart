@@ -1,5 +1,7 @@
 part of 'clickable_text_content.dart';
 
+const double clickableTextDefaultCaptionFontSize = 13;
+
 class _ClickableTextControllerConfig {
   const _ClickableTextControllerConfig({
     required this.text,
@@ -45,7 +47,7 @@ extension _ClickableTextControllerConfigPart on ClickableTextController {
   bool get startWith7line => _config.startWith7line;
 }
 
-ClickableTextController _ensureClickableTextController({
+ClickableTextController ensureClickableTextController({
   required String text,
   void Function(String url)? onUrlTap,
   void Function(String hashtag)? onHashtagTap,
@@ -61,7 +63,7 @@ ClickableTextController _ensureClickableTextController({
   String? tag,
   bool permanent = false,
 }) {
-  final existing = _maybeFindClickableTextController(tag: tag);
+  final existing = maybeFindClickableTextController(tag: tag);
   if (existing != null) return existing;
   return Get.put(
     ClickableTextController._(
@@ -85,13 +87,13 @@ ClickableTextController _ensureClickableTextController({
   );
 }
 
-ClickableTextController? _maybeFindClickableTextController({String? tag}) {
+ClickableTextController? maybeFindClickableTextController({String? tag}) {
   final isRegistered = Get.isRegistered<ClickableTextController>(tag: tag);
   if (!isRegistered) return null;
   return Get.find<ClickableTextController>(tag: tag);
 }
 
-List<TextSpan> _buildClickableTextControllerSpans({
+List<TextSpan> buildClickableTextControllerSpans({
   required String text,
   required TextStyle plainStyle,
   required TextStyle urlStyle,
@@ -126,7 +128,7 @@ extension ClickableTextControllerHelpersPart on ClickableTextController {
   void _buildSpans() {
     _disposeClickableTextRecognizers(spans);
     spans.assignAll(
-      _buildClickableTextControllerSpans(
+      buildClickableTextControllerSpans(
         text: text,
         plainStyle: _plainStyle(),
         urlStyle: _urlStyle(),
@@ -162,28 +164,28 @@ extension ClickableTextControllerHelpersPart on ClickableTextController {
   }
 
   TextStyle _plainStyle() => TextStyle(
-        fontSize: fontSize ?? ClickableTextController.defaultCaptionFontSize,
+        fontSize: fontSize ?? clickableTextDefaultCaptionFontSize,
         color: fontColor ?? Colors.black,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _urlStyle() => TextStyle(
-        fontSize: fontSize ?? ClickableTextController.defaultCaptionFontSize,
+        fontSize: fontSize ?? clickableTextDefaultCaptionFontSize,
         color: interactiveColor ?? urlColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _hashtagStyle() => TextStyle(
-        fontSize: fontSize ?? ClickableTextController.defaultCaptionFontSize,
+        fontSize: fontSize ?? clickableTextDefaultCaptionFontSize,
         color: interactiveColor ?? hashtagColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _mentionStyle() => TextStyle(
-        fontSize: fontSize ?? ClickableTextController.defaultCaptionFontSize,
+        fontSize: fontSize ?? clickableTextDefaultCaptionFontSize,
         color: interactiveColor ?? mentionColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,

@@ -17,54 +17,10 @@ import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_pre
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'answer_key_content_controller_class_part.dart';
 part 'answer_key_content_controller_data_part.dart';
 part 'answer_key_content_controller_actions_part.dart';
 part 'answer_key_content_controller_facade_part.dart';
 part 'answer_key_content_controller_fields_part.dart';
 part 'answer_key_content_controller_runtime_part.dart';
 part 'answer_key_content_controller_support_part.dart';
-
-class AnswerKeyContentController extends GetxController {
-  static final Map<String, Set<String>> _savedIdsByUser =
-      <String, Set<String>>{};
-  static final Map<String, Future<Set<String>>> _savedIdsLoaders =
-      <String, Future<Set<String>>>{};
-  static AnswerKeyContentController ensure(
-    BookletModel model,
-    Function(bool) onUpdate, {
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureAnswerKeyContentController(
-        model,
-        onUpdate,
-        tag: tag,
-        permanent: permanent,
-      );
-
-  static AnswerKeyContentController? maybeFind({String? tag}) =>
-      _maybeFindAnswerKeyContentController(tag: tag);
-
-  final _AnswerKeyContentControllerState _state;
-
-  AnswerKeyContentController(BookletModel model, Function(bool) onUpdate)
-      : _state = _AnswerKeyContentControllerState(
-          model: model,
-          onUpdate: onUpdate,
-        );
-
-  static String _resolveCurrentUid() =>
-      _resolveAnswerKeyContentCurrentUidFacade();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleAnswerKeyContentInit(this);
-  }
-
-  static Future<Set<String>> _loadSavedIds(String userId) =>
-      _loadAnswerKeyContentSavedIdsFacade(userId);
-
-  static Future<void> warmSavedIdsForCurrentUser() =>
-      _warmAnswerKeyContentSavedIdsForCurrentUserFacade();
-}
