@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -55,86 +54,6 @@ class AdmobKare extends StatefulWidget {
 }
 
 class _AdmobKareState extends State<AdmobKare> {
-  static const List<_PromoFallbackPalette> _promoFallbackPalettes =
-      <_PromoFallbackPalette>[
-    _PromoFallbackPalette(
-      colors: <Color>[
-        Color(0xFFD8F3DC),
-        Color(0xFFB7E4C7),
-        Color(0xFF95D5B2),
-      ],
-      badgeBackgroundColor: Color(0x66FFFFFF),
-      badgeBorderColor: Color(0x6695D5B2),
-      titleColor: Color(0xFF1B4332),
-      subtitleColor: Color(0xFF2D6A4F),
-    ),
-    _PromoFallbackPalette(
-      colors: <Color>[
-        Color(0xFFFFE5D9),
-        Color(0xFFFFCAD4),
-        Color(0xFFF4ACB7),
-      ],
-      badgeBackgroundColor: Color(0x66FFFFFF),
-      badgeBorderColor: Color(0x66F4ACB7),
-      titleColor: Color(0xFF6D2745),
-      subtitleColor: Color(0xFF8F3F5C),
-    ),
-    _PromoFallbackPalette(
-      colors: <Color>[
-        Color(0xFFE3F2FD),
-        Color(0xFFBBDEFB),
-        Color(0xFF90CAF9),
-      ],
-      badgeBackgroundColor: Color(0x66FFFFFF),
-      badgeBorderColor: Color(0x6690CAF9),
-      titleColor: Color(0xFF0D3B66),
-      subtitleColor: Color(0xFF355070),
-    ),
-    _PromoFallbackPalette(
-      colors: <Color>[
-        Color(0xFFFFF1C1),
-        Color(0xFFFFE59A),
-        Color(0xFFFFD166),
-      ],
-      badgeBackgroundColor: Color(0x66FFFFFF),
-      badgeBorderColor: Color(0x66FFD166),
-      titleColor: Color(0xFF6B4F00),
-      subtitleColor: Color(0xFF7A5C00),
-    ),
-    _PromoFallbackPalette(
-      colors: <Color>[
-        Color(0xFFEDE7F6),
-        Color(0xFFD1C4E9),
-        Color(0xFFB39DDB),
-      ],
-      badgeBackgroundColor: Color(0x66FFFFFF),
-      badgeBorderColor: Color(0x66B39DDB),
-      titleColor: Color(0xFF3F2B63),
-      subtitleColor: Color(0xFF5E548E),
-    ),
-    _PromoFallbackPalette(
-      colors: <Color>[
-        Color(0xFFDFF7F2),
-        Color(0xFFB8F2E6),
-        Color(0xFF9BE7D8),
-      ],
-      badgeBackgroundColor: Color(0x66FFFFFF),
-      badgeBorderColor: Color(0x669BE7D8),
-      titleColor: Color(0xFF0B525B),
-      subtitleColor: Color(0xFF1B6B75),
-    ),
-    _PromoFallbackPalette(
-      colors: <Color>[
-        Color(0xFFFDE2E4),
-        Color(0xFFF9BEC7),
-        Color(0xFFF694C1),
-      ],
-      badgeBackgroundColor: Color(0x66FFFFFF),
-      badgeBorderColor: Color(0x66F694C1),
-      titleColor: Color(0xFF6A2040),
-      subtitleColor: Color(0xFF8A345A),
-    ),
-  ];
   static final List<BannerAd> _readyPool = <BannerAd>[];
   static final Map<String, DateTime> _unitCooldownUntilById =
       <String, DateTime>{};
@@ -167,8 +86,6 @@ class _AdmobKareState extends State<AdmobKare> {
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const double _promoSlotHeight = 270;
-  late final _PromoFallbackPalette _promoFallbackPalette =
-      _promoFallbackPalettes[Random().nextInt(_promoFallbackPalettes.length)];
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
@@ -901,73 +818,140 @@ class _AdmobKareState extends State<AdmobKare> {
 
   Widget _buildPromoFallbackCard() {
     final config = _currentSuggestionConfig;
-    final palette = _promoFallbackPalette;
+    final accentColor = _promoAccentColorFor(config.placementId);
+    final accentTint = accentColor.withValues(alpha: 0.12);
     return Container(
       height: _promoSlotHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: palette.colors,
-          stops: <double>[0, 0.62, 1],
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: palette.badgeBackgroundColor,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: palette.badgeBorderColor,
-                ),
-              ),
-              child: Text(
-                'TurqApp önerisi',
-                style: TextStyle(
-                  color: palette.titleColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              config.headline,
-              style: TextStyle(
-                color: palette.titleColor,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                height: 1.15,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              config.body,
-              style: TextStyle(
-                color: palette.subtitleColor,
-                fontSize: 13,
-                height: 1.3,
-              ),
-            ),
-            const Spacer(),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final useSingleLinePromoChips =
-                    widget.forceSingleLinePromoChips ||
-                        constraints.maxWidth >= 248;
-                return useSingleLinePromoChips
-                    ? _buildSingleLinePromoChips(palette)
-                    : _buildWrappedPromoChips(palette);
-              },
-            ),
+          colors: <Color>[
+            Color(0xFFF8F9FB),
+            Color(0xFFF3F6F4),
           ],
         ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -26,
+            top: -18,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accentTint,
+              ),
+              child: const SizedBox(
+                width: 118,
+                height: 118,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 16,
+            top: 16,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: accentTint,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Text(
+                  config.title,
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.white.withValues(alpha: 0.84),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: const Color(0x14000000),
+                    ),
+                  ),
+                  child: const Text(
+                    'TurqApp önerisi',
+                    style: TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  config.headline,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF111827),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    height: 1.14,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  config.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF4B5563),
+                    fontSize: 13,
+                    height: 1.38,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.white.withValues(alpha: 0.82),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0x14000000),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        _promoCtaLabelFor(config.placementId),
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        CupertinoIcons.arrow_right,
+                        size: 16,
+                        color: accentColor,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1017,6 +1001,48 @@ class _AdmobKareState extends State<AdmobKare> {
       );
     }
     return _suggestionConfig ?? TurqAppSuggestionConfig.defaultsFor(placement);
+  }
+
+  Color _promoAccentColorFor(String placementId) {
+    switch (placementId) {
+      case 'feed':
+        return const Color(0xFF0F766E);
+      case 'profile':
+        return const Color(0xFF2563EB);
+      case 'market':
+        return const Color(0xFFB45309);
+      case 'scholarship':
+        return const Color(0xFF7C3AED);
+      case 'answer_key':
+        return const Color(0xFF0F766E);
+      case 'job':
+        return const Color(0xFFBE123C);
+      case 'practice_exam':
+        return const Color(0xFF1D4ED8);
+      case 'tutoring':
+        return const Color(0xFF15803D);
+    }
+    return const Color(0xFF0F766E);
+  }
+
+  String _promoCtaLabelFor(String placementId) {
+    switch (placementId) {
+      case 'market':
+      case 'job':
+      case 'tutoring':
+        return 'İncelemeye başla';
+      case 'scholarship':
+        return 'Fırsatları gör';
+      case 'answer_key':
+        return 'Kaynakları keşfet';
+      case 'practice_exam':
+        return 'Denemeleri gör';
+      case 'profile':
+        return 'Seçili içerikleri aç';
+      case 'feed':
+        return 'Bugünün öne çıkanları';
+    }
+    return 'Şimdi keşfet';
   }
 
   Widget _buildManagedSuggestionSlot() {
@@ -1115,75 +1141,6 @@ class _AdmobKareState extends State<AdmobKare> {
     );
   }
 
-  Widget _buildSingleLinePromoChips(_PromoFallbackPalette palette) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      child: SizedBox(
-        height: 34,
-        child: Row(
-          children: [
-            Expanded(
-              child: _PromoChip(
-                label: 'MobilPazar',
-                expandedLayout: true,
-                textColor: palette.titleColor,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _PromoChip(
-                label: 'İş İlanları',
-                expandedLayout: true,
-                textColor: palette.titleColor,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _PromoChip(
-                label: 'Denemeler',
-                expandedLayout: true,
-                textColor: palette.titleColor,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _PromoChip(
-                label: 'Burslar',
-                expandedLayout: true,
-                textColor: palette.titleColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWrappedPromoChips(_PromoFallbackPalette palette) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
-        _PromoChip(
-          label: 'MobilPazar',
-          textColor: palette.titleColor,
-        ),
-        _PromoChip(
-          label: 'İş İlanları',
-          textColor: palette.titleColor,
-        ),
-        _PromoChip(
-          label: 'Denemeler',
-          textColor: palette.titleColor,
-        ),
-        _PromoChip(
-          label: 'Burslar',
-          textColor: palette.titleColor,
-        ),
-      ],
-    );
-  }
-
   SliderResolvedItem? get _currentManagedSuggestionItem {
     if (_suggestionSliderItems.isEmpty) {
       return null;
@@ -1215,62 +1172,5 @@ class _AdmobKareState extends State<AdmobKare> {
         sourceType: 'suggestion_slot',
       );
     });
-  }
-}
-
-class _PromoFallbackPalette {
-  const _PromoFallbackPalette({
-    required this.colors,
-    required this.badgeBackgroundColor,
-    required this.badgeBorderColor,
-    required this.titleColor,
-    required this.subtitleColor,
-  });
-
-  final List<Color> colors;
-  final Color badgeBackgroundColor;
-  final Color badgeBorderColor;
-  final Color titleColor;
-  final Color subtitleColor;
-}
-
-class _PromoChip extends StatelessWidget {
-  const _PromoChip({
-    required this.label,
-    required this.textColor,
-    this.expandedLayout = false,
-  });
-
-  final String label;
-  final Color textColor;
-  final bool expandedLayout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      padding: expandedLayout
-          ? const EdgeInsets.symmetric(horizontal: 6, vertical: 8)
-          : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: CupertinoColors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: CupertinoColors.white.withValues(alpha: 0.18),
-        ),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          label,
-          maxLines: 1,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
   }
 }

@@ -396,6 +396,50 @@ class TurqAppSuggestionConfig {
   final String headline;
   final String body;
 
+  static String headlineForPlacement(TurqAppSuggestionPlacement placement) {
+    switch (placement.id) {
+      case 'feed':
+        return 'Günün öne çıkanlarını tek akışta keşfet';
+      case 'profile':
+        return 'Profillerde öne çıkan içerikler burada';
+      case 'market':
+        return 'Pasajdaki seçili ilanlar seni bekliyor';
+      case 'scholarship':
+        return 'Başvuruya açık burs fırsatlarını kaçırma';
+      case 'answer_key':
+        return 'Kaynaklar ve çözümler tek yerde toplandı';
+      case 'job':
+        return 'Öne çıkan iş ilanlarını hızlıca incele';
+      case 'practice_exam':
+        return 'Denemeler ve çıkmış sorularla hazırlığını güçlendir';
+      case 'tutoring':
+        return 'Sana uygun özel ders ilanlarını keşfet';
+    }
+    return defaultHeadline;
+  }
+
+  static String bodyForPlacement(TurqAppSuggestionPlacement placement) {
+    switch (placement.id) {
+      case 'feed':
+        return 'Gündemden fırsatlara kadar öne çıkan içerikleri senin için topladık.';
+      case 'profile':
+        return 'Takip ettiğin alanlara yakın önerileri ve dikkat çeken içerikleri burada bul.';
+      case 'market':
+        return 'Ürün, ilan ve kampüs fırsatlarını düzenli bir vitrin içinde öne çıkarıyoruz.';
+      case 'scholarship':
+        return 'Eğitim yolculuğuna katkı sağlayacak burs ve başvuru fırsatlarına göz at.';
+      case 'answer_key':
+        return 'Cevap anahtarları, kitapçıklar ve soru çözümleri için seçili içerikleri öne çıkarıyoruz.';
+      case 'job':
+        return 'Yeni pozisyonlar ve dikkat çeken iş fırsatları bu alanda öne çıkarılır.';
+      case 'practice_exam':
+        return 'Yeni denemeler, sınav önizlemeleri ve hazırlık içerikleri burada seni karşılar.';
+      case 'tutoring':
+        return 'Birebir ders ve destek ilanlarını daha hızlı keşfetmen için seçili içerikleri öne alıyoruz.';
+    }
+    return defaultBody;
+  }
+
   factory TurqAppSuggestionConfig.defaultsFor(
     TurqAppSuggestionPlacement placement,
   ) {
@@ -403,8 +447,8 @@ class TurqAppSuggestionConfig {
       placementId: placement.id,
       title: placement.title,
       sliderId: placement.sliderId,
-      headline: defaultHeadline,
-      body: defaultBody,
+      headline: headlineForPlacement(placement),
+      body: bodyForPlacement(placement),
     );
   }
 
@@ -421,10 +465,10 @@ class TurqAppSuggestionConfig {
           ? placement.sliderId
           : (data['sliderId'] ?? '').toString().trim(),
       headline: (data['headline'] ?? '').toString().trim().isEmpty
-          ? defaultHeadline
+          ? headlineForPlacement(placement)
           : (data['headline'] ?? '').toString().trim(),
       body: (data['body'] ?? '').toString().trim().isEmpty
-          ? defaultBody
+          ? bodyForPlacement(placement)
           : (data['body'] ?? '').toString().trim(),
     );
   }

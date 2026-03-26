@@ -138,9 +138,12 @@ class _TurqAppSuggestionAdminViewState
       placementId: placement.id,
       title: placement.title,
       sliderId: placement.sliderId,
-      headline:
-          headline.isEmpty ? TurqAppSuggestionConfig.defaultHeadline : headline,
-      body: body.isEmpty ? TurqAppSuggestionConfig.defaultBody : body,
+      headline: headline.isEmpty
+          ? TurqAppSuggestionConfig.headlineForPlacement(placement)
+          : headline,
+      body: body.isEmpty
+          ? TurqAppSuggestionConfig.bodyForPlacement(placement)
+          : body,
     );
 
     setState(() {
