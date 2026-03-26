@@ -1,4 +1,4 @@
-part of 'antreman_score_controller.dart';
+part of 'antreman_score_controller_library.dart';
 
 abstract class _AntremanScoreControllerBase extends GetxController {
   @override

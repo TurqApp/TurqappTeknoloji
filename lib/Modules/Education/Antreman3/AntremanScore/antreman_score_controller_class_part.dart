@@ -1,4 +1,4 @@
-part of 'antreman_score_controller.dart';
+part of 'antreman_score_controller_library.dart';
 
 class AntremanScoreController extends _AntremanScoreControllerBase {
   static List<Map<String, dynamic>>? _cachedLeaderboard;

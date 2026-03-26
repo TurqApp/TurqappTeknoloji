@@ -1,4 +1,4 @@
-part of 'market_repository.dart';
+part of 'market_repository_library.dart';
 
 class _MarketRepositoryState {
   _MarketRepositoryState({FirebaseFirestore? firestore})

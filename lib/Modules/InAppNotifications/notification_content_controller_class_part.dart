@@ -1,4 +1,4 @@
-part of 'notification_content_controller.dart';
+part of 'notification_content_controller_library.dart';
 
 class NotificationContentController extends _NotificationContentControllerBase {
   static const String _userType = kNotificationPostTypeUserLower;

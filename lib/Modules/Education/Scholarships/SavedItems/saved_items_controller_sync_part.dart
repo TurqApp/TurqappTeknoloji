@@ -1,4 +1,4 @@
-part of 'saved_items_controller.dart';
+part of 'saved_items_controller_library.dart';
 
 extension SavedItemsControllerSyncPart on SavedItemsController {
   Future<void> _bootstrapSavedItems() async {

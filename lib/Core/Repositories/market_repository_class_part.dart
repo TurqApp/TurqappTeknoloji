@@ -1,4 +1,4 @@
-part of 'market_repository.dart';
+part of 'market_repository_library.dart';
 
 class MarketRepository extends _MarketRepositoryBase {
   MarketRepository({super.firestore});

@@ -1,4 +1,4 @@
-part of 'market_repository.dart';
+part of 'market_repository_library.dart';
 
 extension MarketRepositoryCachePart on MarketRepository {
   Future<QuerySnapshot<Map<String, dynamic>>> _fetchLatestSnapshot(

@@ -1,4 +1,4 @@
-part of 'saved_job_controller.dart';
+part of 'saved_job_controller_library.dart';
 
 extension SavedJobsControllerDataPart on SavedJobsController {
   List<List<T>> _chunkListImpl<T>(List<T> input, int size) {

@@ -1,4 +1,4 @@
-part of 'saved_job_controller.dart';
+part of 'saved_job_controller_library.dart';
 
 extension SavedJobsControllerRuntimeX on SavedJobsController {
   bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {

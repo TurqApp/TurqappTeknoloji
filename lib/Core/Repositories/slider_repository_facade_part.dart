@@ -1,4 +1,4 @@
-part of 'slider_repository.dart';
+part of 'slider_repository_library.dart';
 
 SliderRepository? maybeFindSliderRepository() {
   final isRegistered = Get.isRegistered<SliderRepository>();

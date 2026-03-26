@@ -1,4 +1,4 @@
-part of 'saved_items_controller.dart';
+part of 'saved_items_controller_library.dart';
 
 class _SavedItemsControllerState {
   final isLoading = false.obs;

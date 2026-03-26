@@ -1,4 +1,4 @@
-part of 'market_repository.dart';
+part of 'market_repository_library.dart';
 
 abstract class _MarketRepositoryBase extends GetxService {
   _MarketRepositoryBase({FirebaseFirestore? firestore})

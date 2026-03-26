@@ -1,4 +1,4 @@
-part of 'my_scholarship_controller.dart';
+part of 'my_scholarship_controller_library.dart';
 
 class MyScholarshipControllerRuntimePart {
   const MyScholarshipControllerRuntimePart(this.controller);

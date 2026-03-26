@@ -1,4 +1,4 @@
-part of 'moderation_repository.dart';
+part of 'moderation_repository_library.dart';
 
 ModerationRepository? maybeFindModerationRepository() {
   final isRegistered = Get.isRegistered<ModerationRepository>();

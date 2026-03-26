@@ -1,4 +1,4 @@
-part of 'my_scholarship_controller.dart';
+part of 'my_scholarship_controller_library.dart';
 
 abstract class _MyScholarshipControllerBase extends GetxController {
   final _MyScholarshipControllerState _state = _MyScholarshipControllerState();

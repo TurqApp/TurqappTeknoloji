@@ -1,4 +1,4 @@
-part of 'antreman_score_controller.dart';
+part of 'antreman_score_controller_library.dart';
 
 class _AntremanScoreControllerState {
   final leaderboard = <Map<String, dynamic>>[].obs;

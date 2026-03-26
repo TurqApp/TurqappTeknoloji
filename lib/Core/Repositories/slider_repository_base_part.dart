@@ -1,4 +1,4 @@
-part of 'slider_repository.dart';
+part of 'slider_repository_library.dart';
 
 abstract class _SliderRepositoryBase extends GetxService {
   _SliderRepositoryBase({FirebaseFirestore? firestore})
