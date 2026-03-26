@@ -3,6 +3,10 @@ part of 'create_chat_controller.dart';
 abstract class _CreateChatControllerBase extends GetxController {
   final _state = _CreateChatControllerState();
 
+  TextEditingController get search => _state.search;
+  RxString get selected => _state.selected;
+  RxString get query => _state.query;
+
   @override
   void onInit() {
     super.onInit();
@@ -25,4 +29,10 @@ abstract class _CreateChatControllerBase extends GetxController {
     (this as CreateChatController).search.dispose();
     super.onClose();
   }
+}
+
+class _CreateChatControllerState {
+  final TextEditingController search = TextEditingController();
+  final RxString selected = ''.obs;
+  final RxString query = ''.obs;
 }
