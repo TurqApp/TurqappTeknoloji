@@ -4,10 +4,6 @@ part of 'audio_focus_coordinator.dart';
 class AudioFocusCoordinator extends _AudioFocusCoordinatorBase {
   static AudioFocusCoordinator? maybeFind() =>
       _maybeFindAudioFocusCoordinator();
-
   static AudioFocusCoordinator ensure() => _ensureAudioFocusCoordinator();
-
-  static AudioFocusCoordinator get instance {
-    return ensure();
-  }
+  static AudioFocusCoordinator get instance => ensure();
 }

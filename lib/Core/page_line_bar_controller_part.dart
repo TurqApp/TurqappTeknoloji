@@ -2,8 +2,8 @@ part of 'page_line_bar.dart';
 
 class PageLineBarController extends GetxController {
   final String pageName;
-  PageLineBarController({required this.pageName});
   final _state = _PageLineBarControllerState();
+  PageLineBarController({required this.pageName});
 
   @override
   void onClose() {

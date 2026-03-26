@@ -10,10 +10,7 @@ ScholarshipApplicationsListController
   final existing = maybeFindScholarshipApplicationsListController(tag: tag);
   if (existing != null) return existing;
   return Get.put(
-    ScholarshipApplicationsListController(
-      docID: docID,
-      basvuranlar: basvuranlar,
-    ),
+    ScholarshipApplicationsListController(docID, basvuranlar),
     tag: tag,
     permanent: permanent,
   );

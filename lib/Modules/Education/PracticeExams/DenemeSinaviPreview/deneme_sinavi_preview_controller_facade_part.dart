@@ -8,7 +8,7 @@ DenemeSinaviPreviewController ensureDenemeSinaviPreviewController({
   final existing = maybeFindDenemeSinaviPreviewController(tag: tag);
   if (existing != null) return existing;
   return Get.put(
-    DenemeSinaviPreviewController(model: model),
+    DenemeSinaviPreviewController(model),
     tag: tag,
     permanent: permanent,
   );

@@ -1,8 +1,7 @@
 part of 'saved_tutorings_controller.dart';
 
 class SavedTutoringsController extends GetxController {
-  final UserSubcollectionRepository _subcollectionRepository =
-      ensureUserSubcollectionRepository();
+  final _subcollectionRepository = ensureUserSubcollectionRepository();
   var savedTutoringIds = <String>[].obs;
 
   @override
