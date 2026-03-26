@@ -1,4 +1,4 @@
-part of 'application_review_controller.dart';
+part of 'application_review_controller_library.dart';
 
 class _ApplicationReviewControllerState {
   _ApplicationReviewControllerState({required this.jobDocID});

@@ -1,4 +1,4 @@
-part of 'applications_controller.dart';
+part of 'applications_controller_library.dart';
 
 ApplicationsController ensureApplicationsController({
   required String tag,

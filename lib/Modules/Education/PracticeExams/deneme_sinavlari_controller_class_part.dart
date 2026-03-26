@@ -5,12 +5,12 @@ class DenemeSinavlariController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    _handleDenemeSinavlariInit(this);
+    _denemeInit(this);
   }
 
   @override
   void onClose() {
-    _handleDenemeSinavlariClose(this);
+    _denemeClose(this);
     super.onClose();
   }
 }

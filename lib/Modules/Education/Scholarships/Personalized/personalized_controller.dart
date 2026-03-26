@@ -15,6 +15,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'personalized_controller_data_part.dart';
 part 'personalized_controller_base_part.dart';
+part 'personalized_controller_hooks_part.dart';
 part 'personalized_controller_class_part.dart';
 part 'personalized_controller_fields_part.dart';
 part 'personalized_controller_score_part.dart';

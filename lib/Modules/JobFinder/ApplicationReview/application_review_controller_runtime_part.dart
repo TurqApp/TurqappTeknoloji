@@ -1,4 +1,4 @@
-part of 'application_review_controller.dart';
+part of 'application_review_controller_library.dart';
 
 extension ApplicationReviewControllerRuntimeX on ApplicationReviewController {
   Future<void> _handleOnInit() async {

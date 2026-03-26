@@ -1,4 +1,4 @@
-part of 'applications_controller.dart';
+part of 'applications_controller_library.dart';
 
 extension ApplicationsControllerRuntimeX on ApplicationsController {
   Future<void> _handleOnInit() async {

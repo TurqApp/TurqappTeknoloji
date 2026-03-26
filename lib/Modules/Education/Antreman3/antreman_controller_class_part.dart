@@ -5,12 +5,12 @@ class AntremanController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    loadMainCategory();
+    _antremanInit(this);
   }
 
   @override
   void onClose() {
-    _searchDebounce?.cancel();
+    _antremanClose(this);
     super.onClose();
   }
 }

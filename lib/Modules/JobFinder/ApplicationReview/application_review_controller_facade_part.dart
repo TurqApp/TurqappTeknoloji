@@ -1,4 +1,4 @@
-part of 'application_review_controller.dart';
+part of 'application_review_controller_library.dart';
 
 ApplicationReviewController ensureApplicationReviewController({
   required String jobDocID,

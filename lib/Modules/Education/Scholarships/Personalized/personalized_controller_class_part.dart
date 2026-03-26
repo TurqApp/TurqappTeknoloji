@@ -5,12 +5,12 @@ class PersonalizedController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    _handlePersonalizedControllerInit(this);
+    _personalizedInit(this);
   }
 
   @override
   void onClose() {
-    _handlePersonalizedControllerClose(this);
+    _personalizedClose(this);
     super.onClose();
   }
 }

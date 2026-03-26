@@ -24,6 +24,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'antreman_controller_actions_part.dart';
 part 'antreman_controller_base_part.dart';
+part 'antreman_controller_hooks_part.dart';
 part 'antreman_controller_class_part.dart';
 part 'antreman_controller_category_part.dart';
 part 'antreman_controller_fields_part.dart';
