@@ -10,20 +10,14 @@ class PostRepository extends GetxService {
         _auth = auth ?? FirebaseAuth.instance,
         _interactionService =
             interactionService ?? PostInteractionService.ensure(),
-        _countManager = countManager ?? PostCountManager.instance;
+        _countManager = countManager ?? PostCountManager.instance,
+        _state = _PostRepositoryFieldsState();
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
   final PostInteractionService _interactionService;
   final PostCountManager _countManager;
-  final TypesensePostService _typesensePostService =
-      TypesensePostService.instance;
-  final Map<String, PostRepositoryState> _states =
-      <String, PostRepositoryState>{};
-  final Map<String, List<PostSharersModel>> _postSharersMemory =
-      <String, List<PostSharersModel>>{};
-  final UserSubcollectionRepository _userSubcollectionRepository =
-      ensureUserSubcollectionRepository();
+  final _PostRepositoryFieldsState _state;
 
   static PostRepository? maybeFind() => _maybeFindPostRepository();
 

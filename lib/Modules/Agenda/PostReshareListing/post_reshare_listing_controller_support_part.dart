@@ -1,5 +1,7 @@
 part of 'post_reshare_listing_controller.dart';
 
+const int _postReshareListingPageSize = 20;
+
 PostReshareListingController ensurePostReshareListingController({
   required String tag,
 }) =>
@@ -40,26 +42,22 @@ void _handlePostReshareListingOnClose(PostReshareListingController controller) {
   _PostReshareListingControllerRuntimePart.onClose(controller);
 }
 
-void _ensurePostReshareQuotesLoaded(PostReshareListingController controller) {
-  _PostReshareListingControllerRuntimePart.ensureQuotesLoaded(controller);
-}
+extension PostReshareListingControllerSupportPart
+    on PostReshareListingController {
+  void ensureQuotesLoaded() =>
+      _PostReshareListingControllerRuntimePart.ensureQuotesLoaded(this);
 
-Future<void> _loadMorePostReshares(
-  PostReshareListingController controller, {
-  bool initial = false,
-}) {
-  return _PostReshareListingControllerRuntimePart.loadMoreReshares(
-    controller,
-    initial: initial,
-  );
-}
+  Future<void> loadMoreReshares({bool initial = false}) {
+    return _PostReshareListingControllerRuntimePart.loadMoreReshares(
+      this,
+      initial: initial,
+    );
+  }
 
-Future<void> _loadMorePostQuotes(
-  PostReshareListingController controller, {
-  bool initial = false,
-}) {
-  return _PostReshareListingControllerRuntimePart.loadMoreQuotes(
-    controller,
-    initial: initial,
-  );
+  Future<void> loadMoreQuotes({bool initial = false}) {
+    return _PostReshareListingControllerRuntimePart.loadMoreQuotes(
+      this,
+      initial: initial,
+    );
+  }
 }

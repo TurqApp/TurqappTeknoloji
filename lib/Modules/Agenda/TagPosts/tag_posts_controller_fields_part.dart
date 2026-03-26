@@ -1,7 +1,11 @@
 part of 'tag_posts_controller.dart';
 
+String? _activeTagPostsControllerTag;
+
+String _normalizeTagPostsControllerTag(String tag) => tag.trim();
+
 TagPostsController? _maybeFindTagPostsController({String? tag}) {
-  final resolvedTag = tag ?? TagPostsController._activeTag;
+  final resolvedTag = tag ?? _activeTagPostsControllerTag;
   if (resolvedTag == null || resolvedTag.isEmpty) return null;
   final isRegistered = Get.isRegistered<TagPostsController>(tag: resolvedTag);
   if (!isRegistered) return null;
@@ -9,8 +13,8 @@ TagPostsController? _maybeFindTagPostsController({String? tag}) {
 }
 
 TagPostsController _ensureTagPostsController({required String tag}) {
-  final tagKey = TagPostsController._normalizeTag(tag);
-  TagPostsController._activeTag = tagKey;
+  final tagKey = _normalizeTagPostsControllerTag(tag);
+  _activeTagPostsControllerTag = tagKey;
   final existing = _maybeFindTagPostsController(tag: tagKey);
   if (existing != null) return existing;
   return Get.put(

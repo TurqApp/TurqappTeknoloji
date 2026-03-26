@@ -23,3 +23,4 @@ part 'post_repository_query_part.dart';
 part 'post_repository_sharing_part.dart';
 part 'post_repository_support_part.dart';
 part 'post_repository_class_part.dart';
+part 'post_repository_fields_part.dart';

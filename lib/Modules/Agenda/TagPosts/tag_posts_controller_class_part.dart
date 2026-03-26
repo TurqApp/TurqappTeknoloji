@@ -1,9 +1,6 @@
 part of 'tag_posts_controller.dart';
 
 class TagPostsController extends GetxController {
-  static String _normalizeTag(String tag) => tag.trim();
-  static String? _activeTag;
-
   final _TagPostsControllerState _state;
 
   TagPostsController({

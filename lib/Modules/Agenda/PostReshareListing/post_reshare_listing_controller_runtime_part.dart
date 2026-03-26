@@ -40,7 +40,7 @@ class _PostReshareListingControllerRuntimePart {
       final page = await controller._postRepository.fetchReshareUserIdsPage(
         controller.postID,
         lastDoc: controller._lastReshareDoc,
-        limit: PostReshareListingController._pageSize,
+        limit: _postReshareListingPageSize,
       );
       if (page.userIds.isEmpty) {
         controller.hasMoreReshares.value = false;
@@ -87,7 +87,7 @@ class _PostReshareListingControllerRuntimePart {
       final page = await controller._postRepository.fetchQuoteUserIdsPage(
         controller.postID,
         lastDoc: controller._lastQuoteSharerDoc,
-        limit: PostReshareListingController._pageSize,
+        limit: _postReshareListingPageSize,
       );
       controller._lastQuoteSharerDoc = page.lastDoc;
       controller.hasMoreQuotes.value = page.hasMore;

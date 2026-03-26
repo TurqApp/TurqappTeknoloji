@@ -6,8 +6,8 @@ extension TagPostsControllerRuntimePart on TagPostsController {
   }
 
   void _handleTagPostsClose() {
-    if (TagPostsController._activeTag == controllerTag) {
-      TagPostsController._activeTag = null;
+    if (_activeTagPostsControllerTag == controllerTag) {
+      _activeTagPostsControllerTag = null;
     }
   }
 
