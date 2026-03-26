@@ -12,9 +12,7 @@ class PostCommentController extends GetxController {
           collection: collection,
           onCommentCountChange: onCommentCountChange,
         );
-
   final _PostCommentControllerState _state;
-
   @override
   void onInit() {
     super.onInit();

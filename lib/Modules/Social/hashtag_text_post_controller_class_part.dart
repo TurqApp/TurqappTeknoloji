@@ -2,7 +2,6 @@ part of 'hashtag_text_post.dart';
 
 class HashtagTextVideoPostController extends GetxController {
   final _HashtagTextVideoPostControllerState _state;
-
   HashtagTextVideoPostController({
     required String text,
     String? nickname,
@@ -14,7 +13,6 @@ class HashtagTextVideoPostController extends GetxController {
           color: color,
           volume: volume,
         );
-
   @override
   void onInit() {
     super.onInit();

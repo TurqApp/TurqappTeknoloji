@@ -2,7 +2,6 @@ part of 'ads_center_controller.dart';
 
 class AdsCenterController extends GetxController {
   final _AdsCenterControllerState _state;
-
   AdsCenterController({
     AdsRepositoryService? repository,
     AdsDeliveryService? deliveryService,
@@ -14,7 +13,6 @@ class AdsCenterController extends GetxController {
           targetingService: targetingService,
           analyticsService: analyticsService,
         );
-
   @override
   void onInit() {
     super.onInit();
