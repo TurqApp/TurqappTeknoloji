@@ -29,7 +29,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
       _queue.add(_PrefetchJob(
         docID: docID,
-        maxSegments: PrefetchScheduler._targetReadySegments,
+        maxSegments: _prefetchSchedulerTargetReadySegments,
         priority: 0,
         sortScore: _buildJobScore(
           currentIndex: safeCurrent,
@@ -50,7 +50,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (entry == null || !entry.isFullyCached) {
         _queue.add(_PrefetchJob(
           docID: docID,
-          maxSegments: PrefetchScheduler._targetReadySegments,
+          maxSegments: _prefetchSchedulerTargetReadySegments,
           priority: 1,
           sortScore: _buildJobScore(
             currentIndex: safeCurrent,
@@ -75,7 +75,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
       _queue.add(_PrefetchJob(
         docID: docID,
-        maxSegments: PrefetchScheduler._targetReadySegments,
+        maxSegments: _prefetchSchedulerTargetReadySegments,
         priority: 2,
         sortScore: _buildJobScore(
           currentIndex: safeCurrent,
@@ -139,7 +139,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (entry != null && entry.isFullyCached) return;
       _queue.add(_PrefetchJob(
         docID: docID,
-        maxSegments: PrefetchScheduler._targetReadySegments,
+        maxSegments: _prefetchSchedulerTargetReadySegments,
         priority: priority,
         sortScore: _buildJobScore(
           currentIndex: safeCurrent,

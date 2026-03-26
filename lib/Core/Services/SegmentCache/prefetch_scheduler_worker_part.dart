@@ -71,9 +71,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           cacheHit: true,
         );
       } else {
-        final url = '${PrefetchScheduler._cdnOrigin}/$masterPath';
+        final url = '$_prefetchSchedulerCdnOrigin/$masterPath';
         final response = await _httpClient
-            .get(Uri.parse(url), headers: PrefetchScheduler._cdnHeaders)
+            .get(Uri.parse(url), headers: _prefetchSchedulerCdnHeaders)
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           masterContent = response.body;
@@ -110,9 +110,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           cacheHit: true,
         );
       } else {
-        final url = '${PrefetchScheduler._cdnOrigin}/$variantPath';
+        final url = '$_prefetchSchedulerCdnOrigin/$variantPath';
         final response = await _httpClient
-            .get(Uri.parse(url), headers: PrefetchScheduler._cdnHeaders)
+            .get(Uri.parse(url), headers: _prefetchSchedulerCdnHeaders)
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           variantContent = response.body;
@@ -133,7 +133,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
       cacheManager.updateEntryMeta(
         job.docID,
-        '${PrefetchScheduler._cdnOrigin}/$masterPath',
+        '$_prefetchSchedulerCdnOrigin/$masterPath',
         segmentUris.length,
       );
 
@@ -166,7 +166,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       } else if (isUnwatched) {
         final readyCap = job.maxSegments > 0
             ? job.maxSegments
-            : PrefetchScheduler._targetReadySegments;
+            : _prefetchSchedulerTargetReadySegments;
         toDownload = uncached.take(readyCap);
       } else {
         final preferred = _pickWatchedPrioritySegments(
@@ -183,7 +183,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         if (_paused) break;
 
         final segmentCdnUrl =
-            '${PrefetchScheduler._cdnOrigin}/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
+            '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey =
             '${variantDir.replaceFirst('Posts/${job.docID}/hls/', '')}$segUri';
 
@@ -285,7 +285,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final docID = _lastFeedDocIDs[idx];
       final entry = cacheManager.getEntry(docID);
       if (entry != null &&
-          entry.cachedSegmentCount >= PrefetchScheduler._targetReadySegments) {
+          entry.cachedSegmentCount >= _prefetchSchedulerTargetReadySegments) {
         ready++;
       }
     }

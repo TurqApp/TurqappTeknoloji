@@ -22,21 +22,21 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   int get _breadthCount {
-    final base = _remote?.prefetchBreadthCount ??
-        PrefetchScheduler._fallbackBreadthCount;
+    final base =
+        _remote?.prefetchBreadthCount ?? _prefetchSchedulerFallbackBreadthCount;
     return _isOnWiFi
-        ? base < PrefetchScheduler._wifiMinBreadthCount
-            ? PrefetchScheduler._wifiMinBreadthCount
+        ? base < _prefetchSchedulerWifiMinBreadthCount
+            ? _prefetchSchedulerWifiMinBreadthCount
             : base
         : base;
   }
 
   int get _depthCount {
     final base =
-        _remote?.prefetchDepthCount ?? PrefetchScheduler._fallbackDepthCount;
+        _remote?.prefetchDepthCount ?? _prefetchSchedulerFallbackDepthCount;
     return _isOnWiFi
-        ? base < PrefetchScheduler._wifiMinDepthCount
-            ? PrefetchScheduler._wifiMinDepthCount
+        ? base < _prefetchSchedulerWifiMinDepthCount
+            ? _prefetchSchedulerWifiMinDepthCount
             : base
         : base;
   }
@@ -44,27 +44,27 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   int get _maxConcurrent {
     if (_mobileSeedMode) return 1;
     final base = _remote?.prefetchMaxConcurrent ??
-        PrefetchScheduler._fallbackMaxConcurrent;
+        _prefetchSchedulerFallbackMaxConcurrent;
     return _isOnWiFi
-        ? base < PrefetchScheduler._wifiMinMaxConcurrent
-            ? PrefetchScheduler._wifiMinMaxConcurrent
+        ? base < _prefetchSchedulerWifiMinMaxConcurrent
+            ? _prefetchSchedulerWifiMinMaxConcurrent
             : base
         : base;
   }
 
   int get _feedFullWindow => _isOnWiFi
-      ? (PrefetchScheduler._fallbackFeedFullWindow <
-              PrefetchScheduler._wifiMinFeedFullWindow
-          ? PrefetchScheduler._wifiMinFeedFullWindow
-          : PrefetchScheduler._fallbackFeedFullWindow)
-      : PrefetchScheduler._fallbackFeedFullWindow;
+      ? (_prefetchSchedulerFallbackFeedFullWindow <
+              _prefetchSchedulerWifiMinFeedFullWindow
+          ? _prefetchSchedulerWifiMinFeedFullWindow
+          : _prefetchSchedulerFallbackFeedFullWindow)
+      : _prefetchSchedulerFallbackFeedFullWindow;
 
   int get _feedPrepWindow => _isOnWiFi
-      ? (PrefetchScheduler._fallbackFeedPrepWindow <
-              PrefetchScheduler._wifiMinFeedPrepWindow
-          ? PrefetchScheduler._wifiMinFeedPrepWindow
-          : PrefetchScheduler._fallbackFeedPrepWindow)
-      : PrefetchScheduler._fallbackFeedPrepWindow;
+      ? (_prefetchSchedulerFallbackFeedPrepWindow <
+              _prefetchSchedulerWifiMinFeedPrepWindow
+          ? _prefetchSchedulerWifiMinFeedPrepWindow
+          : _prefetchSchedulerFallbackFeedPrepWindow)
+      : _prefetchSchedulerFallbackFeedPrepWindow;
 
   VideoRemoteConfigService? get _remote => maybeFindVideoRemoteConfigService();
 

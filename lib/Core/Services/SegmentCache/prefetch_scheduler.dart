@@ -23,3 +23,4 @@ part 'prefetch_scheduler_worker_part.dart';
 part 'prefetch_scheduler_runtime_part.dart';
 part 'prefetch_scheduler_models_part.dart';
 part 'prefetch_scheduler_fields_part.dart';
+part 'prefetch_scheduler_config_part.dart';

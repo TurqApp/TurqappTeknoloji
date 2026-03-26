@@ -10,26 +10,19 @@ class PostController extends GetxController {
     required List<String> fetch_begenmemeler,
     required List<String> fetch_kaydedilenler,
     required List<String> fetch_yenidenPaylasilanKullanicilar,
-  }) : _state = _PostControllerState(
+  }) : _state = _buildPostControllerState(
           postID: postID,
           model: model,
-          fetch_begeniler: fetch_begeniler,
-          fetch_begenmemeler: fetch_begenmemeler,
-          fetch_kaydedilenler: fetch_kaydedilenler,
-          fetch_yenidenPaylasilanKullanicilar:
+          fetchBegeniler: fetch_begeniler,
+          fetchBegenmemeler: fetch_begenmemeler,
+          fetchKaydedilenler: fetch_kaydedilenler,
+          fetchYenidenPaylasilanKullanicilar:
               fetch_yenidenPaylasilanKullanicilar,
         );
 
   @override
   void onInit() {
     super.onInit();
-    _initializePostState(this);
-    begeniler.assignAll(fetch_begeniler);
-    begenmeme.assignAll(fetch_begenmemeler);
-    kaydedilenler.assignAll(fetch_kaydedilenler);
-    yenidenPaylasilanKullanicilar
-        .assignAll(fetch_yenidenPaylasilanKullanicilar);
-    gizlendi.value = model.gizlendi;
-    arsivlendi.value = model.arsiv;
+    _handlePostControllerInit(this);
   }
 }
