@@ -5,10 +5,9 @@ class _NotificationPreferencesRepositoryState {
   final memory = <String, _CachedNotificationPreferences>{};
 }
 
-extension NotificationPreferencesRepositoryFieldsPart
+extension NotificationPreferencesRepositoryX
     on NotificationPreferencesRepository {
   SharedPreferences? get _prefs => _state.prefs;
   set _prefs(SharedPreferences? value) => _state.prefs = value;
-
   Map<String, _CachedNotificationPreferences> get _memory => _state.memory;
 }

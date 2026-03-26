@@ -1,5 +1,8 @@
 part of 'playback_kpi_service.dart';
 
+const bool _suppressPlaybackKpiSmokeLogs =
+    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
+
 PlaybackKpiService? maybeFindPlaybackKpiService() =>
     _maybeFindPlaybackKpiService();
 

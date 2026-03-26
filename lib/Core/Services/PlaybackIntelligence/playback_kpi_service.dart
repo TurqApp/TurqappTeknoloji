@@ -9,6 +9,3 @@ part 'playback_kpi_service_fields_part.dart';
 part 'playback_kpi_service_class_part.dart';
 part 'playback_kpi_service_models_part.dart';
 part 'playback_kpi_service_summary_part.dart';
-
-const bool _suppressPlaybackKpiSmokeLogs =
-    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
