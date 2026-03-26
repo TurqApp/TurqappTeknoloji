@@ -1,5 +1,20 @@
 part of 'global_video_adapter_pool.dart';
 
+GlobalVideoAdapterPool? maybeFindGlobalVideoAdapterPool() =>
+    Get.isRegistered<GlobalVideoAdapterPool>()
+        ? Get.find<GlobalVideoAdapterPool>()
+        : null;
+
+GlobalVideoAdapterPool ensureGlobalVideoAdapterPool() =>
+    maybeFindGlobalVideoAdapterPool() ??
+    Get.put(GlobalVideoAdapterPool(), permanent: true);
+
+Future<void> resetPlaybackForSurfaceRefresh() async {
+  VideoStateManager.instance.pauseAllVideos(force: true);
+  VideoStateManager.instance.clearAllStates();
+  await _GlobalVideoAdapterPoolRuntimeX(ensureGlobalVideoAdapterPool()).clear();
+}
+
 extension GlobalVideoAdapterPoolFacadePart on GlobalVideoAdapterPool {
   HLSVideoAdapter acquire({
     required String cacheKey,

@@ -1,10 +1,45 @@
 part of 'short_repository.dart';
 
+ShortRepository? maybeFindShortRepository() => _maybeFindShortRepository();
+
+ShortRepository ensureShortRepository() => _ensureShortRepository();
+
 ShortRepository? _maybeFindShortRepository() =>
     Get.isRegistered<ShortRepository>() ? Get.find<ShortRepository>() : null;
 
 ShortRepository _ensureShortRepository() =>
     _maybeFindShortRepository() ?? Get.put(ShortRepository(), permanent: true);
+
+extension ShortRepositoryFacadePart on ShortRepository {
+  Future<ShortPageResult> fetchReadyPage({
+    QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+    int pageSize = 20,
+    int? nowMs,
+  }) =>
+      _fetchReadyPageImpl(
+        startAfter: startAfter,
+        pageSize: pageSize,
+        nowMs: nowMs,
+      );
+
+  Future<List<PostsModel>> fetchRandomReadyPosts({
+    int limit = 1000,
+    int? nowMs,
+  }) =>
+      _fetchRandomReadyShortPosts(this, limit: limit, nowMs: nowMs);
+
+  Future<PostsModel?> fetchById(
+    String docId, {
+    bool preferCache = true,
+  }) =>
+      _fetchShortById(docId, preferCache: preferCache);
+
+  Future<Map<String, PostsModel>> fetchByIds(
+    List<String> postIds, {
+    bool preferCache = true,
+  }) =>
+      _fetchShortByIds(postIds, preferCache: preferCache);
+}
 
 Future<List<PostsModel>> _fetchRandomReadyShortPosts(
   ShortRepository repository, {

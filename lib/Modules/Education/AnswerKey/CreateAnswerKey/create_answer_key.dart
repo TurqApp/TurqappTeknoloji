@@ -28,8 +28,8 @@ class _CreateAnswerKeyState extends State<CreateAnswerKey> {
     super.initState();
     _controllerTag = 'create_answer_key_${identityHashCode(this)}';
     _ownsController =
-        CreateAnswerKeyController.maybeFind(tag: _controllerTag) == null;
-    controller = CreateAnswerKeyController.ensure(
+        maybeFindCreateAnswerKeyController(tag: _controllerTag) == null;
+    controller = ensureCreateAnswerKeyController(
       widget.onBack,
       tag: _controllerTag,
     );
@@ -38,7 +38,7 @@ class _CreateAnswerKeyState extends State<CreateAnswerKey> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = CreateAnswerKeyController.maybeFind(
+      final registeredController = maybeFindCreateAnswerKeyController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

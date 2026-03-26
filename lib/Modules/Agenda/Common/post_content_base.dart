@@ -63,7 +63,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     implements RouteAware {
   late final AgendaController agendaController = _resolveAgendaController();
   late final GlobalVideoAdapterPool adapterPool =
-      GlobalVideoAdapterPool.ensure();
+      ensureGlobalVideoAdapterPool();
   final videoStateManager = VideoStateManager.instance;
 
   late final PostContentController controller;

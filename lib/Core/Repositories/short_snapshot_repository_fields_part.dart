@@ -2,7 +2,7 @@ part of 'short_snapshot_repository.dart';
 
 class _ShortSnapshotRepositoryShellState {
   _ShortSnapshotRepositoryShellState(this.repository)
-      : shortRepository = ShortRepository.ensure(),
+      : shortRepository = ensureShortRepository(),
         invariantGuard = ensureRuntimeInvariantGuard(),
         userSummaryResolver = UserSummaryResolver.ensure(),
         visibilityPolicy = VisibilityPolicyService.ensure(),

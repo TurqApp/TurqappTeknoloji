@@ -170,7 +170,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   }
 
   Future<void> _trim() async {
-    while (_warmOrder.length > GlobalVideoAdapterPool._maxWarmAdapters) {
+    while (_warmOrder.length > _globalVideoAdapterPoolMaxWarmAdapters) {
       final oldestKey = _warmOrder.removeAt(0);
       final entry = _warmAdapters.remove(oldestKey);
       final adapter = entry?.adapter;

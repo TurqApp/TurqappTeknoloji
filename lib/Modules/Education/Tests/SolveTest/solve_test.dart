@@ -29,9 +29,8 @@ class _SolveTestState extends State<SolveTest> {
   void initState() {
     super.initState();
     _controllerTag = 'solve_test_${widget.testID}_${identityHashCode(this)}';
-    _ownsController =
-        SolveTestController.maybeFind(tag: _controllerTag) == null;
-    controller = SolveTestController.ensure(
+    _ownsController = maybeFindSolveTestController(tag: _controllerTag) == null;
+    controller = ensureSolveTestController(
       testID: widget.testID,
       showSucces: widget.showSucces,
       tag: _controllerTag,
@@ -42,7 +41,7 @@ class _SolveTestState extends State<SolveTest> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          SolveTestController.maybeFind(tag: _controllerTag);
+          maybeFindSolveTestController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<SolveTestController>(tag: _controllerTag, force: true);
       }

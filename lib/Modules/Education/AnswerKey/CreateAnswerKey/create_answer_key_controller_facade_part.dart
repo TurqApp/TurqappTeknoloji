@@ -1,5 +1,25 @@
 part of 'create_answer_key_controller.dart';
 
+CreateAnswerKeyController ensureCreateAnswerKeyController(
+  Function onBack, {
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = maybeFindCreateAnswerKeyController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(
+    CreateAnswerKeyController(onBack),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
+CreateAnswerKeyController? maybeFindCreateAnswerKeyController({String? tag}) {
+  final isRegistered = Get.isRegistered<CreateAnswerKeyController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<CreateAnswerKeyController>(tag: tag);
+}
+
 extension CreateAnswerKeyControllerFacadePart on CreateAnswerKeyController {
   Future<void> selectDateTime(BuildContext context) =>
       _selectCreateAnswerKeyDateTime(this, context);

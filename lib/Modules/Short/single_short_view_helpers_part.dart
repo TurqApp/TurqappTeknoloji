@@ -374,7 +374,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     List<PostsModel> items = [];
 
     try {
-      items = await ShortRepository.ensure().fetchRandomReadyPosts(limit: 1000)
+      items = await ensureShortRepository().fetchRandomReadyPosts(limit: 1000)
         ..shuffle();
     } catch (_) {}
 

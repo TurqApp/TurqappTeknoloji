@@ -2,7 +2,7 @@ part of 'short_controller.dart';
 
 class _ShortControllerState {
   final shorts = <PostsModel>[].obs;
-  final videoPool = GlobalVideoAdapterPool.ensure();
+  final videoPool = ensureGlobalVideoAdapterPool();
   final playbackCoordinator = ShortPlaybackCoordinator.forCurrentPlatform();
   final cache = <int, HLSVideoAdapter>{};
   final tiers = <int, _CacheTier>{};
@@ -21,7 +21,7 @@ class _ShortControllerState {
     ttl: const Duration(minutes: 10),
   );
   final userSummaryResolver = UserSummaryResolver.ensure();
-  final shortRepository = ShortRepository.ensure();
+  final shortRepository = ensureShortRepository();
   final shortSnapshotRepository = ShortSnapshotRepository.ensure();
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();

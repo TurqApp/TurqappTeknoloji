@@ -198,7 +198,8 @@ extension CreatorContentTextPart on CreatorContent {
                       itemBuilder: (context, index) {
                         final item = items[index];
                         final hashtag = normalizeComposerHashtag(item.hashtag);
-                        return InkWell(
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () =>
                               controller.applyTrendingHashtagSelection(item),
                           child: Container(
@@ -221,7 +222,7 @@ extension CreatorContentTextPart on CreatorContent {
                                   ),
                                   child: Text(
                                     '${index + 1}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.black,
                                       fontSize: 15,
                                       fontFamily: "MontserratBold",

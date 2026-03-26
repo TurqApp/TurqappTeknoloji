@@ -153,7 +153,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   /// Videoları tutan reaktif liste
   final shorts = <PostsModel>[].obs;
   final videoStateManager = VideoStateManager.instance;
-  final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
+  final GlobalVideoAdapterPool _videoPool = ensureGlobalVideoAdapterPool();
   final ShortRenderCoordinator _shortRenderCoordinator =
       ensureShortRenderCoordinator();
 
