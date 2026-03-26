@@ -12,4 +12,16 @@ abstract class _AntremanControllerBase extends GetxController {
 
   final String userID = CurrentUserService.instance.effectiveUserId;
   final int batchSize = 5;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _antremanInit(this as AntremanController);
+  }
+
+  @override
+  void onClose() {
+    _antremanClose(this as AntremanController);
+    super.onClose();
+  }
 }

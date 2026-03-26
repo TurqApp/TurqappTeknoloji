@@ -15,4 +15,16 @@ abstract class _SavedItemsControllerBase extends GetxController {
   static const Duration silentRefreshInterval = Duration(minutes: 5);
 
   final _state = _SavedItemsControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited((this as SavedItemsController)._bootstrapSavedItems());
+  }
+
+  @override
+  void onClose() {
+    (this as SavedItemsController).pageController.dispose();
+    super.onClose();
+  }
 }

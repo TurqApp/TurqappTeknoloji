@@ -22,7 +22,7 @@ extension MyPastTestResultsPreviewControllerDataPart
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'tests:preview:${model.docID}',
-        minInterval: MyPastTestResultsPreviewController._silentRefreshInterval,
+        minInterval: _myPastTestResultsPreviewSilentRefreshInterval,
       )) {
         unawaited(getData(silent: true, forceRefresh: true));
       }
