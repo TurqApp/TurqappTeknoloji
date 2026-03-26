@@ -12,6 +12,7 @@ import 'post_comment_controller.dart';
 part 'post_comment_content_controller_fields_part.dart';
 part 'post_comment_content_controller_runtime_part.dart';
 part 'post_comment_content_controller_actions_part.dart';
+part 'post_comment_content_controller_facade_part.dart';
 
 class PostCommentContentController extends GetxController {
   static PostCommentContentController ensure({
@@ -20,26 +21,17 @@ class PostCommentContentController extends GetxController {
     required String commentControllerTag,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      PostCommentContentController(
+  }) =>
+      _ensurePostCommentContentController(
         model: model,
         postID: postID,
         commentControllerTag: commentControllerTag,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static PostCommentContentController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<PostCommentContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<PostCommentContentController>(tag: tag);
-  }
+  static PostCommentContentController? maybeFind({String? tag}) =>
+      _maybeFindPostCommentContentController(tag: tag);
 
   PostCommentContentController({
     required this.model,
@@ -58,9 +50,7 @@ class PostCommentContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    likes.assignAll(model.likes);
-    _loadUserProfile(model.userID);
-    _bindReplies();
+    _handlePostCommentContentInit(this);
   }
 
   Future<void> toggleLike() =>
@@ -71,7 +61,7 @@ class PostCommentContentController extends GetxController {
 
   @override
   void onClose() {
-    _replySub?.cancel();
+    _handlePostCommentContentClose(this);
     super.onClose();
   }
 }

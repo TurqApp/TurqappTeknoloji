@@ -11,7 +11,7 @@ class _NavBarControllerSupportPart {
   const _NavBarControllerSupportPart(this._controller);
 
   String selectedIndexKeyFor(String uid) =>
-      '${NavBarController._selectedIndexPrefKeyPrefix}_$uid';
+      '${_selectedIndexPrefKeyPrefix}_$uid';
 
   int normalizeSelectedIndex(int value) {
     if (value == 2) return 0;

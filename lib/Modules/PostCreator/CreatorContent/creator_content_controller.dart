@@ -28,6 +28,7 @@ import '../post_creator_controller.dart';
 import 'composer_hashtag_utils.dart';
 
 part 'creator_content_controller_poll_part.dart';
+part 'creator_content_controller_facade_part.dart';
 part 'creator_content_controller_fields_part.dart';
 part 'creator_content_controller_lifecycle_part.dart';
 part 'creator_content_controller_media_part.dart';
@@ -41,19 +42,12 @@ class CreatorContentController extends GetxController
     String? tag,
     bool permanent = false,
   }) =>
-      maybeFind(tag: tag) ??
-      Get.put(CreatorContentController(), tag: tag, permanent: permanent);
+      _ensureCreatorContentController(tag: tag, permanent: permanent);
 
   static CreatorContentController? maybeFind({String? tag}) =>
-      Get.isRegistered<CreatorContentController>(tag: tag)
-          ? Get.find<CreatorContentController>(tag: tag)
-          : null;
+      _maybeFindCreatorContentController(tag: tag);
 
   final _state = _CreatorContentControllerState();
-  final TopTagsRepository _topTagsRepository = TopTagsRepository.ensure();
-
-  VideoPlayerController? get videoPlayerController =>
-      rxVideoPlayerController.value;
 
   @override
   void onInit() {

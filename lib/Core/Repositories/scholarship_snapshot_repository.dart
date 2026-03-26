@@ -10,6 +10,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.d
 
 part 'scholarship_snapshot_repository_models_part.dart';
 part 'scholarship_snapshot_repository_facade_part.dart';
+part 'scholarship_snapshot_repository_state_part.dart';
 part 'scholarship_snapshot_repository_query_part.dart';
 part 'scholarship_snapshot_repository_codec_part.dart';
 
@@ -31,45 +32,5 @@ class ScholarshipSnapshotRepository extends GetxService {
     return Get.put(ScholarshipSnapshotRepository(), permanent: true);
   }
 
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-
-  late final CacheFirstCoordinator<ScholarshipListingSnapshot> _coordinator =
-      CacheFirstCoordinator<ScholarshipListingSnapshot>(
-    memoryStore: MemoryScopedSnapshotStore<ScholarshipListingSnapshot>(),
-    snapshotStore: SharedPrefsScopedSnapshotStore<ScholarshipListingSnapshot>(
-      prefsPrefix: 'scholarship_snapshot_v1',
-      encode: _encodeSnapshot,
-      decode: _decodeSnapshot,
-    ),
-    telemetry: const CacheFirstKpiTelemetry<ScholarshipListingSnapshot>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
-    ),
-  );
-
-  late final EducationTypesenseCacheFirstAdapter<ScholarshipListingSnapshot>
-      _homeAdapter =
-      EducationTypesenseCacheFirstAdapter<ScholarshipListingSnapshot>(
-    surfaceKey: _homeSurfaceKey,
-    coordinator: _coordinator,
-    resolve: _resolveHits,
-    loadWarmSnapshot: _loadWarmSnapshot,
-    isEmpty: (snapshot) => snapshot.items.isEmpty,
-  );
-
-  late final EducationTypesenseCacheFirstAdapter<ScholarshipListingSnapshot>
-      _searchAdapter =
-      EducationTypesenseCacheFirstAdapter<ScholarshipListingSnapshot>(
-    surfaceKey: _searchSurfaceKey,
-    coordinator: _coordinator,
-    resolve: _resolveHits,
-    loadWarmSnapshot: _loadWarmSnapshot,
-    isEmpty: (snapshot) => snapshot.items.isEmpty,
-  );
+  final _state = _ScholarshipSnapshotRepositoryState();
 }

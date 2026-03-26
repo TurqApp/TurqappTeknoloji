@@ -29,6 +29,7 @@ import 'drawing_screen.dart';
 
 part 'story_maker_controller_media_part.dart';
 part 'story_maker_controller_elements_part.dart';
+part 'story_maker_controller_facade_part.dart';
 part 'story_maker_controller_fields_part.dart';
 part 'story_maker_controller_models_part.dart';
 part 'story_maker_controller_save_part.dart';
@@ -39,22 +40,15 @@ class StoryMakerController extends GetxController {
     String? tag,
     bool permanent = false,
   }) =>
-      maybeFind(tag: tag) ??
-      Get.put(
-        StoryMakerController(),
-        tag: tag,
-        permanent: permanent,
-      );
+      _ensureStoryMakerController(tag: tag, permanent: permanent);
 
   static StoryMakerController? maybeFind({String? tag}) =>
-      Get.isRegistered<StoryMakerController>(tag: tag)
-          ? Get.find<StoryMakerController>(tag: tag)
-          : null;
+      _maybeFindStoryMakerController(tag: tag);
 
   static List<String> get supportedMediaLookPresets =>
-      _storyMakerSupportedMediaLookPresets;
+      _storyMakerSupportedMediaLookPresetsFacade();
   final _state = _StoryMakerControllerState();
-  static RxBool get isUploadingStory => _storyMakerIsUploadingStory;
+  static RxBool get isUploadingStory => _storyMakerIsUploadingStoryFacade();
 
   StoryMakerController() {
     _configureStoryMakerAudioPlayer(_audioPlayer);

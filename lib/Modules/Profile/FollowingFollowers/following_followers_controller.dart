@@ -27,10 +27,6 @@ class FollowingFollowersController extends GetxController {
   }
 
   final String userId;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final FollowRepository _followRepository = FollowRepository.ensure();
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
 
   static FollowingFollowersController ensure({
     required String userId,

@@ -18,6 +18,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deneme_sinavlari_controller_data_part.dart';
 part 'deneme_sinavlari_controller_facade_part.dart';
+part 'deneme_sinavlari_controller_fields_part.dart';
 part 'deneme_sinavlari_controller_runtime_part.dart';
 
 class DenemeSinavlariController extends GetxController {
@@ -31,32 +32,8 @@ class DenemeSinavlariController extends GetxController {
 
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_practice_exam_listing_selection';
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final PracticeExamSnapshotRepository _practiceExamSnapshotRepository =
-      PracticeExamSnapshotRepository.ensure();
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
-  var list = <SinavModel>[].obs;
-  var okul = false.obs;
-  var showButons = false.obs;
-  var ustBar = true.obs;
-  var showOkulAlert = false.obs;
-  var isLoading = true.obs;
-  var isSearchLoading = false.obs;
-  var isLoadingMore = false.obs;
-  var hasMore = true.obs;
-  final RxInt listingSelection = 1.obs;
-  final RxBool listingSelectionReady = false.obs;
-  final ScrollController scrollController = ScrollController();
-  double _previousOffset = 0.0;
-  final RxDouble scrollOffset = 0.0.obs;
-  final RxString searchQuery = ''.obs;
-  final RxList<SinavModel> searchResults = <SinavModel>[].obs;
-  DocumentSnapshot? _lastDocument;
+  final _state = _DenemeSinavlariControllerState();
   static const int _pageSize = ReadBudgetRegistry.practiceExamHomeInitialLimit;
-  StreamSubscription<CachedResource<List<SinavModel>>>? _homeSnapshotSub;
-  Timer? _searchDebounce;
-  int _searchToken = 0;
 
   bool get hasActiveSearch => _hasActivePracticeExamSearch(this);
 

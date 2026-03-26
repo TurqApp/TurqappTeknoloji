@@ -6,7 +6,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
   Future<void> _loadAppVersionConfigImpl({bool forceRefresh = false}) async {
     final repo = ConfigRepository.ensure();
     final doc = await repo.getAdminConfigDoc(
-          NavBarController._appVersionDocId,
+          _appVersionDocId,
           preferCache: !forceRefresh,
           forceRefresh: forceRefresh,
         ) ??
@@ -201,15 +201,12 @@ extension _NavBarControllerUpdatePart on NavBarController {
 
     final prefs = await SharedPreferences.getInstance();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final firstSeenMs =
-        prefs.getInt(NavBarController._ratingFirstSeenAtKey) ?? 0;
-    final lastShownMs =
-        prefs.getInt(NavBarController._ratingLastShownAtKey) ?? 0;
-    final lastStoreTapMs =
-        prefs.getInt(NavBarController._ratingLastStoreTapAtKey) ?? 0;
+    final firstSeenMs = prefs.getInt(_ratingFirstSeenAtKey) ?? 0;
+    final lastShownMs = prefs.getInt(_ratingLastShownAtKey) ?? 0;
+    final lastStoreTapMs = prefs.getInt(_ratingLastStoreTapAtKey) ?? 0;
 
     if (firstSeenMs <= 0) {
-      await prefs.setInt(NavBarController._ratingFirstSeenAtKey, nowMs);
+      await prefs.setInt(_ratingFirstSeenAtKey, nowMs);
       return;
     }
 
@@ -235,7 +232,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
     }
 
     _ratingSheetShownThisSession = true;
-    await prefs.setInt(NavBarController._ratingLastShownAtKey, nowMs);
+    await prefs.setInt(_ratingLastShownAtKey, nowMs);
 
     await Get.bottomSheet(
       isDismissible: true,
@@ -304,7 +301,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
                 child: ElevatedButton(
                   onPressed: () async {
                     await prefs.setInt(
-                      NavBarController._ratingLastStoreTapAtKey,
+                      _ratingLastStoreTapAtKey,
                       nowMs,
                     );
                     if (Get.isBottomSheetOpen == true) {

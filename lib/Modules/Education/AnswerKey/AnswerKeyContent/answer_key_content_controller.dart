@@ -20,6 +20,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'answer_key_content_controller_data_part.dart';
 part 'answer_key_content_controller_actions_part.dart';
 part 'answer_key_content_controller_facade_part.dart';
+part 'answer_key_content_controller_fields_part.dart';
 part 'answer_key_content_controller_runtime_part.dart';
 
 class AnswerKeyContentController extends GetxController {
@@ -43,15 +44,11 @@ class AnswerKeyContentController extends GetxController {
   static AnswerKeyContentController? maybeFind({String? tag}) =>
       _maybeFindAnswerKeyContentController(tag: tag);
 
+  final _state = _AnswerKeyContentControllerState();
   BookletModel model;
   final Function(bool) onUpdate;
 
-  final isBookmarked = false.obs;
-  final secim = ''.obs;
-
   AnswerKeyContentController(this.model, this.onUpdate);
-  final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
 
   static String _resolveCurrentUid() =>
       _resolveAnswerKeyContentCurrentUidFacade();

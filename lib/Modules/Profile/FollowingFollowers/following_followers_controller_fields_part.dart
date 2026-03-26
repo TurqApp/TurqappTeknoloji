@@ -1,6 +1,9 @@
 part of 'following_followers_controller.dart';
 
 class _FollowingFollowersControllerState {
+  final userSummaryResolver = UserSummaryResolver.ensure();
+  final followRepository = FollowRepository.ensure();
+  final visibilityPolicy = VisibilityPolicyService.ensure();
   final selection = 0.obs;
   final pageController = PageController();
   final takipciler = <String>[].obs;
@@ -20,6 +23,9 @@ class _FollowingFollowersControllerState {
 
 extension FollowingFollowersControllerFieldsPart
     on FollowingFollowersController {
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
+  FollowRepository get _followRepository => _state.followRepository;
+  VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
   RxInt get selection => _state.selection;
   PageController get pageController => _state.pageController;
   RxList<String> get takipciler => _state.takipciler;
