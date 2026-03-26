@@ -36,13 +36,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      try {
-        _scrollController.jumpTo(0);
-        controller.scrollOffset.value = 0;
-      } catch (_) {}
-    });
+    controller.requestScrollReset();
   }
 
   Widget _buildSearchResults() {

@@ -32,6 +32,7 @@ class CikmisSorularController extends GetxController {
   final RxString searchQuery = ''.obs;
   final scrollController = ScrollController();
   final scrollOffset = 0.0.obs;
+  final pendingScrollReset = false.obs;
 
   Timer? _searchDebounce;
   int _searchToken = 0;
@@ -51,4 +52,6 @@ class CikmisSorularController extends GetxController {
     _handleOnClose();
     super.onClose();
   }
+
+  void requestScrollReset() => _requestScrollReset();
 }

@@ -211,6 +211,7 @@ extension EducationControllerPasajPart on EducationController {
       case PasajTabIds.practiceExams:
         final practiceExams = CikmisSorularController.maybeFind();
         if (practiceExams != null) {
+          practiceExams.requestScrollReset();
           _resetTrackedScrollController(practiceExams.scrollController);
           practiceExams.scrollOffset.value = 0;
         }

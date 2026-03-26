@@ -3,6 +3,7 @@ part of 'cikmis_sorular_controller.dart';
 extension CikmisSorularControllerRuntimeX on CikmisSorularController {
   Future<void> _handleOnInit() async {
     _attachScrollTracking();
+    _requestScrollReset();
     final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _snapshotRepository
@@ -16,6 +17,30 @@ extension CikmisSorularControllerRuntimeX on CikmisSorularController {
       final currentOffset = scrollController.position.pixels;
       scrollOffset.value = currentOffset;
     });
+  }
+
+  void _requestScrollReset({int attemptsLeft = 12}) {
+    pendingScrollReset.value = true;
+
+    void attempt(int remaining) {
+      if (!pendingScrollReset.value) return;
+      if (scrollController.hasClients) {
+        try {
+          scrollController.jumpTo(0);
+          scrollOffset.value = 0;
+          pendingScrollReset.value = false;
+          return;
+        } catch (_) {}
+      }
+      if (remaining <= 0) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future<void>.delayed(const Duration(milliseconds: 80), () {
+          attempt(remaining - 1);
+        });
+      });
+    }
+
+    attempt(attemptsLeft);
   }
 
   Future<void> refreshData({bool silent = false}) async {
@@ -112,6 +137,9 @@ extension CikmisSorularControllerRuntimeX on CikmisSorularController {
         return;
       }
       searchResults.assignAll(docs);
+      if (pendingScrollReset.value) {
+        _requestScrollReset();
+      }
     } catch (e) {
       debugPrint('Past question typesense search error: $e');
       if (token == _searchToken) {
@@ -136,6 +164,9 @@ extension CikmisSorularControllerRuntimeX on CikmisSorularController {
     final docs = resource.data ?? const <Map<String, dynamic>>[];
     if (docs.isNotEmpty) {
       _assignCoverDocs(docs);
+      if (pendingScrollReset.value) {
+        _requestScrollReset();
+      }
     }
 
     if (!resource.isRefreshing || docs.isNotEmpty) {
