@@ -1,48 +1,43 @@
 part of 'market_view.dart';
 
 extension _MarketViewCardsPart on MarketView {
-  Widget _buildGridActionIcon({
-    required VoidCallback onTap,
-    required IconData icon,
-  }) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(
-        width: PasajListCardMetrics.gridOverlayButtonSize,
-        height: PasajListCardMetrics.gridOverlayButtonSize,
-        child: Center(
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: PasajListCardMetrics.gridOverlayIconSize,
-            shadows: const [
-              Shadow(
-                color: Color(0x55000000),
-                blurRadius: 6,
-              ),
-            ],
+  Widget _buildGridSaveOverlay(MarketItemModel item) {
+    return Obx(
+      () => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => controller.toggleSaved(item, showSnackbar: false),
+        child: SizedBox(
+          width: PasajListCardMetrics.gridOverlayButtonSize,
+          height: PasajListCardMetrics.gridOverlayButtonSize,
+          child: Center(
+            child: Icon(
+              controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
+              color: Colors.white,
+              size: PasajListCardMetrics.gridOverlayIconSize,
+              shadows: const [
+                Shadow(
+                  color: Color(0x55000000),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildGridActionOverlay(MarketItemModel item) {
-    return Obx(
-      () => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildGridActionIcon(
-            onTap: () => const MarketShareService().shareItem(item),
-            icon: AppIcons.share,
-          ),
-          const SizedBox(width: 6),
-          _buildGridActionIcon(
-            onTap: () => controller.toggleSaved(item, showSnackbar: false),
-            icon: controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
-          ),
-        ],
+  Widget _buildGridInlineShareButton({
+    required VoidCallback onTap,
+  }) {
+    return AppHeaderActionButton(
+      onTap: onTap,
+      size: 24,
+      radius: 8,
+      child: const Icon(
+        AppIcons.share,
+        color: Colors.black87,
+        size: 14,
       ),
     );
   }
@@ -76,13 +71,24 @@ extension _MarketViewCardsPart on MarketView {
         fallbackBuilder: (marketItem, marketAccent) =>
             _buildItemFallback(marketItem, marketAccent),
       ),
-      overlay: _buildGridActionOverlay(item),
+      overlay: _buildGridSaveOverlay(item),
       lines: [
-        Text(
-          item.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: PasajCardStyles.lineOne,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                item.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.lineOne,
+              ),
+            ),
+            const SizedBox(width: 6),
+            _buildGridInlineShareButton(
+              onTap: () => const MarketShareService().shareItem(item),
+            ),
+          ],
         ),
         Text(
           item.status == 'active'

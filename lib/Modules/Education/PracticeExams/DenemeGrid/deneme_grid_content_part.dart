@@ -51,65 +51,56 @@ extension _DenemeGridContentPart on DenemeGrid {
       onTap: _openCard,
       media: _buildMedia(radius: 12),
       overlay: Obx(
-        () => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _shareExternally,
-              child: SizedBox(
-                width: PasajListCardMetrics.gridOverlayButtonSize,
-                height: PasajListCardMetrics.gridOverlayButtonSize,
-                child: Center(
-                  child: Icon(
-                    AppIcons.share,
-                    color: Colors.white,
-                    size: PasajListCardMetrics.gridOverlayIconSize,
-                    shadows: const [
-                      Shadow(
-                        color: Color(0x55000000),
-                        blurRadius: 6,
-                      ),
-                    ],
+        () => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: model.docID.trim().isEmpty
+              ? null
+              : () => savedController.toggleSavedExam(model.docID),
+          child: SizedBox(
+            width: PasajListCardMetrics.gridOverlayButtonSize,
+            height: PasajListCardMetrics.gridOverlayButtonSize,
+            child: Center(
+              child: Icon(
+                savedController.savedExamIds.contains(model.docID)
+                    ? AppIcons.saved
+                    : AppIcons.save,
+                color: Colors.white,
+                size: PasajListCardMetrics.gridOverlayIconSize,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x55000000),
+                    blurRadius: 6,
                   ),
-                ),
+                ],
               ),
             ),
-            const SizedBox(width: 6),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: model.docID.trim().isEmpty
-                  ? null
-                  : () => savedController.toggleSavedExam(model.docID),
-              child: SizedBox(
-                width: PasajListCardMetrics.gridOverlayButtonSize,
-                height: PasajListCardMetrics.gridOverlayButtonSize,
-                child: Center(
-                  child: Icon(
-                    savedController.savedExamIds.contains(model.docID)
-                        ? AppIcons.saved
-                        : AppIcons.save,
-                    color: Colors.white,
-                    size: PasajListCardMetrics.gridOverlayIconSize,
-                    shadows: const [
-                      Shadow(
-                        color: Color(0x55000000),
-                        blurRadius: 6,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
       lines: [
-        Text(
-          model.sinavAdi,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: PasajCardStyles.lineOne,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                model.sinavAdi,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.lineOne,
+              ),
+            ),
+            const SizedBox(width: 6),
+            AppHeaderActionButton(
+              onTap: _shareExternally,
+              size: 24,
+              radius: 8,
+              child: const Icon(
+                AppIcons.share,
+                color: Colors.black87,
+                size: 14,
+              ),
+            ),
+          ],
         ),
         Text(
           formatTimestamp(model.timeStamp.toInt()),

@@ -15,63 +15,54 @@ extension _JobContentGridPart on _JobContentState {
         ),
       ),
       overlay: Obx(
-        () => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => controller.shareJob(model),
-              child: SizedBox(
-                width: PasajListCardMetrics.gridOverlayButtonSize,
-                height: PasajListCardMetrics.gridOverlayButtonSize,
-                child: Center(
-                  child: Icon(
-                    AppIcons.share,
-                    size: PasajListCardMetrics.gridOverlayIconSize,
-                    color: Colors.white,
-                    shadows: const [
-                      Shadow(
-                        color: Color(0x66000000),
-                        blurRadius: 8,
-                      ),
-                    ],
+        () => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: model.docID.trim().isEmpty
+              ? null
+              : () => controller.toggleSave(model.docID),
+          child: SizedBox(
+            width: PasajListCardMetrics.gridOverlayButtonSize,
+            height: PasajListCardMetrics.gridOverlayButtonSize,
+            child: Center(
+              child: Icon(
+                controller.saved.value ? AppIcons.saved : AppIcons.save,
+                size: PasajListCardMetrics.gridOverlayIconSize,
+                color: Colors.white,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x66000000),
+                    blurRadius: 8,
                   ),
-                ),
+                ],
               ),
             ),
-            const SizedBox(width: 6),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: model.docID.trim().isEmpty
-                  ? null
-                  : () => controller.toggleSave(model.docID),
-              child: SizedBox(
-                width: PasajListCardMetrics.gridOverlayButtonSize,
-                height: PasajListCardMetrics.gridOverlayButtonSize,
-                child: Center(
-                  child: Icon(
-                    controller.saved.value ? AppIcons.saved : AppIcons.save,
-                    size: PasajListCardMetrics.gridOverlayIconSize,
-                    color: Colors.white,
-                    shadows: const [
-                      Shadow(
-                        color: Color(0x66000000),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
       lines: [
-        Text(
-          model.ilanBasligi.isNotEmpty ? model.meslek : model.brand,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: PasajCardStyles.lineOne,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                model.ilanBasligi.isNotEmpty ? model.meslek : model.brand,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.lineOne,
+              ),
+            ),
+            const SizedBox(width: 6),
+            AppHeaderActionButton(
+              onTap: () => controller.shareJob(model),
+              size: 24,
+              radius: 8,
+              child: const Icon(
+                AppIcons.share,
+                color: Colors.black87,
+                size: 14,
+              ),
+            ),
+          ],
         ),
         Text(
           model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,

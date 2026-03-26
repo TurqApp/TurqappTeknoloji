@@ -31,69 +31,59 @@ extension _TutoringWidgetBuilderGridPart on TutoringWidgetBuilder {
                   : _fallbackImage(),
             ),
             overlay: Obx(
-              () => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _shareExternally(tutoring),
-                    child: SizedBox(
-                      width: PasajListCardMetrics.gridOverlayButtonSize,
-                      height: PasajListCardMetrics.gridOverlayButtonSize,
-                      child: Center(
-                        child: Icon(
-                          AppIcons.share,
-                          size: PasajListCardMetrics.gridOverlayIconSize,
-                          color: Colors.white,
-                          shadows: const [
-                            Shadow(
-                              color: Color(0x66000000),
-                              blurRadius: 8,
-                            ),
-                          ],
+              () => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _toggleSave(
+                  tutoring: tutoring,
+                  currentUserId: currentUserId,
+                  controller: tutoringController,
+                  savedController: savedController,
+                ),
+                child: SizedBox(
+                  width: PasajListCardMetrics.gridOverlayButtonSize,
+                  height: PasajListCardMetrics.gridOverlayButtonSize,
+                  child: Center(
+                    child: Icon(
+                      savedController.savedTutoringIds.contains(tutoring.docID)
+                          ? AppIcons.saved
+                          : AppIcons.save,
+                      size: PasajListCardMetrics.gridOverlayIconSize,
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x66000000),
+                          blurRadius: 8,
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _toggleSave(
-                      tutoring: tutoring,
-                      currentUserId: currentUserId,
-                      controller: tutoringController,
-                      savedController: savedController,
-                    ),
-                    child: SizedBox(
-                      width: PasajListCardMetrics.gridOverlayButtonSize,
-                      height: PasajListCardMetrics.gridOverlayButtonSize,
-                      child: Center(
-                        child: Icon(
-                          savedController.savedTutoringIds.contains(
-                                  tutoring.docID)
-                              ? AppIcons.saved
-                              : AppIcons.save,
-                          size: PasajListCardMetrics.gridOverlayIconSize,
-                          color: Colors.white,
-                          shadows: const [
-                            Shadow(
-                              color: Color(0x66000000),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             lines: [
-              Text(
-                tutoring.baslik,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: PasajCardStyles.lineOne,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      tutoring.baslik,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: PasajCardStyles.lineOne,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  AppHeaderActionButton(
+                    onTap: () => _shareExternally(tutoring),
+                    size: 24,
+                    radius: 8,
+                    child: const Icon(
+                      AppIcons.share,
+                      color: Colors.black87,
+                      size: 14,
+                    ),
+                  ),
+                ],
               ),
               Text(
                 tutoring.brans,
