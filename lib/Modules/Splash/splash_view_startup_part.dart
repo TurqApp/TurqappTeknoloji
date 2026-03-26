@@ -113,7 +113,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     } catch (_) {
       loggedIn = false;
     }
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi != null) {
       playbackKpi.track(
         PlaybackKpiEventType.startup,
@@ -256,7 +256,7 @@ extension _SplashViewStartupPart on _SplashViewState {
         await remote.initialize();
       }
 
-      final server = HLSProxyServer.ensure(permanent: true);
+      final server = ensureHlsProxyServer(permanent: true);
       if (!server.isStarted) {
         await server.start();
       }
@@ -342,7 +342,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     UserProfileCacheService.ensure();
     StorageBudgetManager.ensure();
     ensurePlaybackPolicyEngine();
-    PlaybackKpiService.ensure();
+    ensurePlaybackKpiService();
   }
 
   Future<void> _requestTrackingPermission() async {

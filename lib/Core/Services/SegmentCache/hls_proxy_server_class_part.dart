@@ -6,18 +6,6 @@ part of 'hls_proxy_server.dart';
 /// Proxy cache'te varsa disk'ten serv eder, yoksa CDN'den çeker + cache'ler + serv eder.
 /// M3U8 playlist'lerde relative path kullanıldığı için rewriting gerekmez.
 class HLSProxyServer extends GetxController {
-  static HLSProxyServer? maybeFind() {
-    final isRegistered = Get.isRegistered<HLSProxyServer>();
-    if (!isRegistered) return null;
-    return Get.find<HLSProxyServer>();
-  }
-
-  static HLSProxyServer ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(HLSProxyServer(), permanent: permanent);
-  }
-
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
   static const String _appIdentifier = 'turqapp-mobile';
 

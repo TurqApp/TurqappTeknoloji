@@ -284,7 +284,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
   }
 
   void _applyLocalTutoringPatch(TutoringModel patchedModel) {
-    final controller = TutoringController.maybeFind();
+    final controller = maybeFindTutoringController();
     if (controller != null) {
       final homeIndex = controller.tutoringList.indexWhere(
         (item) => item.docID == patchedModel.docID,

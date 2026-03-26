@@ -38,7 +38,7 @@ class _SavedTutoringsState extends State<SavedTutorings> {
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
         ViewModeController.ensure(permanent: true);
-    final TutoringController tutoringController = TutoringController.ensure();
+    final TutoringController tutoringController = ensureTutoringController();
 
     return Scaffold(
       backgroundColor: Colors.white,

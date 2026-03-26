@@ -57,7 +57,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   /// CDN URL'yi proxy URL'ye çevir. Proxy başlamadıysa orijinal URL döner.
   static String _resolveToProxy(String originalUrl) {
     if (!originalUrl.contains('cdn.turqapp.com')) return originalUrl;
-    final proxy = HLSProxyServer.maybeFind();
+    final proxy = maybeFindHlsProxyServer();
     if (proxy == null) return originalUrl;
     return proxy.resolveUrl(originalUrl);
   }

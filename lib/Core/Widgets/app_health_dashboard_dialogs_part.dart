@@ -9,7 +9,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
     PostEditingService.ensure();
     MediaEnhancementService.ensure();
     StorageBudgetManager.ensure();
-    PlaybackKpiService.ensure();
+    ensurePlaybackKpiService();
     ensurePlaybackPolicyEngine();
   }
 

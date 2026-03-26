@@ -367,7 +367,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         isAudible: volume,
         hasStableFocus: true,
       );
-      final playbackKpi = PlaybackKpiService.maybeFind();
+      final playbackKpi = maybeFindPlaybackKpiService();
       if (playbackKpi != null) {
         playbackKpi.track(
           PlaybackKpiEventType.playbackIntent,

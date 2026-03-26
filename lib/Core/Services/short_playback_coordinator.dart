@@ -180,7 +180,7 @@ class ShortPlaybackCoordinator {
     required Set<int> hotIndices,
     required Set<int> warmIndices,
   }) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     final safeIndex =
         items.isEmpty ? 0 : activeIndex.clamp(0, items.length - 1);

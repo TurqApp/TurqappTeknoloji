@@ -42,7 +42,7 @@ class TutoringView extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final TutoringController tutoringController =
-      TutoringController.ensure(permanent: true);
+      ensureTutoringController(permanent: true);
   final ViewModeController viewModeController =
       ViewModeController.ensure(permanent: true);
   final TutoringFilterController filterController =

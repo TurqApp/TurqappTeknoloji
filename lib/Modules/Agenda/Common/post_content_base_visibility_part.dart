@@ -155,7 +155,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
 
   void _trackPlaybackIntent() {
     if (_playbackIntentTracked) return;
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     _playbackIntentTracked = true;
     playbackKpi.track(

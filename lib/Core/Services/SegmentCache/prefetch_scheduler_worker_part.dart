@@ -332,7 +332,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   void _publishPrefetchHealthIfNeeded({bool force = false}) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
 
     final readyBucket = (_lastFeedReadyRatio * 10).floor().clamp(0, 10);

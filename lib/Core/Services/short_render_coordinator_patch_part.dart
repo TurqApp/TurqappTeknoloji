@@ -24,7 +24,7 @@ extension _ShortRenderCoordinatorPatchX on ShortRenderCoordinator {
     required ShortRenderUpdate update,
     required List<PostsModel> next,
   }) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     final clampedCurrent =
         previous.isEmpty ? 0 : currentIndex.clamp(0, previous.length - 1);

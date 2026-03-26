@@ -71,7 +71,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
   }
 
   void _performTrackPlaybackWindow() {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     final centered = centeredIndex.value;
     final activeDocId = centered >= 0 && centered < agendaList.length

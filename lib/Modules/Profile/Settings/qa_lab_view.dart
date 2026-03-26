@@ -82,7 +82,7 @@ class _QALabViewState extends State<QALabView> {
         const <String, dynamic>{};
     final focusSurfaces =
         focusCoverage['surfaces'] as List<dynamic>? ?? const <dynamic>[];
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     final telemetryCoverage = playbackKpi == null
         ? const <String, dynamic>{
             'configuredSurfaceCount': 0,
@@ -212,7 +212,7 @@ class _QALabViewState extends State<QALabView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Critical Surfaces',
+                'Surface Diagnostics',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -232,6 +232,12 @@ class _QALabViewState extends State<QALabView> {
                     'coverage=${(item.coverage.coverageRatio * 100).toStringAsFixed(0)}% '
                     'missing=${item.coverage.missingTags.isEmpty ? "-" : item.coverage.missingTags.join(", ")}\n'
                     'checkpoints=${item.runtime['checkpointCount'] ?? 0} '
+                    'frames=${item.runtime['frameCount'] ?? 0} '
+                    'slowFrames=${item.runtime['slowFrameCount'] ?? 0} '
+                    'slowRatio=${((((item.runtime['slowFrameRatio'] ?? 0.0) as num) * 100)).toStringAsFixed(1)}% '
+                    'avgFrame=${item.runtime['averageFrameTotalMs'] ?? 0}ms '
+                    'maxFrame=${item.runtime['maxFrameTotalMs'] ?? 0}ms\n'
+                    'frameSamples=${item.runtime['frameSampleCount'] ?? 0} '
                     'videoStarts=${item.runtime['videoSessionStartCount'] ?? 0} '
                     'firstFrames=${item.runtime['videoFirstFrameCount'] ?? 0} '
                     'cacheFails=${item.runtime['cacheFailureCount'] ?? 0} '

@@ -146,7 +146,7 @@ extension StoryRepositoryCachePart on StoryRepository {
       'itemCount': users.length,
       'requestedLimit': limit,
     };
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi != null) {
       playbackKpi.track(
         PlaybackKpiEventType.cacheFirstLifecycle,

@@ -80,7 +80,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final savedController = ensureSavedTutoringsController();
-    final tutoringController = TutoringController.ensure();
+    final tutoringController = ensureTutoringController();
     final myTutoringsController = MyTutoringsController.maybeFind();
     final currentUserId = getCurrentUserId();
 

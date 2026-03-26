@@ -1,5 +1,10 @@
 part of 'playback_kpi_service.dart';
 
+PlaybackKpiService? maybeFindPlaybackKpiService() =>
+    _maybeFindPlaybackKpiService();
+
+PlaybackKpiService ensurePlaybackKpiService() => _ensurePlaybackKpiService();
+
 PlaybackKpiService? _maybeFindPlaybackKpiService() {
   final isRegistered = Get.isRegistered<PlaybackKpiService>();
   if (!isRegistered) return null;

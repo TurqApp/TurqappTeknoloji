@@ -384,7 +384,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     required CachedResource<T> resource,
     required int itemCount,
   }) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     playbackKpi.track(
       PlaybackKpiEventType.startup,

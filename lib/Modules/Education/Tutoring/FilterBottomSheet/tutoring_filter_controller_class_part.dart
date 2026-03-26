@@ -13,7 +13,7 @@ class TutoringFilterController extends GetxController {
     return Get.find<TutoringFilterController>();
   }
 
-  final TutoringController tutoringController = TutoringController.ensure();
+  final TutoringController tutoringController = ensureTutoringController();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   final isLoading = true.obs;

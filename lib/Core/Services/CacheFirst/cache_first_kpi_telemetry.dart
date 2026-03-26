@@ -8,7 +8,7 @@ class CacheFirstKpiTelemetry<T> implements CacheFirstTelemetry<T> {
 
   @override
   void onEvent(CacheFirstTelemetryEvent<T> event) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
 
     final resource = event.resource;

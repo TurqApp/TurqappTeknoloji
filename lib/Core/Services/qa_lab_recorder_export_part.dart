@@ -79,7 +79,7 @@ extension QALabRecorderExportPart on QALabRecorder {
 
   Map<String, dynamic> buildExportJson() {
     final currentSnapshot = IntegrationTestStateProbe.snapshot();
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     final runtimeHealthExport = playbackKpi == null
         ? const <String, dynamic>{}
         : RuntimeHealthExporter.exportFromKpiService(playbackKpi);
@@ -101,6 +101,7 @@ extension QALabRecorderExportPart on QALabRecorder {
         'lastRoute': lastRoute.value,
         'lastSurface': lastSurface.value,
         'lastLifecycleState': lastLifecycleState.value,
+        'framePerformance': Map<String, dynamic>.from(appFramePerformance),
         'healthScore': healthScore,
         'issueCounts': <String, dynamic>{
           'blocking': blockingIssueCount,
@@ -131,6 +132,13 @@ extension QALabRecorderExportPart on QALabRecorder {
       },
       'device': _deviceInfoSnapshot(),
       'permissions': Map<String, String>.from(lastPermissionStatuses),
+      'performance': <String, dynamic>{
+        'app': Map<String, dynamic>.from(appFramePerformance),
+        'surfaces': <String, dynamic>{
+          for (final entry in framePerformanceBySurface.entries)
+            entry.key: Map<String, dynamic>.from(entry.value),
+        },
+      },
       'nativePlayback': <String, dynamic>{
         'latestSnapshot': Map<String, dynamic>.from(lastNativePlaybackSnapshot),
         'sampleCount': nativePlaybackSamples.length,

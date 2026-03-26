@@ -175,7 +175,7 @@ extension FeedRenderCoordinatorPatchPart on FeedRenderCoordinator {
     required int filteredCount,
     required List<Map<String, dynamic>> renderEntries,
   }) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     final promoCount = renderEntries.where((entry) {
       return (entry['renderType'] ?? 'post') == 'promo';
@@ -197,7 +197,7 @@ extension FeedRenderCoordinatorPatchPart on FeedRenderCoordinator {
     required int nextCount,
     required RenderListPatch<Map<String, dynamic>> patch,
   }) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     var insertCount = 0;
     var updateCount = 0;

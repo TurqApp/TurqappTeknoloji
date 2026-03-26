@@ -1,10 +1,6 @@
 part of 'playback_kpi_service.dart';
 
 class PlaybackKpiService extends GetxService {
-  static PlaybackKpiService ensure() => _ensurePlaybackKpiService();
-
-  static PlaybackKpiService? maybeFind() => _maybeFindPlaybackKpiService();
-
   final _state = _PlaybackKpiServiceState();
 
   List<PlaybackKpiEvent> get recentEvents => List.unmodifiable(_recent);

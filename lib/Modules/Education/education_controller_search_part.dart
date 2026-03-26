@@ -76,7 +76,7 @@ extension EducationControllerSearchPart on EducationController {
         AnswerKeyController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.tutoring:
-        TutoringController.maybeFind()?.setSearchQuery(query);
+        maybeFindTutoringController()?.setSearchQuery(query);
         break;
     }
   }
@@ -105,7 +105,7 @@ extension EducationControllerSearchPart on EducationController {
         AnswerKeyController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.tutoring:
-        TutoringController.maybeFind()?.setSearchQuery('');
+        maybeFindTutoringController()?.setSearchQuery('');
         break;
     }
   }

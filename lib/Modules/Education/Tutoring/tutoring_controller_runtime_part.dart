@@ -1,5 +1,11 @@
 part of 'tutoring_controller.dart';
 
+TutoringController ensureTutoringController({bool permanent = false}) =>
+    _ensureTutoringController(permanent: permanent);
+
+TutoringController? maybeFindTutoringController() =>
+    _maybeFindTutoringController();
+
 TutoringController _ensureTutoringController({bool permanent = false}) {
   final existing = _maybeFindTutoringController();
   if (existing != null) return existing;

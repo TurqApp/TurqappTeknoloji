@@ -152,7 +152,7 @@ class _ProfileRenderCoordinatorPatchPart {
     required int nextCount,
     required int operations,
   }) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     playbackKpi.track(
       PlaybackKpiEventType.renderDiff,

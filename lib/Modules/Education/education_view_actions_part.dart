@@ -88,7 +88,7 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
     }
-    return TutoringController.ensure(permanent: true);
+    return ensureTutoringController(permanent: true);
   }
 
   TutoringFilterController? _activeTutoringFilterController() {
@@ -232,7 +232,7 @@ extension EducationViewActionsPart on EducationView {
       case PasajTabIds.answerKey:
         return AnswerKeyController.maybeFind()?.scrollController;
       case PasajTabIds.tutoring:
-        return TutoringController.maybeFind()?.scrollController;
+        return maybeFindTutoringController()?.scrollController;
       case PasajTabIds.market:
         return MarketController.maybeFind()?.scrollController;
       default:
@@ -256,7 +256,7 @@ extension EducationViewActionsPart on EducationView {
         return (AnswerKeyController.maybeFind()?.scrollOffset.value ?? 0) <=
             350;
       case PasajTabIds.tutoring:
-        return (TutoringController.maybeFind()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindTutoringController()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.market:
         return (MarketController.maybeFind()?.scrollOffset.value ?? 0) <= 350;
       default:

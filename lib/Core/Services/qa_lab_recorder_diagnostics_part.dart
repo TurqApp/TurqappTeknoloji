@@ -14,7 +14,7 @@ extension QALabRecorderDiagnosticsPart on QALabRecorder {
   }
 
   List<QALabPinpointFinding> _buildTelemetryThresholdFindings() {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return const <QALabPinpointFinding>[];
     final report = TelemetryThresholdPolicyAdapter.evaluateKpiService(
       playbackKpi,

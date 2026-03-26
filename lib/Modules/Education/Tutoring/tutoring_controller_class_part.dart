@@ -1,11 +1,6 @@
 part of 'tutoring_controller.dart';
 
 class TutoringController extends GetxController {
-  static TutoringController ensure({bool permanent = false}) =>
-      _ensureTutoringController(permanent: permanent);
-
-  static TutoringController? maybeFind() => _maybeFindTutoringController();
-
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();

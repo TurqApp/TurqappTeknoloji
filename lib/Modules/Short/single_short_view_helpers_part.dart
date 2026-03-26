@@ -147,7 +147,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         isAudible: volume,
         hasStableFocus: true,
       );
-      final playbackKpi = PlaybackKpiService.maybeFind();
+      final playbackKpi = maybeFindPlaybackKpiService();
       if (playbackKpi != null) {
         playbackKpi.track(
           PlaybackKpiEventType.playbackIntent,

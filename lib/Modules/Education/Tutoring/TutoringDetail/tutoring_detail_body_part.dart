@@ -6,7 +6,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
         TutoringDetailController.ensure();
     final SavedTutoringsController savedController =
         ensureSavedTutoringsController();
-    final TutoringController tutoringController = TutoringController.ensure();
+    final TutoringController tutoringController = ensureTutoringController();
     final String? currentUserId = getCurrentUserId();
 
     Future<void> deleteTutoring(String docId) async {

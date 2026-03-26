@@ -231,7 +231,7 @@ extension EducationControllerPasajPart on EducationController {
         }
         break;
       case PasajTabIds.tutoring:
-        final tutoring = TutoringController.maybeFind();
+        final tutoring = maybeFindTutoringController();
         if (tutoring != null) {
           _resetTrackedScrollController(tutoring.scrollController);
           tutoring.scrollOffset.value = 0;

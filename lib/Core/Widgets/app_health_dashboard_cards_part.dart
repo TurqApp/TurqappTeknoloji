@@ -17,7 +17,7 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
       streamUsageBytes: usage?.streamUsageBytes ?? 0,
     );
     final policy = maybeFindPlaybackPolicyEngine()?.snapshot();
-    final kpiService = PlaybackKpiService.maybeFind();
+    final kpiService = maybeFindPlaybackKpiService();
     final recentEvents = kpiService?.recentEvents ?? const <PlaybackKpiEvent>[];
     final feedCacheSummary = kpiService?.summarizeCacheFirst(
       surfaceKeyPrefix: 'feed_',
@@ -554,7 +554,7 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
       cacheHitRate = cache.metrics.cacheHitRate;
     }
 
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     final kpiReport = playbackKpi != null
         ? TelemetryThresholdPolicyAdapter.evaluateKpiService(playbackKpi)
         : const TelemetryThresholdReport(issues: <TelemetryThresholdIssue>[]);
