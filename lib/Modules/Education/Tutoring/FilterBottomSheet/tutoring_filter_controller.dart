@@ -8,5 +8,6 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'tutoring_filter_controller_class_part.dart';
+part 'tutoring_filter_controller_facade_part.dart';
 part 'tutoring_filter_controller_ui_part.dart';
 part 'tutoring_filter_controller_actions_part.dart';

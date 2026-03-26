@@ -37,8 +37,8 @@ class _TestPastResultContentState extends State<TestPastResultContent> {
     super.initState();
     _controllerTag = 'controller_${widget.model.docID}_${widget.index}';
     _ownsController =
-        TestPastResultContentController.maybeFind(tag: _controllerTag) == null;
-    controller = TestPastResultContentController.ensure(
+        maybeFindTestPastResultContentController(tag: _controllerTag) == null;
+    controller = ensureTestPastResultContentController(
       widget.model,
       tag: _controllerTag,
     );
@@ -48,7 +48,7 @@ class _TestPastResultContentState extends State<TestPastResultContent> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          TestPastResultContentController.maybeFind(tag: _controllerTag);
+          maybeFindTestPastResultContentController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<TestPastResultContentController>(tag: _controllerTag);
       }

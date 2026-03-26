@@ -57,7 +57,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final likedController = LikedPostControllers.maybeFind();
+    final likedController = maybeFindLikedPostControllers();
     if (likedController != null) {
       final likedIndex =
           likedController.all.indexWhere((p) => p.docID == widget.model.docID);
@@ -157,7 +157,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final likedController = LikedPostControllers.maybeFind();
+    final likedController = maybeFindLikedPostControllers();
     if (likedController != null) {
       final likedIndex =
           likedController.all.indexWhere((p) => p.docID == widget.model.docID);

@@ -58,7 +58,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
     }
 
     if (surfaceTag.startsWith('liked_post_')) {
-      final likedController = LikedPostControllers.maybeFind();
+      final likedController = maybeFindLikedPostControllers();
       if (likedController == null) return;
       final likedIndex =
           likedController.all.indexWhere((p) => p.docID == widget.model.docID);

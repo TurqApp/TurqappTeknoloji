@@ -45,14 +45,14 @@ class _EditProfileState extends State<EditProfile> {
   void initState() {
     super.initState();
     _controllerTag = 'edit_profile_${identityHashCode(this)}';
-    controller = EditProfileController.ensure(tag: _controllerTag);
+    controller = ensureEditProfileController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (EditProfileController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindEditProfileController(tag: _controllerTag) != null &&
         identical(
-          EditProfileController.maybeFind(tag: _controllerTag),
+          maybeFindEditProfileController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<EditProfileController>(tag: _controllerTag);

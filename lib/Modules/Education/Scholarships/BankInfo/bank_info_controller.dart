@@ -16,15 +16,6 @@ part 'bank_info_controller_support_part.dart';
 part 'bank_info_controller_ui_part.dart';
 
 class BankInfoController extends GetxController {
-  static BankInfoController ensure({
-    required String tag,
-    bool permanent = false,
-  }) =>
-      _ensureBankInfoController(tag: tag, permanent: permanent);
-
-  static BankInfoController? maybeFind({required String tag}) =>
-      _maybeFindBankInfoController(tag: tag);
-
   static const String _selectBank = "Banka Seç";
   static const String _email = "E-Posta";
   static const String _phone = "Telefon";

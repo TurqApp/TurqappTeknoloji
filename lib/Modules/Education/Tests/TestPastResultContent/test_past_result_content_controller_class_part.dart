@@ -1,27 +1,6 @@
 part of 'test_past_result_content_controller.dart';
 
 class TestPastResultContentController extends GetxController {
-  static TestPastResultContentController ensure(
-    TestsModel model, {
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      TestPastResultContentController(model),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static TestPastResultContentController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<TestPastResultContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<TestPastResultContentController>(tag: tag);
-  }
-
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final TestsModel model;
   final count = 0.obs;

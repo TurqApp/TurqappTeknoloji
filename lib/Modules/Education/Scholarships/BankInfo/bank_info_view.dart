@@ -33,16 +33,16 @@ class _BankInfoViewState extends State<BankInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_bank_${identityHashCode(this)}';
-    final existing = BankInfoController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindBankInfoController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? BankInfoController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureBankInfoController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-            BankInfoController.maybeFind(tag: _controllerTag), controller)) {
+            maybeFindBankInfoController(tag: _controllerTag), controller)) {
       Get.delete<BankInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();

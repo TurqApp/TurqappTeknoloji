@@ -39,8 +39,8 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
     super.initState();
     _tag = 'create_tutoring_${identityHashCode(this)}';
     _initialData = Get.arguments as TutoringModel?;
-    _ownsController = CreateTutoringController.maybeFind(tag: _tag) == null;
-    controller = CreateTutoringController.ensure(tag: _tag);
+    _ownsController = maybeFindCreateTutoringController(tag: _tag) == null;
+    controller = ensureCreateTutoringController(tag: _tag);
     _hydrateInitialData();
   }
 
@@ -79,7 +79,7 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
   void dispose() {
     if (_ownsController &&
         identical(
-          CreateTutoringController.maybeFind(tag: _tag),
+          maybeFindCreateTutoringController(tag: _tag),
           controller,
         )) {
       Get.delete<CreateTutoringController>(tag: _tag);

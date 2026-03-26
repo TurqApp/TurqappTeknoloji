@@ -1,18 +1,6 @@
 part of 'tutoring_filter_controller.dart';
 
 class TutoringFilterController extends GetxController {
-  static TutoringFilterController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(TutoringFilterController(), permanent: permanent);
-  }
-
-  static TutoringFilterController? maybeFind() {
-    final isRegistered = Get.isRegistered<TutoringFilterController>();
-    if (!isRegistered) return null;
-    return Get.find<TutoringFilterController>();
-  }
-
   final TutoringController tutoringController = ensureTutoringController();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();

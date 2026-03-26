@@ -95,7 +95,7 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
     }
-    return TutoringFilterController.ensure(permanent: true);
+    return ensureTutoringFilterController(permanent: true);
   }
 
   bool _showInlineTutoringActions() {

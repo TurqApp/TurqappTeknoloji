@@ -45,11 +45,11 @@ class _SavedPostsState extends State<SavedPosts> {
   @override
   void initState() {
     super.initState();
-    final existingController = SavedPostsController.maybeFind();
+    final existingController = maybeFindSavedPostsController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = SavedPostsController.ensure();
+      controller = ensureSavedPostsController();
       _ownsController = true;
     }
   }
@@ -57,7 +57,7 @@ class _SavedPostsState extends State<SavedPosts> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(SavedPostsController.maybeFind(), controller)) {
+        identical(maybeFindSavedPostsController(), controller)) {
       Get.delete<SavedPostsController>(force: true);
     }
     super.dispose();

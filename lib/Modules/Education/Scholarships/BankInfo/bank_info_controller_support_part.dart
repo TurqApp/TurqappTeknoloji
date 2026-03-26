@@ -1,5 +1,14 @@
 part of 'bank_info_controller.dart';
 
+BankInfoController ensureBankInfoController({
+  required String tag,
+  bool permanent = false,
+}) =>
+    _ensureBankInfoController(tag: tag, permanent: permanent);
+
+BankInfoController? maybeFindBankInfoController({required String tag}) =>
+    _maybeFindBankInfoController(tag: tag);
+
 BankInfoController _ensureBankInfoController({
   required String tag,
   bool permanent = false,

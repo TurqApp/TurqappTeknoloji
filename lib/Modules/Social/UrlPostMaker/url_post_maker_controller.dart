@@ -17,3 +17,4 @@ import '../../../Core/LocationFinderView/location_finder_view.dart';
 part 'url_post_maker_controller_publish_part.dart';
 part 'url_post_maker_controller_ui_part.dart';
 part 'url_post_maker_controller_class_part.dart';
+part 'url_post_maker_controller_facade_part.dart';

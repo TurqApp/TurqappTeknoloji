@@ -25,6 +25,7 @@ import 'package:flutter/services.dart' show rootBundle;
 part 'create_tutoring_controller_class_part.dart';
 part 'create_tutoring_controller_form_part.dart';
 part 'create_tutoring_controller_fields_part.dart';
+part 'create_tutoring_controller_facade_part.dart';
 part 'create_tutoring_controller_runtime_part.dart';
 part 'create_tutoring_controller_submission_part.dart';
 part 'create_tutoring_controller_support_part.dart';

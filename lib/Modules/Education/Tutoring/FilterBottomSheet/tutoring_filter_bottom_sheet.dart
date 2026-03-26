@@ -15,7 +15,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
 
   TutoringFilterBottomSheet({super.key, required this.controller});
   final TutoringFilterController filterController =
-      TutoringFilterController.ensure();
+      ensureTutoringFilterController();
 
   String _branchLabel(String value) {
     const map = {

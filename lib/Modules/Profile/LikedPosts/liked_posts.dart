@@ -29,11 +29,11 @@ class _LikedPostsState extends State<LikedPosts> {
   @override
   void initState() {
     super.initState();
-    final existingController = LikedPostControllers.maybeFind();
+    final existingController = maybeFindLikedPostControllers();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = LikedPostControllers.ensure();
+      controller = ensureLikedPostControllers();
       _ownsController = true;
     }
   }
@@ -41,7 +41,7 @@ class _LikedPostsState extends State<LikedPosts> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(LikedPostControllers.maybeFind(), controller)) {
+        identical(maybeFindLikedPostControllers(), controller)) {
       Get.delete<LikedPostControllers>(force: true);
     }
     super.dispose();
