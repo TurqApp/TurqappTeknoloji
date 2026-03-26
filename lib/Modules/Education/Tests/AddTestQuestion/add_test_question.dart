@@ -38,8 +38,8 @@ class _AddTestQuestionState extends State<AddTestQuestion> {
     _controllerTag =
         'add_test_question_${widget.testID}_${identityHashCode(this)}';
     _ownsController =
-        AddTestQuestionController.maybeFind(tag: _controllerTag) == null;
-    controller = AddTestQuestionController.ensure(
+        maybeFindAddTestQuestionController(tag: _controllerTag) == null;
+    controller = ensureAddTestQuestionController(
       initialSoruList: widget.soruList,
       testID: widget.testID,
       testTuru: widget.testTuru,
@@ -52,7 +52,7 @@ class _AddTestQuestionState extends State<AddTestQuestion> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          AddTestQuestionController.maybeFind(tag: _controllerTag);
+          maybeFindAddTestQuestionController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<AddTestQuestionController>(tag: _controllerTag, force: true);
       }

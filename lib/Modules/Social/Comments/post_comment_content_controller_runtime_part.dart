@@ -59,7 +59,7 @@ extension PostCommentContentControllerRuntimePart
       likes.remove(uid);
       model.likes.remove(uid);
     }
-    final parent = PostCommentController.maybeFind(tag: commentControllerTag);
+    final parent = maybeFindPostCommentController(tag: commentControllerTag);
     parent?.syncCommentLikeLocally(
       commentId: model.docID,
       userId: uid,

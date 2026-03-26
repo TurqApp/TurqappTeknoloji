@@ -12,6 +12,7 @@ import 'dart:io';
 part 'add_test_question_controller_actions_part.dart';
 part 'add_test_question_controller_class_part.dart';
 part 'add_test_question_controller_data_part.dart';
+part 'add_test_question_controller_facade_part.dart';
 part 'add_test_question_controller_fields_part.dart';
 
 const _addQuestionMiddleSchoolType = 'Ortaokul';

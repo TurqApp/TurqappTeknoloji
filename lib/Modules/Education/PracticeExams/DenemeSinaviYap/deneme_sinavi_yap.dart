@@ -41,10 +41,10 @@ class _DenemeSinaviYapState extends State<DenemeSinaviYap> {
     super.initState();
     _tag =
         'practice_exam_solve_${widget.model.docID}_${identityHashCode(this)}';
-    final existing = DenemeSinaviYapController.maybeFind(tag: _tag);
+    final existing = maybeFindDenemeSinaviYapController(tag: _tag);
     _ownsController = existing == null;
     controller = existing ??
-        DenemeSinaviYapController.ensure(
+        ensureDenemeSinaviYapController(
           tag: _tag,
           model: widget.model,
           sinaviBitir: widget.sinaviBitir,
@@ -56,7 +56,7 @@ class _DenemeSinaviYapState extends State<DenemeSinaviYap> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(DenemeSinaviYapController.maybeFind(tag: _tag), controller)) {
+        identical(maybeFindDenemeSinaviYapController(tag: _tag), controller)) {
       Get.delete<DenemeSinaviYapController>(tag: _tag);
     }
     super.dispose();

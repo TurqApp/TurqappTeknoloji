@@ -1,28 +1,6 @@
 part of 'post_comment_controller.dart';
 
 class PostCommentController extends GetxController {
-  static String? _activeTag;
-
-  static PostCommentController ensure({
-    required String postID,
-    required String userID,
-    required String collection,
-    Function(bool increment)? onCommentCountChange,
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensurePostCommentControllerFacade(
-        postID: postID,
-        userID: userID,
-        collection: collection,
-        onCommentCountChange: onCommentCountChange,
-        tag: tag,
-        permanent: permanent,
-      );
-
-  static PostCommentController? maybeFind({String? tag}) =>
-      _maybeFindPostCommentControllerFacade(tag: tag);
-
   PostCommentController({
     required String postID,
     required String userID,

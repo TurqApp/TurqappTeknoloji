@@ -41,8 +41,8 @@ class _PostCommentsState extends State<PostComments> {
     super.initState();
     _controllerTag = 'post_comments_${widget.postID}_${identityHashCode(this)}';
     _ownsController =
-        PostCommentController.maybeFind(tag: _controllerTag) == null;
-    controller = PostCommentController.ensure(
+        maybeFindPostCommentController(tag: _controllerTag) == null;
+    controller = ensurePostCommentController(
       postID: widget.postID,
       userID: widget.userID,
       collection: widget.collection,
@@ -59,7 +59,7 @@ class _PostCommentsState extends State<PostComments> {
     focusNode.dispose();
     if (_ownsController &&
         identical(
-          PostCommentController.maybeFind(tag: _controllerTag),
+          maybeFindPostCommentController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PostCommentController>(tag: _controllerTag);

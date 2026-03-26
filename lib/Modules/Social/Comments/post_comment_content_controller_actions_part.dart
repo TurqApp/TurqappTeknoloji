@@ -23,7 +23,7 @@ class _PostCommentContentControllerActionsPart {
 
   Future<bool> deleteComment() async {
     final parent =
-        PostCommentController.maybeFind(tag: controller.commentControllerTag);
+        maybeFindPostCommentController(tag: controller.commentControllerTag);
     if (parent == null) return false;
     return parent.deleteComment(controller.model.docID);
   }

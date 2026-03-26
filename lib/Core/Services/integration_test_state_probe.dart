@@ -89,10 +89,9 @@ class IntegrationTestStateProbe {
     }
     final centeredIndex = controller.centeredIndex.value;
     final items = controller.agendaList;
-    final centeredItem =
-        centeredIndex >= 0 && centeredIndex < items.length
-            ? items[centeredIndex]
-            : null;
+    final centeredItem = centeredIndex >= 0 && centeredIndex < items.length
+        ? items[centeredIndex]
+        : null;
     return <String, dynamic>{
       'registered': true,
       'count': items.length,
@@ -244,7 +243,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _commentsSnapshot() {
-    final controller = PostCommentController.maybeFind();
+    final controller = maybeFindPostCommentController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }

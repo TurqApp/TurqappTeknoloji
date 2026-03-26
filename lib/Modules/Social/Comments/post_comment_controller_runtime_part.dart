@@ -10,7 +10,7 @@ PostCommentController _ensurePostCommentController({
 }) {
   final existing = _maybeFindPostCommentController(tag: tag);
   if (existing != null) {
-    PostCommentController._activeTag = tag;
+    _postCommentControllerActiveTag = tag;
     return existing;
   }
   final created = Get.put(
@@ -24,12 +24,12 @@ PostCommentController _ensurePostCommentController({
     permanent: permanent,
   );
   created.controllerTag = tag;
-  PostCommentController._activeTag = tag;
+  _postCommentControllerActiveTag = tag;
   return created;
 }
 
 PostCommentController? _maybeFindPostCommentController({String? tag}) {
-  final resolvedTag = (tag ?? PostCommentController._activeTag)?.trim();
+  final resolvedTag = (tag ?? _postCommentControllerActiveTag)?.trim();
   final normalizedTag = resolvedTag?.isEmpty == true ? null : resolvedTag;
   final isRegistered =
       Get.isRegistered<PostCommentController>(tag: normalizedTag);
