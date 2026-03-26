@@ -219,8 +219,8 @@ extension CreatorContentTextPart on CreatorContent {
                                     color: Color(0xFFF4F5F7),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Text(
-                                    '#',
+                                  child: Text(
+                                    '${index + 1}',
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 15,
