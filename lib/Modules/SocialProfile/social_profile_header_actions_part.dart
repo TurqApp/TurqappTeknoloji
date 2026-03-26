@@ -43,8 +43,8 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
                         child: Container(
                           width: 12,
                           height: 12,
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
+                          decoration: BoxDecoration(
+                            color: enabled ? Colors.green : Colors.black,
                             shape: BoxShape.circle,
                           ),
                           child: const Center(
