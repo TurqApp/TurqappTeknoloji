@@ -148,7 +148,6 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _isAdLoaded = false;
   bool _isDisposed = false;
   bool _loadFailed = false;
-  bool _isLoadingAd = false;
   bool _impressionReported = false;
   int _retryCount = 0;
   Timer? _retryTimer;
@@ -356,7 +355,6 @@ class _AdmobKareState extends State<AdmobKare> {
       }
       _bannerAd = pooled;
       _isAdLoaded = true;
-      _isLoadingAd = false;
       _loadFailed = false;
       _impressionReported = false;
       if (_supportsSharedPool) {
@@ -388,7 +386,6 @@ class _AdmobKareState extends State<AdmobKare> {
       setState(() {
         _loadFailed = true;
         _isAdLoaded = false;
-        _isLoadingAd = false;
       });
     }
     _retryTimer = Timer(delay, () {
@@ -446,7 +443,6 @@ class _AdmobKareState extends State<AdmobKare> {
     if (mounted && !_isDisposed) {
       setState(() {
         _isAdLoaded = false;
-        _isLoadingAd = true;
         _loadFailed = false;
       });
     }
@@ -482,7 +478,6 @@ class _AdmobKareState extends State<AdmobKare> {
           if (mounted && !_isDisposed) {
             setState(() {
               _isAdLoaded = true;
-              _isLoadingAd = false;
               _loadFailed = false;
             });
           }
@@ -519,7 +514,6 @@ class _AdmobKareState extends State<AdmobKare> {
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
-          _isLoadingAd = false;
           final shouldEnterCooldown = isRetryThrottled ||
               _globalFailureBurstCount >= _failureBurstBeforeCooldown ||
               _retryCount >= _maxRetryCount;
@@ -563,7 +557,6 @@ class _AdmobKareState extends State<AdmobKare> {
             setState(() {
               _loadFailed = false;
               _isAdLoaded = false;
-              _isLoadingAd = false;
             });
           }
           _scheduleRetry(delay: retryDelay);
@@ -602,7 +595,6 @@ class _AdmobKareState extends State<AdmobKare> {
     _retryTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
-    _isLoadingAd = false;
     _bannerAd = null;
     if (ad != null) {
       unawaited(Future<void>.delayed(_disposeDelay, () {
@@ -685,25 +677,10 @@ class _AdmobKareState extends State<AdmobKare> {
               setState(() {
                 _loadFailed = true;
                 _isAdLoaded = false;
-                _isLoadingAd = false;
               });
             });
           }
           child = const SizedBox.shrink();
-        }
-      } else if (_isLoadingAd && !_loadFailed) {
-        if (!widget.showChrome) {
-          child = const SizedBox.shrink();
-        } else {
-          child = Padding(
-            padding: widget.contentPadding,
-            child: SizedBox(
-              height: _promoSlotHeight,
-              child: _buildPromoFrame(
-                child: _buildAdLoadingSurface(),
-              ),
-            ),
-          );
         }
       } else {
         if (!widget.showChrome) {
@@ -770,15 +747,6 @@ class _AdmobKareState extends State<AdmobKare> {
           renderedAdBody,
           const SizedBox(height: 4),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAdLoadingSurface() {
-    return const ColoredBox(
-      color: CupertinoColors.systemGrey6,
-      child: Center(
-        child: CupertinoActivityIndicator(radius: 12),
       ),
     );
   }

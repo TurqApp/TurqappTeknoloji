@@ -5,7 +5,7 @@ PageLineBarController ensurePageLineBarController({
   String? tag,
   bool permanent = false,
 }) {
-  final existing = maybeFindPageLineBarController(tag);
+  final existing = tag == null ? null : maybeFindPageLineBarController(tag);
   if (existing != null) return existing;
   return Get.put(
     PageLineBarController(pageName: pageName),
