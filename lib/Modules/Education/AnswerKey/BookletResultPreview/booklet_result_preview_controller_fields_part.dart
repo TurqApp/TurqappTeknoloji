@@ -2,7 +2,7 @@ part of 'booklet_result_preview_controller.dart';
 
 class _BookletResultPreviewControllerState {
   final Rx<BookletModel?> anaModel = Rx<BookletModel?>(null);
-  final BookletRepository bookletRepository = BookletRepository.ensure();
+  final BookletRepository bookletRepository = ensureBookletRepository();
 }
 
 extension BookletResultPreviewControllerFieldsPart

@@ -26,14 +26,14 @@ class _CvState extends State<Cv> {
   void initState() {
     super.initState();
     _controllerTag = 'cv_${identityHashCode(this)}';
-    controller = CvController.ensure(tag: _controllerTag);
+    controller = ensureCvController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (CvController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindCvController(tag: _controllerTag) != null &&
         identical(
-          CvController.maybeFind(tag: _controllerTag),
+          maybeFindCvController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<CvController>(tag: _controllerTag);

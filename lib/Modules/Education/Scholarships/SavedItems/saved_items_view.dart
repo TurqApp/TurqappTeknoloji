@@ -29,16 +29,16 @@ class _SavedItemsViewState extends State<SavedItemsView> {
   void initState() {
     super.initState();
     _controllerTag = 'saved_items_${identityHashCode(this)}';
-    final existing = SavedItemsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindSavedItemsController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? SavedItemsController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureSavedItemsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          SavedItemsController.maybeFind(tag: _controllerTag),
+          maybeFindSavedItemsController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<SavedItemsController>(tag: _controllerTag);

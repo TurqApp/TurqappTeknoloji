@@ -3,7 +3,7 @@ part of 'optical_form_entry_controller.dart';
 class _OpticalFormEntryControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final OpticalFormRepository opticalFormRepository =
-      OpticalFormRepository.ensure();
+      ensureOpticalFormRepository();
   final TextEditingController search = TextEditingController();
   final FocusNode focusNode = FocusNode();
   final RxString searchText = ''.obs;

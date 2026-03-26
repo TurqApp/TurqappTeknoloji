@@ -32,7 +32,7 @@ class OpticalFormContentController extends GetxController {
   final OpticalFormModel model;
   final total = 0.obs;
   final OpticalFormRepository _opticalFormRepository =
-      OpticalFormRepository.ensure();
+      ensureOpticalFormRepository();
 
   OpticalFormContentController(this.model) {
     fetchTotal();

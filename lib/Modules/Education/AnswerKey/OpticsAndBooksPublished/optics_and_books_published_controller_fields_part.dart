@@ -1,9 +1,9 @@
 part of 'optics_and_books_published_controller.dart';
 
 class _OpticsAndBooksPublishedControllerState {
-  final BookletRepository bookletRepository = BookletRepository.ensure();
+  final BookletRepository bookletRepository = ensureBookletRepository();
   final OpticalFormRepository opticalFormRepository =
-      OpticalFormRepository.ensure();
+      ensureOpticalFormRepository();
   final RxList<BookletModel> list = <BookletModel>[].obs;
   final RxList<OpticalFormModel> optikler = <OpticalFormModel>[].obs;
   final RxInt selection = 0.obs;

@@ -1,5 +1,11 @@
 part of 'cv_controller.dart';
 
+CvController ensureCvController({String? tag, bool permanent = false}) =>
+    _ensureCvController(tag: tag, permanent: permanent);
+
+CvController? maybeFindCvController({String? tag}) =>
+    _maybeFindCvController(tag: tag);
+
 CvController _ensureCvController({
   String? tag,
   bool permanent = false,

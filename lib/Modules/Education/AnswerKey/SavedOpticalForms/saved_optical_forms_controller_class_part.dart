@@ -21,7 +21,7 @@ class SavedOpticalFormsController extends GetxController {
     return Get.find<SavedOpticalFormsController>(tag: tag);
   }
 
-  final BookletRepository _bookletRepository = BookletRepository.ensure();
+  final BookletRepository _bookletRepository = ensureBookletRepository();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <BookletModel>[].obs;
   final isLoading = false.obs;

@@ -1,7 +1,7 @@
 part of 'my_booklet_results_controller.dart';
 
 class _MyBookletResultsControllerState {
-  final opticalFormRepository = OpticalFormRepository.ensure();
+  final opticalFormRepository = ensureOpticalFormRepository();
   final userSubcollectionRepository = UserSubcollectionRepository.ensure();
   final list = <BookletResultModel>[].obs;
   final optikSonuclari = <OpticalFormModel>[].obs;

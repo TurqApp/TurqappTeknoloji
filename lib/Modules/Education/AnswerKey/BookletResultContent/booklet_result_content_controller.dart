@@ -27,7 +27,7 @@ class BookletResultContentController extends GetxController {
 
   final BookletResultModel model;
   final anaModel = Rx<BookletModel?>(null);
-  final BookletRepository _bookletRepository = BookletRepository.ensure();
+  final BookletRepository _bookletRepository = ensureBookletRepository();
 
   BookletResultContentController(this.model) {
     getData();

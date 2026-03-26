@@ -4,7 +4,7 @@ class _BookletPreviewControllerState {
   _BookletPreviewControllerState({required this.model});
 
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
-  final BookletRepository bookletRepository = BookletRepository.ensure();
+  final BookletRepository bookletRepository = ensureBookletRepository();
   final UserSubcollectionRepository subcollectionRepository =
       UserSubcollectionRepository.ensure();
   final BookletModel model;

@@ -10,7 +10,7 @@ class _CreateBookControllerState {
   final Function? onBack;
   final BookletModel? existingBook;
   final String docID;
-  final BookletRepository bookletRepository = BookletRepository.ensure();
+  final BookletRepository bookletRepository = ensureBookletRepository();
   final baslikController = TextEditingController();
   final yayinEviController = TextEditingController();
   final basimTarihiController = TextEditingController();

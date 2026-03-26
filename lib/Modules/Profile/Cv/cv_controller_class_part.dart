@@ -1,13 +1,6 @@
 part of 'cv_controller.dart';
 
 class CvController extends GetxController {
-  static CvController ensure({String? tag, bool permanent = false}) =>
-      _ensureCvController(tag: tag, permanent: permanent);
-
-  static CvController? maybeFind({String? tag}) => _maybeFindCvController(
-        tag: tag,
-      );
-
   final CvRepository _cvRepository = CvRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

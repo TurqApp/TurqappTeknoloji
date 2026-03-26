@@ -26,12 +26,12 @@ class _BlockedUsersState extends State<BlockedUsers> {
     super.initState();
     _controllerTag = 'profile_blocked_users_${identityHashCode(this)}';
     final existingController =
-        BlockedUsersController.maybeFind(tag: _controllerTag);
+        maybeFindBlockedUsersController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = BlockedUsersController.ensure(tag: _controllerTag);
+      controller = ensureBlockedUsersController(tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -40,7 +40,7 @@ class _BlockedUsersState extends State<BlockedUsers> {
   void dispose() {
     if (_ownsController &&
         identical(
-          BlockedUsersController.maybeFind(tag: _controllerTag),
+          maybeFindBlockedUsersController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<BlockedUsersController>(tag: _controllerTag, force: true);

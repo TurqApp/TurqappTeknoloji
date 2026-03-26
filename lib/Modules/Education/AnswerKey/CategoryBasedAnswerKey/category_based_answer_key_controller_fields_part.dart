@@ -8,7 +8,7 @@ class _CategoryBasedAnswerKeyControllerState {
   final RxList<BookletModel> filteredList = <BookletModel>[].obs;
   final TextEditingController search = TextEditingController();
   final RxBool isLoading = true.obs;
-  final BookletRepository bookletRepository = BookletRepository.ensure();
+  final BookletRepository bookletRepository = ensureBookletRepository();
 }
 
 extension CategoryBasedAnswerKeyControllerFieldsPart

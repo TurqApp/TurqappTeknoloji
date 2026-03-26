@@ -8,7 +8,7 @@ class _OpticalPreviewControllerState {
 
   final OpticalFormModel model;
   final Function? onUpdate;
-  final opticalFormRepository = OpticalFormRepository.ensure();
+  final opticalFormRepository = ensureOpticalFormRepository();
   final cevaplar = <String>[].obs;
   final isConnected = true.obs;
   final selection = 0.obs;

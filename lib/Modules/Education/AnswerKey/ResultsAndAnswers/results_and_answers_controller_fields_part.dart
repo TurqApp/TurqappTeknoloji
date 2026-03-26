@@ -1,7 +1,7 @@
 part of 'results_and_answers_controller.dart';
 
 class _ResultsAndAnswersControllerState {
-  final opticalFormRepository = OpticalFormRepository.ensure();
+  final opticalFormRepository = ensureOpticalFormRepository();
   final cevaplar = <String>[].obs;
   final dogruSayisi = 0.obs;
   final yanlisSayisi = 0.obs;

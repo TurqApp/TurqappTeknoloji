@@ -420,16 +420,16 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
   void initState() {
     super.initState();
     _controllerTag = 'saved_scholarships_embedded_${identityHashCode(this)}';
-    final existing = SavedItemsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindSavedItemsController(tag: _controllerTag);
     _ownsController = existing == null;
-    _controller = existing ?? SavedItemsController.ensure(tag: _controllerTag);
+    _controller = existing ?? ensureSavedItemsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          SavedItemsController.maybeFind(tag: _controllerTag),
+          maybeFindSavedItemsController(tag: _controllerTag),
           _controller,
         )) {
       Get.delete<SavedItemsController>(tag: _controllerTag);
