@@ -127,7 +127,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
     followLoading.value = true;
     try {
       if (!wasFollowing) {
-        final alreadyFollowing = await FollowRepository.ensure().isFollowing(
+        final alreadyFollowing = await ensureFollowRepository().isFollowing(
           userID,
           currentUid: currentUid,
           preferCache: false,

@@ -105,7 +105,7 @@ extension ShortContentControllerDataPart on ShortContentController {
       nickname.value = postLevelNickname;
       fullName.value = postLevelDisplayName;
       token.value = '';
-      takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+      takipEdiyorum.value = await ensureFollowRepository().isFollowing(
         userID,
         currentUid: _shortCurrentUserId,
         preferCache: true,
@@ -136,7 +136,7 @@ extension ShortContentControllerDataPart on ShortContentController {
             ? summary!.displayName.trim()
             : nickname.value);
 
-    takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+    takipEdiyorum.value = await ensureFollowRepository().isFollowing(
       userID,
       currentUid: _shortCurrentUserId,
       preferCache: true,

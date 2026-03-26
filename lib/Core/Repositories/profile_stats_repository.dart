@@ -15,7 +15,7 @@ class ProfileStatsRepository extends GetxService {
 
   SharedPreferences? _prefs;
   final Map<String, _CachedProfileStats> _memory = {};
-  final FollowRepository _followRepository = FollowRepository.ensure();
+  final FollowRepository _followRepository = ensureFollowRepository();
 
   @override
   void onInit() {

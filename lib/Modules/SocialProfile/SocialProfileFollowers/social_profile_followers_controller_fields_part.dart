@@ -6,7 +6,7 @@ class _SocialProfileFollowersControllerState {
   late PageController pageController;
   final takipciler = <String>[].obs;
   final takipEdilenler = <String>[].obs;
-  final followRepository = FollowRepository.ensure();
+  final followRepository = ensureFollowRepository();
   final visibilityPolicy = VisibilityPolicyService.ensure();
   bool isLoadingFollowers = false;
   bool isLoadingFollowing = false;

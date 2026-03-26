@@ -226,7 +226,7 @@ extension EducationViewActionsPart on EducationView {
       case PasajTabIds.scholarships:
         return ScholarshipsController.maybeFind()?.scrollController;
       case PasajTabIds.practiceExams:
-        return CikmisSorularController.maybeFind()?.scrollController;
+        return maybeFindCikmisSorularController()?.scrollController;
       case PasajTabIds.onlineExam:
         return DenemeSinavlariController.maybeFind()?.scrollController;
       case PasajTabIds.answerKey:
@@ -246,7 +246,7 @@ extension EducationViewActionsPart on EducationView {
         return (ScholarshipsController.maybeFind()?.scrollOffset.value ?? 0) <=
             350;
       case PasajTabIds.practiceExams:
-        return (CikmisSorularController.maybeFind()?.scrollOffset.value ?? 0) <=
+        return (maybeFindCikmisSorularController()?.scrollOffset.value ?? 0) <=
             350;
       case PasajTabIds.onlineExam:
         return (DenemeSinavlariController.maybeFind()?.scrollOffset.value ??

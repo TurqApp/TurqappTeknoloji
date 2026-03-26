@@ -3,7 +3,7 @@ part of 'following_followers_controller.dart';
 class _FollowingFollowersControllerState {
   late String userId;
   final userSummaryResolver = UserSummaryResolver.ensure();
-  final followRepository = FollowRepository.ensure();
+  final followRepository = ensureFollowRepository();
   final visibilityPolicy = VisibilityPolicyService.ensure();
   final selection = 0.obs;
   final pageController = PageController();

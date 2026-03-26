@@ -177,7 +177,7 @@ void _handleAppBackgroundTransition(String state) {
   recordQALabLifecycleState(state);
   _clearConsumedCacheIfNeeded();
   try {
-    VideoStateManager.maybeFind()?.pauseAllVideos(force: true);
+    maybeFindVideoStateManager()?.pauseAllVideos(force: true);
   } catch (_) {}
   try {
     final agendaController = maybeFindAgendaController();

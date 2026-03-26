@@ -10,6 +10,7 @@ part 'follow_repository_query_part.dart';
 part 'follow_repository_action_part.dart';
 part 'follow_repository_models_part.dart';
 part 'follow_repository_cache_part.dart';
+part 'follow_repository_facade_part.dart';
 part 'follow_repository_class_part.dart';
 
 class FollowWriteResult {

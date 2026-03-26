@@ -67,7 +67,7 @@ extension EducationControllerSearchPart on EducationController {
         maybeFindAntremanController()?.setSearchQuery(query);
         break;
       case PasajTabIds.practiceExams:
-        CikmisSorularController.maybeFind()?.setSearchQuery(query);
+        maybeFindCikmisSorularController()?.setSearchQuery(query);
         break;
       case PasajTabIds.onlineExam:
         DenemeSinavlariController.maybeFind()?.setSearchQuery(query);
@@ -96,7 +96,7 @@ extension EducationControllerSearchPart on EducationController {
         maybeFindAntremanController()?.setSearchQuery('');
         break;
       case PasajTabIds.practiceExams:
-        CikmisSorularController.maybeFind()?.setSearchQuery('');
+        maybeFindCikmisSorularController()?.setSearchQuery('');
         break;
       case PasajTabIds.onlineExam:
         DenemeSinavlariController.maybeFind()?.setSearchQuery('');

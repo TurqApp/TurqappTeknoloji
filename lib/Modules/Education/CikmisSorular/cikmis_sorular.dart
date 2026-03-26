@@ -30,7 +30,7 @@ class CikmisSorular extends StatefulWidget {
 
 class _CikmisSorularState extends State<CikmisSorular> {
   final CikmisSorularController controller =
-      CikmisSorularController.ensure(permanent: true);
+      ensureCikmisSorularController(permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override
@@ -64,9 +64,8 @@ class _CikmisSorularState extends State<CikmisSorular> {
       itemBuilder: (context, index) {
         final item = controller.searchResults[index];
         final anaBaslik = (item['anaBaslik'] ?? '').toString();
-        final title = anaBaslik.isNotEmpty
-            ? anaBaslik
-            : (item['title'] ?? '').toString();
+        final title =
+            anaBaslik.isNotEmpty ? anaBaslik : (item['title'] ?? '').toString();
         final sinavTuru = (item['sinavTuru'] ?? '').toString();
         final yil = (item['yil'] ?? '').toString();
         final baslik2 = (item['baslik2'] ?? '').toString();

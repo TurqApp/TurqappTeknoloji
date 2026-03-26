@@ -4,7 +4,7 @@ class _ScholarshipDetailControllerState {
   final UserRepository userRepository = UserRepository.ensure();
   final ScholarshipRepository scholarshipRepository =
       ensureScholarshipRepository();
-  final FollowRepository followRepository = FollowRepository.ensure();
+  final FollowRepository followRepository = ensureFollowRepository();
   final RxBool showAllUniversities = false.obs;
   final RxInt hiddenUniversityCount = 0.obs;
   final RxBool isLoading = false.obs;

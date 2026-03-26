@@ -1,9 +1,6 @@
 part of 'deep_link_service.dart';
 
 class DeepLinkService extends GetxService {
-  static DeepLinkService ensure() => _ensureDeepLinkService();
-
-  static DeepLinkService? maybeFind() => _maybeFindDeepLinkService();
   static const Duration _lookupTtl = Duration(seconds: 30);
   static final Map<String, _PostLookupCache> _postLookupCache =
       <String, _PostLookupCache>{};

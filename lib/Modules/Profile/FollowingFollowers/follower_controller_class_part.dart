@@ -13,7 +13,7 @@ class FollowerController extends GetxController {
   static final Map<String, _FollowStateCacheEntry> _followStateCacheByUser =
       <String, _FollowStateCacheEntry>{};
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final FollowRepository _followRepository = FollowRepository.ensure();
+  final FollowRepository _followRepository = ensureFollowRepository();
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 }

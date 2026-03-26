@@ -2,7 +2,7 @@ part of 'social_profile_controller.dart';
 
 final UserRepository _userRepository = UserRepository.ensure();
 final RuntimeInvariantGuard _invariantGuard = ensureRuntimeInvariantGuard();
-final FollowRepository _followRepository = FollowRepository.ensure();
+final FollowRepository _followRepository = ensureFollowRepository();
 final SocialMediaLinksRepository _socialLinksRepository =
     SocialMediaLinksRepository.ensure();
 final StoryRepository _storyRepository = StoryRepository.ensure();

@@ -6,7 +6,7 @@ final ProfilePostsSnapshotRepository _profileSnapshotRepository =
     ProfilePostsSnapshotRepository.ensure();
 final ProfileRenderCoordinator _profileRenderCoordinator =
     ensureProfileRenderCoordinator();
-final FollowRepository _followRepository = FollowRepository.ensure();
+final FollowRepository _followRepository = ensureFollowRepository();
 final VisibilityPolicyService _visibilityPolicy =
     VisibilityPolicyService.ensure();
 final UserRepository _userRepository = UserRepository.ensure();

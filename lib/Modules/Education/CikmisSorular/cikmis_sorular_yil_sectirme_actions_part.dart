@@ -37,8 +37,7 @@ extension CikmisSorularYilSectirmeActionsPart
     }
 
     if (widget.sinavTuru == _CikmisSorularYilSectirmeState._undergraduate &&
-        widget.baslik2 ==
-            _CikmisSorularYilSectirmeState._fieldKnowledge) {
+        widget.baslik2 == _CikmisSorularYilSectirmeState._fieldKnowledge) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -55,8 +54,7 @@ extension CikmisSorularYilSectirmeActionsPart
     }
 
     if (widget.sinavTuru == _CikmisSorularYilSectirmeState._undergraduate &&
-        widget.baslik2 ==
-            _CikmisSorularYilSectirmeState._educationSciences) {
+        widget.baslik2 == _CikmisSorularYilSectirmeState._educationSciences) {
       Navigator.push(
         context,
         MaterialPageRoute(

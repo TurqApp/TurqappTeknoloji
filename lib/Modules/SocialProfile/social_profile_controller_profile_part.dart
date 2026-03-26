@@ -114,7 +114,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         postNotificationsEnabled.value = false;
       }
     }
-    final isFollowing = await FollowRepository.ensure().isFollowing(
+    final isFollowing = await ensureFollowRepository().isFollowing(
       userID,
       currentUid: currentUid,
       preferCache: false,

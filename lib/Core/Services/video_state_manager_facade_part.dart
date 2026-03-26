@@ -1,5 +1,17 @@
 part of 'video_state_manager.dart';
 
+VideoStateManager? maybeFindVideoStateManager() {
+  final isRegistered = Get.isRegistered<VideoStateManager>();
+  if (!isRegistered) return null;
+  return Get.find<VideoStateManager>();
+}
+
+VideoStateManager ensureVideoStateManager() {
+  final existing = maybeFindVideoStateManager();
+  if (existing != null) return existing;
+  return Get.put(VideoStateManager());
+}
+
 extension VideoStateManagerFacadePart on VideoStateManager {
   void saveVideoState(String docID, PlaybackHandle handle) =>
       VideoStateManagerPlaybackPart(this)._saveVideoState(docID, handle);

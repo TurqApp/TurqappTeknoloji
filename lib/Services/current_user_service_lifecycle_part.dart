@@ -139,7 +139,7 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
       await _stopFirebaseSync();
       await _clearCache(oldUid);
       _purgeUserScopedCaches(oldUid);
-      await FollowRepository.maybeFind()?.clearAll();
+      await maybeFindFollowRepository()?.clearAll();
       _silentLogAt.clear();
 
       _cacheSaveTimer?.cancel();

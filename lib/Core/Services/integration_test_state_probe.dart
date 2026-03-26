@@ -111,7 +111,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _videoPlaybackSnapshot() {
-    final manager = VideoStateManager.maybeFind();
+    final manager = maybeFindVideoStateManager();
     if (manager == null) {
       return const <String, dynamic>{'registered': false};
     }

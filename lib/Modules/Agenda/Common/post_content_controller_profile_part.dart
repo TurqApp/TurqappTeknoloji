@@ -8,7 +8,7 @@ extension PostContentControllerProfilePart on PostContentController {
         isFollowing.value = true;
         return;
       }
-      final docExists = await FollowRepository.ensure().isFollowing(
+      final docExists = await ensureFollowRepository().isFollowing(
         model.userID,
         currentUid: currentUid,
         preferCache: true,

@@ -39,7 +39,7 @@ class NavBarView extends StatelessWidget {
   }
   final NavBarController controller = NavBarController.ensure();
   final SettingsController settingController = ensureSettingsController();
-  final DeepLinkService? deepLinkService = DeepLinkService.maybeFind();
+  final DeepLinkService? deepLinkService = maybeFindDeepLinkService();
 
   // Ensure controllers are available
   void _ensureControllersReady() {
@@ -52,7 +52,7 @@ class NavBarView extends StatelessWidget {
     // Deep link çözümleme her NavBar açılışında tetiklensin.
     // (Yeniden login senaryosunda _controllersPrepared true kalsa bile)
     if (!isIOS) {
-      DeepLinkService.maybeFind()?.start();
+      maybeFindDeepLinkService()?.start();
     }
 
     // Controller registration should always be enforced (Android lifecycle can dispose lazies).

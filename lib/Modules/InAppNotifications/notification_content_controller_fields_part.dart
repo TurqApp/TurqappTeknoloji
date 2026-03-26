@@ -4,7 +4,7 @@ class _NotificationContentControllerState {
   late String userID;
   late NotificationModel notification;
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
-  final FollowRepository followRepository = FollowRepository.ensure();
+  final FollowRepository followRepository = ensureFollowRepository();
   final NotifyLookupRepository notifyLookupRepository =
       ensureNotifyLookupRepository();
   final avatarUrl = ''.obs;

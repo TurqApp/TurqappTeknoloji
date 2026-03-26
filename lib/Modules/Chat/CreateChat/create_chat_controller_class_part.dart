@@ -1,9 +1,7 @@
 part of 'create_chat_controller.dart';
 
 class CreateChatController extends GetxController {
-  TextEditingController search = TextEditingController();
-  var selected = "".obs;
-  final RxString query = ''.obs;
+  final _state = _CreateChatControllerState();
 
   @override
   void onInit() {

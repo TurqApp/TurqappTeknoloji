@@ -4,7 +4,7 @@ class _RecommendedUserContentControllerState {
   late String userID;
   final isFollowing = false.obs;
   final followLoading = false.obs;
-  final followRepository = FollowRepository.ensure();
+  final followRepository = ensureFollowRepository();
 }
 
 extension RecommendedUserContentControllerFieldsPart

@@ -1,7 +1,7 @@
 part of 'scholarships_controller.dart';
 
 class _ScholarshipsControllerState {
-  final followRepository = FollowRepository.ensure();
+  final followRepository = ensureFollowRepository();
   final scholarshipRepository = ensureScholarshipRepository();
   final scholarshipSnapshotRepository = ensureScholarshipSnapshotRepository();
   final scrollController = ScrollController();

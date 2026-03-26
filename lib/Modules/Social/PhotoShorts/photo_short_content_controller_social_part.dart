@@ -15,7 +15,7 @@ extension PhotoShortContentControllerSocialPart
       nickname.value = postLevelNickname;
       token.value = '';
       fullName.value = postLevelDisplayName;
-      takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+      takipEdiyorum.value = await ensureFollowRepository().isFollowing(
         userID,
         currentUid: _currentUserId,
         preferCache: true,
@@ -42,7 +42,7 @@ extension PhotoShortContentControllerSocialPart
           : summary.displayName;
     }
 
-    takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+    takipEdiyorum.value = await ensureFollowRepository().isFollowing(
       userID,
       currentUid: _currentUserId,
       preferCache: true,

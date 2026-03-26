@@ -1,5 +1,9 @@
 part of 'deep_link_service.dart';
 
+DeepLinkService ensureDeepLinkService() => _ensureDeepLinkService();
+
+DeepLinkService? maybeFindDeepLinkService() => _maybeFindDeepLinkService();
+
 extension DeepLinkServiceFacadePart on DeepLinkService {
   Future<_PostLookupCache> _getPostLookup(String postId) =>
       _performGetPostLookup(postId);

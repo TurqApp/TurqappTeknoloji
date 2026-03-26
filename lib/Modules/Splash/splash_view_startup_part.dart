@@ -336,7 +336,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     Get.lazyPut(() => StoryRowController(), fenix: true);
     UploadQueueService.ensure(permanent: true);
     if (!Platform.isIOS) {
-      DeepLinkService.ensure();
+      ensureDeepLinkService();
     }
     IndexPoolStore.ensure(permanent: true);
     ensureUserProfileCacheService();

@@ -173,7 +173,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
         final ctrl = _videoControllers[currentPage];
 
         if (ctrl != null && ctrl.value.isInitialized) {
-          final videoStateManager = VideoStateManager.maybeFind();
+          final videoStateManager = maybeFindVideoStateManager();
           if (videoStateManager != null) {
             videoStateManager.saveVideoState(
               currentModel.docID,

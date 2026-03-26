@@ -32,7 +32,7 @@ class FollowService {
           nowFollowing: false, limitReached: false);
     }
 
-    final result = await FollowRepository.ensure().toggleRelation(
+    final result = await ensureFollowRepository().toggleRelation(
       currentUid: currentUserID,
       otherUid: otherUserID,
       dailyLimit: dailyLimit,
@@ -66,13 +66,13 @@ class FollowService {
       );
     }
 
-    final actualFollowing = await FollowRepository.ensure().isFollowing(
+    final actualFollowing = await ensureFollowRepository().isFollowing(
       otherUserID,
       currentUid: currentUserID,
       preferCache: false,
     );
     if (actualFollowing != assumedFollowing) {
-      await FollowRepository.ensure().applyToggle(
+      await ensureFollowRepository().applyToggle(
         currentUserID,
         otherUserID,
         nowFollowing: actualFollowing,
@@ -109,7 +109,7 @@ class FollowService {
     final currentUserID = CurrentUserService.instance.effectiveUserId;
     if (currentUserID.isEmpty || currentUserID == otherUserID) return false;
 
-    final created = await FollowRepository.ensure().ensureRelation(
+    final created = await ensureFollowRepository().ensureRelation(
       currentUid: currentUserID,
       otherUid: otherUserID,
       bypassDailyLimit: bypassDailyLimit,
@@ -141,7 +141,7 @@ class FollowService {
         (currentUid ?? CurrentUserService.instance.effectiveUserId).trim();
     final other = otherUserID.trim();
     if (me.isEmpty || other.isEmpty || me == other) return;
-    await FollowRepository.ensure().createRelationPair(
+    await ensureFollowRepository().createRelationPair(
       currentUid: me,
       otherUid: other,
       timestampMs: timestampMs,
@@ -160,7 +160,7 @@ class FollowService {
         (currentUid ?? CurrentUserService.instance.effectiveUserId).trim();
     final other = otherUserID.trim();
     if (me.isEmpty || other.isEmpty || me == other) return;
-    await FollowRepository.ensure().deleteRelationPair(
+    await ensureFollowRepository().deleteRelationPair(
       currentUid: me,
       otherUid: other,
     );

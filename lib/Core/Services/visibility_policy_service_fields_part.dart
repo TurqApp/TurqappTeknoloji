@@ -2,7 +2,7 @@ part of 'visibility_policy_service.dart';
 
 class _VisibilityPolicyServiceState {
   final resolver = UserSummaryResolver.ensure();
-  final followRepository = FollowRepository.ensure();
+  final followRepository = ensureFollowRepository();
 }
 
 extension VisibilityPolicyServiceFieldsPart on VisibilityPolicyService {
