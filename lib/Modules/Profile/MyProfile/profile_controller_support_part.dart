@@ -11,9 +11,10 @@ final VisibilityPolicyService _visibilityPolicy =
     VisibilityPolicyService.ensure();
 final UserRepository _userRepository = UserRepository.ensure();
 final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
+final RuntimeInvariantGuard _invariantGuard = ensureRuntimeInvariantGuard();
 final SocialMediaLinksRepository _socialLinksRepository =
     SocialMediaLinksRepository.ensure();
+final UserPostLinkService _linkService = UserPostLinkService.ensure();
 const int _profilePageLimit = 10;
 
 extension ProfileControllerSupportPart on ProfileController {

@@ -5,7 +5,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
   Future<void> _handlePlaylist(
       HttpRequest request, String path, String? docID) async {
     final cacheManager = _getCacheManager();
-    final probe = HlsDataUsageProbe.ensure();
+    final probe = ensureHlsDataUsageProbe();
     final relativePath = path.startsWith('/') ? path.substring(1) : path;
 
     final cached = cacheManager?.getPlaylistFile(relativePath);

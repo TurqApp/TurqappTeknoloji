@@ -1,5 +1,13 @@
 part of 'progress_indicators.dart';
 
+UploadProgressController ensureUploadProgressController({
+  bool permanent = false,
+}) =>
+    _ensureUploadProgressController(permanent: permanent);
+
+UploadProgressController? maybeFindUploadProgressController() =>
+    _maybeFindUploadProgressController();
+
 UploadProgressController _ensureUploadProgressController({
   bool permanent = false,
 }) =>
@@ -10,6 +18,38 @@ UploadProgressController? _maybeFindUploadProgressController() =>
     Get.isRegistered<UploadProgressController>()
         ? Get.find<UploadProgressController>()
         : null;
+
+extension UploadProgressControllerActionsPart on UploadProgressController {
+  void startProgress({
+    required int total,
+    required String initialStatus,
+  }) =>
+      _startUploadProgress(this, total: total, initialStatus: initialStatus);
+
+  void updateProgress({
+    required int current,
+    required String fileName,
+    required String statusText,
+    double? progressValue,
+  }) =>
+      _updateUploadProgress(
+        this,
+        current: current,
+        fileName: fileName,
+        statusText: statusText,
+        progressValue: progressValue,
+      );
+
+  void setError(String error) => _setUploadProgressError(this, error);
+
+  void complete(String message) => _completeUploadProgress(this, message);
+
+  void hide() => _hideUploadProgress(this);
+
+  void pause() => _pauseUploadProgress(this);
+
+  void resume() => _resumeUploadProgress(this);
+}
 
 void _startUploadProgress(
   UploadProgressController controller, {

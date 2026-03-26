@@ -16,3 +16,4 @@ part 'personel_info_controller_fields_part.dart';
 part 'personel_info_controller_labels_part.dart';
 part 'personel_info_controller_form_part.dart';
 part 'personel_info_controller_class_part.dart';
+part 'personel_info_controller_support_part.dart';

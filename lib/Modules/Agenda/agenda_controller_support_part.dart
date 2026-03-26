@@ -16,7 +16,7 @@ extension AgendaControllerSupportPart on AgendaController {
   FeedRenderCoordinator get _feedRenderCoordinator =>
       FeedRenderCoordinator.ensure();
 
-  RuntimeInvariantGuard get _invariantGuard => RuntimeInvariantGuard.ensure();
+  RuntimeInvariantGuard get _invariantGuard => ensureRuntimeInvariantGuard();
 
   bool _isRenderablePost(PostsModel post) {
     if (!post.hasVideoSignal) return true;
@@ -149,14 +149,7 @@ extension AgendaControllerSupportPart on AgendaController {
 }
 
 extension AgendaControllerPublicApiPart on AgendaController {
-  Future<void> addNewReshareEntryWithoutScroll(
-    String postId,
-    String reshareUserID,
-  ) =>
-      _performAddNewReshareEntryWithoutScroll(postId, reshareUserID);
-
-  void removeReshareEntry(String postId, String reshareUserID) =>
-      _performRemoveReshareEntry(postId, reshareUserID);
+  Future<void> onPrimarySurfaceVisible() => ensureFeedSurfaceReady();
 
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
       _performOnPostVisibilityChanged(modelIndex, visibleFraction);

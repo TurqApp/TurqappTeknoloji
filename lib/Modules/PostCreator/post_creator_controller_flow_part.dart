@@ -271,7 +271,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         return;
       }
 
-      final progressController = UploadProgressController.ensure();
+      final progressController = ensureUploadProgressController();
       final allImages = <File>[];
       final allVideos = <File>[];
 

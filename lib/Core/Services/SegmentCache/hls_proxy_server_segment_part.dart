@@ -6,7 +6,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
       HttpRequest request, String path, String? docID) async {
     final cacheManager = _getCacheManager();
     final metrics = cacheManager?.metrics;
-    final probe = HlsDataUsageProbe.ensure();
+    final probe = ensureHlsDataUsageProbe();
 
     if (docID != null && cacheManager != null) {
       final segmentKey = _extractSegmentKey(path, docID);

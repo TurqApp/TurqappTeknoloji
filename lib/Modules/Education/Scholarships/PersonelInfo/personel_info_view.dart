@@ -34,16 +34,16 @@ class _PersonelInfoViewState extends State<PersonelInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_personal_${identityHashCode(this)}';
-    final existing = PersonelInfoController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindPersonelInfoController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? PersonelInfoController.ensure(tag: _controllerTag);
+    controller = existing ?? ensurePersonelInfoController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          PersonelInfoController.maybeFind(tag: _controllerTag),
+          maybeFindPersonelInfoController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PersonelInfoController>(tag: _controllerTag, force: true);

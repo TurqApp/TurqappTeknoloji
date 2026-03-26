@@ -6,7 +6,7 @@ extension _PostCreatorControllerUiX on PostCreatorController {
       return;
     }
 
-    final progressController = UploadProgressController.ensure();
+    final progressController = ensureUploadProgressController();
     final allImages = <File>[];
     final allVideos = <File>[];
 
@@ -73,6 +73,7 @@ extension _PostCreatorControllerUiX on PostCreatorController {
             agendaController.scrollController.hasClients) {
           agendaController.scrollController.jumpTo(0);
         }
+        await persistUploadedPostsToHomeFeed(nowPosts);
         ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
         progressController.complete('post_creator.upload_success'.tr);
       } else {

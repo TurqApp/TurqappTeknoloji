@@ -1,36 +1,24 @@
 part of 'post_controller.dart';
 
 class PostController extends GetxController {
-  String postID;
-  List<String> fetch_begeniler;
-  List<String> fetch_begenmemeler;
-  List<String> fetch_kaydedilenler;
-  List<String> fetch_yenidenPaylasilanKullanicilar;
-  PostsModel model;
+  final _PostControllerState _state;
 
   PostController({
-    required this.postID,
-    required this.model,
-    required this.fetch_begeniler,
-    required this.fetch_begenmemeler,
-    required this.fetch_kaydedilenler,
-    required this.fetch_yenidenPaylasilanKullanicilar,
-  });
-
-  var yorumCount = 0.obs;
-  var pageCounter = 0.obs;
-  var begeniler = [].obs;
-  var begenmeme = [].obs;
-  var kaydedilenler = [].obs;
-  var yenidenPaylasilanKullanicilar = [].obs;
-  var goruntuleme = 0.obs;
-  var tekrarPaylasilmaSayisi = 0.obs;
-  var gizlendi = false.obs;
-  var arsivlendi = false.obs;
-  var ilkPaylasanPfImage = "".obs;
-  var ilkPaylasanNickname = "".obs;
-  var ilkPaylasanUserID = "".obs;
-  final PostRepository _postRepository = PostRepository.ensure();
+    required String postID,
+    required PostsModel model,
+    required List<String> fetch_begeniler,
+    required List<String> fetch_begenmemeler,
+    required List<String> fetch_kaydedilenler,
+    required List<String> fetch_yenidenPaylasilanKullanicilar,
+  }) : _state = _PostControllerState(
+          postID: postID,
+          model: model,
+          fetch_begeniler: fetch_begeniler,
+          fetch_begenmemeler: fetch_begenmemeler,
+          fetch_kaydedilenler: fetch_kaydedilenler,
+          fetch_yenidenPaylasilanKullanicilar:
+              fetch_yenidenPaylasilanKullanicilar,
+        );
 
   @override
   void onInit() {

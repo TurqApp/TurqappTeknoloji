@@ -56,7 +56,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (cacheManager == null) return;
 
     try {
-      final probe = HlsDataUsageProbe.ensure();
+      final probe = ensureHlsDataUsageProbe();
       final masterPath = 'Posts/${job.docID}/hls/master.m3u8';
       String? masterContent;
 
@@ -212,7 +212,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (result.success) {
       final bytes = result.bytes!;
       _trackDownloadBytes(bytes.length);
-      HlsDataUsageProbe.ensure().recordSegmentTransfer(
+      ensureHlsDataUsageProbe().recordSegmentTransfer(
         docId: result.docID,
         segmentKey: result.segmentKey,
         bytes: bytes.length,

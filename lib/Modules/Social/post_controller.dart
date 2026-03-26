@@ -11,3 +11,4 @@ import 'Comments/post_comments.dart';
 
 part 'post_controller_actions_part.dart';
 part 'post_controller_class_part.dart';
+part 'post_controller_fields_part.dart';

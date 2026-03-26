@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'm3u8_parser.dart';
 
 part 'hls_data_usage_probe_class_part.dart';
+part 'hls_data_usage_probe_facade_part.dart';
 part 'hls_data_usage_probe_record_part.dart';
 part 'hls_data_usage_probe_snapshot_part.dart';
 part 'hls_data_usage_probe_models_part.dart';

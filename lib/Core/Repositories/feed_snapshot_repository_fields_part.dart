@@ -7,7 +7,7 @@ class _FeedSnapshotRepositoryState {
 
   late final PostRepository postRepository = PostRepository.ensure();
   late final RuntimeInvariantGuard invariantGuard =
-      RuntimeInvariantGuard.ensure();
+      ensureRuntimeInvariantGuard();
   late final UserSummaryResolver userSummaryResolver =
       UserSummaryResolver.ensure();
   late final VisibilityPolicyService visibilityPolicy =

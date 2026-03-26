@@ -1,6 +1,9 @@
 part of 'personel_info_controller.dart';
 
 class _PersonelInfoControllerState {
+  final UserRepository userRepository = UserRepository.ensure();
+  final CityDirectoryService cityDirectoryService =
+      CityDirectoryService.ensure();
   final tc = ''.obs;
   final medeniHal = _single.obs;
   final county = _turkey.obs;
@@ -34,6 +37,8 @@ class _PersonelInfoControllerState {
 }
 
 extension PersonelInfoControllerFieldsPart on PersonelInfoController {
+  UserRepository get _userRepository => _state.userRepository;
+  CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
   RxString get tc => _state.tc;
   RxString get medeniHal => _state.medeniHal;
   RxString get county => _state.county;

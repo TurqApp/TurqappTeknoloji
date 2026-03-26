@@ -3,7 +3,7 @@ part of 'notifications_snapshot_repository.dart';
 class _NotificationsSnapshotRepositoryState {
   _NotificationsSnapshotRepositoryState(NotificationsSnapshotRepository owner)
       : notificationsRepository = NotificationsRepository.ensure(),
-        invariantGuard = RuntimeInvariantGuard.ensure() {
+        invariantGuard = ensureRuntimeInvariantGuard() {
     coordinator = CacheFirstCoordinator<List<NotificationModel>>(
       memoryStore: MemoryScopedSnapshotStore<List<NotificationModel>>(),
       snapshotStore: SharedPrefsScopedSnapshotStore<List<NotificationModel>>(

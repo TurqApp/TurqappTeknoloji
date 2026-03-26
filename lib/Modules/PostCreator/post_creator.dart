@@ -57,7 +57,7 @@ class PostCreator extends StatelessWidget {
     this.editPost,
   });
   final controller = PostCreatorController.ensure();
-  final progressController = UploadProgressController.ensure();
+  final progressController = ensureUploadProgressController();
 
   @override
   Widget build(BuildContext context) {

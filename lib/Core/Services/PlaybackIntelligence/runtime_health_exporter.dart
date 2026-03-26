@@ -20,7 +20,7 @@ class RuntimeHealthExporter {
     final startIndex = recentEvents.length > recentEventLimit
         ? recentEvents.length - recentEventLimit
         : 0;
-    final hlsProbe = HlsDataUsageProbe.maybeFind();
+    final hlsProbe = maybeFindHlsDataUsageProbe();
     return <String, dynamic>{
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
       'surfaceCount': snapshots.length,
