@@ -1,13 +1,10 @@
 part of 'prefetch_scheduler.dart';
 
-PrefetchScheduler? maybeFindPrefetchScheduler() {
-  final isRegistered = Get.isRegistered<PrefetchScheduler>();
-  if (!isRegistered) return null;
-  return Get.find<PrefetchScheduler>();
-}
+PrefetchScheduler? maybeFindPrefetchScheduler() =>
+    Get.isRegistered<PrefetchScheduler>()
+        ? Get.find<PrefetchScheduler>()
+        : null;
 
-PrefetchScheduler ensurePrefetchScheduler({bool permanent = false}) {
-  final existing = maybeFindPrefetchScheduler();
-  if (existing != null) return existing;
-  return Get.put(PrefetchScheduler(), permanent: permanent);
-}
+PrefetchScheduler ensurePrefetchScheduler({bool permanent = false}) =>
+    maybeFindPrefetchScheduler() ??
+    Get.put(PrefetchScheduler(), permanent: permanent);

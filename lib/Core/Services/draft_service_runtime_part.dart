@@ -8,6 +8,5 @@ void _handleDraftServiceInit(DraftService service) {
   });
 }
 
-void _handleDraftServiceClose(DraftService service) {
-  service._authSub?.cancel();
-}
+void _handleDraftServiceClose(DraftService service) =>
+    service._authSub?.cancel();

@@ -1,13 +1,10 @@
 part of 'video_emotion_config_service.dart';
 
-VideoRemoteConfigService? maybeFindVideoRemoteConfigService() {
-  final isRegistered = Get.isRegistered<VideoRemoteConfigService>();
-  if (!isRegistered) return null;
-  return Get.find<VideoRemoteConfigService>();
-}
+VideoRemoteConfigService? maybeFindVideoRemoteConfigService() =>
+    Get.isRegistered<VideoRemoteConfigService>()
+        ? Get.find<VideoRemoteConfigService>()
+        : null;
 
-VideoRemoteConfigService ensureVideoRemoteConfigService() {
-  final existing = maybeFindVideoRemoteConfigService();
-  if (existing != null) return existing;
-  return Get.put(VideoRemoteConfigService(), permanent: true);
-}
+VideoRemoteConfigService ensureVideoRemoteConfigService() =>
+    maybeFindVideoRemoteConfigService() ??
+    Get.put(VideoRemoteConfigService(), permanent: true);

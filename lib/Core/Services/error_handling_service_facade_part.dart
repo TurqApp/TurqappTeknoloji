@@ -1,13 +1,9 @@
 part of 'error_handling_service_library.dart';
 
-ErrorHandlingService ensureErrorHandlingService() {
-  final existing = maybeFindErrorHandlingService();
-  if (existing != null) return existing;
-  return Get.put(ErrorHandlingService());
-}
+ErrorHandlingService ensureErrorHandlingService() =>
+    maybeFindErrorHandlingService() ?? Get.put(ErrorHandlingService());
 
-ErrorHandlingService? maybeFindErrorHandlingService() {
-  final isRegistered = Get.isRegistered<ErrorHandlingService>();
-  if (!isRegistered) return null;
-  return Get.find<ErrorHandlingService>();
-}
+ErrorHandlingService? maybeFindErrorHandlingService() =>
+    Get.isRegistered<ErrorHandlingService>()
+        ? Get.find<ErrorHandlingService>()
+        : null;
