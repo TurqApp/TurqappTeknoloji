@@ -666,29 +666,72 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        agendaController.isMuted.toggle();
-                        final vc = videoController;
-                        if (vc != null && vc.value.isInitialized) {
-                          vc.setVolume(agendaController.isMuted.value ? 0 : 1);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
+                    child: Row(
+                      children: [
+                        if (videoController != null)
+                          ValueListenableBuilder<HLSVideoValue>(
+                            valueListenable: videoValueNotifier,
+                            builder: (_, v, __) {
+                              final isPlaying = v.isPlaying && !v.isCompleted;
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  final vc = videoController;
+                                  if (vc == null || !vc.value.isInitialized) {
+                                    return;
+                                  }
+                                  if (isPlaying) {
+                                    vc.pause();
+                                  } else {
+                                    vc.play();
+                                    videoStateManager
+                                        .playOnlyThis(playbackHandleKey);
+                                  }
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 6),
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isPlaying
+                                        ? CupertinoIcons.pause_fill
+                                        : CupertinoIcons.play_fill,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            agendaController.isMuted.toggle();
+                            final vc = videoController;
+                            if (vc != null && vc.value.isInitialized) {
+                              vc.setVolume(
+                                  agendaController.isMuted.value ? 0 : 1);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Obx(() => Icon(
+                                  agendaController.isMuted.value
+                                      ? CupertinoIcons.volume_off
+                                      : CupertinoIcons.volume_up,
+                                  color: Colors.white,
+                                  size: 14,
+                                )),
+                          ),
                         ),
-                        child: Obx(() => Icon(
-                              agendaController.isMuted.value
-                                  ? CupertinoIcons.volume_off
-                                  : CupertinoIcons.volume_up,
-                              color: Colors.white,
-                              size: 16,
-                            )),
-                      ),
+                      ],
                     ),
                   ),
                 _buildClassicMediaHeader(),

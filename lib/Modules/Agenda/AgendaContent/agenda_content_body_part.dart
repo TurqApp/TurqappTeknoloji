@@ -389,7 +389,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 margin: const EdgeInsets.only(
                                                     right: 6),
                                                 padding:
-                                                    const EdgeInsets.all(8),
+                                                    const EdgeInsets.all(7),
                                                 decoration: const BoxDecoration(
                                                   color: Colors.black54,
                                                   shape: BoxShape.circle,
@@ -401,7 +401,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       : CupertinoIcons
                                                           .play_fill,
                                                   color: Colors.white,
-                                                  size: 16,
+                                                  size: 14,
                                                 ),
                                               ),
                                             );
@@ -411,7 +411,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           onTap:
                                               agendaController.isMuted.toggle,
                                           child: Container(
-                                            padding: const EdgeInsets.all(8),
+                                            padding: const EdgeInsets.all(7),
                                             decoration: const BoxDecoration(
                                               color: Colors.black54,
                                               shape: BoxShape.circle,
@@ -422,7 +422,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                     ? CupertinoIcons.volume_off
                                                     : CupertinoIcons.volume_up,
                                                 color: Colors.white,
-                                                size: 16,
+                                                size: 14,
                                               );
                                             }),
                                           ),
