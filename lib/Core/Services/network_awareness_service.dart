@@ -8,6 +8,7 @@ import 'SegmentCache/prefetch_scheduler.dart';
 
 part 'network_awareness_service_policy_part.dart';
 part 'network_awareness_service_class_part.dart';
+part 'network_awareness_service_base_part.dart';
 part 'network_awareness_service_facade_part.dart';
 part 'network_awareness_service_fields_part.dart';
 part 'network_awareness_service_models_part.dart';

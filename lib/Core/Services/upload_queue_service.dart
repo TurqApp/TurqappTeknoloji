@@ -27,6 +27,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'upload_queue_service_helpers_part.dart';
 part 'upload_queue_service_class_part.dart';
+part 'upload_queue_service_base_part.dart';
 part 'upload_queue_service_constants_part.dart';
 part 'upload_queue_service_facade_part.dart';
 part 'upload_queue_service_fields_part.dart';

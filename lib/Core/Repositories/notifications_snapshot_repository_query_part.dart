@@ -38,7 +38,7 @@ extension NotificationsSnapshotRepositoryQueryPart
     );
     return _coordinator.bootstrap(
       ScopedSnapshotKey(
-        surfaceKey: NotificationsSnapshotRepository._surfaceKey,
+        surfaceKey: _notificationsInboxSnapshotSurfaceKey,
         userId: query.userId.trim(),
         scopeId: query.scopeId,
       ),

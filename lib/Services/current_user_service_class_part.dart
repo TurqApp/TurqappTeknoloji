@@ -8,15 +8,4 @@ class CurrentUserService extends _CurrentUserServiceBase {
   CurrentUserService._internal() {
     WidgetsBinding.instance.addObserver(this);
   }
-
-  @override
-  void onClose() {
-    _handleCurrentUserServiceClose(this);
-    super.onClose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _handleCurrentUserLifecycleState(this, state);
-  }
 }

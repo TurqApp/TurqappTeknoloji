@@ -1,5 +1,14 @@
 part of 'sign_in_controller.dart';
 
+SignInController ensureSignInController({
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureSignInControllerFacade(tag: tag, permanent: permanent);
+
+SignInController? maybeFindSignInController({String? tag}) =>
+    _maybeFindSignInControllerFacade(tag: tag);
+
 SignInController _ensureSignInControllerFacade({
   String? tag,
   bool permanent = false,

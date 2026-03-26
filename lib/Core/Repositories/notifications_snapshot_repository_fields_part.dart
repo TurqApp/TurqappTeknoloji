@@ -1,5 +1,8 @@
 part of 'notifications_snapshot_repository.dart';
 
+const String _notificationsInboxSnapshotSurfaceKey =
+    'notifications_inbox_snapshot';
+
 class _NotificationsSnapshotRepositoryState {
   _NotificationsSnapshotRepositoryState(NotificationsSnapshotRepository owner)
       : notificationsRepository = NotificationsRepository.ensure(),
@@ -25,7 +28,7 @@ class _NotificationsSnapshotRepositoryState {
 
     pipeline = CacheFirstQueryPipeline<NotificationsSnapshotQuery,
         List<NotificationModel>, List<NotificationModel>>(
-      surfaceKey: NotificationsSnapshotRepository._surfaceKey,
+      surfaceKey: _notificationsInboxSnapshotSurfaceKey,
       coordinator: coordinator,
       userIdResolver: (query) => query.userId.trim(),
       scopeIdBuilder: (query) => query.scopeId,

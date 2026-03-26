@@ -1,9 +1,8 @@
 part of 'notifications_snapshot_repository.dart';
 
-class NotificationsSnapshotRepository extends GetxService {
+class NotificationsSnapshotRepository
+    extends _NotificationsSnapshotRepositoryBase {
   NotificationsSnapshotRepository();
-
-  static const String _surfaceKey = 'notifications_inbox_snapshot';
 
   static NotificationsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<NotificationsSnapshotRepository>();
@@ -16,7 +15,4 @@ class NotificationsSnapshotRepository extends GetxService {
     if (existing != null) return existing;
     return Get.put(NotificationsSnapshotRepository(), permanent: true);
   }
-
-  late final _NotificationsSnapshotRepositoryState _state =
-      _NotificationsSnapshotRepositoryState(this);
 }
