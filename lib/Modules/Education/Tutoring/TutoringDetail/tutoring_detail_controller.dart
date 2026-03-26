@@ -9,8 +9,10 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'tutoring_detail_controller_reviews_part.dart';
 part 'tutoring_detail_controller_runtime_part.dart';
 part 'tutoring_detail_controller_actions_part.dart';
+part 'tutoring_detail_controller_facade_part.dart';
 part 'tutoring_detail_controller_fields_part.dart';
 part 'tutoring_detail_controller_models_part.dart';
+part 'tutoring_detail_controller_support_part.dart';
 
 class TutoringDetailController extends GetxController {
   static TutoringDetailController ensure({
@@ -37,35 +39,6 @@ class TutoringDetailController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final tutoringData = Get.arguments as TutoringModel?;
-    if (tutoringData != null) {
-      _TutoringDetailControllerRuntimeX(this).bootstrap(tutoringData);
-    }
+    _bootstrapFromArguments();
   }
-
-  Future<void> fetchUserData(String userID) =>
-      _TutoringDetailControllerRuntimeX(this).fetchUserData(userID);
-
-  Future<void> fetchTutoringDetail(String docID) =>
-      _TutoringDetailControllerRuntimeX(this).fetchTutoringDetail(docID);
-
-  // ── Application ──
-
-  Future<void> checkBasvuru(String docID) =>
-      _TutoringDetailControllerRuntimeX(this).checkBasvuru(docID);
-
-  Future<void> toggleBasvuru(String docId) =>
-      _TutoringDetailControllerActionsX(this).toggleBasvuru(docId);
-
-  // ── View Count ──
-
-  // ── Unpublish ──
-
-  Future<void> unpublishTutoring() =>
-      _TutoringDetailControllerActionsX(this).unpublishTutoring();
-
-  // ── Similar ──
-
-  Future<void> getSimilar(String brans, String currentDocID) =>
-      _TutoringDetailControllerRuntimeX(this).getSimilar(brans, currentDocID);
 }

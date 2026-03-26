@@ -21,6 +21,7 @@ part 'create_book_controller_submission_part.dart';
 part 'create_book_controller_answer_key_part.dart';
 part 'create_book_controller_facade_part.dart';
 part 'create_book_controller_fields_part.dart';
+part 'create_book_controller_support_part.dart';
 
 class CreateBookController extends GetxController {
   static CreateBookController ensure(
@@ -44,16 +45,15 @@ class CreateBookController extends GetxController {
     return Get.find<CreateBookController>(tag: tag);
   }
 
-  final Function? onBack;
-  final BookletModel? existingBook;
-  late final String docID;
-  final BookletRepository _bookletRepository = BookletRepository.ensure();
-  final _state = _CreateBookControllerState();
+  final _CreateBookControllerState _state;
 
-  CreateBookController(this.onBack, {this.existingBook}) {
-    docID =
-        existingBook?.docID ?? DateTime.now().millisecondsSinceEpoch.toString();
-  }
+  CreateBookController(
+    Function? onBack, {
+    BookletModel? existingBook,
+  }) : _state = _CreateBookControllerState(
+          onBack: onBack,
+          existingBook: existingBook,
+        );
 
   @override
   void onInit() {
@@ -63,9 +63,7 @@ class CreateBookController extends GetxController {
 
   @override
   void onClose() {
-    baslikController.dispose();
-    yayinEviController.dispose();
-    basimTarihiController.dispose();
+    _disposeCreateBookController();
     super.onClose();
   }
 }

@@ -22,6 +22,7 @@ part 'answer_key_content_controller_actions_part.dart';
 part 'answer_key_content_controller_facade_part.dart';
 part 'answer_key_content_controller_fields_part.dart';
 part 'answer_key_content_controller_runtime_part.dart';
+part 'answer_key_content_controller_support_part.dart';
 
 class AnswerKeyContentController extends GetxController {
   static final Map<String, Set<String>> _savedIdsByUser =
@@ -44,19 +45,16 @@ class AnswerKeyContentController extends GetxController {
   static AnswerKeyContentController? maybeFind({String? tag}) =>
       _maybeFindAnswerKeyContentController(tag: tag);
 
-  final _state = _AnswerKeyContentControllerState();
-  BookletModel model;
-  final Function(bool) onUpdate;
+  final _AnswerKeyContentControllerState _state;
 
-  AnswerKeyContentController(this.model, this.onUpdate);
+  AnswerKeyContentController(BookletModel model, Function(bool) onUpdate)
+      : _state = _AnswerKeyContentControllerState(
+          model: model,
+          onUpdate: onUpdate,
+        );
 
   static String _resolveCurrentUid() =>
       _resolveAnswerKeyContentCurrentUidFacade();
-
-  bool get isOwner => isCurrentUserId(model.userID);
-
-  void syncModel(BookletModel nextModel) =>
-      _syncAnswerKeyContentModel(this, nextModel);
 
   @override
   void onInit() {

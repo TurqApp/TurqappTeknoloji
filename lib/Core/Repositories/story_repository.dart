@@ -31,41 +31,22 @@ part 'story_repository_facade_part.dart';
 part 'story_repository_engagement_facade_part.dart';
 part 'story_repository_cache_facade_part.dart';
 part 'story_repository_query_facade_part.dart';
+part 'story_repository_fields_part.dart';
+part 'story_repository_support_part.dart';
 
 class StoryRepository extends GetxService {
   static const Duration _storyRowCacheTtl = Duration(minutes: 15);
   static const Duration _deletedStoriesCacheTtl = Duration(hours: 12);
   static const int _deletedStoriesCacheLimit = 100;
-  Duration get storyRowCacheTtlInternal => _storyRowCacheTtl;
-  Duration get deletedStoriesCacheTtlInternal => _deletedStoriesCacheTtl;
-  int get deletedStoriesCacheLimitInternal => _deletedStoriesCacheLimit;
 
   UserProfileCacheService get _userCache =>
       _resolveStoryRepositoryUserCache(this);
-
-  final UserRepository _userRepository = UserRepository.ensure();
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
-
-  String? _storyRowCacheDirectoryPath;
-  SharedPreferences? _prefs;
+  final _StoryRepositoryState _state = _StoryRepositoryState();
 
   static DateTime get _storyExpiryCutoff =>
       _storyRepositoryResolveStoryExpiryCutoff();
-  DateTime get storyExpiryCutoffInternal => _storyExpiryCutoff;
-
-  int _asEpochMillis(dynamic value, {int fallback = 0}) =>
-      _storyRepositoryAsEpochMillis(this, value, fallback: fallback);
-
-  List<Map<String, dynamic>> _normalizeStoryElements(dynamic raw) =>
-      _normalizeStoryRepositoryElements(this, raw);
 
   static StoryRepository ensure() => _ensureStoryRepository();
 
   static StoryRepository? maybeFind() => _maybeFindStoryRepository();
-
-  Future<void> _ensureInitialized() => _ensureStoryRepositoryInitialized(this);
-
-  String? _storyRowCachePathForOwner(String ownerUid) =>
-      _storyRepositoryCachePathForOwner(this, ownerUid);
 }

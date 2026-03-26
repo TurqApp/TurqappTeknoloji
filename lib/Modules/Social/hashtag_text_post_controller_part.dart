@@ -30,23 +30,19 @@ class HashtagTextVideoPostController extends GetxController {
     return Get.find<HashtagTextVideoPostController>(tag: tag);
   }
 
-  final String text;
-  final String? nickname;
-  final Color color;
-  final void Function(bool) volume;
+  final _HashtagTextVideoPostControllerState _state;
 
   HashtagTextVideoPostController({
-    required this.text,
-    this.nickname,
-    required this.color,
-    required this.volume,
-  });
-
-  final expanded = false.obs;
-  final showExpandButton = false.obs;
-  final spans = <TextSpan>[].obs;
-
-  Color get interactiveColor => Colors.blueAccent;
+    required String text,
+    String? nickname,
+    required Color color,
+    required void Function(bool) volume,
+  }) : _state = _HashtagTextVideoPostControllerState(
+          text: text,
+          nickname: nickname,
+          color: color,
+          volume: volume,
+        );
 
   @override
   void onInit() {
@@ -58,17 +54,5 @@ class HashtagTextVideoPostController extends GetxController {
   void onClose() {
     HashtagTextVideoPostControllerRuntimePart(this).onClose();
     super.onClose();
-  }
-
-  void _buildSpans() =>
-      HashtagTextVideoPostControllerRuntimePart(this).buildSpans();
-
-  void toggleExpand() {
-    expanded.toggle();
-    _buildSpans();
-  }
-
-  void checkOverflow(TextPainter tp) {
-    showExpandButton.value = tp.didExceedMaxLines;
   }
 }
