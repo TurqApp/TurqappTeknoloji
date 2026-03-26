@@ -13,7 +13,7 @@ extension ScholarshipProvidersControllerRuntimePart
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'scholarships:providers',
-        minInterval: ScholarshipProvidersController._silentRefreshInterval,
+        minInterval: _scholarshipProvidersSilentRefreshInterval,
       )) {
         unawaited(_fetchProvidersImpl(silent: true, forceRefresh: true));
       }

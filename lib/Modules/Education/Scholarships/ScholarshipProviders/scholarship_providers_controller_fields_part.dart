@@ -8,6 +8,9 @@ class _ScholarshipProvidersControllerState {
   final RxList<Map<String, dynamic>> providers = <Map<String, dynamic>>[].obs;
 }
 
+const Duration _scholarshipProvidersSilentRefreshInterval =
+    Duration(minutes: 5);
+
 extension ScholarshipProvidersControllerFieldsPart
     on ScholarshipProvidersController {
   UserRepository get _userRepository => _state.userRepository;

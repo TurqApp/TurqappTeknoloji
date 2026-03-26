@@ -5,7 +5,13 @@ class _PageLineBarControllerState {
   final pageController = PageController();
 }
 
+final _pageLineBarControllerStates = Expando<_PageLineBarControllerState>(
+  'pageLineBarControllerState',
+);
+
 extension PageLineBarControllerFieldsPart on PageLineBarController {
+  _PageLineBarControllerState get _state =>
+      _pageLineBarControllerStates[this] ??= _PageLineBarControllerState();
   RxInt get selection => _state.selection;
   PageController get pageController => _state.pageController;
 }
