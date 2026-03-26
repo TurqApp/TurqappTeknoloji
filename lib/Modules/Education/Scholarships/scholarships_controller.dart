@@ -30,6 +30,7 @@ part 'scholarships_controller_actions_part.dart';
 part 'scholarships_controller_fields_part.dart';
 part 'scholarships_controller_models_part.dart';
 part 'scholarships_controller_runtime_part.dart';
+part 'scholarships_controller_support_part.dart';
 
 class ScholarshipsController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
@@ -47,17 +48,8 @@ class ScholarshipsController extends GetxController {
     return Get.find<ScholarshipsController>();
   }
 
-  static const int _shortLinkPrefetchLimit = 6;
-  static const String _defaultOgImage =
-      'https://cdn.turqapp.com/og/default.jpg';
-
-  final FollowRepository _followRepository = FollowRepository.ensure();
-  final ScholarshipRepository _scholarshipRepository =
-      ScholarshipRepository.ensure();
-  final ScholarshipSnapshotRepository _scholarshipSnapshotRepository =
-      ScholarshipSnapshotRepository.ensure();
   final _state = _ScholarshipsControllerState();
-  final int minSearchLength = 2;
+
   @override
   void onInit() {
     super.onInit();

@@ -48,15 +48,10 @@ class CreateTutoringController extends GetxController {
     return Get.find<CreateTutoringController>(tag: tag);
   }
 
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
   final _state = _CreateTutoringControllerState();
 
   static List<String> get weekDays => _createTutoringWeekDays;
   static List<String> get timeSlots => _createTutoringTimeSlots;
-
-  double? _lat;
-  double? _long;
 
   @override
   void onInit() {

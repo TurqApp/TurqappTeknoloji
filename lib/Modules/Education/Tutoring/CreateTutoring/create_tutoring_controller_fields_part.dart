@@ -1,6 +1,7 @@
 part of 'create_tutoring_controller.dart';
 
 class _CreateTutoringControllerState {
+  final cityDirectoryService = CityDirectoryService.ensure();
   final carouselCurrentIndex = 0.obs;
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
@@ -20,9 +21,12 @@ class _CreateTutoringControllerState {
   final selectedBranch = ''.obs;
   final isLoading = false.obs;
   final availability = <String, List<String>>{}.obs;
+  double? lat;
+  double? long;
 }
 
 extension CreateTutoringControllerFieldsPart on CreateTutoringController {
+  CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
   RxInt get carouselCurrentIndex => _state.carouselCurrentIndex;
   GlobalKey<FormState> get formKey => _state.formKey;
   TextEditingController get titleController => _state.titleController;
@@ -44,4 +48,8 @@ extension CreateTutoringControllerFieldsPart on CreateTutoringController {
   RxString get selectedBranch => _state.selectedBranch;
   RxBool get isLoading => _state.isLoading;
   RxMap<String, List<String>> get availability => _state.availability;
+  double? get _lat => _state.lat;
+  set _lat(double? value) => _state.lat = value;
+  double? get _long => _state.long;
+  set _long(double? value) => _state.long = value;
 }

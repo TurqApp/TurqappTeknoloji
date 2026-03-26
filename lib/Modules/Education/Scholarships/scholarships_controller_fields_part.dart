@@ -1,6 +1,9 @@
 part of 'scholarships_controller.dart';
 
 class _ScholarshipsControllerState {
+  final followRepository = FollowRepository.ensure();
+  final scholarshipRepository = ScholarshipRepository.ensure();
+  final scholarshipSnapshotRepository = ScholarshipSnapshotRepository.ensure();
   final scrollController = ScrollController();
   final allScholarships = <Map<String, dynamic>>[].obs;
   final visibleScholarships = <Map<String, dynamic>>[].obs;
@@ -32,6 +35,11 @@ class _ScholarshipsControllerState {
 }
 
 extension ScholarshipsControllerFieldsPart on ScholarshipsController {
+  FollowRepository get _followRepository => _state.followRepository;
+  ScholarshipRepository get _scholarshipRepository =>
+      _state.scholarshipRepository;
+  ScholarshipSnapshotRepository get _scholarshipSnapshotRepository =>
+      _state.scholarshipSnapshotRepository;
   ScrollController get scrollController => _state.scrollController;
   RxList<Map<String, dynamic>> get allScholarships => _state.allScholarships;
   RxList<Map<String, dynamic>> get visibleScholarships =>

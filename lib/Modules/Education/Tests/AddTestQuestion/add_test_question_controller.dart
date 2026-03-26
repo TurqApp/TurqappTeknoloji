@@ -11,6 +11,7 @@ import 'dart:io';
 
 part 'add_test_question_controller_actions_part.dart';
 part 'add_test_question_controller_data_part.dart';
+part 'add_test_question_controller_fields_part.dart';
 
 const _addQuestionMiddleSchoolType = 'Ortaokul';
 
@@ -43,25 +44,19 @@ class AddTestQuestionController extends GetxController {
     return Get.find<AddTestQuestionController>(tag: tag);
   }
 
-  final List<TestReadinessModel> initialSoruList;
-  final String testID;
-  final String testTuru;
-  final Function onUpdate;
-  final soruList = <TestReadinessModel>[].obs;
-  final selectedImage = Rx<File?>(null);
-  final dogruCevap = ''.obs;
-  final selection = 5.obs;
-  final selections = ['A'].obs;
-  final isLoading = true.obs;
-  final ImagePicker picker = ImagePicker();
-  final TestRepository _testRepository = TestRepository.ensure();
+  final _AddTestQuestionControllerState _state;
 
   AddTestQuestionController({
-    required this.initialSoruList,
-    required this.testID,
-    required this.testTuru,
-    required this.onUpdate,
-  });
+    required List<TestReadinessModel> initialSoruList,
+    required String testID,
+    required String testTuru,
+    required Function onUpdate,
+  }) : _state = _AddTestQuestionControllerState(
+          initialSoruList: initialSoruList,
+          testID: testID,
+          testTuru: testTuru,
+          onUpdate: onUpdate,
+        );
 
   @override
   void onInit() {

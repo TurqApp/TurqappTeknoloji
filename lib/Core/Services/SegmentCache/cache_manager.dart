@@ -15,6 +15,7 @@ import 'models.dart';
 
 part 'cache_manager_eviction_part.dart';
 part 'cache_manager_facade_part.dart';
+part 'cache_manager_fields_part.dart';
 part 'cache_manager_runtime_part.dart';
 part 'cache_manager_storage_part.dart';
 part 'cache_manager_write_part.dart';
@@ -43,26 +44,7 @@ class SegmentCacheManager extends GetxController {
     return Get.put(SegmentCacheManager(), permanent: true);
   }
 
-  late String _cacheDir;
-  CacheIndex _index = CacheIndex();
-  final CacheMetrics metrics = CacheMetrics();
-  int? _userHardLimitBytes;
-  int? _userSoftLimitBytes;
-
-  Timer? _persistTimer;
-  Timer? _reconcileTimer;
-  bool _persistDirty = false;
-
-  /// Per-key write lock — aynı segment için eş zamanlı yazımı engeller.
-  final Map<String, Future<File>> _writeInFlight = {};
-
-  /// Coalesced eviction — birden fazla writeSegment tek eviction tetikler.
-  Future<void>? _evictionInFlight;
-
-  /// Son N oynatılan video — eviction'da korunur.
-  final List<String> _recentlyPlayed = [];
-  final Map<String, double> _lastPersistedProgress = {};
-  final Map<String, DateTime> _lastPersistedProgressAt = {};
+  final _state = _SegmentCacheManagerState();
 
   @override
   Future<void> onClose() async {

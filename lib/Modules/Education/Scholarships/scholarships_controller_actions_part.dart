@@ -236,8 +236,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
   }
 
   void _prefetchShortLinksForList(List<Map<String, dynamic>> list) {
-    final items =
-        list.take(ScholarshipsController._shortLinkPrefetchLimit).toList();
+    final items = list.take(_scholarshipShortLinkPrefetchLimit).toList();
     for (final item in items) {
       final docId = (item['docId'] ?? '').toString();
       if (docId.isEmpty) continue;
@@ -282,7 +281,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
     if (img2.isNotEmpty) return img2;
     final logo = model.logo.trim();
     if (logo.isNotEmpty) return logo;
-    return ScholarshipsController._defaultOgImage;
+    return _scholarshipDefaultOgImage;
   }
 
   String _readTextField(Map<String, dynamic> data, String key) {

@@ -1,0 +1,43 @@
+part of 'cache_manager.dart';
+
+class _SegmentCacheManagerState {
+  String? cacheDir;
+  CacheIndex index = CacheIndex();
+  final metrics = CacheMetrics();
+  int? userHardLimitBytes;
+  int? userSoftLimitBytes;
+  Timer? persistTimer;
+  Timer? reconcileTimer;
+  bool persistDirty = false;
+  final writeInFlight = <String, Future<File>>{};
+  Future<void>? evictionInFlight;
+  final recentlyPlayed = <String>[];
+  final lastPersistedProgress = <String, double>{};
+  final lastPersistedProgressAt = <String, DateTime>{};
+}
+
+extension SegmentCacheManagerFieldsPart on SegmentCacheManager {
+  String get _cacheDir => _state.cacheDir!;
+  set _cacheDir(String value) => _state.cacheDir = value;
+  CacheIndex get _index => _state.index;
+  set _index(CacheIndex value) => _state.index = value;
+  CacheMetrics get metrics => _state.metrics;
+  int? get _userHardLimitBytes => _state.userHardLimitBytes;
+  set _userHardLimitBytes(int? value) => _state.userHardLimitBytes = value;
+  int? get _userSoftLimitBytes => _state.userSoftLimitBytes;
+  set _userSoftLimitBytes(int? value) => _state.userSoftLimitBytes = value;
+  Timer? get _persistTimer => _state.persistTimer;
+  set _persistTimer(Timer? value) => _state.persistTimer = value;
+  Timer? get _reconcileTimer => _state.reconcileTimer;
+  set _reconcileTimer(Timer? value) => _state.reconcileTimer = value;
+  bool get _persistDirty => _state.persistDirty;
+  set _persistDirty(bool value) => _state.persistDirty = value;
+  Map<String, Future<File>> get _writeInFlight => _state.writeInFlight;
+  Future<void>? get _evictionInFlight => _state.evictionInFlight;
+  set _evictionInFlight(Future<void>? value) => _state.evictionInFlight = value;
+  List<String> get _recentlyPlayed => _state.recentlyPlayed;
+  Map<String, double> get _lastPersistedProgress =>
+      _state.lastPersistedProgress;
+  Map<String, DateTime> get _lastPersistedProgressAt =>
+      _state.lastPersistedProgressAt;
+}
