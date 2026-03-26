@@ -90,16 +90,14 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
 
   Future<void> _onPostNotificationPressed() async {
     if (controller.postNotificationsLoading.value) return;
-    if (controller.postNotificationsEnabled.value == false) {
-      final status = await Permission.notification.status;
-      final canNotify =
-          status.isGranted || status.isLimited || status.isProvisional;
-      if (!canNotify) {
-        await _showPostNotificationPermissionDialog();
-        return;
-      }
+    final status = await Permission.notification.status;
+    final canNotify =
+        status.isGranted || status.isLimited || status.isProvisional;
+    if (!canNotify) {
+      await _showPostNotificationPermissionDialog();
+      return;
     }
-    await controller.togglePostNotifications();
+    await _showPostNotificationOptionsSheet();
   }
 
   Future<void> _showPostNotificationPermissionDialog() async {
@@ -128,6 +126,36 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
               child: const Text('İptal et'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showPostNotificationOptionsSheet() async {
+    final enabled = controller.postNotificationsEnabled.value;
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) {
+        return CupertinoActionSheet(
+          title: const Text('Bildirim tercihleri'),
+          message: Text('@${controller.nickname.value} için tüm gönderiler'),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                await controller.togglePostNotifications();
+              },
+              isDefaultAction: !enabled,
+              isDestructiveAction: enabled,
+              child: Text(
+                enabled ? 'Tüm gönderileri kapat' : 'Tüm gönderileri aç',
+              ),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('İptal'),
+          ),
         );
       },
     );
