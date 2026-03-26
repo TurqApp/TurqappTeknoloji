@@ -1,17 +1,11 @@
 part of 'user_story_content_controller.dart';
 
-class UserStoryContentController extends GetxController {
-  final _UserStoryContentControllerState _state;
-
+class UserStoryContentController extends _UserStoryContentControllerBase {
   UserStoryContentController({
-    required String storyID,
-    required String nickname,
-    required bool isMyStory,
-  }) : _state = _UserStoryContentControllerState(
-          storyID: storyID,
-          nickname: nickname,
-          isMyStory: isMyStory,
-        );
+    required super.storyID,
+    required super.nickname,
+    required super.isMyStory,
+  }) : super();
 
   static const List<String> reactionEmojis = [
     '❤️',

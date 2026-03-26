@@ -1,14 +1,10 @@
 part of 'chat_listing_controller.dart';
 
-class ChatListingController extends GetxController {
+class ChatListingController extends _ChatListingControllerBase {
   static ChatListingController ensure() => _ensureChatListingController();
 
   static ChatListingController? maybeFind() =>
       _maybeFindChatListingController();
-
-  final _state = _ChatListingControllerState();
-  final ConversationRepository _conversationRepository =
-      ConversationRepository.ensure();
 
   @override
   void onInit() {

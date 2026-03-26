@@ -1,9 +1,7 @@
 part of 'saved_posts_controller.dart';
 
-class SavedPostsController extends GetxController {
+class SavedPostsController extends _SavedPostsControllerBase {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-
-  final _SavedPostsControllerState _state = _SavedPostsControllerState();
 
   @override
   void onInit() {

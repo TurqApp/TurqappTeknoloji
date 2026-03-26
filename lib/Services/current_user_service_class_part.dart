@@ -1,6 +1,6 @@
 part of 'current_user_service.dart';
 
-class CurrentUserService extends GetxController with WidgetsBindingObserver {
+class CurrentUserService extends _CurrentUserServiceBase {
   static CurrentUserService? _instance;
 
   static CurrentUserService get instance => _currentUserServiceInstance();
@@ -8,8 +8,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   CurrentUserService._internal() {
     WidgetsBinding.instance.addObserver(this);
   }
-
-  final _state = _CurrentUserServiceState();
 
   @override
   void onClose() {

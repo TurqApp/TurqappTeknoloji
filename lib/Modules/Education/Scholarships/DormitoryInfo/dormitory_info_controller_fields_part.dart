@@ -15,7 +15,7 @@ class _DormitoryInfoControllerState {
   final CityDirectoryService cityDirectoryService =
       ensureCityDirectoryService();
   final EducationReferenceDataService referenceDataService =
-      EducationReferenceDataService.ensure();
+      ensureEducationReferenceDataService();
   final RxBool isLoading = true.obs;
   final RxString sehir;
   final RxString ilce;

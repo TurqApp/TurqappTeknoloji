@@ -38,7 +38,7 @@ class DenemeSinavlari extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final DenemeSinavlariController controller =
-      DenemeSinavlariController.ensure(permanent: true);
+      ensureDenemeSinavlariController(permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override

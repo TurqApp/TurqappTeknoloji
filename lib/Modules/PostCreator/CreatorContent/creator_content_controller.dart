@@ -27,6 +27,7 @@ import '../../../Themes/app_colors.dart';
 import '../post_creator_controller.dart';
 import 'composer_hashtag_utils.dart';
 
+part 'creator_content_controller_base_part.dart';
 part 'creator_content_controller_class_part.dart';
 part 'creator_content_controller_poll_part.dart';
 part 'creator_content_controller_facade_part.dart';

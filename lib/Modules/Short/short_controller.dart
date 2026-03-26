@@ -24,6 +24,7 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import '../../Models/posts_model.dart';
 
 part 'short_controller_loading_part.dart';
+part 'short_controller_base_part.dart';
 part 'short_controller_cache_part.dart';
 part 'short_controller_facade_part.dart';
 part 'short_controller_fields_part.dart';

@@ -1,8 +1,6 @@
 part of 'creator_content_controller.dart';
 
-class CreatorContentController extends GetxController
-    with WidgetsBindingObserver {
-  final _state = _CreatorContentControllerState();
+class CreatorContentController extends _CreatorContentControllerBase {
   _CreatorContentControllerLifecyclePart get _lifecycle =>
       _CreatorContentControllerLifecyclePart(this);
 

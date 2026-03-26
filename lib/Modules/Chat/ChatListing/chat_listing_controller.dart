@@ -16,6 +16,7 @@ import '../CreateChat/create_chat.dart';
 
 part 'chat_listing_controller_data_part.dart';
 part 'chat_listing_controller_actions_part.dart';
+part 'chat_listing_controller_base_part.dart';
 part 'chat_listing_controller_facade_part.dart';
 part 'chat_listing_controller_fields_part.dart';
 part 'chat_listing_controller_class_part.dart';

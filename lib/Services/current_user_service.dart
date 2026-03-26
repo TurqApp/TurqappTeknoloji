@@ -31,6 +31,7 @@ part 'current_user_service_cache_part.dart';
 part 'current_user_service_access_part.dart';
 part 'current_user_service_facade_part.dart';
 part 'current_user_service_account_part.dart';
+part 'current_user_service_base_part.dart';
 part 'current_user_service_auth_part.dart';
 part 'current_user_service_class_part.dart';
 part 'current_user_service_fields_part.dart';

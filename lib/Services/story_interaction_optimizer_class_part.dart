@@ -1,6 +1,6 @@
 part of 'story_interaction_optimizer.dart';
 
-class StoryInteractionOptimizer extends GetxService {
+class StoryInteractionOptimizer extends _StoryInteractionOptimizerBase {
   static StoryInteractionOptimizer? maybeFind() =>
       _maybeFindStoryInteractionOptimizer();
 
@@ -8,7 +8,6 @@ class StoryInteractionOptimizer extends GetxService {
       _ensureStoryInteractionOptimizer();
 
   static StoryInteractionOptimizer get to => ensure();
-  final _state = _StoryInteractionOptimizerState();
 
   @override
   void onInit() {

@@ -62,7 +62,7 @@ extension EducationViewActionsPart on EducationView {
         PasajTabIds.onlineExam) {
       return null;
     }
-    return DenemeSinavlariController.ensure(permanent: true);
+    return ensureDenemeSinavlariController(permanent: true);
   }
 
   bool _showInlinePracticeExamActions() {
@@ -228,7 +228,7 @@ extension EducationViewActionsPart on EducationView {
       case PasajTabIds.practiceExams:
         return maybeFindCikmisSorularController()?.scrollController;
       case PasajTabIds.onlineExam:
-        return DenemeSinavlariController.maybeFind()?.scrollController;
+        return maybeFindDenemeSinavlariController()?.scrollController;
       case PasajTabIds.answerKey:
         return maybeFindAnswerKeyController()?.scrollController;
       case PasajTabIds.tutoring:
@@ -249,7 +249,7 @@ extension EducationViewActionsPart on EducationView {
         return (maybeFindCikmisSorularController()?.scrollOffset.value ?? 0) <=
             350;
       case PasajTabIds.onlineExam:
-        return (DenemeSinavlariController.maybeFind()?.scrollOffset.value ??
+        return (maybeFindDenemeSinavlariController()?.scrollOffset.value ??
                 0) <=
             350;
       case PasajTabIds.answerKey:

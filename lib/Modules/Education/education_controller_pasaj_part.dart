@@ -217,7 +217,7 @@ extension EducationControllerPasajPart on EducationController {
         }
         break;
       case PasajTabIds.onlineExam:
-        final exams = DenemeSinavlariController.maybeFind();
+        final exams = maybeFindDenemeSinavlariController();
         if (exams != null) {
           _resetTrackedScrollController(exams.scrollController);
           exams.scrollOffset.value = 0;

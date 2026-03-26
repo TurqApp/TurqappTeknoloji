@@ -6,7 +6,7 @@ class _EducationInfoControllerState {
   final CityDirectoryService cityDirectoryService =
       ensureCityDirectoryService();
   final EducationReferenceDataService referenceDataService =
-      EducationReferenceDataService.ensure();
+      ensureEducationReferenceDataService();
   final RxString selectedEducationLevel = ''.obs;
   final RxString content = ''.obs;
   final RxBool isLoading = false.obs;

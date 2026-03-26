@@ -1,5 +1,13 @@
 part of 'deneme_sinavlari_controller.dart';
 
+DenemeSinavlariController ensureDenemeSinavlariController({
+  bool permanent = false,
+}) =>
+    _ensureDenemeSinavlariController(permanent: permanent);
+
+DenemeSinavlariController? maybeFindDenemeSinavlariController() =>
+    _maybeFindDenemeSinavlariController();
+
 DenemeSinavlariController _ensureDenemeSinavlariController({
   bool permanent = false,
 }) {
