@@ -16,12 +16,8 @@ class MyScholarshipController extends GetxController {
     return Get.find<MyScholarshipController>(tag: tag);
   }
 
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final ScholarshipRepository _scholarshipRepository =
-      ScholarshipRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  var isLoading = true.obs;
-  final myScholarships = <Map<String, dynamic>>[].obs;
+  final _MyScholarshipControllerState _state = _MyScholarshipControllerState();
 
   @override
   void onInit() {

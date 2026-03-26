@@ -5,7 +5,8 @@ class QALabRemoteUploader extends GetxService {
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
   })  : _firestoreOverride = firestore,
-        _authOverride = auth;
+        _authOverride = auth,
+        _state = _QALabRemoteUploaderState();
 
   static QALabRemoteUploader ensure() {
     final existing = maybeFind();
@@ -22,28 +23,7 @@ class QALabRemoteUploader extends GetxService {
 
   final FirebaseFirestore? _firestoreOverride;
   final FirebaseAuth? _authOverride;
-
-  final RxString lastSyncState = 'idle'.obs;
-  final RxString lastSyncError = ''.obs;
-  final RxString lastSyncReason = ''.obs;
-  final Rxn<DateTime> lastSyncedAt = Rxn<DateTime>();
-  final Rxn<DateTime> lastGateCheckedAt = Rxn<DateTime>();
-  final RxBool remoteCollectionEnabled = false.obs;
-  final RxInt uploadCount = 0.obs;
-  final RxInt uploadedOccurrenceCount = 0.obs;
-
-  Timer? _debounceTimer;
-  StreamSubscription<Map<String, dynamic>>? _qaConfigSubscription;
-  bool _syncInFlight = false;
-  Map<String, dynamic>? _pendingSessionDocument;
-  String _pendingReason = '';
-  final Map<String, Map<String, dynamic>> _pendingOccurrences =
-      <String, Map<String, dynamic>>{};
-  final Set<String> _uploadedOccurrenceIds = <String>{};
-  String _activeSessionId = '';
-  DateTime? _lastGateRefreshAt;
-  DateTime? _permissionDeniedUntil;
-  String _permissionDeniedSessionId = '';
+  final _QALabRemoteUploaderState _state;
 
   @override
   void onClose() {

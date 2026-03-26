@@ -12,3 +12,4 @@ import 'package:turqappv2/Services/user_post_link_service.dart';
 
 part 'saved_posts_controller_class_part.dart';
 part 'saved_posts_controller_data_part.dart';
+part 'saved_posts_controller_fields_part.dart';

@@ -12,4 +12,5 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../Chat/ChatListing/chat_listing_controller.dart';
 
 part 'share_grid_controller_runtime_part.dart';
+part 'share_grid_controller_fields_part.dart';
 part 'share_grid_controller_class_part.dart';

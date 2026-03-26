@@ -20,33 +20,16 @@ class FindingJobApplyController extends GetxController {
     return Get.find<FindingJobApplyController>(tag: tag);
   }
 
-  final CvRepository _cvRepository = CvRepository.ensure();
-  final cvVar = false.obs;
-  final isFinding = false.obs;
+  final _FindingJobApplyControllerState _state =
+      _FindingJobApplyControllerState();
 
   @override
   void onInit() {
     super.onInit();
-    cvCheck();
+    _handleFindingJobApplyControllerInit(this);
   }
 
-  Future<void> cvCheck() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final data = await _cvRepository.getCv(uid, preferCache: true);
-      cvVar.value = data != null;
-      if (data != null) {
-        isFinding.value = data['findingJob'] ?? false;
-      }
-    } catch (_) {}
-  }
+  Future<void> cvCheck() => _checkFindingJobCv(this);
 
-  Future<void> toggleFindingJob() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty || !cvVar.value) return;
-    final next = !isFinding.value;
-    isFinding.value = next;
-    await _cvRepository.updateCvFields(uid, {'findingJob': next});
-  }
+  Future<void> toggleFindingJob() => _toggleFindingJobState(this);
 }

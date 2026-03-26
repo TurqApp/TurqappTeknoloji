@@ -18,20 +18,7 @@ class SavedPostsController extends GetxController {
     return Get.find<SavedPostsController>();
   }
 
-  final RxList<PostsModel> savedAgendas = <PostsModel>[].obs;
-  final RxList<PostsModel> savedPostsOnly = <PostsModel>[].obs;
-  final RxList<PostsModel> savedSeries = <PostsModel>[].obs;
-
-  final isLoading = false.obs;
-  final PageController pageController = PageController(initialPage: 0);
-
-  StreamSubscription<User?>? _authSub;
-  StreamSubscription<List<UserPostReference>>? _savedPostsSub;
-  final UserPostLinkService _linkService = UserPostLinkService.ensure();
-  final PostRepository _postRepository = PostRepository.ensure();
-
-  String? _currentUserId;
-  List<UserPostReference> _latestRefs = const [];
+  final _SavedPostsControllerState _state = _SavedPostsControllerState();
 
   @override
   void onInit() {

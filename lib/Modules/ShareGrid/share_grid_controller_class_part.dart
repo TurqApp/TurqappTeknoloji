@@ -22,21 +22,15 @@ class ShareGridController extends GetxController {
     return Get.find<ShareGridController>(tag: tag);
   }
 
-  String postID;
-  String postType;
-  ShareGridController({required this.postType, required this.postID});
-  TextEditingController search = TextEditingController();
-  RxList<OgrenciModel> followings = <OgrenciModel>[].obs;
-  var selectedUser = Rx<OgrenciModel?>(null);
-  Rx<FocusNode> searchFocus = FocusNode().obs;
-  late final ChatListingController chatListingController =
-      ChatListingController.maybeFind() ?? ChatListingController.ensure();
-  final UserRepository _userRepository = UserRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final ConversationRepository _conversationRepository =
-      ConversationRepository.ensure();
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
+  final _ShareGridControllerState _state;
+
+  ShareGridController({
+    required String postType,
+    required String postID,
+  }) : _state = _ShareGridControllerState(
+          postType: postType,
+          postID: postID,
+        );
 
   @override
   void onInit() {
