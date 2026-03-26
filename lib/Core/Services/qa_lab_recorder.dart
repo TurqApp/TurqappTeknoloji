@@ -60,22 +60,4 @@ part 'qa_lab_recorder_diagnostics_timeline_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_helpers_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_dispatch_part.dart';
-
-class QALabRecorder extends GetxService {
-  static QALabRecorder ensure() => _ensureQALabRecorder();
-  static QALabRecorder? maybeFind() => _maybeFindQALabRecorder();
-
-  final _state = _QALabRecorderState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleQALabRecorderInit(this);
-  }
-
-  @override
-  void onClose() {
-    _handleQALabRecorderClose(this);
-    super.onClose();
-  }
-}
+part 'qa_lab_recorder_shell_part.dart';

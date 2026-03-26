@@ -42,40 +42,5 @@ part 'agenda_controller_models_part.dart';
 part 'agenda_controller_playback_part.dart';
 part 'agenda_controller_render_part.dart';
 part 'agenda_controller_reshare_part.dart';
+part 'agenda_controller_shell_part.dart';
 part 'agenda_controller_support_part.dart';
-
-class AgendaController extends GetxController {
-  static AgendaController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AgendaController(), permanent: permanent);
-  }
-
-  static AgendaController? maybeFind() {
-    final isRegistered = Get.isRegistered<AgendaController>();
-    if (!isRegistered) return null;
-    return Get.find<AgendaController>();
-  }
-
-  final _state = _AgendaControllerState();
-  static const Duration? _agendaWindow = null;
-  static const int _reshareScanPostLimit = 12;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleLifecycleInit();
-  }
-
-  @override
-  void onReady() {
-    super.onReady();
-    _handleLifecycleReady();
-  }
-
-  @override
-  void onClose() {
-    _handleLifecycleClose();
-    super.onClose();
-  }
-}

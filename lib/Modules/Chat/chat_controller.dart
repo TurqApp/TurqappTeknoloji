@@ -50,39 +50,5 @@ part 'chat_controller_local_cache_part.dart';
 part 'chat_controller_media_part.dart';
 part 'chat_controller_runtime_part.dart';
 part 'chat_controller_send_part.dart';
+part 'chat_controller_shell_part.dart';
 part 'chat_controller_support_part.dart';
-
-class ChatController extends GetxController {
-  static ChatController ensure({
-    required String chatID,
-    required String userID,
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureChatController(
-        chatID: chatID,
-        userID: userID,
-        tag: tag,
-        permanent: permanent,
-      );
-
-  static ChatController? maybeFind({String? tag}) =>
-      _resolveRegisteredChatController(tag: tag);
-
-  String chatID, userID;
-  final _state = _ChatControllerState();
-
-  ChatController({required this.chatID, required this.userID});
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleChatControllerInit(this);
-  }
-
-  @override
-  void onClose() {
-    _handleChatControllerClose(this);
-    super.onClose();
-  }
-}
