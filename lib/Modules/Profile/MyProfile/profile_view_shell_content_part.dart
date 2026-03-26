@@ -259,8 +259,7 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
 
     if (_hasMyStories) {
       final storyRow = maybeFindStoryRowController();
-      final storyOwnerUsers =
-          storyRow?.storyOwnerUsers ?? const <StoryUserModel>[];
+      final storyOwnerUsers = storyRow?.users ?? const <StoryUserModel>[];
 
       try {
         final myStoryUser = storyOwnerUsers.firstWhereOrNull(
