@@ -20,8 +20,6 @@ class VideoStateManager extends GetxController {
   }
 
   final _VideoStateManagerState _state = _VideoStateManagerState();
-  static const int _maxTrackedControllers = 30;
-  static const Duration _playResumeDelay = Duration(milliseconds: 140);
 
   @override
   void onClose() {

@@ -81,8 +81,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   void _registerPlaybackHandle(String docID, PlaybackHandle handle) {
     _allVideoControllers[docID] = handle;
 
-    if (_allVideoControllers.length >
-        VideoStateManager._maxTrackedControllers) {
+    if (_allVideoControllers.length > _videoStateManagerMaxTrackedControllers) {
       final toRemove = _allVideoControllers.entries
           .where(
             (e) => e.key != _currentPlayingDocID && e.key != _exclusiveDocID,
@@ -146,7 +145,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pauseAllExcept(docID);
 
     _pendingPlayTimer?.cancel();
-    _pendingPlayTimer = Timer(VideoStateManager._playResumeDelay, () {
+    _pendingPlayTimer = Timer(_videoStateManagerPlayResumeDelay, () {
       if (requestSeq != _playRequestSeq) return;
       if (_currentPlayingDocID != docID) return;
       final handle = _allVideoControllers[docID];
@@ -168,7 +167,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final int requestSeq = _playRequestSeq;
     _pauseAllExcept(docID);
     _pendingPlayTimer?.cancel();
-    _pendingPlayTimer = Timer(VideoStateManager._playResumeDelay, () {
+    _pendingPlayTimer = Timer(_videoStateManagerPlayResumeDelay, () {
       if (requestSeq != _playRequestSeq) return;
       if (_currentPlayingDocID != docID) return;
       final currentHandle = _allVideoControllers[docID];

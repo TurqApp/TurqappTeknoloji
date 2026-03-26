@@ -68,7 +68,7 @@ extension DenemeSinavlariControllerRuntimePart on DenemeSinavlariController {
       if (!_sameExamList(items)) {
         list.assignAll(items);
       }
-      hasMore.value = items.length >= DenemeSinavlariController._pageSize;
+      hasMore.value = items.length >= _practiceExamHomePageSize;
     } catch (e) {
       log("DenemeSinavlariController.getData error: $e");
       AppSnackbar('common.error'.tr, 'practice.load_failed'.tr);

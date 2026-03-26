@@ -1,5 +1,8 @@
 part of 'answer_key_snapshot_repository.dart';
 
+const String _answerKeyHomeSurfaceKey = 'answer_key_home_snapshot';
+const String _answerKeySearchSurfaceKey = 'answer_key_search_snapshot';
+
 AnswerKeySnapshotRepository? _maybeFindAnswerKeySnapshotRepository() {
   final isRegistered = Get.isRegistered<AnswerKeySnapshotRepository>();
   if (!isRegistered) return null;
@@ -38,7 +41,7 @@ CacheFirstCoordinator<List<BookletModel>> _createAnswerKeySnapshotCoordinator(
 EducationTypesenseDocIdHydrationAdapter<List<BookletModel>>
     _createAnswerKeyHomeAdapter(AnswerKeySnapshotRepository repository) {
   return EducationTypesenseDocIdHydrationAdapter<List<BookletModel>>(
-    surfaceKey: AnswerKeySnapshotRepository._homeSurfaceKey,
+    surfaceKey: _answerKeyHomeSurfaceKey,
     coordinator: repository._coordinator,
     fetchDocIds: EducationTypesenseDocIdHydrationAdapter.defaultFetchDocIds,
     hydrate: (docIds) => repository._bookletRepository.fetchByIds(docIds),
@@ -50,7 +53,7 @@ EducationTypesenseDocIdHydrationAdapter<List<BookletModel>>
 EducationTypesenseDocIdHydrationAdapter<List<BookletModel>>
     _createAnswerKeySearchAdapter(AnswerKeySnapshotRepository repository) {
   return EducationTypesenseDocIdHydrationAdapter<List<BookletModel>>(
-    surfaceKey: AnswerKeySnapshotRepository._searchSurfaceKey,
+    surfaceKey: _answerKeySearchSurfaceKey,
     coordinator: repository._coordinator,
     fetchDocIds: EducationTypesenseDocIdHydrationAdapter.defaultFetchDocIds,
     hydrate: (docIds) => repository._bookletRepository.fetchByIds(docIds),

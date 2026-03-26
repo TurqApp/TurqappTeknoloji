@@ -3,9 +3,6 @@ part of 'answer_key_snapshot_repository.dart';
 class AnswerKeySnapshotRepository extends GetxService {
   AnswerKeySnapshotRepository();
 
-  static const String _homeSurfaceKey = 'answer_key_home_snapshot';
-  static const String _searchSurfaceKey = 'answer_key_search_snapshot';
-
   final BookletRepository _bookletRepository = ensureBookletRepository();
 
   late final CacheFirstCoordinator<List<BookletModel>> _coordinator =

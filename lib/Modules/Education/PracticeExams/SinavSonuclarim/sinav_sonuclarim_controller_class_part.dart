@@ -13,7 +13,6 @@ class SinavSonuclarimController extends GetxController {
     return Get.find<SinavSonuclarimController>();
   }
 
-  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final _state = _SinavSonuclarimControllerState();
 
   @override

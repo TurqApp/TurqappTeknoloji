@@ -13,7 +13,6 @@ class ArchiveController extends GetxController {
     return Get.find<ArchiveController>();
   }
 
-  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final _state = _ArchiveControllerState();
 
   @override

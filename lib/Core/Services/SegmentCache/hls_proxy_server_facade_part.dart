@@ -1,5 +1,8 @@
 part of 'hls_proxy_server.dart';
 
+const String _hlsProxyServerCdnOrigin = 'https://cdn.turqapp.com';
+const String _hlsProxyServerAppIdentifier = 'turqapp-mobile';
+
 HLSProxyServer? maybeFindHlsProxyServer() {
   final isRegistered = Get.isRegistered<HLSProxyServer>();
   if (!isRegistered) return null;

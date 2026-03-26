@@ -15,7 +15,7 @@ extension _SinavSonuclarimControllerRuntimeX on SinavSonuclarimController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'practice_exams:results:$currentUserID',
-        minInterval: SinavSonuclarimController._silentRefreshInterval,
+        minInterval: _sinavSonuclarimSilentRefreshInterval,
       )) {
         unawaited(findAndGetSinavlar(silent: true, forceRefresh: true));
       }

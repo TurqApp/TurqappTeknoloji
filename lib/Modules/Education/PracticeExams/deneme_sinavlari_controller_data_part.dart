@@ -2,7 +2,7 @@ part of 'deneme_sinavlari_controller.dart';
 
 extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
   String _listingSelectionKeyForImpl(String uid) =>
-      '${DenemeSinavlariController._listingSelectionPrefKeyPrefix}_$uid';
+      '${_practiceExamListingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelectionImpl() async {
     final uid = CurrentUserService.instance.effectiveUserId;
@@ -44,7 +44,7 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
     _homeSnapshotSub = _practiceExamSnapshotRepository
         .openHome(
           userId: userId,
-          limit: DenemeSinavlariController._pageSize,
+          limit: _practiceExamHomePageSize,
         )
         .listen(_applyHomeSnapshotResourceImpl);
   }
@@ -66,14 +66,14 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
   Future<CachedResource<List<SinavModel>>> _loadHomeSnapshotImpl() {
     return _practiceExamSnapshotRepository.loadHome(
       userId: CurrentUserService.instance.effectiveUserId,
-      limit: DenemeSinavlariController._pageSize,
+      limit: _practiceExamHomePageSize,
     );
   }
 
   Future<PracticeExamPage> _fetchNextPageImpl() {
     return _practiceExamRepository.fetchPage(
       startAfter: _lastDocument,
-      limit: DenemeSinavlariController._pageSize,
+      limit: _practiceExamHomePageSize,
     );
   }
 
@@ -84,7 +84,7 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
       if (!_sameExamList(items)) {
         list.assignAll(items);
       }
-      hasMore.value = items.length >= DenemeSinavlariController._pageSize;
+      hasMore.value = items.length >= _practiceExamHomePageSize;
     }
 
     if (!resource.isRefreshing || items.isNotEmpty) {

@@ -1,5 +1,10 @@
 part of 'deneme_sinavlari_controller.dart';
 
+const String _practiceExamListingSelectionPrefKeyPrefix =
+    'pasaj_practice_exam_listing_selection';
+const int _practiceExamHomePageSize =
+    ReadBudgetRegistry.practiceExamHomeInitialLimit;
+
 class _DenemeSinavlariControllerState {
   final userSummaryResolver = UserSummaryResolver.ensure();
   final practiceExamSnapshotRepository = ensurePracticeExamSnapshotRepository();

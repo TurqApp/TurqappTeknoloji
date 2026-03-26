@@ -314,7 +314,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
       }
     }
 
-    final tutoringDetailController = TutoringDetailController.maybeFind();
+    final tutoringDetailController = maybeFindTutoringDetailController();
     if (tutoringDetailController != null &&
         tutoringDetailController.tutoring.value.docID == patchedModel.docID) {
       tutoringDetailController.tutoring.value = patchedModel;

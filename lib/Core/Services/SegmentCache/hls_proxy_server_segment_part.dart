@@ -50,7 +50,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
       return;
     }
 
-    final cdnUrl = '${HLSProxyServer._cdnOrigin}$path';
+    final cdnUrl = '$_hlsProxyServerCdnOrigin$path';
     try {
       final existing = _segmentFetchInFlight[path];
       final Uint8List bytes;

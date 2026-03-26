@@ -23,7 +23,7 @@ extension HLSProxyServerRuntimeX on HLSProxyServer {
   String resolveUrl(String originalUrl) {
     if (!_started) return originalUrl;
     if (!originalUrl.contains('cdn.turqapp.com')) return originalUrl;
-    return originalUrl.replaceFirst(HLSProxyServer._cdnOrigin, baseUrl);
+    return originalUrl.replaceFirst(_hlsProxyServerCdnOrigin, baseUrl);
   }
 
   void _handleRequest(HttpRequest request) async {
@@ -57,8 +57,8 @@ extension HLSProxyServerRuntimeX on HLSProxyServer {
   }
 
   Map<String, String> get _cdnHeaders => {
-        'X-Turq-App': HLSProxyServer._appIdentifier,
-        'Referer': '${HLSProxyServer._cdnOrigin}/',
+        'X-Turq-App': _hlsProxyServerAppIdentifier,
+        'Referer': '$_hlsProxyServerCdnOrigin/',
       };
 
   String? _extractDocID(String path) {

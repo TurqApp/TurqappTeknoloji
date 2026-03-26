@@ -8,11 +8,7 @@ class DenemeSinavlariController extends GetxController {
 
   static DenemeSinavlariController? maybeFind() =>
       _maybeFindDenemeSinavlariController();
-
-  static const String _listingSelectionPrefKeyPrefix =
-      'pasaj_practice_exam_listing_selection';
   final _state = _DenemeSinavlariControllerState();
-  static const int _pageSize = ReadBudgetRegistry.practiceExamHomeInitialLimit;
 
   bool get hasActiveSearch => _hasActivePracticeExamSearch(this);
 

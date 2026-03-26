@@ -8,7 +8,7 @@ extension _ArchiveControllerDataPart on ArchiveController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'archive:$uid',
-        minInterval: ArchiveController._silentRefreshInterval,
+        minInterval: _archiveControllerSilentRefreshInterval,
       )) {
         unawaited(fetchArchiveData(silent: true));
       }

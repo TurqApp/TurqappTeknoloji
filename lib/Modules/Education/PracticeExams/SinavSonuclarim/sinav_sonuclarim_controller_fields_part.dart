@@ -1,5 +1,7 @@
 part of 'sinav_sonuclarim_controller.dart';
 
+const Duration _sinavSonuclarimSilentRefreshInterval = Duration(minutes: 5);
+
 class _SinavSonuclarimControllerState {
   final PracticeExamRepository practiceExamRepository =
       PracticeExamRepository.ensure();

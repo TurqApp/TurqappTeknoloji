@@ -3,7 +3,7 @@ part of 'tutoring_detail.dart';
 extension TutoringDetailBodyPart on TutoringDetail {
   Widget buildContent(BuildContext context) {
     final TutoringDetailController controller =
-        TutoringDetailController.ensure();
+        ensureTutoringDetailController();
     final SavedTutoringsController savedController =
         ensureSavedTutoringsController();
     final TutoringController tutoringController = ensureTutoringController();
