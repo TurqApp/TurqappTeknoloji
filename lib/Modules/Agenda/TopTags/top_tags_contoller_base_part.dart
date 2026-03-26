@@ -1,5 +1,10 @@
 part of 'top_tags_contoller_library.dart';
 
+class TopTagsController extends _TopTagsControllerBase {
+  TopTagsController({TopTagsRepository? repository})
+      : super(repository: repository);
+}
+
 abstract class _TopTagsControllerBase extends GetxController {
   _TopTagsControllerBase({TopTagsRepository? repository})
       : _repo = repository ?? ensureTopTagsRepository();
@@ -10,12 +15,16 @@ abstract class _TopTagsControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _TopTagsControllerLifecyclePart(this as TopTagsController).handleOnInit();
+    scrollController.addListener(_onScroll);
+    getTags();
+    fetchAgendaBigData(initial: true);
   }
 
   @override
   void onClose() {
-    _TopTagsControllerLifecyclePart(this as TopTagsController).handleOnClose();
+    scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.onClose();
   }
 }
