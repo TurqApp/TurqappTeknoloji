@@ -1,26 +1,6 @@
 part of 'saved_optical_forms_controller.dart';
 
 class SavedOpticalFormsController extends GetxController {
-  static SavedOpticalFormsController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      SavedOpticalFormsController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static SavedOpticalFormsController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<SavedOpticalFormsController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<SavedOpticalFormsController>(tag: tag);
-  }
-
   final BookletRepository _bookletRepository = ensureBookletRepository();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <BookletModel>[].obs;

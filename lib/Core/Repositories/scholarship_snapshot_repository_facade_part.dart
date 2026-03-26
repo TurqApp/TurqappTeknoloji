@@ -1,5 +1,17 @@
 part of 'scholarship_snapshot_repository.dart';
 
+ScholarshipSnapshotRepository? maybeFindScholarshipSnapshotRepository() {
+  final isRegistered = Get.isRegistered<ScholarshipSnapshotRepository>();
+  if (!isRegistered) return null;
+  return Get.find<ScholarshipSnapshotRepository>();
+}
+
+ScholarshipSnapshotRepository ensureScholarshipSnapshotRepository() {
+  final existing = maybeFindScholarshipSnapshotRepository();
+  if (existing != null) return existing;
+  return Get.put(ScholarshipSnapshotRepository(), permanent: true);
+}
+
 extension ScholarshipSnapshotRepositoryFacadePart
     on ScholarshipSnapshotRepository {
   Stream<CachedResource<ScholarshipListingSnapshot>> openHome({

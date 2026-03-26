@@ -1,5 +1,17 @@
 part of 'user_subdoc_repository.dart';
 
+UserSubdocRepository? maybeFindUserSubdocRepository() {
+  final isRegistered = Get.isRegistered<UserSubdocRepository>();
+  if (!isRegistered) return null;
+  return Get.find<UserSubdocRepository>();
+}
+
+UserSubdocRepository ensureUserSubdocRepository() {
+  final existing = maybeFindUserSubdocRepository();
+  if (existing != null) return existing;
+  return Get.put(UserSubdocRepository(), permanent: true);
+}
+
 extension UserSubdocRepositoryFacadePart on UserSubdocRepository {
   Future<Map<String, dynamic>> getDoc(
     String uid, {

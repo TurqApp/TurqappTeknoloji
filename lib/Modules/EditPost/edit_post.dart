@@ -40,7 +40,7 @@ class _EditPostState extends State<EditPost> {
     super.initState();
     model = EditPostModel.fromMap(widget.post.toMap(), widget.post.docID);
     _controllerTag = 'edit_post_${widget.post.docID}_${identityHashCode(this)}';
-    controller = EditPostController.ensure(
+    controller = ensureEditPostController(
       model: model,
       tag: _controllerTag,
     );
@@ -48,7 +48,7 @@ class _EditPostState extends State<EditPost> {
 
   @override
   void dispose() {
-    final existing = EditPostController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindEditPostController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<EditPostController>(tag: _controllerTag);
     }

@@ -13,18 +13,6 @@ part 'my_booklet_results_controller_fields_part.dart';
 part 'my_booklet_results_controller_runtime_part.dart';
 
 class MyBookletResultsController extends GetxController {
-  static MyBookletResultsController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(MyBookletResultsController(), permanent: permanent);
-  }
-
-  static MyBookletResultsController? maybeFind() {
-    final isRegistered = Get.isRegistered<MyBookletResultsController>();
-    if (!isRegistered) return null;
-    return Get.find<MyBookletResultsController>();
-  }
-
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final _state = _MyBookletResultsControllerState();
 

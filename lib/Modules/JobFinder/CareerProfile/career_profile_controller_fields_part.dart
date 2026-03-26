@@ -1,7 +1,7 @@
 part of 'career_profile_controller.dart';
 
 class _CareerProfileControllerState {
-  final CvRepository cvRepository = CvRepository.ensure();
+  final CvRepository cvRepository = ensureCvRepository();
   final RxBool cvVar = false.obs;
   final RxBool isFindingJob = false.obs;
   final RxBool isLoading = false.obs;

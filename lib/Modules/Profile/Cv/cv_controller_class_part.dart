@@ -1,7 +1,7 @@
 part of 'cv_controller.dart';
 
 class CvController extends GetxController {
-  final CvRepository _cvRepository = CvRepository.ensure();
+  final CvRepository _cvRepository = ensureCvRepository();
   final CurrentUserService _userService = CurrentUserService.instance;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   static const List<String> languageOptionKeys = <String>[

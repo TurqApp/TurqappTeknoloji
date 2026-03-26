@@ -13,18 +13,6 @@ part 'saved_practice_exams_controller_facade_part.dart';
 part 'saved_practice_exams_controller_runtime_part.dart';
 
 class SavedPracticeExamsController extends GetxController {
-  static SavedPracticeExamsController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(SavedPracticeExamsController(), permanent: permanent);
-  }
-
-  static SavedPracticeExamsController? maybeFind() {
-    final isRegistered = Get.isRegistered<SavedPracticeExamsController>();
-    if (!isRegistered) return null;
-    return Get.find<SavedPracticeExamsController>();
-  }
-
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final _state = _SavedPracticeExamsControllerState();
 

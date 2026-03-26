@@ -1,5 +1,19 @@
 part of 'my_booklet_results_controller.dart';
 
+MyBookletResultsController? maybeFindMyBookletResultsController() {
+  final isRegistered = Get.isRegistered<MyBookletResultsController>();
+  if (!isRegistered) return null;
+  return Get.find<MyBookletResultsController>();
+}
+
+MyBookletResultsController ensureMyBookletResultsController({
+  bool permanent = false,
+}) {
+  final existing = maybeFindMyBookletResultsController();
+  if (existing != null) return existing;
+  return Get.put(MyBookletResultsController(), permanent: permanent);
+}
+
 extension MyBookletResultsControllerFacadePart on MyBookletResultsController {
   void setSelection(int value) {
     selection.value = value;

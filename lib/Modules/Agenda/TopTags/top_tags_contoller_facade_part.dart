@@ -1,5 +1,10 @@
 part of 'top_tags_contoller.dart';
 
+TopTagsController ensureTopTagsController() => _ensureTopTagsController();
+
+TopTagsController? maybeFindTopTagsController() =>
+    _maybeFindTopTagsController();
+
 TopTagsController _ensureTopTagsController() {
   final existing = _maybeFindTopTagsController();
   if (existing != null) return existing;

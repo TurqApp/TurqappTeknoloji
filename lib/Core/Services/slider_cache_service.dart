@@ -28,7 +28,7 @@ class SliderCacheService {
   static const Duration ttl = Duration(days: 7);
 
   SharedPreferences? _prefs;
-  final SliderRepository _sliderRepository = SliderRepository.ensure();
+  final SliderRepository _sliderRepository = ensureSliderRepository();
 
   Future<SharedPreferences> _prefsInstance() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -160,7 +160,8 @@ class SliderCacheService {
     List<String> sources, {
     int remoteLimit = 8,
   }) async {
-    for (final url in sources.where((e) => e.startsWith('http')).take(remoteLimit)) {
+    for (final url
+        in sources.where((e) => e.startsWith('http')).take(remoteLimit)) {
       try {
         await TurqImageCacheManager.instance.getSingleFile(url);
       } catch (_) {}

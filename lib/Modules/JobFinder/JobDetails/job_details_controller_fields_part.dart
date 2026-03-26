@@ -3,7 +3,7 @@ part of 'job_details_controller.dart';
 class _JobDetailsControllerState {
   final userRepository = UserRepository.ensure();
   final userSummaryResolver = UserSummaryResolver.ensure();
-  final cvRepository = CvRepository.ensure();
+  final cvRepository = ensureCvRepository();
   final jobHomeSnapshotRepository = JobHomeSnapshotRepository.ensure();
   final jobRepository = JobRepository.ensure();
   final saved = false.obs;

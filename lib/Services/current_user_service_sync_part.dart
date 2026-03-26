@@ -179,7 +179,7 @@ extension CurrentUserServiceSyncPart on CurrentUserService {
       String col,
       String doc,
     ) async {
-      final repository = UserSubdocRepository.ensure();
+      final repository = ensureUserSubdocRepository();
       try {
         final data = await repository.getDoc(
           uid,

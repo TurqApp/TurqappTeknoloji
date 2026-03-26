@@ -16,18 +16,6 @@ class UserSubdocRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedUserSubdoc> _memory = {};
 
-  static UserSubdocRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<UserSubdocRepository>();
-    if (!isRegistered) return null;
-    return Get.find<UserSubdocRepository>();
-  }
-
-  static UserSubdocRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(UserSubdocRepository(), permanent: true);
-  }
-
   @override
   void onInit() {
     super.onInit();

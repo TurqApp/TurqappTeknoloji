@@ -35,7 +35,7 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
   }
 
   Future<void> _bootstrapInitialDataImpl() async {
-    final savedController = SavedPracticeExamsController.ensure(
+    final savedController = ensureSavedPracticeExamsController(
       permanent: true,
     );
     await savedController.loadSavedExams(silent: true);

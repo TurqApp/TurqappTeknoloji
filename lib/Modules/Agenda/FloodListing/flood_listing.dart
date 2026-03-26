@@ -33,12 +33,12 @@ class _FloodListingState extends State<FloodListing> {
   @override
   void initState() {
     super.initState();
-    final existingController = FloodListingController.maybeFind();
+    final existingController = maybeFindFloodListingController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = FloodListingController.ensure();
+      controller = ensureFloodListingController();
       _ownsController = true;
     }
     controller.getFloods(widget.mainModel.floodCount.toInt(),
@@ -48,7 +48,7 @@ class _FloodListingState extends State<FloodListing> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(FloodListingController.maybeFind(), controller)) {
+        identical(maybeFindFloodListingController(), controller)) {
       Get.delete<FloodListingController>(force: true);
     }
     super.dispose();

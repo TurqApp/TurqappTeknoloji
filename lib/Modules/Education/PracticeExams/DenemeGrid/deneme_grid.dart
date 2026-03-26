@@ -50,7 +50,7 @@ class DenemeGrid extends StatelessWidget {
       tag: model.docID,
     );
     final SavedPracticeExamsController savedController =
-        SavedPracticeExamsController.ensure();
+        ensureSavedPracticeExamsController();
     controller.initData(model);
 
     return _buildBody(

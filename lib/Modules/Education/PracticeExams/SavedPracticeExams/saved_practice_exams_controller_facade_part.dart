@@ -1,5 +1,19 @@
 part of 'saved_practice_exams_controller.dart';
 
+SavedPracticeExamsController? maybeFindSavedPracticeExamsController() {
+  final isRegistered = Get.isRegistered<SavedPracticeExamsController>();
+  if (!isRegistered) return null;
+  return Get.find<SavedPracticeExamsController>();
+}
+
+SavedPracticeExamsController ensureSavedPracticeExamsController({
+  bool permanent = false,
+}) {
+  final existing = maybeFindSavedPracticeExamsController();
+  if (existing != null) return existing;
+  return Get.put(SavedPracticeExamsController(), permanent: permanent);
+}
+
 extension SavedPracticeExamsControllerFacadePart
     on SavedPracticeExamsController {
   bool _sameIds(Iterable<String> next) {

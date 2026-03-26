@@ -74,7 +74,7 @@ class DenemeSinaviPreviewControllerRuntimePart {
   }
 
   Future<void> syncSavedState() async {
-    final savedController = SavedPracticeExamsController.ensure();
+    final savedController = ensureSavedPracticeExamsController();
     if (savedController.savedExamIds.isEmpty &&
         !savedController.isLoading.value) {
       await savedController.loadSavedExams();

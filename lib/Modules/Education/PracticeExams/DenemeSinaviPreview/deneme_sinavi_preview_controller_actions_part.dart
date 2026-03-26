@@ -202,7 +202,7 @@ extension DenemeSinaviPreviewControllerActionsPart
   }
 
   Future<void> _toggleSavedImpl() async {
-    final savedController = SavedPracticeExamsController.ensure();
+    final savedController = ensureSavedPracticeExamsController();
     await savedController.toggleSavedExam(model.docID);
     isSaved.value = savedController.savedExamIds.contains(model.docID);
   }

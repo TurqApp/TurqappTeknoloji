@@ -73,7 +73,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
     }
 
     if (surfaceTag.startsWith('top_tag_')) {
-      final topTagsController = TopTagsController.maybeFind();
+      final topTagsController = maybeFindTopTagsController();
       if (topTagsController == null) return;
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);
@@ -107,7 +107,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
     }
 
     if (surfaceTag.startsWith('flood_')) {
-      final floodController = FloodListingController.maybeFind();
+      final floodController = maybeFindFloodListingController();
       if (floodController == null) return;
       final floodIndex = floodController.floods
           .indexWhere((p) => p.docID == widget.model.docID);

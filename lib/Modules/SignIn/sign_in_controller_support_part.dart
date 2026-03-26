@@ -1,8 +1,7 @@
 part of 'sign_in_controller.dart';
 
 final UserRepository _userRepository = UserRepository.ensure();
-final UserSubdocRepository _userSubdocRepository =
-    UserSubdocRepository.ensure();
+final UserSubdocRepository _userSubdocRepository = ensureUserSubdocRepository();
 final FirebaseFunctions _functions =
     FirebaseFunctions.instanceFor(region: 'europe-west3');
 final Dio _dio = Dio(

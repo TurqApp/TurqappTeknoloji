@@ -1,5 +1,26 @@
 part of 'saved_optical_forms_controller.dart';
 
+SavedOpticalFormsController ensureSavedOpticalFormsController({
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = maybeFindSavedOpticalFormsController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(
+    SavedOpticalFormsController(),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
+SavedOpticalFormsController? maybeFindSavedOpticalFormsController({
+  String? tag,
+}) {
+  final isRegistered = Get.isRegistered<SavedOpticalFormsController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<SavedOpticalFormsController>(tag: tag);
+}
+
 extension SavedOpticalFormsControllerFacadePart on SavedOpticalFormsController {
   bool _sameBookletEntries(
     List<BookletModel> current,

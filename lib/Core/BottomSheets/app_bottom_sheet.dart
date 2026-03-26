@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 
 part 'app_bottom_sheet_view_part.dart';
 part 'app_bottom_sheet_controller_part.dart';
+part 'app_bottom_sheet_controller_facade_part.dart';
 
 class AppBottomSheet extends StatefulWidget {
   final List<dynamic> list;

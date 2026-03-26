@@ -8,7 +8,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
   }
 
   void _suspendEmbeddedFeedContextsForRoute() {
-    final floodController = FloodListingController.maybeFind();
+    final floodController = maybeFindFloodListingController();
     if (floodController != null) {
       final floodIndex = floodController.floods
           .indexWhere((p) => p.docID == widget.model.docID);
@@ -69,7 +69,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final topTagsController = TopTagsController.maybeFind();
+    final topTagsController = maybeFindTopTagsController();
     if (topTagsController != null) {
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);
@@ -106,7 +106,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
   }
 
   void _restoreEmbeddedFeedContexts() {
-    final floodController = FloodListingController.maybeFind();
+    final floodController = maybeFindFloodListingController();
     if (floodController != null) {
       final floodIndex = floodController.floods
           .indexWhere((p) => p.docID == widget.model.docID);
@@ -169,7 +169,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final topTagsController = TopTagsController.maybeFind();
+    final topTagsController = maybeFindTopTagsController();
     if (topTagsController != null) {
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);

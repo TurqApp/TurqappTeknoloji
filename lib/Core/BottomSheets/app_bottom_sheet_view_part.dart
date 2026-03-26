@@ -10,8 +10,8 @@ class _AppBottomSheetState extends State<AppBottomSheet> {
     super.initState();
     _controllerTag = 'app_bottom_sheet_${identityHashCode(this)}';
     _ownsController =
-        AppBottomSheetController.maybeFind(tag: _controllerTag) == null;
-    controller = AppBottomSheetController.ensure(tag: _controllerTag);
+        maybeFindAppBottomSheetController(tag: _controllerTag) == null;
+    controller = ensureAppBottomSheetController(tag: _controllerTag);
     controller.initSelection(widget.list, widget.startSelection);
   }
 
@@ -28,7 +28,7 @@ class _AppBottomSheetState extends State<AppBottomSheet> {
   void dispose() {
     if (_ownsController &&
         identical(
-          AppBottomSheetController.maybeFind(tag: _controllerTag),
+          maybeFindAppBottomSheetController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<AppBottomSheetController>(tag: _controllerTag);

@@ -25,14 +25,14 @@ class _MyBookletResultsState extends State<MyBookletResults> {
   @override
   void initState() {
     super.initState();
-    _ownsController = MyBookletResultsController.maybeFind() == null;
-    controller = MyBookletResultsController.ensure();
+    _ownsController = maybeFindMyBookletResultsController() == null;
+    controller = ensureMyBookletResultsController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(MyBookletResultsController.maybeFind(), controller)) {
+        identical(maybeFindMyBookletResultsController(), controller)) {
       Get.delete<MyBookletResultsController>(force: true);
     }
     _pageController.dispose();

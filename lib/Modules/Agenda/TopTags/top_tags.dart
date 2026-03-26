@@ -19,12 +19,12 @@ class _TopTagsState extends State<TopTags> {
   @override
   void initState() {
     super.initState();
-    final existingController = TopTagsController.maybeFind();
+    final existingController = maybeFindTopTagsController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = TopTagsController.ensure();
+      controller = ensureTopTagsController();
       _ownsController = true;
     }
   }
@@ -32,7 +32,7 @@ class _TopTagsState extends State<TopTags> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(TopTagsController.maybeFind(), controller)) {
+        identical(maybeFindTopTagsController(), controller)) {
       Get.delete<TopTagsController>(force: true);
     }
     super.dispose();
