@@ -70,6 +70,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   late final PostContentController controller;
   HLSVideoAdapter? _videoAdapter;
   bool _hasAutoPlayed = false;
+  bool _manualPauseRequested = false;
   bool _skipNextPause = false;
   bool _blockPause = false;
   bool _replayOverlayLatched = false;

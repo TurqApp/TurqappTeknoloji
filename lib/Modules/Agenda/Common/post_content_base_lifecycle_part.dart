@@ -93,6 +93,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
         _resumePlaybackIfEligible(source: 'widget_should_play_changed');
       } else {
+        _manualPauseRequested = false;
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
         if (_blockPause) return;
@@ -106,6 +107,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _handleDidPushNext() {
+    _manualPauseRequested = false;
     if (_blockPause) return;
     if (_skipNextPause) {
       _skipNextPause = false;
@@ -183,6 +185,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     final shouldRecoverPlayback = !_useLegacyIosFeedBehavior &&
         widget.shouldPlay &&
         _isSurfacePlaybackAllowed &&
+        !_manualPauseRequested &&
         v.isInitialized &&
         !v.isPlaying &&
         !v.isBuffering &&

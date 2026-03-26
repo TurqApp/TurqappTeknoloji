@@ -561,12 +561,10 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
-                      final hasStableVideoFrame =
-                          v.hasRenderedFirstFrame &&
-                              !v.isCompleted &&
-                              (v.isPlaying ||
-                                  v.position >
-                                      const Duration(milliseconds: 180));
+                      final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                          !v.isCompleted &&
+                          (v.isPlaying ||
+                              v.position > const Duration(milliseconds: 180));
                       return IgnorePointer(
                         ignoring: true,
                         child: AnimatedOpacity(
@@ -688,11 +686,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                     return;
                                   }
                                   if (isPlaying) {
-                                    vc.pause();
+                                    pauseVideoManually();
                                   } else {
-                                    vc.play();
-                                    videoStateManager
-                                        .playOnlyThis(playbackHandleKey);
+                                    resumeVideoManually();
                                   }
                                 },
                                 child: Container(

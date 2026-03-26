@@ -91,6 +91,16 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
   }
 
+  void pauseVideoManually() {
+    _manualPauseRequested = true;
+    _safePauseVideo();
+  }
+
+  void resumeVideoManually() {
+    _manualPauseRequested = false;
+    _resumePlaybackIfEligible(source: 'manual_play');
+  }
+
   void pauseVideo() => _safePauseVideo();
 
   void _applyPlaybackVolume() {
@@ -105,6 +115,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _resumePlaybackIfEligible({
     String source = 'resume_unspecified',
   }) {
+    if (_manualPauseRequested) {
+      _recordPlaybackDispatch(
+        'feed_card_resume_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'manual_pause_requested',
+      );
+      return;
+    }
     if (!widget.model.hasPlayableVideo) {
       _recordPlaybackDispatch(
         'feed_card_resume_skipped',
@@ -197,6 +216,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _startPlayback({
     String source = 'start_unspecified',
   }) {
+    if (_manualPauseRequested) {
+      _recordPlaybackDispatch(
+        'feed_card_start_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'manual_pause_requested',
+      );
+      return;
+    }
     _resetAutoplaySegmentGate();
     final adapter = _videoAdapter;
     if (adapter == null) {
@@ -240,8 +268,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     );
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
-    final controllerOwnedListPlayback =
-        !isStandalonePostInstance &&
+    final controllerOwnedListPlayback = !isStandalonePostInstance &&
         (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
     if (controllerOwnedListPlayback) {
       final resumedByManager =
@@ -251,10 +278,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           'feed_card_start_skipped',
           source: source,
           dispatchIssued: false,
-          skipReason:
-              videoStateManager.currentPlayingDocID == playbackHandleKey
-                  ? 'manager_not_ready'
-                  : 'manager_not_current',
+          skipReason: videoStateManager.currentPlayingDocID == playbackHandleKey
+              ? 'manager_not_ready'
+              : 'manager_not_current',
         );
         return;
       }
@@ -379,6 +405,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _replayButtonVisible = false;
     _replayAdImpressionReceived = false;
     _replayAdHideTimer?.cancel();
+    _manualPauseRequested = false;
     await adapter.setLooping(shouldLoopVideo);
     await adapter.seekTo(Duration.zero);
     _startPlaybackWhenReady(source: 'replay_button');
@@ -437,27 +464,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                                   onTap: () =>
                                       unawaited(replayVideoFromStart()),
                                   child: Container(
-                                    width: 148,
-                                    height: 44,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
+                                    padding: const EdgeInsets.all(9),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
                                     ),
-                                    decoration: BoxDecoration(
+                                    child: Icon(
+                                      CupertinoIcons.arrow_counterclockwise,
                                       color: Colors.white,
-                                      borderRadius: BorderRadius.circular(22),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        'Tekrar izle',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 14,
-                                          fontFamily: 'MontserratSemiBold',
-                                          height: 1.0,
-                                        ),
-                                      ),
+                                      size: 18,
                                     ),
                                   ),
                                 ),
@@ -473,26 +488,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                               behavior: HitTestBehavior.opaque,
                               onTap: () => unawaited(replayVideoFromStart()),
                               child: Container(
-                                width: 148,
-                                height: 44,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 18),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(22),
+                                padding: const EdgeInsets.all(9),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
                                 ),
-                                child: const Center(
-                                  child: Text(
-                                    'Tekrar izle',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                      fontFamily: 'MontserratSemiBold',
-                                      height: 1.0,
-                                    ),
-                                  ),
+                                child: Icon(
+                                  CupertinoIcons.arrow_counterclockwise,
+                                  color: Colors.white,
+                                  size: 18,
                                 ),
                               ),
                             ),

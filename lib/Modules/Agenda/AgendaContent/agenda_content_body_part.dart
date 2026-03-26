@@ -247,10 +247,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(
-                                                  opacity:
-                                                      hasStableVideoFrame
-                                                          ? 0
-                                                          : 1,
+                                                  opacity: hasStableVideoFrame
+                                                      ? 0
+                                                      : 1,
                                                   duration: AppDuration
                                                       .thumbnailFadeOut,
                                                   curve: Curves.easeOut,
@@ -386,12 +385,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 final vc = videoController;
                                                 if (vc == null) return;
                                                 if (isPlaying) {
-                                                  vc.pause();
+                                                  pauseVideoManually();
                                                 } else {
-                                                  vc.play();
-                                                  videoStateManager
-                                                      .playOnlyThis(
-                                                          playbackHandleKey);
+                                                  resumeVideoManually();
                                                 }
                                               },
                                               child: Container(
