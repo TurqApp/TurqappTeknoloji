@@ -2,7 +2,7 @@ part of 'chat_listing_content.dart';
 
 extension ChatListingContentViewPart on ChatListingContent {
   Widget _buildTile(BuildContext context) {
-    controller = ChatListingContentController.ensure(
+    controller = ensureChatListingContentController(
       userID: model.userID,
       model: model,
       tag: model.chatID,

@@ -31,12 +31,12 @@ class _ScholarshipApplicationsListState
     super.initState();
     _controllerTag =
         'scholarship_applications_${widget.docID}_${identityHashCode(this)}';
-    final existing = ScholarshipApplicationsListController.maybeFind(
+    final existing = maybeFindScholarshipApplicationsListController(
       tag: _controllerTag,
     );
     _ownsController = existing == null;
     controller = existing ??
-        ScholarshipApplicationsListController.ensure(
+        ensureScholarshipApplicationsListController(
           tag: _controllerTag,
           docID: widget.docID,
           basvuranlar: widget.basvuranlar,
@@ -47,7 +47,9 @@ class _ScholarshipApplicationsListState
   void dispose() {
     if (_ownsController &&
         identical(
-          ScholarshipApplicationsListController.maybeFind(tag: _controllerTag),
+          maybeFindScholarshipApplicationsListController(
+            tag: _controllerTag,
+          ),
           controller,
         )) {
       Get.delete<ScholarshipApplicationsListController>(

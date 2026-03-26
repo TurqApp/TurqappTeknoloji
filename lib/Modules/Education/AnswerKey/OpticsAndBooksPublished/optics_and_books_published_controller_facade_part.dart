@@ -1,5 +1,14 @@
 part of 'optics_and_books_published_controller.dart';
 
+OpticsAndBooksPublishedController ensureOpticsAndBooksPublishedController({
+  bool permanent = false,
+}) =>
+    _ensureOpticsAndBooksPublishedController(permanent: permanent);
+
+OpticsAndBooksPublishedController?
+    maybeFindOpticsAndBooksPublishedController() =>
+        _maybeFindOpticsAndBooksPublishedController();
+
 OpticsAndBooksPublishedController _ensureOpticsAndBooksPublishedController({
   bool permanent = false,
 }) {
@@ -68,3 +77,33 @@ Future<void> _getPublishedOpticalForms(
     _OpticsAndBooksPublishedControllerRuntimeX(controller).getOptikler(
       forceRefresh: forceRefresh,
     );
+
+extension OpticsAndBooksPublishedControllerFacadePart
+    on OpticsAndBooksPublishedController {
+  void setSelection(int value) => _setOpticsAndBooksSelection(this, value);
+
+  void refreshOnOpen() => _refreshOpticsAndBooksOnOpen(this);
+
+  Future<void> _bootstrapData() => _bootstrapOpticsAndBooksData(this);
+
+  Future<void> loadData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) =>
+      _loadOpticsAndBooksData(
+        this,
+        silent: silent,
+        forceRefresh: forceRefresh,
+      );
+
+  Future<void> getData({bool forceRefresh = false}) => _getPublishedBooksData(
+        this,
+        forceRefresh: forceRefresh,
+      );
+
+  Future<void> getOptikler({bool forceRefresh = false}) =>
+      _getPublishedOpticalForms(
+        this,
+        forceRefresh: forceRefresh,
+      );
+}

@@ -27,8 +27,8 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
   @override
   void initState() {
     super.initState();
-    _ownsController = OpticsAndBooksPublishedController.maybeFind() == null;
-    controller = OpticsAndBooksPublishedController.ensure();
+    _ownsController = maybeFindOpticsAndBooksPublishedController() == null;
+    controller = ensureOpticsAndBooksPublishedController();
     controller.refreshOnOpen();
     _scrollController.addListener(() {
       controller.scrollOffset.value = _scrollController.offset;
@@ -39,7 +39,7 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
   void dispose() {
     if (_ownsController &&
         identical(
-          OpticsAndBooksPublishedController.maybeFind(),
+          maybeFindOpticsAndBooksPublishedController(),
           controller,
         )) {
       Get.delete<OpticsAndBooksPublishedController>(force: true);

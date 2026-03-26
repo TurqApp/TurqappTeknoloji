@@ -18,6 +18,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../Models/posts_model.dart';
 
 part 'message_content_controller_class_part.dart';
+part 'message_content_controller_fields_part.dart';
 part 'message_content_controller_data_part.dart';
 part 'message_content_controller_actions_part.dart';
 part 'message_content_controller_facade_part.dart';

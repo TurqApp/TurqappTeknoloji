@@ -1,5 +1,21 @@
 part of 'message_content_controller.dart';
 
+MessageContentController ensureMessageContentController({
+  required MessageModel model,
+  required String mainID,
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureMessageContentController(
+      model: model,
+      mainID: mainID,
+      tag: tag,
+      permanent: permanent,
+    );
+
+MessageContentController? maybeFindMessageContentController({String? tag}) =>
+    _maybeFindMessageContentController(tag: tag);
+
 MessageContentController _ensureMessageContentController({
   required MessageModel model,
   required String mainID,

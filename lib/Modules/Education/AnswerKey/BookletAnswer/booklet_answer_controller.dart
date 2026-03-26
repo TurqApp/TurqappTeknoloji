@@ -8,4 +8,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'booklet_answer_controller_data_part.dart';
 part 'booklet_answer_controller_actions_part.dart';
+part 'booklet_answer_controller_support_part.dart';
+part 'booklet_answer_controller_fields_part.dart';
 part 'booklet_answer_controller_class_part.dart';

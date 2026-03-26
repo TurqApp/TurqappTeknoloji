@@ -2,6 +2,30 @@ part of 'create_book_controller.dart';
 
 final RegExp _createBookAnswerKeyOptionPattern = RegExp(r'[A-E]');
 
+CreateBookAnswerKeyController ensureCreateBookAnswerKeyController(
+  CevapAnahtariHazirlikModel model,
+  Function onBack, {
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = maybeFindCreateBookAnswerKeyController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(
+    CreateBookAnswerKeyController(model, onBack),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
+CreateBookAnswerKeyController? maybeFindCreateBookAnswerKeyController({
+  String? tag,
+}) {
+  final isRegistered =
+      Get.isRegistered<CreateBookAnswerKeyController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<CreateBookAnswerKeyController>(tag: tag);
+}
+
 void _initializeCreateBookAnswerKeyController(
   CreateBookAnswerKeyController controller,
 ) {
@@ -27,4 +51,11 @@ void _saveCreateBookAnswerKeyAndBack(
   controller.model.dogruCevaplar = controller.cevaplar.toList();
   controller.onBack();
   Get.back();
+}
+
+extension CreateBookAnswerKeyControllerFacadePart
+    on CreateBookAnswerKeyController {
+  void kaydetCevaplar() => _saveCreateBookAnswerKeyAnswers(this);
+
+  void saveAndBack() => _saveCreateBookAnswerKeyAndBack(this);
 }

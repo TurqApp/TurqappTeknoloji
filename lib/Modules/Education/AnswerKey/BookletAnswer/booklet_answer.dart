@@ -29,8 +29,8 @@ class _BookletAnswerState extends State<BookletAnswer> {
     _controllerTag =
         'booklet_answer_${widget.anaModel.docID}_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        BookletAnswerController.maybeFind(tag: _controllerTag) == null;
-    controller = BookletAnswerController.ensure(
+        maybeFindBookletAnswerController(tag: _controllerTag) == null;
+    controller = ensureBookletAnswerController(
       widget.model,
       widget.anaModel,
       tag: _controllerTag,
@@ -40,7 +40,7 @@ class _BookletAnswerState extends State<BookletAnswer> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = BookletAnswerController.maybeFind(
+      final registeredController = maybeFindBookletAnswerController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

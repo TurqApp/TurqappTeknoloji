@@ -120,7 +120,7 @@ class MessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller = MessageContentController.ensure(
+    controller = ensureMessageContentController(
       model: model,
       mainID: mainID,
       tag: model.docID,

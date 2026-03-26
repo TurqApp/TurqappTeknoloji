@@ -18,6 +18,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'create_book_controller_class_part.dart';
 part 'create_book_controller_answer_key_class_part.dart';
+part 'create_book_controller_answer_key_fields_part.dart';
 part 'create_book_controller_form_part.dart';
 part 'create_book_controller_submission_part.dart';
 part 'create_book_controller_answer_key_part.dart';
