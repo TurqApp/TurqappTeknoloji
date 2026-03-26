@@ -6,13 +6,12 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
     final profile = budgetManager.currentProfile;
     final cacheManager = SegmentCacheManager.maybeFind();
     final usage = cacheManager != null
-        ? StorageBudgetManager.usageSnapshotForProfile(
+        ? storageBudgetUsageSnapshotForProfile(
             profile,
             streamUsageBytes: cacheManager.totalSizeBytes,
           )
         : null;
-    final recentProtectionWindow =
-        StorageBudgetManager.recentProtectionWindowForUsage(
+    final recentProtectionWindow = storageBudgetRecentProtectionWindowForUsage(
       profile,
       streamUsageBytes: usage?.streamUsageBytes ?? 0,
     );

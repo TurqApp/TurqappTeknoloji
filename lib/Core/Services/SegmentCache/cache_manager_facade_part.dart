@@ -1,5 +1,17 @@
 part of 'cache_manager.dart';
 
+SegmentCacheManager? maybeFindSegmentCacheManager() {
+  final isRegistered = Get.isRegistered<SegmentCacheManager>();
+  if (!isRegistered) return null;
+  return Get.find<SegmentCacheManager>();
+}
+
+SegmentCacheManager ensureSegmentCacheManager() {
+  final existing = maybeFindSegmentCacheManager();
+  if (existing != null) return existing;
+  return Get.put(SegmentCacheManager(), permanent: true);
+}
+
 extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   Future<void> init() => _SegmentCacheManagerRuntimeX(this).init();
 

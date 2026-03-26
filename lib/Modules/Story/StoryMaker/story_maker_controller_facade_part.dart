@@ -1,5 +1,19 @@
 part of 'story_maker_controller.dart';
 
+StoryMakerController ensureStoryMakerController({
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureStoryMakerController(tag: tag, permanent: permanent);
+
+StoryMakerController? maybeFindStoryMakerController({String? tag}) =>
+    _maybeFindStoryMakerController(tag: tag);
+
+List<String> get storyMakerSupportedMediaLookPresets =>
+    _storyMakerSupportedMediaLookPresetsFacade();
+
+RxBool get storyMakerIsUploadingStory => _storyMakerIsUploadingStoryFacade();
+
 StoryMakerController _ensureStoryMakerController({
   String? tag,
   bool permanent = false,

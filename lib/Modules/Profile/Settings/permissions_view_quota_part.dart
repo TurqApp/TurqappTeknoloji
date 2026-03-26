@@ -71,18 +71,17 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
   }
 
   Widget _buildQuotaBreakdown() {
-    final profile = StorageBudgetManager.profileForPlanGb(
+    final profile = storageBudgetProfileForPlanGb(
       _effectiveQuotaGb(_selectedQuota),
     );
     final cacheManager = SegmentCacheManager.maybeFind();
     final usage = cacheManager == null
         ? null
-        : StorageBudgetManager.usageSnapshotForProfile(
+        : storageBudgetUsageSnapshotForProfile(
             profile,
             streamUsageBytes: cacheManager.totalSizeBytes,
           );
-    final recentProtectionWindow =
-        StorageBudgetManager.recentProtectionWindowForUsage(
+    final recentProtectionWindow = storageBudgetRecentProtectionWindowForUsage(
       profile,
       streamUsageBytes: usage?.streamUsageBytes ?? 0,
     );

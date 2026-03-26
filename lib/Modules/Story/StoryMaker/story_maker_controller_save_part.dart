@@ -42,7 +42,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     final selectedMusicSnapshot = selectedMusic.value;
     final colorSnapshot = color.value;
 
-    StoryMakerController.isUploadingStory.value = true;
+    storyMakerIsUploadingStory.value = true;
     Get.back();
 
     _saveStoryBackground(
@@ -74,7 +74,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     final selectedMusicSnapshot = selectedMusic.value;
     final colorSnapshot = color.value;
 
-    StoryMakerController.isUploadingStory.value = true;
+    storyMakerIsUploadingStory.value = true;
     Get.back();
 
     _saveStoryBackground(
@@ -237,7 +237,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       );
       debugPrint("saveStory error: $err");
     } finally {
-      StoryMakerController.isUploadingStory.value = false;
+      storyMakerIsUploadingStory.value = false;
     }
   }
 }

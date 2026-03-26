@@ -5,7 +5,7 @@ extension _StoryMakerCanvasPart on _StoryMakerState {
     return Obx(() {
       final media = controller.currentBackgroundMediaElement;
       if (media == null) return const SizedBox.shrink();
-      final presets = StoryMakerController.supportedMediaLookPresets;
+      final presets = storyMakerSupportedMediaLookPresets;
       return Container(
         margin: const EdgeInsets.fromLTRB(15, 0, 15, 8),
         padding: const EdgeInsets.all(8),

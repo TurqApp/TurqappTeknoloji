@@ -28,7 +28,7 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
     super.initState();
     _controllerTag =
         'recommended_user_${model.userID}_${identityHashCode(this)}';
-    controller = RecommendedUserContentController.ensure(
+    controller = ensureRecommendedUserContentController(
       userID: model.userID,
       tag: _controllerTag,
     );
@@ -36,7 +36,7 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
 
   @override
   void dispose() {
-    final existing = RecommendedUserContentController.maybeFind(
+    final existing = maybeFindRecommendedUserContentController(
       tag: _controllerTag,
     );
     if (identical(existing, controller)) {

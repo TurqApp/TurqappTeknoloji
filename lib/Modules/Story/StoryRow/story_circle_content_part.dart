@@ -141,7 +141,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
         widget.model.userID,
         widget.model.stories,
       );
-      final uploading = StoryMakerController.isUploadingStory.value;
+      final uploading = storyMakerIsUploadingStory.value;
       final isUploading = isMe && uploading;
       final highlight = hasStory && !allSeen;
 

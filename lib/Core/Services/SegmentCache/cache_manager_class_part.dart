@@ -12,17 +12,9 @@ part of 'cache_manager.dart';
 ///   Posts/{docID}/hls/720p/segment_0.ts
 /// ```
 class SegmentCacheManager extends GetxController {
-  static SegmentCacheManager? maybeFind() {
-    final isRegistered = Get.isRegistered<SegmentCacheManager>();
-    if (!isRegistered) return null;
-    return Get.find<SegmentCacheManager>();
-  }
+  static SegmentCacheManager? maybeFind() => maybeFindSegmentCacheManager();
 
-  static SegmentCacheManager ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(SegmentCacheManager(), permanent: true);
-  }
+  static SegmentCacheManager ensure() => ensureSegmentCacheManager();
 
   final _state = _SegmentCacheManagerState();
 

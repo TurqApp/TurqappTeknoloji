@@ -184,7 +184,7 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
 
   /// Kullanıcı cache kotasını runtime'da uygular.
   Future<void> setUserLimitGB(int gb) async {
-    final profile = StorageBudgetManager.profileForPlanGb(gb);
+    final profile = storageBudgetProfileForPlanGb(gb);
 
     _userHardLimitBytes = profile.streamCacheHardStopBytes;
     _userSoftLimitBytes = profile.streamCacheSoftStopBytes;

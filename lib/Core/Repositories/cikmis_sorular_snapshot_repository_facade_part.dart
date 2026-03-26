@@ -1,5 +1,17 @@
 part of 'cikmis_sorular_snapshot_repository.dart';
 
+CikmisSorularSnapshotRepository? maybeFindCikmisSorularSnapshotRepository() {
+  final isRegistered = Get.isRegistered<CikmisSorularSnapshotRepository>();
+  if (!isRegistered) return null;
+  return Get.find<CikmisSorularSnapshotRepository>();
+}
+
+CikmisSorularSnapshotRepository ensureCikmisSorularSnapshotRepository() {
+  final existing = maybeFindCikmisSorularSnapshotRepository();
+  if (existing != null) return existing;
+  return Get.put(CikmisSorularSnapshotRepository(), permanent: true);
+}
+
 extension CikmisSorularSnapshotRepositoryFacadePart
     on CikmisSorularSnapshotRepository {
   Stream<CachedResource<List<Map<String, dynamic>>>> openHome({

@@ -1,5 +1,34 @@
 part of 'storage_budget_manager.dart';
 
+StorageBudgetManager? maybeFindStorageBudgetManager() =>
+    _maybeFindStorageBudgetManager();
+
+StorageBudgetManager ensureStorageBudgetManager() =>
+    _ensureStorageBudgetManager();
+
+StorageBudgetUsageSnapshot storageBudgetUsageSnapshotForProfile(
+  StorageBudgetProfile profile, {
+  required int streamUsageBytes,
+}) =>
+    _storageUsageSnapshotForProfile(
+      profile,
+      streamUsageBytes: streamUsageBytes,
+    );
+
+int storageBudgetRecentProtectionWindowForUsage(
+  StorageBudgetProfile profile, {
+  required int streamUsageBytes,
+  int remoteFloor = 3,
+}) =>
+    _storageRecentProtectionWindowForUsage(
+      profile,
+      streamUsageBytes: streamUsageBytes,
+      remoteFloor: remoteFloor,
+    );
+
+StorageBudgetProfile storageBudgetProfileForPlanGb(int gb) =>
+    _storageProfileForPlanGb(gb);
+
 StorageBudgetManager? _maybeFindStorageBudgetManager() {
   final isRegistered = Get.isRegistered<StorageBudgetManager>();
   if (!isRegistered) return null;
@@ -18,14 +47,14 @@ Future<StorageBudgetProfile> _applyStorageBudgetPlanGb(
 ) async {
   final normalized = gb.clamp(4, 7);
   controller._selectedPlanGb.value = normalized;
-  return StorageBudgetManager.profileForPlanGb(normalized);
+  return storageBudgetProfileForPlanGb(normalized);
 }
 
 StorageBudgetUsageSnapshot _storageBudgetUsageSnapshot(
   StorageBudgetManager controller, {
   required int streamUsageBytes,
 }) {
-  return StorageBudgetManager.usageSnapshotForProfile(
+  return storageBudgetUsageSnapshotForProfile(
     controller.currentProfile,
     streamUsageBytes: streamUsageBytes,
   );
@@ -36,7 +65,7 @@ int _storageBudgetRecentProtectionWindow(
   required int streamUsageBytes,
   int remoteFloor = 3,
 }) {
-  return StorageBudgetManager.recentProtectionWindowForUsage(
+  return storageBudgetRecentProtectionWindowForUsage(
     controller.currentProfile,
     streamUsageBytes: streamUsageBytes,
     remoteFloor: remoteFloor,
@@ -47,7 +76,7 @@ extension StorageBudgetManagerFacadePart on StorageBudgetManager {
   int get selectedPlanGb => _selectedPlanGb.value;
 
   StorageBudgetProfile get currentProfile =>
-      StorageBudgetManager.profileForPlanGb(_selectedPlanGb.value);
+      storageBudgetProfileForPlanGb(_selectedPlanGb.value);
 
   Future<StorageBudgetProfile> applyPlanGb(int gb) =>
       _applyStorageBudgetPlanGb(this, gb);
