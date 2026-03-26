@@ -25,3 +25,18 @@ abstract class _CikmisSorularRepositoryBase extends GetxService {
   Future<void> _writeList(String key, List<Map<String, dynamic>> items) =>
       _CikmisSorularRepositoryCachePart(this)._writeList(key, items);
 }
+
+class CikmisSorularRepository extends _CikmisSorularRepositoryBase {
+  CikmisSorularRepository({
+    FirebaseStorage? storage,
+  }) : super(storage: storage ?? FirebaseStorage.instance);
+}
+
+CikmisSorularRepository? maybeFindCikmisSorularRepository() =>
+    Get.isRegistered<CikmisSorularRepository>()
+        ? Get.find<CikmisSorularRepository>()
+        : null;
+
+CikmisSorularRepository ensureCikmisSorularRepository() =>
+    maybeFindCikmisSorularRepository() ??
+    Get.put(CikmisSorularRepository(), permanent: true);

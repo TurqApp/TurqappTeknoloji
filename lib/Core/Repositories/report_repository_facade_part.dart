@@ -1,5 +1,7 @@
 part of 'report_repository.dart';
 
+class ReportRepository extends GetxService {}
+
 ReportRepository? maybeFindReportRepository() {
   final isRegistered = Get.isRegistered<ReportRepository>();
   if (!isRegistered) return null;
