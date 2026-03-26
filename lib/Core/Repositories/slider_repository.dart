@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 part 'slider_repository_base_part.dart';
 part 'slider_repository_class_part.dart';
+part 'slider_repository_fetch_part.dart';
 part 'slider_repository_facade_part.dart';
 
 class SliderRemoteData {

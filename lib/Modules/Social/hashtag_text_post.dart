@@ -5,6 +5,7 @@ import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../../Themes/app_fonts.dart';
 
 part 'hashtag_text_post_controller_part.dart';
+part 'hashtag_text_post_controller_lookup_part.dart';
 part 'hashtag_text_post_controller_base_part.dart';
 part 'hashtag_text_post_controller_class_part.dart';
 part 'hashtag_text_post_controller_facade_part.dart';

@@ -12,6 +12,7 @@ import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'personel_info_controller_data_part.dart';
+part 'personel_info_controller_base_part.dart';
 part 'personel_info_controller_fields_part.dart';
 part 'personel_info_controller_labels_part.dart';
 part 'personel_info_controller_form_part.dart';

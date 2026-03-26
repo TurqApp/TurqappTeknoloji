@@ -13,6 +13,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sin
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'sinav_hazirla_controller_class_part.dart';
+part 'sinav_hazirla_controller_base_part.dart';
 part 'sinav_hazirla_controller_fields_part.dart';
 part 'sinav_hazirla_controller_facade_part.dart';
 part 'sinav_hazirla_controller_form_part.dart';

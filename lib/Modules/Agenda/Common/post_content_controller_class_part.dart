@@ -6,16 +6,4 @@ class PostContentController extends _PostContentControllerBase {
     super.enableLegacyCommentSync = false,
     super.scrollFeedToTopOnReshare = false,
   });
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handlePostContentInit();
-  }
-
-  @override
-  void onClose() {
-    _handlePostContentClose();
-    super.onClose();
-  }
 }

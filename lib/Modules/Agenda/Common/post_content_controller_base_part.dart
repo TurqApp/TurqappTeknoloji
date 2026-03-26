@@ -13,6 +13,18 @@ abstract class _PostContentControllerBase extends GetxController {
 
   final _PostContentShellState _shellState;
 
+  @override
+  void onInit() {
+    super.onInit();
+    (this as PostContentController)._handlePostContentInit();
+  }
+
+  @override
+  void onClose() {
+    (this as PostContentController)._handlePostContentClose();
+    super.onClose();
+  }
+
   void onPostInitialized() {}
 
   void onPostFrameBound() {}

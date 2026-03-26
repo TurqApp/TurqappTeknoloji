@@ -16,6 +16,7 @@ import 'package:turqappv2/Modules/Education/Tests/AddTestQuestion/add_test_quest
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'create_test_controller_actions_part.dart';
+part 'create_test_controller_base_part.dart';
 part 'create_test_controller_class_part.dart';
 part 'create_test_controller_data_part.dart';
 part 'create_test_controller_facade_part.dart';

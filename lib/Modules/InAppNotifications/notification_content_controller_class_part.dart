@@ -9,13 +9,8 @@ class NotificationContentController extends _NotificationContentControllerBase {
   static const String _tutoringApplicationType =
       kNotificationPostTypeTutoringApplicationLower;
 
-  final _state = _NotificationContentControllerState();
-
   NotificationContentController({
-    required String userID,
-    required NotificationModel notification,
-  }) {
-    _state.userID = userID;
-    _state.notification = notification;
-  }
+    required super.userID,
+    required super.notification,
+  });
 }

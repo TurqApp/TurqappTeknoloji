@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'turq_image_cache_manager.dart';
 
 part 'user_profile_cache_service_fetch_part.dart';
+part 'user_profile_cache_service_base_part.dart';
 part 'user_profile_cache_service_class_part.dart';
 part 'user_profile_cache_service_facade_part.dart';
 part 'user_profile_cache_service_storage_part.dart';
