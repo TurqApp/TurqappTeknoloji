@@ -29,6 +29,7 @@ import '../../../Models/job_model.dart';
 import '../job_localization_utils.dart';
 
 part 'job_creator_controller_form_part.dart';
+part 'job_creator_controller_fields_part.dart';
 part 'job_creator_controller_submission_part.dart';
 part 'job_creator_controller_support_part.dart';
 part 'job_creator_controller_runtime_part.dart';
@@ -51,33 +52,7 @@ class JobCreatorController extends GetxController {
           ? Get.find<JobCreatorController>(tag: tag)
           : null;
 
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
-  final selection = 0.obs, isSubmitting = false.obs;
-  final brand = TextEditingController(),
-      about = TextEditingController(),
-      isTanimi = TextEditingController(),
-      maas1 = TextEditingController(),
-      maas2 = TextEditingController();
-
-  final calismaSaatiBaslangic = TextEditingController(),
-      calismaSaatiBitis = TextEditingController(),
-      basvuruSayisi = TextEditingController(text: '0');
-  final selectedCalismaTuruList = <String>[].obs,
-      selectedCalismaGunleri = <String>[].obs,
-      selectedYanHaklar = <String>[].obs;
-  final _choices = _JobCreatorChoiceLists();
-  final sehirlerVeIlcelerData = <CitiesModel>[].obs;
-  final meslek = ''.obs;
-  final ilanBasligi = TextEditingController();
-  final pozisyonSayisi = TextEditingController(text: '1');
-  final sehir = ''.obs, ilce = ''.obs, adres = ''.obs;
-  final lat = 0.0.obs, long = 0.0.obs, maasOpen = true.obs;
-  final sehirler = <String>[].obs;
-
-  final _mediaState = _JobCreatorMediaState();
-  final _runtimeState = _JobCreatorRuntimeState();
-
+  final _shellState = _JobCreatorShellState();
   final JobModel? existingJob;
   JobCreatorController({this.existingJob});
 

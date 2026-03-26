@@ -34,6 +34,7 @@ part 'post_content_controller_actions_part.dart';
 part 'post_content_controller_data_part.dart';
 part 'post_content_controller_profile_part.dart';
 part 'post_content_controller_runtime_part.dart';
+part 'post_content_controller_shell_part.dart';
 part 'post_content_controller_support_part.dart';
 part 'post_content_controller_fields_part.dart';
 
@@ -55,20 +56,16 @@ class PostContentController extends GetxController {
   static void clearReshareUsersCache() => _clearPostContentReshareUsersCache();
 
   PostContentController({
-    required this.model,
-    this.enableLegacyCommentSync = false,
-    this.scrollFeedToTopOnReshare = false,
-  })  : _identityState = _PostContentIdentityState.fromModel(model),
-        _controllerState = _PostContentControllerState(model);
+    required PostsModel model,
+    bool enableLegacyCommentSync = false,
+    bool scrollFeedToTopOnReshare = false,
+  }) : _shellState = _PostContentShellState(
+          model: model,
+          enableLegacyCommentSync: enableLegacyCommentSync,
+          scrollFeedToTopOnReshare: scrollFeedToTopOnReshare,
+        );
 
-  final PostsModel model;
-  final bool enableLegacyCommentSync;
-  final bool scrollFeedToTopOnReshare;
-
-  final _PostContentIdentityState _identityState;
-  final _PostContentControllerState _controllerState;
-
-  late final AgendaController agendaController = _resolveAgendaController();
+  final _PostContentShellState _shellState;
 
   @protected
   void onPostInitialized() {}

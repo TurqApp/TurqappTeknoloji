@@ -36,6 +36,7 @@ part 'agenda_controller_lifecycle_part.dart';
 part 'agenda_controller_loading_part.dart';
 part 'agenda_controller_loading_cache_part.dart';
 part 'agenda_controller_loading_shuffle_part.dart';
+part 'agenda_controller_facade_part.dart';
 part 'agenda_controller_fields_part.dart';
 part 'agenda_controller_models_part.dart';
 part 'agenda_controller_playback_part.dart';
@@ -57,9 +58,6 @@ class AgendaController extends GetxController {
   }
 
   final _state = _AgendaControllerState();
-  final int fetchLimit = 50;
-  AgendaShuffleCacheService get _shuffleCache =>
-      AgendaShuffleCacheService.ensure();
   static const Duration? _agendaWindow = null;
   static const int _reshareScanPostLimit = 12;
 
