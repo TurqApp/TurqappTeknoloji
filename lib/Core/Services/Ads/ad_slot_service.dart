@@ -6,32 +6,17 @@ class AdSlotService {
 
   AdSlot buildFeedSlot(int index) {
     final enabled = _isEnabledForPlacement(AdPlacementType.feed);
-    return AdSlot(
-      slotId: 'feed_$index',
-      placement: AdPlacementType.feed,
-      indexHint: index,
-      enabled: enabled,
-    );
+    return AdSlot('feed_$index', AdPlacementType.feed, index, enabled);
   }
 
   AdSlot buildShortsSlot(int index) {
     final enabled = _isEnabledForPlacement(AdPlacementType.shorts);
-    return AdSlot(
-      slotId: 'shorts_$index',
-      placement: AdPlacementType.shorts,
-      indexHint: index,
-      enabled: enabled,
-    );
+    return AdSlot('shorts_$index', AdPlacementType.shorts, index, enabled);
   }
 
   AdSlot buildExploreSlot(int index) {
     final enabled = _isEnabledForPlacement(AdPlacementType.explore);
-    return AdSlot(
-      slotId: 'explore_$index',
-      placement: AdPlacementType.explore,
-      indexHint: index,
-      enabled: enabled,
-    );
+    return AdSlot('explore_$index', AdPlacementType.explore, index, enabled);
   }
 
   bool _isEnabledForPlacement(AdPlacementType _) {

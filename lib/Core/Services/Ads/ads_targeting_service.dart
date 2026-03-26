@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -23,7 +24,14 @@ class AdsTargetingService {
       age: age ?? _extractAge(current?.dogumTarihi),
       language: 'tr',
       gender: (current?.cinsiyet ?? '').trim(),
-      devicePlatform: 'ios',
+      devicePlatform: switch (defaultTargetPlatform) {
+        TargetPlatform.android => 'android',
+        TargetPlatform.iOS => 'ios',
+        TargetPlatform.macOS => 'macos',
+        TargetPlatform.windows => 'windows',
+        TargetPlatform.linux => 'linux',
+        TargetPlatform.fuchsia => 'fuchsia',
+      },
       appVersion: info.version,
       placement: placement,
       isPreview: isPreview,

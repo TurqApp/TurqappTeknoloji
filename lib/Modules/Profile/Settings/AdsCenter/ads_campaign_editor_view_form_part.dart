@@ -35,7 +35,7 @@ extension _AdsCampaignEditorViewFormPart on _AdsCampaignEditorViewState {
       children: AdPlacementType.values.map((p) {
         final selected = _placements.contains(p);
         return FilterChip(
-          label: Text(p.name),
+          label: Text(p.displayName),
           selected: selected,
           onSelected: (v) => _updateViewState(() {
             if (v) {
@@ -143,7 +143,7 @@ extension _AdsCampaignEditorViewFormPart on _AdsCampaignEditorViewState {
       cities: _splitComma(_cities.text),
       minAge: int.tryParse(_minAge.text.trim()),
       maxAge: int.tryParse(_maxAge.text.trim()),
-      devicePlatforms: const ['ios'],
+      devicePlatforms: const <String>[],
       appVersions: _splitComma(_appVersions.text),
     );
   }

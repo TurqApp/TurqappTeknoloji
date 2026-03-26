@@ -1,4 +1,21 @@
-enum AdPlacementType { feed, shorts, explore }
+enum AdPlacementType {
+  feed,
+  shorts,
+  explore,
+  profile,
+  market,
+  scholarship,
+  answerKey,
+  job,
+  practiceExam,
+  tutoring,
+  topMarket,
+  topAnswerKey,
+  topJob,
+  topPracticeExam,
+  topTutoring,
+  topPreviousQuestions,
+}
 
 enum AdBidType { cpm, cpc, cpv }
 
@@ -50,6 +67,45 @@ enum AdAnalyticsEventType {
 
 String enumToShort(Object value) {
   return value.toString().split('.').last;
+}
+
+extension AdPlacementTypeLabelPart on AdPlacementType {
+  String get displayName {
+    switch (this) {
+      case AdPlacementType.feed:
+        return 'Feed';
+      case AdPlacementType.shorts:
+        return 'Shorts';
+      case AdPlacementType.explore:
+        return 'Keşfet';
+      case AdPlacementType.profile:
+        return 'Profil';
+      case AdPlacementType.market:
+        return 'Mobil Pazar';
+      case AdPlacementType.scholarship:
+        return 'Burs';
+      case AdPlacementType.answerKey:
+        return 'Cevap Anahtarı';
+      case AdPlacementType.job:
+        return 'İşveren';
+      case AdPlacementType.practiceExam:
+        return 'Online Sınav';
+      case AdPlacementType.tutoring:
+        return 'Özel Ders';
+      case AdPlacementType.topMarket:
+        return 'Pasaj üst slider';
+      case AdPlacementType.topAnswerKey:
+        return 'Cevap Anahtarı üst slider';
+      case AdPlacementType.topJob:
+        return 'İşveren üst slider';
+      case AdPlacementType.topPracticeExam:
+        return 'Online Sınav üst slider';
+      case AdPlacementType.topTutoring:
+        return 'Özel Ders üst slider';
+      case AdPlacementType.topPreviousQuestions:
+        return 'Çıkmış Sorular üst slider';
+    }
+  }
 }
 
 T parseEnum<T>(

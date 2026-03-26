@@ -57,9 +57,9 @@ extension ShortControllerLoadingPart on ShortController {
 
       if (page.posts.isEmpty) {
         return _ShortPageResult(
-          posts: const [],
-          lastDoc: cursor,
-          hasMore: false,
+          const [],
+          cursor,
+          false,
         );
       }
 
@@ -134,9 +134,9 @@ extension ShortControllerLoadingPart on ShortController {
 
         if (filtered.isNotEmpty) {
           return _ShortPageResult(
-            posts: filtered,
-            lastDoc: lastDoc,
-            hasMore: hasMoreDocs,
+            filtered,
+            lastDoc,
+            hasMoreDocs,
           );
         }
       }
@@ -148,9 +148,9 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     return _ShortPageResult(
-      posts: const [],
-      lastDoc: lastDoc,
-      hasMore: hasMoreDocs,
+      const [],
+      lastDoc,
+      hasMoreDocs,
     );
   }
 

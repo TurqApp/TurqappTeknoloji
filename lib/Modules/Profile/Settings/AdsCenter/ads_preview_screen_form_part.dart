@@ -37,7 +37,7 @@ extension AdsPreviewScreenFormPart on _AdsPreviewScreenState {
           items: AdPlacementType.values.map((placement) {
             return DropdownMenuItem(
               value: placement,
-              child: Text(placement.name),
+              child: Text(placement.displayName),
             );
           }).toList(growable: false),
           onChanged: (value) {

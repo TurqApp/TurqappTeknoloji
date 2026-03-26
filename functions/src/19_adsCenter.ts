@@ -8,12 +8,45 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 
-type Placement = "feed" | "shorts" | "explore";
+type Placement =
+  | "feed"
+  | "shorts"
+  | "explore"
+  | "profile"
+  | "market"
+  | "scholarship"
+  | "answerKey"
+  | "job"
+  | "practiceExam"
+  | "tutoring"
+  | "topMarket"
+  | "topAnswerKey"
+  | "topJob"
+  | "topPracticeExam"
+  | "topTutoring"
+  | "topPreviousQuestions";
 
 const enumValues = {
   campaignStatus: new Set(["draft", "pendingReview", "approved", "paused", "active", "ended", "rejected"]),
   moderationStatus: new Set(["pending", "approved", "rejected"]),
-  placements: new Set(["feed", "shorts", "explore"]),
+  placements: new Set([
+    "feed",
+    "shorts",
+    "explore",
+    "profile",
+    "market",
+    "scholarship",
+    "answerKey",
+    "job",
+    "practiceExam",
+    "tutoring",
+    "topMarket",
+    "topAnswerKey",
+    "topJob",
+    "topPracticeExam",
+    "topTutoring",
+    "topPreviousQuestions",
+  ]),
 };
 
 function ensureAuth(context: functions.https.CallableContext) {
@@ -75,6 +108,19 @@ function normalizePlacement(value: unknown): Placement {
   const raw = normalizeString(value).toLowerCase();
   if (raw === "shorts") return "shorts";
   if (raw === "explore") return "explore";
+  if (raw === "profile") return "profile";
+  if (raw === "market") return "market";
+  if (raw === "scholarship") return "scholarship";
+  if (raw === "answerkey") return "answerKey";
+  if (raw === "job") return "job";
+  if (raw === "practiceexam") return "practiceExam";
+  if (raw === "tutoring") return "tutoring";
+  if (raw === "topmarket") return "topMarket";
+  if (raw === "topanswerkey") return "topAnswerKey";
+  if (raw === "topjob") return "topJob";
+  if (raw === "toppracticeexam") return "topPracticeExam";
+  if (raw === "toptutoring") return "topTutoring";
+  if (raw === "toppreviousquestions") return "topPreviousQuestions";
   return "feed";
 }
 
@@ -458,7 +504,12 @@ export const adsSimulateDelivery = functions.region("europe-west3").https.onCall
 });
 
 export const adsLogEvent = functions.region("europe-west3").https.onCall(async (data, context) => {
-  await ensureAdmin(context);
+  const isPreview = data?.isPreview === true;
+  if (isPreview) {
+    await ensureAdmin(context);
+  } else {
+    ensureAuth(context);
+  }
 
   const flags = await getFlags();
   if (!flags.adsInfrastructureEnabled) {
@@ -469,8 +520,10 @@ export const adsLogEvent = functions.region("europe-west3").https.onCall(async (
   const campaignId = normalizeString(data?.campaignId);
   const creativeId = normalizeString(data?.creativeId);
   const placement = normalizePlacement(data?.placement);
-  const isPreview = data?.isPreview === true;
-  const userId = normalizeString(data?.userId || context.auth?.uid);
+  const authUserId = normalizeString(context.auth?.uid);
+  const userId = isPreview
+    ? normalizeString(data?.userId || authUserId)
+    : authUserId;
   const destinationUrl = normalizeString(data?.destinationUrl);
   const extras = typeof data?.extras === "object" && data.extras ? data.extras : {};
 

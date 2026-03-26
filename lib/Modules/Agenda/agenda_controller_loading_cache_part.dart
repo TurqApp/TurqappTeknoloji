@@ -331,9 +331,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       usePrimaryFeedPaging: usePrimaryFeedPaging ?? _usePrimaryFeedPaging,
     );
     return _AgendaSourcePage(
-      items: page.items,
-      lastDoc: page.lastDoc,
-      usesPrimaryFeed: page.usesPrimaryFeed,
+      page.items,
+      page.lastDoc,
+      page.usesPrimaryFeed,
     );
   }
 
@@ -354,12 +354,12 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       cacheOnly: cacheOnly,
     );
     return _AgendaSourcePage(
-      items: page.items
+      page.items
           .where((p) => _isEligibleAgendaPost(p, nowMs))
           .where((p) => p.deletedPost != true)
           .toList(growable: false),
-      lastDoc: page.lastDoc,
-      usesPrimaryFeed: false,
+      page.lastDoc,
+      false,
     );
   }
 

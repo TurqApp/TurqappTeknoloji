@@ -44,7 +44,7 @@ class AdsCampaignListView extends StatelessWidget {
                   ...AdPlacementType.values.map(
                     (placement) => DropdownMenuItem(
                       value: placement,
-                      child: Text(placement.name),
+                      child: Text(placement.displayName),
                     ),
                   ),
                 ],
@@ -175,7 +175,7 @@ class AdsCampaignListView extends StatelessWidget {
                 ),
               ),
               Text(
-                '${'ads_center.placement'.tr}: ${campaign.placementTypes.map((placement) => placement.name).join(', ')}',
+                '${'ads_center.placement'.tr}: ${campaign.placementTypes.map((placement) => placement.displayName).join(', ')}',
                 style: const TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 12,
