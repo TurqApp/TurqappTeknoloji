@@ -169,11 +169,15 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
       } else if (!outcome.nowFollowing && wasFollowing) {
         totalFollower.value--;
         postNotificationsEnabled.value = false;
-        await _userSubcollectionRepository.deleteEntry(
-          userID,
-          subcollection: 'postNotificationSubscribers',
-          docId: currentUid,
-        );
+        try {
+          await _userSubcollectionRepository.deleteEntry(
+            userID,
+            subcollection: 'postNotificationSubscribers',
+            docId: currentUid,
+          );
+        } catch (e) {
+          print('SocialProfile unfollow notification cleanup error: $e');
+        }
       }
 
       if (outcome.limitReached) {
