@@ -225,7 +225,7 @@ class AdsCampaignListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = AdsCenterController.ensure();
+    final controller = ensureAdsCenterController();
     return _buildPage(controller);
   }
 }

@@ -32,11 +32,11 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
   @override
   void initState() {
     super.initState();
-    final existingController = DeletedStoriesController.maybeFind();
+    final existingController = maybeFindDeletedStoriesController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = DeletedStoriesController.ensure();
+      controller = ensureDeletedStoriesController();
       _ownsController = true;
     }
     Future<void>.delayed(Duration.zero, () {
@@ -47,7 +47,7 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(DeletedStoriesController.maybeFind(), controller)) {
+        identical(maybeFindDeletedStoriesController(), controller)) {
       Get.delete<DeletedStoriesController>(force: true);
     }
     super.dispose();

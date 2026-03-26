@@ -62,7 +62,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   @override
   void initState() {
     super.initState();
-    _controller = AdsCenterController.ensure();
+    _controller = ensureAdsCenterController();
 
     final campaign = widget.initialCampaign;
     _name = TextEditingController(text: campaign?.name ?? '');

@@ -36,17 +36,16 @@ class _EducationInfoViewState extends State<EducationInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_education_${identityHashCode(this)}';
-    final existing = EducationInfoController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindEducationInfoController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller =
-        existing ?? EducationInfoController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureEducationInfoController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          EducationInfoController.maybeFind(tag: _controllerTag),
+          maybeFindEducationInfoController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<EducationInfoController>(tag: _controllerTag, force: true);

@@ -5,6 +5,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 
 part 'short_render_coordinator_class_part.dart';
 part 'short_render_coordinator_patch_part.dart';
+part 'short_render_coordinator_facade_part.dart';
 
 class ShortRenderUpdate {
   const ShortRenderUpdate({

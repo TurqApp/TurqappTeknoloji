@@ -26,19 +26,19 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_providers_${identityHashCode(this)}';
-    final existing = ScholarshipProvidersController.maybeFind(
+    final existing = maybeFindScholarshipProvidersController(
       tag: _controllerTag,
     );
     _ownsController = existing == null;
     controller =
-        existing ?? ScholarshipProvidersController.ensure(tag: _controllerTag);
+        existing ?? ensureScholarshipProvidersController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          ScholarshipProvidersController.maybeFind(tag: _controllerTag),
+          maybeFindScholarshipProvidersController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ScholarshipProvidersController>(

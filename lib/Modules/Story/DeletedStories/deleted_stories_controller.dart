@@ -9,3 +9,5 @@ import 'package:flutter/material.dart';
 part 'deleted_stories_controller_data_part.dart';
 part 'deleted_stories_controller_runtime_part.dart';
 part 'deleted_stories_controller_class_part.dart';
+part 'deleted_stories_controller_fields_part.dart';
+part 'deleted_stories_controller_facade_part.dart';

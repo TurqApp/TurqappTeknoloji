@@ -13,11 +13,11 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
     super.initState();
     _controllerTag = '${widget.title}_${identityHashCode(this)}';
     final existingController =
-        ListBottomSheetController.maybeFind(tag: _controllerTag);
+        maybeFindListBottomSheetController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = ListBottomSheetController.ensure(
+      controller = ensureListBottomSheetController(
         tag: _controllerTag,
       );
       _ownsController = true;
@@ -33,7 +33,7 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   void dispose() {
     if (_ownsController &&
         identical(
-          ListBottomSheetController.maybeFind(tag: _controllerTag),
+          maybeFindListBottomSheetController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ListBottomSheetController>(tag: _controllerTag);

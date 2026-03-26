@@ -31,7 +31,7 @@ class NotificationPreferencesService {
   }
 
   static NotificationPreferencesRepository get _repository =>
-      NotificationPreferencesRepository.ensure();
+      ensureNotificationPreferencesRepository();
 
   static Stream<Map<String, dynamic>> currentUserPreferencesStream() {
     final uid = CurrentUserService.instance.effectiveUserId;

@@ -8,7 +8,7 @@ class AdsCreativeReviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = AdsCenterController.ensure();
+    final controller = ensureAdsCenterController();
     return Obx(() {
       final creatives = controller.creatives;
       if (creatives.isEmpty) {

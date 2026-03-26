@@ -36,8 +36,8 @@ class _ApplicationReviewState extends State<ApplicationReview> {
     super.initState();
     _tag =
         'job_application_review_${widget.jobDocID}_${identityHashCode(this)}';
-    _ownsController = ApplicationReviewController.maybeFind(tag: _tag) == null;
-    controller = ApplicationReviewController.ensure(
+    _ownsController = maybeFindApplicationReviewController(tag: _tag) == null;
+    controller = ensureApplicationReviewController(
       jobDocID: widget.jobDocID,
       tag: _tag,
     );
@@ -47,7 +47,7 @@ class _ApplicationReviewState extends State<ApplicationReview> {
   void dispose() {
     if (_ownsController &&
         identical(
-          ApplicationReviewController.maybeFind(tag: _tag),
+          maybeFindApplicationReviewController(tag: _tag),
           controller,
         )) {
       Get.delete<ApplicationReviewController>(tag: _tag);

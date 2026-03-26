@@ -108,7 +108,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
       agenda.centeredIndex.value = -1;
       agenda.pauseAll.value = true;
     }
-    if (DeletedStoriesController.maybeFind() != null) {
+    if (maybeFindDeletedStoriesController() != null) {
       Get.delete<DeletedStoriesController>(force: true);
     }
     Get.to(() => const DeletedStoriesView())?.then((_) {

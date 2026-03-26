@@ -26,7 +26,7 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = AdsCenterController.ensure();
+    _controller = ensureAdsCenterController();
     _userId.text = _currentUid;
   }
 

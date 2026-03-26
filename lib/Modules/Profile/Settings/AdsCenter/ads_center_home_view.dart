@@ -26,11 +26,11 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
-    final existingController = AdsCenterController.maybeFind();
+    final existingController = maybeFindAdsCenterController();
     if (existingController != null) {
       _controller = existingController;
     } else {
-      _controller = AdsCenterController.ensure();
+      _controller = ensureAdsCenterController();
       _ownsController = true;
     }
   }
@@ -38,7 +38,7 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
   @override
   void dispose() {
     if (_ownsController &&
-        identical(AdsCenterController.maybeFind(), _controller)) {
+        identical(maybeFindAdsCenterController(), _controller)) {
       Get.delete<AdsCenterController>(force: true);
     }
     _tabController.dispose();

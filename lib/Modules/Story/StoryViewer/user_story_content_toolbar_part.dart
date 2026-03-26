@@ -67,7 +67,8 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                 onTap: () {
                   unawaited(_pauseStoryAudio());
                   _timer?.cancel();
-                  controller.showLikesBottomSheet(currentStory.id, onClosed: (v) {
+                  controller.showLikesBottomSheet(currentStory.id,
+                      onClosed: (v) {
                     _startProgress();
                     unawaited(_resumeStoryAudio());
                   });
@@ -78,7 +79,8 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                 onTap: () {
                   unawaited(_pauseStoryAudio());
                   _timer?.cancel();
-                  controller.showSeensBottomSheet(currentStory.id, onClosed: (v) {
+                  controller.showSeensBottomSheet(currentStory.id,
+                      onClosed: (v) {
                     _startProgress();
                     unawaited(_resumeStoryAudio());
                   });
@@ -172,7 +174,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                 icon: CupertinoIcons.trash,
                 onTap: () {
                   final deletedStoriesController =
-                      DeletedStoriesController.maybeFind();
+                      maybeFindDeletedStoriesController();
                   final isDeletedStory = deletedStoriesController?.deletedAtById
                           .containsKey(currentStory.id) ==
                       true;

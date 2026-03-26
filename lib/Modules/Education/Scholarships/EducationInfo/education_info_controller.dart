@@ -19,3 +19,4 @@ part 'education_info_controller_facade_part.dart';
 part 'education_info_controller_fields_part.dart';
 part 'education_info_controller_labels_part.dart';
 part 'education_info_controller_lifecycle_part.dart';
+part 'education_info_controller_support_part.dart';

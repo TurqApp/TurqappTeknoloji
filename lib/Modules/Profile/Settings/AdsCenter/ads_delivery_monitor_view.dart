@@ -8,7 +8,7 @@ class AdsDeliveryMonitorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = AdsCenterController.ensure();
+    final controller = ensureAdsCenterController();
     return Obx(() {
       final logs = controller.deliveryLogs;
       if (logs.isEmpty) {

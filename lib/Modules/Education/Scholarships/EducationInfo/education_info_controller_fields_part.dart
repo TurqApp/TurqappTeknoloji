@@ -1,6 +1,12 @@
 part of 'education_info_controller.dart';
 
 class _EducationInfoControllerState {
+  final UserRepository userRepository = UserRepository.ensure();
+  final CurrentUserService currentUserService = CurrentUserService.instance;
+  final CityDirectoryService cityDirectoryService =
+      CityDirectoryService.ensure();
+  final EducationReferenceDataService referenceDataService =
+      EducationReferenceDataService.ensure();
   final RxString selectedEducationLevel = ''.obs;
   final RxString content = ''.obs;
   final RxBool isLoading = false.obs;
@@ -29,6 +35,11 @@ class _EducationInfoControllerState {
 }
 
 extension EducationInfoControllerFieldsPart on EducationInfoController {
+  UserRepository get _userRepository => _state.userRepository;
+  CurrentUserService get _currentUserService => _state.currentUserService;
+  CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
+  EducationReferenceDataService get _referenceDataService =>
+      _state.referenceDataService;
   RxString get selectedEducationLevel => _state.selectedEducationLevel;
   RxString get content => _state.content;
   RxBool get isLoading => _state.isLoading;

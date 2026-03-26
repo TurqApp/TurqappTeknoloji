@@ -155,7 +155,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final videoStateManager = VideoStateManager.instance;
   final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
   final ShortRenderCoordinator _shortRenderCoordinator =
-      ShortRenderCoordinator.ensure();
+      ensureShortRenderCoordinator();
 
   final PageController pageController = PageController();
   int currentPage = 0;

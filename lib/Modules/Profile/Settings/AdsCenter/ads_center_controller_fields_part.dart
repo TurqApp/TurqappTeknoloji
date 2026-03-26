@@ -1,6 +1,20 @@
 part of 'ads_center_controller.dart';
 
 class _AdsCenterControllerState {
+  _AdsCenterControllerState({
+    AdsRepositoryService? repository,
+    AdsDeliveryService? deliveryService,
+    AdsTargetingService? targetingService,
+    AdsAnalyticsService? analyticsService,
+  })  : repository = repository ?? const AdsRepositoryService(),
+        deliveryService = deliveryService ?? AdsDeliveryService(),
+        targetingService = targetingService ?? const AdsTargetingService(),
+        analyticsService = analyticsService ?? const AdsAnalyticsService();
+
+  final AdsRepositoryService repository;
+  final AdsDeliveryService deliveryService;
+  final AdsTargetingService targetingService;
+  final AdsAnalyticsService analyticsService;
   final RxBool canAccess = false.obs;
   final RxBool loading = false.obs;
   final RxnString errorText = RxnString();
@@ -27,6 +41,10 @@ class _AdsCenterControllerState {
 }
 
 extension AdsCenterControllerFieldsPart on AdsCenterController {
+  AdsRepositoryService get repository => _state.repository;
+  AdsDeliveryService get deliveryService => _state.deliveryService;
+  AdsTargetingService get targetingService => _state.targetingService;
+  AdsAnalyticsService get analyticsService => _state.analyticsService;
   RxBool get canAccess => _state.canAccess;
   RxBool get loading => _state.loading;
   RxnString get errorText => _state.errorText;
