@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -47,6 +48,86 @@ class AdmobKare extends StatefulWidget {
 }
 
 class _AdmobKareState extends State<AdmobKare> {
+  static const List<_PromoFallbackPalette> _promoFallbackPalettes =
+      <_PromoFallbackPalette>[
+    _PromoFallbackPalette(
+      colors: <Color>[
+        Color(0xFFD8F3DC),
+        Color(0xFFB7E4C7),
+        Color(0xFF95D5B2),
+      ],
+      badgeBackgroundColor: Color(0x66FFFFFF),
+      badgeBorderColor: Color(0x6695D5B2),
+      titleColor: Color(0xFF1B4332),
+      subtitleColor: Color(0xFF2D6A4F),
+    ),
+    _PromoFallbackPalette(
+      colors: <Color>[
+        Color(0xFFFFE5D9),
+        Color(0xFFFFCAD4),
+        Color(0xFFF4ACB7),
+      ],
+      badgeBackgroundColor: Color(0x66FFFFFF),
+      badgeBorderColor: Color(0x66F4ACB7),
+      titleColor: Color(0xFF6D2745),
+      subtitleColor: Color(0xFF8F3F5C),
+    ),
+    _PromoFallbackPalette(
+      colors: <Color>[
+        Color(0xFFE3F2FD),
+        Color(0xFFBBDEFB),
+        Color(0xFF90CAF9),
+      ],
+      badgeBackgroundColor: Color(0x66FFFFFF),
+      badgeBorderColor: Color(0x6690CAF9),
+      titleColor: Color(0xFF0D3B66),
+      subtitleColor: Color(0xFF355070),
+    ),
+    _PromoFallbackPalette(
+      colors: <Color>[
+        Color(0xFFFFF1C1),
+        Color(0xFFFFE59A),
+        Color(0xFFFFD166),
+      ],
+      badgeBackgroundColor: Color(0x66FFFFFF),
+      badgeBorderColor: Color(0x66FFD166),
+      titleColor: Color(0xFF6B4F00),
+      subtitleColor: Color(0xFF7A5C00),
+    ),
+    _PromoFallbackPalette(
+      colors: <Color>[
+        Color(0xFFEDE7F6),
+        Color(0xFFD1C4E9),
+        Color(0xFFB39DDB),
+      ],
+      badgeBackgroundColor: Color(0x66FFFFFF),
+      badgeBorderColor: Color(0x66B39DDB),
+      titleColor: Color(0xFF3F2B63),
+      subtitleColor: Color(0xFF5E548E),
+    ),
+    _PromoFallbackPalette(
+      colors: <Color>[
+        Color(0xFFDFF7F2),
+        Color(0xFFB8F2E6),
+        Color(0xFF9BE7D8),
+      ],
+      badgeBackgroundColor: Color(0x66FFFFFF),
+      badgeBorderColor: Color(0x669BE7D8),
+      titleColor: Color(0xFF0B525B),
+      subtitleColor: Color(0xFF1B6B75),
+    ),
+    _PromoFallbackPalette(
+      colors: <Color>[
+        Color(0xFFFDE2E4),
+        Color(0xFFF9BEC7),
+        Color(0xFFF694C1),
+      ],
+      badgeBackgroundColor: Color(0x66FFFFFF),
+      badgeBorderColor: Color(0x66F694C1),
+      titleColor: Color(0xFF6A2040),
+      subtitleColor: Color(0xFF8A345A),
+    ),
+  ];
   static final List<BannerAd> _readyPool = <BannerAd>[];
   static final Map<String, DateTime> _unitCooldownUntilById =
       <String, DateTime>{};
@@ -67,6 +148,7 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _isAdLoaded = false;
   bool _isDisposed = false;
   bool _loadFailed = false;
+  bool _isLoadingAd = false;
   bool _impressionReported = false;
   int _retryCount = 0;
   Timer? _retryTimer;
@@ -77,6 +159,8 @@ class _AdmobKareState extends State<AdmobKare> {
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const double _promoSlotHeight = 270;
+  late final _PromoFallbackPalette _promoFallbackPalette =
+      _promoFallbackPalettes[Random().nextInt(_promoFallbackPalettes.length)];
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
@@ -271,6 +355,7 @@ class _AdmobKareState extends State<AdmobKare> {
       }
       _bannerAd = pooled;
       _isAdLoaded = true;
+      _isLoadingAd = false;
       _loadFailed = false;
       _impressionReported = false;
       if (_supportsSharedPool) {
@@ -302,6 +387,7 @@ class _AdmobKareState extends State<AdmobKare> {
       setState(() {
         _loadFailed = true;
         _isAdLoaded = false;
+        _isLoadingAd = false;
       });
     }
     _retryTimer = Timer(delay, () {
@@ -359,6 +445,7 @@ class _AdmobKareState extends State<AdmobKare> {
     if (mounted && !_isDisposed) {
       setState(() {
         _isAdLoaded = false;
+        _isLoadingAd = true;
         _loadFailed = false;
       });
     }
@@ -394,6 +481,7 @@ class _AdmobKareState extends State<AdmobKare> {
           if (mounted && !_isDisposed) {
             setState(() {
               _isAdLoaded = true;
+              _isLoadingAd = false;
               _loadFailed = false;
             });
           }
@@ -430,6 +518,7 @@ class _AdmobKareState extends State<AdmobKare> {
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
+          _isLoadingAd = false;
           final shouldEnterCooldown = isRetryThrottled ||
               _globalFailureBurstCount >= _failureBurstBeforeCooldown ||
               _retryCount >= _maxRetryCount;
@@ -473,6 +562,7 @@ class _AdmobKareState extends State<AdmobKare> {
             setState(() {
               _loadFailed = false;
               _isAdLoaded = false;
+              _isLoadingAd = false;
             });
           }
           _scheduleRetry(delay: retryDelay);
@@ -511,6 +601,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _retryTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
+    _isLoadingAd = false;
     _bannerAd = null;
     if (ad != null) {
       unawaited(Future<void>.delayed(_disposeDelay, () {
@@ -546,27 +637,7 @@ class _AdmobKareState extends State<AdmobKare> {
     } else {
       final ad = _bannerAd;
       final canRenderLiveAd = !_loadFailed && _canRenderAd(ad);
-      if (!canRenderLiveAd) {
-        if (!widget.showChrome) {
-          child = const SizedBox.shrink();
-        } else {
-          final fallbackSurface = SizedBox(
-            height: _promoSlotHeight,
-            child: _buildPromoFrame(
-              child: _buildPromoFallbackSurface(),
-            ),
-          );
-          child = Padding(
-            padding: widget.contentPadding,
-            child: widget.promoFallbackOffsetX == 0
-                ? fallbackSurface
-                : Transform.translate(
-                    offset: Offset(widget.promoFallbackOffsetX, 0),
-                    child: fallbackSurface,
-                  ),
-          );
-        }
-      } else {
+      if (canRenderLiveAd) {
         final bannerAd = ad!;
 
         try {
@@ -613,10 +684,45 @@ class _AdmobKareState extends State<AdmobKare> {
               setState(() {
                 _loadFailed = true;
                 _isAdLoaded = false;
+                _isLoadingAd = false;
               });
             });
           }
           child = const SizedBox.shrink();
+        }
+      } else if (_isLoadingAd && !_loadFailed) {
+        if (!widget.showChrome) {
+          child = const SizedBox.shrink();
+        } else {
+          child = Padding(
+            padding: widget.contentPadding,
+            child: SizedBox(
+              height: _promoSlotHeight,
+              child: _buildPromoFrame(
+                child: _buildAdLoadingSurface(),
+              ),
+            ),
+          );
+        }
+      } else {
+        if (!widget.showChrome) {
+          child = const SizedBox.shrink();
+        } else {
+          final fallbackSurface = SizedBox(
+            height: _promoSlotHeight,
+            child: _buildPromoFrame(
+              child: _buildPromoFallbackSurface(),
+            ),
+          );
+          child = Padding(
+            padding: widget.contentPadding,
+            child: widget.promoFallbackOffsetX == 0
+                ? fallbackSurface
+                : Transform.translate(
+                    offset: Offset(widget.promoFallbackOffsetX, 0),
+                    child: fallbackSurface,
+                  ),
+          );
         }
       }
     }
@@ -667,19 +773,25 @@ class _AdmobKareState extends State<AdmobKare> {
     );
   }
 
+  Widget _buildAdLoadingSurface() {
+    return const ColoredBox(
+      color: CupertinoColors.systemGrey6,
+      child: Center(
+        child: CupertinoActivityIndicator(radius: 12),
+      ),
+    );
+  }
+
   Widget _buildPromoFallbackCard() {
+    final palette = _promoFallbackPalette;
     return Container(
       height: _promoSlotHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[
-            Color(0xFF08313A),
-            Color(0xFF0097A7),
-            Color(0xFF00BCD4),
-          ],
+          colors: palette.colors,
           stops: <double>[0, 0.62, 1],
         ),
       ),
@@ -691,36 +803,36 @@ class _AdmobKareState extends State<AdmobKare> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0x3800BCD4),
+                color: palette.badgeBackgroundColor,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: const Color(0x6600BCD4),
+                  color: palette.badgeBorderColor,
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'TurqApp önerisi',
                 style: TextStyle(
-                  color: CupertinoColors.white,
+                  color: palette.titleColor,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Fırsat, gelişim ve ihtiyaç aynı yerde',
               style: TextStyle(
-                color: CupertinoColors.white,
+                color: palette.titleColor,
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 height: 1.15,
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'TurqApp içindeki fırsatları öne çıkarıyoruz.',
               style: TextStyle(
-                color: Color(0xFFD9F7F1),
+                color: palette.subtitleColor,
                 fontSize: 13,
                 height: 1.3,
               ),
@@ -732,8 +844,8 @@ class _AdmobKareState extends State<AdmobKare> {
                     widget.forceSingleLinePromoChips ||
                         constraints.maxWidth >= 248;
                 return useSingleLinePromoChips
-                    ? _buildSingleLinePromoChips()
-                    : _buildWrappedPromoChips();
+                    ? _buildSingleLinePromoChips(palette)
+                    : _buildWrappedPromoChips(palette);
               },
             ),
           ],
@@ -774,43 +886,42 @@ class _AdmobKareState extends State<AdmobKare> {
     );
   }
 
-  Widget _buildSingleLinePromoChips() {
-    return const SizedBox(
+  Widget _buildSingleLinePromoChips(_PromoFallbackPalette palette) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: SizedBox(
       height: 34,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
         child: Row(
           children: [
-            SizedBox(
-              width: 76,
+            Expanded(
               child: _PromoChip(
                 label: 'MobilPazar',
                 expandedLayout: true,
+                textColor: palette.titleColor,
               ),
             ),
-            SizedBox(width: 6),
-            SizedBox(
-              width: 76,
+            const SizedBox(width: 6),
+            Expanded(
               child: _PromoChip(
                 label: 'İş İlanları',
                 expandedLayout: true,
+                textColor: palette.titleColor,
               ),
             ),
-            SizedBox(width: 6),
-            SizedBox(
-              width: 76,
+            const SizedBox(width: 6),
+            Expanded(
               child: _PromoChip(
                 label: 'Denemeler',
                 expandedLayout: true,
+                textColor: palette.titleColor,
               ),
             ),
-            SizedBox(width: 6),
-            SizedBox(
-              width: 76,
+            const SizedBox(width: 6),
+            Expanded(
               child: _PromoChip(
                 label: 'Burslar',
                 expandedLayout: true,
+                textColor: palette.titleColor,
               ),
             ),
           ],
@@ -819,27 +930,57 @@ class _AdmobKareState extends State<AdmobKare> {
     );
   }
 
-  Widget _buildWrappedPromoChips() {
-    return const Wrap(
+  Widget _buildWrappedPromoChips(_PromoFallbackPalette palette) {
+    return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: [
-        _PromoChip(label: 'MobilPazar'),
-        _PromoChip(label: 'İş İlanları'),
-        _PromoChip(label: 'Denemeler'),
-        _PromoChip(label: 'Burslar'),
+      children: <Widget>[
+        _PromoChip(
+          label: 'MobilPazar',
+          textColor: palette.titleColor,
+        ),
+        _PromoChip(
+          label: 'İş İlanları',
+          textColor: palette.titleColor,
+        ),
+        _PromoChip(
+          label: 'Denemeler',
+          textColor: palette.titleColor,
+        ),
+        _PromoChip(
+          label: 'Burslar',
+          textColor: palette.titleColor,
+        ),
       ],
     );
   }
 }
 
+class _PromoFallbackPalette {
+  const _PromoFallbackPalette({
+    required this.colors,
+    required this.badgeBackgroundColor,
+    required this.badgeBorderColor,
+    required this.titleColor,
+    required this.subtitleColor,
+  });
+
+  final List<Color> colors;
+  final Color badgeBackgroundColor;
+  final Color badgeBorderColor;
+  final Color titleColor;
+  final Color subtitleColor;
+}
+
 class _PromoChip extends StatelessWidget {
   const _PromoChip({
     required this.label,
+    required this.textColor,
     this.expandedLayout = false,
   });
 
   final String label;
+  final Color textColor;
   final bool expandedLayout;
 
   @override
@@ -861,8 +1002,8 @@ class _PromoChip extends StatelessWidget {
         child: Text(
           label,
           maxLines: 1,
-          style: const TextStyle(
-            color: CupertinoColors.white,
+          style: TextStyle(
+            color: textColor,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
