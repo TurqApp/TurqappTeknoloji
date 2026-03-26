@@ -37,7 +37,7 @@ class AdsCenterControllerActionsPart {
   }
 
   Future<void> saveFlags(AdFeatureFlags flags) async {
-    await AdsFeatureFlagsService.to.setFlags(flags);
+    await ensureAdsFeatureFlagsService().setFlags(flags);
   }
 
   Future<void> runPreview({

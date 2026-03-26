@@ -6,7 +6,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
     NetworkAwarenessService.ensure();
     UploadQueueService.ensure();
     DraftService.ensure();
-    PostEditingService.ensure();
+    ensurePostEditingService();
     MediaEnhancementService.ensure();
     StorageBudgetManager.ensure();
     ensurePlaybackKpiService();
@@ -157,7 +157,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   }
 
   void _showEditingStats() {
-    final editingService = PostEditingService.maybeFind();
+    final editingService = maybeFindPostEditingService();
     if (editingService != null) {
       final stats = editingService.getEditStatistics();
 

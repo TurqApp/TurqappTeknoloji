@@ -20,15 +20,15 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
   @override
   void initState() {
     super.initState();
-    final existing = MyPracticeExamsController.maybeFind();
+    final existing = maybeFindMyPracticeExamsController();
     _ownsController = existing == null;
-    controller = existing ?? MyPracticeExamsController.ensure();
+    controller = existing ?? ensureMyPracticeExamsController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(MyPracticeExamsController.maybeFind(), controller)) {
+        identical(maybeFindMyPracticeExamsController(), controller)) {
       Get.delete<MyPracticeExamsController>();
     }
     super.dispose();

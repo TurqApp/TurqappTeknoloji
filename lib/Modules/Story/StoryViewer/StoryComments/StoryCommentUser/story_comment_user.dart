@@ -41,12 +41,12 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
     _controllerTag =
         'story_comment_user_${widget.model.docID}_${identityHashCode(this)}';
     final existingController =
-        StoryCommentUserController.maybeFind(tag: _controllerTag);
+        maybeFindStoryCommentUserController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = StoryCommentUserController.ensure(
+      controller = ensureStoryCommentUserController(
         tag: _controllerTag,
       );
       _ownsController = true;
@@ -58,7 +58,7 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
   void dispose() {
     if (_ownsController &&
         identical(
-          StoryCommentUserController.maybeFind(tag: _controllerTag),
+          maybeFindStoryCommentUserController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<StoryCommentUserController>(

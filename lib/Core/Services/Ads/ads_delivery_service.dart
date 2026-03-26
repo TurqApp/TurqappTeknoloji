@@ -14,7 +14,7 @@ class AdsDeliveryService {
   final AdsRepositoryService _repository;
 
   Future<AdDeliveryResult> simulateForAdmin(AdDeliveryContext context) async {
-    final flags = AdsFeatureFlagsService.to.flags.value;
+    final flags = ensureAdsFeatureFlagsService().flags.value;
     if (!flags.adsInfrastructureEnabled || !flags.adsAdminPanelEnabled) {
       return AdDeliveryResult(
         hasAd: false,

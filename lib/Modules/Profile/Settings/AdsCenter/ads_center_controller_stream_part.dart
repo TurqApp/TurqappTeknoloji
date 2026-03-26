@@ -54,7 +54,7 @@ extension AdsCenterControllerStreamPart on AdsCenterController {
         return;
       }
 
-      await AdsFeatureFlagsService.ensure().init();
+      await ensureAdsFeatureFlagsService().init();
 
       _bindCampaigns();
       _creativeSub = repository.watchCreatives().listen(

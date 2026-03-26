@@ -49,12 +49,12 @@ class _ApplicantProfileState extends State<ApplicantProfile> {
     super.initState();
     _controllerTag =
         'scholarship_applicant_profile_${widget.userID}_${identityHashCode(this)}';
-    final existing = ScholarshipApplicationsContentController.maybeFind(
+    final existing = maybeFindScholarshipApplicationsContentController(
       tag: _controllerTag,
     );
     _ownsController = existing == null;
     controller = existing ??
-        ScholarshipApplicationsContentController.ensure(
+        ensureScholarshipApplicationsContentController(
           tag: _controllerTag,
           userID: widget.userID,
         );
@@ -64,7 +64,7 @@ class _ApplicantProfileState extends State<ApplicantProfile> {
   void dispose() {
     if (_ownsController &&
         identical(
-          ScholarshipApplicationsContentController.maybeFind(
+          maybeFindScholarshipApplicationsContentController(
               tag: _controllerTag),
           controller,
         )) {

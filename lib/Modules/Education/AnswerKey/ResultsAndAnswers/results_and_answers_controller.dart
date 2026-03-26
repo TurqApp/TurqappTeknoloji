@@ -8,20 +8,6 @@ part 'results_and_answers_controller_fields_part.dart';
 part 'results_and_answers_controller_runtime_part.dart';
 
 class ResultsAndAnswersController extends GetxController {
-  static ResultsAndAnswersController ensure(
-    OpticalFormModel model, {
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureResultsAndAnswersController(
-        model,
-        tag: tag,
-        permanent: permanent,
-      );
-
-  static ResultsAndAnswersController? maybeFind({String? tag}) =>
-      _maybeFindResultsAndAnswersController(tag: tag);
-
   final _state = _ResultsAndAnswersControllerState();
   final OpticalFormModel model;
 

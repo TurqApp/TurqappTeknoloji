@@ -1,5 +1,21 @@
 part of 'results_and_answers_controller.dart';
 
+ResultsAndAnswersController ensureResultsAndAnswersController(
+  OpticalFormModel model, {
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureResultsAndAnswersController(
+      model,
+      tag: tag,
+      permanent: permanent,
+    );
+
+ResultsAndAnswersController? maybeFindResultsAndAnswersController({
+  String? tag,
+}) =>
+    _maybeFindResultsAndAnswersController(tag: tag);
+
 ResultsAndAnswersController _ensureResultsAndAnswersController(
   OpticalFormModel model, {
   String? tag,

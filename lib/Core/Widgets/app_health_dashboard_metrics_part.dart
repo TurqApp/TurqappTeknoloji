@@ -328,7 +328,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getEditStats() {
-    final editingService = PostEditingService.maybeFind();
+    final editingService = maybeFindPostEditingService();
     if (editingService != null) {
       return editingService.getEditStatistics();
     }

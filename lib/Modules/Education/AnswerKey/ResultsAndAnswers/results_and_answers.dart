@@ -33,8 +33,8 @@ class _ResultsAndAnswersState extends State<ResultsAndAnswers> {
     _controllerTag =
         'results_and_answers_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        ResultsAndAnswersController.maybeFind(tag: _controllerTag) == null;
-    controller = ResultsAndAnswersController.ensure(
+        maybeFindResultsAndAnswersController(tag: _controllerTag) == null;
+    controller = ensureResultsAndAnswersController(
       model,
       tag: _controllerTag,
     );
@@ -43,7 +43,7 @@ class _ResultsAndAnswersState extends State<ResultsAndAnswers> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = ResultsAndAnswersController.maybeFind(
+      final registeredController = maybeFindResultsAndAnswersController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

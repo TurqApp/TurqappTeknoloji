@@ -35,7 +35,7 @@ class AdSlotService {
   }
 
   bool _isEnabledForPlacement(AdPlacementType _) {
-    final flags = AdsFeatureFlagsService.to.flags.value;
+    final flags = ensureAdsFeatureFlagsService().flags.value;
     // Public visibility kapalıysa kullanıcıya inject etme.
     return flags.adsInfrastructureEnabled &&
         flags.adsDeliveryEnabled &&

@@ -132,7 +132,7 @@ class AdsDashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = ensureAdsCenterController();
-    final flagsService = AdsFeatureFlagsService.to;
+    final flagsService = ensureAdsFeatureFlagsService();
     return _buildPage(
       controller: controller,
       flagsService: flagsService,

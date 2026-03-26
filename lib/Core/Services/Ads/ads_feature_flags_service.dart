@@ -7,4 +7,5 @@ import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
 import 'package:turqappv2/Models/Ads/ad_feature_flags.dart';
 
 part 'ads_feature_flags_service_class_part.dart';
+part 'ads_feature_flags_service_facade_part.dart';
 part 'ads_feature_flags_service_runtime_part.dart';
