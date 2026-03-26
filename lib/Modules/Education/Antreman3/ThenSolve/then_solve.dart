@@ -19,6 +19,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'then_solve_question_part.dart';
 part 'then_solve_shell_part.dart';
+part 'then_solve_shell_content_part.dart';
 
 const _thenSolveLgsType = 'LGS';
 

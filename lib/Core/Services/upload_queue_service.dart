@@ -36,4 +36,5 @@ part 'upload_queue_service_lifecycle_part.dart';
 part 'upload_queue_service_models_part.dart';
 part 'upload_queue_service_persistence_part.dart';
 part 'upload_queue_service_post_shell_part.dart';
+part 'upload_queue_service_post_shell_content_part.dart';
 part 'upload_queue_service_processing_part.dart';

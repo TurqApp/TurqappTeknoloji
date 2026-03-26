@@ -15,6 +15,7 @@ import '../../Core/Widgets/app_icon_surface.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 
 part 'post_creator_shell_part.dart';
+part 'post_creator_shell_content_part.dart';
 part 'post_creator_body_part.dart';
 part 'post_creator_toolbar_part.dart';
 

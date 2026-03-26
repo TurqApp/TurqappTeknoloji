@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test_controller.dart';
 
 part 'solve_test_shell_part.dart';
+part 'solve_test_shell_content_part.dart';
 part 'solve_test_question_part.dart';
 
 class SolveTest extends StatefulWidget {
