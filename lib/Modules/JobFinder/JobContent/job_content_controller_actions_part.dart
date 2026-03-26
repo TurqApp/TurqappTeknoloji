@@ -32,7 +32,7 @@ extension JobContentControllerActionsPart on JobContentController {
     if (myJobAdsController != null) {
       await myJobAdsController.getActive();
     }
-    final finder = JobFinderController.maybeFind();
+    final finder = maybeFindJobFinderController();
     if (finder != null) {
       await finder.getStartData();
       await finder.refreshJob(model.docID);

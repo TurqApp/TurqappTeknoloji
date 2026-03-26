@@ -1,5 +1,10 @@
 part of 'job_finder_controller.dart';
 
+const int _jobFinderFullBootstrapLimit = ReadBudgetRegistry.jobHomeInitialLimit;
+const String _jobFinderListingSelectionPrefKeyPrefix =
+    'pasaj_job_listing_selection';
+const String _jobFinderAllTurkeyRaw = 'Tüm Türkiye';
+
 extension JobFinderControllerSupportPart on JobFinderController {
   List<String> get innerTabTitles => [
         'pasaj.job_finder.tab.explore'.tr,
@@ -54,11 +59,11 @@ extension JobFinderControllerSupportPart on JobFinderController {
 
   bool isAllTurkeySelection(String value) =>
       value.trim().isEmpty ||
-      value == JobFinderController._allTurkeyRaw ||
+      value == _jobFinderAllTurkeyRaw ||
       value == _allTurkeyLabel;
 
   String _listingSelectionKeyFor(String uid) =>
-      '${JobFinderController._listingSelectionPrefKeyPrefix}_$uid';
+      '${_jobFinderListingSelectionPrefKeyPrefix}_$uid';
 
   void onInnerTabTap(int index) {
     innerTabIndex.value = index;

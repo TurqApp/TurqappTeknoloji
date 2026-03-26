@@ -137,7 +137,7 @@ class _JobContentState extends State<JobContent> {
 
   Future<void> _openDetails() async {
     await Get.to(() => JobDetails(model: model));
-    final finderController = JobFinderController.maybeFind();
+    final finderController = maybeFindJobFinderController();
     if (finderController != null) {
       await finderController.refreshJob(model.docID);
     }

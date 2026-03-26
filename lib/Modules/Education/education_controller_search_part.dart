@@ -55,7 +55,7 @@ extension EducationControllerSearchPart on EducationController {
         ScholarshipsController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.jobFinder:
-        final jc = JobFinderController.maybeFind();
+        final jc = maybeFindJobFinderController();
         if (jc != null) {
           jc.search.text = query;
         }
@@ -87,7 +87,7 @@ extension EducationControllerSearchPart on EducationController {
         ScholarshipsController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.jobFinder:
-        JobFinderController.maybeFind()?.search.clear();
+        maybeFindJobFinderController()?.search.clear();
         break;
       case PasajTabIds.market:
         MarketController.maybeFind()?.setSearchQuery('');

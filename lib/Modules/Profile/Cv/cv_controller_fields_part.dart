@@ -1,6 +1,8 @@
 part of 'cv_controller.dart';
 
 class _CvControllerState {
+  final cvRepository = ensureCvRepository();
+  final userService = CurrentUserService.instance;
   final selection = 0.obs;
   final firstName = TextEditingController(text: '');
   final lastName = TextEditingController(text: '');
@@ -19,6 +21,9 @@ class _CvControllerState {
 }
 
 extension CvControllerFieldsPart on CvController {
+  CvRepository get _cvRepository => _state.cvRepository;
+  CurrentUserService get _userService => _state.userService;
+  String get _currentUid => _userService.effectiveUserId;
   RxInt get selection => _state.selection;
   TextEditingController get firstName => _state.firstName;
   TextEditingController get lastName => _state.lastName;

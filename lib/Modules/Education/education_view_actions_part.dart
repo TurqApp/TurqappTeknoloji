@@ -44,7 +44,7 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.jobFinder) {
       return null;
     }
-    return JobFinderController.ensure(permanent: true);
+    return ensureJobFinderController(permanent: true);
   }
 
   bool _showInlineJobActions() {

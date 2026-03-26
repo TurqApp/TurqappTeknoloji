@@ -11,3 +11,13 @@ NavBarController _ensureNavBarController() =>
 
 NavBarController? _maybeFindNavBarController() =>
     Get.isRegistered<NavBarController>() ? Get.find<NavBarController>() : null;
+
+extension NavBarControllerFacadePart on NavBarController {
+  void changeIndex(int index) => _changeIndexImpl(index);
+
+  void pauseGlobalTabMedia() => _pauseGlobalTabMediaImpl();
+
+  void suspendFeedForTabExit() => _suspendFeedForTabExitImpl();
+
+  void resumeFeedIfNeeded() => _resumeFeedIfNeededImpl();
+}

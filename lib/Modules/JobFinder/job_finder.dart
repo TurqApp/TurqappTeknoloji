@@ -34,7 +34,7 @@ class JobFinder extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   static bool _bannerWarmupTriggered = false;
-  final controller = JobFinderController.ensure(permanent: true);
+  final controller = ensureJobFinderController(permanent: true);
 
   @override
   Widget build(BuildContext context) {

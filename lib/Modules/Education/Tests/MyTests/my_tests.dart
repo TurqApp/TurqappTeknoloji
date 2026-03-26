@@ -22,15 +22,15 @@ class _MyTestsState extends State<MyTests> {
   void initState() {
     super.initState();
     _controllerTag = 'tests_my_${identityHashCode(this)}';
-    final existing = MyTestsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindMyTestsController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? MyTestsController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureMyTestsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = MyTestsController.maybeFind(
+      final registeredController = maybeFindMyTestsController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

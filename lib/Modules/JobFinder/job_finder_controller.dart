@@ -23,6 +23,7 @@ import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
 part 'job_finder_controller_data_part.dart';
+part 'job_finder_controller_facade_part.dart';
 part 'job_finder_controller_fields_part.dart';
 part 'job_finder_controller_sheet_part.dart';
 part 'job_finder_controller_lifecycle_part.dart';

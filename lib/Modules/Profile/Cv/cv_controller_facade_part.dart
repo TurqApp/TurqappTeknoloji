@@ -25,9 +25,6 @@ CvController? _maybeFindCvController({String? tag}) {
   return Get.find<CvController>(tag: tag);
 }
 
-String _cvCurrentUid(CvController controller) =>
-    controller._userService.effectiveUserId;
-
 void _handleCvControllerInit(CvController controller) {
   controller._seedFromCurrentUser();
   controller.ensureDefaultPhoto();

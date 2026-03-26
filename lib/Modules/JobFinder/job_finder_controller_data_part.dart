@@ -37,7 +37,7 @@ extension JobFinderControllerDataPart on JobFinderController {
     _homeSnapshotSub = _jobHomeSnapshotRepository
         .openHome(
           userId: currentUid,
-          limit: JobFinderController._fullBootstrapLimit,
+          limit: _jobFinderFullBootstrapLimit,
         )
         .listen(_applyHomeSnapshotResource);
   }
@@ -45,7 +45,7 @@ extension JobFinderControllerDataPart on JobFinderController {
   Future<void> getStartData({
     bool silent = false,
     bool forceRefresh = false,
-    int limit = JobFinderController._fullBootstrapLimit,
+    int limit = _jobFinderFullBootstrapLimit,
     bool deferLocationHydration = false,
   }) async {
     final shouldShowLoader = !silent && list.isEmpty;

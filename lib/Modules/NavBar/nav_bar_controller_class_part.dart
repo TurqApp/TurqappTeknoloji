@@ -22,12 +22,4 @@ class NavBarController extends GetxController
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) =>
       _didChangeAppLifecycleStateImpl(state);
-
-  void changeIndex(int index) => _changeIndexImpl(index);
-
-  void pauseGlobalTabMedia() => _pauseGlobalTabMediaImpl();
-
-  void suspendFeedForTabExit() => _suspendFeedForTabExitImpl();
-
-  void resumeFeedIfNeeded() => _resumeFeedIfNeededImpl();
 }
