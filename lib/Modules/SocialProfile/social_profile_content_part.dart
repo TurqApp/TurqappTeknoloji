@@ -204,19 +204,23 @@ extension _SocialProfileContentPart on _SocialProfileState {
                 ),
                 if ((actualIndex + 1) % 4 == 0)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    padding: const EdgeInsets.fromLTRB(5, 8, 5, 8),
                     child: AdmobKare(
                       key: ValueKey(
                         'socialprof-ad-slot-${(actualIndex + 1) ~/ 4}',
                       ),
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 if (combinedPosts.isNotEmpty &&
                     combinedPosts.length < 4 &&
                     actualIndex == combinedPosts.length - 1)
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: AdmobKare(key: ValueKey('socialprof-ad-end')),
+                    padding: EdgeInsets.fromLTRB(5, 8, 5, 8),
+                    child: AdmobKare(
+                      key: ValueKey('socialprof-ad-end'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
                 const SizedBox(height: 12),
               ],

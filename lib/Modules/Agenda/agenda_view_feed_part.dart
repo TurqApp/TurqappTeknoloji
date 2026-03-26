@@ -279,6 +279,7 @@ extension _AgendaViewFeedPart on AgendaView {
         padding: edgeInsets,
         child: AdmobKare(
           key: ValueKey('agenda-feed-ad-$slotNumber'),
+          contentPadding: EdgeInsets.zero,
         ),
       );
     }

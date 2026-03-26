@@ -247,11 +247,17 @@ extension ProfileControllerSelectionPart on ProfileController {
       isReshare: entry['isReshare'] == true,
     );
     final manager = VideoStateManager.instance;
-    if (manager.currentPlayingDocID == playbackKey) {
-      manager.reassertOnlyThis(playbackKey);
-    } else {
-      manager.playOnlyThis(playbackKey);
-    }
+    if (manager.currentPlayingDocID == playbackKey) return;
+    final now = DateTime.now();
+    final shouldIssueCommand =
+        _lastPlaybackCommandDocId != playbackKey ||
+            _lastPlaybackCommandAt == null ||
+            now.difference(_lastPlaybackCommandAt!) >
+                const Duration(milliseconds: 220);
+    if (!shouldIssueCommand) return;
+    manager.playOnlyThis(playbackKey);
+    _lastPlaybackCommandDocId = playbackKey;
+    _lastPlaybackCommandAt = now;
   }
 
   GlobalKey _performGetPostKey({

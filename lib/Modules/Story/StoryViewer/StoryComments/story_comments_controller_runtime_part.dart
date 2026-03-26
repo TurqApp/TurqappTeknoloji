@@ -3,7 +3,7 @@ part of 'story_comments_controller.dart';
 extension StoryCommentsControllerRuntimePart on StoryCommentsController {
   Future<void> _getDataImpl() async {
     if ((controllerTag ?? '').trim().isNotEmpty) {
-      StoryCommentsController._activeTag = controllerTag;
+      _storyCommentsActiveTag = controllerTag;
     }
     list.assignAll(await _storyRepository.fetchStoryComments(storyID));
     totalComment.value = await _storyRepository.fetchStoryCommentCount(storyID);
@@ -60,8 +60,8 @@ extension StoryCommentsControllerRuntimePart on StoryCommentsController {
   }
 
   void _handleClose() {
-    if (StoryCommentsController._activeTag == controllerTag) {
-      StoryCommentsController._activeTag = null;
+    if (_storyCommentsActiveTag == controllerTag) {
+      _storyCommentsActiveTag = null;
     }
     commentFocus.dispose();
     commentTextfield.dispose();

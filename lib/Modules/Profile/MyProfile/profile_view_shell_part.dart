@@ -152,18 +152,22 @@ extension _ProfileViewShellPart on _ProfileViewState {
                 ),
                 if ((actualIndex + 1) % 4 == 0)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.fromLTRB(5, 8, 5, 8),
                     child: AdmobKare(
                       key: ValueKey(
                         'myprof-ad-slot-${(actualIndex + 1) ~/ 4}',
                       ),
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 if (combinedPosts.length < 4 &&
                     actualIndex == combinedPosts.length - 1)
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: AdmobKare(key: ValueKey('myprof-ad-end')),
+                    padding: EdgeInsets.fromLTRB(5, 8, 5, 8),
+                    child: AdmobKare(
+                      key: ValueKey('myprof-ad-end'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
               ],
             ),

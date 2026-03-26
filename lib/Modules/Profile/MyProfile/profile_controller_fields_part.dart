@@ -19,6 +19,8 @@ class _ProfileScrollState {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  String? lastPlaybackCommandDocId;
+  DateTime? lastPlaybackCommandAt;
   String? pendingCenteredIdentity;
   final Map<int, double> visibleFractions = <int, double>{};
   Timer? visibilityDebounce;
@@ -106,6 +108,12 @@ extension ProfileControllerFieldsPart on ProfileController {
   RxInt get centeredIndex => _scrollState.centeredIndex;
   int? get lastCenteredIndex => _scrollState.lastCenteredIndex;
   set lastCenteredIndex(int? value) => _scrollState.lastCenteredIndex = value;
+  String? get _lastPlaybackCommandDocId => _scrollState.lastPlaybackCommandDocId;
+  set _lastPlaybackCommandDocId(String? value) =>
+      _scrollState.lastPlaybackCommandDocId = value;
+  DateTime? get _lastPlaybackCommandAt => _scrollState.lastPlaybackCommandAt;
+  set _lastPlaybackCommandAt(DateTime? value) =>
+      _scrollState.lastPlaybackCommandAt = value;
   String? get _pendingCenteredIdentity => _scrollState.pendingCenteredIdentity;
   set _pendingCenteredIdentity(String? value) =>
       _scrollState.pendingCenteredIdentity = value;

@@ -14,6 +14,8 @@ class _SocialProfileScrollState {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  String? lastPlaybackCommandDocId;
+  DateTime? lastPlaybackCommandAt;
   String? pendingCenteredIdentity;
   final Map<int, double> visibleFractions = <int, double>{};
   Timer? visibilityDebounce;
@@ -23,7 +25,7 @@ class _SocialProfileScrollState {
 }
 
 class _SocialProfileProfileState {
-  _SocialProfileProfileState(String userID) : userID = userID;
+  _SocialProfileProfileState(this.userID);
 
   String userID;
   final nickname = ''.obs;
@@ -85,6 +87,13 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   RxInt get centeredIndex => _scrollState.centeredIndex;
   int? get lastCenteredIndex => _scrollState.lastCenteredIndex;
   set lastCenteredIndex(int? value) => _scrollState.lastCenteredIndex = value;
+  String? get _lastPlaybackCommandDocId =>
+      _scrollState.lastPlaybackCommandDocId;
+  set _lastPlaybackCommandDocId(String? value) =>
+      _scrollState.lastPlaybackCommandDocId = value;
+  DateTime? get _lastPlaybackCommandAt => _scrollState.lastPlaybackCommandAt;
+  set _lastPlaybackCommandAt(DateTime? value) =>
+      _scrollState.lastPlaybackCommandAt = value;
   String? get _pendingCenteredIdentity => _scrollState.pendingCenteredIdentity;
   set _pendingCenteredIdentity(String? value) =>
       _scrollState.pendingCenteredIdentity = value;
@@ -124,8 +133,6 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
       _profileState.storyUserModel = value;
   StreamSubscription<Map<String, dynamic>?>? get _userDocSub =>
       _profileState.userDocSub;
-  set _userDocSub(StreamSubscription<Map<String, dynamic>?>? value) =>
-      _profileState.userDocSub = value;
 
   RxList<SocialMediaModel> get socialMediaList => _feedState.socialMediaList;
   RxList<PostsModel> get reshares => _feedState.reshares;

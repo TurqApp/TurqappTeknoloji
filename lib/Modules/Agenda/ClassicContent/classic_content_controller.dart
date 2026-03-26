@@ -1,3 +1,4 @@
+import '../agenda_controller.dart';
 import '../Common/post_content_controller.dart';
 
 class ClassicContentController extends PostContentController {
@@ -12,7 +13,8 @@ class ClassicContentController extends PostContentController {
     await super.onReshareAdded(uid, targetPostId: targetPostId);
     if (uid == null) return;
     try {
-      await agendaController.addNewReshareEntryWithoutScroll(
+      await AgendaControllerResharePart(agendaController)
+          .addNewReshareEntryWithoutScroll(
         (targetPostId ?? model.docID).trim(),
         uid,
       );
@@ -23,7 +25,7 @@ class ClassicContentController extends PostContentController {
   Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {
     if (uid == null) return;
     try {
-      agendaController.removeReshareEntry(
+      AgendaControllerResharePart(agendaController).removeReshareEntry(
         (targetPostId ?? model.docID).trim(),
         uid,
       );

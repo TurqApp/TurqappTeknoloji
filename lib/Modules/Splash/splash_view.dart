@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
+import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -162,6 +163,9 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _prepareSynchronizedStartupBeforeNav(
           {required bool isFirstLaunch}) async =>
       _performPrepareSynchronizedStartupBeforeNav(isFirstLaunch: isFirstLaunch);
+
+  int _feedWarmPoolLimit() =>
+      ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
 
   @override
   void dispose() {

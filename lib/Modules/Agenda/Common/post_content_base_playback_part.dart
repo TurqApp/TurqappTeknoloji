@@ -159,10 +159,49 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     );
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
-    _hasAutoPlayed = true;
-    final managerPendingPlay =
+    final controllerOwnedListPlayback =
         !isStandalonePostInstance &&
-        videoStateManager.hasPendingPlayFor(playbackHandleKey);
+        (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
+    if (controllerOwnedListPlayback) {
+      final resumedByManager =
+          videoStateManager.resumeCurrentPlaybackIfReady(playbackHandleKey);
+      if (!resumedByManager) {
+        _recordPlaybackDispatch(
+          'feed_card_start_skipped',
+          source: source,
+          dispatchIssued: false,
+          skipReason:
+              videoStateManager.currentPlayingDocID == playbackHandleKey
+                  ? 'manager_not_ready'
+                  : 'manager_not_current',
+        );
+        return;
+      }
+      _hasAutoPlayed = true;
+      _recordPlaybackDispatch(
+        'feed_card_manager_resume_current',
+        source: source,
+        dispatchIssued: false,
+      );
+      _syncRuntimeHints(
+        isAudible: _currentIsAudible(),
+        hasStableFocus: true,
+      );
+      Future.delayed(const Duration(milliseconds: 140), () {
+        if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
+        if (!_isSurfacePlaybackAllowed) return;
+        _applyPlaybackVolume();
+      });
+      _trackPlaybackIntent();
+      try {
+        SegmentCacheManager.maybeFind()?.markPlaying(widget.model.docID);
+      } catch (_) {}
+      return;
+    }
+    _hasAutoPlayed = true;
+    final managerPendingPlay = videoStateManager.hasPendingPlayFor(
+      playbackHandleKey,
+    );
     if (!adapter.value.isPlaying) {
       if (managerPendingPlay) {
         _recordPlaybackDispatch(

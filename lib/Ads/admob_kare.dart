@@ -12,10 +12,12 @@ class AdmobKare extends StatefulWidget {
     super.key,
     this.showChrome = true,
     this.onImpression,
+    this.contentPadding = const EdgeInsets.all(8),
   });
 
   final bool showChrome;
   final VoidCallback? onImpression;
+  final EdgeInsetsGeometry contentPadding;
 
   static Future<void> warmupPool({
     int targetCount = 5,
@@ -573,24 +575,16 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         } else if (_showPromoFallback) {
           child = Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: widget.contentPadding,
             child: _buildPromoFallbackCard(),
           );
         } else {
           child = Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: widget.contentPadding,
             child: Container(
               height: 250,
               alignment: Alignment.center,
-              child: _loadFailed
-                  ? const Text(
-                      'Reklam yukleniyor',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: CupertinoColors.systemGrey,
-                      ),
-                    )
-                  : const CupertinoActivityIndicator(),
+              child: const CupertinoActivityIndicator(),
             ),
           );
         }
@@ -611,8 +605,7 @@ class _AdmobKareState extends State<AdmobKare> {
           } else {
             child = Center(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                padding: widget.contentPadding,
                 child: Container(
                   decoration: BoxDecoration(
                     color: CupertinoColors.systemGrey6,
@@ -696,7 +689,7 @@ class _AdmobKareState extends State<AdmobKare> {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: const Text(
-                'TurqApp onerisi',
+                'TurqApp önerisi',
                 style: TextStyle(
                   color: CupertinoColors.white,
                   fontSize: 11,
@@ -706,7 +699,7 @@ class _AdmobKareState extends State<AdmobKare> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Pasaj, ilanlar ve denemeleri kesfet',
+              'Pasaj, ilanlar ve denemeleri keşfet',
               style: TextStyle(
                 color: CupertinoColors.white,
                 fontSize: 22,
@@ -716,7 +709,7 @@ class _AdmobKareState extends State<AdmobKare> {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Reklam yuklenene kadar TurqApp icindeki firsatlari one cikariyoruz.',
+              'TurqApp içindeki fırsatları öne çıkarıyoruz.',
               style: TextStyle(
                 color: Color(0xFFD9F7F1),
                 fontSize: 13,
@@ -729,7 +722,7 @@ class _AdmobKareState extends State<AdmobKare> {
               runSpacing: 8,
               children: const [
                 _PromoChip(label: 'Pasaj'),
-                _PromoChip(label: 'Is Ilanlari'),
+                _PromoChip(label: 'İş İlanları'),
                 _PromoChip(label: 'Denemeler'),
               ],
             ),

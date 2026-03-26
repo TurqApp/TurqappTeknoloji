@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../agenda_controller.dart';
 import '../Common/post_content_controller.dart';
 
 class AgendaContentController extends PostContentController {
@@ -15,7 +16,8 @@ class AgendaContentController extends PostContentController {
   Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
     if (uid == null) return;
     try {
-      await agendaController.addNewReshareEntryWithoutScroll(
+      await AgendaControllerResharePart(agendaController)
+          .addNewReshareEntryWithoutScroll(
         (targetPostId ?? model.docID).trim(),
         uid,
       );
@@ -26,7 +28,7 @@ class AgendaContentController extends PostContentController {
   Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {
     if (uid == null) return;
     try {
-      agendaController.removeReshareEntry(
+      AgendaControllerResharePart(agendaController).removeReshareEntry(
         (targetPostId ?? model.docID).trim(),
         uid,
       );

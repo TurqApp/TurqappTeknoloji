@@ -40,6 +40,21 @@ class VideoStateManager extends GetxController {
         _currentPlayingDocID == docID;
   }
 
+  bool resumeCurrentPlaybackIfReady(String docID) {
+    if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
+      return false;
+    }
+    if (_currentPlayingDocID != docID) return false;
+    final handle = _allVideoControllers[docID];
+    if (handle == null || !handle.isInitialized) return false;
+    _pendingPlayTimer?.cancel();
+    _pendingPlayTimer = null;
+    if (!handle.isPlaying) {
+      handle.play();
+    }
+    return true;
+  }
+
   @override
   void onClose() {
     _pendingPlayTimer?.cancel();

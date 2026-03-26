@@ -43,14 +43,10 @@ extension _SplashViewWarmPart on _SplashViewState {
               isFirstLaunch: isFirstLaunch,
             );
             await agendaController
-                .ensureInitialFeedLoaded()
+                .hydrateInitialFeedFromCache(
+                  targetCount: _feedWarmPoolLimit(),
+                )
                 .timeout(const Duration(seconds: 3));
-            await _ensureMinimumFeedPosts(
-              agendaController,
-              minPosts:
-                  onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6),
-              maxExtraFetch: onWiFi ? 2 : 1,
-            );
             _primeFeedVideoSegments(agendaController);
           } catch (_) {}
         })(),
@@ -266,28 +262,6 @@ extension _SplashViewWarmPart on _SplashViewState {
         .catchError((_) {});
   }
 
-  Future<void> _ensureMinimumFeedPosts(
-    AgendaController agendaController, {
-    required int minPosts,
-    required int maxExtraFetch,
-  }) async {
-    try {
-      var extra = 0;
-      while (agendaController.agendaList.length < minPosts &&
-          agendaController.hasMore.value &&
-          extra < maxExtraFetch) {
-        if (agendaController.isLoading.value) {
-          await Future<void>.delayed(const Duration(milliseconds: 120));
-          continue;
-        }
-        await agendaController.fetchAgendaBigData(
-          initial: agendaController.agendaList.isEmpty,
-        );
-        extra++;
-      }
-    } catch (_) {}
-  }
-
   bool _isOnWiFiNow() {
     try {
       return NetworkAwarenessService.ensure().isOnWiFi;
@@ -361,8 +335,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final userId = CurrentUserService.instance.effectiveUserId;
       if (userId.isEmpty) return;
-      final warmLimit =
-          onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6);
+      final warmLimit = _feedWarmPoolLimit();
       final snapshot = await FeedSnapshotRepository.ensure().bootstrapHome(
         userId: userId,
         limit: warmLimit,
