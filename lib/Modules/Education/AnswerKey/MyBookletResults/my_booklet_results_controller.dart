@@ -14,6 +14,14 @@ part 'my_booklet_results_controller_runtime_part.dart';
 
 class MyBookletResultsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static MyBookletResultsController? maybeFind() =>
+      maybeFindMyBookletResultsController();
+
+  static MyBookletResultsController ensure({
+    bool permanent = false,
+  }) =>
+      ensureMyBookletResultsController(permanent: permanent);
+
   final _state = _MyBookletResultsControllerState();
 
   @override

@@ -14,6 +14,14 @@ part 'saved_practice_exams_controller_runtime_part.dart';
 
 class SavedPracticeExamsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static SavedPracticeExamsController? maybeFind() =>
+      maybeFindSavedPracticeExamsController();
+
+  static SavedPracticeExamsController ensure({
+    bool permanent = false,
+  }) =>
+      ensureSavedPracticeExamsController(permanent: permanent);
+
   final _state = _SavedPracticeExamsControllerState();
 
   @override

@@ -1,6 +1,11 @@
 part of 'flood_listing_controller.dart';
 
 class FloodListingController extends GetxController {
+  static FloodListingController ensure() => ensureFloodListingController();
+
+  static FloodListingController? maybeFind() =>
+      maybeFindFloodListingController();
+
   RxList<PostsModel> floods = <PostsModel>[].obs;
   final scrollController = ScrollController();
   final Map<String, GlobalKey> _floodKeys = {};

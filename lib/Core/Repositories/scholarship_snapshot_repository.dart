@@ -20,5 +20,11 @@ class ScholarshipSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'scholarship_home_snapshot';
   static const String _searchSurfaceKey = 'scholarship_search_snapshot';
 
+  static ScholarshipSnapshotRepository? maybeFind() =>
+      maybeFindScholarshipSnapshotRepository();
+
+  static ScholarshipSnapshotRepository ensure() =>
+      ensureScholarshipSnapshotRepository();
+
   final _state = _ScholarshipSnapshotRepositoryState();
 }

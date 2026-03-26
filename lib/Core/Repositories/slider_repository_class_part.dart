@@ -1,6 +1,10 @@
 part of 'slider_repository.dart';
 
 class SliderRepository extends GetxService {
+  static SliderRepository? maybeFind() => maybeFindSliderRepository();
+
+  static SliderRepository ensure() => ensureSliderRepository();
+
   SliderRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 

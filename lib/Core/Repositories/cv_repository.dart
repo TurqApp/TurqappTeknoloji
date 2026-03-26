@@ -12,6 +12,10 @@ class CvRepository extends GetxService {
   static const Duration _ttl = Duration(minutes: 30);
   static const String _prefsPrefix = 'cv_repository_v1';
 
+  static CvRepository? maybeFind() => maybeFindCvRepository();
+
+  static CvRepository ensure() => ensureCvRepository();
+
   SharedPreferences? _prefs;
   final Map<String, _CachedCv> _memory = {};
 

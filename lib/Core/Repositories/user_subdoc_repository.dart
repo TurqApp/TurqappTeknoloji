@@ -13,6 +13,10 @@ class UserSubdocRepository extends GetxService {
   static const String _prefsPrefix = 'user_subdoc_repository_v1';
   static const Duration _defaultTtl = Duration(hours: 6);
 
+  static UserSubdocRepository? maybeFind() => maybeFindUserSubdocRepository();
+
+  static UserSubdocRepository ensure() => ensureUserSubdocRepository();
+
   SharedPreferences? _prefs;
   final Map<String, _CachedUserSubdoc> _memory = {};
 
