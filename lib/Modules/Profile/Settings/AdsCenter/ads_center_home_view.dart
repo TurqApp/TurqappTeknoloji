@@ -8,6 +8,7 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_creative_review
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_dashboard_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_delivery_monitor_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_preview_screen.dart';
+import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/turqapp_suggestion_admin_view.dart';
 
 class AdsCenterHomeView extends StatefulWidget {
   const AdsCenterHomeView({super.key});
@@ -25,7 +26,7 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     final existingController = maybeFindAdsCenterController();
     if (existingController != null) {
       _controller = existingController;
@@ -114,6 +115,7 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
           Tab(text: 'ads_center.tab_creatives'.tr),
           Tab(text: 'ads_center.tab_monitor'.tr),
           Tab(text: 'ads_center.tab_preview'.tr),
+          const Tab(text: 'Slider'),
         ],
       ),
     );
@@ -129,6 +131,7 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
         AdsCreativeReviewView(),
         AdsDeliveryMonitorView(),
         AdsPreviewScreen(),
+        TurqAppSuggestionAdminView(),
       ],
     );
   }
