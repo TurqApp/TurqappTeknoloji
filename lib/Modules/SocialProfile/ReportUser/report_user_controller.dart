@@ -6,6 +6,8 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/report_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'report_user_controller_fields_part.dart';
+part 'report_user_controller_facade_part.dart';
 part 'report_user_controller_runtime_part.dart';
 
 class ReportUserController extends GetxController {
@@ -35,36 +37,21 @@ class ReportUserController extends GetxController {
     return Get.find<ReportUserController>(tag: tag);
   }
 
-  String userID;
-  String postID;
-  String commentID;
-  ReportUserController({
-    required this.userID,
-    required this.postID,
-    required this.commentID,
-  });
+  final _ReportUserControllerState _state;
 
-  var step = 0.50.obs;
-  var nickname = "".obs;
-  var avatarUrl = "".obs;
-  var fullName = "".obs;
-  var selectedKey = "".obs;
-  var selectedTitle = "".obs;
-  var selectedDesc = "".obs;
-  var blockedUser = false.obs;
-  var isSubmitting = false.obs;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final ReportRepository _reportRepository = ReportRepository.ensure();
-  final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+  ReportUserController({
+    required String userID,
+    required String postID,
+    required String commentID,
+  }) : _state = _ReportUserControllerState(
+          userID: userID,
+          postID: postID,
+          commentID: commentID,
+        );
 
   @override
   void onInit() {
     super.onInit();
     _ReportUserControllerRuntimePart(this).loadUser();
   }
-
-  Future<void> report() => _ReportUserControllerRuntimePart(this).report();
-
-  Future<void> block() => _ReportUserControllerRuntimePart(this).block();
 }

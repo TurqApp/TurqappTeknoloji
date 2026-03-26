@@ -9,10 +9,9 @@ import 'package:turqappv2/Models/job_model.dart';
 
 part 'job_home_snapshot_repository_data_part.dart';
 part 'job_home_snapshot_repository_facade_part.dart';
+part 'job_home_snapshot_repository_fields_part.dart';
 
 class JobHomeSnapshotRepository extends GetxService {
-  JobHomeSnapshotRepository();
-
   static const String _homeSurfaceKey = 'jobs_home_snapshot';
   static const String _searchSurfaceKey = 'jobs_search_snapshot';
 
@@ -28,43 +27,9 @@ class JobHomeSnapshotRepository extends GetxService {
     return Get.put(JobHomeSnapshotRepository(), permanent: true);
   }
 
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final _JobHomeSnapshotRepositoryState _state;
 
-  late final CacheFirstCoordinator<List<JobModel>> _coordinator =
-      CacheFirstCoordinator<List<JobModel>>(
-    memoryStore: MemoryScopedSnapshotStore<List<JobModel>>(),
-    snapshotStore: SharedPrefsScopedSnapshotStore<List<JobModel>>(
-      prefsPrefix: 'job_home_snapshot_v1',
-      encode: _encodeJobs,
-      decode: _decodeJobs,
-    ),
-    telemetry: const CacheFirstKpiTelemetry<List<JobModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
-    ),
-  );
-
-  late final EducationTypesenseCacheFirstAdapter<List<JobModel>> _homeAdapter =
-      EducationTypesenseCacheFirstAdapter<List<JobModel>>(
-    surfaceKey: _homeSurfaceKey,
-    coordinator: _coordinator,
-    resolve: (raw) => _resolveHits(raw.hits),
-    loadWarmSnapshot: _loadWarmEducationSnapshot,
-    isEmpty: (jobs) => jobs.isEmpty,
-  );
-
-  late final EducationTypesenseCacheFirstAdapter<List<JobModel>>
-      _searchAdapter = EducationTypesenseCacheFirstAdapter<List<JobModel>>(
-    surfaceKey: _searchSurfaceKey,
-    coordinator: _coordinator,
-    resolve: (raw) => _resolveHits(raw.hits),
-    loadWarmSnapshot: _loadWarmEducationSnapshot,
-    isEmpty: (jobs) => jobs.isEmpty,
-  );
+  JobHomeSnapshotRepository() : _state = _JobHomeSnapshotRepositoryState() {
+    _state.initialize(this);
+  }
 }

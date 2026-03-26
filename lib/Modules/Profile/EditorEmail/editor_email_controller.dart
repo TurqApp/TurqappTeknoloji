@@ -9,6 +9,8 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'editor_email_controller_fields_part.dart';
+part 'editor_email_controller_facade_part.dart';
 part 'editor_email_controller_runtime_part.dart';
 
 class EditorEmailController extends GetxController {
@@ -27,31 +29,13 @@ class EditorEmailController extends GetxController {
     return Get.find<EditorEmailController>();
   }
 
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController codeController = TextEditingController();
-
-  final countdown = 0.obs;
-  final isCodeSent = false.obs;
-  final isBusy = false.obs;
-  final isEmailConfirmed = false.obs;
-
-  Timer? _timer;
-  final UserRepository _userRepository = UserRepository.ensure();
-  final CurrentUserService _userService = CurrentUserService.instance;
-
-  String get _currentUid => _userService.effectiveUserId;
-
-  void _seedFromCurrentSources() =>
-      _EditorEmailControllerRuntimeX(this).seedFromCurrentSources();
-
-  Future<void> fetchAndSetUserData() =>
-      _EditorEmailControllerRuntimeX(this).fetchAndSetUserData();
+  final _EditorEmailControllerState _state = _EditorEmailControllerState();
 
   @override
   void onInit() {
     super.onInit();
     _seedFromCurrentSources();
-    unawaited(fetchAndSetUserData());
+    unawaited(_EditorEmailControllerRuntimeX(this).fetchAndSetUserData());
   }
 
   @override
@@ -61,10 +45,4 @@ class EditorEmailController extends GetxController {
     codeController.dispose();
     super.onClose();
   }
-
-  Future<void> sendEmailCode() =>
-      _EditorEmailControllerRuntimeX(this).sendEmailCode();
-
-  Future<void> verifyAndConfirmEmail() =>
-      _EditorEmailControllerRuntimeX(this).verifyAndConfirmEmail();
 }
