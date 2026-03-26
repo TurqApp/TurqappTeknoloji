@@ -110,9 +110,8 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
 
   Future<_ModerationConfigSnapshot> _loadModerationConfig() async {
     try {
-      final snap = await _firestore
-          .doc(PostInteractionService._moderationConfigPath)
-          .get();
+      final snap =
+          await _firestore.doc(_postInteractionModerationConfigPath).get();
       final raw = snap.data() ?? const <String, dynamic>{};
       return _ModerationConfigSnapshot(
         enabled: _asBool(raw['enabled'], fallback: true),

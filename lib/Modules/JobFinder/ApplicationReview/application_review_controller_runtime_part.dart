@@ -12,7 +12,7 @@ extension ApplicationReviewControllerRuntimeX on ApplicationReviewController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'jobs:applications_review:$jobDocID',
-        minInterval: ApplicationReviewController._silentRefreshInterval,
+        minInterval: _applicationReviewSilentRefreshInterval,
       )) {
         unawaited(loadApplicants(silent: true, forceRefresh: true));
       }
@@ -58,7 +58,7 @@ extension ApplicationReviewControllerRuntimeX on ApplicationReviewController {
     try {
       final data = await _cvRepository.getCv(userID, preferCache: true);
       if (data != null) {
-        if (cvCache.length >= ApplicationReviewController._maxCacheSize) {
+        if (cvCache.length >= _applicationReviewMaxCacheSize) {
           final oldestKey = cvCache.keys.first;
           cvCache.remove(oldestKey);
         }

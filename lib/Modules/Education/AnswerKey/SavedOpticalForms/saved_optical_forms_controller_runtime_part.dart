@@ -71,7 +71,7 @@ class SavedOpticalFormsControllerRuntimePart {
           controller.isLoading.value = false;
           if (SilentRefreshGate.shouldRefresh(
             'answer_key:saved_books:$uid',
-            minInterval: SavedOpticalFormsController._silentRefreshInterval,
+            minInterval: _savedOpticalFormsSilentRefreshInterval,
           )) {
             unawaited(
               controller.getData(

@@ -18,3 +18,4 @@ part 'practice_exam_repository_models_part.dart';
 part 'practice_exam_repository_lifecycle_part.dart';
 part 'practice_exam_repository_cache_part.dart';
 part 'practice_exam_repository_helpers_part.dart';
+part 'practice_exam_repository_constants_part.dart';

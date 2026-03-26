@@ -23,6 +23,7 @@ part 'post_interaction_service_helpers_part.dart';
 part 'post_interaction_service_moderation_part.dart';
 part 'post_interaction_service_query_part.dart';
 part 'post_interaction_service_models_part.dart';
+part 'post_interaction_service_constants_part.dart';
 
 /// Post etkileşimlerini yöneten servis.
 ///

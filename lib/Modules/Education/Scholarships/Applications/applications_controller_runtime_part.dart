@@ -13,7 +13,7 @@ extension ApplicationsControllerRuntimeX on ApplicationsController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'scholarships:applications:$userID',
-        minInterval: ApplicationsController._silentRefreshInterval,
+        minInterval: _applicationsSilentRefreshInterval,
       )) {
         unawaited(fetchApplications(silent: true, forceRefresh: true));
       }

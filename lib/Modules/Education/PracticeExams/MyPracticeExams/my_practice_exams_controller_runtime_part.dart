@@ -58,7 +58,7 @@ extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
           'practice_exams:owner:$uid',
-          minInterval: MyPracticeExamsController._silentRefreshInterval,
+          minInterval: _myPracticeExamsSilentRefreshInterval,
         )) {
           unawaited(fetchExams(silent: true, forceRefresh: true));
         }

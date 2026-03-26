@@ -22,7 +22,7 @@ extension MyApplicationsControllerRuntimePart on MyApplicationsController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'jobs:my_applications:$uid',
-        minInterval: MyApplicationsController._silentRefreshInterval,
+        minInterval: _myApplicationsSilentRefreshInterval,
       )) {
         unawaited(loadApplications(silent: true, forceRefresh: true));
       }

@@ -7,7 +7,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
     _memory[cacheKey] = _TimedPracticeExams(items: cloned, cachedAt: now);
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      '${PracticeExamRepository._prefsPrefix}:$cacheKey',
+      '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
         't': now.millisecondsSinceEpoch,
         'items': cloned
@@ -38,7 +38,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      '${PracticeExamRepository._prefsPrefix}:$cacheKey',
+      '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
         'data': data,
@@ -52,7 +52,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   ) async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      '${PracticeExamRepository._prefsPrefix}:$cacheKey',
+      '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
         'items': data,
@@ -63,8 +63,8 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   List<SinavModel>? _getFromMemory(String cacheKey) {
     final entry = _memory[cacheKey];
     if (entry == null) return null;
-    final fresh = DateTime.now().difference(entry.cachedAt) <=
-        PracticeExamRepository._ttl;
+    final fresh =
+        DateTime.now().difference(entry.cachedAt) <= _practiceExamRepositoryTtl;
     if (!fresh) return null;
     return entry.items.toList(growable: false);
   }
@@ -72,7 +72,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   Future<List<SinavModel>?> _getFromPrefs(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw =
-        _prefs?.getString('${PracticeExamRepository._prefsPrefix}:$cacheKey');
+        _prefs?.getString('$_practiceExamRepositoryPrefsPrefix:$cacheKey');
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -80,7 +80,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       if (ts <= 0) return null;
       final fresh =
           DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) <=
-              PracticeExamRepository._ttl;
+              _practiceExamRepositoryTtl;
       if (!fresh) return null;
       final items = (decoded['items'] as List?) ?? const [];
       return items
@@ -100,7 +100,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   Future<Map<String, dynamic>?> _getRawDoc(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw =
-        _prefs?.getString('${PracticeExamRepository._prefsPrefix}:$cacheKey');
+        _prefs?.getString('$_practiceExamRepositoryPrefsPrefix:$cacheKey');
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -108,7 +108,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       if (ts <= 0) return null;
       final fresh =
           DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) <=
-              PracticeExamRepository._ttl;
+              _practiceExamRepositoryTtl;
       if (!fresh) return null;
       return Map<String, dynamic>.from(
         (decoded['data'] as Map?) ?? const <String, dynamic>{},
@@ -121,7 +121,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   Future<List<Map<String, dynamic>>?> _getRawList(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw =
-        _prefs?.getString('${PracticeExamRepository._prefsPrefix}:$cacheKey');
+        _prefs?.getString('$_practiceExamRepositoryPrefsPrefix:$cacheKey');
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -129,7 +129,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       if (ts <= 0) return null;
       final fresh =
           DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) <=
-              PracticeExamRepository._ttl;
+              _practiceExamRepositoryTtl;
       if (!fresh) return null;
       final items = (decoded['items'] as List?) ?? const [];
       return items
