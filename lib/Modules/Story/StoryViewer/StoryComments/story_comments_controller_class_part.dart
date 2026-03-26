@@ -19,21 +19,15 @@ class StoryCommentsController extends GetxController {
   static StoryCommentsController? maybeFind({String? tag}) =>
       _maybeFindStoryCommentsController(tag: tag);
 
-  final StoryRepository _storyRepository = StoryRepository.ensure();
-  RxList<StoryCommentModel> list = <StoryCommentModel>[].obs;
-  FocusNode commentFocus = FocusNode();
-  TextEditingController commentTextfield = TextEditingController();
-  String nickname = "";
-  String storyID = "";
-  String? controllerTag;
-  var totalComment = 0.obs;
-  final RxString selectedGifUrl = ''.obs;
-  final RxString lastSuccessfulCommentText = ''.obs;
-  final RxString lastSuccessfulCommentGif = ''.obs;
+  final _StoryCommentsControllerState _state;
 
-  StoryCommentsController({required this.nickname, required this.storyID});
-
-  String get _currentUserId => _storyCommentsCurrentUserId();
+  StoryCommentsController({
+    required String nickname,
+    required String storyID,
+  }) : _state = _StoryCommentsControllerState(
+          nickname: nickname,
+          storyID: storyID,
+        );
 
   Future<void> getData() => _getStoryCommentsData(this);
 

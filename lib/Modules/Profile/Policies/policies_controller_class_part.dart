@@ -20,34 +20,17 @@ class PoliciesController extends GetxController {
     return Get.find<PoliciesController>(tag: tag);
   }
 
-  var privacyPolicy = "".obs;
-  var eula = "".obs;
-  var ad = "".obs;
-
-  var selection = 0.obs;
-  PageController pageController = PageController(initialPage: 0);
-
-  Future<void> _loadPolicies() async {
-    final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
-      collection: 'Yönetim',
-      docId: 'Policies',
-      preferCache: true,
-    );
-    if (doc == null) return;
-    privacyPolicy.value = (doc["privacy"] ?? "").toString();
-    eula.value = (doc["eula"] ?? "").toString();
-    ad.value = (doc["ad"] ?? "").toString();
-  }
+  final _state = _PoliciesControllerState();
 
   @override
   void onInit() {
     super.onInit();
-    _loadPolicies();
+    _handlePoliciesInit(this);
   }
 
   @override
   void onClose() {
-    pageController.dispose();
+    _handlePoliciesClose(this);
     super.onClose();
   }
 }

@@ -1,6 +1,18 @@
 part of 'post_comment_content_controller.dart';
 
 class _PostCommentContentControllerState {
+  _PostCommentContentControllerState({
+    required this.model,
+    required this.postID,
+    required this.commentControllerTag,
+  });
+
+  final PostCommentModel model;
+  final String postID;
+  final String commentControllerTag;
+  final PostInteractionService interactionService =
+      PostInteractionService.ensure();
+  final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final nickname = ''.obs;
   final avatarUrl = ''.obs;
   final likes = <String>[].obs;
@@ -12,6 +24,11 @@ class _PostCommentContentControllerState {
 
 extension PostCommentContentControllerFieldsPart
     on PostCommentContentController {
+  PostCommentModel get model => _state.model;
+  String get postID => _state.postID;
+  String get commentControllerTag => _state.commentControllerTag;
+  PostInteractionService get _interactionService => _state.interactionService;
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   RxString get nickname => _state.nickname;
   RxString get avatarUrl => _state.avatarUrl;
   RxList<String> get likes => _state.likes;

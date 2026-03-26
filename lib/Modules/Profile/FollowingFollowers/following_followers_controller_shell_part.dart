@@ -1,15 +1,13 @@
 part of 'following_followers_controller.dart';
 
 class FollowingFollowersController extends GetxController {
-  final _state = _FollowingFollowersControllerState();
+  final _FollowingFollowersControllerState _state;
 
   @override
   void onClose() {
-    _handleFollowingFollowersClose(this);
+    _handleFollowingFollowersControllerClose(this);
     super.onClose();
   }
-
-  final String userId;
 
   static FollowingFollowersController ensure({
     required String userId,
@@ -30,14 +28,15 @@ class FollowingFollowersController extends GetxController {
   FollowingFollowersController({
     required String userId,
     required int initialPage,
-  }) : userId = userId.trim() {
-    selection.value = initialPage;
-  }
+  }) : _state = _buildFollowingFollowersControllerState(
+          userId: userId,
+          initialPage: initialPage,
+        );
 
   @override
   void onInit() {
     super.onInit();
-    _handleFollowingFollowersInit(this);
+    _handleFollowingFollowersControllerInit(this);
   }
 
   static void applyFollowMutationToCaches({
@@ -45,7 +44,7 @@ class FollowingFollowersController extends GetxController {
     required String otherUserID,
     required bool nowFollowing,
   }) =>
-      _applyFollowingFollowersMutationToCaches(
+      _applyFollowingFollowersControllerMutationToCaches(
         currentUid: currentUid,
         otherUserID: otherUserID,
         nowFollowing: nowFollowing,

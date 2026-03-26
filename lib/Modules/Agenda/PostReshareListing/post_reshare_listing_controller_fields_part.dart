@@ -1,6 +1,11 @@
 part of 'post_reshare_listing_controller.dart';
 
 class _PostReshareListingControllerState {
+  _PostReshareListingControllerState({required this.postID});
+
+  final String postID;
+  final PostRepository postRepository = PostRepository.ensure();
+  final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final reshareUsers = <ReshareUserItem>[].obs;
   final quoteUsers = <ReshareUserItem>[].obs;
   final isLoadingReshares = false.obs;
@@ -20,6 +25,9 @@ class _PostReshareListingControllerState {
 
 extension PostReshareListingControllerFieldsPart
     on PostReshareListingController {
+  String get postID => _state.postID;
+  PostRepository get _postRepository => _state.postRepository;
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   RxList<ReshareUserItem> get reshareUsers => _state.reshareUsers;
   RxList<ReshareUserItem> get quoteUsers => _state.quoteUsers;
   RxBool get isLoadingReshares => _state.isLoadingReshares;

@@ -20,18 +20,16 @@ class PostCommentContentController extends GetxController {
       _maybeFindPostCommentContentController(tag: tag);
 
   PostCommentContentController({
-    required this.model,
-    required this.postID,
-    required this.commentControllerTag,
-  });
+    required PostCommentModel model,
+    required String postID,
+    required String commentControllerTag,
+  }) : _state = _PostCommentContentControllerState(
+          model: model,
+          postID: postID,
+          commentControllerTag: commentControllerTag,
+        );
 
-  final PostCommentModel model;
-  final String postID;
-  final String commentControllerTag;
-  final _state = _PostCommentContentControllerState();
-  final PostInteractionService _interactionService =
-      PostInteractionService.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final _PostCommentContentControllerState _state;
 
   @override
   void onInit() {

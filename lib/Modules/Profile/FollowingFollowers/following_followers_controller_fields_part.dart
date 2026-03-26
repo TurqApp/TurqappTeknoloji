@@ -1,6 +1,7 @@
 part of 'following_followers_controller.dart';
 
 class _FollowingFollowersControllerState {
+  late String userId;
   final userSummaryResolver = UserSummaryResolver.ensure();
   final followRepository = FollowRepository.ensure();
   final visibilityPolicy = VisibilityPolicyService.ensure();
@@ -23,6 +24,8 @@ class _FollowingFollowersControllerState {
 
 extension FollowingFollowersControllerFieldsPart
     on FollowingFollowersController {
+  String get userId => _state.userId;
+  set userId(String value) => _state.userId = value;
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   FollowRepository get _followRepository => _state.followRepository;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
@@ -49,4 +52,14 @@ extension FollowingFollowersControllerFieldsPart
   Map<String, _SearchResultCacheEntry> get _searchResultCache =>
       _state.searchResultCache;
   RxString get nickname => _state.nickname;
+}
+
+_FollowingFollowersControllerState _buildFollowingFollowersControllerState({
+  required String userId,
+  required int initialPage,
+}) {
+  final state = _FollowingFollowersControllerState();
+  state.userId = userId.trim();
+  state.selection.value = initialPage;
+  return state;
 }

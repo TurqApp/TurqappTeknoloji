@@ -5,17 +5,17 @@ class PostContentController extends GetxController {
     required String tag,
     required PostContentController Function() create,
   }) =>
-      maybeFind(tag: tag) ?? Get.put(create(), tag: tag);
+      _ensurePostContentController(tag: tag, create: create);
 
   static PostContentController? maybeFind({required String tag}) =>
-      Get.isRegistered<PostContentController>(tag: tag)
-          ? Get.find<PostContentController>(tag: tag)
-          : null;
+      _maybeFindPostContentController(tag: tag);
 
   static void invalidateUserProfileCache(String userId) =>
-      _invalidatePostContentUserProfileCache(userId);
-  static void clearUserProfileCache() => _clearPostContentUserProfileCache();
-  static void clearReshareUsersCache() => _clearPostContentReshareUsersCache();
+      _invalidatePostContentControllerUserProfileCache(userId);
+  static void clearUserProfileCache() =>
+      _clearPostContentControllerUserProfileCache();
+  static void clearReshareUsersCache() =>
+      _clearPostContentControllerReshareUsersCache();
 
   final _PostContentShellState _shellState;
 

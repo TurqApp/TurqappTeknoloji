@@ -12,6 +12,35 @@ final countManager = PostCountManager.instance;
 final PostRepository _postRepository = PostRepository.ensure();
 final AdminPushRepository _adminPushRepository = AdminPushRepository.ensure();
 
+PostContentController _ensurePostContentController({
+  required String tag,
+  required PostContentController Function() create,
+}) {
+  final existing = _maybeFindPostContentController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(create(), tag: tag);
+}
+
+PostContentController? _maybeFindPostContentController({
+  required String tag,
+}) {
+  final isRegistered = Get.isRegistered<PostContentController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<PostContentController>(tag: tag);
+}
+
+void _invalidatePostContentControllerUserProfileCache(String userId) {
+  _invalidatePostContentUserProfileCache(userId);
+}
+
+void _clearPostContentControllerUserProfileCache() {
+  _clearPostContentUserProfileCache();
+}
+
+void _clearPostContentControllerReshareUsersCache() {
+  _clearPostContentReshareUsersCache();
+}
+
 void _invalidatePostContentUserProfileCache(String userId) {
   final trimmed = userId.trim();
   if (trimmed.isEmpty) return;
