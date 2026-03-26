@@ -18,5 +18,6 @@ part 'offline_mode_service_action_part.dart';
 part 'offline_mode_service_facade_part.dart';
 part 'offline_mode_service_fields_part.dart';
 part 'offline_mode_service_runtime_part.dart';
+part 'offline_mode_service_config_part.dart';
 part 'offline_mode_service_models_part.dart';
 part 'offline_mode_service_class_part.dart';

@@ -16,17 +16,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/device_session_service.dart';
 
 part 'account_center_service_facade_part.dart';
+part 'account_center_service_class_part.dart';
 part 'account_center_service_fields_part.dart';
 part 'account_center_service_storage_part.dart';
 part 'account_center_service_accounts_part.dart';
 part 'account_center_service_keys_part.dart';
-
-class AccountCenterService extends GetxService {
-  final _state = _AccountCenterServiceState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleAccountCenterServiceInit(this);
-  }
-}

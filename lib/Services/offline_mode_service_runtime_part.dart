@@ -14,14 +14,10 @@ extension OfflineModeServiceRuntimeX on OfflineModeService {
     return uid.isEmpty ? 'guest' : uid;
   }
 
-  String get _pendingActionsKey =>
-      '${OfflineModeService._pendingActionsKeyPrefix}:$_activeUid';
+  String get _pendingActionsKey => '$_pendingActionsKeyPrefix:$_activeUid';
   String get _deadLetterActionsKey =>
-      '${OfflineModeService._deadLetterActionsKeyPrefix}:$_activeUid';
-  String get _lastSyncAtKey =>
-      '${OfflineModeService._lastSyncAtKeyPrefix}:$_activeUid';
-  String get _processedCountKey =>
-      '${OfflineModeService._processedCountKeyPrefix}:$_activeUid';
-  String get _failedCountKey =>
-      '${OfflineModeService._failedCountKeyPrefix}:$_activeUid';
+      '$_deadLetterActionsKeyPrefix:$_activeUid';
+  String get _lastSyncAtKey => '$_lastSyncAtKeyPrefix:$_activeUid';
+  String get _processedCountKey => '$_processedCountKeyPrefix:$_activeUid';
+  String get _failedCountKey => '$_failedCountKeyPrefix:$_activeUid';
 }

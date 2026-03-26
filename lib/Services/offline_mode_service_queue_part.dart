@@ -141,7 +141,7 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
           print('❌ Failed to process ${action.type}: $e');
           failedCount.value++;
           final attempts = action.attemptCount + 1;
-          if (attempts >= OfflineModeService._maxRetryAttempts) {
+          if (attempts >= _offlineModeMaxRetryAttempts) {
             deadLetterActions.add(action.copyWith(
               attemptCount: attempts,
               lastError: e.toString(),
@@ -175,9 +175,9 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
 
   int _retryDelayMs(int attempt) {
     final factor = 1 << (attempt - 1).clamp(0, 10);
-    final delay = OfflineModeService._baseRetryDelayMs * factor;
-    return delay > OfflineModeService._maxRetryDelayMs
-        ? OfflineModeService._maxRetryDelayMs
+    final delay = _offlineModeBaseRetryDelayMs * factor;
+    return delay > _offlineModeMaxRetryDelayMs
+        ? _offlineModeMaxRetryDelayMs
         : delay;
   }
 }

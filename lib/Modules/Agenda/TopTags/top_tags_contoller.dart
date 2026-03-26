@@ -7,26 +7,8 @@ import '../AgendaContent/agenda_content_controller.dart';
 import 'top_tags_repository.dart';
 
 part 'top_tags_contoller_feed_part.dart';
+part 'top_tags_contoller_class_part.dart';
 part 'top_tags_contoller_facade_part.dart';
 part 'top_tags_contoller_fields_part.dart';
 part 'top_tags_contoller_scroll_part.dart';
 part 'top_tags_contoller_lifecycle_part.dart';
-
-class TopTagsController extends GetxController {
-  final TopTagsRepository _repo;
-  TopTagsController({TopTagsRepository? repository})
-      : _repo = repository ?? ensureTopTagsRepository();
-  final _state = _TopTagsControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _TopTagsControllerLifecyclePart(this).handleOnInit();
-  }
-
-  @override
-  void onClose() {
-    _TopTagsControllerLifecyclePart(this).handleOnClose();
-    super.onClose();
-  }
-}
