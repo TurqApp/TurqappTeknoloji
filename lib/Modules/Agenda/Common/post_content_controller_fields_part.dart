@@ -88,24 +88,14 @@ extension PostContentControllerFieldsPart on PostContentController {
       _controllerState.postState = value;
   StreamSubscription<DocumentSnapshot>? get _userSub =>
       _controllerState.userSub;
-  set _userSub(StreamSubscription<DocumentSnapshot>? value) =>
-      _controllerState.userSub = value;
   StreamSubscription<DocumentSnapshot>? get _likeDocSub =>
       _controllerState.likeDocSub;
-  set _likeDocSub(StreamSubscription<DocumentSnapshot>? value) =>
-      _controllerState.likeDocSub = value;
   StreamSubscription<DocumentSnapshot>? get _savedDocSub =>
       _controllerState.savedDocSub;
-  set _savedDocSub(StreamSubscription<DocumentSnapshot>? value) =>
-      _controllerState.savedDocSub = value;
   StreamSubscription<DocumentSnapshot>? get _reshareDocSub =>
       _controllerState.reshareDocSub;
-  set _reshareDocSub(StreamSubscription<DocumentSnapshot>? value) =>
-      _controllerState.reshareDocSub = value;
   StreamSubscription<DocumentSnapshot>? get _postDocSub =>
       _controllerState.postDocSub;
-  set _postDocSub(StreamSubscription<DocumentSnapshot>? value) =>
-      _controllerState.postDocSub = value;
   StreamSubscription<CurrentUserModel?>? get _currentUserStreamSub =>
       _controllerState.currentUserStreamSub;
   set _currentUserStreamSub(StreamSubscription<CurrentUserModel?>? value) =>

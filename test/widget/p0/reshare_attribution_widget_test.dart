@@ -11,27 +11,17 @@ import 'package:turqappv2/Services/reshare_helper.dart';
 
 import '../../helpers/test_helper.dart';
 
-class _FakePostContentController extends Fake implements PostContentController {
-  _FakePostContentController({
-    String reShareUserUserID = '',
-    String reShareUserNickname = '',
-    bool yenidenPaylasildiMi = false,
-  })  : _reShareUserUserID = reShareUserUserID.obs,
-        _reShareUserNickname = reShareUserNickname.obs,
-        _yenidenPaylasildiMi = yenidenPaylasildiMi.obs;
-
-  final RxString _reShareUserUserID;
-  final RxString _reShareUserNickname;
-  final RxBool _yenidenPaylasildiMi;
-
-  @override
-  RxString get reShareUserUserID => _reShareUserUserID;
-
-  @override
-  RxString get reShareUserNickname => _reShareUserNickname;
-
-  @override
-  RxBool get yenidenPaylasildiMi => _yenidenPaylasildiMi;
+PostContentController _buildController(
+  PostsModel model, {
+  String reShareUserUserID = '',
+  String reShareUserNickname = '',
+  bool yenidenPaylasildiMi = false,
+}) {
+  final controller = PostContentController(model: model);
+  controller.reShareUserUserID.value = reShareUserUserID;
+  controller.reShareUserNickname.value = reShareUserNickname;
+  controller.yenidenPaylasildiMi.value = yenidenPaylasildiMi;
+  return controller;
 }
 
 class _ReshareTestTranslations extends Translations {
@@ -129,7 +119,7 @@ void main() {
       'shows cached nickname for explicit reshare user',
       (tester) async {
         final model = _buildPost();
-        final controller = _FakePostContentController();
+        final controller = _buildController(model);
         ReshareHelper.cacheNickname('reshare_user', 'testernick');
 
         await _pumpReshareHarness(
@@ -154,7 +144,7 @@ void main() {
       'uses placeholder when post already has original owner',
       (tester) async {
         final model = _buildPost(originalUserID: 'original_owner');
-        final controller = _FakePostContentController();
+        final controller = _buildController(model);
 
         await _pumpReshareHarness(
           tester,
@@ -179,7 +169,8 @@ void main() {
       'reacts to controller nickname for non-explicit reshare state',
       (tester) async {
         final model = _buildPost();
-        final controller = _FakePostContentController(
+        final controller = _buildController(
+          model,
           reShareUserUserID: 'reshare_user',
           reShareUserNickname: 'akif',
         );

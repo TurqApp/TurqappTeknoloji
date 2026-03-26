@@ -73,22 +73,20 @@ extension PhotoShortContentControllerSocialPart
 
   Future<void> showPostCommentsBottomSheet() async {
     await Get.bottomSheet(
-      SizedBox(
-        height: Get.height * 0.5,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: PostComments(
-            postID: model.docID,
-            userID: model.userID,
-            collection: 'Posts',
-            onCommentCountChange: (bool increment) async {
-              await countManager.updateCommentCount(
-                model.docID,
-                model.originalPostID,
-                increment: increment,
-              );
-            },
-          ),
+      Builder(
+        builder: (context) => buildPostCommentsSheet(
+          context: context,
+          postID: model.docID,
+          userID: model.userID,
+          collection: 'Posts',
+          onCommentCountChange: (bool increment) async {
+            await countManager.updateCommentCount(
+              model.docID,
+              model.originalPostID,
+              increment: increment,
+            );
+          },
+          preferredHeightFactor: 0.5,
         ),
       ),
       isScrollControlled: true,

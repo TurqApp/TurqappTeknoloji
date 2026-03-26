@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
@@ -8,6 +10,43 @@ import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'comment_composer_bar.dart';
+
+Widget buildPostCommentsSheet({
+  required BuildContext context,
+  required String postID,
+  required String userID,
+  required String collection,
+  Function(bool increment)? onCommentCountChange,
+  double preferredHeightFactor = 0.55,
+}) {
+  final media = MediaQuery.of(context);
+  final preferredHeight = media.size.height * preferredHeightFactor;
+  final maxVisibleHeight = math.max(
+    0.0,
+    media.size.height - media.viewInsets.bottom - media.padding.top - 12,
+  );
+  final resolvedHeight = maxVisibleHeight <= 240
+      ? maxVisibleHeight
+      : (preferredHeight <= maxVisibleHeight
+          ? preferredHeight
+          : maxVisibleHeight);
+
+  return Align(
+    alignment: Alignment.bottomCenter,
+    child: SizedBox(
+      height: resolvedHeight,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: PostComments(
+          postID: postID,
+          userID: userID,
+          collection: collection,
+          onCommentCountChange: onCommentCountChange,
+        ),
+      ),
+    ),
+  );
+}
 
 class PostComments extends StatefulWidget {
   final String postID;
@@ -50,7 +89,12 @@ class _PostCommentsState extends State<PostComments> {
       tag: _controllerTag,
     );
 
-    focusNode.requestFocus();
+    if (GetPlatform.isIOS) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        focusNode.requestFocus();
+      });
+    }
   }
 
   @override

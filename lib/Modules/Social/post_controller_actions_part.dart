@@ -77,13 +77,12 @@ extension PostControllerActionsPart on PostController {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.95,
-        child: PostComments(
-          postID: postID,
-          userID: model.userID,
-          collection: 'Sosyal',
-        ),
+      builder: (context) => buildPostCommentsSheet(
+        context: context,
+        postID: postID,
+        userID: model.userID,
+        collection: 'Sosyal',
+        preferredHeightFactor: 0.95,
       ),
     );
 

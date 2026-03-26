@@ -284,18 +284,16 @@ extension PostContentControllerActionsPart on PostContentController {
 
   Future<void> showPostCommentsBottomSheet({VoidCallback? onClosed}) async {
     await Get.bottomSheet(
-      SizedBox(
-        height: Get.height * 0.55, // Ekranın %95'i kadar yükseklik
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: PostComments(
-            postID: model.docID,
-            userID: model.userID,
-            collection: 'Posts',
-            onCommentCountChange: (increment) async {
-              await updateCommentCount(increment: increment);
-            },
-          ),
+      Builder(
+        builder: (context) => buildPostCommentsSheet(
+          context: context,
+          postID: model.docID,
+          userID: model.userID,
+          collection: 'Posts',
+          onCommentCountChange: (increment) async {
+            await updateCommentCount(increment: increment);
+          },
+          preferredHeightFactor: 0.55,
         ),
       ),
       isScrollControlled: true,

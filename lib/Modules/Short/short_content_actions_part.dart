@@ -222,17 +222,13 @@ extension ShortsContentActionsPart on _ShortsContentState {
                   ? () {
                       volumeOff(false);
                       Get.bottomSheet(
-                        SizedBox(
-                          height: Get.height * 0.55,
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
-                            child: PostComments(
-                              postID: model.docID,
-                              userID: model.userID,
-                              collection: 'Posts',
-                            ),
+                        Builder(
+                          builder: (context) => buildPostCommentsSheet(
+                            context: context,
+                            postID: model.docID,
+                            userID: model.userID,
+                            collection: 'Posts',
+                            preferredHeightFactor: 0.55,
                           ),
                         ),
                         isScrollControlled: true,
