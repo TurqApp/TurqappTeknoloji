@@ -31,6 +31,8 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'tutoring_view_content_part.dart';
 part 'tutoring_view_shell_part.dart';
+part 'tutoring_view_shell_content_part.dart';
+part 'tutoring_view_shell_layout_part.dart';
 
 class TutoringView extends StatelessWidget {
   TutoringView({

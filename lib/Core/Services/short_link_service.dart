@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_functions/cloud_functions.dart';
 
 part 'short_link_service_upsert_part.dart';
@@ -7,6 +8,7 @@ class ShortLinkService {
   static const String _defaultDomain = 'turqapp.com';
   static const Duration _callTimeout = Duration(milliseconds: 8000);
   static final Map<String, String> _postUrlCache = <String, String>{};
+  static final Set<String> _postUrlWarmupInFlight = <String>{};
   static final Map<String, String> _storyUrlCache = <String, String>{};
   static final Map<String, String> _eduUrlCache = <String, String>{};
   static final Map<String, String> _jobUrlCache = <String, String>{};

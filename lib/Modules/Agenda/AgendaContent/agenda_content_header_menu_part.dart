@@ -120,7 +120,7 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
                   : (widget.model.img.isNotEmpty
                       ? widget.model.img.first.trim()
                       : null);
-              final url = await ShortLinkService().getPostPublicUrl(
+              final url = ShortLinkService().getPostPublicUrlForImmediateShare(
                 postId: widget.model.docID,
                 desc: widget.model.metin,
                 imageUrl: previewImage,
@@ -282,7 +282,7 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
           : (widget.model.img.isNotEmpty
               ? widget.model.img.first.trim()
               : null);
-      final url = await ShortLinkService().getPostPublicUrl(
+      final url = ShortLinkService().getPostPublicUrlForImmediateShare(
         postId: widget.model.docID,
         desc: widget.model.metin,
         imageUrl: previewImage,

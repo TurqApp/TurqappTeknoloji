@@ -14,6 +14,7 @@ import 'in_app_notifications_controller.dart';
 import 'notification_actions_sheet_content.dart';
 
 part 'in_app_notifications_shell_part.dart';
+part 'in_app_notifications_shell_content_part.dart';
 part 'in_app_notifications_list_part.dart';
 
 class InAppNotifications extends StatefulWidget {

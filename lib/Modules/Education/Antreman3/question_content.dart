@@ -17,6 +17,8 @@ import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart'
 import 'package:turqappv2/Themes/app_icons.dart';
 
 part 'question_content_shell_part.dart';
+part 'question_content_shell_content_part.dart';
+part 'question_content_shell_layout_part.dart';
 part 'question_content_item_part.dart';
 
 const _antremanLgsType = 'LGS';

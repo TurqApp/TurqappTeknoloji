@@ -10,6 +10,8 @@ part 'cv_personal_part.dart';
 part 'cv_education_part.dart';
 part 'cv_other_part.dart';
 part 'cv_shell_part.dart';
+part 'cv_shell_content_part.dart';
+part 'cv_shell_layout_part.dart';
 
 class Cv extends StatefulWidget {
   const Cv({super.key});

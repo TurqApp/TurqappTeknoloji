@@ -1,6 +1,14 @@
 part of 'short_link_service.dart';
 
 extension ShortLinkServiceUrlPart on ShortLinkService {
+  String getPostDirectUrl(String postId) {
+    final normalized = postId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+    return 'https://${ShortLinkService._defaultDomain}/p/$normalized';
+  }
+
   Future<String> getPostPublicUrl({
     required String postId,
     String? title,
@@ -24,6 +32,44 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     );
     if (url.isNotEmpty) ShortLinkService._postUrlCache[postId] = url;
     return url;
+  }
+
+  String getPostPublicUrlForImmediateShare({
+    required String postId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    String? shortId,
+  }) {
+    final normalized = postId.trim();
+    if (normalized.isEmpty) {
+      return 'https://${ShortLinkService._defaultDomain}';
+    }
+
+    final cached = ShortLinkService._postUrlCache[normalized];
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
+    final warmupKey = '$normalized|${shortId?.trim() ?? ''}';
+    if (!ShortLinkService._postUrlWarmupInFlight.contains(warmupKey)) {
+      ShortLinkService._postUrlWarmupInFlight.add(warmupKey);
+      unawaited(() async {
+        try {
+          await getPostPublicUrl(
+            postId: normalized,
+            title: title,
+            desc: desc,
+            imageUrl: imageUrl,
+            shortId: shortId,
+          );
+        } finally {
+          ShortLinkService._postUrlWarmupInFlight.remove(warmupKey);
+        }
+      }());
+    }
+
+    return getPostDirectUrl(normalized);
   }
 
   Future<String> getStoryPublicUrl({
