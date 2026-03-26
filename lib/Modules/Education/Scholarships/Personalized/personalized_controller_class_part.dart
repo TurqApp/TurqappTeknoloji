@@ -1,6 +1,7 @@
 part of 'personalized_controller.dart';
 
-class PersonalizedController extends GetxController {
+class PersonalizedController extends GetxController
+    with _PersonalizedControllerBasePart {
   static PersonalizedController ensure({
     required String tag,
     bool permanent = false,
@@ -9,8 +10,6 @@ class PersonalizedController extends GetxController {
 
   static PersonalizedController? maybeFind({String? tag}) =>
       _maybeFindPersonalizedController(tag: tag);
-
-  final _state = _PersonalizedControllerState();
 
   @override
   void onInit() {

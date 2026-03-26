@@ -1,13 +1,12 @@
 part of 'post_creator_controller.dart';
 
-class PostCreatorController extends GetxController with WidgetsBindingObserver {
+class PostCreatorController extends GetxController
+    with WidgetsBindingObserver, _PostCreatorControllerBasePart {
   static PostCreatorController ensure({bool permanent = false}) =>
       _ensurePostCreatorController(permanent: permanent);
 
   static PostCreatorController? maybeFind() =>
       _maybeFindPostCreatorController();
-
-  final _state = _PostCreatorControllerState();
 
   @override
   void onInit() {

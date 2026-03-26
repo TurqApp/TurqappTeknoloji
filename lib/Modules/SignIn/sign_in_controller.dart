@@ -32,6 +32,7 @@ import 'package:turqappv2/Services/phone_account_limiter.dart';
 
 part 'sign_in_controller_auth_part.dart';
 part 'sign_in_controller_account_part.dart';
+part 'sign_in_controller_base_part.dart';
 part 'sign_in_controller_class_part.dart';
 part 'sign_in_controller_facade_part.dart';
 part 'sign_in_controller_fields_part.dart';

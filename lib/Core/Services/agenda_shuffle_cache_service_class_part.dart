@@ -1,10 +1,10 @@
 part of 'agenda_shuffle_cache_service.dart';
 
-class AgendaShuffleCacheService extends GetxService {
+class AgendaShuffleCacheService extends GetxService
+    with _AgendaShuffleCacheServiceBasePart {
   static const int _cacheValidMinutes = 5;
   static const int _initialFetchSize = 60;
   static const int _backgroundFetchSize = 300;
-  final _state = _AgendaShuffleCacheServiceState();
 
   void clear() => _clearAgendaShuffleCache(this);
 
@@ -18,8 +18,6 @@ class AgendaShuffleCacheService extends GetxService {
 
   List<PostsModel> takeNext(int limit) =>
       _takeNextAgendaShufflePosts(this, limit);
-
-  List<PostsModel> takeCurrentVisible() => _takeCurrentAgendaVisiblePosts(this);
 
   void mergeBackground(List<PostsModel> visibleItems) =>
       _mergeAgendaShuffleBackground(this, visibleItems);

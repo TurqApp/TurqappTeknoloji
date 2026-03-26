@@ -17,6 +17,10 @@ DenemeSinavlariController? _maybeFindDenemeSinavlariController() {
 bool _hasActivePracticeExamSearch(DenemeSinavlariController controller) =>
     controller.searchQuery.value.trim().length >= 2;
 
+extension DenemeSinavlariControllerFacadePart on DenemeSinavlariController {
+  bool get hasActiveSearch => _hasActivePracticeExamSearch(this);
+}
+
 void _handleDenemeSinavlariInit(DenemeSinavlariController controller) {
   controller._handlePracticeExamInit();
 }

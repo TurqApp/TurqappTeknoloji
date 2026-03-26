@@ -28,6 +28,7 @@ import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'deep_link_service_base_part.dart';
 part 'deep_link_service_fields_part.dart';
 part 'deep_link_service_class_part.dart';
 part 'deep_link_service_lookup_part.dart';

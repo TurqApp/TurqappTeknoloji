@@ -45,6 +45,7 @@ import '../../Core/Services/typesense_post_service.dart';
 import '../../Core/Services/webp_upload_service.dart';
 
 part 'post_creator_controller_upload_support.dart';
+part 'post_creator_controller_base_part.dart';
 part 'post_creator_controller_flow_part.dart';
 part 'post_creator_controller_source_part.dart';
 part 'post_creator_controller_publish_part.dart';

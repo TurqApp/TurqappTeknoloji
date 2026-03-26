@@ -1,6 +1,7 @@
 part of 'deneme_sinavlari_controller.dart';
 
-class DenemeSinavlariController extends GetxController {
+class DenemeSinavlariController extends GetxController
+    with _DenemeSinavlariControllerBasePart {
   static DenemeSinavlariController ensure({
     bool permanent = false,
   }) =>
@@ -8,9 +9,6 @@ class DenemeSinavlariController extends GetxController {
 
   static DenemeSinavlariController? maybeFind() =>
       _maybeFindDenemeSinavlariController();
-  final _state = _DenemeSinavlariControllerState();
-
-  bool get hasActiveSearch => _hasActivePracticeExamSearch(this);
 
   @override
   void onInit() {

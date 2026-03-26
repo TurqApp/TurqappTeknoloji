@@ -17,6 +17,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deneme_sinavlari_controller_data_part.dart';
+part 'deneme_sinavlari_controller_base_part.dart';
 part 'deneme_sinavlari_controller_class_part.dart';
 part 'deneme_sinavlari_controller_facade_part.dart';
 part 'deneme_sinavlari_controller_fields_part.dart';

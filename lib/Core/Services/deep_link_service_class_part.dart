@@ -1,6 +1,6 @@
 part of 'deep_link_service.dart';
 
-class DeepLinkService extends GetxService {
+class DeepLinkService extends GetxService with _DeepLinkServiceBasePart {
   static const Duration _lookupTtl = Duration(seconds: 30);
   static final Map<String, _PostLookupCache> _postLookupCache =
       <String, _PostLookupCache>{};
@@ -16,7 +16,6 @@ class DeepLinkService extends GetxService {
       <String, _StoryDocLookupCache>{};
   static const Duration _staleRetention = Duration(minutes: 3);
   static const int _maxLookupEntries = 400;
-  final _state = _DeepLinkServiceState();
 
   @override
   void onClose() {

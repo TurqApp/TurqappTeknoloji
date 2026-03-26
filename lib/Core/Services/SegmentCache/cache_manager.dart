@@ -14,6 +14,7 @@ import 'cache_metrics.dart';
 import 'models.dart';
 
 part 'cache_manager_eviction_part.dart';
+part 'cache_manager_base_part.dart';
 part 'cache_manager_facade_part.dart';
 part 'cache_manager_fields_part.dart';
 part 'cache_manager_runtime_part.dart';

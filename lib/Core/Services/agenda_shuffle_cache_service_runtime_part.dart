@@ -6,6 +6,10 @@ AgendaShuffleCacheService? maybeFindAgendaShuffleCacheService() =>
 AgendaShuffleCacheService ensureAgendaShuffleCacheService() =>
     _ensureAgendaShuffleCacheService();
 
+extension AgendaShuffleCacheServiceRuntimePart on AgendaShuffleCacheService {
+  List<PostsModel> takeCurrentVisible() => _takeCurrentAgendaVisiblePosts(this);
+}
+
 AgendaShuffleCacheService? _maybeFindAgendaShuffleCacheService() {
   final isRegistered = Get.isRegistered<AgendaShuffleCacheService>();
   if (!isRegistered) return null;

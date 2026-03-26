@@ -1,8 +1,7 @@
 part of 'swr_controller.dart';
 
-abstract class SWRController<T> extends GetxController {
-  final _state = _SWRControllerState<T>();
-
+abstract class SWRController<T> extends GetxController
+    with _SWRControllerBasePart<T> {
   Duration get revalidateTTL => const Duration(minutes: 5);
 
   Future<List<T>> loadFromCache();
