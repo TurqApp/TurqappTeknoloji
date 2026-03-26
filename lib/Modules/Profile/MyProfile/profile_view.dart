@@ -75,6 +75,7 @@ import '../../../Models/social_media_model.dart';
 
 part 'profile_view_lifecycle_part.dart';
 part 'profile_view_shell_part.dart';
+part 'profile_view_shell_content_part.dart';
 part 'profile_view_profile_part.dart';
 part 'profile_view_tabs_part.dart';
 part 'profile_view_actions_part.dart';

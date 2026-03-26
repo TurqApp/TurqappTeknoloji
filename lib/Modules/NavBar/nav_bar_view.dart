@@ -27,6 +27,7 @@ import '../../Core/Widgets/cached_user_avatar.dart';
 import '../../Core/Widgets/offline_indicator.dart';
 
 part 'nav_bar_view_shell_part.dart';
+part 'nav_bar_view_shell_content_part.dart';
 part 'nav_bar_view_avatar_part.dart';
 
 class NavBarView extends StatelessWidget {
@@ -86,57 +87,5 @@ class NavBarView extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final shouldPop = await _handleBackNavigation();
-        if (shouldPop) {
-          SystemNavigator.pop();
-        }
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        key: const ValueKey(IntegrationTestKeys.navBarRoot),
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragEnd: _handleRootHorizontalSwipe,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Column(
-                children: [
-                  const OfflineIndicator(),
-                  Expanded(
-                    child: Obx(() => _buildSelectedPage()),
-                  ),
-                ],
-              ),
-              Obx(() {
-                if (controller.selectedIndex.value != 0) {
-                  return const SizedBox.shrink();
-                }
-                return Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: MediaQuery.of(context).padding.top - 3,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              }),
-              Obx(() {
-                final showBar = controller.showBar.value;
-                return _buildNavBar(context, showBar: showBar);
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildNavBarView(context);
 }

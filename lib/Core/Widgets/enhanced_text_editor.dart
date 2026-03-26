@@ -4,6 +4,9 @@ import 'package:get/get.dart';
 import '../Services/post_editing_service.dart';
 
 part 'enhanced_text_editor_shell_part.dart';
+part 'enhanced_text_editor_lifecycle_part.dart';
+part 'enhanced_text_editor_content_part.dart';
+part 'enhanced_text_editor_actions_part.dart';
 part 'enhanced_text_editor_support_part.dart';
 
 class EnhancedTextEditor extends StatefulWidget {
