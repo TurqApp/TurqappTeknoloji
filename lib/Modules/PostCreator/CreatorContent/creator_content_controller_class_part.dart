@@ -12,21 +12,22 @@ class CreatorContentController extends GetxController
       _maybeFindCreatorContentController(tag: tag);
 
   final _state = _CreatorContentControllerState();
+  _CreatorContentControllerLifecyclePart get _lifecycle =>
+      _CreatorContentControllerLifecyclePart(this);
 
   @override
   void onInit() {
     super.onInit();
-    _CreatorContentControllerLifecyclePart(this).handleOnInit();
+    _lifecycle.handleOnInit();
   }
 
   @override
   void onClose() {
-    _CreatorContentControllerLifecyclePart(this).handleOnClose();
+    _lifecycle.handleOnClose();
     super.onClose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) =>
-      _CreatorContentControllerLifecyclePart(this)
-          .didChangeAppLifecycleState(state);
+      _lifecycle.didChangeAppLifecycleState(state);
 }

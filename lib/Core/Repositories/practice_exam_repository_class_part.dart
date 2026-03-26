@@ -2,28 +2,19 @@ part of 'practice_exam_repository.dart';
 
 class PracticeExamRepository extends GetxService {
   PracticeExamRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _state = _PracticeExamRepositoryState(firestore: firestore);
 
-  final FirebaseFirestore _firestore;
+  final _PracticeExamRepositoryState _state;
   static const Duration _ttl = Duration(hours: 12);
   static const String _prefsPrefix = 'practice_exam_repository_v1';
-  final Map<String, _TimedPracticeExams> _memory =
-      <String, _TimedPracticeExams>{};
-  final Map<String, _TimedPracticeExamBool> _boolMemory =
-      <String, _TimedPracticeExamBool>{};
-  SharedPreferences? _prefs;
 
-  static PracticeExamRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<PracticeExamRepository>();
-    if (!isRegistered) return null;
-    return Get.find<PracticeExamRepository>();
-  }
+  static PracticeExamRepository? maybeFind() =>
+      Get.isRegistered<PracticeExamRepository>()
+          ? Get.find<PracticeExamRepository>()
+          : null;
 
-  static PracticeExamRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(PracticeExamRepository(), permanent: true);
-  }
+  static PracticeExamRepository ensure() =>
+      maybeFind() ?? Get.put(PracticeExamRepository(), permanent: true);
 
   @override
   void onInit() {

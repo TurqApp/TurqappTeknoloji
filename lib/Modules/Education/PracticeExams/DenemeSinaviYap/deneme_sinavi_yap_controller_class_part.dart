@@ -2,16 +2,11 @@ part of 'deneme_sinavi_yap_controller.dart';
 
 class DenemeSinaviYapController extends _DenemeSinaviYapControllerBase {
   DenemeSinaviYapController({
-    required SinavModel model,
-    required Function sinaviBitir,
-    required Function showGecersizAlert,
-    required bool uyariAtla,
-  }) : super(
-          model: model,
-          sinaviBitir: sinaviBitir,
-          showGecersizAlert: showGecersizAlert,
-          uyariAtla: uyariAtla,
-        );
+    required super.model,
+    required super.sinaviBitir,
+    required super.showGecersizAlert,
+    required super.uyariAtla,
+  }) : super();
 
   @override
   void onInit() {

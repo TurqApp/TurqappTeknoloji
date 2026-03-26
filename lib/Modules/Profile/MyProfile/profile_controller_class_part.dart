@@ -1,17 +1,12 @@
 part of 'profile_controller.dart';
 
 class ProfileController extends GetxController {
-  static ProfileController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ProfileController());
-  }
+  static ProfileController ensure() =>
+      maybeFind() ?? Get.put(ProfileController());
 
-  static ProfileController? maybeFind() {
-    final isRegistered = Get.isRegistered<ProfileController>();
-    if (!isRegistered) return null;
-    return Get.find<ProfileController>();
-  }
+  static ProfileController? maybeFind() => Get.isRegistered<ProfileController>()
+      ? Get.find<ProfileController>()
+      : null;
 
   final _lifecycleState = _ProfileLifecycleState();
   final _scrollState = _ProfileScrollState();

@@ -1,24 +1,14 @@
 part of 'my_q_r_code_controller.dart';
 
 class MyQRCodeController extends GetxController {
-  static MyQRCodeController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      MyQRCodeController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  static MyQRCodeController ensure({String? tag, bool permanent = false}) =>
+      maybeFind(tag: tag) ??
+      Get.put(MyQRCodeController(), tag: tag, permanent: permanent);
 
-  static MyQRCodeController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<MyQRCodeController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<MyQRCodeController>(tag: tag);
-  }
+  static MyQRCodeController? maybeFind({String? tag}) =>
+      Get.isRegistered<MyQRCodeController>(tag: tag)
+          ? Get.find<MyQRCodeController>(tag: tag)
+          : null;
 
   final CurrentUserService userService = CurrentUserService.instance;
   final ShortLinkService _shortLinkService = ShortLinkService();
