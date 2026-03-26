@@ -1,13 +1,10 @@
 part of 'story_highlights_repository.dart';
 
-StoryHighlightsRepository? maybeFindStoryHighlightsRepository() {
-  final isRegistered = Get.isRegistered<StoryHighlightsRepository>();
-  if (!isRegistered) return null;
-  return Get.find<StoryHighlightsRepository>();
-}
+StoryHighlightsRepository? maybeFindStoryHighlightsRepository() =>
+    Get.isRegistered<StoryHighlightsRepository>()
+        ? Get.find<StoryHighlightsRepository>()
+        : null;
 
-StoryHighlightsRepository ensureStoryHighlightsRepository() {
-  final existing = maybeFindStoryHighlightsRepository();
-  if (existing != null) return existing;
-  return Get.put(StoryHighlightsRepository(), permanent: true);
-}
+StoryHighlightsRepository ensureStoryHighlightsRepository() =>
+    maybeFindStoryHighlightsRepository() ??
+    Get.put(StoryHighlightsRepository(), permanent: true);
