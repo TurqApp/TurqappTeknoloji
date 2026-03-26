@@ -6,7 +6,7 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
     _memoryAt = DateTime.now();
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
-      TopTagsRepository._prefsKey,
+      _topTagsPrefsKey,
       jsonEncode({
         't': _memoryAt!.millisecondsSinceEpoch,
         'items': items
@@ -25,20 +25,20 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
     final items = _memory;
     final at = _memoryAt;
     if (items == null || at == null) return null;
-    if (DateTime.now().difference(at) > TopTagsRepository._ttl) return null;
+    if (DateTime.now().difference(at) > _topTagsTtl) return null;
     return items.take(limit).toList(growable: false);
   }
 
   Future<List<HashtagModel>?> _readPrefs({required int limit}) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(TopTagsRepository._prefsKey);
+    final raw = _prefs?.getString(_topTagsPrefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       if (ts <= 0) return null;
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
-      if (DateTime.now().difference(cachedAt) > TopTagsRepository._ttl) {
+      if (DateTime.now().difference(cachedAt) > _topTagsTtl) {
         return null;
       }
       final items = (decoded['items'] as List?) ?? const [];

@@ -98,7 +98,7 @@ class _ProfileViewState extends State<ProfileView> {
   late final SocialMediaController socialMediaController;
   final userService = CurrentUserService.instance;
   final PostRepository _postRepository = PostRepository.ensure();
-  final MarketRepository _marketRepository = MarketRepository.ensure();
+  final MarketRepository _marketRepository = ensureMarketRepository();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
   bool _scrollProbeScheduled = false;

@@ -16,4 +16,10 @@ abstract class _SinavSorusuHazirlaControllerBase extends GetxController {
         );
 
   final _SinavSorusuHazirlaControllerState _state;
+
+  @override
+  void onInit() {
+    super.onInit();
+    (this as SinavSorusuHazirlaController)._handleInit();
+  }
 }

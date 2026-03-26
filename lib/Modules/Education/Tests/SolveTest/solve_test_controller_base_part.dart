@@ -10,4 +10,16 @@ abstract class _SolveTestControllerBase extends GetxController {
         );
 
   final _SolveTestControllerState _state;
+
+  @override
+  void onInit() {
+    super.onInit();
+    (this as SolveTestController)._handleControllerInit();
+  }
+
+  @override
+  void onClose() {
+    (this as SolveTestController)._handleControllerClose();
+    super.onClose();
+  }
 }

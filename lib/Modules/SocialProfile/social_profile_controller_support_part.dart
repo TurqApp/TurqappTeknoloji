@@ -9,7 +9,7 @@ final StoryRepository _storyRepository = StoryRepository.ensure();
 final UserSubcollectionRepository _userSubcollectionRepository =
     ensureUserSubcollectionRepository();
 final UserPostLinkService _linkService = UserPostLinkService.ensure();
-final ProfileRepository _profileRepository = ProfileRepository.ensure();
+final ProfileRepository _profileRepository = ensureProfileRepository();
 final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 const int _socialProfilePageSize = 12;
 

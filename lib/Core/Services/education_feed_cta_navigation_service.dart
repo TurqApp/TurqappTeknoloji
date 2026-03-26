@@ -261,7 +261,7 @@ class EducationFeedCtaNavigationService {
   }
 
   Future<void> _openMarket(String docId) async {
-    final item = await MarketRepository.ensure().fetchById(
+    final item = await ensureMarketRepository().fetchById(
       docId,
       preferCache: true,
     );

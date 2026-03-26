@@ -2,22 +2,10 @@ part of 'sinav_sorusu_hazirla_controller.dart';
 
 class SinavSorusuHazirlaController extends _SinavSorusuHazirlaControllerBase {
   SinavSorusuHazirlaController({
-    required String docID,
-    required String sinavTuru,
-    required List<String> tumDersler,
-    required List<String> derslerinSoruSayilari,
-    required Function() complated,
-  }) : super(
-          docID: docID,
-          sinavTuru: sinavTuru,
-          tumDersler: tumDersler,
-          derslerinSoruSayilari: derslerinSoruSayilari,
-          complated: complated,
-        );
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleInit();
-  }
+    required super.docID,
+    required super.sinavTuru,
+    required super.tumDersler,
+    required super.derslerinSoruSayilari,
+    required super.complated,
+  });
 }

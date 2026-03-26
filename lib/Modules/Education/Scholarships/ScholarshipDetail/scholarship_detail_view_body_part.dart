@@ -3,7 +3,7 @@ part of 'scholarship_detail_view.dart';
 extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
   Widget buildContent(BuildContext context) {
     final ScholarshipDetailController controller =
-        ScholarshipDetailController.ensure();
+        ensureScholarshipDetailController();
 
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData == null || scholarshipData['model'] == null) {
@@ -12,7 +12,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
         body: Center(
           child: Text(
             'scholarship.detail_missing'.tr,
-            style: const TextStyle(fontSize: 16, fontFamily: 'MontserratMedium'),
+            style:
+                const TextStyle(fontSize: 16, fontFamily: 'MontserratMedium'),
           ),
         ),
       );
@@ -263,16 +264,14 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                               ),
                               TextSpan(
                                 text: model.basvuruYapilacakYer ==
-                                        CreateScholarshipController
-                                            .applicationPlaceTurqAppValue
+                                        applicationPlaceTurqAppValue
                                     ? 'scholarship.application_received_status'
                                         .tr
                                     : 'scholarship.application_not_received_status'
                                         .tr,
                                 style: TextStyle(
                                   color: model.basvuruYapilacakYer ==
-                                          CreateScholarshipController
-                                              .applicationPlaceTurqAppValue
+                                          applicationPlaceTurqAppValue
                                       ? Colors.black
                                       : Colors.red.shade700,
                                   fontSize: 14,

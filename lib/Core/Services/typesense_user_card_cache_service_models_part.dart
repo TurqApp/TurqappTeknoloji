@@ -10,5 +10,5 @@ class _CachedUserCardsResult {
   final DateTime cachedAt;
 
   bool get isFresh =>
-      DateTime.now().difference(cachedAt) < TypesenseUserCardCacheService._ttl;
+      DateTime.now().difference(cachedAt) < _typesenseUserCardCacheTtl;
 }

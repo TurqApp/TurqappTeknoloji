@@ -6,11 +6,9 @@ extension AnswerKeyShellPart on AnswerKey {
     final overlays = _buildOverlays(context);
 
     if (embedded) {
-      return Stack(
-        children: [
-          Column(children: [bodyContent]),
-          if (showEmbeddedControls) ...overlays,
-        ],
+      return _buildEmbeddedPage(
+        bodyContent: bodyContent,
+        overlays: overlays,
       );
     }
 

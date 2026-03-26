@@ -11,10 +11,10 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
   Future<void> _saveErrorToHistory(AppError error) async {
     _errorHistory.add(error);
 
-    if (_errorHistory.length > ErrorHandlingService._maxErrorHistory) {
+    if (_errorHistory.length > _errorHandlingMaxHistory) {
       _errorHistory.removeRange(
         0,
-        _errorHistory.length - ErrorHandlingService._maxErrorHistory,
+        _errorHistory.length - _errorHandlingMaxHistory,
       );
     }
 
@@ -24,8 +24,7 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
   Future<void> _loadErrorHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final historyString =
-          prefs.getString(ErrorHandlingService._errorHistoryKey);
+      final historyString = prefs.getString(_errorHandlingHistoryKey);
 
       if (historyString != null) {
         final historyJson = jsonDecode(historyString) as List;
@@ -45,7 +44,7 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
       final prefs = await SharedPreferences.getInstance();
       final historyJson = _errorHistory.map((error) => error.toJson()).toList();
       await prefs.setString(
-        ErrorHandlingService._errorHistoryKey,
+        _errorHandlingHistoryKey,
         jsonEncode(historyJson),
       );
     } catch (e) {

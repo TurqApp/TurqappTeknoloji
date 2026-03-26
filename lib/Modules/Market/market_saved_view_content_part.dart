@@ -1,7 +1,7 @@
 part of 'market_saved_view.dart';
 
 class _MarketSavedViewState extends State<MarketSavedView> {
-  final MarketRepository _repository = MarketRepository.ensure();
+  final MarketRepository _repository = ensureMarketRepository();
   late final String uid;
   late Future<List<MarketItemModel>> _savedFuture;
 

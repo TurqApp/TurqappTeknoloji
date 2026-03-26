@@ -4,7 +4,7 @@ class _MarketCreateControllerState {
   _MarketCreateControllerState({required this.initialItem});
 
   final schemaService = ensureMarketSchemaService();
-  final repository = MarketRepository.ensure();
+  final repository = ensureMarketRepository();
   final cityDirectoryService = ensureCityDirectoryService();
   final MarketItemModel? initialItem;
   final titleController = TextEditingController();

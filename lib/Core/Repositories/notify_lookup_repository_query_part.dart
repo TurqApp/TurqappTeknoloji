@@ -106,7 +106,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
         DateTime.now().difference(cached.cachedAt) <= _notifyMarketLookupTtl) {
       return cached;
     }
-    final model = await MarketRepository.ensure().fetchById(
+    final model = await ensureMarketRepository().fetchById(
       itemId,
       preferCache: true,
       forceRefresh: false,

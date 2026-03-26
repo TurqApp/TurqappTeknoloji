@@ -21,7 +21,7 @@ class MarketOffersView extends StatefulWidget {
 }
 
 class _MarketOffersViewState extends State<MarketOffersView> {
-  final MarketRepository _repository = MarketRepository.ensure();
+  final MarketRepository _repository = ensureMarketRepository();
   late final String uid;
   late Future<List<MarketOfferModel>> sentFuture;
   late Future<List<MarketOfferModel>> receivedFuture;

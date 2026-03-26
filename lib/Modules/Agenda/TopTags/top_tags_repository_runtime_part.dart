@@ -32,18 +32,16 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
       if (tag.isEmpty) continue;
 
       final count = ((data["count"] ?? data["counter"] ?? 0) as num).toInt();
-      final threshold = ((data["trendThreshold"] ??
-              TopTagsRepository._defaultTrendThreshold) as num)
-          .toInt();
+      final threshold =
+          ((data["trendThreshold"] ?? _topTagsDefaultTrendThreshold) as num)
+              .toInt();
       if (count < threshold || count <= 0) continue;
 
-      final windowHours = ((data["trendWindowHours"] ??
-              TopTagsRepository._defaultTrendWindowHours) as num)
-          .toInt();
+      final windowHours =
+          ((data["trendWindowHours"] ?? _topTagsDefaultTrendWindowHours) as num)
+              .toInt();
       final windowMs = Duration(
-        hours: windowHours <= 0
-            ? TopTagsRepository._defaultTrendWindowHours
-            : windowHours,
+        hours: windowHours <= 0 ? _topTagsDefaultTrendWindowHours : windowHours,
       ).inMilliseconds;
       final rawLastSeenTs = ((data["lastSeenTs"] as num?)?.toInt()) ??
           ((data["lastSeenAt"] as num?)?.toInt()) ??

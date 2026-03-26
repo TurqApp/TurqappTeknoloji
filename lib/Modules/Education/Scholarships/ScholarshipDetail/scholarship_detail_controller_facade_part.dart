@@ -1,5 +1,13 @@
 part of 'scholarship_detail_controller.dart';
 
+ScholarshipDetailController ensureScholarshipDetailController({
+  bool permanent = false,
+}) =>
+    _ensureScholarshipDetailController(permanent: permanent);
+
+ScholarshipDetailController? maybeFindScholarshipDetailController() =>
+    _maybeFindScholarshipDetailController();
+
 ScholarshipDetailController _ensureScholarshipDetailController({
   bool permanent = false,
 }) {
@@ -26,21 +34,4 @@ void _handleScholarshipDetailInit(ScholarshipDetailController controller) {
   }
   controller.checkIfUserAlreadyApplied(scholarshipData, showErrors: false);
   controller._incrementViewCount(scholarshipData);
-}
-
-void _updateScholarshipDetailPageIndex(
-  ScholarshipDetailController controller,
-  int pageIndex,
-) {
-  controller.currentPageIndex.value = pageIndex;
-}
-
-void _toggleScholarshipUniversityList(ScholarshipDetailController controller) {
-  controller.showAllUniversities.value = !controller.showAllUniversities.value;
-}
-
-String _formatScholarshipDetailTimestamp(int? timestamp) {
-  if (timestamp == null) return 'common.unspecified'.tr;
-  final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-  return DateFormat('dd.MM.yyyy').format(date);
 }

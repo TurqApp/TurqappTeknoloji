@@ -3,7 +3,7 @@ part of 'market_controller.dart';
 class _MarketControllerState {
   final schemaService = ensureMarketSchemaService();
   final marketSnapshotRepository = MarketSnapshotRepository.ensure();
-  final repository = MarketRepository.ensure();
+  final repository = ensureMarketRepository();
   final cityDirectoryService = ensureCityDirectoryService();
   final scrollController = ScrollController();
   final search = TextEditingController();

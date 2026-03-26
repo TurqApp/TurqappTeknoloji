@@ -1,5 +1,17 @@
 part of 'profile_repository.dart';
 
+ProfileRepository? maybeFindProfileRepository() {
+  final isRegistered = Get.isRegistered<ProfileRepository>();
+  if (!isRegistered) return null;
+  return Get.find<ProfileRepository>();
+}
+
+ProfileRepository ensureProfileRepository() {
+  final existing = maybeFindProfileRepository();
+  if (existing != null) return existing;
+  return Get.put(ProfileRepository(), permanent: true);
+}
+
 extension ProfileRepositoryFacadePart on ProfileRepository {
   Future<ProfileBuckets?> readCachedBuckets(String uid) =>
       _readCachedBucketsImpl(uid);

@@ -70,7 +70,7 @@ class PostDeleteService {
       'deletedPost': true,
       'deletedPostTime': nowMs,
     });
-    await ProfileRepository.ensure().removePostFromCaches(
+    await ensureProfileRepository().removePostFromCaches(
       uid: model.userID,
       docId: model.docID,
     );

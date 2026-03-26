@@ -1,6 +1,18 @@
 part of 'answer_key.dart';
 
 extension AnswerKeyShellContentPart on AnswerKey {
+  Widget _buildEmbeddedPage({
+    required Widget bodyContent,
+    required List<Widget> overlays,
+  }) {
+    return Stack(
+      children: [
+        Column(children: [bodyContent]),
+        if (showEmbeddedControls) ...overlays,
+      ],
+    );
+  }
+
   Widget _buildStandalonePage(
     BuildContext context, {
     required Widget bodyContent,

@@ -243,7 +243,7 @@ class _SavedMarketTab extends StatefulWidget {
 }
 
 class _SavedMarketTabState extends State<_SavedMarketTab> {
-  final MarketRepository _repository = MarketRepository.ensure();
+  final MarketRepository _repository = ensureMarketRepository();
   late final String _uid;
   late Future<List<MarketItemModel>> _future;
 

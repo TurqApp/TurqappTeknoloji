@@ -1,7 +1,7 @@
 part of 'profile_controller.dart';
 
 final userService = CurrentUserService.instance;
-final ProfileRepository _profileRepository = ProfileRepository.ensure();
+final ProfileRepository _profileRepository = ensureProfileRepository();
 final ProfilePostsSnapshotRepository _profileSnapshotRepository =
     ProfilePostsSnapshotRepository.ensure();
 final ProfileRenderCoordinator _profileRenderCoordinator =

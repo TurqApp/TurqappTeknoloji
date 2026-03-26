@@ -1,7 +1,7 @@
 part of 'market_my_items_view.dart';
 
 class _MarketMyItemsViewState extends State<MarketMyItemsView> {
-  final MarketRepository _repository = MarketRepository.ensure();
+  final MarketRepository _repository = ensureMarketRepository();
   final MarketShareService _shareService = const MarketShareService();
   late final String uid;
   late Future<List<MarketItemModel>> _itemsFuture;

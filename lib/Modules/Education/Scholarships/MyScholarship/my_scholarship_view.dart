@@ -34,9 +34,9 @@ class _MyScholarshipViewState extends State<MyScholarshipView> {
     _ownsController = existing == null;
     controller =
         existing ?? MyScholarshipController.ensure(tag: _controllerTag);
-    final existingDetail = ScholarshipDetailController.maybeFind();
+    final existingDetail = maybeFindScholarshipDetailController();
     _ownsDetailController = existingDetail == null;
-    detailController = existingDetail ?? ScholarshipDetailController.ensure();
+    detailController = existingDetail ?? ensureScholarshipDetailController();
   }
 
   @override
@@ -49,7 +49,7 @@ class _MyScholarshipViewState extends State<MyScholarshipView> {
       Get.delete<MyScholarshipController>(tag: _controllerTag, force: true);
     }
     if (_ownsDetailController &&
-        identical(ScholarshipDetailController.maybeFind(), detailController)) {
+        identical(maybeFindScholarshipDetailController(), detailController)) {
       Get.delete<ScholarshipDetailController>(force: true);
     }
     super.dispose();

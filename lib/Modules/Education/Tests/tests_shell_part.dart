@@ -6,11 +6,9 @@ extension _TestsShellPart on _TestsState {
     final overlays = _buildOverlays(context);
 
     if (embedded) {
-      return Stack(
-        children: [
-          Column(children: [bodyContent]),
-          if (showEmbeddedControls) ...overlays,
-        ],
+      return _buildEmbeddedPage(
+        bodyContent: bodyContent,
+        overlays: overlays,
       );
     }
 

@@ -10,6 +10,7 @@ import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'dart:io';
 
 part 'add_test_question_controller_actions_part.dart';
+part 'add_test_question_controller_base_part.dart';
 part 'add_test_question_controller_class_part.dart';
 part 'add_test_question_controller_data_part.dart';
 part 'add_test_question_controller_facade_part.dart';

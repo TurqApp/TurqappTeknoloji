@@ -3,7 +3,7 @@ part of 'archives_controller.dart';
 const Duration _archiveControllerSilentRefreshInterval = Duration(minutes: 5);
 
 class _ArchiveControllerState {
-  final ProfileRepository profileRepository = ProfileRepository.ensure();
+  final ProfileRepository profileRepository = ensureProfileRepository();
   final ScrollController scrollController = ScrollController();
   final RxList<PostsModel> list = <PostsModel>[].obs;
   final RxBool isLoading = true.obs;

@@ -63,7 +63,7 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
       return cached;
     }
     final lookup = _MarketLookupCache(
-      model: await MarketRepository.ensure().fetchById(
+      model: await ensureMarketRepository().fetchById(
         itemId,
         preferCache: true,
       ),

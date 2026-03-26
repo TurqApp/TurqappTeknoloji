@@ -43,8 +43,7 @@ class _TypesenseUserCardCacheServiceCachePart {
     final keys = prefs
         .getKeys()
         .where(
-          (key) =>
-              key.startsWith('${TypesenseUserCardCacheService._prefsPrefix}:'),
+          (key) => key.startsWith('$_typesenseUserCardPrefsPrefix:'),
         )
         .toList(growable: false);
     for (final key in keys) {
@@ -123,5 +122,5 @@ class _TypesenseUserCardCacheServiceCachePart {
   }
 
   String _prefsKey(String cacheKey) =>
-      '${TypesenseUserCardCacheService._prefsPrefix}:$cacheKey';
+      '$_typesenseUserCardPrefsPrefix:$cacheKey';
 }

@@ -90,7 +90,7 @@ class MarketSavedStore {
           },
           SetOptions(merge: true));
     });
-    await MarketRepository.ensure().invalidateItemCaches(
+    await ensureMarketRepository().invalidateItemCaches(
       userId: uid,
       docId: itemId,
     );
@@ -114,7 +114,7 @@ class MarketSavedStore {
           },
           SetOptions(merge: true));
     });
-    await MarketRepository.ensure().invalidateItemCaches(
+    await ensureMarketRepository().invalidateItemCaches(
       userId: uid,
       docId: itemId,
     );

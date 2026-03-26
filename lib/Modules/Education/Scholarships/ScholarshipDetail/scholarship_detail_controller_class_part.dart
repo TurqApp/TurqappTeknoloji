@@ -1,12 +1,6 @@
 part of 'scholarship_detail_controller.dart';
 
 class ScholarshipDetailController extends GetxController {
-  static ScholarshipDetailController ensure({bool permanent = false}) =>
-      _ensureScholarshipDetailController(permanent: permanent);
-
-  static ScholarshipDetailController? maybeFind() =>
-      _maybeFindScholarshipDetailController();
-
   static const String _selectValue = 'Seçiniz';
   static const String _selectActionValue = 'Seçim Yap';
   static const String _selectJobValue = 'Meslek Seç';

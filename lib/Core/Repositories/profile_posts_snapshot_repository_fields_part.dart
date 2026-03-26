@@ -1,7 +1,7 @@
 part of 'profile_posts_snapshot_repository.dart';
 
 class _ProfilePostsSnapshotRepositoryState {
-  final ProfileRepository profileRepository = ProfileRepository.ensure();
+  final ProfileRepository profileRepository = ensureProfileRepository();
   final MemoryScopedSnapshotStore<ProfileBuckets> memoryStore =
       MemoryScopedSnapshotStore<ProfileBuckets>();
   late final SharedPrefsScopedSnapshotStore<ProfileBuckets> snapshotStore;

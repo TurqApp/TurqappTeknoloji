@@ -1,6 +1,18 @@
 part of 'tests.dart';
 
 extension _TestsShellContentPart on _TestsState {
+  Widget _buildEmbeddedPage({
+    required Widget bodyContent,
+    required List<Widget> overlays,
+  }) {
+    return Stack(
+      children: [
+        Column(children: [bodyContent]),
+        if (showEmbeddedControls) ...overlays,
+      ],
+    );
+  }
+
   Widget _buildStandalonePage(
     BuildContext context, {
     required Widget bodyContent,

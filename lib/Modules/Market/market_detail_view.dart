@@ -50,7 +50,7 @@ class MarketDetailView extends StatefulWidget {
 class _MarketDetailViewState extends State<MarketDetailView> {
   static const MarketContactService _contactService = MarketContactService();
   static const MarketReviewService _reviewService = MarketReviewService();
-  static final MarketRepository _repository = MarketRepository.ensure();
+  static final MarketRepository _repository = ensureMarketRepository();
   static final ReportRepository _reportRepository = ReportRepository.ensure();
   static final UserRepository _userRepository = UserRepository.ensure();
   static final TypesenseMarketSearchService _typesense =
