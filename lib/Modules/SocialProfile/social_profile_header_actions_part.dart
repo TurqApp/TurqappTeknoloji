@@ -17,6 +17,8 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
         children: [
           AppHeaderActionButton(
             onTap: loading ? null : _onPostNotificationPressed,
+            surfaceColor:
+                enabled ? const Color(0xFFE8F5E9) : const Color(0xFFFFFFFF),
             child: loading
                 ? const SizedBox(
                     width: 14,
@@ -67,7 +69,14 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
 
   Future<void> _onPostNotificationPressed() async {
     if (controller.postNotificationsLoading.value) return;
-    final status = await Permission.notification.status;
+    var status = await Permission.notification.status;
+    if (!status.isGranted &&
+        !status.isLimited &&
+        !status.isProvisional &&
+        !status.isRestricted &&
+        !status.isPermanentlyDenied) {
+      status = await Permission.notification.request();
+    }
     final canNotify =
         status.isGranted || status.isLimited || status.isProvisional;
     if (!canNotify) {
