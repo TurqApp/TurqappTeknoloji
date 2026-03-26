@@ -1,24 +1,11 @@
 part of 'sinav_hazirla_controller.dart';
 
 class SinavHazirlaController extends GetxController {
-  static SinavHazirlaController ensure({
-    required String tag,
-    SinavModel? sinavModel,
-    bool permanent = false,
-  }) =>
-      _ensureSinavHazirlaController(
-          tag: tag, sinavModel: sinavModel, permanent: permanent);
-
-  static SinavHazirlaController? maybeFind({required String tag}) =>
-      _maybeFindSinavHazirlaController(tag: tag);
-
   final _state = _SinavHazirlaControllerState();
-  SinavModel? sinavModel;
 
-  SinavHazirlaController({this.sinavModel});
-
-  String _normalizeKpssLisans(String value) =>
-      _normalizeSinavHazirlaKpssLisans(value);
+  SinavHazirlaController({SinavModel? sinavModel}) {
+    this.sinavModel = sinavModel;
+  }
 
   @override
   void onInit() {

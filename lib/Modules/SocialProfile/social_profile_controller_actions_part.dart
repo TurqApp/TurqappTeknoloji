@@ -170,11 +170,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
         totalFollower.value--;
         postNotificationsEnabled.value = false;
         try {
-          await _userSubcollectionRepository.deleteEntry(
-            userID,
-            subcollection: 'postNotificationSubscribers',
-            docId: currentUid,
-          );
+          await _postNotificationSubscriberRef(userID, currentUid).delete();
         } catch (e) {
           print('SocialProfile unfollow notification cleanup error: $e');
         }
@@ -205,16 +201,14 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
     try {
       if (enable) {
         final now = DateTime.now().millisecondsSinceEpoch;
-        await _userSubcollectionRepository.upsertEntry(
-          userID,
-          subcollection: 'postNotificationSubscribers',
-          docId: currentUid,
-          data: {
+        await _postNotificationSubscriberRef(userID, currentUid).set(
+          {
             'subscriberId': currentUid,
             'authorId': userID,
             'createdAt': now,
             'updatedAt': now,
           },
+          SetOptions(merge: true),
         );
         postNotificationsEnabled.value = true;
         AppSnackbar(
@@ -222,11 +216,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
           '@${nickname.value} yeni gönderi paylaştığında bildirim alacaksın',
         );
       } else {
-        await _userSubcollectionRepository.deleteEntry(
-          userID,
-          subcollection: 'postNotificationSubscribers',
-          docId: currentUid,
-        );
+        await _postNotificationSubscriberRef(userID, currentUid).delete();
         postNotificationsEnabled.value = false;
         AppSnackbar(
           'Bildirimler kapatıldı',

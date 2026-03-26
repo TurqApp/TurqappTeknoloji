@@ -11,6 +11,7 @@ part 'network_awareness_service_class_part.dart';
 part 'network_awareness_service_facade_part.dart';
 part 'network_awareness_service_fields_part.dart';
 part 'network_awareness_service_models_part.dart';
+part 'network_awareness_service_support_part.dart';
 part 'network_awareness_service_storage_part.dart';
 
 enum NetworkType {

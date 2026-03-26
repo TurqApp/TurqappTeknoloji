@@ -1,5 +1,21 @@
 part of 'sinav_hazirla_controller.dart';
 
+SinavHazirlaController ensureSinavHazirlaController({
+  required String tag,
+  SinavModel? sinavModel,
+  bool permanent = false,
+}) =>
+    _ensureSinavHazirlaController(
+      tag: tag,
+      sinavModel: sinavModel,
+      permanent: permanent,
+    );
+
+SinavHazirlaController? maybeFindSinavHazirlaController({
+  required String tag,
+}) =>
+    _maybeFindSinavHazirlaController(tag: tag);
+
 SinavHazirlaController _ensureSinavHazirlaController({
   required String tag,
   SinavModel? sinavModel,
@@ -35,4 +51,9 @@ void _handleSinavHazirlaInit(SinavHazirlaController controller) {
 
 void _handleSinavHazirlaClose(SinavHazirlaController controller) {
   controller._disposeFormControllers();
+}
+
+extension SinavHazirlaControllerFacadePart on SinavHazirlaController {
+  String _normalizeKpssLisans(String value) =>
+      _normalizeSinavHazirlaKpssLisans(value);
 }

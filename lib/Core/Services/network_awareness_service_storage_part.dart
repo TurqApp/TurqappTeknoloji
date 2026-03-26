@@ -59,12 +59,11 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final settingsString =
-        prefs.getString(NetworkAwarenessService._settingsKey);
+    final settingsString = prefs.getString(_networkAwarenessSettingsKey);
 
     if (settingsString != null) {
       final settingsJson = Map<String, dynamic>.from(
-        prefs.getString(NetworkAwarenessService._settingsKey) != null
+        prefs.getString(_networkAwarenessSettingsKey) != null
             ? Uri.splitQueryString(settingsString)
             : {},
       );
@@ -79,13 +78,12 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
           .toJson()
           .map((key, value) => MapEntry(key, value.toString())),
     ).query;
-    await prefs.setString(NetworkAwarenessService._settingsKey, settingsString);
+    await prefs.setString(_networkAwarenessSettingsKey, settingsString);
   }
 
   Future<void> _loadDataUsage() async {
     final prefs = await SharedPreferences.getInstance();
-    final dataUsageString =
-        prefs.getString(NetworkAwarenessService._dataUsageKey);
+    final dataUsageString = prefs.getString(_networkAwarenessDataUsageKey);
 
     if (dataUsageString != null) {
       final dataUsageJson = Map<String, dynamic>.from(
@@ -103,7 +101,7 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
           .map((key, value) => MapEntry(key, value.toString())),
     ).query;
     await prefs.setString(
-      NetworkAwarenessService._dataUsageKey,
+      _networkAwarenessDataUsageKey,
       dataUsageString,
     );
   }

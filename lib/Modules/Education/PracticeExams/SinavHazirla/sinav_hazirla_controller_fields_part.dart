@@ -1,6 +1,7 @@
 part of 'sinav_hazirla_controller.dart';
 
 class _SinavHazirlaControllerState {
+  SinavModel? sinavModel;
   final sinavIsmi = TextEditingController().obs;
   final aciklama = TextEditingController().obs;
   final startDate = DateTime.now().obs;
@@ -21,6 +22,8 @@ class _SinavHazirlaControllerState {
 }
 
 extension SinavHazirlaControllerFieldsPart on SinavHazirlaController {
+  SinavModel? get sinavModel => _state.sinavModel;
+  set sinavModel(SinavModel? value) => _state.sinavModel = value;
   Rx<TextEditingController> get sinavIsmi => _state.sinavIsmi;
   Rx<TextEditingController> get aciklama => _state.aciklama;
   Rx<DateTime> get startDate => _state.startDate;

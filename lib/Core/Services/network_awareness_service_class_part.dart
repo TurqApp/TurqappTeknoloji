@@ -8,18 +8,6 @@ class NetworkAwarenessService extends GetxController {
 
   final _state = _NetworkAwarenessServiceState();
 
-  NetworkType get currentNetwork =>
-      _debugOverrideNetwork ?? _currentNetwork.value;
-  NetworkSettings get settings => _settings.value;
-  DataUsageStats get dataUsage => _dataUsage.value;
-
-  bool get isConnected => currentNetwork != NetworkType.none;
-  bool get isOnWiFi => currentNetwork == NetworkType.wifi;
-  bool get isOnCellular => currentNetwork == NetworkType.cellular;
-
-  static const String _settingsKey = 'network_settings';
-  static const String _dataUsageKey = 'data_usage_stats';
-
   @override
   void onInit() {
     super.onInit();

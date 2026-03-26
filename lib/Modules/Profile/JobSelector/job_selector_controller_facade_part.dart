@@ -1,5 +1,15 @@
 part of 'job_selector_controller.dart';
 
+const _jobSelectorStudentJob = 'öğrenci';
+
+JobSelectorController ensureJobSelectorController({
+  bool permanent = false,
+}) =>
+    _ensureJobSelectorController(permanent: permanent);
+
+JobSelectorController? maybeFindJobSelectorController() =>
+    _maybeFindJobSelectorController();
+
 JobSelectorController _ensureJobSelectorController({
   bool permanent = false,
 }) {
@@ -22,7 +32,7 @@ List<String> _buildJobSelectorInitialJobs(JobSelectorController controller) {
     (e) =>
         normalizeSearchText(e) ==
         normalizeSearchText(
-          JobSelectorController._studentJob,
+          _jobSelectorStudentJob,
         ),
   );
   if (idx < 0) {
@@ -43,10 +53,11 @@ List<String> _jobSelectorInitialWithSelected(JobSelectorController controller) {
 }
 
 void _handleJobSelectorInit(JobSelectorController controller) {
-  controller._initialJobs = controller._buildInitialJobs();
+  controller._initialJobs = _buildJobSelectorInitialJobs(controller);
   controller.filteredJobs.assignAll(controller._initialJobs);
   controller.job.value = controller._userService.meslekKategori.trim();
-  controller.filteredJobs.assignAll(controller._initialWithSelected());
+  controller.filteredJobs
+      .assignAll(_jobSelectorInitialWithSelected(controller));
 }
 
 void _selectJobValue(JobSelectorController controller, String value) {
@@ -72,4 +83,12 @@ Future<void> _saveSelectedJob(JobSelectorController controller) async {
   }
   await controller._userService.updateFields({"meslekKategori": selected});
   Get.back();
+}
+
+extension JobSelectorControllerFacadePart on JobSelectorController {
+  void selectJob(String value) => _selectJobValue(this, value);
+
+  void filterJobs(String query) => _filterJobOptions(this, query);
+
+  Future<void> setData() => _saveSelectedJob(this);
 }

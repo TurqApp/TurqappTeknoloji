@@ -43,10 +43,10 @@ class _SinavHazirlaState extends State<SinavHazirla> {
     super.initState();
     _controllerTag =
         'practice_exam_prepare_${widget.sinavModel?.docID ?? 'new'}_${identityHashCode(this)}';
-    final existing = SinavHazirlaController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindSinavHazirlaController(tag: _controllerTag);
     _ownsController = existing == null;
     controller = existing ??
-        SinavHazirlaController.ensure(
+        ensureSinavHazirlaController(
           tag: _controllerTag,
           sinavModel: sinavModel,
         );
@@ -56,7 +56,7 @@ class _SinavHazirlaState extends State<SinavHazirla> {
   void dispose() {
     if (_ownsController &&
         identical(
-          SinavHazirlaController.maybeFind(tag: _controllerTag),
+          maybeFindSinavHazirlaController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<SinavHazirlaController>(tag: _controllerTag, force: true);

@@ -38,14 +38,14 @@ class _BookletPreviewState extends State<BookletPreview> {
     _controllerTag =
         'booklet_preview_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        BookletPreviewController.maybeFind(tag: _controllerTag) == null;
-    controller = BookletPreviewController.ensure(model, tag: _controllerTag);
+        maybeFindBookletPreviewController(tag: _controllerTag) == null;
+    controller = ensureBookletPreviewController(model, tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = BookletPreviewController.maybeFind(
+      final registeredController = maybeFindBookletPreviewController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

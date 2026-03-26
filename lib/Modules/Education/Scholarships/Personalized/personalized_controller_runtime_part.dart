@@ -6,7 +6,7 @@ PersonalizedController _ensurePersonalizedController({
 }) {
   final existing = PersonalizedController.maybeFind(tag: tag);
   if (existing != null) {
-    PersonalizedController._activeTag = tag;
+    _activePersonalizedControllerTag = tag;
     return existing;
   }
   final created = Get.put(
@@ -15,12 +15,12 @@ PersonalizedController _ensurePersonalizedController({
     permanent: permanent,
   );
   created.controllerTag = tag;
-  PersonalizedController._activeTag = tag;
+  _activePersonalizedControllerTag = tag;
   return created;
 }
 
 PersonalizedController? _maybeFindPersonalizedController({String? tag}) {
-  final resolvedTag = (tag ?? PersonalizedController._activeTag)?.trim();
+  final resolvedTag = (tag ?? _activePersonalizedControllerTag)?.trim();
   if (resolvedTag != null && resolvedTag.isNotEmpty) {
     final isRegistered =
         Get.isRegistered<PersonalizedController>(tag: resolvedTag);
@@ -38,8 +38,8 @@ void _handlePersonalizedControllerInit(PersonalizedController controller) {
 }
 
 void _handlePersonalizedControllerClose(PersonalizedController controller) {
-  if (PersonalizedController._activeTag == controller.controllerTag) {
-    PersonalizedController._activeTag = null;
+  if (_activePersonalizedControllerTag == controller.controllerTag) {
+    _activePersonalizedControllerTag = null;
   }
   controller.scrollController.dispose();
 }
@@ -48,8 +48,8 @@ extension PersonalizedControllerRuntimePart on PersonalizedController {
   String get _cacheKey {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      return '${PersonalizedController._cacheKeyPrefix}:guest';
+      return '$_personalizedCacheKeyPrefix:guest';
     }
-    return '${PersonalizedController._cacheKeyPrefix}:$uid';
+    return '$_personalizedCacheKeyPrefix:$uid';
   }
 }

@@ -187,10 +187,8 @@ extension PersonalizedControllerDataPart on PersonalizedController {
       if (allItems.isEmpty) return;
       final sorted = List<IndividualScholarshipsModel>.from(allItems)
         ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-      final top = sorted
-          .take(PersonalizedController._cacheLimit)
-          .map((e) => e.toJson())
-          .toList();
+      final top =
+          sorted.take(_personalizedCacheLimit).map((e) => e.toJson()).toList();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cacheKey, json.encode(top));
     } catch (_) {}

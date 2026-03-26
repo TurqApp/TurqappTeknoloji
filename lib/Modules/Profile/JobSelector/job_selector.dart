@@ -19,12 +19,12 @@ class _JobSelectorState extends State<JobSelector> {
   @override
   void initState() {
     super.initState();
-    final existingController = JobSelectorController.maybeFind();
+    final existingController = maybeFindJobSelectorController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = JobSelectorController.ensure();
+      controller = ensureJobSelectorController();
       _ownsController = true;
     }
   }
@@ -32,7 +32,7 @@ class _JobSelectorState extends State<JobSelector> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(JobSelectorController.maybeFind(), controller)) {
+        identical(maybeFindJobSelectorController(), controller)) {
       Get.delete<JobSelectorController>(force: true);
     }
     super.dispose();
