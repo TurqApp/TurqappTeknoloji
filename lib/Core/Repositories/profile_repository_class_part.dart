@@ -1,15 +1,13 @@
 part of 'profile_repository.dart';
 
-class ProfileRepository extends GetxService {
+class ProfileRepository extends _ProfileRepositoryBase {
   ProfileRepository({
     FirebaseFirestore? firestore,
     ProfilePostsCacheService? cacheService,
-  }) : _state = _ProfileRepositoryState(
+  }) : super(
           firestore: firestore ?? FirebaseFirestore.instance,
           cacheService: cacheService ?? ProfilePostsCacheService(),
         );
-
-  final _ProfileRepositoryState _state;
 
   static ProfileRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfileRepository>();

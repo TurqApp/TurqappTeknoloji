@@ -28,16 +28,16 @@ class _PersonalizedViewState extends State<PersonalizedView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_personalized_${identityHashCode(this)}';
-    final existing = PersonalizedController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindPersonalizedController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? PersonalizedController.ensure(tag: _controllerTag);
+    controller = existing ?? ensurePersonalizedController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          PersonalizedController.maybeFind(tag: _controllerTag),
+          maybeFindPersonalizedController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PersonalizedController>(tag: _controllerTag, force: true);

@@ -17,6 +17,7 @@ import '../../Services/post_count_manager.dart';
 import '../../Services/post_interaction_service.dart';
 
 part 'post_repository_interaction_part.dart';
+part 'post_repository_base_part.dart';
 part 'post_repository_facade_part.dart';
 part 'post_repository_models_part.dart';
 part 'post_repository_query_part.dart';

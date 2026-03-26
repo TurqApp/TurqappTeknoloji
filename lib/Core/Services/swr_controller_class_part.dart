@@ -2,17 +2,9 @@ part of 'swr_controller.dart';
 
 abstract class SWRController<T> extends GetxController
     with _SWRControllerBasePart<T> {
-  Duration get revalidateTTL => const Duration(minutes: 5);
-
   Future<List<T>> loadFromCache();
 
   Future<List<T>> fetchFromNetwork({T? cursor});
-
-  void mergeItems(List<T> fresh) {
-    items.addAll(fresh);
-  }
-
-  T? get paginationCursor => items.isEmpty ? null : items.last;
 
   @override
   void onInit() {

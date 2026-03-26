@@ -1,10 +1,19 @@
 part of 'personalized_controller.dart';
 
+PersonalizedController ensurePersonalizedController({
+  required String tag,
+  bool permanent = false,
+}) =>
+    _ensurePersonalizedController(tag: tag, permanent: permanent);
+
+PersonalizedController? maybeFindPersonalizedController({String? tag}) =>
+    _maybeFindPersonalizedController(tag: tag);
+
 PersonalizedController _ensurePersonalizedController({
   required String tag,
   required bool permanent,
 }) {
-  final existing = PersonalizedController.maybeFind(tag: tag);
+  final existing = maybeFindPersonalizedController(tag: tag);
   if (existing != null) {
     _activePersonalizedControllerTag = tag;
     return existing;

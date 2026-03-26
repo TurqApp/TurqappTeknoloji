@@ -8,7 +8,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
       return;
     }
 
-    final postCreator = PostCreatorController.ensure();
+    final postCreator = ensurePostCreatorController();
     final isSeries = postCreator.postList.length > 1;
     final existingCount = selectedImages.length;
     final maxImages = UploadConstants.maxImagesPerPost;
@@ -303,7 +303,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
   }
 
   Future<void> _performPickVideo({required ImageSource source}) async {
-    final postCreator = PostCreatorController.ensure();
+    final postCreator = ensurePostCreatorController();
     final isSeries = postCreator.postList.length > 1;
 
     if (source != ImageSource.gallery &&
@@ -493,7 +493,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
     List<String> imageUrls, {
     required double aspectRatio,
   }) async {
-    final isThread = PostCreatorController.ensure().postList.length > 1;
+    final isThread = ensurePostCreatorController().postList.length > 1;
     final uniqueUrls =
         imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (uniqueUrls.isEmpty) return;

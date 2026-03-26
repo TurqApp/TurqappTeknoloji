@@ -53,7 +53,7 @@ class CreatorContent extends StatelessWidget {
 
   CreatorContent({super.key, required this.model, required this.isSelected});
   late final CreatorContentController controller;
-  final mainController = PostCreatorController.ensure();
+  final mainController = ensurePostCreatorController();
 
   double get _singleImagePreviewAspect {
     final reused = controller.reusedImageAspectRatio.value;

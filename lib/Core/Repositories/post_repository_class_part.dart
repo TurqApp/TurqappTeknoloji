@@ -1,23 +1,18 @@
 part of 'post_repository.dart';
 
-class PostRepository extends GetxService {
+class PostRepository extends _PostRepositoryBase {
   PostRepository({
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
     PostInteractionService? interactionService,
     PostCountManager? countManager,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance,
-        _interactionService =
-            interactionService ?? ensurePostInteractionService(),
-        _countManager = countManager ?? PostCountManager.instance,
-        _state = _PostRepositoryFieldsState();
-
-  final FirebaseFirestore _firestore;
-  final FirebaseAuth _auth;
-  final PostInteractionService _interactionService;
-  final PostCountManager _countManager;
-  final _PostRepositoryFieldsState _state;
+  }) : super(
+          firestore: firestore ?? FirebaseFirestore.instance,
+          auth: auth ?? FirebaseAuth.instance,
+          interactionService:
+              interactionService ?? ensurePostInteractionService(),
+          countManager: countManager ?? PostCountManager.instance,
+        );
 
   static PostRepository? maybeFind() => _maybeFindPostRepository();
 

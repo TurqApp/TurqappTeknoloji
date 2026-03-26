@@ -10,4 +10,5 @@ part 'practice_exam_snapshot_repository_codec_part.dart';
 part 'practice_exam_snapshot_repository_class_part.dart';
 part 'practice_exam_snapshot_repository_constants_part.dart';
 part 'practice_exam_snapshot_repository_facade_part.dart';
+part 'practice_exam_snapshot_repository_members_part.dart';
 part 'practice_exam_snapshot_repository_runtime_part.dart';

@@ -57,7 +57,7 @@ class PostCreator extends StatelessWidget {
     this.editMode = false,
     this.editPost,
   });
-  final controller = PostCreatorController.ensure();
+  final controller = ensurePostCreatorController();
   final progressController = ensureUploadProgressController();
 
   @override
