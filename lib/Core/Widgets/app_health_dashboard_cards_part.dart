@@ -16,7 +16,7 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
       profile,
       streamUsageBytes: usage?.streamUsageBytes ?? 0,
     );
-    final policy = PlaybackPolicyEngine.maybeFind()?.snapshot();
+    final policy = maybeFindPlaybackPolicyEngine()?.snapshot();
     final kpiService = PlaybackKpiService.maybeFind();
     final recentEvents = kpiService?.recentEvents ?? const <PlaybackKpiEvent>[];
     final feedCacheSummary = kpiService?.summarizeCacheFirst(

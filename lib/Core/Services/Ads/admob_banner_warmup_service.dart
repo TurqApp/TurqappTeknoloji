@@ -6,6 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 
 part 'admob_banner_warmup_service_runtime_part.dart';
+part 'admob_banner_warmup_service_facade_part.dart';
 
 /// Global AdMob banner warmup rules.
 ///
@@ -25,16 +26,4 @@ class AdmobBannerWarmupService extends GetxService {
   Future<void>? _initFuture;
   bool _sdkReady = false;
   final Map<String, DateTime> _lastWarmupAtBySurface = <String, DateTime>{};
-
-  static AdmobBannerWarmupService? maybeFind() {
-    final isRegistered = Get.isRegistered<AdmobBannerWarmupService>();
-    if (!isRegistered) return null;
-    return Get.find<AdmobBannerWarmupService>();
-  }
-
-  static AdmobBannerWarmupService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AdmobBannerWarmupService(), permanent: true);
-  }
 }

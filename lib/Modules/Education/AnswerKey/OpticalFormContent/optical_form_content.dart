@@ -34,8 +34,8 @@ class _OpticalFormContentState extends State<OpticalFormContent> {
     _controllerTag =
         'optical_form_content_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        OpticalFormContentController.maybeFind(tag: _controllerTag) == null;
-    controller = OpticalFormContentController.ensure(
+        maybeFindOpticalFormContentController(tag: _controllerTag) == null;
+    controller = ensureOpticalFormContentController(
       widget.model,
       tag: _controllerTag,
     );
@@ -43,7 +43,7 @@ class _OpticalFormContentState extends State<OpticalFormContent> {
 
   @override
   void dispose() {
-    final registeredController = OpticalFormContentController.maybeFind(
+    final registeredController = maybeFindOpticalFormContentController(
       tag: _controllerTag,
     );
     if (_ownsController && identical(registeredController, controller)) {

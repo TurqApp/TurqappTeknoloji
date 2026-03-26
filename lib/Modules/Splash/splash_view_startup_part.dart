@@ -42,18 +42,20 @@ extension _SplashViewStartupPart on _SplashViewState {
       }
 
       _registerDependencies();
-      unawaited(_requestTrackingPermission());
-      unawaited(_initAdMob(isFirstLaunch: isFirstLaunch));
-      unawaited(
-        TopTagsRepository.ensure().fetchTrendingTags(
-          resultLimit: 30,
-          preferCache: false,
-          forceRefresh: true,
-        ),
-      );
+      if (!IntegrationTestMode.skipBackgroundStartupWork) {
+        unawaited(_requestTrackingPermission());
+        unawaited(_initAdMob(isFirstLaunch: isFirstLaunch));
+        unawaited(
+          TopTagsRepository.ensure().fetchTrendingTags(
+            resultLimit: 30,
+            preferCache: false,
+            forceRefresh: true,
+          ),
+        );
 
-      if (userService.effectiveUserId.isNotEmpty) {
-        unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
+        if (userService.effectiveUserId.isNotEmpty) {
+          unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
+        }
       }
 
       final loggedIn = userService.effectiveUserId.isNotEmpty;
@@ -68,13 +70,10 @@ extension _SplashViewStartupPart on _SplashViewState {
         }
         if (IntegrationTestMode.deterministicStartup) {
           _minimumStartupPrepared = true;
-        } else if (Platform.isIOS) {
-          _minimumStartupPrepared = true;
         } else {
-          await Future.any([
-            _prepareSynchronizedStartupBeforeNav(isFirstLaunch: isFirstLaunch),
-            Future.delayed(const Duration(milliseconds: 700)),
-          ]);
+          await _prepareSynchronizedStartupBeforeNav(
+            isFirstLaunch: isFirstLaunch,
+          );
         }
       }
 
@@ -310,7 +309,7 @@ extension _SplashViewStartupPart on _SplashViewState {
   Future<void> _initAdMob({required bool isFirstLaunch}) async {
     try {
       await AdmobUnitConfigService.ensure().init();
-      await AdmobBannerWarmupService.ensure().warmFromSplash(
+      await ensureAdmobBannerWarmupService().warmFromSplash(
         isFirstLaunch: isFirstLaunch,
       );
     } catch (_) {}
@@ -321,7 +320,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     Get.lazyPut(() => OfflineModeService.instance);
 
     GlobalLoaderController.ensure();
-    AdmobBannerWarmupService.ensure();
+    ensureAdmobBannerWarmupService();
     AdmobUnitConfigService.ensure(permanent: true);
     StoryInteractionOptimizer.ensure();
     Get.lazyPut(() => UnreadMessagesController());
@@ -342,7 +341,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     IndexPoolStore.ensure(permanent: true);
     UserProfileCacheService.ensure();
     StorageBudgetManager.ensure();
-    PlaybackPolicyEngine.ensure();
+    ensurePlaybackPolicyEngine();
     PlaybackKpiService.ensure();
   }
 

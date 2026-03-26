@@ -22,7 +22,7 @@ class _ShortControllerState {
   );
   final userSummaryResolver = UserSummaryResolver.ensure();
   final shortRepository = ensureShortRepository();
-  final shortSnapshotRepository = ShortSnapshotRepository.ensure();
+  final shortSnapshotRepository = ensureShortSnapshotRepository();
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
 }

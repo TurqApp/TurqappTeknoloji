@@ -20,8 +20,8 @@ class _SpeedometerState extends State<Speedometer> {
     _controllerTag =
         'speedometer_${widget.targetValue}_${identityHashCode(this)}';
     _ownsController =
-        SpeedometerController.maybeFind(tag: _controllerTag) == null;
-    controller = SpeedometerController.ensure(
+        maybeFindSpeedometerController(tag: _controllerTag) == null;
+    controller = ensureSpeedometerController(
       widget.targetValue,
       tag: _controllerTag,
     );
@@ -30,7 +30,7 @@ class _SpeedometerState extends State<Speedometer> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = SpeedometerController.maybeFind(
+      final registeredController = maybeFindSpeedometerController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

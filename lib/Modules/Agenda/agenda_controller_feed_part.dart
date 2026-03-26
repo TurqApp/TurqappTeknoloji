@@ -273,7 +273,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (preparedPostCount <= 0) return;
     final targetAds = min(4, max(2, (preparedPostCount / 12).ceil()));
     unawaited(
-      AdmobBannerWarmupService.ensure().warmForSurfaceEntry(
+      ensureAdmobBannerWarmupService().warmForSurfaceEntry(
         surfaceKey: 'feed:replay_overlay',
         targetCount: targetAds,
       ),

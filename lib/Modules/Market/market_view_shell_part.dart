@@ -5,7 +5,7 @@ extension MarketViewShellPart on MarketView {
     if (!MarketView._bannerWarmupTriggered) {
       MarketView._bannerWarmupTriggered = true;
       unawaited(
-        AdmobBannerWarmupService.ensure().warmForPasajEntry(
+        ensureAdmobBannerWarmupService().warmForPasajEntry(
           surfaceKey: 'market',
         ),
       );

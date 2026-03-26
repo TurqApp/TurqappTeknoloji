@@ -15,6 +15,7 @@ part 'short_snapshot_repository_visibility_part.dart';
 part 'short_snapshot_repository_models_part.dart';
 part 'short_snapshot_repository_fields_part.dart';
 part 'short_snapshot_repository_runtime_part.dart';
+part 'short_snapshot_repository_facade_part.dart';
 
 class ShortSnapshotRepository extends GetxService {
   late final _ShortSnapshotRepositoryShellState _shellState;
@@ -25,16 +26,4 @@ class ShortSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'short_home_snapshot';
   static const int _defaultPersistLimit = 20;
   static const int _maxPageSkips = 4;
-
-  static ShortSnapshotRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<ShortSnapshotRepository>();
-    if (!isRegistered) return null;
-    return Get.find<ShortSnapshotRepository>();
-  }
-
-  static ShortSnapshotRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ShortSnapshotRepository(), permanent: true);
-  }
 }

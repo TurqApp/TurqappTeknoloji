@@ -41,7 +41,7 @@ class JobFinder extends StatelessWidget {
     if (!_bannerWarmupTriggered) {
       _bannerWarmupTriggered = true;
       unawaited(
-        AdmobBannerWarmupService.ensure().warmForPasajEntry(
+        ensureAdmobBannerWarmupService().warmForPasajEntry(
           surfaceKey: 'job_finder',
         ),
       );

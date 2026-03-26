@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 part 'rozet_content_controller_part.dart';
+part 'rozet_content_controller_facade_part.dart';
 part 'rozet_content_controller_runtime_part.dart';
 
 Color mapRozetToColor(String rozetRaw) {
@@ -54,15 +55,15 @@ class _RozetContentState extends State<RozetContent> {
   void initState() {
     super.initState();
     _controllerTag = 'rozet_${widget.userID}_${identityHashCode(this)}';
-    _ownsController = RozetController.maybeFind(tag: _controllerTag) == null;
-    controller = RozetController.ensure(widget.userID, tag: _controllerTag);
+    _ownsController = maybeFindRozetController(tag: _controllerTag) == null;
+    controller = ensureRozetController(widget.userID, tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          RozetController.maybeFind(tag: _controllerTag),
+          maybeFindRozetController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<RozetController>(tag: _controllerTag);

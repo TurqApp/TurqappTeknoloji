@@ -8,7 +8,7 @@ PlaybackPolicySnapshot _snapshotPlaybackPolicy({
   final network = NetworkAwarenessService.maybeFind();
   final budgetProfile = StorageBudgetManager.maybeFind()?.currentProfile;
 
-  return PlaybackPolicyEngine.resolve(
+  return resolvePlaybackPolicySnapshot(
     PlaybackPolicyContext(
       isConnected: network?.isConnected ?? false,
       isOnWiFi: network?.isOnWiFi ?? false,

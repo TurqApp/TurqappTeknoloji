@@ -362,7 +362,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       if (userId.isEmpty) return;
       final warmLimit =
           onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4);
-      final snapshot = await ShortSnapshotRepository.ensure().bootstrapHome(
+      final snapshot = await ensureShortSnapshotRepository().bootstrapHome(
         userId: userId,
         limit: warmLimit,
       );

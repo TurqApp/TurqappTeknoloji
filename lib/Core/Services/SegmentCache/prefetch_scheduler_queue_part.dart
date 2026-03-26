@@ -223,7 +223,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
-    final policy = PlaybackPolicyEngine.maybeFind();
+    final policy = maybeFindPlaybackPolicyEngine();
     if (policy == null) return false;
     return policy
         .snapshot(

@@ -64,9 +64,13 @@ class AgendaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.isClosed) return;
+      unawaited(controller.onPrimarySurfaceVisible());
+    });
     if (!_feedEntryWarmQueued) {
       _feedEntryWarmQueued = true;
-      unawaited(AdmobBannerWarmupService.ensure().warmForFeedEntry());
+      unawaited(ensureAdmobBannerWarmupService().warmForFeedEntry());
     }
     if (GetPlatform.isAndroid && !_androidVisibilityTuned) {
       // Feed'de fazla sık visibility callback'i scroll sırasında jank üretebiliyor.
