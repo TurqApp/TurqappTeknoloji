@@ -34,7 +34,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           height: 90,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
+            padding: const EdgeInsets.only(left: 20, right: 15),
             itemCount: mixedItems.length,
             itemBuilder: (context, index) {
               final item = mixedItems[index];
