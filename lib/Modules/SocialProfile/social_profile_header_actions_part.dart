@@ -15,72 +15,49 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 32,
-            child: TextButton(
-              onPressed: loading ? null : _onPostNotificationPressed,
-              style: TextButton.styleFrom(
-                backgroundColor:
-                    enabled ? Colors.black : Colors.grey.withAlpha(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                minimumSize: Size.zero,
-                padding: EdgeInsets.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: SizedBox(
-                height: 32,
-                child: Center(
-                  child: loading
-                      ? SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              enabled ? Colors.white : Colors.black,
+          AppHeaderActionButton(
+            onTap: loading ? null : _onPostNotificationPressed,
+            child: loading
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    ),
+                  )
+                : Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(
+                        enabled
+                            ? CupertinoIcons.bell_fill
+                            : CupertinoIcons.bell,
+                        color: Colors.black,
+                        size: AppIconSurface.kIconSize,
+                      ),
+                      Positioned(
+                        right: -3,
+                        top: -3,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            color: Colors.black,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              CupertinoIcons.add,
+                              size: 8,
+                              color: Colors.white,
                             ),
                           ),
-                        )
-                      : Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(
-                              enabled
-                                  ? CupertinoIcons.bell_fill
-                                  : CupertinoIcons.bell,
-                              color: enabled ? Colors.white : Colors.black,
-                              size: 17,
-                            ),
-                            Positioned(
-                              right: -4,
-                              top: -2,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: enabled
-                                      ? Colors.white
-                                      : const Color(0xFF34C759),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Icon(
-                                    CupertinoIcons.add,
-                                    size: 8,
-                                    color:
-                                        enabled ? Colors.black : Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
-                ),
-              ),
-            ),
+                      ),
+                    ],
+                  ),
           ),
           const SizedBox(width: 12),
         ],
@@ -133,38 +110,33 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
 
   Future<void> _showPostNotificationOptionsSheet() async {
     final enabled = controller.postNotificationsEnabled.value;
-    await showCupertinoModalPopup<void>(
+    final actionLabel = enabled ? 'Kapat' : 'Aç';
+    final actionBody = enabled
+        ? '@${controller.nickname.value} kullanıcısının tüm gönderi bildirimlerini kapatmak istediğinizden emin misiniz?'
+        : '@${controller.nickname.value} kullanıcısının tüm gönderi bildirimlerini açmak istediğinizden emin misiniz?';
+    await showCupertinoDialog<void>(
       context: context,
       builder: (ctx) {
-        return CupertinoActionSheet(
+        return CupertinoAlertDialog(
           title: const Text('Tüm gönderiler'),
-          message: Text('@${controller.nickname.value}'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(actionBody),
+          ),
           actions: [
-            CupertinoActionSheetAction(
+            CupertinoDialogAction(
               onPressed: () async {
                 Navigator.of(ctx).pop();
-                if (!enabled) {
-                  await controller.togglePostNotifications();
-                }
-              },
-              isDefaultAction: !enabled,
-              child: const Text('Aç'),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () async {
-                Navigator.of(ctx).pop();
-                if (enabled) {
-                  await controller.togglePostNotifications();
-                }
+                await controller.togglePostNotifications();
               },
               isDestructiveAction: enabled,
-              child: const Text('Kapat'),
+              child: Text(actionLabel),
+            ),
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Vazgeç'),
             ),
           ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('İptal'),
-          ),
         );
       },
     );
