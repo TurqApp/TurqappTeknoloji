@@ -137,14 +137,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       _surfaceInstanceTag.startsWith('liked_post_') ||
       _surfaceInstanceTag.startsWith('social_');
 
-  bool get _isPrimaryFeedSurfaceInstance =>
-      !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
-
   bool get _useLegacyIosFeedBehavior =>
-      defaultTargetPlatform == TargetPlatform.iOS &&
-      !isStandalonePostInstance &&
-      !_isPrimaryFeedSurfaceInstance &&
-      !_isProfileFamilySurfaceInstance;
+      defaultTargetPlatform == TargetPlatform.iOS && !isStandalonePostInstance;
 
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
