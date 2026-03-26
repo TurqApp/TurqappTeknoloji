@@ -1,5 +1,18 @@
 part of 'hls_proxy_server.dart';
 
+/// Lokal HTTP proxy - HLS isteklerini cache uzerinden serv eder.
+///
+/// Player `http://127.0.0.1:PORT/Posts/{docID}/hls/master.m3u8` URL'sine istek atar.
+/// Proxy cache'te varsa disk'ten serv eder, yoksa CDN'den ceker + cache'ler + serv eder.
+/// M3U8 playlist'lerde relative path kullanildigi icin rewriting gerekmez.
+class HLSProxyServer extends GetxController with _HlsProxyServerFieldsPart {
+  @override
+  void onClose() {
+    _handleOnClose();
+    super.onClose();
+  }
+}
+
 extension HLSProxyServerRuntimeX on HLSProxyServer {
   Future<void> start() async {
     if (_started) return;

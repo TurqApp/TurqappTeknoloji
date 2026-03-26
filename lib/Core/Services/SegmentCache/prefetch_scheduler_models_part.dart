@@ -4,7 +4,6 @@ class _PrefetchJob {
   final String docID;
   final int maxSegments, priority;
   final double sortScore;
-
   const _PrefetchJob({
     required this.docID,
     required this.maxSegments,
