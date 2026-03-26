@@ -59,7 +59,7 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
                     ],
                   ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppIconSurface.kGap),
         ],
       );
     });
