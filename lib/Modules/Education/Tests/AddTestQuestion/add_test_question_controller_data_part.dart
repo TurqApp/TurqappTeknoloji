@@ -1,4 +1,4 @@
-part of 'add_test_question_controller.dart';
+part of 'add_test_question_controller_library.dart';
 
 extension AddTestQuestionControllerDataPart on AddTestQuestionController {
   Future<void> getSorular() async {

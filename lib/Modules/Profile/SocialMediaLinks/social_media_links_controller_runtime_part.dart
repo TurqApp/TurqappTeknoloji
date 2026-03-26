@@ -1,4 +1,4 @@
-part of 'social_media_links_controller.dart';
+part of 'social_media_links_controller_library.dart';
 
 extension _SocialMediaControllerRuntimeX on SocialMediaController {
   void handleOnInit() {

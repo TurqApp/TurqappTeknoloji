@@ -1,4 +1,4 @@
-part of 'scholarship_detail_controller.dart';
+part of 'scholarship_detail_controller_library.dart';
 
 extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
   Future<void> _loadFullScholarship(String scholarshipId) async {
@@ -96,8 +96,8 @@ extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
                         userString(data, key: 'il', scope: 'profile')
                             .isNotEmpty));
 
-        bool isFamilyInfoComplete =
-            fatherLiving != ScholarshipDetailController._selectValue &&
+        bool isFamilyInfoComplete = fatherLiving !=
+                ScholarshipDetailController._selectValue &&
             motherLiving != ScholarshipDetailController._selectValue &&
             userInt(data, key: 'totalLiving', scope: 'family') > 0 &&
             userString(data, key: 'evMulkiyeti', scope: 'family') !=

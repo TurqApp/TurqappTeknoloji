@@ -1,4 +1,4 @@
-part of 'social_media_links_controller.dart';
+part of 'social_media_links_controller_library.dart';
 
 class SocialMediaController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

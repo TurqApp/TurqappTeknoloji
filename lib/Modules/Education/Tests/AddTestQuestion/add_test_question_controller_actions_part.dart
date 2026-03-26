@@ -1,4 +1,4 @@
-part of 'add_test_question_controller.dart';
+part of 'add_test_question_controller_library.dart';
 
 extension AddTestQuestionControllerActionsPart on AddTestQuestionController {
   Future<void> yukle(File imageFile, int index) async {

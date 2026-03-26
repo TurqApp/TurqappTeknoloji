@@ -1,4 +1,4 @@
-part of 'scholarship_detail_controller.dart';
+part of 'scholarship_detail_controller_library.dart';
 
 ScholarshipDetailController ensureScholarshipDetailController({
   bool permanent = false,
