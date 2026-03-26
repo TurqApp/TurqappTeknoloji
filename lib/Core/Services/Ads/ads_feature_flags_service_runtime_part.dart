@@ -63,6 +63,7 @@ extension AdsFeatureFlagsServiceRuntimePart on AdsFeatureFlagsService {
 
   bool get isInfrastructureEnabled => flags.value.adsInfrastructureEnabled;
   bool get isAdminPanelEnabled => flags.value.adsAdminPanelEnabled;
+  bool get isAdminTestModeEnabled => flags.value.adsAdminTestModeEnabled;
   bool get isDeliveryEnabled => flags.value.adsDeliveryEnabled;
   bool get isPublicVisible => flags.value.adsPublicVisibilityEnabled;
   bool get isPreviewEnabled => flags.value.adsPreviewModeEnabled;

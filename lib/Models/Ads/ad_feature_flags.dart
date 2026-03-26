@@ -3,6 +3,7 @@ import 'package:turqappv2/Models/Ads/ad_model_utils.dart';
 class AdFeatureFlags {
   final bool adsInfrastructureEnabled;
   final bool adsAdminPanelEnabled;
+  final bool adsAdminTestModeEnabled;
   final bool adsDeliveryEnabled;
   final bool adsPublicVisibilityEnabled;
   final bool adsPreviewModeEnabled;
@@ -10,6 +11,7 @@ class AdFeatureFlags {
   const AdFeatureFlags({
     required this.adsInfrastructureEnabled,
     required this.adsAdminPanelEnabled,
+    required this.adsAdminTestModeEnabled,
     required this.adsDeliveryEnabled,
     required this.adsPublicVisibilityEnabled,
     required this.adsPreviewModeEnabled,
@@ -18,6 +20,7 @@ class AdFeatureFlags {
   static const defaults = AdFeatureFlags(
     adsInfrastructureEnabled: true,
     adsAdminPanelEnabled: true,
+    adsAdminTestModeEnabled: true,
     adsDeliveryEnabled: false,
     adsPublicVisibilityEnabled: false,
     adsPreviewModeEnabled: true,
@@ -30,6 +33,8 @@ class AdFeatureFlags {
           fallback: defaults.adsInfrastructureEnabled),
       adsAdminPanelEnabled: parseBool(data['adsAdminPanelEnabled'],
           fallback: defaults.adsAdminPanelEnabled),
+      adsAdminTestModeEnabled: parseBool(data['adsAdminTestModeEnabled'],
+          fallback: defaults.adsAdminTestModeEnabled),
       adsDeliveryEnabled: parseBool(data['adsDeliveryEnabled'],
           fallback: defaults.adsDeliveryEnabled),
       adsPublicVisibilityEnabled: parseBool(
@@ -45,6 +50,7 @@ class AdFeatureFlags {
     return {
       'adsInfrastructureEnabled': adsInfrastructureEnabled,
       'adsAdminPanelEnabled': adsAdminPanelEnabled,
+      'adsAdminTestModeEnabled': adsAdminTestModeEnabled,
       'adsDeliveryEnabled': adsDeliveryEnabled,
       'adsPublicVisibilityEnabled': adsPublicVisibilityEnabled,
       'adsPreviewModeEnabled': adsPreviewModeEnabled,
@@ -55,6 +61,7 @@ class AdFeatureFlags {
   AdFeatureFlags copyWith({
     bool? adsInfrastructureEnabled,
     bool? adsAdminPanelEnabled,
+    bool? adsAdminTestModeEnabled,
     bool? adsDeliveryEnabled,
     bool? adsPublicVisibilityEnabled,
     bool? adsPreviewModeEnabled,
@@ -63,6 +70,8 @@ class AdFeatureFlags {
       adsInfrastructureEnabled:
           adsInfrastructureEnabled ?? this.adsInfrastructureEnabled,
       adsAdminPanelEnabled: adsAdminPanelEnabled ?? this.adsAdminPanelEnabled,
+      adsAdminTestModeEnabled:
+          adsAdminTestModeEnabled ?? this.adsAdminTestModeEnabled,
       adsDeliveryEnabled: adsDeliveryEnabled ?? this.adsDeliveryEnabled,
       adsPublicVisibilityEnabled:
           adsPublicVisibilityEnabled ?? this.adsPublicVisibilityEnabled,

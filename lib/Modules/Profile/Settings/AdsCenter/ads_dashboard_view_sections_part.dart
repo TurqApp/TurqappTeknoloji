@@ -141,6 +141,14 @@ extension AdsDashboardViewSectionsPart on AdsDashboardView {
           ),
         ),
         _flagTile(
+          title: 'ads_center.flag_admin_test_mode'.tr,
+          value: flags.adsAdminTestModeEnabled,
+          onChanged: (value) => _saveFlags(
+            controller,
+            flags.copyWith(adsAdminTestModeEnabled: value),
+          ),
+        ),
+        _flagTile(
           title: 'ads_center.flag_delivery'.tr,
           value: flags.adsDeliveryEnabled,
           onChanged: (value) => _saveFlags(

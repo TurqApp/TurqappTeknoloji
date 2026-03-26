@@ -1,4 +1,5 @@
 import 'package:turqappv2/Core/Services/Ads/ads_feature_flags_service.dart';
+import 'package:turqappv2/Core/Services/Ads/ads_admin_guard.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 
 class AdSlotService {
@@ -21,9 +22,10 @@ class AdSlotService {
 
   bool _isEnabledForPlacement(AdPlacementType _) {
     final flags = ensureAdsFeatureFlagsService().flags.value;
-    // Public visibility kapalıysa kullanıcıya inject etme.
+    final allowAdminTest =
+        flags.adsAdminTestModeEnabled && AdsAdminGuard.canAccessAdsCenterSync();
     return flags.adsInfrastructureEnabled &&
         flags.adsDeliveryEnabled &&
-        flags.adsPublicVisibilityEnabled;
+        (flags.adsPublicVisibilityEnabled || allowAdminTest);
   }
 }

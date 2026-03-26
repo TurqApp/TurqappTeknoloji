@@ -65,6 +65,7 @@ async function getFlags() {
     return {
         adsInfrastructureEnabled: data.adsInfrastructureEnabled !== false,
         adsAdminPanelEnabled: data.adsAdminPanelEnabled !== false,
+        adsAdminTestModeEnabled: data.adsAdminTestModeEnabled !== false,
         adsDeliveryEnabled: data.adsDeliveryEnabled === true,
         adsPublicVisibilityEnabled: data.adsPublicVisibilityEnabled === true,
         adsPreviewModeEnabled: data.adsPreviewModeEnabled !== false,
