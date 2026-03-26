@@ -21,7 +21,7 @@ extension _NotifyReaderControllerRuntimeX on NotifyReaderController {
         normalizeNotificationType(model.type, model.postType);
     final targetId = model.postID.trim();
 
-    if (NotifyReaderController._profileTypes.contains(normalizedType)) {
+    if (_notifyReaderProfileTypes.contains(normalizedType)) {
       if (model.userID.trim().isEmpty) {
         AppSnackbar('common.info'.tr, 'notify_reader.profile_open_failed'.tr);
         return;
@@ -57,7 +57,7 @@ extension _NotifyReaderControllerRuntimeX on NotifyReaderController {
       return;
     }
 
-    if (NotifyReaderController._tutoringTypes.contains(normalizedType)) {
+    if (_notifyReaderTutoringTypes.contains(normalizedType)) {
       if (targetId.isEmpty) {
         AppSnackbar('common.info'.tr, 'notify_reader.tutoring_missing'.tr);
         return;
@@ -75,7 +75,7 @@ extension _NotifyReaderControllerRuntimeX on NotifyReaderController {
       return;
     }
 
-    if (NotifyReaderController._chatTypes.contains(normalizedType)) {
+    if (_notifyReaderChatTypes.contains(normalizedType)) {
       if (targetId.isEmpty) {
         AppSnackbar('common.info'.tr, 'notify_reader.chat_missing'.tr);
         return;
@@ -93,7 +93,7 @@ extension _NotifyReaderControllerRuntimeX on NotifyReaderController {
       return;
     }
 
-    if (NotifyReaderController._marketTypes.contains(normalizedType)) {
+    if (_notifyReaderMarketTypes.contains(normalizedType)) {
       if (targetId.isEmpty) {
         AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
         return;
@@ -111,7 +111,7 @@ extension _NotifyReaderControllerRuntimeX on NotifyReaderController {
       return;
     }
 
-    if (normalizedType == NotifyReaderController._commentType) {
+    if (normalizedType == _notifyReaderCommentType) {
       if (targetId.isEmpty) {
         AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
         return;

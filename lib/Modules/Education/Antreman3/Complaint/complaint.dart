@@ -59,12 +59,12 @@ class _ComplaintBottomSheetState extends State<ComplaintBottomSheet> {
     super.initState();
     _controllerTag =
         'complaint_${widget.question.docID}_${identityHashCode(this)}';
-    sikayetController = ComplaintController.ensure(tag: _controllerTag);
+    sikayetController = ensureComplaintController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    final existing = ComplaintController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindComplaintController(tag: _controllerTag);
     if (identical(existing, sikayetController)) {
       Get.delete<ComplaintController>(tag: _controllerTag);
     }

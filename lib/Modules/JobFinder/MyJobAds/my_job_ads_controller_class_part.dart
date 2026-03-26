@@ -1,7 +1,7 @@
 part of 'my_job_ads_controller.dart';
 
 class MyJobAdsController extends GetxController {
-  final JobRepository _jobRepository = JobRepository.ensure();
+  final JobRepository _jobRepository = ensureJobRepository();
   final pageController = PageController();
   final isLoadingActive = true.obs;
   final isLoadingDeactive = true.obs;

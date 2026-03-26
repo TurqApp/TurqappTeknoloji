@@ -10,12 +10,6 @@ class JobRepository extends GetxService {
   static const Duration _ttl = Duration(hours: 6);
   static const String _prefsPrefix = 'job_repository_v1';
 
-  static JobRepository? maybeFind() =>
-      Get.isRegistered<JobRepository>() ? Get.find<JobRepository>() : null;
-
-  static JobRepository ensure() =>
-      maybeFind() ?? Get.put(JobRepository(), permanent: true);
-
   @override
   void onInit() {
     super.onInit();

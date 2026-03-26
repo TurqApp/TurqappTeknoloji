@@ -6,7 +6,7 @@ class _ShortSnapshotRepositoryShellState {
         invariantGuard = ensureRuntimeInvariantGuard(),
         userSummaryResolver = UserSummaryResolver.ensure(),
         visibilityPolicy = VisibilityPolicyService.ensure(),
-        warmLaunchPool = WarmLaunchPool.ensure(),
+        warmLaunchPool = ensureWarmLaunchPool(),
         memoryStore = MemoryScopedSnapshotStore<List<PostsModel>>(),
         snapshotStore = SharedPrefsScopedSnapshotStore<List<PostsModel>>(
           prefsPrefix: 'short_snapshot_v1',

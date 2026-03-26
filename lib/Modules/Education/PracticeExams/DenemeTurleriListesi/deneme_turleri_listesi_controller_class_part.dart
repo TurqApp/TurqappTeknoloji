@@ -8,7 +8,7 @@ class DenemeTurleriListesiController extends GetxController {
 
   final String sinavTuru;
   final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
 
   DenemeTurleriListesiController({required this.sinavTuru});
 

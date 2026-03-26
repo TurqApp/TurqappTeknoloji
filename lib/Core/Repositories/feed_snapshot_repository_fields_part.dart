@@ -12,7 +12,7 @@ class _FeedSnapshotRepositoryState {
       UserSummaryResolver.ensure();
   late final VisibilityPolicyService visibilityPolicy =
       VisibilityPolicyService.ensure();
-  late final WarmLaunchPool warmLaunchPool = WarmLaunchPool.ensure();
+  late final WarmLaunchPool warmLaunchPool = ensureWarmLaunchPool();
   late final MemoryScopedSnapshotStore<List<PostsModel>> memoryStore =
       MemoryScopedSnapshotStore<List<PostsModel>>();
   late final SharedPrefsScopedSnapshotStore<List<PostsModel>> snapshotStore =

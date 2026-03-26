@@ -1,10 +1,7 @@
 part of 'slider_repository.dart';
 
-class SliderRepository extends GetxService {
-  SliderRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
-
-  final FirebaseFirestore _firestore;
+class SliderRepository extends _SliderRepositoryBase {
+  SliderRepository({super.firestore});
 
   Future<SliderRemoteData> fetchSlider(String sliderId) async {
     final sliderRef = _firestore.collection('sliders').doc(sliderId);

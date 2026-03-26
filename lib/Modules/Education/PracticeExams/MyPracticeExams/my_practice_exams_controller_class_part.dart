@@ -2,7 +2,7 @@ part of 'my_practice_exams_controller.dart';
 
 class MyPracticeExamsController extends GetxController {
   final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
   final RxList<SinavModel> exams = <SinavModel>[].obs;

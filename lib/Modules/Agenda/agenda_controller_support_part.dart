@@ -11,7 +11,7 @@ extension AgendaControllerSupportPart on AgendaController {
   PostRepository get _postRepository => PostRepository.ensure();
 
   FeedSnapshotRepository get _feedSnapshotRepository =>
-      FeedSnapshotRepository.ensure();
+      ensureFeedSnapshotRepository();
 
   FeedRenderCoordinator get _feedRenderCoordinator =>
       FeedRenderCoordinator.ensure();

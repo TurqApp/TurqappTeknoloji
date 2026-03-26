@@ -8,7 +8,7 @@ const int _practiceExamHomePageSize =
 class _DenemeSinavlariControllerState {
   final userSummaryResolver = UserSummaryResolver.ensure();
   final practiceExamSnapshotRepository = ensurePracticeExamSnapshotRepository();
-  final practiceExamRepository = PracticeExamRepository.ensure();
+  final practiceExamRepository = ensurePracticeExamRepository();
   final list = <SinavModel>[].obs;
   final okul = false.obs;
   final showButons = false.obs;

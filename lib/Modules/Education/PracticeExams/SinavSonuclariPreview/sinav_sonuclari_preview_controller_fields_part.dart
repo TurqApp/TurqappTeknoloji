@@ -13,7 +13,7 @@ class _SinavSonuclariPreviewControllerState {
   final RxBool isInitialized = false.obs;
   final SinavModel model;
   final PracticeExamRepository practiceExamRepository =
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
 }
 
 extension SinavSonuclariPreviewControllerFieldsPart

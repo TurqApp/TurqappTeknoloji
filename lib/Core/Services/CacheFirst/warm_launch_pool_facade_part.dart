@@ -1,5 +1,17 @@
 part of 'warm_launch_pool.dart';
 
+WarmLaunchPool? maybeFindWarmLaunchPool() {
+  final isRegistered = Get.isRegistered<WarmLaunchPool>();
+  if (!isRegistered) return null;
+  return Get.find<WarmLaunchPool>();
+}
+
+WarmLaunchPool ensureWarmLaunchPool() {
+  final existing = maybeFindWarmLaunchPool();
+  if (existing != null) return existing;
+  return Get.put(WarmLaunchPool(), permanent: true);
+}
+
 extension WarmLaunchPoolFacadePart on WarmLaunchPool {
   Future<void> init() => _delegate.init();
 

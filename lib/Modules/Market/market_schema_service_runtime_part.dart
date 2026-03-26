@@ -5,7 +5,7 @@ extension _MarketSchemaServiceRuntimePart on MarketSchemaService {
     _prefs ??= await SharedPreferences.getInstance();
 
     if (!forceRefresh) {
-      final cachedRaw = _prefs?.getString(MarketSchemaService._cacheKey) ?? '';
+      final cachedRaw = _prefs?.getString(_marketSchemaCacheKey) ?? '';
       if (cachedRaw.isNotEmpty) {
         try {
           final parsed = Map<String, dynamic>.from(
@@ -20,11 +20,11 @@ extension _MarketSchemaServiceRuntimePart on MarketSchemaService {
     final fallback = await _loadFallbackSchema();
     schema.assignAll(fallback);
     await _prefs?.setString(
-      MarketSchemaService._cacheKey,
+      _marketSchemaCacheKey,
       json.encode(fallback),
     );
     await _prefs?.setInt(
-      MarketSchemaService._cacheVersionKey,
+      _marketSchemaCacheVersionKey,
       (fallback['version'] as num?)?.toInt() ?? 1,
     );
     return fallback;
@@ -32,7 +32,7 @@ extension _MarketSchemaServiceRuntimePart on MarketSchemaService {
 
   Future<Map<String, dynamic>> _loadFallbackSchema() async {
     try {
-      final raw = await rootBundle.loadString(MarketSchemaService._assetPath);
+      final raw = await rootBundle.loadString(_marketSchemaAssetPath);
       return Map<String, dynamic>.from(json.decode(raw) as Map);
     } catch (_) {
       return Map<String, dynamic>.from(

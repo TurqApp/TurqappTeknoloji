@@ -9,16 +9,4 @@ class WarmLaunchPool extends _WarmLaunchPoolBase {
   WarmLaunchPool({
     IndexPoolStore? delegate,
   }) : super(delegate ?? IndexPoolStore());
-
-  static WarmLaunchPool? maybeFind() {
-    final isRegistered = Get.isRegistered<WarmLaunchPool>();
-    if (!isRegistered) return null;
-    return Get.find<WarmLaunchPool>();
-  }
-
-  static WarmLaunchPool ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(WarmLaunchPool(), permanent: true);
-  }
 }

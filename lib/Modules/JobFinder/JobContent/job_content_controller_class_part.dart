@@ -1,7 +1,7 @@
 part of 'job_content_controller.dart';
 
 class JobContentController extends GetxController {
-  final JobRepository _jobRepository = JobRepository.ensure();
+  final JobRepository _jobRepository = ensureJobRepository();
   static final Map<String, Set<String>> _savedIdsByUser =
       <String, Set<String>>{};
   static final Map<String, Future<Set<String>>> _savedIdsLoaders =

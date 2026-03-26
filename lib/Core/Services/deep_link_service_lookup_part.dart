@@ -26,7 +26,7 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
       return cached;
     }
     final lookup = _JobLookupCache(
-      model: await JobRepository.ensure().fetchById(
+      model: await ensureJobRepository().fetchById(
         jobId,
         preferCache: true,
       ),

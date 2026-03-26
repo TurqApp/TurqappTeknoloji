@@ -1,7 +1,7 @@
 part of 'saved_job_controller.dart';
 
 class SavedJobsController extends GetxController {
-  final JobRepository _jobRepository = JobRepository.ensure();
+  final JobRepository _jobRepository = ensureJobRepository();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   RxList<JobModel> list = <JobModel>[].obs;
   RxBool isLoading = false.obs;

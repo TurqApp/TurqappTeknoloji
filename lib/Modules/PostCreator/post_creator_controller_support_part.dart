@@ -50,7 +50,7 @@ extension PostCreatorControllerSupportPart on PostCreatorController {
     final userId = _currentUid.trim();
     if (userId.isEmpty) return;
 
-    final repository = FeedSnapshotRepository.ensure();
+    final repository = ensureFeedSnapshotRepository();
     final snapshot = await repository.bootstrapHome(
       userId: userId,
       limit: 40,

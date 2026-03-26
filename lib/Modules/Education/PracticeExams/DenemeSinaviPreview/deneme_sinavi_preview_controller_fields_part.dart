@@ -2,7 +2,7 @@ part of 'deneme_sinavi_preview_controller.dart';
 
 class _DenemeSinaviPreviewControllerState {
   final userSummaryResolver = UserSummaryResolver.ensure();
-  final practiceExamRepository = PracticeExamRepository.ensure();
+  final practiceExamRepository = ensurePracticeExamRepository();
   final displayName = ''.obs;
   final nickname = ''.obs;
   final avatarUrl = ''.obs;

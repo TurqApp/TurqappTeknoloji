@@ -7,7 +7,7 @@ class _DenemeSinaviYapControllerConfig {
     required this.showGecersizAlert,
     required this.uyariAtla,
   })  : userSummaryResolver = UserSummaryResolver.ensure(),
-        practiceExamRepository = PracticeExamRepository.ensure();
+        practiceExamRepository = ensurePracticeExamRepository();
 
   final SinavModel model;
   final Function sinaviBitir;

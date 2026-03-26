@@ -13,8 +13,8 @@ extension AgendaShuffleCacheServiceFieldsPart on AgendaShuffleCacheService {
   DateTime? get _cachedAt => _state.cachedAt;
   set _cachedAt(DateTime? value) => _state.cachedAt = value;
 
-  int get initialFetchSize => AgendaShuffleCacheService._initialFetchSize;
-  int get backgroundFetchSize => AgendaShuffleCacheService._backgroundFetchSize;
+  int get initialFetchSize => _agendaShuffleInitialFetchSize;
+  int get backgroundFetchSize => _agendaShuffleBackgroundFetchSize;
   int get currentIndex => _index;
   bool get hasBufferedItems => _posts.isNotEmpty && _index < _posts.length;
   bool get hasMore => _posts.length > _index;
@@ -22,6 +22,6 @@ extension AgendaShuffleCacheServiceFieldsPart on AgendaShuffleCacheService {
   bool get isFresh {
     if (_cachedAt == null) return false;
     final diff = DateTime.now().difference(_cachedAt!).inMinutes;
-    return diff < AgendaShuffleCacheService._cacheValidMinutes;
+    return diff < _agendaShuffleCacheValidMinutes;
   }
 }

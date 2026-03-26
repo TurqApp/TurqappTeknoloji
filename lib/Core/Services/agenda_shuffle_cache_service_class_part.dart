@@ -2,10 +2,6 @@ part of 'agenda_shuffle_cache_service.dart';
 
 class AgendaShuffleCacheService extends GetxService
     with _AgendaShuffleCacheServiceBasePart {
-  static const int _cacheValidMinutes = 5;
-  static const int _initialFetchSize = 60;
-  static const int _backgroundFetchSize = 300;
-
   void clear() => _clearAgendaShuffleCache(this);
 
   void removePosts(Iterable<String> docIds) =>

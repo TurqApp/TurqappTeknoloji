@@ -336,7 +336,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       final userId = CurrentUserService.instance.effectiveUserId;
       if (userId.isEmpty) return;
       final warmLimit = _feedWarmPoolLimit();
-      final snapshot = await FeedSnapshotRepository.ensure().bootstrapHome(
+      final snapshot = await ensureFeedSnapshotRepository().bootstrapHome(
         userId: userId,
         limit: warmLimit,
       );

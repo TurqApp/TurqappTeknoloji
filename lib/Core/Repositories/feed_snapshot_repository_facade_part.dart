@@ -1,5 +1,17 @@
 part of 'feed_snapshot_repository.dart';
 
+FeedSnapshotRepository? maybeFindFeedSnapshotRepository() {
+  final isRegistered = Get.isRegistered<FeedSnapshotRepository>();
+  if (!isRegistered) return null;
+  return Get.find<FeedSnapshotRepository>();
+}
+
+FeedSnapshotRepository ensureFeedSnapshotRepository() {
+  final existing = maybeFindFeedSnapshotRepository();
+  if (existing != null) return existing;
+  return Get.put(FeedSnapshotRepository(), permanent: true);
+}
+
 extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
   Stream<CachedResource<List<PostsModel>>> openHome({
     required String userId,

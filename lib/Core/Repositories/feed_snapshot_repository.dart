@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 part 'feed_snapshot_repository_fetch_part.dart';
+part 'feed_snapshot_repository_base_part.dart';
 part 'feed_snapshot_repository_class_part.dart';
 part 'feed_snapshot_repository_codec_part.dart';
 part 'feed_snapshot_repository_facade_part.dart';

@@ -2,7 +2,7 @@ part of 'saved_practice_exams_controller.dart';
 
 class _SavedPracticeExamsControllerState {
   final PracticeExamRepository practiceExamRepository =
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
   final UserSubcollectionRepository subcollectionRepository =
       ensureUserSubcollectionRepository();
   final RxList<String> savedExamIds = <String>[].obs;

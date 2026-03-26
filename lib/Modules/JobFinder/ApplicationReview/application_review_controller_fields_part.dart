@@ -5,7 +5,7 @@ class _ApplicationReviewControllerState {
 
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final CvRepository cvRepository = ensureCvRepository();
-  final JobRepository jobRepository = JobRepository.ensure();
+  final JobRepository jobRepository = ensureJobRepository();
   final String jobDocID;
   final RxList<JobApplicationModel> applicants = <JobApplicationModel>[].obs;
   final RxBool isLoading = false.obs;

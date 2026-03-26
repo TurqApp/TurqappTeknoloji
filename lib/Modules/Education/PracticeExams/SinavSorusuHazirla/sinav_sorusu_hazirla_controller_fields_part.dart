@@ -10,7 +10,7 @@ class _SinavSorusuHazirlaControllerState {
   });
 
   final PracticeExamRepository practiceExamRepository =
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
   final RxList<SoruModel> list = <SoruModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool isInitialized = false.obs;

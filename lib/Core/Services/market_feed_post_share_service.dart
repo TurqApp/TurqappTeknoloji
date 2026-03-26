@@ -179,7 +179,7 @@ class MarketFeedPostShareService {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty || post.docID.trim().isEmpty) return;
 
-    final repository = FeedSnapshotRepository.ensure();
+    final repository = ensureFeedSnapshotRepository();
     final snapshot = await repository.bootstrapHome(
       userId: normalizedUserId,
       limit: 40,

@@ -14,7 +14,7 @@ class MarketSchemaServiceLabelsPart {
         .map((item) {
       final mapped = Map<String, dynamic>.from(item);
       final key = (mapped['key'] ?? '').toString();
-      final localized = service._roundMenuLabelFor(key);
+      final localized = roundMenuLabelFor(key);
       if (localized != null) {
         mapped['label'] = localized;
       }
@@ -46,7 +46,7 @@ class MarketSchemaServiceLabelsPart {
     return (service.schema['categories'] as List<dynamic>? ?? const [])
         .whereType<Map>()
         .map(
-          (item) => service._localizedCategoryNode(
+          (item) => localizedCategoryNode(
             Map<String, dynamic>.from(item),
           ),
         )
@@ -56,7 +56,7 @@ class MarketSchemaServiceLabelsPart {
   Map<String, dynamic> localizedCategoryNode(Map<String, dynamic> node) {
     final mapped = Map<String, dynamic>.from(node);
     final key = (mapped['key'] ?? '').toString();
-    final localized = service._categoryLabelFor(key);
+    final localized = categoryLabelFor(key);
     if (localized != null) {
       mapped['localizedLabel'] = localized;
     }
@@ -65,7 +65,7 @@ class MarketSchemaServiceLabelsPart {
       mapped['children'] = children
           .whereType<Map>()
           .map(
-            (child) => service._localizedCategoryNode(
+            (child) => localizedCategoryNode(
               Map<String, dynamic>.from(child),
             ),
           )

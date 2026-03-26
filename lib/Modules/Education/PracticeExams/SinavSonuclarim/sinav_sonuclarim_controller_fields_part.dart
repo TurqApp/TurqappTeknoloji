@@ -4,7 +4,7 @@ const Duration _sinavSonuclarimSilentRefreshInterval = Duration(minutes: 5);
 
 class _SinavSonuclarimControllerState {
   final PracticeExamRepository practiceExamRepository =
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
   final RxList<SinavModel> list = <SinavModel>[].obs;
   final RxBool ustBar = true.obs;
   final RxBool isLoading = true.obs;

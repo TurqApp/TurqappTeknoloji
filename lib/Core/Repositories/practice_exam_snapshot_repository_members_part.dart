@@ -2,7 +2,7 @@ part of 'practice_exam_snapshot_repository.dart';
 
 mixin _PracticeExamSnapshotRepositoryMembersPart on GetxService {
   final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
 
   late final CacheFirstCoordinator<List<SinavModel>> _coordinator =
       _buildPracticeExamSnapshotCoordinator();
