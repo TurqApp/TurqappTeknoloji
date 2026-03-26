@@ -146,7 +146,7 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
                   overflow: TextOverflow.clip,
                 ),
                 Positioned(
-                  right: 0,
+                  right: widget.expandOverlayRightInset,
                   bottom: 0,
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
@@ -174,27 +174,7 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
             );
           }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              textBody,
-              if (controller.showExpandButton.value && !collapsed)
-                TextButton(
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: controller.toggleExpand,
-                  child: Text(
-                    controller.expanded.value
-                        ? 'common.show_less'.tr
-                        : 'common.show_more'.tr,
-                    style: expandStyle,
-                  ),
-                ),
-            ],
-          );
+          return textBody;
         });
       },
     );

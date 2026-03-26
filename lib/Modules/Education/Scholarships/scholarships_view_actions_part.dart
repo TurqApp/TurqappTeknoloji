@@ -301,16 +301,17 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   Widget _buildExpandButton(int index) {
-    return Column(
-      children: [
-        5.ph,
-        Obx(
-          () => GestureDetector(
+    return Obx(() {
+      if (controller.isExpandedList[index].value) {
+        return const SizedBox.shrink();
+      }
+      return Column(
+        children: [
+          5.ph,
+          GestureDetector(
             onTap: () => controller.toggleExpanded(index),
             child: Text(
-              controller.isExpandedList[index].value
-                  ? 'common.show_less'.tr
-                  : 'common.show_more'.tr,
+              'common.show_more'.tr,
               style: TextStyle(
                 fontSize: 13,
                 fontFamily: "Montserrat",
@@ -319,9 +320,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
               ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
   Widget _buildActionRow(

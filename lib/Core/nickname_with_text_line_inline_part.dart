@@ -33,15 +33,9 @@ extension NicknameWithTextLineInlinePart on _NicknameWithTextLineState {
     TextStyle defaultStyle,
     BoxConstraints constraints,
   ) {
-    final buttonText = 'common.show_less'.tr;
-    final buttonStyle = _NicknameWithTextLineState._buttonStyle;
-    return _buildInlineTextWithButton(
-      spans,
-      buttonText,
-      buttonStyle,
-      defaultStyle,
-      constraints,
-      false,
+    return RichText(
+      text: TextSpan(style: defaultStyle, children: spans),
+      overflow: TextOverflow.visible,
     );
   }
 

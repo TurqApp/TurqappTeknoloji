@@ -26,6 +26,7 @@ class ClickableTextContent extends StatefulWidget {
   final bool toggleExpandOnTextTap;
   final Color? expandButtonColor;
   final double? expandButtonFontSize;
+  final double expandOverlayRightInset;
 
   const ClickableTextContent({
     super.key,
@@ -45,6 +46,7 @@ class ClickableTextContent extends StatefulWidget {
     this.toggleExpandOnTextTap = false,
     this.expandButtonColor,
     this.expandButtonFontSize,
+    this.expandOverlayRightInset = 0,
   });
 
   @override
