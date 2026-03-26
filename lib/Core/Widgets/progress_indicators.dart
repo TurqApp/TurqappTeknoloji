@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-part 'progress_indicators_controller_part.dart';
+part 'progress_indicators_controller_class_part.dart';
 part 'progress_indicators_controller_fields_part.dart';
 part 'progress_indicators_controller_actions_part.dart';
 

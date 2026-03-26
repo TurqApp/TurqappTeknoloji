@@ -5,4 +5,4 @@ import 'package:get/get.dart';
 part 'swr_controller_facade_part.dart';
 part 'swr_controller_fields_part.dart';
 part 'swr_controller_runtime_part.dart';
-part 'swr_controller_shell_part.dart';
+part 'swr_controller_class_part.dart';

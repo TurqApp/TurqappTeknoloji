@@ -16,5 +16,5 @@ part 'following_followers_controller_models_part.dart';
 part 'following_followers_controller_search_part.dart';
 part 'following_followers_controller_mutation_part.dart';
 part 'following_followers_controller_runtime_part.dart';
-part 'following_followers_controller_shell_part.dart';
+part 'following_followers_controller_class_part.dart';
 part 'following_followers_controller_support_part.dart';
