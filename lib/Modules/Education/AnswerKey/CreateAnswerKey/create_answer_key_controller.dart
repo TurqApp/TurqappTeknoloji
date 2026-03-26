@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'create_answer_key_controller_fields_part.dart';
+part 'create_answer_key_controller_facade_part.dart';
 part 'create_answer_key_controller_runtime_part.dart';
 
 class CreateAnswerKeyController extends GetxController {
@@ -26,47 +28,14 @@ class CreateAnswerKeyController extends GetxController {
     return Get.find<CreateAnswerKeyController>(tag: tag);
   }
 
-  final Function onBack;
-  final nameController = TextEditingController();
-  final selections = <String>["A"].obs;
-  final selection = 5.obs;
-  final selectedDateTime = DateTime.now().obs;
-  final sinavSuresiCount = 30.obs;
-  final showSinavSureleri = false.obs;
-  final mainSelection = 0.obs;
+  final _CreateAnswerKeyControllerState _state;
 
-  CreateAnswerKeyController(this.onBack);
+  CreateAnswerKeyController(Function onBack)
+      : _state = _CreateAnswerKeyControllerState(onBack: onBack);
 
   @override
   void onClose() {
     _disposeCreateAnswerKeyController(this);
     super.onClose();
   }
-
-  Future<void> selectDateTime(BuildContext context) =>
-      _selectCreateAnswerKeyDateTime(this, context);
-
-  void toggleSinavSureleri() {
-    showSinavSureleri.value = !showSinavSureleri.value;
-  }
-
-  void selectSinavSuresi(int duration) =>
-      _selectCreateAnswerKeyDuration(this, duration);
-
-  void setSelection(int value) {
-    selection.value = value;
-  }
-
-  void addSelection() {
-    selections.add("");
-  }
-
-  void removeSelection(int index) =>
-      _removeCreateAnswerKeySelection(this, index);
-
-  void updateSelection(int index, String value) {
-    selections[index] = value;
-  }
-
-  Future<void> saveForm(BuildContext context) => _saveCreateAnswerKeyForm(this);
 }

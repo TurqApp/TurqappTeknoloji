@@ -16,6 +16,7 @@ part 'dormitory_info_controller_labels_part.dart';
 part 'dormitory_info_controller_data_part.dart';
 part 'dormitory_info_controller_actions_part.dart';
 part 'dormitory_info_controller_fields_part.dart';
+part 'dormitory_info_controller_support_part.dart';
 
 class DormitoryInfoController extends GetxController {
   static DormitoryInfoController ensure({
@@ -38,9 +39,6 @@ class DormitoryInfoController extends GetxController {
   static const String _selectAdminType = "İdari Seç";
   static const String _publicAdminType = "DEVLET";
   static const String _privateAdminType = "ÖZEL";
-  String get selectCityValue => _selectCity;
-  String get selectDistrictValue => _selectDistrict;
-  String get selectAdminTypeValue => _selectAdminType;
   final _state = _DormitoryInfoControllerState(
     selectCityValue: _selectCity,
     selectDistrictValue: _selectDistrict,
@@ -51,22 +49,12 @@ class DormitoryInfoController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadInitialData();
-    ever(yurt, (_) {
-      yurtSelectionController.text = yurt.value;
-    });
-    yurtInput.addListener(() {
-      yurtInputText.value = yurtInput.text;
-    });
+    _initializeDormitoryInfoController();
   }
-
-  bool get isCityUnselected =>
-      sehir.value.isEmpty || sehir.value == _selectCity;
 
   @override
   void onClose() {
-    yurtInput.dispose();
-    yurtSelectionController.dispose();
+    _disposeDormitoryInfoController();
     super.onClose();
   }
 }

@@ -4,6 +4,8 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
+part 'sinav_sorusu_hazirla_controller_fields_part.dart';
+part 'sinav_sorusu_hazirla_controller_facade_part.dart';
 part 'sinav_sorusu_hazirla_controller_runtime_part.dart';
 
 class SinavSorusuHazirlaController extends GetxController {
@@ -38,35 +40,25 @@ class SinavSorusuHazirlaController extends GetxController {
     return Get.find<SinavSorusuHazirlaController>(tag: tag);
   }
 
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
-  var list = <SoruModel>[].obs;
-  var isLoading = false.obs;
-  var isInitialized = false.obs;
-
-  String docID;
-  String sinavTuru;
-  List<String> tumDersler;
-  List<String> derslerinSoruSayilari;
-  Function() complated;
+  final _SinavSorusuHazirlaControllerState _state;
 
   SinavSorusuHazirlaController({
-    required this.docID,
-    required this.sinavTuru,
-    required this.tumDersler,
-    required this.derslerinSoruSayilari,
-    required this.complated,
-  });
+    required String docID,
+    required String sinavTuru,
+    required List<String> tumDersler,
+    required List<String> derslerinSoruSayilari,
+    required Function() complated,
+  }) : _state = _SinavSorusuHazirlaControllerState(
+          docID: docID,
+          sinavTuru: sinavTuru,
+          tumDersler: tumDersler,
+          derslerinSoruSayilari: derslerinSoruSayilari,
+          complated: complated,
+        );
 
   @override
   void onInit() {
     super.onInit();
     _handleInit();
   }
-
-  Future<void> getSorular() => _loadQuestions();
-
-  Future<void> setList() => _createQuestionDrafts();
-
-  Future<void> completeExam() => _completeExam();
 }
