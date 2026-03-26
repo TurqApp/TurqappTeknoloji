@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 part 'rozet_content_controller_part.dart';
+part 'rozet_content_controller_base_part.dart';
 part 'rozet_content_controller_facade_part.dart';
 part 'rozet_content_controller_runtime_part.dart';
 

@@ -7,6 +7,7 @@ import '../AgendaContent/agenda_content_controller.dart';
 import 'top_tags_repository.dart';
 
 part 'top_tags_contoller_feed_part.dart';
+part 'top_tags_contoller_base_part.dart';
 part 'top_tags_contoller_class_part.dart';
 part 'top_tags_contoller_facade_part.dart';
 part 'top_tags_contoller_fields_part.dart';

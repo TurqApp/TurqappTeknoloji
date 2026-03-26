@@ -5,16 +5,4 @@ class ChatListingController extends _ChatListingControllerBase {
 
   static ChatListingController? maybeFind() =>
       _maybeFindChatListingController();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleChatListingInit(this);
-  }
-
-  @override
-  void onClose() {
-    _handleChatListingClose(this);
-    super.onClose();
-  }
 }
