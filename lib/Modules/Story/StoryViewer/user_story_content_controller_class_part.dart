@@ -7,40 +7,29 @@ class UserStoryContentController extends GetxController {
     required String nickname,
     required bool isMyStory,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      UserStoryContentController(
+  }) =>
+      _ensureUserStoryContentController(
+        tag: tag,
         storyID: storyID,
         nickname: nickname,
         isMyStory: isMyStory,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+        permanent: permanent,
+      );
 
-  static UserStoryContentController? maybeFind({required String tag}) {
-    final isRegistered = Get.isRegistered<UserStoryContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<UserStoryContentController>(tag: tag);
-  }
+  static UserStoryContentController? maybeFind({required String tag}) =>
+      _maybeFindUserStoryContentController(tag: tag);
 
-  String storyID;
-  String nickname;
-  bool isMyStory;
+  final _UserStoryContentControllerState _state;
+
   UserStoryContentController({
-    required this.storyID,
-    required this.nickname,
-    required this.isMyStory,
-  });
-  List<StoryCommentModel> comments = <StoryCommentModel>[].obs;
-  var likeCount = 0.obs;
-  var isLikedMe = false.obs;
-  final StoryRepository _storyRepository = StoryRepository.ensure();
-  final CurrentUserService _userService = CurrentUserService.instance;
-  String get _currentUid => _userService.effectiveUserId;
+    required String storyID,
+    required String nickname,
+    required bool isMyStory,
+  }) : _state = _UserStoryContentControllerState(
+          storyID: storyID,
+          nickname: nickname,
+          isMyStory: isMyStory,
+        );
 
   static const List<String> reactionEmojis = [
     '❤️',
@@ -50,6 +39,4 @@ class UserStoryContentController extends GetxController {
     '🔥',
     '👏'
   ];
-  final RxMap<String, int> reactionCounts = <String, int>{}.obs;
-  final RxString myReaction = ''.obs;
 }

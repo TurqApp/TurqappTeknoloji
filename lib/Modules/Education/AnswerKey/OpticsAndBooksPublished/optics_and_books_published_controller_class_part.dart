@@ -9,16 +9,8 @@ class OpticsAndBooksPublishedController extends GetxController {
   static OpticsAndBooksPublishedController? maybeFind() =>
       _maybeFindOpticsAndBooksPublishedController();
 
-  final BookletRepository _bookletRepository = BookletRepository.ensure();
-  final OpticalFormRepository _opticalFormRepository =
-      OpticalFormRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  final list = <BookletModel>[].obs;
-  final optikler = <OpticalFormModel>[].obs;
-  final selection = 0.obs;
-  final isLoading = true.obs;
-  final RxDouble scrollOffset = 0.0.obs;
-  int _lastOpenRefreshAt = 0;
+  final _state = _OpticsAndBooksPublishedControllerState();
 
   @override
   void onInit() {

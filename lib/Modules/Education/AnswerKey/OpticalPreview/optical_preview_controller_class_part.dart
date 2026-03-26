@@ -17,15 +17,12 @@ class OpticalPreviewController extends GetxController {
   static OpticalPreviewController? maybeFind({String? tag}) =>
       _maybeFindOpticalPreviewController(tag: tag);
 
-  final _state = _OpticalPreviewControllerState();
-  final OpticalFormModel model;
-  final Function? onUpdate;
+  final _OpticalPreviewControllerState _state;
 
-  OpticalPreviewController(this.model, this.onUpdate) {
-    _initialize();
+  OpticalPreviewController(OpticalFormModel model, Function? onUpdate)
+      : _state = _buildOpticalPreviewControllerState(model, onUpdate) {
+    _initializeOpticalPreviewController(this);
   }
-
-  void _initialize() => _initializeOpticalPreviewController(this);
 
   @override
   void onClose() {

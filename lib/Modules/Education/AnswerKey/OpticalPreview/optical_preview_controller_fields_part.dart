@@ -1,6 +1,13 @@
 part of 'optical_preview_controller.dart';
 
 class _OpticalPreviewControllerState {
+  _OpticalPreviewControllerState({
+    required this.model,
+    required this.onUpdate,
+  });
+
+  final OpticalFormModel model;
+  final Function? onUpdate;
   final opticalFormRepository = OpticalFormRepository.ensure();
   final cevaplar = <String>[].obs;
   final isConnected = true.obs;
@@ -10,7 +17,19 @@ class _OpticalPreviewControllerState {
   StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
 }
 
+_OpticalPreviewControllerState _buildOpticalPreviewControllerState(
+  OpticalFormModel model,
+  Function? onUpdate,
+) {
+  return _OpticalPreviewControllerState(
+    model: model,
+    onUpdate: onUpdate,
+  );
+}
+
 extension OpticalPreviewControllerFieldsPart on OpticalPreviewController {
+  OpticalFormModel get model => _state.model;
+  Function? get onUpdate => _state.onUpdate;
   OpticalFormRepository get _opticalFormRepository =>
       _state.opticalFormRepository;
   RxList<String> get cevaplar => _state.cevaplar;
