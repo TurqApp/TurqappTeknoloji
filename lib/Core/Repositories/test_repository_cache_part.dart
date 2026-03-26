@@ -1,4 +1,4 @@
-part of 'test_repository.dart';
+part of 'test_repository_library.dart';
 
 extension _TestRepositoryCacheX on TestRepository {
   TestsModel _fromDoc(String id, Map<String, dynamic> data) {

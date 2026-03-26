@@ -1,4 +1,4 @@
-part of 'my_practice_exams_controller.dart';
+part of 'my_practice_exams_controller_library.dart';
 
 extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
   bool _sameExamEntries(

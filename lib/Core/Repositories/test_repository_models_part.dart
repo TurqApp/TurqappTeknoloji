@@ -1,4 +1,4 @@
-part of 'test_repository.dart';
+part of 'test_repository_library.dart';
 
 class _TimedTests {
   const _TimedTests({

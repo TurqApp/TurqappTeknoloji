@@ -1,4 +1,4 @@
-part of 'deneme_sinavi_preview_controller.dart';
+part of 'deneme_sinavi_preview_controller_library.dart';
 
 DenemeSinaviPreviewController ensureDenemeSinaviPreviewController({
   required String tag,

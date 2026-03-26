@@ -1,4 +1,4 @@
-part of 'optical_preview_controller.dart';
+part of 'optical_preview_controller_library.dart';
 
 void _initializeOpticalPreviewController(OpticalPreviewController controller) {
   controller.cevaplar.value = List.generate(
