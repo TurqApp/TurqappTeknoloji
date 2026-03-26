@@ -9,28 +9,28 @@ class _FamilyInfoControllerState {
   final fatherSurname = TextEditingController().obs;
   final fatherSalary = TextEditingController().obs;
   final fatherPhoneNumber = TextEditingController().obs;
-  final fatherLiving = FamilyInfoController._selectValue.obs;
-  final fatherJob = FamilyInfoController._selectJob.obs;
+  final fatherLiving = _familyInfoSelectValue.obs;
+  final fatherJob = _familyInfoSelectJob.obs;
   final motherName = TextEditingController().obs;
   final motherSurname = TextEditingController().obs;
   final motherSalary = TextEditingController().obs;
   final motherPhoneNumber = TextEditingController().obs;
-  final motherLiving = FamilyInfoController._selectValue.obs;
-  final motherJob = FamilyInfoController._selectJob.obs;
+  final motherLiving = _familyInfoSelectValue.obs;
+  final motherJob = _familyInfoSelectJob.obs;
   final totalLiving = TextEditingController().obs;
-  final evMulkiyeti = FamilyInfoController._selectHomeOwnership.obs;
+  final evMulkiyeti = _familyInfoSelectHomeOwnership.obs;
   final city = ''.obs;
   final town = ''.obs;
   final scrollController = ScrollController();
   final evevMulkiyeti = <String>[
-    FamilyInfoController._ownedHome,
-    FamilyInfoController._relativeHome,
-    FamilyInfoController._lodgingHome,
-    FamilyInfoController._rentHome,
+    _familyInfoOwnedHome,
+    _familyInfoRelativeHome,
+    _familyInfoLodgingHome,
+    _familyInfoRentHome,
   ].obs;
   final living = <String>[
-    FamilyInfoController._yesValue,
-    FamilyInfoController._noValue,
+    _familyInfoYesValue,
+    _familyInfoNoValue,
   ].obs;
   final sehirler = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;

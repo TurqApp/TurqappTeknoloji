@@ -117,7 +117,7 @@ extension CvControllerProfilePart on CvController {
       ensureDefaultPhoto();
       if (SilentRefreshGate.shouldRefresh(
         'profile:cv:$uid',
-        minInterval: CvController._silentRefreshInterval,
+        minInterval: _cvSilentRefreshInterval,
       )) {
         unawaited(loadDataFromFirestore(forceRefresh: true));
       }

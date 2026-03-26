@@ -30,8 +30,8 @@ extension _InterestsContentPart on _InterestsState {
                 Text(
                   "interests.selection_range".trParams(
                     <String, String>{
-                      'min': '${InterestsController.minSelection}',
-                      'max': '${InterestsController.maxSelection}',
+                      'min': '$interestsMinSelection',
+                      'max': '$interestsMaxSelection',
                     },
                   ),
                   style: TextStyle(
@@ -47,7 +47,7 @@ extension _InterestsContentPart on _InterestsState {
                       "interests.selected_count".trParams(
                         <String, String>{
                           'selected': '${controller.selecteds.length}',
-                          'max': '${InterestsController.maxSelection}',
+                          'max': '$interestsMaxSelection',
                         },
                       ),
                       style: const TextStyle(
@@ -57,8 +57,7 @@ extension _InterestsContentPart on _InterestsState {
                       ),
                     ),
                     const Spacer(),
-                    if (controller.selecteds.length >=
-                        InterestsController.minSelection)
+                    if (controller.selecteds.length >= interestsMinSelection)
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),

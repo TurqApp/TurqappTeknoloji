@@ -1,19 +1,12 @@
 part of 'archives_controller.dart';
 
 class ArchiveController extends GetxController {
-  static ArchiveController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ArchiveController());
-  }
-
-  static ArchiveController? maybeFind() {
-    final isRegistered = Get.isRegistered<ArchiveController>();
-    if (!isRegistered) return null;
-    return Get.find<ArchiveController>();
-  }
-
   final _state = _ArchiveControllerState();
+
+  static ArchiveController ensure({bool permanent = false}) =>
+      ensureArchiveController(permanent: permanent);
+
+  static ArchiveController? maybeFind() => maybeFindArchiveController();
 
   @override
   void onInit() {

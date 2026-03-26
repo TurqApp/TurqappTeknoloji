@@ -41,7 +41,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
     }
 
     if (surfaceTag.startsWith('archives_')) {
-      final archiveController = ArchiveController.maybeFind();
+      final archiveController = maybeFindArchiveController();
       if (archiveController == null) return;
       final archiveIndex = archiveController.list
           .indexWhere((p) => p.docID == widget.model.docID);

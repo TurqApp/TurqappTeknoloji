@@ -22,11 +22,11 @@ class _ArchivesState extends State<Archives> {
   @override
   void initState() {
     super.initState();
-    final existingController = ArchiveController.maybeFind();
+    final existingController = maybeFindArchiveController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = ArchiveController.ensure();
+      controller = ensureArchiveController();
       _ownsController = true;
     }
   }
@@ -34,7 +34,7 @@ class _ArchivesState extends State<Archives> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(ArchiveController.maybeFind(), controller)) {
+        identical(maybeFindArchiveController(), controller)) {
       Get.delete<ArchiveController>(force: true);
     }
     super.dispose();

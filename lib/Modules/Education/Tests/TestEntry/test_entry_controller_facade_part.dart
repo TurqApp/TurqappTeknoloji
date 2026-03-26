@@ -1,16 +1,16 @@
 part of 'test_entry_controller.dart';
 
-TestEntryController? _maybeFindTestEntryController({String? tag}) {
+TestEntryController? maybeFindTestEntryController({String? tag}) {
   final isRegistered = Get.isRegistered<TestEntryController>(tag: tag);
   if (!isRegistered) return null;
   return Get.find<TestEntryController>(tag: tag);
 }
 
-TestEntryController _ensureTestEntryController({
+TestEntryController ensureTestEntryController({
   String? tag,
   bool permanent = false,
 }) {
-  final existing = _maybeFindTestEntryController(tag: tag);
+  final existing = maybeFindTestEntryController(tag: tag);
   if (existing != null) return existing;
   return Get.put(
     TestEntryController(),

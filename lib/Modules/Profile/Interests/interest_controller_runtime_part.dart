@@ -41,13 +41,13 @@ extension InterestsControllerRuntimePart on InterestsController {
     if (idx >= 0) {
       selecteds.removeAt(idx);
     } else {
-      if (selecteds.length >= InterestsController.maxSelection) {
+      if (selecteds.length >= interestsMaxSelection) {
         if (!_selectionLimitShown) {
           _selectionLimitShown = true;
           AppSnackbar(
             'interests.limit_title'.tr,
             'interests.limit_body'.trParams({
-              'max': '${InterestsController.maxSelection}',
+              'max': '$interestsMaxSelection',
             }),
           );
         }
@@ -59,11 +59,11 @@ extension InterestsControllerRuntimePart on InterestsController {
   }
 
   Future<void> setData() async {
-    if (selecteds.length < InterestsController.minSelection) {
+    if (selecteds.length < interestsMinSelection) {
       AppSnackbar(
         'interests.min_title'.tr,
         'interests.min_body'.trParams({
-          'min': '${InterestsController.minSelection}',
+          'min': '$interestsMinSelection',
         }),
       );
       return;

@@ -21,6 +21,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'cv_controller_sections_part.dart';
 part 'cv_controller_class_part.dart';
+part 'cv_controller_constants_part.dart';
 part 'cv_controller_education_part.dart';
 part 'cv_controller_experience_part.dart';
 part 'cv_controller_facade_part.dart';

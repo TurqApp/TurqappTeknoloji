@@ -36,9 +36,8 @@ class _TestsGridState extends State<TestsGrid> {
     super.initState();
     _controllerTag =
         'tests_grid_${widget.model.docID}_${identityHashCode(this)}';
-    _ownsController =
-        TestsGridController.maybeFind(tag: _controllerTag) == null;
-    controller = TestsGridController.ensure(
+    _ownsController = maybeFindTestsGridController(tag: _controllerTag) == null;
+    controller = ensureTestsGridController(
       widget.model,
       onUpdate: widget.update,
       tag: _controllerTag,
@@ -49,7 +48,7 @@ class _TestsGridState extends State<TestsGrid> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          TestsGridController.maybeFind(tag: _controllerTag);
+          maybeFindTestsGridController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<TestsGridController>(tag: _controllerTag);
       }

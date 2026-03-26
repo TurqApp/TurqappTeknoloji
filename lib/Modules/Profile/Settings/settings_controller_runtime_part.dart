@@ -36,11 +36,11 @@ extension SettingsControllerRuntimePart on SettingsController {
     final storedVersion = prefs.getInt(_pasajOrderVersionKey) ?? 0;
     final normalizedOrder = pasajTabs.toList(growable: false);
     pasajOrder.assignAll(normalizedOrder);
-    if (storedVersion < SettingsController._currentPasajOrderVersion) {
+    if (storedVersion < _currentPasajOrderVersion) {
       await prefs.setStringList(_pasajOrderKey, normalizedOrder);
       await prefs.setInt(
         _pasajOrderVersionKey,
-        SettingsController._currentPasajOrderVersion,
+        _currentPasajOrderVersion,
       );
     }
 
@@ -81,7 +81,7 @@ extension SettingsControllerRuntimePart on SettingsController {
     await prefs.setStringList(_pasajVisibilityKey, hidden);
     await prefs.setInt(
       _pasajOrderVersionKey,
-      SettingsController._currentPasajOrderVersion,
+      _currentPasajOrderVersion,
     );
   }
 }

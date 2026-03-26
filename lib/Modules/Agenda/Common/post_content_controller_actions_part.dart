@@ -8,7 +8,7 @@ extension PostContentControllerActionsPart on PostContentController {
       ProfileController.maybeFind();
 
   ArchiveController? get _archiveControllerOrNull =>
-      ArchiveController.maybeFind();
+      maybeFindArchiveController();
 
   Future<void> getGizleArsivSikayetEdildi() async {
     gizlendi.value = model.gizlendi;

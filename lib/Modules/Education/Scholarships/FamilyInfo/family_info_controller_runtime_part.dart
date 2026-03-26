@@ -5,7 +5,7 @@ extension FamilyInfoControllerRuntimeX on FamilyInfoController {
       variants.contains(value.trim());
 
   bool _isSelectValue(String value) => _matchesValue(value, const <String>{
-        FamilyInfoController._selectValue,
+        _familyInfoSelectValue,
         'Select',
         'Auswählen',
         'Sélectionner',
@@ -13,7 +13,7 @@ extension FamilyInfoControllerRuntimeX on FamilyInfoController {
         'Выбрать',
       });
   bool _isSelectJobValue(String value) => _matchesValue(value, const <String>{
-        FamilyInfoController._selectJob,
+        _familyInfoSelectJob,
         'Select Job',
         'Beruf wählen',
         'Choisir une profession',
@@ -22,7 +22,7 @@ extension FamilyInfoControllerRuntimeX on FamilyInfoController {
       });
   bool _isSelectHomeOwnershipValue(String value) =>
       _matchesValue(value, const <String>{
-        FamilyInfoController._selectHomeOwnership,
+        _familyInfoSelectHomeOwnership,
         'Select',
         'Auswählen',
         'Sélectionner',
@@ -30,7 +30,7 @@ extension FamilyInfoControllerRuntimeX on FamilyInfoController {
         'Выбрать',
       });
   bool _isYesValue(String value) => _matchesValue(value, const <String>{
-        FamilyInfoController._yesValue,
+        _familyInfoYesValue,
         'Yes',
         'Ja',
         'Oui',
@@ -46,10 +46,9 @@ extension FamilyInfoControllerRuntimeX on FamilyInfoController {
   bool get isHomeOwnershipUnselected =>
       _isSelectHomeOwnershipValue(evMulkiyeti.value);
 
-  String get defaultSelection => FamilyInfoController._selectValue;
-  String get defaultHomeOwnershipSelection =>
-      FamilyInfoController._selectHomeOwnership;
-  String get defaultJobSelection => FamilyInfoController._selectJob;
+  String get defaultSelection => _familyInfoSelectValue;
+  String get defaultHomeOwnershipSelection => _familyInfoSelectHomeOwnership;
+  String get defaultJobSelection => _familyInfoSelectJob;
 
   void _handleOnInit() {
     scrollController.addListener(() {
@@ -73,22 +72,22 @@ extension FamilyInfoControllerRuntimeX on FamilyInfoController {
 
   String localizedSelection(String value) {
     switch (value) {
-      case FamilyInfoController._selectValue:
-      case FamilyInfoController._selectHomeOwnership:
+      case _familyInfoSelectValue:
+      case _familyInfoSelectHomeOwnership:
         return 'common.select'.tr;
-      case FamilyInfoController._selectJob:
+      case _familyInfoSelectJob:
         return 'family_info.select_job'.tr;
-      case FamilyInfoController._yesValue:
+      case _familyInfoYesValue:
         return 'common.yes'.tr;
-      case FamilyInfoController._noValue:
+      case _familyInfoNoValue:
         return 'common.no'.tr;
-      case FamilyInfoController._ownedHome:
+      case _familyInfoOwnedHome:
         return 'family_info.home_owned'.tr;
-      case FamilyInfoController._relativeHome:
+      case _familyInfoRelativeHome:
         return 'family_info.home_relative'.tr;
-      case FamilyInfoController._lodgingHome:
+      case _familyInfoLodgingHome:
         return 'family_info.home_lodging'.tr;
-      case FamilyInfoController._rentHome:
+      case _familyInfoRentHome:
         return 'family_info.home_rent'.tr;
       default:
         return value;

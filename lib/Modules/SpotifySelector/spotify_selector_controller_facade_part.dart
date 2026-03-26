@@ -1,5 +1,24 @@
 part of 'spotify_selector_controller.dart';
 
+SpotifySelectorController ensureSpotifySelectorController({
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = maybeFindSpotifySelectorController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(
+    SpotifySelectorController(),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
+SpotifySelectorController? maybeFindSpotifySelectorController({String? tag}) {
+  final isRegistered = Get.isRegistered<SpotifySelectorController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<SpotifySelectorController>(tag: tag);
+}
+
 extension SpotifySelectorControllerFacadePart on SpotifySelectorController {
   Future<void> _loadTracks() =>
       SpotifySelectorControllerRuntimePart(this).loadTracks();

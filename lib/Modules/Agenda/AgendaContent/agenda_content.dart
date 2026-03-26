@@ -114,7 +114,7 @@ class _AgendaContentState extends State<AgendaContent>
   static const Color _videoFallbackColor = Colors.black;
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
-  final arsivController = ArchiveController.ensure();
+  final arsivController = ensureArchiveController();
   bool _isFullscreen = false;
   bool _pauseQueuedAfterBuild = false;
   late final RelativeTimeTickService _relativeTimeTickService;

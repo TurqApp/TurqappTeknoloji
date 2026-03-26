@@ -31,13 +31,13 @@ extension FamilyInfoControllerDataPart on FamilyInfoController {
           data,
           key: 'fatherLiving',
           scope: 'family',
-          fallback: FamilyInfoController._selectValue,
+          fallback: _familyInfoSelectValue,
         );
         fatherJob.value = userString(
           data,
           key: 'fatherJob',
           scope: 'family',
-          fallback: FamilyInfoController._selectJob,
+          fallback: _familyInfoSelectJob,
         );
         motherName.value.text =
             userString(data, key: 'motherName', scope: 'family');
@@ -51,13 +51,13 @@ extension FamilyInfoControllerDataPart on FamilyInfoController {
           data,
           key: 'motherLiving',
           scope: 'family',
-          fallback: FamilyInfoController._selectValue,
+          fallback: _familyInfoSelectValue,
         );
         motherJob.value = userString(
           data,
           key: 'motherJob',
           scope: 'family',
-          fallback: FamilyInfoController._selectJob,
+          fallback: _familyInfoSelectJob,
         );
         totalLiving.value.text = userInt(
           data,
@@ -71,7 +71,7 @@ extension FamilyInfoControllerDataPart on FamilyInfoController {
           data,
           key: 'evMulkiyeti',
           scope: 'family',
-          fallback: FamilyInfoController._selectHomeOwnership,
+          fallback: _familyInfoSelectHomeOwnership,
         );
         city.value = userString(data, key: 'ikametSehir', scope: 'profile');
         town.value = userString(data, key: 'ikametIlce', scope: 'profile');
@@ -82,11 +82,11 @@ extension FamilyInfoControllerDataPart on FamilyInfoController {
   }
 
   void _resetToDefaults() {
-    fatherLiving.value = FamilyInfoController._selectValue;
-    fatherJob.value = FamilyInfoController._selectJob;
-    motherLiving.value = FamilyInfoController._selectValue;
-    motherJob.value = FamilyInfoController._selectJob;
-    evMulkiyeti.value = FamilyInfoController._selectHomeOwnership;
+    fatherLiving.value = _familyInfoSelectValue;
+    fatherJob.value = _familyInfoSelectJob;
+    motherLiving.value = _familyInfoSelectValue;
+    motherJob.value = _familyInfoSelectJob;
+    evMulkiyeti.value = _familyInfoSelectHomeOwnership;
   }
 
   void _clearFatherFields() {
@@ -94,7 +94,7 @@ extension FamilyInfoControllerDataPart on FamilyInfoController {
     fatherSurname.value.clear();
     fatherSalary.value.clear();
     fatherPhoneNumber.value.clear();
-    fatherJob.value = FamilyInfoController._selectJob;
+    fatherJob.value = _familyInfoSelectJob;
   }
 
   void _clearMotherFields() {
@@ -102,6 +102,6 @@ extension FamilyInfoControllerDataPart on FamilyInfoController {
     motherSurname.value.clear();
     motherSalary.value.clear();
     motherPhoneNumber.value.clear();
-    motherJob.value = FamilyInfoController._selectJob;
+    motherJob.value = _familyInfoSelectJob;
   }
 }

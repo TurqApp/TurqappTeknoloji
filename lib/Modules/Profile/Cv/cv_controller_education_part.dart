@@ -319,7 +319,7 @@ extension CvControllerEducationPart on CvController {
               () => SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: CvController.languageOptionKeys.map((dil) {
+                  children: cvLanguageOptionKeys.map((dil) {
                     final bool isSelected = selectedDil.value == dil;
                     return GestureDetector(
                       onTap: () => selectedDil.value = dil,
@@ -444,7 +444,7 @@ extension CvControllerEducationPart on CvController {
               () => SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: CvController.languageOptionKeys.map((dil) {
+                  children: cvLanguageOptionKeys.map((dil) {
                     final bool isSelected = selectedDil.value == dil;
                     return GestureDetector(
                       onTap: () => selectedDil.value = dil,

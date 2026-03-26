@@ -34,12 +34,12 @@ class _SpotifySelectorState extends State<SpotifySelector> {
   void initState() {
     super.initState();
     _controllerTag = 'spotify_selector_${identityHashCode(this)}';
-    controller = SpotifySelectorController.ensure(tag: _controllerTag);
+    controller = ensureSpotifySelectorController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    final existing = SpotifySelectorController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindSpotifySelectorController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<SpotifySelectorController>(tag: _controllerTag);
     }

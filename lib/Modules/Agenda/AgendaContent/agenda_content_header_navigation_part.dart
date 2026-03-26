@@ -46,7 +46,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final archiveController = ArchiveController.maybeFind();
+    final archiveController = maybeFindArchiveController();
     if (archiveController != null) {
       final archiveIndex = archiveController.list
           .indexWhere((p) => p.docID == widget.model.docID);
@@ -145,7 +145,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final archiveController = ArchiveController.maybeFind();
+    final archiveController = maybeFindArchiveController();
     if (archiveController != null) {
       final archiveIndex = archiveController.list
           .indexWhere((p) => p.docID == widget.model.docID);
