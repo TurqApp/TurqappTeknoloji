@@ -38,6 +38,7 @@ part 'agenda_controller_loading_part.dart';
 part 'agenda_controller_loading_cache_part.dart';
 part 'agenda_controller_loading_shuffle_part.dart';
 part 'agenda_controller_facade_part.dart';
+part 'agenda_controller_constants_part.dart';
 part 'agenda_controller_fields_part.dart';
 part 'agenda_controller_models_part.dart';
 part 'agenda_controller_playback_part.dart';

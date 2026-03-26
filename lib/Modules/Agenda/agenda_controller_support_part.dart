@@ -93,19 +93,19 @@ extension AgendaControllerSupportPart on AgendaController {
   }
 
   int _agendaCutoffMs(int nowMs) {
-    if (AgendaController._agendaWindow == null) return 0;
-    return nowMs - AgendaController._agendaWindow!.inMilliseconds;
+    if (_agendaWindow == null) return 0;
+    return nowMs - _agendaWindow!.inMilliseconds;
   }
 
   bool _isInAgendaWindow(num ts, int nowMs) {
-    if (AgendaController._agendaWindow == null) return true;
+    if (_agendaWindow == null) return true;
     final v = ts.toInt();
     return v >= _agendaCutoffMs(nowMs) && v <= nowMs;
   }
 
   bool _isEligibleAgendaPost(PostsModel post, int nowMs) {
     final ts = post.timeStamp.toInt();
-    if (AgendaController._agendaWindow != null && ts < _agendaCutoffMs(nowMs)) {
+    if (_agendaWindow != null && ts < _agendaCutoffMs(nowMs)) {
       return false;
     }
     if (ts <= nowMs) {

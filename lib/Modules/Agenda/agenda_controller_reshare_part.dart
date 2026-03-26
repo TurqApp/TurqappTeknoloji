@@ -38,8 +38,7 @@ extension AgendaControllerResharePart on AgendaController {
   }) async {
     try {
       final uid = _currentUid;
-      final targetPosts =
-          posts.take(AgendaController._reshareScanPostLimit).toList();
+      final targetPosts = posts.take(_reshareScanPostLimit).toList();
       if (targetPosts.isEmpty) return;
 
       final existingKeys = publicReshareEvents
