@@ -10,11 +10,11 @@ class ModerationConfigService {
 
   Future<ModerationConfigModel> fetch() async {
     try {
-      final data = await ConfigRepository.ensure().getAdminConfigDoc(
-            docId,
-            preferCache: true,
-            ttl: const Duration(hours: 6),
-          );
+      final data = await ensureConfigRepository().getAdminConfigDoc(
+        docId,
+        preferCache: true,
+        ttl: const Duration(hours: 6),
+      );
       return ModerationConfigModel.fromMap(data);
     } catch (_) {
       return ModerationConfigModel.defaults;
@@ -22,7 +22,7 @@ class ModerationConfigService {
   }
 
   Stream<ModerationConfigModel> watch() {
-    return ConfigRepository.ensure()
+    return ensureConfigRepository()
         .watchAdminConfigDoc(
           docId,
           ttl: const Duration(hours: 6),
@@ -38,7 +38,7 @@ class ModerationConfigService {
       final data = res.data;
       if (data is Map && data['config'] is Map) {
         final configMap = Map<String, dynamic>.from(data['config'] as Map);
-        await ConfigRepository.ensure().putAdminConfigDoc(docId, configMap);
+        await ensureConfigRepository().putAdminConfigDoc(docId, configMap);
         return ModerationConfigModel.fromMap(configMap);
       }
     } catch (_) {

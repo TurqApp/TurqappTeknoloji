@@ -273,7 +273,7 @@ class PostDeleteService {
     } catch (_) {}
 
     try {
-      AgendaShuffleCacheService.maybeFind()?.removePosts(ids);
+      maybeFindAgendaShuffleCacheService()?.removePosts(ids);
     } catch (_) {}
 
     for (final docId in ids) {

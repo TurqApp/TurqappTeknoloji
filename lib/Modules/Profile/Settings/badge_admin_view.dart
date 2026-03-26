@@ -39,7 +39,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
 
   final TextEditingController _nicknameController = TextEditingController();
   final VerifiedAccountRepository _verifiedAccountRepository =
-      VerifiedAccountRepository.ensure();
+      ensureVerifiedAccountRepository();
   final AdminApprovalRepository _approvalRepository =
       AdminApprovalRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();

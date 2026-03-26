@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
 part 'moderation_repository_class_part.dart';
+part 'moderation_repository_facade_part.dart';
 
 class ModerationFlaggedPost {
   final String id;

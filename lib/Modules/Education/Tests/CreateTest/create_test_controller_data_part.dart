@@ -19,7 +19,7 @@ extension CreateTestControllerDataPart on CreateTestController {
 
   Future<void> getUygulamaLinks() async {
     try {
-      final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
+      final doc = await ensureConfigRepository().getLegacyConfigDoc(
         collection: 'Yönetim',
         docId: 'Genel',
         preferCache: true,

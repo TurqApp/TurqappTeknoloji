@@ -4,7 +4,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
   Future<void> _launchStore() => _launchStoreImpl();
 
   Future<void> _loadAppVersionConfigImpl({bool forceRefresh = false}) async {
-    final repo = ConfigRepository.ensure();
+    final repo = ensureConfigRepository();
     final doc = await repo.getAdminConfigDoc(
           _appVersionDocId,
           preferCache: !forceRefresh,

@@ -6,7 +6,7 @@ class _BookletAnswerControllerState {
     required this.anaModel,
   });
 
-  final ConfigRepository configRepository = ConfigRepository.ensure();
+  final ConfigRepository configRepository = ensureConfigRepository();
   final AnswerKeySubModel model;
   final BookletModel anaModel;
   final RxList<String> cevaplar = <String>[].obs;

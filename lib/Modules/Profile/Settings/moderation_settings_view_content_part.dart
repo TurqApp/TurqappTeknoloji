@@ -48,7 +48,7 @@ class _ModerationThresholdList extends StatelessWidget {
   final bool provisioning;
   final Future<void> Function() onEnsureConfig;
   static final ModerationRepository _moderationRepository =
-      ModerationRepository.ensure();
+      ensureModerationRepository();
 
   @override
   Widget build(BuildContext context) {

@@ -399,7 +399,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
   Future<void> _loadEmailVerifyConfig() async {
     try {
-      final data = await ConfigRepository.ensure().getAdminConfigDoc(
+      final data = await ensureConfigRepository().getAdminConfigDoc(
             'emailVerify',
             preferCache: true,
             ttl: const Duration(hours: 6),

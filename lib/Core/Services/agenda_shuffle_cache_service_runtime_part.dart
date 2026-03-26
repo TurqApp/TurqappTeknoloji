@@ -1,5 +1,11 @@
 part of 'agenda_shuffle_cache_service.dart';
 
+AgendaShuffleCacheService? maybeFindAgendaShuffleCacheService() =>
+    _maybeFindAgendaShuffleCacheService();
+
+AgendaShuffleCacheService ensureAgendaShuffleCacheService() =>
+    _ensureAgendaShuffleCacheService();
+
 AgendaShuffleCacheService? _maybeFindAgendaShuffleCacheService() {
   final isRegistered = Get.isRegistered<AgendaShuffleCacheService>();
   if (!isRegistered) return null;

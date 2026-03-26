@@ -10,6 +10,7 @@ part 'story_highlights_repository_lifecycle_part.dart';
 part 'story_highlights_repository_query_part.dart';
 part 'story_highlights_repository_action_part.dart';
 part 'story_highlights_repository_cache_part.dart';
+part 'story_highlights_repository_facade_part.dart';
 
 class StoryHighlightsRepository extends GetxService {
   static const Duration _ttl = Duration(hours: 6);
@@ -17,18 +18,6 @@ class StoryHighlightsRepository extends GetxService {
 
   SharedPreferences? _prefs;
   final Map<String, _CachedStoryHighlights> _memory = {};
-
-  static StoryHighlightsRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<StoryHighlightsRepository>();
-    if (!isRegistered) return null;
-    return Get.find<StoryHighlightsRepository>();
-  }
-
-  static StoryHighlightsRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(StoryHighlightsRepository(), permanent: true);
-  }
 
   @override
   void onInit() {

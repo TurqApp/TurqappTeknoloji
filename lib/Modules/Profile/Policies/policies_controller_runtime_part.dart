@@ -5,7 +5,7 @@ void _handlePoliciesInit(PoliciesController controller) {
 }
 
 Future<void> _loadPolicies(PoliciesController controller) async {
-  final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
+  final doc = await ensureConfigRepository().getLegacyConfigDoc(
     collection: 'Yönetim',
     docId: 'Policies',
     preferCache: true,

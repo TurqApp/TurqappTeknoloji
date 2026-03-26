@@ -7,6 +7,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'verified_account_repository_models_part.dart';
 part 'verified_account_repository_cache_part.dart';
+part 'verified_account_repository_facade_part.dart';
 part 'verified_account_repository_runtime_part.dart';
 
 class VerifiedAccountRepository extends GetxService {
@@ -15,18 +16,6 @@ class VerifiedAccountRepository extends GetxService {
 
   SharedPreferences? _prefs;
   final Map<String, _CachedVerifiedAccountStatus> _memory = {};
-
-  static VerifiedAccountRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<VerifiedAccountRepository>();
-    if (!isRegistered) return null;
-    return Get.find<VerifiedAccountRepository>();
-  }
-
-  static VerifiedAccountRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(VerifiedAccountRepository(), permanent: true);
-  }
 
   @override
   void onInit() {

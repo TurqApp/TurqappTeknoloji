@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 
 part 'profile_stats_repository_metrics_part.dart';
 part 'profile_stats_repository_cache_part.dart';
+part 'profile_stats_repository_facade_part.dart';
 
 class ProfileStatsRepository extends GetxService {
   static const Duration _ttl = Duration(minutes: 20);
@@ -15,18 +16,6 @@ class ProfileStatsRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedProfileStats> _memory = {};
   final FollowRepository _followRepository = FollowRepository.ensure();
-
-  static ProfileStatsRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<ProfileStatsRepository>();
-    if (!isRegistered) return null;
-    return Get.find<ProfileStatsRepository>();
-  }
-
-  static ProfileStatsRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ProfileStatsRepository(), permanent: true);
-  }
 
   @override
   void onInit() {

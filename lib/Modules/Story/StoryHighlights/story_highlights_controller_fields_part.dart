@@ -5,7 +5,7 @@ class _StoryHighlightsControllerState {
 
   final String userId;
   final StoryHighlightsRepository repository =
-      StoryHighlightsRepository.ensure();
+      ensureStoryHighlightsRepository();
   final StoryRepository storyRepository = StoryRepository.ensure();
   final CurrentUserService userService = CurrentUserService.instance;
   final RxList<StoryHighlightModel> highlights = <StoryHighlightModel>[].obs;

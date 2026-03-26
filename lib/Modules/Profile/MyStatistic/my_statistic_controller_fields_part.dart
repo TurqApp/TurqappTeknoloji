@@ -1,8 +1,7 @@
 part of 'my_statistic_controller.dart';
 
 class _MyStatisticControllerState {
-  final ProfileStatsRepository statsRepository =
-      ProfileStatsRepository.ensure();
+  final ProfileStatsRepository statsRepository = ensureProfileStatsRepository();
   final RxBool isLoading = true.obs;
   StreamSubscription<dynamic>? userDocSub;
   final RxInt totalPostViews = 0.obs;

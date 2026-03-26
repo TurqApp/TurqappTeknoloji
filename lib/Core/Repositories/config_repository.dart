@@ -13,18 +13,6 @@ class ConfigRepository extends GetxService {
   static const Duration _defaultTtl = Duration(minutes: 30);
   static const String _prefsKeyPrefix = 'config_repository_v1';
 
-  static ConfigRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<ConfigRepository>();
-    if (!isRegistered) return null;
-    return Get.find<ConfigRepository>();
-  }
-
-  static ConfigRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ConfigRepository(), permanent: true);
-  }
-
   SharedPreferences? _prefs;
   final Map<String, _CachedConfigDoc> _memory = {};
 

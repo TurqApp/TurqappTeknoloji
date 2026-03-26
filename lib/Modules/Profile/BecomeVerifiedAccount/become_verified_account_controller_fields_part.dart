@@ -1,7 +1,7 @@
 part of 'become_verified_account_controller.dart';
 
 class _BecomeVerifiedAccountControllerState {
-  final verifiedAccountRepository = VerifiedAccountRepository.ensure();
+  final verifiedAccountRepository = ensureVerifiedAccountRepository();
   final aciklamaText = ''.obs;
   final canSubmitApplication = false.obs;
   final isSubmitting = false.obs;

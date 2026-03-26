@@ -9,7 +9,7 @@ extension AdsFeatureFlagsServiceRuntimePart on AdsFeatureFlagsService {
 
   Future<void> refreshOnce() async {
     try {
-      final primaryDoc = await ConfigRepository.ensure().getAdminConfigDoc(
+      final primaryDoc = await ensureConfigRepository().getAdminConfigDoc(
         AdsCollections.adsFlagsDoc,
         preferCache: true,
       );
@@ -30,7 +30,7 @@ extension AdsFeatureFlagsServiceRuntimePart on AdsFeatureFlagsService {
         AdFeatureFlags.defaults.toMap(),
         SetOptions(merge: true),
       );
-      await ConfigRepository.ensure().putAdminConfigDoc(
+      await ensureConfigRepository().putAdminConfigDoc(
         AdsCollections.adsFlagsDoc,
         AdFeatureFlags.defaults.toMap(),
       );
@@ -54,7 +54,7 @@ extension AdsFeatureFlagsServiceRuntimePart on AdsFeatureFlagsService {
     batch.set(_primaryRef, next.toMap(), SetOptions(merge: true));
     batch.delete(_legacyRef);
     await batch.commit();
-    await ConfigRepository.ensure().putAdminConfigDoc(
+    await ensureConfigRepository().putAdminConfigDoc(
       AdsCollections.adsFlagsDoc,
       next.toMap(),
     );

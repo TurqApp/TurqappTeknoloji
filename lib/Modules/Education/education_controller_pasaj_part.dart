@@ -38,7 +38,7 @@ extension EducationControllerPasajPart on EducationController {
 
   void _bindPasajConfig() {
     _pasajConfigSub =
-        ConfigRepository.ensure().watchAdminConfigDoc('pasaj').listen(
+        ensureConfigRepository().watchAdminConfigDoc('pasaj').listen(
       (snap) {
         final data = snap;
         _adminPasajVisibility.clear();

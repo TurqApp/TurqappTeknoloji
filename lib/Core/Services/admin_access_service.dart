@@ -142,7 +142,7 @@ class AdminAccessService {
     }
 
     try {
-      final data = await ConfigRepository.ensure().getAdminConfigDoc(
+      final data = await ensureConfigRepository().getAdminConfigDoc(
             'admin',
             preferCache: true,
             ttl: _allowlistTtl,

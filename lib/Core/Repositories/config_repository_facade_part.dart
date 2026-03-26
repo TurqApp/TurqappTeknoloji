@@ -1,5 +1,17 @@
 part of 'config_repository.dart';
 
+ConfigRepository? maybeFindConfigRepository() {
+  final isRegistered = Get.isRegistered<ConfigRepository>();
+  if (!isRegistered) return null;
+  return Get.find<ConfigRepository>();
+}
+
+ConfigRepository ensureConfigRepository() {
+  final existing = maybeFindConfigRepository();
+  if (existing != null) return existing;
+  return Get.put(ConfigRepository(), permanent: true);
+}
+
 extension ConfigRepositoryFacadePart on ConfigRepository {
   Future<Map<String, dynamic>?> getAdminConfigDoc(
     String docId, {

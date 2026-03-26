@@ -20,7 +20,7 @@ Future<bool> _qaLabRemoteUploaderIsRemoteGateEnabled(
   }
   uploader._lastGateRefreshAt = now;
   try {
-    final qaDoc = await ConfigRepository.ensure().getAdminConfigDoc(
+    final qaDoc = await ensureConfigRepository().getAdminConfigDoc(
       'qa',
       preferCache: true,
       forceRefresh: false,
@@ -48,7 +48,7 @@ void _qaLabRemoteUploaderEnsureAdminConfigSubscription(
   if (Firebase.apps.isEmpty) {
     return;
   }
-  uploader._qaConfigSubscription ??= ConfigRepository.ensure()
+  uploader._qaConfigSubscription ??= ensureConfigRepository()
       .watchAdminConfigDoc(
     'qa',
     ttl: const Duration(seconds: 20),

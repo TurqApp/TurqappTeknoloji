@@ -88,7 +88,7 @@ class _SettingsViewState extends State<SettingsView> {
   bool _ownsScholarshipsController = false;
   final UserRepository _userRepository = UserRepository.ensure();
   final VerifiedAccountRepository _verifiedAccountRepository =
-      VerifiedAccountRepository.ensure();
+      ensureVerifiedAccountRepository();
   final AdminTaskAssignmentRepository _adminTaskAssignmentRepository =
       AdminTaskAssignmentRepository.ensure();
   final AdminApprovalRepository _adminApprovalRepository =

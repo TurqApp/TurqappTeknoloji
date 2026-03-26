@@ -12,12 +12,6 @@ class AgendaShuffleCacheService extends GetxService {
   static const int _backgroundFetchSize = 300;
   final _state = _AgendaShuffleCacheServiceState();
 
-  static AgendaShuffleCacheService? maybeFind() =>
-      _maybeFindAgendaShuffleCacheService();
-
-  static AgendaShuffleCacheService ensure() =>
-      _ensureAgendaShuffleCacheService();
-
   void clear() => _clearAgendaShuffleCache(this);
 
   void removePosts(Iterable<String> docIds) =>

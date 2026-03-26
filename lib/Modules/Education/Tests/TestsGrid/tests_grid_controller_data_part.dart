@@ -20,7 +20,7 @@ extension TestsGridControllerDataPart on TestsGridController {
   }
 
   void getUygulamaLinks() async {
-    final data = await ConfigRepository.ensure().getLegacyConfigDoc(
+    final data = await ensureConfigRepository().getLegacyConfigDoc(
           collection: 'Yönetim',
           docId: 'Genel',
           preferCache: true,

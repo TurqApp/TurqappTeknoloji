@@ -2,7 +2,7 @@ part of 'admob_unit_config_service.dart';
 
 Future<void> _initInternalAdmobConfig(AdmobUnitConfigService service) async {
   try {
-    final currentData = await ConfigRepository.ensure().getAdminConfigDoc(
+    final currentData = await ensureConfigRepository().getAdminConfigDoc(
       AdsCollections.admobUnitsDoc,
       preferCache: true,
       ttl: const Duration(hours: 6),
@@ -11,7 +11,7 @@ Future<void> _initInternalAdmobConfig(AdmobUnitConfigService service) async {
       service._config = _AdmobUnitConfig.fromMap(currentData);
       await _writeRemoteAdmobConfig(service, service._config.toMap());
     } else {
-      final legacyData = await ConfigRepository.ensure().getAdminConfigDoc(
+      final legacyData = await ensureConfigRepository().getAdminConfigDoc(
         AdmobUnitConfigService._legacyDocId,
         preferCache: true,
         ttl: const Duration(hours: 6),
@@ -28,7 +28,7 @@ Future<void> _initInternalAdmobConfig(AdmobUnitConfigService service) async {
   }
 
   service._sub?.cancel();
-  service._sub = ConfigRepository.ensure()
+  service._sub = ensureConfigRepository()
       .watchAdminConfigDoc(
     AdsCollections.admobUnitsDoc,
     ttl: const Duration(hours: 6),
@@ -49,7 +49,7 @@ Future<void> _writeRemoteAdmobConfig(
         .collection(AdsCollections.adminConfig)
         .doc(AdsCollections.admobUnitsDoc)
         .set(data, SetOptions(merge: true));
-    await ConfigRepository.ensure().putAdminConfigDoc(
+    await ensureConfigRepository().putAdminConfigDoc(
       AdsCollections.admobUnitsDoc,
       data,
     );

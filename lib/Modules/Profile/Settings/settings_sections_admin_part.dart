@@ -92,7 +92,7 @@ class _AdminPushMenuTileState extends State<_AdminPushMenuTile> {
     final isAdmin = await AdminAccessService.canManageSliders();
     if (!isAdmin) return false;
 
-    final data = await ConfigRepository.ensure().getAdminConfigDoc(
+    final data = await ensureConfigRepository().getAdminConfigDoc(
           'admin',
           preferCache: true,
         ) ??
