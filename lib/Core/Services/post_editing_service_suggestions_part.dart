@@ -36,7 +36,7 @@ extension PostEditingServiceSuggestionsPart on PostEditingService {
     final normalizedText = normalizeSearchText(text);
     final words = normalizedText.split(' ');
 
-    for (final hashtag in PostEditingService._commonHashtags) {
+    for (final hashtag in _kPostEditingCommonHashtags) {
       final keyword = normalizeSearchText(hashtag.substring(1));
 
       if (words.any((word) => word.contains(keyword)) &&

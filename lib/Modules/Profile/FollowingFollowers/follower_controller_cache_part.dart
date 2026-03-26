@@ -1,14 +1,25 @@
 part of 'follower_controller.dart';
 
+const Duration _followerFollowStateCacheTtl = Duration(seconds: 20);
+const Duration _followerFollowStateStaleRetention = Duration(minutes: 3);
+const int _followerMaxFollowStateCacheEntries = 800;
+const Duration _followerUserCacheTtl = Duration(minutes: 5);
+const Duration _followerUserCacheStaleRetention = Duration(minutes: 20);
+const int _followerMaxUserCacheEntries = 400;
+
+final Map<String, _FollowerUserCacheEntry> _followerUserCacheById =
+    <String, _FollowerUserCacheEntry>{};
+final Map<String, _FollowStateCacheEntry> _followerFollowStateCacheByUser =
+    <String, _FollowStateCacheEntry>{};
+
 extension _FollowerControllerCacheX on FollowerController {
   Future<void> getData(String userID) async {
     if (isLoaded.value) return;
     _pruneUserCache();
 
-    final cached = FollowerController._userCacheById[userID];
+    final cached = _followerUserCacheById[userID];
     if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <=
-            FollowerController._userCacheTtl) {
+        DateTime.now().difference(cached.cachedAt) <= _followerUserCacheTtl) {
       avatarUrl.value = cached.avatarUrl;
       nickname.value = cached.nickname;
       fullname.value = cached.fullname;
@@ -27,7 +38,7 @@ extension _FollowerControllerCacheX on FollowerController {
       avatarUrl.value = resolvedAvatar;
       nickname.value = resolvedNickname;
       fullname.value = resolvedFullname;
-      FollowerController._userCacheById[userID] = _FollowerUserCacheEntry(
+      _followerUserCacheById[userID] = _FollowerUserCacheEntry(
         avatarUrl: resolvedAvatar,
         nickname: resolvedNickname,
         fullname: resolvedFullname,
@@ -40,21 +51,19 @@ extension _FollowerControllerCacheX on FollowerController {
 
   void _pruneUserCache() {
     final now = DateTime.now();
-    FollowerController._userCacheById.removeWhere(
+    _followerUserCacheById.removeWhere(
       (_, entry) =>
-          now.difference(entry.cachedAt) >
-          FollowerController._userCacheStaleRetention,
+          now.difference(entry.cachedAt) > _followerUserCacheStaleRetention,
     );
-    if (FollowerController._userCacheById.length <=
-        FollowerController._maxUserCacheEntries) {
+    if (_followerUserCacheById.length <= _followerMaxUserCacheEntries) {
       return;
     }
-    final entries = FollowerController._userCacheById.entries.toList()
+    final entries = _followerUserCacheById.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount = FollowerController._userCacheById.length -
-        FollowerController._maxUserCacheEntries;
+    final removeCount =
+        _followerUserCacheById.length - _followerMaxUserCacheEntries;
     for (var i = 0; i < removeCount; i++) {
-      FollowerController._userCacheById.remove(entries[i].key);
+      _followerUserCacheById.remove(entries[i].key);
     }
   }
 
@@ -64,10 +73,10 @@ extension _FollowerControllerCacheX on FollowerController {
     _pruneFollowStateCache();
 
     final cacheKey = '$myUid:$userID';
-    final cached = FollowerController._followStateCacheByUser[cacheKey];
+    final cached = _followerFollowStateCacheByUser[cacheKey];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
-            FollowerController._followStateCacheTtl) {
+            _followerFollowStateCacheTtl) {
       isFollowed.value = cached.isFollowed;
       return;
     }
@@ -78,8 +87,7 @@ extension _FollowerControllerCacheX on FollowerController {
       preferCache: true,
     );
     isFollowed.value = exists;
-    FollowerController._followStateCacheByUser[cacheKey] =
-        _FollowStateCacheEntry(
+    _followerFollowStateCacheByUser[cacheKey] = _FollowStateCacheEntry(
       isFollowed: exists,
       cachedAt: DateTime.now(),
     );
@@ -87,21 +95,20 @@ extension _FollowerControllerCacheX on FollowerController {
 
   void _pruneFollowStateCache() {
     final now = DateTime.now();
-    FollowerController._followStateCacheByUser.removeWhere(
+    _followerFollowStateCacheByUser.removeWhere(
       (_, entry) =>
-          now.difference(entry.cachedAt) >
-          FollowerController._followStateStaleRetention,
+          now.difference(entry.cachedAt) > _followerFollowStateStaleRetention,
     );
-    if (FollowerController._followStateCacheByUser.length <=
-        FollowerController._maxFollowStateCacheEntries) {
+    if (_followerFollowStateCacheByUser.length <=
+        _followerMaxFollowStateCacheEntries) {
       return;
     }
-    final entries = FollowerController._followStateCacheByUser.entries.toList()
+    final entries = _followerFollowStateCacheByUser.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount = FollowerController._followStateCacheByUser.length -
-        FollowerController._maxFollowStateCacheEntries;
+    final removeCount = _followerFollowStateCacheByUser.length -
+        _followerMaxFollowStateCacheEntries;
     for (var i = 0; i < removeCount; i++) {
-      FollowerController._followStateCacheByUser.remove(entries[i].key);
+      _followerFollowStateCacheByUser.remove(entries[i].key);
     }
   }
 }

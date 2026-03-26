@@ -17,7 +17,7 @@ extension PostEditingServiceHistoryPart on PostEditingService {
     _undoStack.add(action);
     _redoStack.clear();
 
-    if (_undoStack.length > PostEditingService._maxUndoActions) {
+    if (_undoStack.length > _kPostEditingMaxUndoActions) {
       _undoStack.removeAt(0);
     }
   }
