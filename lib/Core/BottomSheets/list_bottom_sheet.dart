@@ -5,7 +5,7 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 part 'list_bottom_sheet_view_part.dart';
-part 'list_bottom_sheet_controller_part.dart';
+part 'list_bottom_sheet_controller_class_part.dart';
 part 'list_bottom_sheet_controller_actions_part.dart';
 part 'list_bottom_sheet_controller_fields_part.dart';
 

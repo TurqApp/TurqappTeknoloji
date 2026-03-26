@@ -6,7 +6,7 @@ import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'complaint_controller_part.dart';
+part 'complaint_controller_class_part.dart';
 
 class Complaint {
   final String postID;
