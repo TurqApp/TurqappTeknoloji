@@ -13,6 +13,8 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
+part 'social_media_links_controller_fields_part.dart';
+part 'social_media_links_controller_facade_part.dart';
 part 'social_media_links_controller_runtime_part.dart';
 
 class SocialMediaController extends GetxController {
@@ -28,58 +30,8 @@ class SocialMediaController extends GetxController {
     return Get.find<SocialMediaController>();
   }
 
-  final SocialMediaLinksRepository _linksRepository =
-      SocialMediaLinksRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  RxList<SocialMediaModel> list = <SocialMediaModel>[].obs;
-
-  var selected = "".obs;
-  var textController = TextEditingController();
-  var urlController = TextEditingController();
-  var imageFile = Rxn<File>();
-  var enableSave = false.obs;
-  var isUploading = false.obs;
-  var isLoading = false.obs;
-  String get currentUid => CurrentUserService.instance.effectiveUserId;
-
-  List<String> sosyal = List<String>.from(kSocialMediaEmbeddedKeys);
-
-  bool isKnownEmbeddedKey(String key) => sosyal.contains(key);
-
-  Future<void> getData({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      _SocialMediaControllerRuntimeX(this).getData(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
-
-  Future<void> pickImage(BuildContext context) =>
-      _SocialMediaControllerRuntimeX(this).pickImage(context);
-
-  void updateEnableSave() =>
-      _SocialMediaControllerRuntimeX(this).updateEnableSave();
-
-  void resetFields() => _SocialMediaControllerRuntimeX(this).resetFields();
-
-  void showAddBottomSheet() =>
-      _SocialMediaControllerRuntimeX(this).showAddBottomSheet();
-
-  Future<void> updateAllSira() =>
-      _SocialMediaControllerRuntimeX(this).updateAllSira();
-
-  Future<void> updateItemOrder(int oldIndex, int newIndex) =>
-      _SocialMediaControllerRuntimeX(this).updateItemOrder(oldIndex, newIndex);
-
-  Future<String> uploadFileImage(File file, String docID) =>
-      _SocialMediaControllerRuntimeX(this).uploadFileImage(file, docID);
-
-  Future<void> deleteLink(String docId) =>
-      _SocialMediaControllerRuntimeX(this).deleteLink(docId);
-
-  Future<void> saveLink(SocialMediaModel model) =>
-      _SocialMediaControllerRuntimeX(this).saveLink(model);
+  final _state = _SocialMediaControllerState();
 
   @override
   void onInit() {

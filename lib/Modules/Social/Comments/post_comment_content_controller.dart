@@ -11,6 +11,7 @@ import 'post_comment_controller.dart';
 
 part 'post_comment_content_controller_fields_part.dart';
 part 'post_comment_content_controller_runtime_part.dart';
+part 'post_comment_content_controller_actions_part.dart';
 
 class PostCommentContentController extends GetxController {
   static PostCommentContentController ensure({
@@ -62,25 +63,11 @@ class PostCommentContentController extends GetxController {
     _bindReplies();
   }
 
-  Future<void> toggleLike() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    final wasLiked = likes.contains(uid);
-    _applyLocalLikeState(uid: uid, liked: !wasLiked);
-    try {
-      await _interactionService.toggleCommentLike(postID, model.docID);
-    } catch (e) {
-      _applyLocalLikeState(uid: uid, liked: wasLiked);
-      AppSnackbar('common.error'.tr, 'comments.like_failed'.tr);
-    }
-  }
+  Future<void> toggleLike() =>
+      _PostCommentContentControllerActionsPart(this).toggleLike();
 
-  Future<bool> deleteComment() async {
-    final controller =
-        PostCommentController.maybeFind(tag: commentControllerTag);
-    if (controller == null) return false;
-    return controller.deleteComment(model.docID);
-  }
+  Future<bool> deleteComment() =>
+      _PostCommentContentControllerActionsPart(this).deleteComment();
 
   @override
   void onClose() {

@@ -15,6 +15,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'education_info_controller_data_part.dart';
 part 'education_info_controller_actions_part.dart';
 part 'education_info_controller_facade_part.dart';
+part 'education_info_controller_fields_part.dart';
 part 'education_info_controller_labels_part.dart';
 part 'education_info_controller_lifecycle_part.dart';
 
@@ -47,33 +48,7 @@ class EducationInfoController extends GetxController
       CityDirectoryService.ensure();
   final EducationReferenceDataService _referenceDataService =
       EducationReferenceDataService.ensure();
-  RxString selectedEducationLevel = ''.obs;
-  RxString content = ''.obs;
-  RxBool isLoading = false.obs;
-  RxBool isInitialLoading = true.obs;
-
-  RxString selectedCountry = ''.obs;
-  RxString selectedCity = ''.obs;
-  RxString selectedDistrict = ''.obs;
-  RxString selectedSchool = ''.obs;
-  RxString selectedHighSchool = ''.obs;
-  RxString selectedUniversity = ''.obs;
-  RxString selectedFaculty = ''.obs;
-  RxString selectedDepartment = ''.obs;
-  RxString selectedClassLevel = ''.obs;
-  RxList<String> countries = <String>[].obs;
-  RxList<String> cities = <String>[].obs;
-  RxList<CitiesModel> cityDistrictData = <CitiesModel>[].obs;
-  RxList<MiddleSchoolModel> middleSchools = <MiddleSchoolModel>[].obs;
-  RxList<HighSchoolModel> highSchools = <HighSchoolModel>[].obs;
-  RxList<HigherEducationModel> higherEducations = <HigherEducationModel>[].obs;
-
-  RxBool hasMiddleSchoolData = false.obs;
-  RxBool hasHighSchoolData = false.obs;
-  RxBool hasHigherEducationData = false.obs;
-
-  final Map<String, AnimationController> _animationControllers = {};
-  final Map<String, RxDouble> _animationTurns = {};
+  final _state = _EducationInfoControllerState();
 
   @override
   void onInit() {

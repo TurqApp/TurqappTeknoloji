@@ -58,23 +58,6 @@ class PhotoShortsContentController extends GetxController {
 
   PhotoShortsContentController({required this.model});
 
-  bool get canSendAdminPush {
-    return AdminAccessService.isKnownAdminSync();
-  }
-
-  final agendaController = AgendaController.ensure();
-  final countManager = PostCountManager.instance;
-  late final PostInteractionService _interactionService;
-  late final PostRepository _postRepository;
-  late final AdminPushRepository _adminPushRepository;
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
-
-  // Reactive count variables using centralized manager
-  RxInt get likeCount => countManager.getLikeCount(model.docID);
-  RxInt get commentCount => countManager.getCommentCount(model.docID);
-  RxInt get savedCount => countManager.getSavedCount(model.docID);
-  RxInt get retryCount => countManager.getRetryCount(model.docID);
-
   @override
   void onInit() {
     super.onInit();

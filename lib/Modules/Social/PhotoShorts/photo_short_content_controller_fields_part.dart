@@ -1,6 +1,11 @@
 part of 'photo_short_content_controller.dart';
 
 class _PhotoShortsControllerState {
+  final agendaController = AgendaController.ensure();
+  final countManager = PostCountManager.instance;
+  PostInteractionService? interactionService;
+  PostRepository? postRepository;
+  AdminPushRepository? adminPushRepository;
   final avatarUrl = ''.obs;
   final nickname = ''.obs;
   final token = ''.obs;
@@ -35,6 +40,25 @@ class _PhotoShortsControllerState {
 
 extension PhotoShortsContentControllerFieldsPart
     on PhotoShortsContentController {
+  bool get canSendAdminPush => AdminAccessService.isKnownAdminSync();
+  AgendaController get agendaController => _state.agendaController;
+  PostCountManager get countManager => _state.countManager;
+  PostInteractionService get _interactionService =>
+      _state.interactionService ??= PostInteractionService.ensure();
+  set _interactionService(PostInteractionService value) =>
+      _state.interactionService = value;
+  PostRepository get _postRepository =>
+      _state.postRepository ??= PostRepository.ensure();
+  set _postRepository(PostRepository value) => _state.postRepository = value;
+  AdminPushRepository get _adminPushRepository =>
+      _state.adminPushRepository ??= AdminPushRepository.ensure();
+  set _adminPushRepository(AdminPushRepository value) =>
+      _state.adminPushRepository = value;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+  RxInt get likeCount => countManager.getLikeCount(model.docID);
+  RxInt get commentCount => countManager.getCommentCount(model.docID);
+  RxInt get savedCount => countManager.getSavedCount(model.docID);
+  RxInt get retryCount => countManager.getRetryCount(model.docID);
   RxString get avatarUrl => _state.avatarUrl;
   RxString get nickname => _state.nickname;
   RxString get token => _state.token;

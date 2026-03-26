@@ -32,6 +32,7 @@ part 'current_user_service_access_part.dart';
 part 'current_user_service_facade_part.dart';
 part 'current_user_service_account_part.dart';
 part 'current_user_service_auth_part.dart';
+part 'current_user_service_fields_part.dart';
 part 'current_user_service_lifecycle_part.dart';
 part 'current_user_service_story_part.dart';
 part 'current_user_service_sync_part.dart';
@@ -60,15 +61,9 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
   }
 
-  CurrentUserModel? _currentUser;
-  final Rx<CurrentUserModel?> currentUserRx = Rx<CurrentUserModel?>(null);
-  final StreamController<CurrentUserModel?> _userStreamController =
-      StreamController<CurrentUserModel?>.broadcast();
-  Stream<CurrentUserModel?> get userStream => _userStreamController.stream;
+  final _state = _CurrentUserServiceState();
 
   String get effectiveUserId => _performEffectiveUserId();
-
-  final RxInt viewSelectionRx = 1.obs;
 
   bool hasReadStory(String storyId) =>
       _CurrentUserServiceStoryPart(this).hasReadStory(storyId);

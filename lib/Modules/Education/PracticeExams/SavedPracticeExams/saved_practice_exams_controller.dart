@@ -8,6 +8,8 @@ import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'saved_practice_exams_controller_fields_part.dart';
+part 'saved_practice_exams_controller_facade_part.dart';
 part 'saved_practice_exams_controller_runtime_part.dart';
 
 class SavedPracticeExamsController extends GetxController {
@@ -23,65 +25,12 @@ class SavedPracticeExamsController extends GetxController {
     return Get.find<SavedPracticeExamsController>();
   }
 
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
-  final UserSubcollectionRepository _subcollectionRepository =
-      UserSubcollectionRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  final RxList<String> savedExamIds = <String>[].obs;
-  final RxList<SinavModel> savedExams = <SinavModel>[].obs;
-  final RxBool isLoading = false.obs;
-
-  bool _sameIds(Iterable<String> next) {
-    return listEquals(
-      savedExamIds.toList(growable: false),
-      next.toList(growable: false),
-    );
-  }
-
-  bool _sameExamEntries(List<SinavModel> current, List<SinavModel> next) {
-    final currentKeys = current
-        .map(
-          (item) => [
-            item.docID,
-            item.sinavAdi,
-            item.sinavTuru,
-            item.timeStamp,
-            item.participantCount,
-            item.cover,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (item) => [
-            item.docID,
-            item.sinavAdi,
-            item.sinavTuru,
-            item.timeStamp,
-            item.participantCount,
-            item.cover,
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
+  final _state = _SavedPracticeExamsControllerState();
 
   @override
   void onInit() {
     super.onInit();
     _SavedPracticeExamsControllerRuntimeX(this).handleOnInit();
   }
-
-  Future<void> loadSavedExams({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      _SavedPracticeExamsControllerRuntimeX(this).loadSavedExams(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
-
-  Future<void> toggleSavedExam(String docId) =>
-      _SavedPracticeExamsControllerRuntimeX(this).toggleSavedExam(docId);
 }
