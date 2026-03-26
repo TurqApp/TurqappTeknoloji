@@ -28,6 +28,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'upload_queue_service_helpers_part.dart';
 part 'upload_queue_service_facade_part.dart';
 part 'upload_queue_service_fields_part.dart';
+part 'upload_queue_service_static_part.dart';
 part 'upload_queue_service_queue_part.dart';
 part 'upload_queue_service_lifecycle_part.dart';
 part 'upload_queue_service_models_part.dart';
@@ -36,17 +37,10 @@ part 'upload_queue_service_post_shell_part.dart';
 part 'upload_queue_service_processing_part.dart';
 
 class UploadQueueService extends GetxController {
-  static UploadQueueService? maybeFind() {
-    final isRegistered = Get.isRegistered<UploadQueueService>();
-    if (!isRegistered) return null;
-    return Get.find<UploadQueueService>();
-  }
+  static UploadQueueService? maybeFind() => _maybeFindUploadQueueService();
 
-  static UploadQueueService ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(UploadQueueService(), permanent: permanent);
-  }
+  static UploadQueueService ensure({bool permanent = false}) =>
+      _ensureUploadQueueService(permanent: permanent);
 
   static int get _maxVideoBytesForStorageRule =>
       UploadValidationService.currentMaxVideoSizeBytes;
@@ -59,21 +53,21 @@ class UploadQueueService extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _UploadQueueServiceLifecyclePart(this).handleOnInit();
+    _handleUploadQueueServiceInit(this);
   }
 
   Future<void> _createPendingPostShell(QueuedUpload upload) =>
-      _performCreatePendingPostShell(upload);
+      _createUploadPendingPostShell(this, upload);
 
   /// Save queue to local storage
-  Future<void> _saveQueueToStorage() => _performSaveQueueToStorage();
+  Future<void> _saveQueueToStorage() => _saveUploadQueueToStorage(this);
 
   /// Load queue from local storage
-  Future<void> _loadQueueFromStorage() => _performLoadQueueFromStorage();
+  Future<void> _loadQueueFromStorage() => _loadUploadQueueFromStorage(this);
 
   @override
   void onClose() {
-    _UploadQueueServiceLifecyclePart(this).handleOnClose();
+    _handleUploadQueueServiceClose(this);
     super.onClose();
   }
 }

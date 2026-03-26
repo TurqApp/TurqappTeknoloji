@@ -14,19 +14,14 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'scholarship_detail_controller_data_part.dart';
 part 'scholarship_detail_controller_actions_part.dart';
+part 'scholarship_detail_controller_facade_part.dart';
 
 class ScholarshipDetailController extends GetxController {
-  static ScholarshipDetailController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ScholarshipDetailController(), permanent: permanent);
-  }
+  static ScholarshipDetailController ensure({bool permanent = false}) =>
+      _ensureScholarshipDetailController(permanent: permanent);
 
-  static ScholarshipDetailController? maybeFind() {
-    final isRegistered = Get.isRegistered<ScholarshipDetailController>();
-    if (!isRegistered) return null;
-    return Get.find<ScholarshipDetailController>();
-  }
+  static ScholarshipDetailController? maybeFind() =>
+      _maybeFindScholarshipDetailController();
 
   static const String _selectValue = 'Seçiniz';
   static const String _selectActionValue = 'Seçim Yap';
@@ -53,33 +48,16 @@ class ScholarshipDetailController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    checkUserApplicationReadiness(showErrors: false);
-    final scholarshipData = Get.arguments as Map<String, dynamic>?;
-    if (scholarshipData != null) {
-      final scholarshipId =
-          (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
-              .toString();
-      if (scholarshipId.isNotEmpty) {
-        _loadFullScholarship(scholarshipId);
-      }
-      checkIfUserAlreadyApplied(scholarshipData, showErrors: false);
-      _incrementViewCount(scholarshipData);
-    }
+    _handleScholarshipDetailInit(this);
   }
 
-  void updatePageIndex(int pageIndex) {
-    currentPageIndex.value = pageIndex;
-  }
+  void updatePageIndex(int pageIndex) =>
+      _updateScholarshipDetailPageIndex(this, pageIndex);
 
-  void toggleUniversityList() {
-    showAllUniversities.value = !showAllUniversities.value;
-  }
+  void toggleUniversityList() => _toggleScholarshipUniversityList(this);
 
-  String formatTimestamp(int? timestamp) {
-    if (timestamp == null) return 'common.unspecified'.tr;
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return DateFormat('dd.MM.yyyy').format(date);
-  }
+  String formatTimestamp(int? timestamp) =>
+      _formatScholarshipDetailTimestamp(timestamp);
 
   final RxBool isFollowLoading = false.obs;
 }

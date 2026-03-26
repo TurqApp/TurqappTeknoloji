@@ -45,6 +45,7 @@ part 'chat_controller_actions_part.dart';
 part 'chat_controller_composer_part.dart';
 part 'chat_controller_fields_part.dart';
 part 'chat_controller_forwarding_part.dart';
+part 'chat_controller_lifecycle_part.dart';
 part 'chat_controller_local_cache_part.dart';
 part 'chat_controller_media_part.dart';
 part 'chat_controller_runtime_part.dart';
@@ -76,12 +77,12 @@ class ChatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeChatRuntime();
+    _handleChatControllerInit(this);
   }
 
   @override
   void onClose() {
-    _disposeChatRuntimeResources();
+    _handleChatControllerClose(this);
     super.onClose();
   }
 }

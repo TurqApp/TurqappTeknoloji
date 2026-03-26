@@ -11,19 +11,16 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'optics_and_books_published_controller_runtime_part.dart';
 part 'optics_and_books_published_controller_data_part.dart';
+part 'optics_and_books_published_controller_facade_part.dart';
 
 class OpticsAndBooksPublishedController extends GetxController {
-  static OpticsAndBooksPublishedController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(OpticsAndBooksPublishedController(), permanent: permanent);
-  }
+  static OpticsAndBooksPublishedController ensure({
+    bool permanent = false,
+  }) =>
+      _ensureOpticsAndBooksPublishedController(permanent: permanent);
 
-  static OpticsAndBooksPublishedController? maybeFind() {
-    final isRegistered = Get.isRegistered<OpticsAndBooksPublishedController>();
-    if (!isRegistered) return null;
-    return Get.find<OpticsAndBooksPublishedController>();
-  }
+  static OpticsAndBooksPublishedController? maybeFind() =>
+      _maybeFindOpticsAndBooksPublishedController();
 
   final BookletRepository _bookletRepository = BookletRepository.ensure();
   final OpticalFormRepository _opticalFormRepository =
@@ -39,40 +36,33 @@ class OpticsAndBooksPublishedController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapData());
+    _handleOpticsAndBooksPublishedInit(this);
   }
 
-  void setSelection(int value) {
-    selection.value = value;
-  }
+  void setSelection(int value) => _setOpticsAndBooksSelection(this, value);
 
-  void refreshOnOpen() {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    if (isLoading.value) return;
-    if (now - _lastOpenRefreshAt < 800) return;
-    _lastOpenRefreshAt = now;
-    loadData(forceRefresh: true);
-  }
+  void refreshOnOpen() => _refreshOpticsAndBooksOnOpen(this);
 
-  Future<void> _bootstrapData() =>
-      _OpticsAndBooksPublishedControllerRuntimeX(this)._bootstrapData();
+  Future<void> _bootstrapData() => _bootstrapOpticsAndBooksData(this);
 
   Future<void> loadData({
     bool silent = false,
     bool forceRefresh = false,
   }) =>
-      _OpticsAndBooksPublishedControllerRuntimeX(this).loadData(
+      _loadOpticsAndBooksData(
+        this,
         silent: silent,
         forceRefresh: forceRefresh,
       );
 
-  Future<void> getData({bool forceRefresh = false}) =>
-      _OpticsAndBooksPublishedControllerRuntimeX(this).getData(
+  Future<void> getData({bool forceRefresh = false}) => _getPublishedBooksData(
+        this,
         forceRefresh: forceRefresh,
       );
 
   Future<void> getOptikler({bool forceRefresh = false}) =>
-      _OpticsAndBooksPublishedControllerRuntimeX(this).getOptikler(
+      _getPublishedOpticalForms(
+        this,
         forceRefresh: forceRefresh,
       );
 }

@@ -3,80 +3,32 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/jobs.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'job_selector_controller_facade_part.dart';
 part 'job_selector_controller_fields_part.dart';
 
 class JobSelectorController extends GetxController {
-  static JobSelectorController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(
-      JobSelectorController(),
-      permanent: permanent,
-    );
-  }
+  static JobSelectorController ensure({bool permanent = false}) =>
+      _ensureJobSelectorController(permanent: permanent);
 
-  static JobSelectorController? maybeFind() {
-    final isRegistered = Get.isRegistered<JobSelectorController>();
-    if (!isRegistered) return null;
-    return Get.find<JobSelectorController>();
-  }
+  static JobSelectorController? maybeFind() =>
+      _maybeFindJobSelectorController();
 
   static const _studentJob = 'öğrenci';
   final _state = _JobSelectorControllerState();
 
-  List<String> _buildInitialJobs() {
-    final idx = jobs.indexWhere(
-      (e) => normalizeSearchText(e) == normalizeSearchText(_studentJob),
-    );
-    if (idx < 0) {
-      return List<String>.from(jobs.take(30));
-    }
-    return List<String>.from(jobs.take(idx + 1));
-  }
+  List<String> _buildInitialJobs() => _buildJobSelectorInitialJobs(this);
 
-  List<String> _initialWithSelected() {
-    final current = job.value.trim();
-    if (current.isEmpty) {
-      return _initialJobs;
-    }
-    if (_initialJobs.any((e) => e.trim() == current)) {
-      return _initialJobs;
-    }
-    return [current, ..._initialJobs];
-  }
+  List<String> _initialWithSelected() => _jobSelectorInitialWithSelected(this);
 
   @override
   void onInit() {
     super.onInit();
-    _initialJobs = _buildInitialJobs();
-    filteredJobs.assignAll(_initialJobs);
-    job.value = _userService.meslekKategori.trim();
-    filteredJobs.assignAll(_initialWithSelected());
+    _handleJobSelectorInit(this);
   }
 
-  void selectJob(String value) {
-    job.value = value;
-    filteredJobs.refresh();
-  }
+  void selectJob(String value) => _selectJobValue(this, value);
 
-  void filterJobs(String query) {
-    final q = normalizeSearchText(query);
-    if (q.isEmpty) {
-      filteredJobs.assignAll(_initialWithSelected());
-    } else {
-      filteredJobs.assignAll(
-        jobs.where((job) => normalizeSearchText(job).contains(q)),
-      );
-    }
-  }
+  void filterJobs(String query) => _filterJobOptions(this, query);
 
-  Future<void> setData() async {
-    final selected = job.value.trim();
-    if (selected.isEmpty) {
-      return;
-    }
-    await _userService.updateFields({"meslekKategori": selected});
-
-    Get.back();
-  }
+  Future<void> setData() => _saveSelectedJob(this);
 }

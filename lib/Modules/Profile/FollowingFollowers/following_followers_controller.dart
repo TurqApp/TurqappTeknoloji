@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 part 'following_followers_controller_cache_part.dart';
 part 'following_followers_controller_fields_part.dart';
+part 'following_followers_controller_facade_part.dart';
 part 'following_followers_controller_models_part.dart';
 part 'following_followers_controller_search_part.dart';
 part 'following_followers_controller_mutation_part.dart';
@@ -21,7 +22,7 @@ class FollowingFollowersController extends GetxController {
 
   @override
   void onClose() {
-    _FollowingFollowersControllerRuntimePart.onClose(this);
+    _handleFollowingFollowersClose(this);
     super.onClose();
   }
 
@@ -37,20 +38,15 @@ class FollowingFollowersController extends GetxController {
     String? tag,
     bool permanent = false,
   }) =>
-      maybeFind(tag: tag) ??
-      Get.put(
-        FollowingFollowersController(
-          userId: userId,
-          initialPage: initialPage,
-        ),
+      _ensureFollowingFollowersController(
+        userId: userId,
+        initialPage: initialPage,
         tag: tag,
         permanent: permanent,
       );
 
   static FollowingFollowersController? maybeFind({String? tag}) =>
-      Get.isRegistered<FollowingFollowersController>(tag: tag)
-          ? Get.find<FollowingFollowersController>(tag: tag)
-          : null;
+      _maybeFindFollowingFollowersController(tag: tag);
 
   FollowingFollowersController({
     required String userId,
@@ -62,7 +58,7 @@ class FollowingFollowersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _FollowingFollowersControllerRuntimePart.onInit(this);
+    _handleFollowingFollowersInit(this);
   }
 
   static void applyFollowMutationToCaches({
@@ -70,7 +66,7 @@ class FollowingFollowersController extends GetxController {
     required String otherUserID,
     required bool nowFollowing,
   }) =>
-      _applyFollowMutationToCachesImpl(
+      _applyFollowingFollowersMutationToCaches(
         currentUid: currentUid,
         otherUserID: otherUserID,
         nowFollowing: nowFollowing,

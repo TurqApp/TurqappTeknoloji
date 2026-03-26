@@ -19,6 +19,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'answer_key_content_controller_data_part.dart';
 part 'answer_key_content_controller_actions_part.dart';
+part 'answer_key_content_controller_facade_part.dart';
 part 'answer_key_content_controller_runtime_part.dart';
 
 class AnswerKeyContentController extends GetxController {
@@ -31,21 +32,16 @@ class AnswerKeyContentController extends GetxController {
     Function(bool) onUpdate, {
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      AnswerKeyContentController(model, onUpdate),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureAnswerKeyContentController(
+        model,
+        onUpdate,
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static AnswerKeyContentController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<AnswerKeyContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<AnswerKeyContentController>(tag: tag);
-  }
+  static AnswerKeyContentController? maybeFind({String? tag}) =>
+      _maybeFindAnswerKeyContentController(tag: tag);
 
   BookletModel model;
   final Function(bool) onUpdate;
@@ -57,23 +53,23 @@ class AnswerKeyContentController extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
-  static String _resolveCurrentUid() => _resolveAnswerKeyContentCurrentUid();
+  static String _resolveCurrentUid() =>
+      _resolveAnswerKeyContentCurrentUidFacade();
 
   bool get isOwner => isCurrentUserId(model.userID);
 
-  void syncModel(BookletModel nextModel) {
-    model = nextModel;
-  }
+  void syncModel(BookletModel nextModel) =>
+      _syncAnswerKeyContentModel(this, nextModel);
 
   @override
   void onInit() {
     super.onInit();
-    _initialize();
+    _handleAnswerKeyContentInit(this);
   }
 
   static Future<Set<String>> _loadSavedIds(String userId) =>
-      _loadAnswerKeyContentSavedIds(userId);
+      _loadAnswerKeyContentSavedIdsFacade(userId);
 
   static Future<void> warmSavedIdsForCurrentUser() =>
-      _warmAnswerKeyContentSavedIdsForCurrentUser();
+      _warmAnswerKeyContentSavedIdsForCurrentUserFacade();
 }
