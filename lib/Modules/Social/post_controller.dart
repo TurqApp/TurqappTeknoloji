@@ -10,6 +10,7 @@ import '../../Services/current_user_service.dart';
 import 'Comments/post_comments.dart';
 
 part 'post_controller_actions_part.dart';
+part 'post_controller_base_part.dart';
 part 'post_controller_class_part.dart';
 part 'post_controller_fields_part.dart';
 part 'post_controller_support_part.dart';

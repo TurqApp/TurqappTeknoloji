@@ -23,9 +23,8 @@ class _AnswerKeyCreatingOptionState extends State<AnswerKeyCreatingOption> {
     super.initState();
     _controllerTag = 'answer_key_option_${identityHashCode(this)}';
     _ownsController =
-        AnswerKeyCreatingOptionController.maybeFind(tag: _controllerTag) ==
-            null;
-    controller = AnswerKeyCreatingOptionController.ensure(
+        maybeFindAnswerKeyCreatingOptionController(tag: _controllerTag) == null;
+    controller = ensureAnswerKeyCreatingOptionController(
       widget.onBack,
       tag: _controllerTag,
     );
@@ -35,7 +34,7 @@ class _AnswerKeyCreatingOptionState extends State<AnswerKeyCreatingOption> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          AnswerKeyCreatingOptionController.maybeFind(tag: _controllerTag);
+          maybeFindAnswerKeyCreatingOptionController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<AnswerKeyCreatingOptionController>(
           tag: _controllerTag,

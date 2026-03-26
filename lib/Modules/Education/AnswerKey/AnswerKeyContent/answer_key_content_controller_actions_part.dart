@@ -149,7 +149,7 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
   }
 
   Future<void> shareBooklet() async {
-    final currentUid = AnswerKeyContentController._resolveCurrentUid();
+    final currentUid = _resolveAnswerKeyContentCurrentUidFacade();
     final canShareFeed =
         AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
     if (!canShareFeed) {
@@ -182,7 +182,7 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
   }
 
   void showBottomSheet(BuildContext context) {
-    if (model.userID != AnswerKeyContentController._resolveCurrentUid()) {
+    if (model.userID != _resolveAnswerKeyContentCurrentUidFacade()) {
       _showSpamBottomSheet(context);
     } else {
       _showDeleteBottomSheet(context);

@@ -1,11 +1,6 @@
 part of 'answer_key_content_controller.dart';
 
 class AnswerKeyContentController extends GetxController {
-  static final Map<String, Set<String>> _savedIdsByUser =
-      <String, Set<String>>{};
-  static final Map<String, Future<Set<String>>> _savedIdsLoaders =
-      <String, Future<Set<String>>>{};
-
   final _AnswerKeyContentControllerState _state;
 
   AnswerKeyContentController(BookletModel model, Function(bool) onUpdate)
@@ -14,15 +9,9 @@ class AnswerKeyContentController extends GetxController {
           onUpdate: onUpdate,
         );
 
-  static String _resolveCurrentUid() =>
-      _resolveAnswerKeyContentCurrentUidFacade();
-
   @override
   void onInit() {
     super.onInit();
     _handleAnswerKeyContentInit(this);
   }
-
-  static Future<Set<String>> _loadSavedIds(String userId) =>
-      _loadAnswerKeyContentSavedIdsFacade(userId);
 }

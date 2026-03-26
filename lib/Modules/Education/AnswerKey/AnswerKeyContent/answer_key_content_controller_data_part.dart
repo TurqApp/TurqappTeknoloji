@@ -2,7 +2,7 @@ part of 'answer_key_content_controller.dart';
 
 extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
   void _initialize() {
-    final currentUserId = AnswerKeyContentController._resolveCurrentUid();
+    final currentUserId = _resolveAnswerKeyContentCurrentUidFacade();
     _primeBookmarkState(currentUserId);
     unawaited(_loadBookmarkState(currentUserId));
   }
@@ -12,7 +12,7 @@ extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
       isBookmarked.value = false;
       return;
     }
-    final cachedIds = AnswerKeyContentController._savedIdsByUser[currentUserId];
+    final cachedIds = _answerKeyContentSavedIdsByUser[currentUserId];
     if (cachedIds != null) {
       isBookmarked.value = cachedIds.contains(model.docID);
       return;
@@ -24,8 +24,7 @@ extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
     if (currentUserId.isEmpty) return;
 
     try {
-      final savedIds =
-          await AnswerKeyContentController._loadSavedIds(currentUserId);
+      final savedIds = await _loadAnswerKeyContentSavedIdsFacade(currentUserId);
       isBookmarked.value = savedIds.contains(model.docID);
     } catch (e) {
       log('Kaydet durumu okunamadı: $e');
@@ -33,7 +32,7 @@ extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
   }
 
   void _updateViewCount() {
-    final currentUserId = AnswerKeyContentController._resolveCurrentUid();
+    final currentUserId = _resolveAnswerKeyContentCurrentUidFacade();
     if (currentUserId.isNotEmpty && model.userID != currentUserId) {
       FirebaseFirestore.instance.collection('books').doc(model.docID).update({
         'viewCount': FieldValue.increment(1),
@@ -48,7 +47,7 @@ extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
   }
 
   Future<void> toggleBookmark() async {
-    final userId = AnswerKeyContentController._resolveCurrentUid();
+    final userId = _resolveAnswerKeyContentCurrentUidFacade();
     if (userId.isEmpty) return;
 
     try {
@@ -59,7 +58,7 @@ extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
           docId: model.docID,
         );
         isBookmarked.value = false;
-        AnswerKeyContentController._savedIdsByUser[userId]?.remove(model.docID);
+        _answerKeyContentSavedIdsByUser[userId]?.remove(model.docID);
         return;
       }
 
@@ -72,7 +71,7 @@ extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
         },
       );
       isBookmarked.value = true;
-      AnswerKeyContentController._savedIdsByUser
+      _answerKeyContentSavedIdsByUser
           .putIfAbsent(userId, () => <String>{})
           .add(model.docID);
     } catch (e) {

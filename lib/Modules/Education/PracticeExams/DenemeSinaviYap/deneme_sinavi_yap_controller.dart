@@ -16,6 +16,7 @@ part 'deneme_sinavi_yap_controller_base_part.dart';
 part 'deneme_sinavi_yap_controller_fields_part.dart';
 part 'deneme_sinavi_yap_controller_config_part.dart';
 part 'deneme_sinavi_yap_controller_facade_part.dart';
+part 'deneme_sinavi_yap_controller_lifecycle_part.dart';
 part 'deneme_sinavi_yap_controller_runtime_part.dart';
 part 'deneme_sinavi_yap_controller_shell_part.dart';
 part 'deneme_sinavi_yap_controller_shell_content_part.dart';
