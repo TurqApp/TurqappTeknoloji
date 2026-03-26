@@ -201,7 +201,9 @@ extension CreatorContentTextPart on CreatorContent {
                         return InkWell(
                           onTap: () =>
                               controller.applyTrendingHashtagSelection(item),
-                          child: Padding(
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(minHeight: 56),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 10,
