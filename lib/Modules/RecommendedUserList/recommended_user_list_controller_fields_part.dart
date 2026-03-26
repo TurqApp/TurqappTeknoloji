@@ -11,7 +11,9 @@ class _RecommendedUserListControllerState {
   bool hasMoreFollowing = true;
   bool isLoadingFollowing = false;
   final int followingLimit = 100;
+  final int usersWarmCount = 18;
   final int usersReadyCount = 60;
+  final int usersFetchWarm = 80;
   final int usersLimitInitial = 200;
   final int usersLimitFull = 500;
   bool bgScheduled = false;
@@ -37,7 +39,9 @@ extension RecommendedUserListControllerFieldsPart
   bool get isLoadingFollowing => _state.isLoadingFollowing;
   set isLoadingFollowing(bool value) => _state.isLoadingFollowing = value;
   int get followingLimit => _state.followingLimit;
+  int get usersWarmCount => _state.usersWarmCount;
   int get usersReadyCount => _state.usersReadyCount;
+  int get usersFetchWarm => _state.usersFetchWarm;
   int get usersLimitInitial => _state.usersLimitInitial;
   int get usersLimitFull => _state.usersLimitFull;
   bool get _bgScheduled => _state.bgScheduled;

@@ -69,7 +69,7 @@ extension _SplashViewWarmPart on _SplashViewState {
         (() async {
           try {
             await recommendedController
-                .ensureLoaded(limit: recommendedController.usersReadyCount)
+                .ensureLoaded(limit: recommendedController.usersWarmCount)
                 .timeout(
                   Duration(milliseconds: onWiFi ? 1600 : 1100),
                   onTimeout: () {},

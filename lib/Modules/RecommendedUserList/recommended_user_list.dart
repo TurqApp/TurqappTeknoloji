@@ -46,14 +46,10 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     });
 
     return Obx(() {
-      // Slot akışta sabit kalsın; veri gelene kadar placeholder göster.
-      if (controller.list.isEmpty && !controller.hasError.value) {
-        return _buildLoadingPlaceholder();
-      }
-
-      // Hata varsa sessizce gizle
+      // Slot akışta sabit kalsın; ilk yük ve geçici hata anlarında
+      // akışı boş bırakmak yerine placeholder korunsun.
       if (controller.list.isEmpty) {
-        return const SizedBox.shrink();
+        return _buildLoadingPlaceholder();
       }
 
       final List<RecommendedUserModel> items = controller.list;
@@ -113,7 +109,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   void _tryPrefetch() {
     if (!mounted) return;
     if (_prefetchRequested) return;
-    if (controller.list.length >= controller.usersReadyCount) {
+    if (controller.list.length >= controller.usersWarmCount) {
       _prefetchRequested = true;
       return;
     }
@@ -126,7 +122,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     if (pos.dy < screenH + lookahead) {
       _prefetchRequested = true;
       try {
-        controller.ensureLoaded(limit: controller.usersReadyCount);
+        controller.ensureLoaded(limit: controller.usersWarmCount);
       } catch (_) {
         _prefetchRequested = false; // controller bulunamazsa tekrar dene
       }

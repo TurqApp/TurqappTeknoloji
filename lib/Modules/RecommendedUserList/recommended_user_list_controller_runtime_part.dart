@@ -5,7 +5,7 @@ extension _RecommendedUserListControllerRuntimeX
   void _preloadInBackground() {
     Future.microtask(() async {
       try {
-        await ensureLoaded(limit: usersReadyCount);
+        await ensureLoaded(limit: usersWarmCount);
       } catch (_) {}
     });
   }
@@ -62,7 +62,7 @@ extension _RecommendedUserListControllerRuntimeX
   }
 
   Future<void> getUsers({int? limit}) async {
-    final requiredCount = limit ?? usersLimitFull;
+    final requiredCount = limit ?? usersWarmCount;
     if (_isCacheValid() && _hasEnoughUsers(requiredCount)) return;
     if (isLoading.value) return;
 
@@ -72,8 +72,11 @@ extension _RecommendedUserListControllerRuntimeX
     try {
       final currentUserId = CurrentUserService.instance.effectiveUserId;
       await getFollowing();
-      final fetchLimit =
-          requiredCount <= usersReadyCount ? usersLimitInitial : requiredCount;
+      final fetchLimit = requiredCount <= usersWarmCount
+          ? usersFetchWarm
+          : (requiredCount <= usersReadyCount
+              ? usersLimitInitial
+              : requiredCount);
 
       var candidates = await RecommendedUsersRepository.ensure()
           .fetchCandidates(limit: fetchLimit, preferCache: true)
@@ -104,7 +107,7 @@ extension _RecommendedUserListControllerRuntimeX
   }
 
   Future<void> ensureLoaded({int? limit}) async {
-    final requiredCount = limit ?? usersReadyCount;
+    final requiredCount = limit ?? usersWarmCount;
     if (_isCacheValid() && _hasEnoughUsers(requiredCount)) return;
     if (loadedOnce && _hasEnoughUsers(requiredCount)) {
       _scheduleBackgroundUsersLoad();
