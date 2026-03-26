@@ -335,7 +335,6 @@ extension _AgendaContentQuotePart on _AgendaContentState {
           child: _buildImage(
             images[0],
             radius: BorderRadius.circular(12),
-            showShareCta: false,
           ),
         );
       case 2:
@@ -374,6 +373,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 const ColoredBox(
                   color: _AgendaContentState._videoFallbackColor,
                 ),
+              if (_hasEducationFeedCta()) _buildFeedShareCta(),
               Positioned.fill(
                 child: Center(
                   child: Container(
