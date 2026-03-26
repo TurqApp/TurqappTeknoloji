@@ -8,5 +8,6 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 part 'post_like_listing_controller_models_part.dart';
 part 'post_like_listing_controller_runtime_part.dart';
 part 'post_like_listing_controller_class_part.dart';
+part 'post_like_listing_controller_base_part.dart';
 part 'post_like_listing_controller_facade_part.dart';
 part 'post_like_listing_controller_fields_part.dart';

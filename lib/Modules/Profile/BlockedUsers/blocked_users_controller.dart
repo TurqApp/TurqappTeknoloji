@@ -13,4 +13,5 @@ import '../../../Models/ogrenci_model.dart';
 part 'blocked_users_controller_actions_part.dart';
 part 'blocked_users_controller_runtime_part.dart';
 part 'blocked_users_controller_class_part.dart';
+part 'blocked_users_controller_base_part.dart';
 part 'blocked_users_controller_facade_part.dart';

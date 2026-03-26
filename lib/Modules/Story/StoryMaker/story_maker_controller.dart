@@ -28,6 +28,7 @@ import 'package:video_player/video_player.dart';
 import 'drawing_screen.dart';
 
 part 'story_maker_controller_class_part.dart';
+part 'story_maker_controller_base_part.dart';
 part 'story_maker_controller_media_part.dart';
 part 'story_maker_controller_elements_part.dart';
 part 'story_maker_controller_facade_part.dart';
