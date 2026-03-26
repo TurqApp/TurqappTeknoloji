@@ -458,7 +458,7 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
             onTap: () async {
               final ok = await controller.submitApplication();
               if (ok) {
-                controller.bodySelection++;
+                controller.bodySelection.value++;
               }
             },
             child: Container(

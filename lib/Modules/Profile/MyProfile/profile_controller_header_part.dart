@@ -62,12 +62,15 @@ extension ProfileControllerHeaderPart on ProfileController {
   }
 
   void _performApplyHeaderCard(Map<String, dynamic> data) {
+    final profile = (data['profile'] is Map)
+        ? Map<String, dynamic>.from(data['profile'] as Map)
+        : const <String, dynamic>{};
     headerNickname.value =
         (data['nickname'] ?? data['username'] ?? '').toString().trim();
     headerRozet.value =
         (data['rozet'] ?? data['badge'] ?? '').toString().trim();
     headerDisplayName.value = (data['displayName'] ?? '').toString().trim();
-    headerAvatarUrl.value = (data['avatarUrl'] ?? '').toString().trim();
+    headerAvatarUrl.value = resolveAvatarUrl(data, profile: profile);
 
     final display = headerDisplayName.value.trim();
     if (display.isNotEmpty) {

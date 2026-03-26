@@ -12,7 +12,22 @@ String resolveAvatarUrl(
   Map<String, dynamic> data, {
   Map<String, dynamic>? profile,
 }) {
-  final p = profile ?? const <String, dynamic>{};
+  Map<String, dynamic> nestedMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) {
+      return raw.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  final nestedProfile = nestedMap(data['profile']);
+  final nestedPublicProfile = nestedMap(data['publicProfile']);
+  final p = <String, dynamic>{}
+    ..addAll(nestedProfile)
+    ..addAll(nestedPublicProfile)
+    ..addAll(profile ?? const <String, dynamic>{});
   const keys = <String>[
     'avatarUrl',
     'profileImage',

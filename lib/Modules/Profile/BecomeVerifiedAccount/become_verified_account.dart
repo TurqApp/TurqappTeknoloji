@@ -60,7 +60,7 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
                 AppBackButton(
                   onTap: () {
                     if (controller.bodySelection.value != 0) {
-                      controller.bodySelection--;
+                      controller.bodySelection.value--;
                     } else {
                       Get.back();
                     }

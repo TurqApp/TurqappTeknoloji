@@ -34,21 +34,38 @@ class UserSummary {
   });
 
   factory UserSummary.fromMap(String uid, Map<String, dynamic> raw) {
+    final profile = (raw['profile'] is Map)
+        ? Map<String, dynamic>.from(raw['profile'] as Map)
+        : const <String, dynamic>{};
+    final publicProfile = (raw['publicProfile'] is Map)
+        ? Map<String, dynamic>.from(raw['publicProfile'] as Map)
+        : const <String, dynamic>{};
+    final scoped = <String, dynamic>{}
+      ..addAll(profile)
+      ..addAll(publicProfile);
+
     return UserSummary(
       userID: uid,
-      displayName: (raw['displayName'] ?? '').toString().trim(),
-      nickname: (raw['nickname'] ?? '').toString().trim(),
-      username: (raw['username'] ?? '').toString().trim(),
-      avatarUrl: resolveAvatarUrl(raw),
-      bio: (raw['bio'] ?? '').toString(),
-      rozet: (raw['rozet'] ?? '').toString().trim(),
-      token: (raw['token'] ?? '').toString().trim(),
+      displayName:
+          (raw['displayName'] ?? scoped['displayName'] ?? '').toString().trim(),
+      nickname: (raw['nickname'] ?? scoped['nickname'] ?? '').toString().trim(),
+      username: (raw['username'] ?? scoped['username'] ?? '').toString().trim(),
+      avatarUrl: resolveAvatarUrl(raw, profile: scoped),
+      bio: (raw['bio'] ?? scoped['bio'] ?? '').toString(),
+      rozet: (raw['rozet'] ??
+              raw['badge'] ??
+              scoped['rozet'] ??
+              scoped['badge'] ??
+              '')
+          .toString()
+          .trim(),
+      token: (raw['token'] ?? scoped['token'] ?? '').toString().trim(),
       followerCount: _toInt(raw['followerCount'] ?? raw['followersCount']),
       followingCount: _toInt(raw['followingCount']),
       postCount: _toInt(raw['postCount']),
-      isPrivate: raw['isPrivate'] == true,
-      isDeleted: raw['isDeleted'] == true,
-      isApproved: raw['isApproved'] == true,
+      isPrivate: (raw['isPrivate'] ?? scoped['isPrivate']) == true,
+      isDeleted: (raw['isDeleted'] ?? scoped['isDeleted']) == true,
+      isApproved: (raw['isApproved'] ?? scoped['isApproved']) == true,
     );
   }
 

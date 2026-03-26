@@ -116,22 +116,48 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
   }
 
   Map<String, dynamic> _sanitizeProfile(Map<String, dynamic> raw) {
-    final username = (raw['username'] ?? '').toString().trim();
-    final usernameLower = (raw['usernameLower'] ?? '').toString().trim();
-    final rawNickname = (raw['nickname'] ?? '').toString().trim();
+    Map<String, dynamic> asMap(dynamic value) {
+      if (value is Map<String, dynamic>) return value;
+      if (value is Map) {
+        return value.map(
+          (key, entry) => MapEntry(key.toString(), entry),
+        );
+      }
+      return const <String, dynamic>{};
+    }
+
+    final profile = asMap(raw['profile']);
+    final publicProfile = asMap(raw['publicProfile']);
+    final scoped = <String, dynamic>{}
+      ..addAll(profile)
+      ..addAll(publicProfile);
+
+    final username =
+        (raw['username'] ?? scoped['username'] ?? '').toString().trim();
+    final usernameLower =
+        (raw['usernameLower'] ?? scoped['usernameLower'] ?? '')
+            .toString()
+            .trim();
+    final rawNickname =
+        (raw['nickname'] ?? scoped['nickname'] ?? '').toString().trim();
     final nickname = _resolveHandle(
       nickname: rawNickname,
       username: username,
       usernameLower: usernameLower,
     );
-    final firstName = (raw['firstName'] ?? '').toString().trim();
-    final lastName = (raw['lastName'] ?? '').toString().trim();
+    final firstName =
+        (raw['firstName'] ?? scoped['firstName'] ?? '').toString().trim();
+    final lastName =
+        (raw['lastName'] ?? scoped['lastName'] ?? '').toString().trim();
     final fullNameParts =
         [firstName, lastName].where((e) => e.isNotEmpty).join(' ');
-    final displayName = (raw['displayName'] ?? '').toString().trim().isNotEmpty
-        ? (raw['displayName'] ?? '').toString().trim()
+    final displayName = (raw['displayName'] ?? scoped['displayName'] ?? '')
+            .toString()
+            .trim()
+            .isNotEmpty
+        ? (raw['displayName'] ?? scoped['displayName'] ?? '').toString().trim()
         : (fullNameParts.isNotEmpty ? fullNameParts : nickname);
-    final avatarUrl = resolveAvatarUrl(raw);
+    final avatarUrl = resolveAvatarUrl(raw, profile: scoped);
     final followerCount = raw['followerCount'] ??
         raw['counterOfFollowers'] ??
         raw['followersCount'] ??
@@ -153,24 +179,32 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
       'avatarUrl': avatarUrl,
       'firstName': firstName,
       'lastName': lastName,
-      'fullName': (raw['fullName'] ?? '').toString(),
-      'token': (raw['token'] ?? '').toString(),
-      'bio': (raw['bio'] ?? '').toString(),
-      'rozet': (raw['rozet'] ?? raw['badge'] ?? '').toString(),
+      'fullName': (raw['fullName'] ?? scoped['fullName'] ?? '').toString(),
+      'token': (raw['token'] ?? scoped['token'] ?? '').toString(),
+      'bio': (raw['bio'] ?? scoped['bio'] ?? '').toString(),
+      'rozet': (raw['rozet'] ??
+              raw['badge'] ??
+              scoped['rozet'] ??
+              scoped['badge'] ??
+              '')
+          .toString(),
       'followerCount': followerCount,
       'followersCount': followerCount,
       'followingCount': followingCount,
       'postCount': postCount,
-      'isApproved': raw['isApproved'] == true,
-      'isPrivate': raw['isPrivate'] == true,
-      'isDeleted': raw['isDeleted'] == true,
-      'accountStatus': (raw['accountStatus'] ?? '').toString(),
+      'isApproved': (raw['isApproved'] ?? scoped['isApproved']) == true,
+      'isPrivate': (raw['isPrivate'] ?? scoped['isPrivate']) == true,
+      'isDeleted': (raw['isDeleted'] ?? scoped['isDeleted']) == true,
+      'accountStatus':
+          (raw['accountStatus'] ?? scoped['accountStatus'] ?? '').toString(),
       'singleDeviceSessionEnabled': raw['singleDeviceSessionEnabled'] == true,
       'activeSessionDeviceKey':
           (raw['activeSessionDeviceKey'] ?? '').toString(),
       'activeSessionUpdatedAt': raw['activeSessionUpdatedAt'] ?? 0,
       'deviceID': (raw['deviceID'] ?? '').toString(),
-      'email': (raw['email'] ?? '').toString(),
+      'email': (raw['email'] ?? scoped['email'] ?? '').toString(),
+      if (profile.isNotEmpty) 'profile': profile,
+      if (publicProfile.isNotEmpty) 'publicProfile': publicProfile,
     };
   }
 

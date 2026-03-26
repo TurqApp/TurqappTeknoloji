@@ -18,6 +18,7 @@ import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/posts_model.dart';
