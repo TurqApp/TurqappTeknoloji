@@ -184,84 +184,94 @@ extension CreatorContentTextPart on CreatorContent {
                         ),
                       ],
                     ),
-                    child: ListView.separated(
+                    child: SingleChildScrollView(
                       primary: false,
-                      shrinkWrap: true,
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.manual,
                       physics: const ClampingScrollPhysics(),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => Divider(
-                        height: 1,
-                        color: Colors.grey.withValues(alpha: 0.14),
-                      ),
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        final hashtag = normalizeComposerHashtag(item.hashtag);
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () =>
-                              controller.applyTrendingHashtagSelection(item),
-                          child: Container(
-                            width: double.infinity,
-                            constraints: const BoxConstraints(minHeight: 56),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 28,
-                                  height: 28,
-                                  alignment: Alignment.center,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFF4F5F7),
-                                    shape: BoxShape.circle,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var index = 0; index < items.length; index++) ...[
+                            if (index > 0)
+                              Divider(
+                                height: 1,
+                                color: Colors.grey.withValues(alpha: 0.14),
+                              ),
+                            () {
+                              final item = items[index];
+                              final hashtag =
+                                  normalizeComposerHashtag(item.hashtag);
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => controller
+                                    .applyTrendingHashtagSelection(item),
+                                child: Container(
+                                  width: double.infinity,
+                                  constraints:
+                                      const BoxConstraints(minHeight: 56),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
                                   ),
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "MontserratBold",
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
+                                  child: Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        hashtag,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratBold",
+                                      Container(
+                                        width: 28,
+                                        height: 28,
+                                        alignment: Alignment.center,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFF4F5F7),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 15,
+                                            fontFamily: "MontserratBold",
+                                          ),
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'explore.tab.trending'.tr,
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 13,
-                                          fontFamily: "MontserratMedium",
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              hashtag,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 15,
+                                                fontFamily: "MontserratBold",
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'explore.tab.trending'.tr,
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 13,
+                                                fontFamily:
+                                                    "MontserratMedium",
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                              );
+                            }(),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
