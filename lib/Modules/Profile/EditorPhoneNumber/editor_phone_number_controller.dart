@@ -12,4 +12,5 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'editor_phone_number_controller_actions_part.dart';
 part 'editor_phone_number_controller_class_part.dart';
+part 'editor_phone_number_controller_fields_part.dart';
 part 'editor_phone_number_controller_runtime_part.dart';

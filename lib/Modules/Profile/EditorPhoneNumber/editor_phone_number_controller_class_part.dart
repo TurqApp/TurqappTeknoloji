@@ -16,20 +16,7 @@ class EditorPhoneNumberController extends GetxController {
     return Get.find<EditorPhoneNumberController>();
   }
 
-  final phoneController = TextEditingController();
-  final codeController = TextEditingController();
-
-  final phoneValue = "".obs;
-  final codeValue = "".obs;
-  final countdown = 0.obs;
-  final isCodeSent = false.obs;
-  final isBusy = false.obs;
-  final UserRepository _userRepository = UserRepository.ensure();
-  final CurrentUserService _userService = CurrentUserService.instance;
-
-  String get _currentUid => _userService.effectiveUserId;
-
-  Timer? _timer;
+  final _state = _EditorPhoneNumberControllerState();
 
   void _seedFromCurrentUser() => _seedEditorPhoneFromCurrentUser(this);
 

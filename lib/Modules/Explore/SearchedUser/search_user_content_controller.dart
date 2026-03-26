@@ -5,3 +5,5 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'search_user_content_controller_class_part.dart';
+part 'search_user_content_controller_fields_part.dart';
+part 'search_user_content_controller_runtime_part.dart';
