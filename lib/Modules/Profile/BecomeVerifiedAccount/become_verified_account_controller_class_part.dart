@@ -1,19 +1,6 @@
 part of 'become_verified_account_controller.dart';
 
-class BecomeVerifiedAccountController extends GetxController {
-  final _state = _BecomeVerifiedAccountControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleBecomeVerifiedAccountInit(this);
-  }
-
-  @override
-  void onClose() {
-    _handleBecomeVerifiedAccountClose(this);
-    super.onClose();
-  }
-
+class BecomeVerifiedAccountController
+    extends _BecomeVerifiedAccountControllerBase {
   Future<bool> submitApplication() => _submitVerifiedAccountApplication(this);
 }

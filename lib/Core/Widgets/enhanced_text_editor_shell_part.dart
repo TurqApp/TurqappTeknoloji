@@ -1,18 +1,6 @@
 part of 'enhanced_text_editor.dart';
 
-class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
-  late final PostEditingService _editingService;
-  final FocusNode _focusNode = FocusNode();
-
-  @override
-  void initState() => _initEnhancedTextEditorLifecycle();
-
-  @override
-  void dispose() {
-    _disposeEnhancedTextEditorLifecycle();
-    super.dispose();
-  }
-
+class _EnhancedTextEditorState extends _EnhancedTextEditorStateBase {
   @override
   Widget build(BuildContext context) =>
       _buildEnhancedTextEditorContent(context);
