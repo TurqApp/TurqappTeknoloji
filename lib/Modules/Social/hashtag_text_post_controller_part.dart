@@ -16,7 +16,6 @@ HashtagTextVideoPostController ensureHashtagTextVideoPostController({
       tag: tag,
       permanent: permanent,
     );
-
 HashtagTextVideoPostController? maybeFindHashtagTextVideoPostController({
   String? tag,
 }) =>

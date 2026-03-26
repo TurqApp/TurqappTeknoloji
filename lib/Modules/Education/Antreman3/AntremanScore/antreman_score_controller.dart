@@ -13,4 +13,5 @@ part 'antreman_score_controller_data_part.dart';
 part 'antreman_score_controller_fields_part.dart';
 part 'antreman_score_controller_rank_part.dart';
 part 'antreman_score_controller_class_part.dart';
+part 'antreman_score_controller_base_part.dart';
 part 'antreman_score_controller_facade_part.dart';
