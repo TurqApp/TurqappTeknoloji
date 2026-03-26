@@ -1,13 +1,10 @@
 part of 'job_finder_controller.dart';
 
-JobFinderController ensureJobFinderController({bool permanent = false}) {
-  final existing = maybeFindJobFinderController();
-  if (existing != null) return existing;
-  return Get.put(JobFinderController(), permanent: permanent);
-}
+JobFinderController ensureJobFinderController({bool permanent = false}) =>
+    maybeFindJobFinderController() ??
+    Get.put(JobFinderController(), permanent: permanent);
 
-JobFinderController? maybeFindJobFinderController() {
-  final isRegistered = Get.isRegistered<JobFinderController>();
-  if (!isRegistered) return null;
-  return Get.find<JobFinderController>();
-}
+JobFinderController? maybeFindJobFinderController() =>
+    Get.isRegistered<JobFinderController>()
+        ? Get.find<JobFinderController>()
+        : null;

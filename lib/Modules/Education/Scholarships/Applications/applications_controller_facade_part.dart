@@ -1,13 +1,13 @@
 part of 'applications_controller_library.dart';
 
-ApplicationsController ensureApplicationsController({
-  required String tag,
+ApplicationsController ensureApplicationsController(
+  String tag, {
   bool permanent = false,
 }) =>
-    maybeFindApplicationsController(tag: tag) ??
+    maybeFindApplicationsController(tag) ??
     Get.put(ApplicationsController(), tag: tag, permanent: permanent);
 
-ApplicationsController? maybeFindApplicationsController({required String tag}) {
-  if (!Get.isRegistered<ApplicationsController>(tag: tag)) return null;
-  return Get.find<ApplicationsController>(tag: tag);
-}
+ApplicationsController? maybeFindApplicationsController(String tag) =>
+    Get.isRegistered<ApplicationsController>(tag: tag)
+        ? Get.find<ApplicationsController>(tag: tag)
+        : null;

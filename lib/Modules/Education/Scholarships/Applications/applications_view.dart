@@ -29,16 +29,16 @@ class _ApplicationsViewState extends State<ApplicationsView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_applications_${identityHashCode(this)}';
-    final existing = maybeFindApplicationsController(tag: _controllerTag);
+    final existing = maybeFindApplicationsController(_controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? ensureApplicationsController(tag: _controllerTag);
+    controller = existing ?? ensureApplicationsController(_controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          maybeFindApplicationsController(tag: _controllerTag),
+          maybeFindApplicationsController(_controllerTag),
           controller,
         )) {
       Get.delete<ApplicationsController>(tag: _controllerTag, force: true);

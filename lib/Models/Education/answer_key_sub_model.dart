@@ -3,11 +3,5 @@ class AnswerKeySubModel {
   num sira;
   String baslik;
   List<String> dogruCevaplar;
-
-  AnswerKeySubModel({
-    required this.baslik,
-    required this.docID,
-    required this.dogruCevaplar,
-    required this.sira,
-  });
+  AnswerKeySubModel(this.baslik, this.docID, this.dogruCevaplar, this.sira);
 }

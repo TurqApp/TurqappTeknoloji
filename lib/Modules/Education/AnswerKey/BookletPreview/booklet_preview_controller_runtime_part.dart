@@ -48,10 +48,10 @@ class BookletPreviewControllerRuntimePart {
 
         newList.add(
           AnswerKeySubModel(
-            baslik: baslik,
-            docID: (item['id'] ?? '').toString(),
-            dogruCevaplar: cevaplar,
-            sira: sira,
+            baslik,
+            (item['id'] ?? '').toString(),
+            cevaplar,
+            sira,
           ),
         );
       }
