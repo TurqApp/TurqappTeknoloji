@@ -13,14 +13,14 @@ extension PhotoShortContentControllerRuntimePart
 
     final preview =
         text.length > 90 ? '${text.substring(0, 90).trim()}...' : text;
-    final title = '$safeSender yeni bir gonderi paylasti';
+    final title = '$safeSender yeni bir gönderi paylaştı';
     final body = preview.isNotEmpty
         ? preview
         : hasVideo
-            ? 'Yeni video gonderisi'
+            ? 'Yeni video gönderisi'
             : hasImage
-                ? 'Yeni fotograf gonderisi'
-                : 'Yeni gonderi paylasti';
+                ? 'Yeni fotoğraf gönderisi'
+                : 'Yeni gönderi paylaştı';
     return (title: title, body: body);
   }
 

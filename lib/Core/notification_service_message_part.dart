@@ -45,7 +45,7 @@ extension NotificationServiceMessagePart on NotificationService {
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'high_importance_channel',
-            'High Importance Notifications',
+            'Önemli Bildirimler',
             channelDescription: 'Önemli bildirimler için kanal.',
             importance: Importance.high,
             priority: Priority.high,

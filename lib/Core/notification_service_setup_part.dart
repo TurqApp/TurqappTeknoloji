@@ -72,7 +72,7 @@ extension NotificationServiceSetupPart on NotificationService {
     if (_inited) return;
     const channel = AndroidNotificationChannel(
       'high_importance_channel',
-      'High Importance Notifications',
+      'Önemli Bildirimler',
       description: 'Önemli bildirimler için kanal.',
       importance: Importance.high,
     );
