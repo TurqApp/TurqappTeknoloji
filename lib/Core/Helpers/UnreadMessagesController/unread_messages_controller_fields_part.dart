@@ -1,4 +1,4 @@
-part of 'unread_messages_controller.dart';
+part of 'unread_messages_controller_library.dart';
 
 class _UnreadMessagesControllerState {
   final RxInt totalUnreadCount = 0.obs;

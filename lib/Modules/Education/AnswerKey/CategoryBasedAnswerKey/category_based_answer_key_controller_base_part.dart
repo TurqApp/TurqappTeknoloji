@@ -1,4 +1,4 @@
-part of 'category_based_answer_key_controller.dart';
+part of 'category_based_answer_key_controller_library.dart';
 
 abstract class _CategoryBasedAnswerKeyControllerBase extends GetxController {
   _CategoryBasedAnswerKeyControllerBase(String sinavTuru)

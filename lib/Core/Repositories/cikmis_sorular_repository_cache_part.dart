@@ -1,4 +1,4 @@
-part of 'cikmis_sorular_repository.dart';
+part of 'cikmis_sorular_repository_library.dart';
 
 extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
   Future<List<Map<String, dynamic>>?> _readList(String key) async {

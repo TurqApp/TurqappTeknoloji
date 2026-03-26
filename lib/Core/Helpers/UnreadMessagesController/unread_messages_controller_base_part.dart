@@ -1,4 +1,4 @@
-part of 'unread_messages_controller.dart';
+part of 'unread_messages_controller_library.dart';
 
 abstract class _UnreadMessagesControllerBase extends GetxController {
   final _state = _UnreadMessagesControllerState();

@@ -1,4 +1,4 @@
-part of 'optical_form_entry_controller.dart';
+part of 'optical_form_entry_controller_library.dart';
 
 extension OpticalFormEntryControllerDataPart on OpticalFormEntryController {
   void _handleControllerInit() {

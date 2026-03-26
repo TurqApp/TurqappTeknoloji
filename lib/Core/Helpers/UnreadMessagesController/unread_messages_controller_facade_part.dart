@@ -1,4 +1,4 @@
-part of 'unread_messages_controller.dart';
+part of 'unread_messages_controller_library.dart';
 
 UnreadMessagesController ensureUnreadMessagesController() =>
     maybeFindUnreadMessagesController() ?? Get.put(UnreadMessagesController());

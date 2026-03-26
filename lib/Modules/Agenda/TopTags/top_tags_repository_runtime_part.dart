@@ -1,4 +1,4 @@
-part of 'top_tags_repository.dart';
+part of 'top_tags_repository_library.dart';
 
 extension TopTagsRepositoryRuntimePart on TopTagsRepository {
   Future<List<HashtagModel>> fetchTrendingTags({

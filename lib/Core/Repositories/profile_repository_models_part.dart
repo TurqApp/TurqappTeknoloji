@@ -1,4 +1,4 @@
-part of 'profile_repository.dart';
+part of 'profile_repository_library.dart';
 
 class ProfileBuckets {
   const ProfileBuckets({

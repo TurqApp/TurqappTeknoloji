@@ -1,4 +1,4 @@
-part of 'optical_form_entry_controller.dart';
+part of 'optical_form_entry_controller_library.dart';
 
 extension OpticalFormEntryControllerActionsPart on OpticalFormEntryController {
   Future<void> showAlert() async {

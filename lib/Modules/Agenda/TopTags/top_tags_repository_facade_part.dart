@@ -1,4 +1,4 @@
-part of 'top_tags_repository.dart';
+part of 'top_tags_repository_library.dart';
 
 extension TopTagsRepositoryFacadePart on TopTagsRepository {
   Future<List<PostsModel>> fetchImagePostsPage({

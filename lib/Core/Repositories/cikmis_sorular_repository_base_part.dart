@@ -1,4 +1,4 @@
-part of 'cikmis_sorular_repository.dart';
+part of 'cikmis_sorular_repository_library.dart';
 
 abstract class _CikmisSorularRepositoryBase extends GetxService {
   _CikmisSorularRepositoryBase({

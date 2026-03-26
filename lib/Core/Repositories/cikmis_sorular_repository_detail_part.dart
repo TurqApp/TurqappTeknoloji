@@ -1,4 +1,4 @@
-part of 'cikmis_sorular_repository.dart';
+part of 'cikmis_sorular_repository_library.dart';
 
 extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
   Future<void> saveResult({
@@ -48,12 +48,14 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
       final decoded = jsonDecode(utf8.decode(bytes));
       final rawItems = switch (decoded) {
         List<dynamic> list => list,
-        Map<String, dynamic> map => (map['items'] as List<dynamic>?) ?? const [],
+        Map<String, dynamic> map =>
+          (map['items'] as List<dynamic>?) ?? const [],
         _ => const <dynamic>[],
       };
       final docs = rawItems
           .whereType<Map>()
-          .map((item) => _normalizeManifestRootDoc(Map<String, dynamic>.from(item)))
+          .map((item) =>
+              _normalizeManifestRootDoc(Map<String, dynamic>.from(item)))
           .where(_isActiveRootDoc)
           .toList(growable: true);
       docs.sort(_compareRootDocs);
