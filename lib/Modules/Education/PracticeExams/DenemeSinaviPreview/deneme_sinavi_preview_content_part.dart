@@ -177,6 +177,7 @@ extension DenemeSinaviPreviewContentPart on _DenemeSinaviPreviewState {
                     const SizedBox(height: 12),
                     const AdmobKare(
                       key: ValueKey('practice-exam-detail-ad-end'),
+                      suggestionPlacementId: 'practice_exam',
                     ),
                   ],
                 ),

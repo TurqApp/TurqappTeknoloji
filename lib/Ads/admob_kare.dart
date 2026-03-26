@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
+import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
+import 'package:turqappv2/Core/Services/slider_cache_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 class AdmobKare extends StatefulWidget {
@@ -18,6 +23,7 @@ class AdmobKare extends StatefulWidget {
     this.promoFallbackOffsetX = 0,
     this.promoFallbackExtraWidth = 0,
     this.forceSingleLinePromoChips = false,
+    this.suggestionPlacementId,
   });
 
   final bool showChrome;
@@ -27,6 +33,7 @@ class AdmobKare extends StatefulWidget {
   final double promoFallbackOffsetX;
   final double promoFallbackExtraWidth;
   final bool forceSingleLinePromoChips;
+  final String? suggestionPlacementId;
 
   static Future<void> warmupPool({
     int targetCount = 5,
@@ -160,6 +167,9 @@ class _AdmobKareState extends State<AdmobKare> {
   static const double _promoSlotHeight = 270;
   late final _PromoFallbackPalette _promoFallbackPalette =
       _promoFallbackPalettes[Random().nextInt(_promoFallbackPalettes.length)];
+  final SliderCacheService _sliderCacheService = SliderCacheService();
+  TurqAppSuggestionConfig? _suggestionConfig;
+  List<String> _suggestionSliderSources = const <String>[];
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
@@ -170,6 +180,8 @@ class _AdmobKareState extends State<AdmobKare> {
   static bool get hasReadyBanner => _readyPool.isNotEmpty;
   static bool get hasRenderableBanner =>
       _readyPool.any((ad) => ad.responseInfo != null);
+  bool get _usesManagedSuggestion =>
+      (widget.suggestionPlacementId?.trim().isNotEmpty ?? false);
 
   static Duration _globalCooldownRemaining() {
     final until = _globalCooldownUntil;
@@ -330,6 +342,25 @@ class _AdmobKareState extends State<AdmobKare> {
     super.initState();
     _visibilityKey = ValueKey<String>('admob-kare-${identityHashCode(this)}');
     if (_usePlaceholderOnly) return;
+    if (_usesManagedSuggestion) {
+      unawaited(_bootstrapManagedSuggestion());
+      return;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AdmobKare oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previousPlacement = oldWidget.suggestionPlacementId?.trim() ?? '';
+    final nextPlacement = widget.suggestionPlacementId?.trim() ?? '';
+    if (previousPlacement == nextPlacement) {
+      return;
+    }
+    _suggestionConfig = null;
+    _suggestionSliderSources = const <String>[];
+    if (nextPlacement.isNotEmpty) {
+      unawaited(_bootstrapManagedSuggestion(forceRefresh: true));
+    }
   }
 
   void _attachBannerOrLoad() {
@@ -371,10 +402,56 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   bool _canStartOrRetryLoad() {
-    if (_usePlaceholderOnly || _isDisposed) return false;
+    if (_usePlaceholderOnly || _isDisposed || _usesManagedSuggestion) {
+      return false;
+    }
     final route = ModalRoute.of(context);
     final isRouteCurrent = route?.isCurrent ?? true;
     return _isVisible && isRouteCurrent;
+  }
+
+  Future<void> _bootstrapManagedSuggestion({
+    bool forceRefresh = false,
+  }) async {
+    final placementId = widget.suggestionPlacementId?.trim() ?? '';
+    if (placementId.isEmpty || _isDisposed) {
+      return;
+    }
+
+    final placement = TurqAppSuggestionPlacements.byId(placementId);
+    if (placement == null) {
+      return;
+    }
+
+    final config = await TurqAppSuggestionConfigService.instance.getConfig(
+      placementId,
+      forceRefresh: forceRefresh,
+    );
+    if (!mounted || _isDisposed) return;
+    setState(() {
+      _suggestionConfig = config;
+    });
+
+    final snapshot = await _sliderCacheService.readSnapshot(config.sliderId);
+    if (!mounted || _isDisposed) return;
+    if (snapshot.hasItems) {
+      setState(() {
+        _suggestionSliderSources = snapshot.items;
+      });
+      unawaited(_sliderCacheService.warmImages(snapshot.items));
+    }
+
+    unawaited(_refreshManagedSuggestionSlider(config.sliderId));
+  }
+
+  Future<void> _refreshManagedSuggestionSlider(String sliderId) async {
+    try {
+      final remote = await _sliderCacheService.refreshAndCacheSources(sliderId);
+      if (!mounted || _isDisposed) return;
+      setState(() {
+        _suggestionSliderSources = remote;
+      });
+    } catch (_) {}
   }
 
   void _scheduleRetry({
@@ -627,6 +704,8 @@ class _AdmobKareState extends State<AdmobKare> {
           ),
         ),
       );
+    } else if (_usesManagedSuggestion) {
+      child = _buildManagedSuggestionSlot();
     } else {
       final ad = _bannerAd;
       final canRenderLiveAd = !_loadFailed && _canRenderAd(ad);
@@ -752,6 +831,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildPromoFallbackCard() {
+    final config = _currentSuggestionConfig;
     final palette = _promoFallbackPalette;
     return Container(
       height: _promoSlotHeight,
@@ -789,7 +869,7 @@ class _AdmobKareState extends State<AdmobKare> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Fırsat, gelişim ve ihtiyaç aynı yerde',
+              config.headline,
               style: TextStyle(
                 color: palette.titleColor,
                 fontSize: 22,
@@ -799,7 +879,7 @@ class _AdmobKareState extends State<AdmobKare> {
             ),
             const SizedBox(height: 10),
             Text(
-              'TurqApp içindeki fırsatları öne çıkarıyoruz.',
+              config.body,
               style: TextStyle(
                 color: palette.subtitleColor,
                 fontSize: 13,
@@ -847,6 +927,116 @@ class _AdmobKareState extends State<AdmobKare> {
               Transform.translate(
                 offset: Offset(widget.promoFallbackOffsetX, 0),
                 child: fallbackCard,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  TurqAppSuggestionConfig get _currentSuggestionConfig {
+    final placementId = widget.suggestionPlacementId?.trim() ?? '';
+    final placement = TurqAppSuggestionPlacements.byId(placementId);
+    if (placement == null) {
+      return TurqAppSuggestionConfig(
+        placementId: placementId,
+        title: placementId,
+        sliderId: 'ads_$placementId',
+        headline: TurqAppSuggestionConfig.defaultHeadline,
+        body: TurqAppSuggestionConfig.defaultBody,
+      );
+    }
+    return _suggestionConfig ?? TurqAppSuggestionConfig.defaultsFor(placement);
+  }
+
+  Widget _buildManagedSuggestionSlot() {
+    final hasSlider = _suggestionSliderSources.isNotEmpty;
+    final slotBody = SizedBox(
+      height: _promoSlotHeight,
+      child: _buildPromoFrame(
+        child: hasSlider
+            ? _buildManagedSliderSurface()
+            : _buildPromoFallbackSurface(),
+      ),
+    );
+
+    if (!widget.showChrome) {
+      return slotBody;
+    }
+
+    return Padding(
+      padding: widget.contentPadding,
+      child: widget.promoFallbackOffsetX == 0
+          ? slotBody
+          : Transform.translate(
+              offset: Offset(widget.promoFallbackOffsetX, 0),
+              child: slotBody,
+            ),
+    );
+  }
+
+  Widget _buildManagedSliderCard() {
+    return ColoredBox(
+      color: CupertinoColors.systemGrey6,
+      child: CarouselSlider(
+        items: _suggestionSliderSources
+            .map((source) => _buildManagedSliderItem(source))
+            .toList(growable: false),
+        options: CarouselOptions(
+          autoPlay: _suggestionSliderSources.length > 1,
+          height: _promoSlotHeight,
+          viewportFraction: 1,
+          enlargeCenterPage: false,
+          autoPlayInterval: const Duration(seconds: 3),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManagedSliderItem(String source) {
+    if (source.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: source,
+        cacheManager: TurqImageCacheManager.instance,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        placeholder: (context, _) => _buildPromoFallbackCard(),
+        errorWidget: (context, _, __) => _buildPromoFallbackCard(),
+      );
+    }
+    return Image.asset(
+      source,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      errorBuilder: (context, _, __) => _buildPromoFallbackCard(),
+    );
+  }
+
+  Widget _buildManagedSliderSurface() {
+    if (widget.promoFallbackExtraWidth == 0) {
+      return _buildManagedSliderCard();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final expandedWidth =
+            constraints.maxWidth + widget.promoFallbackExtraWidth;
+        final targetWidth =
+            expandedWidth > 0 ? expandedWidth : constraints.maxWidth;
+        final sliderCard = SizedBox(
+          width: targetWidth,
+          child: _buildManagedSliderCard(),
+        );
+
+        return SizedBox(
+          width: constraints.maxWidth,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Transform.translate(
+                offset: Offset(widget.promoFallbackOffsetX, 0),
+                child: sliderCard,
               ),
             ],
           ),

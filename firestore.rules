@@ -1140,6 +1140,11 @@ service cloud.firestore {
       allow create, update, delete: if false; // Cloud Functions only
     }
 
+    match /ads/{docId} {
+      allow read: if isAuth();
+      allow create, update, delete: if canManageAdminPanels();
+    }
+
     match /system_flags/{docId} {
       allow read, write: if isAdmin();
     }

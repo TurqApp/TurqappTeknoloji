@@ -197,6 +197,7 @@ extension _TutoringWidgetBuilderListPart on TutoringWidgetBuilder {
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
           child: AdmobKare(
             key: ValueKey('tutoring-list-ad-$slot'),
+            suggestionPlacementId: 'tutoring',
           ),
         ),
       ),

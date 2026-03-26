@@ -150,15 +150,17 @@ extension _MyStatisticViewContentPart on _MyStatisticViewState {
           ],
         ),
         10.ph,
-        const AdmobKare(),
+        const AdmobKare(
+          suggestionPlacementId: 'profile',
+        ),
         10.ph,
       ],
     );
   }
 
   Widget _buildStatItem(num value, String title, int colorIndex) {
-    final bgColor = _MyStatisticViewState._statColors[
-        colorIndex % _MyStatisticViewState._statColors.length];
+    final bgColor = _MyStatisticViewState
+        ._statColors[colorIndex % _MyStatisticViewState._statColors.length];
     final displayText = NumberFormatter.format(value.toInt());
 
     return Padding(

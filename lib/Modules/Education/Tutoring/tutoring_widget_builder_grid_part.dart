@@ -134,6 +134,7 @@ extension _TutoringWidgetBuilderGridPart on TutoringWidgetBuilder {
         },
         adBuilder: (slot) => AdmobKare(
           key: ValueKey('tutoring-grid-ad-$slot'),
+          suggestionPlacementId: 'tutoring',
         ),
       ),
     );

@@ -149,6 +149,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
         const SizedBox(height: 12),
         const AdmobKare(
           key: ValueKey('market-detail-ad-end'),
+          suggestionPlacementId: 'market',
         ),
       ],
     );

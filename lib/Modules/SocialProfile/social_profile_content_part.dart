@@ -210,6 +210,7 @@ extension _SocialProfileContentPart on _SocialProfileState {
                         'socialprof-ad-slot-${(actualIndex + 1) ~/ 4}',
                       ),
                       contentPadding: EdgeInsets.zero,
+                      suggestionPlacementId: 'profile',
                     ),
                   ),
                 if (combinedPosts.isNotEmpty &&
@@ -220,6 +221,7 @@ extension _SocialProfileContentPart on _SocialProfileState {
                     child: AdmobKare(
                       key: ValueKey('socialprof-ad-end'),
                       contentPadding: EdgeInsets.zero,
+                      suggestionPlacementId: 'profile',
                     ),
                   ),
                 const SizedBox(height: 12),

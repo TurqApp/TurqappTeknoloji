@@ -289,6 +289,7 @@ extension _AgendaViewFeedPart on AgendaView {
               promoFallbackOffsetX: 0,
               promoFallbackExtraWidth: 0,
               forceSingleLinePromoChips: true,
+              suggestionPlacementId: 'feed',
             ),
           ),
           if (!isModernView) ...[

@@ -160,6 +160,7 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                       contentPadding: EdgeInsets.zero,
                       liveAdOffsetX: 5,
                       forceSingleLinePromoChips: true,
+                      suggestionPlacementId: 'profile',
                     ),
                   ),
                 if (combinedPosts.length < 4 &&
@@ -171,6 +172,7 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                       contentPadding: EdgeInsets.zero,
                       liveAdOffsetX: 5,
                       forceSingleLinePromoChips: true,
+                      suggestionPlacementId: 'profile',
                     ),
                   ),
               ],

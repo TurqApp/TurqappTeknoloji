@@ -62,6 +62,7 @@ extension BookletPreviewContentPart on _BookletPreviewState {
               const SizedBox(height: 12),
               const AdmobKare(
                 key: ValueKey('answer-key-detail-ad-end'),
+                suggestionPlacementId: 'answer_key',
               ),
             ],
           ),

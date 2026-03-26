@@ -151,6 +151,7 @@ extension MarketViewShellContentPart on MarketView {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: AdmobKare(
                           key: ValueKey('market-list-ad-$slot'),
+                          suggestionPlacementId: 'market',
                         ),
                       ),
                     ),
@@ -170,6 +171,7 @@ extension MarketViewShellContentPart on MarketView {
                       itemBuilder: (item, index) => _buildGridCard(item),
                       adBuilder: (slot) => AdmobKare(
                         key: ValueKey('market-grid-ad-$slot'),
+                        suggestionPlacementId: 'market',
                       ),
                     ),
                   ),

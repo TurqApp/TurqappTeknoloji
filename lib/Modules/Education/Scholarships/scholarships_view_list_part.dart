@@ -67,7 +67,10 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
           final slot = ((index + 1) ~/ (_pasajListAdInterval + 1)) - 1;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-            child: AdmobKare(key: ValueKey('scholarship-list-ad-$slot')),
+            child: AdmobKare(
+              key: ValueKey('scholarship-list-ad-$slot'),
+              suggestionPlacementId: 'scholarship',
+            ),
           );
         }
 
@@ -283,7 +286,10 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
       children.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: AdmobKare(key: ValueKey('scholarship-ad-$slot')),
+          child: AdmobKare(
+            key: ValueKey('scholarship-ad-$slot'),
+            suggestionPlacementId: 'scholarship',
+          ),
         ),
       );
     }

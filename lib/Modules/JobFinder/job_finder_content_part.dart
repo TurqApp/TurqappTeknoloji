@@ -71,6 +71,7 @@ extension JobFinderContentPart on JobFinder {
                     const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                 child: AdmobKare(
                   key: ValueKey('job-list-ad-$slot'),
+                  suggestionPlacementId: 'job',
                 ),
               ),
             ),
@@ -110,6 +111,7 @@ extension JobFinderContentPart on JobFinder {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: AdmobKare(
                       key: ValueKey('job-grid-ad-$slot'),
+                      suggestionPlacementId: 'job',
                     ),
                   ),
                 ),

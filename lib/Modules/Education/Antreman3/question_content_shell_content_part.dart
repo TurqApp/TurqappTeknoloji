@@ -84,7 +84,11 @@ extension QuestionContentShellContentPart on QuestionContent {
         if ((index + 1) % 4 == 0) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Center(child: AdmobKare()),
+            child: Center(
+              child: AdmobKare(
+                suggestionPlacementId: 'answer_key',
+              ),
+            ),
           );
         }
 

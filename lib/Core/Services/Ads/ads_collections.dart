@@ -1,4 +1,5 @@
 class AdsCollections {
+  static const surfaceSlots = 'ads';
   static const campaigns = 'ads_campaigns';
   static const creatives = 'ads_creatives';
   static const impressions = 'ads_impressions';

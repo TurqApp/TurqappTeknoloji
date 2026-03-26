@@ -155,6 +155,7 @@ extension AnswerKeySectionsPart on AnswerKey {
                   ),
                   adBuilder: (slot) => AdmobKare(
                     key: ValueKey('answer-key-list-ad-$slot'),
+                    suggestionPlacementId: 'answer_key',
                   ),
                 ),
               )
@@ -170,6 +171,7 @@ extension AnswerKeySectionsPart on AnswerKey {
                   ),
                   adBuilder: (slot) => AdmobKare(
                     key: ValueKey('answer-key-grid-ad-$slot'),
+                    suggestionPlacementId: 'answer_key',
                   ),
                 ),
               ),

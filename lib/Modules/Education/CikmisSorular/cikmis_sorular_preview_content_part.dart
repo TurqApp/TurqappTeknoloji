@@ -119,7 +119,11 @@ extension CikmisSorularPreviewContentPart on _CikmisSorularPreviewState {
         children.add(
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Center(child: AdmobKare()),
+            child: Center(
+              child: AdmobKare(
+                suggestionPlacementId: 'practice_exam',
+              ),
+            ),
           ),
         );
       }

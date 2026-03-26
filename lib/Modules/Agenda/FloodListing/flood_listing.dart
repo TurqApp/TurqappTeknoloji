@@ -84,7 +84,9 @@ class _FloodListingState extends State<FloodListing> {
                         children: [
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: AdmobKare(),
+                            child: AdmobKare(
+                              suggestionPlacementId: 'feed',
+                            ),
                           ),
                           SizedBox(height: tailSpace),
                         ],
@@ -138,7 +140,10 @@ class _FloodListingState extends State<FloodListing> {
                     children.add(
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: AdmobKare(key: ValueKey('flood-ad-$slot')),
+                        child: AdmobKare(
+                          key: ValueKey('flood-ad-$slot'),
+                          suggestionPlacementId: 'feed',
+                        ),
                       ),
                     );
                   }

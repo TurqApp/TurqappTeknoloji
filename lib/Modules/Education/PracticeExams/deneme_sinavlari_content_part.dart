@@ -78,6 +78,7 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: AdmobKare(
                       key: ValueKey('practice-exam-list-ad-$slot'),
+                      suggestionPlacementId: 'practice_exam',
                     ),
                   ),
                 ),
@@ -93,6 +94,7 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
                   ),
                   adBuilder: (slot) => AdmobKare(
                     key: ValueKey('practice-exam-grid-ad-$slot'),
+                    suggestionPlacementId: 'practice_exam',
                   ),
                 ),
               ),

@@ -39,6 +39,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
               padding: EdgeInsets.symmetric(vertical: 8.0),
               child: AdmobKare(
                 key: ValueKey('sch-detail-ad-owner'),
+                suggestionPlacementId: 'scholarship',
               ),
             ),
             Row(
@@ -152,6 +153,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: AdmobKare(
               key: ValueKey('sch-detail-ad-apply'),
+              suggestionPlacementId: 'scholarship',
             ),
           ),
           Row(

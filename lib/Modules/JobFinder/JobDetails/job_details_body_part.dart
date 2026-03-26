@@ -266,7 +266,9 @@ extension JobDetailsBodyPart on _JobDetailsState {
               const SizedBox(height: 18),
               _buildSimilarSection(controller),
               const SizedBox(height: 12),
-              const AdmobKare(),
+              const AdmobKare(
+                suggestionPlacementId: 'job',
+              ),
             ],
           );
         }),

@@ -520,6 +520,14 @@ extension _SplashViewWarmPart on _SplashViewState {
   Future<void> _warmSliderCaches({required bool onWiFi}) async {
     try {
       const sliderIds = <String>[
+        'ads_feed',
+        'ads_profile',
+        'ads_market',
+        'ads_scholarship',
+        'ads_answer_key',
+        'ads_job',
+        'ads_practice_exam',
+        'ads_tutoring',
         'is_bul',
         'online_sinav',
         'cevap_anahtari',
