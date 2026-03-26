@@ -22,12 +22,12 @@ class _ProfileContactState extends State<ProfileContact> {
     super.initState();
     _controllerTag = 'profile_contact_${identityHashCode(this)}';
     final existingController =
-        ProfileContactController.maybeFind(tag: _controllerTag);
+        maybeFindProfileContactController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = ProfileContactController.ensure(tag: _controllerTag);
+      controller = ensureProfileContactController(tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -36,7 +36,7 @@ class _ProfileContactState extends State<ProfileContact> {
   void dispose() {
     if (_ownsController &&
         identical(
-          ProfileContactController.maybeFind(tag: _controllerTag),
+          maybeFindProfileContactController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ProfileContactController>(tag: _controllerTag, force: true);

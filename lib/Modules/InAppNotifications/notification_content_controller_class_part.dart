@@ -1,22 +1,6 @@
 part of 'notification_content_controller.dart';
 
 class NotificationContentController extends GetxController {
-  static NotificationContentController ensure({
-    required String userID,
-    required NotificationModel notification,
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureNotificationContentController(
-        userID: userID,
-        notification: notification,
-        tag: tag,
-        permanent: permanent,
-      );
-
-  static NotificationContentController? maybeFind({String? tag}) =>
-      _maybeFindNotificationContentController(tag: tag);
-
   static const String _userType = kNotificationPostTypeUserLower;
   static const String _commentType = kNotificationPostTypeCommentLower;
   static const String _chatType = kNotificationPostTypeChatLower;

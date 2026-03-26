@@ -23,14 +23,14 @@ class _LocationBasedTutoringState extends State<LocationBasedTutoring> {
   @override
   void initState() {
     super.initState();
-    _ownsController = LocationBasedTutoringController.maybeFind() == null;
-    controller = LocationBasedTutoringController.ensure();
+    _ownsController = maybeFindLocationBasedTutoringController() == null;
+    controller = ensureLocationBasedTutoringController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(LocationBasedTutoringController.maybeFind(), controller)) {
+        identical(maybeFindLocationBasedTutoringController(), controller)) {
       Get.delete<LocationBasedTutoringController>();
     }
     super.dispose();

@@ -1,5 +1,26 @@
 part of 'answer_key_content_controller.dart';
 
+AnswerKeyContentController ensureAnswerKeyContentController(
+  BookletModel model,
+  Function(bool) onUpdate, {
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureAnswerKeyContentController(
+      model,
+      onUpdate,
+      tag: tag,
+      permanent: permanent,
+    );
+
+AnswerKeyContentController? maybeFindAnswerKeyContentController({
+  String? tag,
+}) =>
+    _maybeFindAnswerKeyContentController(tag: tag);
+
+Future<void> warmAnswerKeyContentSavedIdsForCurrentUser() =>
+    _warmAnswerKeyContentSavedIdsForCurrentUserFacade();
+
 AnswerKeyContentController _ensureAnswerKeyContentController(
   BookletModel model,
   Function(bool) onUpdate, {

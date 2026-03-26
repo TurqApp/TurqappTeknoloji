@@ -71,8 +71,8 @@ class _NotificationContentState extends State<NotificationContent> {
     _controllerTag =
         'notification_content_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        NotificationContentController.maybeFind(tag: _controllerTag) == null;
-    controller = NotificationContentController.ensure(
+        maybeFindNotificationContentController(tag: _controllerTag) == null;
+    controller = ensureNotificationContentController(
       userID: widget.model.userID,
       notification: widget.model,
       tag: _controllerTag,
@@ -82,7 +82,7 @@ class _NotificationContentState extends State<NotificationContent> {
   void _disposeController() {
     if (_ownsController &&
         identical(
-          NotificationContentController.maybeFind(tag: _controllerTag),
+          maybeFindNotificationContentController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<NotificationContentController>(

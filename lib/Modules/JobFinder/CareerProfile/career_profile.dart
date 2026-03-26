@@ -26,15 +26,15 @@ class _CareerProfileState extends State<CareerProfile> {
     super.initState();
     _controllerTag = 'career_profile_${identityHashCode(this)}';
     _ownsController =
-        CareerProfileController.maybeFind(tag: _controllerTag) == null;
-    controller = CareerProfileController.ensure(tag: _controllerTag);
+        maybeFindCareerProfileController(tag: _controllerTag) == null;
+    controller = ensureCareerProfileController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          CareerProfileController.maybeFind(tag: _controllerTag),
+          maybeFindCareerProfileController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<CareerProfileController>(tag: _controllerTag);

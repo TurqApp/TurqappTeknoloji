@@ -24,15 +24,15 @@ class _SearchTestsState extends State<SearchTests> {
     super.initState();
     _controllerTag = 'tests_search_${identityHashCode(this)}';
     _ownsController =
-        SearchTestsController.maybeFind(tag: _controllerTag) == null;
-    controller = SearchTestsController.ensure(tag: _controllerTag);
+        maybeFindSearchTestsController(tag: _controllerTag) == null;
+    controller = ensureSearchTestsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          SearchTestsController.maybeFind(tag: _controllerTag);
+          maybeFindSearchTestsController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<SearchTestsController>(tag: _controllerTag, force: true);
       }

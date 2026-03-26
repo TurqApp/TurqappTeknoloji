@@ -50,8 +50,8 @@ class _AnswerKeyContentState extends State<AnswerKeyContent> {
     _controllerTag =
         'answer_key_content_${model.docID}_${identityHashCode(this)}';
     _ownsController =
-        AnswerKeyContentController.maybeFind(tag: _controllerTag) == null;
-    controller = AnswerKeyContentController.ensure(
+        maybeFindAnswerKeyContentController(tag: _controllerTag) == null;
+    controller = ensureAnswerKeyContentController(
       model,
       onUpdate,
       tag: _controllerTag,
@@ -68,7 +68,7 @@ class _AnswerKeyContentState extends State<AnswerKeyContent> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = AnswerKeyContentController.maybeFind(
+      final registeredController = maybeFindAnswerKeyContentController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

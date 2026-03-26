@@ -13,5 +13,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'location_based_tutoring_controller_fields_part.dart';
 part 'location_based_tutoring_controller_class_part.dart';
+part 'location_based_tutoring_controller_facade_part.dart';
 part 'location_based_tutoring_controller_runtime_part.dart';
 part 'location_based_tutoring_controller_support_part.dart';

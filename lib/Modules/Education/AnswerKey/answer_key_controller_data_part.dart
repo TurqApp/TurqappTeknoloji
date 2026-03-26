@@ -55,7 +55,7 @@ extension AnswerKeyControllerDataPart on AnswerKeyController {
   }
 
   Future<void> _bootstrapInitialData() async {
-    await AnswerKeyContentController.warmSavedIdsForCurrentUser();
+    await warmAnswerKeyContentSavedIdsForCurrentUser();
     final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _answerKeySnapshotRepository

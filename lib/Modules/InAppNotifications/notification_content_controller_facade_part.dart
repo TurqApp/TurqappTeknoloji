@@ -1,5 +1,23 @@
 part of 'notification_content_controller.dart';
 
+NotificationContentController ensureNotificationContentController({
+  required String userID,
+  required NotificationModel notification,
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureNotificationContentController(
+      userID: userID,
+      notification: notification,
+      tag: tag,
+      permanent: permanent,
+    );
+
+NotificationContentController? maybeFindNotificationContentController({
+  String? tag,
+}) =>
+    _maybeFindNotificationContentController(tag: tag);
+
 NotificationContentController _ensureNotificationContentController({
   required String userID,
   required NotificationModel notification,
