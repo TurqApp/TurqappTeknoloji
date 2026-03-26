@@ -236,18 +236,19 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
-                                              final hasStableVideoFrame =
-                                                  v.hasRenderedFirstFrame &&
-                                                      !v.isCompleted &&
-                                                      (v.isPlaying ||
-                                                          v.position >
-                                                              const Duration(
-                                                                  milliseconds:
-                                                                      180));
-                                              if (hasStableVideoFrame) {
-                                                return const SizedBox.shrink();
-                                              }
-                                              return child!;
+                                              return IgnorePointer(
+                                                ignoring: true,
+                                                child: AnimatedOpacity(
+                                                  opacity:
+                                                      _hasStableVideoFrame(v)
+                                                          ? 0
+                                                          : 1,
+                                                  duration: AppTokens
+                                                      .thumbnailFadeOut,
+                                                  curve: Curves.easeOut,
+                                                  child: child!,
+                                                ),
+                                              );
                                             },
                                             child: _buildVideoThumbnail(
                                               aspectRatio: displayAspect,

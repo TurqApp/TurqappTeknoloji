@@ -85,22 +85,31 @@ extension SingleShortViewUiPart on _SingleShortViewState {
           animation: injected,
           builder: (_, __) {
             final v = injected.value;
-            final hideThumb = v.hasRenderedFirstFrame;
-            if (hideThumb || injThumb.isEmpty) {
+            final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                (v.isPlaying || v.position > const Duration(milliseconds: 180));
+            if (injThumb.isEmpty) {
               return const SizedBox.shrink();
             }
-            if (shorts[idx].aspectRatio >= 0.8) {
-              return Align(
-                alignment: Alignment.center,
-                child: AspectRatio(
-                  aspectRatio: shorts[idx].aspectRatio > 1.2
-                      ? shorts[idx].aspectRatio.toDouble()
-                      : 1.0,
-                  child: _cachedThumb(injThumb),
-                ),
-              );
-            }
-            return SizedBox.expand(child: _cachedThumb(injThumb));
+            final thumb = shorts[idx].aspectRatio >= 0.8
+                ? Align(
+                    alignment: Alignment.center,
+                    child: AspectRatio(
+                      aspectRatio: shorts[idx].aspectRatio > 1.2
+                          ? shorts[idx].aspectRatio.toDouble()
+                          : 1.0,
+                      child: _cachedThumb(injThumb),
+                    ),
+                  )
+                : SizedBox.expand(child: _cachedThumb(injThumb));
+            return IgnorePointer(
+              ignoring: true,
+              child: AnimatedOpacity(
+                opacity: hasStableVideoFrame ? 0 : 1,
+                duration: AppTokens.thumbnailFadeOut,
+                curve: Curves.easeOut,
+                child: thumb,
+              ),
+            );
           },
         ),
         AnimatedBuilder(
@@ -174,22 +183,32 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 animation: vp,
                 builder: (_, __) {
                   final v = vp.value;
-                  final hideThumb = v.hasRenderedFirstFrame;
-                  if (hideThumb || thumb.isEmpty) {
+                  final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                      (v.isPlaying ||
+                          v.position > const Duration(milliseconds: 180));
+                  if (thumb.isEmpty) {
                     return const SizedBox.shrink();
                   }
-                  if (shorts[idx].aspectRatio >= 0.8) {
-                    return Align(
-                      alignment: Alignment.center,
-                      child: AspectRatio(
-                        aspectRatio: shorts[idx].aspectRatio > 1.2
-                            ? shorts[idx].aspectRatio.toDouble()
-                            : 1.0,
-                        child: _cachedThumb(thumb),
-                      ),
-                    );
-                  }
-                  return SizedBox.expand(child: _cachedThumb(thumb));
+                  final overlay = shorts[idx].aspectRatio >= 0.8
+                      ? Align(
+                          alignment: Alignment.center,
+                          child: AspectRatio(
+                            aspectRatio: shorts[idx].aspectRatio > 1.2
+                                ? shorts[idx].aspectRatio.toDouble()
+                                : 1.0,
+                            child: _cachedThumb(thumb),
+                          ),
+                        )
+                      : SizedBox.expand(child: _cachedThumb(thumb));
+                  return IgnorePointer(
+                    ignoring: true,
+                    child: AnimatedOpacity(
+                      opacity: hasStableVideoFrame ? 0 : 1,
+                      duration: AppTokens.thumbnailFadeOut,
+                      curve: Curves.easeOut,
+                      child: overlay,
+                    ),
+                  );
                 },
               ),
               AnimatedBuilder(
