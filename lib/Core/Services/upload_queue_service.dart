@@ -26,6 +26,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'upload_queue_service_helpers_part.dart';
+part 'upload_queue_service_class_part.dart';
 part 'upload_queue_service_constants_part.dart';
 part 'upload_queue_service_facade_part.dart';
 part 'upload_queue_service_fields_part.dart';
@@ -36,24 +37,3 @@ part 'upload_queue_service_models_part.dart';
 part 'upload_queue_service_persistence_part.dart';
 part 'upload_queue_service_post_shell_part.dart';
 part 'upload_queue_service_processing_part.dart';
-
-class UploadQueueService extends GetxController {
-  static UploadQueueService? maybeFind() => _maybeFindUploadQueueService();
-
-  static UploadQueueService ensure({bool permanent = false}) =>
-      _ensureUploadQueueService(permanent: permanent);
-
-  final _state = _UploadQueueServiceState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleUploadQueueServiceInit(this);
-  }
-
-  @override
-  void onClose() {
-    _handleUploadQueueServiceClose(this);
-    super.onClose();
-  }
-}
