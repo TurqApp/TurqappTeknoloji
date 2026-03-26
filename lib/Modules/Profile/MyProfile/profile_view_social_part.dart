@@ -17,21 +17,18 @@ extension _ProfileViewSocialPart on _ProfileViewState {
       for (final model in socialMediaController.list) {
         mixedItems.add({
           'type': 'link',
-          'createdAt': int.tryParse(model.docID) ?? 0,
+          'id': model.docID,
           'data': model,
         });
       }
       for (final hl in hlController.highlights) {
         mixedItems.add({
           'type': 'highlight',
-          'createdAt': hl.createdAt.millisecondsSinceEpoch,
+          'id': hl.id,
           'data': hl,
         });
       }
       if (mixedItems.isEmpty) return const SizedBox.shrink();
-      mixedItems.sort(
-        (a, b) => (b['createdAt'] as int).compareTo(a['createdAt'] as int),
-      );
 
       return Padding(
         padding: const EdgeInsets.only(top: 2, bottom: 4),
@@ -43,8 +40,10 @@ extension _ProfileViewSocialPart on _ProfileViewState {
             itemCount: mixedItems.length,
             itemBuilder: (context, index) {
               final item = mixedItems[index];
+              final isLastItem = index == mixedItems.length - 1;
               return Padding(
-                padding: const EdgeInsets.only(right: itemSpacing),
+                key: ValueKey('${item['type']}:${item['id']}'),
+                padding: EdgeInsets.only(right: isLastItem ? 0 : itemSpacing),
                 child: _buildLinkHighlightTile(
                   context,
                   item,
