@@ -93,7 +93,7 @@ class _SettingsViewState extends State<SettingsView> {
       AdminTaskAssignmentRepository.ensure();
   final AdminApprovalRepository _adminApprovalRepository =
       AdminApprovalRepository.ensure();
-  final AppLanguageService _languageService = AppLanguageService.ensure();
+  final AppLanguageService _languageService = ensureAppLanguageService();
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;

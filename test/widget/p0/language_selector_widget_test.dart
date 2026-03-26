@@ -151,7 +151,7 @@ void main() {
         await tester.tap(find.text('English').first);
         await tester.pumpAndSettle();
 
-        final languageService = AppLanguageService.maybeFind();
+        final languageService = maybeFindAppLanguageService();
         expect(languageService, isNotNull);
         expect(languageService!.currentCode, 'en_US');
         expect(

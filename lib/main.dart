@@ -103,7 +103,7 @@ Future<void> main() async {
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   VideoStateManager.instance;
   NetworkAwarenessService.ensure();
-  await AppLanguageService.ensureInitialized();
+  await ensureInitializedAppLanguageService();
 
   runApp(const MyApp());
   scheduleQALabAutoOpenOnLaunch();
@@ -308,7 +308,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final languageService = AppLanguageService.maybeFind();
+    final languageService = maybeFindAppLanguageService();
     return GetMaterialApp(
       navigatorKey: navigatorKey,
       navigatorObservers: [routeObserver, searchResetNavigatorObserver],

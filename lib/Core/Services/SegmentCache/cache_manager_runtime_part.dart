@@ -42,7 +42,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     );
   }
 
-  VideoRemoteConfigService? get _remote => VideoRemoteConfigService.maybeFind();
+  VideoRemoteConfigService? get _remote => maybeFindVideoRemoteConfigService();
 
   File? getSegmentFile(String docID, String segmentKey) {
     final entry = _index.entries[docID];

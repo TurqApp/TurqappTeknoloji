@@ -251,7 +251,7 @@ extension _SplashViewStartupPart on _SplashViewState {
 
   Future<void> _initCacheProxyInternal() async {
     try {
-      final remote = VideoRemoteConfigService.ensure();
+      final remote = ensureVideoRemoteConfigService();
       if (!remote.isReady) {
         await remote.initialize();
       }

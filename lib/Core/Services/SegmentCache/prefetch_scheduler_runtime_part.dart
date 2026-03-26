@@ -66,7 +66,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
           : PrefetchScheduler._fallbackFeedPrepWindow)
       : PrefetchScheduler._fallbackFeedPrepWindow;
 
-  VideoRemoteConfigService? get _remote => VideoRemoteConfigService.maybeFind();
+  VideoRemoteConfigService? get _remote => maybeFindVideoRemoteConfigService();
 
   SegmentCacheManager? _getCacheManager() => SegmentCacheManager.maybeFind();
 
