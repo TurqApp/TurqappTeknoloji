@@ -11,4 +11,3 @@ import 'package:turqappv2/Models/recommended_user_model.dart';
 part 'recommended_users_repository_facade_part.dart';
 part 'recommended_users_repository_fields_part.dart';
 part 'recommended_users_repository_runtime_part.dart';
-part 'recommended_users_repository_class_part.dart';
