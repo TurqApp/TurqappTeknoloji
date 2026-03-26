@@ -2,7 +2,7 @@ part of 'upload_queue_service.dart';
 
 extension UploadQueueServiceQueuePart on UploadQueueService {
   String get _queueKey {
-    return userScopedKey(UploadQueueService._queueKeyPrefix);
+    return userScopedKey(_queueKeyPrefix);
   }
 
   String _queueFingerprintForMap(Map<String, dynamic> data) {
@@ -98,7 +98,7 @@ extension UploadQueueServiceQueuePart on UploadQueueService {
             _seriesBaseId(item.id) != baseId &&
             item.status == UploadStatus.completed &&
             DateTime.now().difference(item.createdAt) <=
-                UploadQueueService._recentDuplicateWindow &&
+                _recentDuplicateWindow &&
             _queueFingerprint(item) == fingerprint);
     if (recentDuplicate) {
       AppSnackbar(

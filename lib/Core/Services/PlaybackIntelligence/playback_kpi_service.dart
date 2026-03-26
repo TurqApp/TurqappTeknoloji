@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
 
+part 'playback_kpi_service_facade_part.dart';
+part 'playback_kpi_service_fields_part.dart';
 part 'playback_kpi_service_models_part.dart';
 part 'playback_kpi_service_summary_part.dart';
 
@@ -11,38 +13,16 @@ const bool _suppressPlaybackKpiSmokeLogs =
     bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
 
 class PlaybackKpiService extends GetxService {
-  static PlaybackKpiService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(PlaybackKpiService(), permanent: true);
-  }
+  static PlaybackKpiService ensure() => _ensurePlaybackKpiService();
 
-  static PlaybackKpiService? maybeFind() {
-    final isRegistered = Get.isRegistered<PlaybackKpiService>();
-    if (!isRegistered) return null;
-    return Get.find<PlaybackKpiService>();
-  }
+  static PlaybackKpiService? maybeFind() => _maybeFindPlaybackKpiService();
 
-  final RxList<PlaybackKpiEvent> _recent = <PlaybackKpiEvent>[].obs;
+  final _state = _PlaybackKpiServiceState();
 
   List<PlaybackKpiEvent> get recentEvents => List.unmodifiable(_recent);
 
-  void track(PlaybackKpiEventType type, Map<String, dynamic> payload) {
-    final event = PlaybackKpiEvent(type: type, payload: payload);
-    scheduleMicrotask(() {
-      _appendEvent(event);
-    });
-    if (kDebugMode && !_suppressPlaybackKpiSmokeLogs) {
-      debugPrint('[PlaybackKPI] ${type.name}: $payload');
-    }
-  }
-
-  void _appendEvent(PlaybackKpiEvent event) {
-    _recent.add(event);
-    if (_recent.length > 200) {
-      _recent.removeRange(0, _recent.length - 200);
-    }
-  }
+  void track(PlaybackKpiEventType type, Map<String, dynamic> payload) =>
+      _trackPlaybackKpiEvent(this, type, payload);
 
   CacheFirstSurfaceSummary summarizeCacheFirst({
     required String surfaceKeyPrefix,

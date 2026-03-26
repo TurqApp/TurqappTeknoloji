@@ -9,6 +9,7 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'optical_preview_controller_facade_part.dart';
+part 'optical_preview_controller_fields_part.dart';
 part 'optical_preview_controller_runtime_part.dart';
 
 class OpticalPreviewController extends GetxController {
@@ -28,17 +29,9 @@ class OpticalPreviewController extends GetxController {
   static OpticalPreviewController? maybeFind({String? tag}) =>
       _maybeFindOpticalPreviewController(tag: tag);
 
+  final _state = _OpticalPreviewControllerState();
   final OpticalFormModel model;
   final Function? onUpdate;
-  final OpticalFormRepository _opticalFormRepository =
-      OpticalFormRepository.ensure();
-
-  final cevaplar = <String>[].obs;
-  final isConnected = true.obs;
-  final selection = 0.obs;
-  final fullName = TextEditingController();
-  final ogrenciNo = TextEditingController();
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   OpticalPreviewController(this.model, this.onUpdate) {
     _initialize();

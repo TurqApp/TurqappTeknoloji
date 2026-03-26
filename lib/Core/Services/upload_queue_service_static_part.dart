@@ -31,3 +31,12 @@ Future<void> _saveUploadQueueToStorage(UploadQueueService service) =>
 
 Future<void> _loadUploadQueueFromStorage(UploadQueueService service) =>
     service._performLoadQueueFromStorage();
+
+extension UploadQueueServiceStaticFacadePart on UploadQueueService {
+  Future<void> _createPendingPostShell(QueuedUpload upload) =>
+      _createUploadPendingPostShell(this, upload);
+
+  Future<void> _saveQueueToStorage() => _saveUploadQueueToStorage(this);
+
+  Future<void> _loadQueueFromStorage() => _loadUploadQueueFromStorage(this);
+}

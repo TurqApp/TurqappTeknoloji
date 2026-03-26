@@ -204,7 +204,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           final effectiveVideoFile = checkedVideoFile ?? rawVideoFile;
 
           final videoSize = await effectiveVideoFile.length();
-          if (videoSize > UploadQueueService._maxVideoBytesForStorageRule) {
+          if (videoSize > _maxVideoBytesForStorageRule) {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'upload_queue.video_too_large'.tr;
             await FirebaseFirestore.instance
@@ -605,7 +605,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
     } catch (e) {
       upload.retryCount++;
 
-      if (upload.retryCount >= UploadQueueService._maxRetries) {
+      if (upload.retryCount >= _maxRetries) {
         upload.status = UploadStatus.failed;
         upload.errorMessage = e.toString();
         _failedCount.value++;
@@ -618,7 +618,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       } else {
         upload.status = UploadStatus.pending;
         upload.errorMessage =
-            'Retry ${upload.retryCount}/${UploadQueueService._maxRetries}: ${e.toString()}';
+            'Retry ${upload.retryCount}/$_maxRetries: ${e.toString()}';
 
         await Future.delayed(Duration(seconds: upload.retryCount * 2));
       }

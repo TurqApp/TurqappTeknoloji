@@ -5,68 +5,38 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'recommended_user_content_controller_facade_part.dart';
+part 'recommended_user_content_controller_fields_part.dart';
+part 'recommended_user_content_controller_runtime_part.dart';
+
 class RecommendedUserContentController extends GetxController {
   static RecommendedUserContentController ensure({
     required String userID,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      RecommendedUserContentController(userID: userID),
-      tag: tag,
-      permanent: permanent,
-    );
+  }) =>
+      _ensureRecommendedUserContentController(
+        userID: userID,
+        tag: tag,
+        permanent: permanent,
+      );
+
+  static RecommendedUserContentController? maybeFind({String? tag}) =>
+      _maybeFindRecommendedUserContentController(tag: tag);
+
+  final _state = _RecommendedUserContentControllerState();
+
+  RecommendedUserContentController({required String userID}) {
+    this.userID = userID;
   }
 
-  static RecommendedUserContentController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<RecommendedUserContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<RecommendedUserContentController>(tag: tag);
-  }
-
-  String userID;
-  var isFollowing = false.obs;
-  var followLoading = false.obs;
-  final FollowRepository _followRepository = FollowRepository.ensure();
-
-  RecommendedUserContentController({required this.userID});
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    // Başlangıçta anlık durumu merkezi follow cache hattından al
     getTakipStatus();
   }
 
-  Future<void> getTakipStatus() async {
-    isFollowing.value = await _followRepository.isFollowing(
-      userID,
-      currentUid: CurrentUserService.instance.effectiveUserId,
-      preferCache: true,
-    );
-  }
+  Future<void> getTakipStatus() => _loadRecommendedUserFollowStatus(this);
 
-  Future<void> follow() async {
-    if (followLoading.value) return;
-    final wasFollowing = isFollowing.value;
-    isFollowing.value = !wasFollowing; // optimistic
-    followLoading.value = true;
-    try {
-      final outcome = await FollowService.toggleFollowFromLocalState(
-        userID,
-        assumedFollowing: wasFollowing,
-      );
-      isFollowing.value = outcome.nowFollowing; // reconcile
-      if (outcome.limitReached) {
-        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
-      }
-    } catch (e) {
-      isFollowing.value = wasFollowing; // revert
-    } finally {
-      followLoading.value = false;
-    }
-  }
+  Future<void> follow() => _toggleRecommendedUserFollow(this);
 }
