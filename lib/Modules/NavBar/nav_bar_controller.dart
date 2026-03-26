@@ -26,6 +26,7 @@ import '../../Services/current_user_service.dart';
 import '../Profile/Settings/settings_controller.dart';
 
 part 'nav_bar_controller_lifecycle_part.dart';
+part 'nav_bar_controller_base_part.dart';
 part 'nav_bar_controller_class_part.dart';
 part 'nav_bar_controller_facade_part.dart';
 part 'nav_bar_controller_fields_part.dart';

@@ -1,12 +1,10 @@
 part of 'solve_test_controller.dart';
 
-class SolveTestController extends GetxController {
-  final _SolveTestControllerState _state;
-
+class SolveTestController extends _SolveTestControllerBase {
   SolveTestController({
     required String testID,
     required Function showSucces,
-  }) : _state = _SolveTestControllerState(
+  }) : super(
           testID: testID,
           showSucces: showSucces,
         );

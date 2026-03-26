@@ -1,12 +1,10 @@
 part of 'following_followers_controller.dart';
 
-class FollowingFollowersController extends GetxController {
-  final _FollowingFollowersControllerState _state;
-
+class FollowingFollowersController extends _FollowingFollowersControllerBase {
   FollowingFollowersController({
     required String userId,
     required int initialPage,
-  }) : _state = _buildFollowingFollowersControllerState(
+  }) : super(
           userId: userId,
           initialPage: initialPage,
         );

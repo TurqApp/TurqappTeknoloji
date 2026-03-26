@@ -1,12 +1,10 @@
 part of 'share_grid_controller.dart';
 
-class ShareGridController extends GetxController {
-  final _ShareGridControllerState _state;
-
+class ShareGridController extends _ShareGridControllerBase {
   ShareGridController({
     required String postType,
     required String postID,
-  }) : _state = _ShareGridControllerState(
+  }) : super(
           postType: postType,
           postID: postID,
         );

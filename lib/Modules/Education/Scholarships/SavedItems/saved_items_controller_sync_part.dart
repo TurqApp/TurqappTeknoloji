@@ -31,7 +31,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
           'scholarships:saved:$userId',
-          minInterval: SavedItemsController._silentRefreshInterval,
+          minInterval: _SavedItemsControllerBase.silentRefreshInterval,
         )) {
           unawaited(fetchSavedItems(silent: true, forceRefresh: true));
         }

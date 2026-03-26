@@ -1,12 +1,10 @@
 part of 'chat_listing_content_controller.dart';
 
-class ChatListingContentController extends GetxController {
-  final _ChatListingContentControllerState _state;
-
+class ChatListingContentController extends _ChatListingContentControllerBase {
   ChatListingContentController({
     required String userID,
     required ChatListingModel model,
-  }) : _state = _ChatListingContentControllerState(
+  }) : super(
           userID: userID,
           model: model,
         );

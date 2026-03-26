@@ -1,11 +1,9 @@
 part of 'nav_bar_controller.dart';
 
-class NavBarController extends GetxController
-    with GetTickerProviderStateMixin, WidgetsBindingObserver {
+class NavBarController extends _NavBarControllerBase {
   static NavBarController ensure() => _ensureNavBarController();
 
   static NavBarController? maybeFind() => _maybeFindNavBarController();
-  final _state = _NavBarControllerState();
 
   @override
   void onInit() {

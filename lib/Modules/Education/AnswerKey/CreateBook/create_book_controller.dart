@@ -16,6 +16,7 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'create_book_controller_base_part.dart';
 part 'create_book_controller_class_part.dart';
 part 'create_book_controller_answer_key_class_part.dart';
 part 'create_book_controller_answer_key_fields_part.dart';

@@ -1,13 +1,11 @@
 part of 'create_book_controller.dart';
 
-class CreateBookController extends GetxController {
-  final _CreateBookControllerState _state;
-
+class CreateBookController extends _CreateBookControllerBase {
   CreateBookController(
     Function? onBack, {
     BookletModel? existingBook,
-  }) : _state = _CreateBookControllerState(
-          onBack: onBack,
+  }) : super(
+          onBack,
           existingBook: existingBook,
         );
 
