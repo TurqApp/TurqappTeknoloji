@@ -272,8 +272,8 @@ extension _AgendaViewFeedPart on AgendaView {
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
     final isModernView = CurrentUserService.instance.effectiveViewSelection == 1;
     final edgeInsets = isModernView
-        ? const EdgeInsets.fromLTRB(5, 8, 5, 8)
-        : const EdgeInsets.symmetric(vertical: 8);
+        ? const EdgeInsets.fromLTRB(40, 8, 5, 8)
+        : const EdgeInsets.fromLTRB(40, 8, 5, 8);
     if (promoType == 'ad') {
       return Padding(
         padding: edgeInsets,
