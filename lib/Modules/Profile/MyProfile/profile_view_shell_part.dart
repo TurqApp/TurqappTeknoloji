@@ -118,7 +118,7 @@ extension _ProfileViewShellPart on _ProfileViewState {
                     'profile-visibility-${controller.mergedEntryIdentity(docId: model.docID, isReshare: isReshare)}',
                   ),
                   onVisibilityChanged: (info) {
-                    if (model.hasPlayableVideo) return;
+                    if (!model.hasPlayableVideo) return;
                     controller.onPostVisibilityChanged(
                       actualIndex,
                       info.visibleFraction,

@@ -174,17 +174,29 @@ extension _SocialProfileContentPart on _SocialProfileState {
             padding: const EdgeInsets.only(bottom: 5),
             child: Column(
               children: [
-                AgendaContent(
-                  key: itemKey,
-                  model: model,
-                  isPreview: false,
-                  shouldPlay: !controller.showPfImage.value && isCentered,
-                  instanceTag: controller.agendaInstanceTag(
-                    docId: model.docID,
-                    isReshare: isReshare,
+                VisibilityDetector(
+                  key: Key(
+                    'social-profile-visibility-${controller.combinedEntryIdentity(docId: model.docID, isReshare: isReshare)}',
                   ),
-                  isYenidenPaylasilanPost: isReshare,
-                  reshareUserID: isReshare ? controller.userID : null,
+                  onVisibilityChanged: (info) {
+                    if (!model.hasPlayableVideo) return;
+                    controller.onPostVisibilityChanged(
+                      actualIndex,
+                      info.visibleFraction,
+                    );
+                  },
+                  child: AgendaContent(
+                    key: itemKey,
+                    model: model,
+                    isPreview: false,
+                    shouldPlay: !controller.showPfImage.value && isCentered,
+                    instanceTag: controller.agendaInstanceTag(
+                      docId: model.docID,
+                      isReshare: isReshare,
+                    ),
+                    isYenidenPaylasilanPost: isReshare,
+                    reshareUserID: isReshare ? controller.userID : null,
+                  ),
                 ),
                 SizedBox(
                   height: 2,

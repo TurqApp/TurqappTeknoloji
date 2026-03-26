@@ -151,7 +151,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isSurfacePlaybackAllowed {
     if (isStandalonePostInstance) return true;
-    if (!_isProfileSurfaceInstance) {
+    if (!_isProfileFamilySurfaceInstance) {
       return agendaController.canClaimPlaybackNow;
     }
     final nav = NavBarController.maybeFind();
