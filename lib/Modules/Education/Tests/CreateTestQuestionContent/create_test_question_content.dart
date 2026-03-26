@@ -6,6 +6,7 @@ import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTestQuestionContent/create_test_question_content_controller.dart';
 
 part 'create_test_question_content_shell_part.dart';
+part 'create_test_question_content_shell_content_part.dart';
 part 'create_test_question_content_choice_part.dart';
 
 class CreateTestQuestionContent extends StatefulWidget {

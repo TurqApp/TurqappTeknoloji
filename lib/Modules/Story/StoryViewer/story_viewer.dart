@@ -17,6 +17,7 @@ import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import '../StoryRow/story_row_controller.dart';
 
 part 'story_viewer_shell_part.dart';
+part 'story_viewer_shell_content_part.dart';
 part 'story_viewer_story_part.dart';
 
 class StoryViewer extends StatefulWidget {

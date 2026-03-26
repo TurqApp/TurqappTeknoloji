@@ -26,6 +26,7 @@ part 'market_view_filters_part.dart';
 part 'market_view_cards_part.dart';
 part 'market_view_style_part.dart';
 part 'market_view_shell_part.dart';
+part 'market_view_shell_content_part.dart';
 part 'market_view_media_part.dart';
 
 class MarketView extends StatelessWidget {
