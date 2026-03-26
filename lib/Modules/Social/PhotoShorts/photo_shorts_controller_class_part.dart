@@ -1,25 +1,6 @@
 part of 'photo_shorts_controller.dart';
 
 class PhotoShortsController extends GetxController {
-  static PhotoShortsController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      PhotoShortsController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static PhotoShortsController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<PhotoShortsController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<PhotoShortsController>(tag: tag);
-  }
-
   var list = <PostsModel>[].obs;
   final PostRepository _postRepository = PostRepository.ensure();
 

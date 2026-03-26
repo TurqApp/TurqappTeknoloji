@@ -99,7 +99,7 @@ extension ProfileControllerHeaderPart on ProfileController {
         if (uid == null || uid.isEmpty) return;
         await _socialLinksRepository.deleteLink(uid, docID);
         unawaited(
-          SocialMediaController.maybeFind()?.getData(
+          maybeFindSocialMediaController()?.getData(
                 silent: true,
                 forceRefresh: true,
               ) ??

@@ -14,7 +14,7 @@ class _EducationControllerState {
   final pasajConfigLoaded = false.obs;
   DateTime lastNavToggleAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool didRunVisibleSurfaceReset = false;
-  final settingsController = SettingsController.ensure();
+  final settingsController = ensureSettingsController();
   StreamSubscription<Map<String, dynamic>>? pasajConfigSub;
   final adminPasajVisibility = <String, bool>{};
 }

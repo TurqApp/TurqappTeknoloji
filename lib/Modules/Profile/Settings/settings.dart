@@ -101,11 +101,11 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   void initState() {
     super.initState();
-    final existingSettingsController = SettingsController.maybeFind();
+    final existingSettingsController = maybeFindSettingsController();
     if (existingSettingsController != null) {
       controller = existingSettingsController;
     } else {
-      controller = SettingsController.ensure();
+      controller = ensureSettingsController();
       _ownsSettingsController = true;
     }
     final existingScholarshipsController = ScholarshipsController.maybeFind();
@@ -127,7 +127,7 @@ class _SettingsViewState extends State<SettingsView> {
       Get.delete<ScholarshipsController>(force: true);
     }
     if (_ownsSettingsController &&
-        identical(SettingsController.maybeFind(), controller)) {
+        identical(maybeFindSettingsController(), controller)) {
       Get.delete<SettingsController>(force: true);
     }
     super.dispose();

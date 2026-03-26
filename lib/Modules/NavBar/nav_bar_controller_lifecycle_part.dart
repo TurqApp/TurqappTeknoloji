@@ -70,7 +70,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   void _didChangeAppLifecycleStateImpl(AppLifecycleState state) {
     if (_isDisposed) return;
     final hasEducation =
-        SettingsController.maybeFind()?.educationScreenIsOn.value ?? false;
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
 
     if (state == AppLifecycleState.paused ||
@@ -99,7 +99,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   void _changeIndexImpl(int index) {
     final previous = selectedIndex.value;
     final hasEducation =
-        SettingsController.maybeFind()?.educationScreenIsOn.value ?? false;
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
 
     if (index != previous) {

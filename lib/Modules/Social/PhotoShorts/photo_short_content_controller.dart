@@ -29,4 +29,5 @@ part 'photo_short_content_controller_post_part.dart';
 part 'photo_short_content_controller_fields_part.dart';
 part 'photo_short_content_controller_runtime_part.dart';
 part 'photo_short_content_controller_shell_part.dart';
+part 'photo_short_content_controller_facade_part.dart';
 part 'photo_short_content_controller_social_part.dart';

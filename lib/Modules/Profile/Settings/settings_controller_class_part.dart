@@ -1,18 +1,6 @@
 part of 'settings_controller.dart';
 
 class SettingsController extends GetxController {
-  static SettingsController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(SettingsController(), permanent: permanent);
-  }
-
-  static SettingsController? maybeFind() {
-    final isRegistered = Get.isRegistered<SettingsController>();
-    if (!isRegistered) return null;
-    return Get.find<SettingsController>();
-  }
-
   RxBool educationScreenIsOn = true.obs;
   final pasajOrder = pasajTabs.obs;
   final pasajVisibility = <String, bool>{}.obs;

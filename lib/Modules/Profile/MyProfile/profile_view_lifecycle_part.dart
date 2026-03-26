@@ -10,7 +10,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       }
       return true;
     }
-    final settings = SettingsController.maybeFind();
+    final settings = maybeFindSettingsController();
     final hasEducation = settings?.educationScreenIsOn.value ?? false;
     final profileIndex = hasEducation ? 4 : 3;
     return nav.selectedIndex.value == profileIndex;
@@ -29,11 +29,11 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       controller = ProfileController.ensure();
       _ownsController = true;
     }
-    final existingSocialMediaController = SocialMediaController.maybeFind();
+    final existingSocialMediaController = maybeFindSocialMediaController();
     if (existingSocialMediaController != null) {
       socialMediaController = existingSocialMediaController;
     } else {
-      socialMediaController = SocialMediaController.ensure();
+      socialMediaController = ensureSocialMediaController();
       _ownsSocialMediaController = true;
     }
     try {
@@ -70,7 +70,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     }
     if (_ownsSocialMediaController &&
         identical(
-          SocialMediaController.maybeFind(),
+          maybeFindSocialMediaController(),
           socialMediaController,
         )) {
       Get.delete<SocialMediaController>(force: true);

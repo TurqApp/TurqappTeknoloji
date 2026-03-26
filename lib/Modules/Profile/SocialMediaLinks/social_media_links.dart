@@ -25,11 +25,11 @@ class _SocialMediaLinksState extends State<SocialMediaLinks> {
   @override
   void initState() {
     super.initState();
-    final existingController = SocialMediaController.maybeFind();
+    final existingController = maybeFindSocialMediaController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = SocialMediaController.ensure();
+      controller = ensureSocialMediaController();
       _ownsController = true;
     }
   }
@@ -37,7 +37,7 @@ class _SocialMediaLinksState extends State<SocialMediaLinks> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(SocialMediaController.maybeFind(), controller)) {
+        identical(maybeFindSocialMediaController(), controller)) {
       Get.delete<SocialMediaController>();
     }
     super.dispose();

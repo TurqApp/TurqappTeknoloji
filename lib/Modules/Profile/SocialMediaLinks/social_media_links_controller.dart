@@ -13,29 +13,7 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
+part 'social_media_links_controller_class_part.dart';
 part 'social_media_links_controller_fields_part.dart';
 part 'social_media_links_controller_facade_part.dart';
 part 'social_media_links_controller_runtime_part.dart';
-
-class SocialMediaController extends GetxController {
-  static SocialMediaController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(SocialMediaController());
-  }
-
-  static SocialMediaController? maybeFind() {
-    final isRegistered = Get.isRegistered<SocialMediaController>();
-    if (!isRegistered) return null;
-    return Get.find<SocialMediaController>();
-  }
-
-  static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  final _state = _SocialMediaControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _SocialMediaControllerRuntimeX(this).handleOnInit();
-  }
-}

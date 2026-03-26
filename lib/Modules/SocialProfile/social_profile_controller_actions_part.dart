@@ -85,7 +85,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
                       await _socialLinksRepository.deleteLink(userID, docID);
 
                       unawaited(
-                        SocialMediaController.maybeFind()?.getData(
+                        maybeFindSocialMediaController()?.getData(
                               silent: true,
                               forceRefresh: true,
                             ) ??

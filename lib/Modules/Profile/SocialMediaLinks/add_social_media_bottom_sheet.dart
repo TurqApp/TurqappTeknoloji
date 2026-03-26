@@ -13,7 +13,7 @@ part 'add_social_media_bottom_sheet_content_part.dart';
 
 class AddSocialMediaBottomSheet extends StatelessWidget {
   AddSocialMediaBottomSheet({super.key})
-      : controller = SocialMediaController.ensure();
+      : controller = ensureSocialMediaController();
   final SocialMediaController controller;
 
   @override

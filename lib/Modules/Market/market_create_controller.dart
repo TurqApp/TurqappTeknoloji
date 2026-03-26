@@ -22,6 +22,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'market_schema_service.dart';
 
 part 'market_create_controller_class_part.dart';
+part 'market_create_controller_facade_part.dart';
 part 'market_create_controller_form_part.dart';
 part 'market_create_controller_submission_part.dart';
 part 'market_create_controller_fields_part.dart';

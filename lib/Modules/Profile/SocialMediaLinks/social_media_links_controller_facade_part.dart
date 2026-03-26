@@ -1,5 +1,17 @@
 part of 'social_media_links_controller.dart';
 
+SocialMediaController ensureSocialMediaController({bool permanent = false}) {
+  final existing = maybeFindSocialMediaController();
+  if (existing != null) return existing;
+  return Get.put(SocialMediaController(), permanent: permanent);
+}
+
+SocialMediaController? maybeFindSocialMediaController() {
+  final isRegistered = Get.isRegistered<SocialMediaController>();
+  if (!isRegistered) return null;
+  return Get.find<SocialMediaController>();
+}
+
 extension SocialMediaControllerFacadePart on SocialMediaController {
   String get currentUid => CurrentUserService.instance.effectiveUserId;
 

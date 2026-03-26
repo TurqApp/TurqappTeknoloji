@@ -91,8 +91,8 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
     super.initState();
     _controllerTag = 'PhotoShortContent_${widget.model.docID}';
     _ownsController =
-        PhotoShortsContentController.maybeFind(tag: _controllerTag) == null;
-    controller = PhotoShortsContentController.ensure(
+        maybeFindPhotoShortsContentController(tag: _controllerTag) == null;
+    controller = ensurePhotoShortsContentController(
       model: widget.model,
       tag: _controllerTag,
     );
@@ -105,7 +105,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
     _pageController.dispose();
     if (_ownsController &&
         identical(
-          PhotoShortsContentController.maybeFind(tag: _controllerTag),
+          maybeFindPhotoShortsContentController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PhotoShortsContentController>(

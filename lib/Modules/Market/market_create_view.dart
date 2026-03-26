@@ -34,11 +34,11 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     super.initState();
     _controllerTag =
         'market_create_${widget.initialItem?.id ?? 'new'}_${identityHashCode(this)}';
-    final existing = MarketCreateController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindMarketCreateController(tag: _controllerTag);
     if (existing != null) {
       controller = existing;
     } else {
-      controller = MarketCreateController.ensure(
+      controller = ensureMarketCreateController(
         initialItem: widget.initialItem,
         tag: _controllerTag,
       );
@@ -49,7 +49,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   @override
   void dispose() {
     _imagePreviewController.dispose();
-    final existing = MarketCreateController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindMarketCreateController(tag: _controllerTag);
     if (_ownsController && identical(existing, controller)) {
       Get.delete<MarketCreateController>(tag: _controllerTag);
     }

@@ -155,7 +155,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return agendaController.canClaimPlaybackNow;
     }
     final nav = NavBarController.maybeFind();
-    final settings = SettingsController.maybeFind();
+    final settings = maybeFindSettingsController();
     final hasEducation = settings?.educationScreenIsOn.value ?? false;
     final profileIndex = hasEducation ? 4 : 3;
     return nav?.selectedIndex.value == profileIndex;
