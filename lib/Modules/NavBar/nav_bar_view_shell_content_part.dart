@@ -303,7 +303,7 @@ extension _NavBarViewShellContentPart on NavBarView {
       return;
     }
 
-    final shortController = ShortController.ensure();
+    final shortController = ensureShortController();
     if (shortController.shorts.isEmpty) {
       shortController.backgroundPreload().catchError((_) {});
     }

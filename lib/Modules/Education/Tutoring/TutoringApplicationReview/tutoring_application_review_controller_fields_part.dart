@@ -4,7 +4,7 @@ class _TutoringApplicationReviewControllerState {
   _TutoringApplicationReviewControllerState({required this.tutoringDocID});
 
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
-  final TutoringRepository tutoringRepository = TutoringRepository.ensure();
+  final TutoringRepository tutoringRepository = ensureTutoringRepository();
   final String tutoringDocID;
   final applicants = <TutoringApplicationModel>[].obs;
   final isLoading = false.obs;

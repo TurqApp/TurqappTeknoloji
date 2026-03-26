@@ -248,7 +248,7 @@ class PostDeleteService {
     }
 
     // Shorts listesi
-    final shorts = ShortController.maybeFind();
+    final shorts = maybeFindShortController();
     if (shorts != null) {
       shorts.shorts.removeWhere((e) => e.docID == docID);
       shorts.shorts.refresh();

@@ -3,7 +3,7 @@ part of 'tutoring_controller.dart';
 class _TutoringControllerState {
   final TutoringSnapshotRepository tutoringSnapshotRepository =
       ensureTutoringSnapshotRepository();
-  final TutoringRepository tutoringRepository = TutoringRepository.ensure();
+  final TutoringRepository tutoringRepository = ensureTutoringRepository();
   final FocusNode focusNode = FocusNode();
   final TextEditingController searchPreviewController = TextEditingController();
   final RxBool isLoading = true.obs;

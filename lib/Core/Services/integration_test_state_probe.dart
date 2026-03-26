@@ -122,7 +122,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _shortSnapshot() {
-    final controller = ShortController.maybeFind();
+    final controller = maybeFindShortController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }

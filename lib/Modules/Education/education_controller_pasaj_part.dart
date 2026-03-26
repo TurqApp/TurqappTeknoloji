@@ -202,7 +202,7 @@ extension EducationControllerPasajPart on EducationController {
         }
         break;
       case PasajTabIds.scholarships:
-        final scholarships = ScholarshipsController.maybeFind();
+        final scholarships = maybeFindScholarshipsController();
         if (scholarships != null) {
           _resetTrackedScrollController(scholarships.scrollController);
           scholarships.scrollOffset.value = 0;
@@ -224,7 +224,7 @@ extension EducationControllerPasajPart on EducationController {
         }
         break;
       case PasajTabIds.answerKey:
-        final answerKey = AnswerKeyController.maybeFind();
+        final answerKey = maybeFindAnswerKeyController();
         if (answerKey != null) {
           _resetTrackedScrollController(answerKey.scrollController);
           answerKey.scrollOffset.value = 0;

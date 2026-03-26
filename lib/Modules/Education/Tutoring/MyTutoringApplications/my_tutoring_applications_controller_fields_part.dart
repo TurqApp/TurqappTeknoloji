@@ -3,7 +3,7 @@ part of 'my_tutoring_applications_controller.dart';
 class _MyTutoringApplicationsControllerState {
   final UserSubcollectionRepository subcollectionRepository =
       ensureUserSubcollectionRepository();
-  final TutoringRepository tutoringRepository = TutoringRepository.ensure();
+  final TutoringRepository tutoringRepository = ensureTutoringRepository();
   final RxList<TutoringApplicationModel> applications =
       <TutoringApplicationModel>[].obs;
   final RxBool isLoading = false.obs;

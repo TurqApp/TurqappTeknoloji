@@ -9,7 +9,7 @@ class PostRepository extends GetxService {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance,
         _interactionService =
-            interactionService ?? PostInteractionService.ensure(),
+            interactionService ?? ensurePostInteractionService(),
         _countManager = countManager ?? PostCountManager.instance,
         _state = _PostRepositoryFieldsState();
 

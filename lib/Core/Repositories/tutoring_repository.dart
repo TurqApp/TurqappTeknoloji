@@ -13,6 +13,7 @@ part 'tutoring_repository_query_part.dart';
 part 'tutoring_repository_action_part.dart';
 part 'tutoring_repository_class_part.dart';
 part 'tutoring_repository_cache_part.dart';
+part 'tutoring_repository_facade_part.dart';
 
 class TutoringPage {
   const TutoringPage({

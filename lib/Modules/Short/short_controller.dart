@@ -25,6 +25,7 @@ import '../../Models/posts_model.dart';
 
 part 'short_controller_loading_part.dart';
 part 'short_controller_cache_part.dart';
+part 'short_controller_facade_part.dart';
 part 'short_controller_fields_part.dart';
 part 'short_controller_runtime_part.dart';
 part 'short_controller_models_part.dart';

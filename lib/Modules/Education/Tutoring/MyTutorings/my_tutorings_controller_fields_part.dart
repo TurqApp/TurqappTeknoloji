@@ -2,7 +2,7 @@ part of 'my_tutorings_controller.dart';
 
 class _MyTutoringsControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
-  final TutoringRepository tutoringRepository = TutoringRepository.ensure();
+  final TutoringRepository tutoringRepository = ensureTutoringRepository();
   final RxList<TutoringModel> myTutorings = <TutoringModel>[].obs;
   final RxMap<String, Map<String, dynamic>> users =
       <String, Map<String, dynamic>>{}.obs;

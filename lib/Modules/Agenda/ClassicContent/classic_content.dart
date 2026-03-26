@@ -27,6 +27,7 @@ import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Agenda/Components/post_state_messages.dart';
 import '../Common/post_content_base.dart';
 import '../Common/post_content_controller.dart';

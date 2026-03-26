@@ -56,7 +56,7 @@ class ScholarshipsView extends StatefulWidget {
 
 class _ScholarshipsViewState extends State<ScholarshipsView> {
   final ScholarshipsController controller =
-      ScholarshipsController.ensure(permanent: true);
+      ensureScholarshipsController(permanent: true);
   final DateTime startTime = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
 

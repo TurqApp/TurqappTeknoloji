@@ -126,10 +126,10 @@ class _PostContentControllerSupportPart {
 extension PostContentControllerSupportApi on PostContentController {
   CurrentUserService get userService => CurrentUserService.instance;
 
-  ShortController get shortsController => ShortController.ensure();
+  ShortController get shortsController => ensureShortController();
 
   PostInteractionService get _interactionService =>
-      PostInteractionService.ensure();
+      ensurePostInteractionService();
 
   RxInt get likeCount => countManager.getLikeCount(model.docID);
 

@@ -11,7 +11,7 @@ class _PostCommentContentControllerState {
   final String postID;
   final String commentControllerTag;
   final PostInteractionService interactionService =
-      PostInteractionService.ensure();
+      ensurePostInteractionService();
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final nickname = ''.obs;
   final avatarUrl = ''.obs;

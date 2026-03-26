@@ -52,7 +52,7 @@ extension EducationControllerSearchPart on EducationController {
     final query = searchText.value;
     switch (titles[selectedTab.value]) {
       case PasajTabIds.scholarships:
-        ScholarshipsController.maybeFind()?.setSearchQuery(query);
+        maybeFindScholarshipsController()?.setSearchQuery(query);
         break;
       case PasajTabIds.jobFinder:
         final jc = maybeFindJobFinderController();
@@ -73,7 +73,7 @@ extension EducationControllerSearchPart on EducationController {
         DenemeSinavlariController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.answerKey:
-        AnswerKeyController.maybeFind()?.setSearchQuery(query);
+        maybeFindAnswerKeyController()?.setSearchQuery(query);
         break;
       case PasajTabIds.tutoring:
         maybeFindTutoringController()?.setSearchQuery(query);
@@ -84,7 +84,7 @@ extension EducationControllerSearchPart on EducationController {
   void _clearModuleSearch(int tabIndex) {
     switch (titles[tabIndex]) {
       case PasajTabIds.scholarships:
-        ScholarshipsController.maybeFind()?.setSearchQuery('');
+        maybeFindScholarshipsController()?.setSearchQuery('');
         break;
       case PasajTabIds.jobFinder:
         maybeFindJobFinderController()?.search.clear();
@@ -102,7 +102,7 @@ extension EducationControllerSearchPart on EducationController {
         DenemeSinavlariController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.answerKey:
-        AnswerKeyController.maybeFind()?.setSearchQuery('');
+        maybeFindAnswerKeyController()?.setSearchQuery('');
         break;
       case PasajTabIds.tutoring:
         maybeFindTutoringController()?.setSearchQuery('');

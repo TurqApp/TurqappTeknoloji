@@ -58,8 +58,8 @@ class _JobDetailsState extends State<JobDetails> {
     _controllerTag =
         'job_details_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        JobDetailsController.maybeFind(tag: _controllerTag) == null;
-    controller = JobDetailsController.ensure(
+        maybeFindJobDetailsController(tag: _controllerTag) == null;
+    controller = ensureJobDetailsController(
       model: model,
       tag: _controllerTag,
     );
@@ -83,7 +83,7 @@ class _JobDetailsState extends State<JobDetails> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = JobDetailsController.maybeFind(
+      final registeredController = maybeFindJobDetailsController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

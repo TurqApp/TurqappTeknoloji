@@ -51,7 +51,7 @@ extension PhotoShortsContentControllerFieldsPart
   AgendaController get agendaController => _state.agendaController;
   PostCountManager get countManager => _state.countManager;
   PostInteractionService get _interactionService =>
-      _state.interactionService ??= PostInteractionService.ensure();
+      _state.interactionService ??= ensurePostInteractionService();
   set _interactionService(PostInteractionService value) =>
       _state.interactionService = value;
   PostRepository get _postRepository =>

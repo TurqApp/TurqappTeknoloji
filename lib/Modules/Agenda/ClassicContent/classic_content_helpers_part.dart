@@ -125,7 +125,7 @@ extension ClassicContentHelpersPart on _ClassicContentState {
     );
   }
 
-  ShortController get shortsController => ShortController.ensure();
+  ShortController get shortsController => ensureShortController();
 
   Widget _buildClassicAvatar({
     required String userId,

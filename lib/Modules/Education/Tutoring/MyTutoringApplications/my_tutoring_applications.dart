@@ -21,15 +21,15 @@ class _MyTutoringApplicationsState extends State<MyTutoringApplications> {
   @override
   void initState() {
     super.initState();
-    _ownsController = MyTutoringApplicationsController.maybeFind() == null;
-    controller = MyTutoringApplicationsController.ensure();
+    _ownsController = maybeFindMyTutoringApplicationsController() == null;
+    controller = ensureMyTutoringApplicationsController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          MyTutoringApplicationsController.maybeFind(),
+          maybeFindMyTutoringApplicationsController(),
           controller,
         )) {
       Get.delete<MyTutoringApplicationsController>();

@@ -35,7 +35,7 @@ extension PhotoShortContentControllerRuntimePart
   }
 
   void _initializeRuntime() {
-    _interactionService = PostInteractionService.ensure();
+    _interactionService = ensurePostInteractionService();
     _postRepository = PostRepository.ensure();
     _adminPushRepository = AdminPushRepository.ensure();
 

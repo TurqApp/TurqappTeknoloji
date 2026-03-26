@@ -15,7 +15,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       } catch (_) {}
 
       try {
-        final shortsController = ShortController.maybeFind();
+        final shortsController = maybeFindShortController();
         if (shortsController != null && shortsController.shorts.length < 8) {
           shortsController.warmStart(targetCount: 8, maxPages: 2);
         }

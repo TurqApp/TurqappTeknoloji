@@ -52,7 +52,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
   }
 
   Future<void> gizle() async {
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = true;
     final explore = ExploreController.maybeFind();
@@ -81,7 +81,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
   }
 
   Future<void> gizlemeyiGeriAl() async {
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = false;
 
@@ -113,7 +113,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
   Future<void> arsivle() async {
     await _shortPostRepository.setArchived(model, true);
 
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = true;
 
@@ -142,7 +142,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
   Future<void> arsivdenCikart() async {
     await _shortPostRepository.setArchived(model, false);
 
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = false;
 
@@ -182,7 +182,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     _deleteRemoveTimer?.cancel();
     _deleteRemoveTimer = Timer(const Duration(seconds: 3), () {
       if (isClosed) return;
-      final shortController = ShortController.maybeFind();
+      final shortController = maybeFindShortController();
       if (shortController != null) {
         final idx =
             shortController.shorts.indexWhere((e) => e.docID == model.docID);

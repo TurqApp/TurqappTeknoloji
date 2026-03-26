@@ -1,18 +1,18 @@
 part of 'job_details_controller.dart';
 
-JobDetailsController _ensureJobDetailsController({
+JobDetailsController ensureJobDetailsController({
   required JobModel model,
   String? tag,
   bool permanent = false,
 }) =>
-    _maybeFindJobDetailsController(tag: tag) ??
+    maybeFindJobDetailsController(tag: tag) ??
     Get.put(
       JobDetailsController(model: model),
       tag: tag,
       permanent: permanent,
     );
 
-JobDetailsController? _maybeFindJobDetailsController({String? tag}) =>
+JobDetailsController? maybeFindJobDetailsController({String? tag}) =>
     Get.isRegistered<JobDetailsController>(tag: tag)
         ? Get.find<JobDetailsController>(tag: tag)
         : null;

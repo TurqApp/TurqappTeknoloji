@@ -14,7 +14,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       await Future.wait([
         (() async {
           try {
-            final shorts = ShortController.maybeFind();
+            final shorts = maybeFindShortController();
             if (shorts == null) return;
             await _warmShortSnapshotForStartup(
               onWiFi: onWiFi,
@@ -144,7 +144,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       final storyTarget = onWiFi ? 30 : 18;
 
       try {
-        final shorts = ShortController.maybeFind();
+        final shorts = maybeFindShortController();
         if (shorts != null && shorts.shorts.length < shortTarget) {
           shorts.warmStart(
             targetCount: shortTarget,
@@ -238,7 +238,7 @@ extension _SplashViewWarmPart on _SplashViewState {
   }
 
   bool _isShortsReady() {
-    return (ShortController.maybeFind()?.shorts.length ?? 0) >=
+    return (maybeFindShortController()?.shorts.length ?? 0) >=
         _SplashViewState._minShortsForNav;
   }
 

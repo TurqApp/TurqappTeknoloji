@@ -33,8 +33,7 @@ class _NavBarControllerState {
 extension NavBarControllerFieldsPart on NavBarController {
   RxInt get selectedIndex => _state.selectedIndex;
   RxBool get showBar => _state.showBar;
-  ShortController get shortCtrl =>
-      _state.shortCtrl ??= ShortController.ensure();
+  ShortController get shortCtrl => _state.shortCtrl ??= ensureShortController();
   String get fullText => _state.fullText;
   Rx<AnimationController> get typingController => _state.typingController;
   set typingController(Rx<AnimationController> value) =>

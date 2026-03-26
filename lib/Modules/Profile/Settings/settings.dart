@@ -108,11 +108,11 @@ class _SettingsViewState extends State<SettingsView> {
       controller = ensureSettingsController();
       _ownsSettingsController = true;
     }
-    final existingScholarshipsController = ScholarshipsController.maybeFind();
+    final existingScholarshipsController = maybeFindScholarshipsController();
     if (existingScholarshipsController != null) {
       scholarshipsController = existingScholarshipsController;
     } else {
-      scholarshipsController = ScholarshipsController.ensure();
+      scholarshipsController = ensureScholarshipsController();
       _ownsScholarshipsController = true;
     }
   }
@@ -121,7 +121,7 @@ class _SettingsViewState extends State<SettingsView> {
   void dispose() {
     if (_ownsScholarshipsController &&
         identical(
-          ScholarshipsController.maybeFind(),
+          maybeFindScholarshipsController(),
           scholarshipsController,
         )) {
       Get.delete<ScholarshipsController>(force: true);

@@ -55,7 +55,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
   }
 
   Future<void> gizle() async {
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = true;
 
@@ -90,7 +90,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
   }
 
   Future<void> gizlemeyiGeriAl() async {
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = false;
 
@@ -128,7 +128,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
   Future<void> arsivle() async {
     await _postRepository.setArchived(model, true);
 
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = true;
 
@@ -159,7 +159,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
   Future<void> arsivdenCikart() async {
     await _postRepository.setArchived(model, false);
 
-    final shortController = ShortController.maybeFind();
+    final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = false;
     final exploreController = ExploreController.maybeFind();

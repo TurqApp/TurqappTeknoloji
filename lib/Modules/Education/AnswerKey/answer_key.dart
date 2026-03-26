@@ -52,7 +52,7 @@ class AnswerKey extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final AnswerKeyController controller =
-      AnswerKeyController.ensure(permanent: true);
+      ensureAnswerKeyController(permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override

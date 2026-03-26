@@ -11,7 +11,7 @@ class _TutoringDetailControllerState {
   final reviews = <TutoringReviewModel>[].obs;
   final reviewUsers = <String, Map<String, dynamic>>{}.obs;
   final userSummaryResolver = UserSummaryResolver.ensure();
-  final tutoringRepository = TutoringRepository.ensure();
+  final tutoringRepository = ensureTutoringRepository();
 }
 
 extension TutoringDetailControllerFieldsPart on TutoringDetailController {

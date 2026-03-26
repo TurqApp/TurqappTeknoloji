@@ -14,6 +14,6 @@ class PostController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _interactionService = PostInteractionService.ensure();
+    _interactionService = ensurePostInteractionService();
   }
 }

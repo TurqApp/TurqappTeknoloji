@@ -14,7 +14,7 @@ class _PostCommentControllerState {
   final Function(bool increment)? onCommentCountChange;
   String? controllerTag;
   final userService = CurrentUserService.instance;
-  final interactionService = PostInteractionService.ensure();
+  final interactionService = ensurePostInteractionService();
   final userSummaryResolver = UserSummaryResolver.ensure();
   final list = <PostCommentModel>[].obs;
   final pendingCommentIds = <String>{}.obs;

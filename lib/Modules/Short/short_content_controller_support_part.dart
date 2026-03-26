@@ -1,7 +1,7 @@
 part of 'short_content_controller.dart';
 
 final PostInteractionService _shortInteractionService =
-    PostInteractionService.ensure();
+    ensurePostInteractionService();
 final PostRepository _shortPostRepository = PostRepository.ensure();
 final UserSummaryResolver _shortUserSummaryResolver =
     UserSummaryResolver.ensure();

@@ -143,7 +143,7 @@ class ShortView extends StatefulWidget {
 }
 
 class _ShortViewState extends State<ShortView> {
-  ShortController get controller => ShortController.ensure();
+  ShortController get controller => ensureShortController();
   final ShortRenderCoordinator _shortRenderCoordinator =
       ensureShortRenderCoordinator();
 

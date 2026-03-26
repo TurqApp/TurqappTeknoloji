@@ -31,7 +31,7 @@ extension EducationViewActionsPart on EducationView {
         PasajTabIds.scholarships) {
       return null;
     }
-    return ScholarshipsController.ensure(permanent: true);
+    return ensureScholarshipsController(permanent: true);
   }
 
   bool _showInlineScholarshipActions() {
@@ -75,7 +75,7 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.answerKey) {
       return null;
     }
-    return AnswerKeyController.ensure(permanent: true);
+    return ensureAnswerKeyController(permanent: true);
   }
 
   bool _showInlineAnswerKeyActions() {
@@ -224,13 +224,13 @@ extension EducationViewActionsPart on EducationView {
   ScrollController? _activeScrollController() {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
-        return ScholarshipsController.maybeFind()?.scrollController;
+        return maybeFindScholarshipsController()?.scrollController;
       case PasajTabIds.practiceExams:
         return maybeFindCikmisSorularController()?.scrollController;
       case PasajTabIds.onlineExam:
         return DenemeSinavlariController.maybeFind()?.scrollController;
       case PasajTabIds.answerKey:
-        return AnswerKeyController.maybeFind()?.scrollController;
+        return maybeFindAnswerKeyController()?.scrollController;
       case PasajTabIds.tutoring:
         return maybeFindTutoringController()?.scrollController;
       case PasajTabIds.market:
@@ -243,7 +243,7 @@ extension EducationViewActionsPart on EducationView {
   bool _showMenuByScrollOffset() {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
-        return (ScholarshipsController.maybeFind()?.scrollOffset.value ?? 0) <=
+        return (maybeFindScholarshipsController()?.scrollOffset.value ?? 0) <=
             350;
       case PasajTabIds.practiceExams:
         return (maybeFindCikmisSorularController()?.scrollOffset.value ?? 0) <=
@@ -253,8 +253,7 @@ extension EducationViewActionsPart on EducationView {
                 0) <=
             350;
       case PasajTabIds.answerKey:
-        return (AnswerKeyController.maybeFind()?.scrollOffset.value ?? 0) <=
-            350;
+        return (maybeFindAnswerKeyController()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.tutoring:
         return (maybeFindTutoringController()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.market:
@@ -277,7 +276,7 @@ extension EducationViewActionsPart on EducationView {
             title: 'settings.title'.tr,
             icon: CupertinoIcons.gear,
             onTap: () {
-              ScholarshipsController.maybeFind()?.settings(context);
+              maybeFindScholarshipsController()?.settings(context);
             },
           ),
           PullDownMenuItem(
@@ -473,7 +472,7 @@ extension EducationViewActionsPart on EducationView {
             icon: CupertinoIcons.add_circled,
             onTap: () => Get.to(AnswerKeyCreatingOption(
               onBack: () {
-                AnswerKeyController.maybeFind()?.refreshData();
+                maybeFindAnswerKeyController()?.refreshData();
               },
             )),
           ),

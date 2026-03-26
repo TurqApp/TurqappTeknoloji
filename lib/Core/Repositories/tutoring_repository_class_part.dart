@@ -17,12 +17,4 @@ class TutoringRepository extends GetxService {
     super.onInit();
     _handleTutoringRepositoryInit(this);
   }
-
-  static TutoringRepository? maybeFind() =>
-      Get.isRegistered<TutoringRepository>()
-          ? Get.find<TutoringRepository>()
-          : null;
-
-  static TutoringRepository ensure() =>
-      maybeFind() ?? Get.put(TutoringRepository(), permanent: true);
 }

@@ -221,7 +221,7 @@ extension CreateScholarshipControllerSubmissionPart
   }
 
   Future<void> _navigateAfterSubmission(String successMessage) async {
-    final scholarshipsController = ScholarshipsController.ensure();
+    final scholarshipsController = ensureScholarshipsController();
     scholarshipsController.fetchScholarships();
 
     try {

@@ -8,18 +8,6 @@ class PostInteractionService extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       ensureUserSubcollectionRepository();
 
-  static PostInteractionService? maybeFind() {
-    final isRegistered = Get.isRegistered<PostInteractionService>();
-    if (!isRegistered) return null;
-    return Get.find<PostInteractionService>();
-  }
-
-  static PostInteractionService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(PostInteractionService());
-  }
-
   static const Duration _cacheTTL = Duration(seconds: 30);
   final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
   final Set<String> _reportedByMe = <String>{};

@@ -38,7 +38,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
   ScholarshipDetailView({super.key});
 
   final ScholarshipsController scholarshipsController =
-      ScholarshipsController.ensure();
+      ensureScholarshipsController();
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
 

@@ -85,7 +85,7 @@ extension ScholarshipDetailControllerActionsPart
       isLoading.value = true;
       await ScholarshipFirestorePath.doc(scholarshipId).delete();
       Get.back();
-      await ScholarshipsController.maybeFind()?.fetchScholarships();
+      await maybeFindScholarshipsController()?.fetchScholarships();
       AppSnackbar("common.success".tr, "scholarship.delete_success".tr);
     } catch (e) {
       AppSnackbar("common.error".tr, "scholarship.delete_failed".tr);

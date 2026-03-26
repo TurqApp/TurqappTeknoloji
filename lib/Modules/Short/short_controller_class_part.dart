@@ -4,10 +4,6 @@ part of 'short_controller.dart';
 /// range bazlı (±7 etrafında) preload & prune desteği sunan controller
 /// + AKILLI DİNAMİK KARIŞTIRMA SİSTEMİ
 class ShortController extends GetxController {
-  static ShortController ensure() => _ensureShortController();
-
-  static ShortController? maybeFind() => _maybeFindShortController();
-
   void _log(String message) => _ShortControllerRuntimeX(this).log(message);
   final _state = _ShortControllerState();
 
