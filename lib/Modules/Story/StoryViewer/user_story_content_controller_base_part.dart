@@ -1,4 +1,4 @@
-part of 'user_story_content_controller.dart';
+part of 'user_story_content_controller_library.dart';
 
 abstract class _UserStoryContentControllerBase extends GetxController {
   _UserStoryContentControllerBase({

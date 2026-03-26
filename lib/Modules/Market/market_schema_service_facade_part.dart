@@ -1,4 +1,4 @@
-part of 'market_schema_service.dart';
+part of 'market_schema_service_library.dart';
 
 MarketSchemaService? maybeFindMarketSchemaService() {
   final isRegistered = Get.isRegistered<MarketSchemaService>();

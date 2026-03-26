@@ -1,4 +1,4 @@
-part of 'story_highlights_controller.dart';
+part of 'story_highlights_controller_library.dart';
 
 extension _StoryHighlightsControllerCoverPartX on StoryHighlightsController {
   Future<void> _hydrateMissingCoverUrls() async {

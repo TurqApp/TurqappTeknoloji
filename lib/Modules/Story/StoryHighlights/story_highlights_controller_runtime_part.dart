@@ -1,4 +1,4 @@
-part of 'story_highlights_controller.dart';
+part of 'story_highlights_controller_library.dart';
 
 extension _StoryHighlightsControllerRuntimeX on StoryHighlightsController {
   Future<void> _bootstrapHighlights() async {

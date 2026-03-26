@@ -1,4 +1,4 @@
-part of 'story_interaction_optimizer.dart';
+part of 'story_interaction_optimizer_library.dart';
 
 StoryInteractionOptimizer? maybeFindStoryInteractionOptimizer() =>
     _maybeFindStoryInteractionOptimizer();

@@ -1,4 +1,4 @@
-part of 'market_schema_service.dart';
+part of 'market_schema_service_library.dart';
 
 extension _MarketSchemaServiceRuntimePart on MarketSchemaService {
   Future<Map<String, dynamic>> loadSchema({bool forceRefresh = false}) async {

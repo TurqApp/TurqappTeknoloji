@@ -1,4 +1,4 @@
-part of 'story_highlights_controller.dart';
+part of 'story_highlights_controller_library.dart';
 
 extension StoryHighlightsControllerFacadePart on StoryHighlightsController {
   Future<void> loadHighlights({

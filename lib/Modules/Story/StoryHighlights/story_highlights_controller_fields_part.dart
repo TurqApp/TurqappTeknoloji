@@ -1,4 +1,4 @@
-part of 'story_highlights_controller.dart';
+part of 'story_highlights_controller_library.dart';
 
 class _StoryHighlightsControllerState {
   _StoryHighlightsControllerState({required this.userId});

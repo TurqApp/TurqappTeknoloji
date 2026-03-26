@@ -1,4 +1,4 @@
-part of 'market_schema_service.dart';
+part of 'market_schema_service_library.dart';
 
 class MarketSchemaService extends _MarketSchemaServiceBase {
   @override

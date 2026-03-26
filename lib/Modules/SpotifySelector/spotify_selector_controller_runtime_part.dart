@@ -1,4 +1,4 @@
-part of 'spotify_selector_controller.dart';
+part of 'spotify_selector_controller_library.dart';
 
 class SpotifySelectorControllerRuntimePart {
   const SpotifySelectorControllerRuntimePart(this.controller);

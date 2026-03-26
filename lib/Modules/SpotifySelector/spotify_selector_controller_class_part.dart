@@ -1,4 +1,4 @@
-part of 'spotify_selector_controller.dart';
+part of 'spotify_selector_controller_library.dart';
 
 class SpotifySelectorController extends GetxController {
   final _state = _SpotifySelectorControllerState();
