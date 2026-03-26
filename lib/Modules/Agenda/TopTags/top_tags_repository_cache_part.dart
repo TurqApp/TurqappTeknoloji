@@ -1,4 +1,4 @@
-part of 'top_tags_repository_library.dart';
+part of 'top_tags_repository_parts.dart';
 
 extension _TopTagsRepositoryCacheX on TopTagsRepository {
   Future<void> _store(List<HashtagModel> items) async {

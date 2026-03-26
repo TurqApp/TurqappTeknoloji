@@ -1,4 +1,4 @@
-part of 'cikmis_sorular_repository_library.dart';
+part of 'cikmis_sorular_repository_parts.dart';
 
 CikmisSorularRepository? maybeFindCikmisSorularRepository() {
   final isRegistered = Get.isRegistered<CikmisSorularRepository>();

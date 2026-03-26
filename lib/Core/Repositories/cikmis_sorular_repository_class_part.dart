@@ -1,4 +1,4 @@
-part of 'cikmis_sorular_repository_library.dart';
+part of 'cikmis_sorular_repository_parts.dart';
 
 class CikmisSorularRepository extends _CikmisSorularRepositoryBase {
   CikmisSorularRepository({

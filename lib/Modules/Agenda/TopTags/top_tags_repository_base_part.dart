@@ -1,4 +1,4 @@
-part of 'top_tags_repository_library.dart';
+part of 'top_tags_repository_parts.dart';
 
 abstract class _TopTagsRepositoryBase extends GetxService {
   _TopTagsRepositoryBase({FirebaseFirestore? firestore})

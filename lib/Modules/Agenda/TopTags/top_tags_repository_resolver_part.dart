@@ -1,4 +1,4 @@
-part of 'top_tags_repository_library.dart';
+part of 'top_tags_repository_parts.dart';
 
 TopTagsRepository? maybeFindTopTagsRepository() {
   final isRegistered = Get.isRegistered<TopTagsRepository>();

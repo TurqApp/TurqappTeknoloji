@@ -1,4 +1,4 @@
-part of 'cikmis_sorular_repository_library.dart';
+part of 'cikmis_sorular_repository_parts.dart';
 
 extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
   Future<void> saveResult({

@@ -1,4 +1,4 @@
-part of 'test_repository_library.dart';
+part of 'test_repository_parts.dart';
 
 extension TestRepositoryActionPart on TestRepository {
   Future<void> submitAnswers(
