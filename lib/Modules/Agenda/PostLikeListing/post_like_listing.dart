@@ -43,7 +43,6 @@ class _PostLikeListingState extends State<PostLikeListing> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final safeTop = MediaQuery.of(context).padding.top;
-    final safeBottom = MediaQuery.of(context).padding.bottom;
     final maxSheetHeight = screenHeight - safeTop - 20;
     final desiredHeight = (screenHeight * 0.52).clamp(320.0, maxSheetHeight);
     return SearchResetOnPageReturnScope(
@@ -59,7 +58,7 @@ class _PostLikeListingState extends State<PostLikeListing> {
             child: Container(
               width: double.infinity,
               height: desiredHeight,
-              margin: EdgeInsets.fromLTRB(0, 10, 0, safeBottom),
+              margin: const EdgeInsets.only(top: 10),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.only(

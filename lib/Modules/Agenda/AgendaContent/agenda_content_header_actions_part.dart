@@ -332,6 +332,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         onTap: controller.like,
         showTapArea: _AgendaContentState._showActionTapAreas,
         hitTestBehavior: HitTestBehavior.translucent,
+        longPressDuration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 4.0),
         onLongPress: () {
           _suspendAgendaFeedForRoute();
