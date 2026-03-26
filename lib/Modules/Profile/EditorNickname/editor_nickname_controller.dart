@@ -14,22 +14,14 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'editor_nickname_controller_data_part.dart';
 part 'editor_nickname_controller_actions_part.dart';
+part 'editor_nickname_controller_facade_part.dart';
 
 class EditorNicknameController extends GetxController {
-  static EditorNicknameController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(
-      EditorNicknameController(),
-      permanent: permanent,
-    );
-  }
+  static EditorNicknameController ensure({bool permanent = false}) =>
+      _ensureEditorNicknameController(permanent: permanent);
 
-  static EditorNicknameController? maybeFind() {
-    final isRegistered = Get.isRegistered<EditorNicknameController>();
-    if (!isRegistered) return null;
-    return Get.find<EditorNicknameController>();
-  }
+  static EditorNicknameController? maybeFind() =>
+      _maybeFindEditorNicknameController();
 
   final TextEditingController nicknameController = TextEditingController();
 
@@ -51,32 +43,18 @@ class EditorNicknameController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleOnInit();
+    _handleEditorNicknameControllerInit(this);
   }
 
   @override
   void onClose() {
-    _handleOnClose();
+    _handleEditorNicknameControllerClose(this);
     super.onClose();
   }
 
-  String get currentNormalized =>
-      normalizeEditableNickname(nicknameController.text);
+  String get currentNormalized => _editorNicknameCurrentNormalized(this);
 
-  bool get canSave {
-    final name = currentNormalized;
-    final available = isAvailable.value == true;
-    final longEnough = name.length >= 8;
-    final changed = name != _originalNickname;
-    final userHasInteracted = hasUserTyped.value || changed;
-
-    // Eğer kullanıcı bir değişiklik yapmışsa ve kullanıcı adı uygunsa kaydet butonunu aktifleştir
-    return available &&
-        longEnough &&
-        userHasInteracted &&
-        !isChecking.value &&
-        !isCooldownActive.value;
-  }
+  bool get canSave => _editorNicknameCanSave(this);
 
   Future<void> setData() => _setDataImpl();
 }

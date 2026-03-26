@@ -33,6 +33,7 @@ part 'current_user_service_facade_part.dart';
 part 'current_user_service_account_part.dart';
 part 'current_user_service_auth_part.dart';
 part 'current_user_service_fields_part.dart';
+part 'current_user_service_instance_part.dart';
 part 'current_user_service_lifecycle_part.dart';
 part 'current_user_service_story_part.dart';
 part 'current_user_service_sync_part.dart';
@@ -40,22 +41,12 @@ part 'current_user_service_sync_part.dart';
 class CurrentUserService extends GetxController with WidgetsBindingObserver {
   static CurrentUserService? _instance;
 
-  static CurrentUserService get instance {
-    _instance ??= CurrentUserService._internal();
-    return _instance!;
-  }
+  static CurrentUserService get instance => _currentUserServiceInstance();
 
-  static CurrentUserService? maybeFind() {
-    final isRegistered = Get.isRegistered<CurrentUserService>();
-    if (!isRegistered) return null;
-    return Get.find<CurrentUserService>();
-  }
+  static CurrentUserService? maybeFind() => _maybeFindCurrentUserService();
 
-  static CurrentUserService ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(instance, permanent: permanent);
-  }
+  static CurrentUserService ensure({bool permanent = false}) =>
+      _ensureCurrentUserService(permanent: permanent);
 
   CurrentUserService._internal() {
     WidgetsBinding.instance.addObserver(this);
@@ -65,12 +56,12 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   @override
   void onClose() {
-    _disposeLifecycleResources();
+    _handleCurrentUserServiceClose(this);
     super.onClose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _handleLifecycleStateChange(state);
+    _handleCurrentUserLifecycleState(this, state);
   }
 }

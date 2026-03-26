@@ -11,23 +11,18 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'bank_info_controller_actions_part.dart';
 part 'bank_info_controller_data_part.dart';
 part 'bank_info_controller_facade_part.dart';
+part 'bank_info_controller_support_part.dart';
 part 'bank_info_controller_ui_part.dart';
 
 class BankInfoController extends GetxController {
   static BankInfoController ensure({
     required String tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(BankInfoController(), tag: tag, permanent: permanent);
-  }
+  }) =>
+      _ensureBankInfoController(tag: tag, permanent: permanent);
 
-  static BankInfoController? maybeFind({required String tag}) {
-    final isRegistered = Get.isRegistered<BankInfoController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<BankInfoController>(tag: tag);
-  }
+  static BankInfoController? maybeFind({required String tag}) =>
+      _maybeFindBankInfoController(tag: tag);
 
   static const String _selectBank = "Banka Seç";
   static const String _email = "E-Posta";
@@ -74,6 +69,6 @@ class BankInfoController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    BankInfoControllerFacadePart(this).loadData();
+    _handleBankInfoControllerInit(this);
   }
 }

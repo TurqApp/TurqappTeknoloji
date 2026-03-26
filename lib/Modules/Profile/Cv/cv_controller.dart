@@ -22,29 +22,18 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'cv_controller_sections_part.dart';
 part 'cv_controller_education_part.dart';
 part 'cv_controller_experience_part.dart';
+part 'cv_controller_facade_part.dart';
 part 'cv_controller_fields_part.dart';
 part 'cv_controller_persistence_part.dart';
 part 'cv_controller_profile_part.dart';
 
 class CvController extends GetxController {
-  static CvController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      CvController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  static CvController ensure({String? tag, bool permanent = false}) =>
+      _ensureCvController(tag: tag, permanent: permanent);
 
-  static CvController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<CvController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<CvController>(tag: tag);
-  }
+  static CvController? maybeFind({String? tag}) => _maybeFindCvController(
+        tag: tag,
+      );
 
   final CvRepository _cvRepository = CvRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
@@ -62,24 +51,17 @@ class CvController extends GetxController {
   ];
   final _state = _CvControllerState();
 
-  String get _currentUid => _userService.effectiveUserId;
+  String get _currentUid => _cvCurrentUid(this);
 
   @override
   void onInit() {
     super.onInit();
-    _seedFromCurrentUser();
-    ensureDefaultPhoto();
-    unawaited(_bootstrapCvData());
+    _handleCvControllerInit(this);
   }
 
   @override
   void onClose() {
-    firstName.dispose();
-    lastName.dispose();
-    mail.dispose();
-    phoneNumber.dispose();
-    linkedin.dispose();
-    onYazi.dispose();
+    _handleCvControllerClose(this);
     super.onClose();
   }
 }

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 part 'agenda_shuffle_cache_service_fields_part.dart';
+part 'agenda_shuffle_cache_service_runtime_part.dart';
 
 class AgendaShuffleCacheService extends GetxService {
   static const int _cacheValidMinutes = 5;
@@ -11,72 +12,27 @@ class AgendaShuffleCacheService extends GetxService {
   static const int _backgroundFetchSize = 300;
   final _state = _AgendaShuffleCacheServiceState();
 
-  static AgendaShuffleCacheService? maybeFind() {
-    final isRegistered = Get.isRegistered<AgendaShuffleCacheService>();
-    if (!isRegistered) return null;
-    return Get.find<AgendaShuffleCacheService>();
-  }
+  static AgendaShuffleCacheService? maybeFind() =>
+      _maybeFindAgendaShuffleCacheService();
 
-  static AgendaShuffleCacheService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AgendaShuffleCacheService(), permanent: true);
-  }
+  static AgendaShuffleCacheService ensure() =>
+      _ensureAgendaShuffleCacheService();
 
-  void clear() {
-    _posts.clear();
-    _index = 0;
-    _cachedAt = null;
-  }
+  void clear() => _clearAgendaShuffleCache(this);
 
-  void removePosts(Iterable<String> docIds) {
-    final ids = docIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
-    if (ids.isEmpty) return;
-    _posts.removeWhere((post) => ids.contains(post.docID));
-    if (_index > _posts.length) {
-      _index = _posts.length;
-    }
-    if (_posts.isEmpty) {
-      _cachedAt = null;
-      _index = 0;
-    }
-  }
+  void removePosts(Iterable<String> docIds) =>
+      _removeAgendaShufflePosts(this, docIds);
 
-  void replace(List<PostsModel> posts) {
-    _posts
-      ..clear()
-      ..addAll(posts);
-    _index = 0;
-    _cachedAt = DateTime.now();
-  }
+  void replace(List<PostsModel> posts) =>
+      _replaceAgendaShufflePosts(this, posts);
 
-  void reshuffle() {
-    _posts.shuffle(Random());
-    _index = 0;
-  }
+  void reshuffle() => _reshuffleAgendaPosts(this);
 
-  List<PostsModel> takeNext(int limit) {
-    if (!hasBufferedItems) return const <PostsModel>[];
-    final remainingCount = _posts.length - _index;
-    final takeCount = remainingCount > limit ? limit : remainingCount;
-    final nextBatch = _posts.sublist(_index, _index + takeCount);
-    _index += takeCount;
-    return nextBatch;
-  }
+  List<PostsModel> takeNext(int limit) =>
+      _takeNextAgendaShufflePosts(this, limit);
 
-  List<PostsModel> takeCurrentVisible() {
-    return _posts.take(_index).toList(growable: false);
-  }
+  List<PostsModel> takeCurrentVisible() => _takeCurrentAgendaVisiblePosts(this);
 
-  void mergeBackground(List<PostsModel> visibleItems) {
-    final currentVisible = takeCurrentVisible();
-    _posts
-      ..clear()
-      ..addAll(currentVisible)
-      ..addAll(
-        visibleItems.where(
-          (item) => !currentVisible.any((shown) => shown.docID == item.docID),
-        ),
-      );
-  }
+  void mergeBackground(List<PostsModel> visibleItems) =>
+      _mergeAgendaShuffleBackground(this, visibleItems);
 }

@@ -19,6 +19,7 @@ import '../../../Models/posts_model.dart';
 
 part 'message_content_controller_data_part.dart';
 part 'message_content_controller_actions_part.dart';
+part 'message_content_controller_facade_part.dart';
 
 class MessageContentController extends GetxController {
   static MessageContentController ensure({
@@ -26,21 +27,16 @@ class MessageContentController extends GetxController {
     required String mainID,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      MessageContentController(model: model, mainID: mainID),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureMessageContentController(
+        model: model,
+        mainID: mainID,
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static MessageContentController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<MessageContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<MessageContentController>(tag: tag);
-  }
+  static MessageContentController? maybeFind({String? tag}) =>
+      _maybeFindMessageContentController(tag: tag);
 
   final MessageModel model;
   final String mainID;
@@ -67,15 +63,6 @@ class MessageContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-
-    // model.imgs atanır
-    imageUrls.assignAll(model.imgs);
-
-    // kullanıcı verisini al
-    unawaited(_loadMessageUser());
-
-    if (model.postID != "") {
-      getPost();
-    }
+    _handleMessageContentInit(this);
   }
 }

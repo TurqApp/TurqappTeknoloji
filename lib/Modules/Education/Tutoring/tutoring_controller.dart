@@ -13,21 +13,15 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'tutoring_controller_data_part.dart';
 part 'tutoring_controller_model_extension_part.dart';
+part 'tutoring_controller_runtime_part.dart';
 part 'tutoring_controller_search_part.dart';
 part 'tutoring_controller_support_part.dart';
 
 class TutoringController extends GetxController {
-  static TutoringController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(TutoringController(), permanent: permanent);
-  }
+  static TutoringController ensure({bool permanent = false}) =>
+      _ensureTutoringController(permanent: permanent);
 
-  static TutoringController? maybeFind() {
-    final isRegistered = Get.isRegistered<TutoringController>();
-    if (!isRegistered) return null;
-    return Get.find<TutoringController>();
-  }
+  static TutoringController? maybeFind() => _maybeFindTutoringController();
 
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
@@ -49,35 +43,17 @@ class TutoringController extends GetxController {
   int _currentPage = 1;
 
   static const int _pageSize = 30;
-  bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
+  bool get hasActiveSearch => _hasActiveTutoringSearch(this);
 
   @override
   void onInit() {
     super.onInit();
-    scrollController.addListener(_onScroll);
-    unawaited(_bootstrapTutoringData());
-  }
-
-  Future<void> _bootstrapTutoringData() async {
-    final savedController = SavedTutoringsController.ensure(permanent: true);
-    await savedController.loadSavedTutorings();
-    final userId = CurrentUserService.instance.effectiveUserId;
-    _homeSnapshotSub?.cancel();
-    _homeSnapshotSub = _tutoringSnapshotRepository
-        .openHome(
-          userId: userId,
-          limit: _pageSize,
-        )
-        .listen(_applyHomeSnapshotResource);
+    _handleTutoringControllerInit(this);
   }
 
   @override
   void onClose() {
-    _homeSnapshotSub?.cancel();
-    _searchDebounce?.cancel();
-    focusNode.dispose();
-    searchPreviewController.dispose();
-    scrollController.dispose();
+    _handleTutoringControllerClose(this);
     super.onClose();
   }
 }

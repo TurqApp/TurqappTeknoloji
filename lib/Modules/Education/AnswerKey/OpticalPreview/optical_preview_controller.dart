@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'optical_preview_controller_facade_part.dart';
 part 'optical_preview_controller_runtime_part.dart';
 
 class OpticalPreviewController extends GetxController {
@@ -16,21 +17,16 @@ class OpticalPreviewController extends GetxController {
     Function? onUpdate, {
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      OpticalPreviewController(model, onUpdate),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureOpticalPreviewController(
+        model,
+        onUpdate,
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static OpticalPreviewController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<OpticalPreviewController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<OpticalPreviewController>(tag: tag);
-  }
+  static OpticalPreviewController? maybeFind({String? tag}) =>
+      _maybeFindOpticalPreviewController(tag: tag);
 
   final OpticalFormModel model;
   final Function? onUpdate;
@@ -52,30 +48,27 @@ class OpticalPreviewController extends GetxController {
 
   @override
   void onClose() {
-    _disposeOpticalPreviewController(this);
+    _handleOpticalPreviewClose(this);
     super.onClose();
   }
 
-  void checkInternetConnection() => _checkOpticalPreviewInternet(this);
+  void checkInternetConnection() => _checkOpticalPreviewInternetFacade(this);
 
-  void setData() => _saveOpticalPreviewData(this);
+  void setData() => _saveOpticalPreviewDataFacade(this);
 
-  void kullaniciyiSinavGirdiKaydet() => _initializeOpticalPreviewAnswers(this);
+  void kullaniciyiSinavGirdiKaydet() =>
+      _initializeOpticalPreviewAnswersFacade(this);
 
   void toggleAnswer(int index, String item) =>
-      _toggleOpticalPreviewAnswer(this, index, item);
+      _toggleOpticalPreviewAnswerFacade(this, index, item);
 
   void handleFinishTest(BuildContext context) =>
-      _handleOpticalPreviewFinish(this);
+      _handleOpticalPreviewFinishFacade(this);
 
-  void startTest() {
-    selection.value = 1;
-  }
+  void startTest() => _startOpticalPreviewTest(this);
 
-  bool canStartTest() {
-    return fullName.text.trim().length >= 6 && ogrenciNo.text.trim().isNotEmpty;
-  }
+  bool canStartTest() => _canStartOpticalPreviewTest(this);
 
   void showAlertDialog(String title, String desc) =>
-      _showOpticalPreviewAlert(title, desc);
+      _showOpticalPreviewAlertFacade(title, desc);
 }

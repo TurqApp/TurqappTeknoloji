@@ -25,6 +25,7 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 
 part 'create_scholarship_controller_form_part.dart';
+part 'create_scholarship_controller_facade_part.dart';
 part 'create_scholarship_controller_fields_part.dart';
 part 'create_scholarship_controller_submission_part.dart';
 part 'create_scholarship_controller_labels_part.dart';
@@ -34,19 +35,11 @@ class CreateScholarshipController extends GetxController {
   static CreateScholarshipController ensure({
     required String tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(CreateScholarshipController(),
-        tag: tag, permanent: permanent);
-  }
+  }) =>
+      _ensureCreateScholarshipController(tag: tag, permanent: permanent);
 
-  static CreateScholarshipController? maybeFind({required String tag}) {
-    final isRegistered =
-        Get.isRegistered<CreateScholarshipController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<CreateScholarshipController>(tag: tag);
-  }
+  static CreateScholarshipController? maybeFind({required String tag}) =>
+      _maybeFindCreateScholarshipController(tag: tag);
 
   static const String allUniversitiesValue = 'Tüm Üniversiteler';
   static const String turkeyCountryValue = 'Türkiye';
@@ -75,6 +68,6 @@ class CreateScholarshipController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    initializeFormState();
+    _handleCreateScholarshipControllerInit(this);
   }
 }

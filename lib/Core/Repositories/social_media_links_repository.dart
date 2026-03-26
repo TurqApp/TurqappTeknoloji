@@ -7,6 +7,7 @@ import 'package:turqappv2/Models/social_media_model.dart';
 
 part 'social_media_links_repository_query_part.dart';
 part 'social_media_links_repository_action_part.dart';
+part 'social_media_links_repository_facade_part.dart';
 part 'social_media_links_repository_storage_part.dart';
 
 class _CachedSocialMediaLinks {
@@ -26,24 +27,16 @@ class SocialMediaLinksRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedSocialMediaLinks> _memory = {};
 
-  static SocialMediaLinksRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<SocialMediaLinksRepository>();
-    if (!isRegistered) return null;
-    return Get.find<SocialMediaLinksRepository>();
-  }
+  static SocialMediaLinksRepository? maybeFind() =>
+      _maybeFindSocialMediaLinksRepository();
 
-  static SocialMediaLinksRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(SocialMediaLinksRepository(), permanent: true);
-  }
+  static SocialMediaLinksRepository ensure() =>
+      _ensureSocialMediaLinksRepository();
 
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) {
-      _prefs = prefs;
-    });
+    _handleSocialMediaLinksRepositoryInit(this);
   }
 
   Future<List<SocialMediaModel>> getLinks(

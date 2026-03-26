@@ -3,27 +3,18 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_stats_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'my_statistic_controller_facade_part.dart';
 part 'my_statistic_controller_runtime_part.dart';
 
 class MyStatisticController extends GetxController {
   static MyStatisticController ensure({
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      MyStatisticController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureMyStatisticController(tag: tag, permanent: permanent);
 
-  static MyStatisticController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<MyStatisticController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<MyStatisticController>(tag: tag);
-  }
+  static MyStatisticController? maybeFind({String? tag}) =>
+      _maybeFindMyStatisticController(tag: tag);
 
   final ProfileStatsRepository _statsRepository =
       ProfileStatsRepository.ensure();
@@ -51,13 +42,13 @@ class MyStatisticController extends GetxController {
   // Approx profile visits (story views in last 30d)
   final profileVisitsApprox = 0.obs;
 
-  String get _currentUid => CurrentUserService.instance.effectiveUserId;
+  String get _currentUid => _myStatisticCurrentUid();
 
   // Controls
   @override
   void onInit() {
     super.onInit();
-    _handleOnInit();
+    _handleMyStatisticControllerInit(this);
   }
 
   @override
@@ -67,7 +58,7 @@ class MyStatisticController extends GetxController {
 
   @override
   void onClose() {
-    _handleOnClose();
+    _handleMyStatisticControllerClose(this);
     super.onClose();
   }
 

@@ -34,19 +34,12 @@ part 'deep_link_service_models_part.dart';
 part 'deep_link_service_parse_part.dart';
 part 'deep_link_service_open_part.dart';
 part 'deep_link_service_runtime_part.dart';
+part 'deep_link_service_support_part.dart';
 
 class DeepLinkService extends GetxService {
-  static DeepLinkService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(DeepLinkService(), permanent: true);
-  }
+  static DeepLinkService ensure() => _ensureDeepLinkService();
 
-  static DeepLinkService? maybeFind() {
-    final isRegistered = Get.isRegistered<DeepLinkService>();
-    if (!isRegistered) return null;
-    return Get.find<DeepLinkService>();
-  }
+  static DeepLinkService? maybeFind() => _maybeFindDeepLinkService();
 
   final ShortLinkService _shortLinkService = ShortLinkService();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -73,7 +66,7 @@ class DeepLinkService extends GetxService {
 
   @override
   void onClose() {
-    _DeepLinkServiceRuntimeX(this).disposeRuntime();
+    _handleDeepLinkServiceClose(this);
     super.onClose();
   }
 }

@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'story_comments_controller_facade_part.dart';
 part 'story_comments_controller_runtime_part.dart';
 
 class StoryCommentsController extends GetxController {
@@ -16,35 +17,16 @@ class StoryCommentsController extends GetxController {
     required String storyID,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) {
-      _activeTag = tag;
-      return existing;
-    }
-    final created = Get.put(
-      StoryCommentsController(
+  }) =>
+      _ensureStoryCommentsController(
         nickname: nickname,
         storyID: storyID,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-    created.controllerTag = tag;
-    _activeTag = tag;
-    return created;
-  }
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static StoryCommentsController? maybeFind({String? tag}) {
-    final resolvedTag = (tag ?? _activeTag)?.trim();
-    final isRegistered = Get.isRegistered<StoryCommentsController>(
-      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
-    );
-    if (!isRegistered) return null;
-    return Get.find<StoryCommentsController>(
-      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
-    );
-  }
+  static StoryCommentsController? maybeFind({String? tag}) =>
+      _maybeFindStoryCommentsController(tag: tag);
 
   final StoryRepository _storyRepository = StoryRepository.ensure();
   RxList<StoryCommentModel> list = <StoryCommentModel>[].obs;
@@ -60,21 +42,21 @@ class StoryCommentsController extends GetxController {
 
   StoryCommentsController({required this.nickname, required this.storyID});
 
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+  String get _currentUserId => _storyCommentsCurrentUserId();
 
-  Future<void> getData() => _getDataImpl();
+  Future<void> getData() => _getStoryCommentsData(this);
 
-  Future<void> getLast() => _getLastImpl();
+  Future<void> getLast() => _getLastStoryComment(this);
 
-  Future<void> setComment() => _setCommentImpl();
+  Future<void> setComment() => _setStoryComment(this);
 
-  Future<void> pickGif(BuildContext context) => _pickGifImpl(context);
+  Future<void> pickGif(BuildContext context) => _pickStoryGif(this, context);
 
-  void clearSelectedGif() => _clearSelectedGifImpl();
+  void clearSelectedGif() => _clearStorySelectedGif(this);
 
   @override
   void onClose() {
-    _handleClose();
+    _handleStoryCommentsClose(this);
     super.onClose();
   }
 }

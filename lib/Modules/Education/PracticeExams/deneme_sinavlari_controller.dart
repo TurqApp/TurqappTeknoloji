@@ -17,22 +17,17 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deneme_sinavlari_controller_data_part.dart';
+part 'deneme_sinavlari_controller_facade_part.dart';
 part 'deneme_sinavlari_controller_runtime_part.dart';
 
 class DenemeSinavlariController extends GetxController {
   static DenemeSinavlariController ensure({
     bool permanent = false,
-  }) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(DenemeSinavlariController(), permanent: permanent);
-  }
+  }) =>
+      _ensureDenemeSinavlariController(permanent: permanent);
 
-  static DenemeSinavlariController? maybeFind() {
-    final isRegistered = Get.isRegistered<DenemeSinavlariController>();
-    if (!isRegistered) return null;
-    return Get.find<DenemeSinavlariController>();
-  }
+  static DenemeSinavlariController? maybeFind() =>
+      _maybeFindDenemeSinavlariController();
 
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_practice_exam_listing_selection';
@@ -63,17 +58,17 @@ class DenemeSinavlariController extends GetxController {
   Timer? _searchDebounce;
   int _searchToken = 0;
 
-  bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
+  bool get hasActiveSearch => _hasActivePracticeExamSearch(this);
 
   @override
   void onInit() {
     super.onInit();
-    _handlePracticeExamInit();
+    _handleDenemeSinavlariInit(this);
   }
 
   @override
   void onClose() {
-    _handlePracticeExamClose();
+    _handleDenemeSinavlariClose(this);
     super.onClose();
   }
 }

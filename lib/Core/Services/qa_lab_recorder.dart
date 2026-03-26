@@ -30,6 +30,7 @@ part 'qa_lab_recorder_remote_sync_helpers_part.dart';
 part 'qa_lab_recorder_remote_sync_device_part.dart';
 part 'qa_lab_recorder_remote_sync_sanitize_part.dart';
 part 'qa_lab_recorder_runtime_part.dart';
+part 'qa_lab_recorder_lifecycle_part.dart';
 part 'qa_lab_recorder_runtime_issue_part.dart';
 part 'qa_lab_recorder_runtime_active_issue_part.dart';
 part 'qa_lab_recorder_runtime_surfaces_part.dart';
@@ -61,22 +62,20 @@ part 'qa_lab_recorder_diagnostics_scroll_helpers_part.dart';
 part 'qa_lab_recorder_diagnostics_scroll_dispatch_part.dart';
 
 class QALabRecorder extends GetxService {
-  static QALabRecorder ensure() =>
-      maybeFind() ?? Get.put(QALabRecorder(), permanent: true);
-  static QALabRecorder? maybeFind() =>
-      Get.isRegistered<QALabRecorder>() ? Get.find<QALabRecorder>() : null;
+  static QALabRecorder ensure() => _ensureQALabRecorder();
+  static QALabRecorder? maybeFind() => _maybeFindQALabRecorder();
 
   final _state = _QALabRecorderState();
 
   @override
   void onInit() {
     super.onInit();
-    if (QALabMode.autoStartSession) _startSessionImpl(trigger: 'auto');
+    _handleQALabRecorderInit(this);
   }
 
   @override
   void onClose() {
-    _disposeSessionImpl();
+    _handleQALabRecorderClose(this);
     super.onClose();
   }
 }

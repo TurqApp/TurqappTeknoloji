@@ -32,6 +32,7 @@ import 'package:turqappv2/Services/phone_account_limiter.dart';
 
 part 'sign_in_controller_auth_part.dart';
 part 'sign_in_controller_account_part.dart';
+part 'sign_in_controller_facade_part.dart';
 part 'sign_in_controller_fields_part.dart';
 part 'sign_in_controller_lifecycle_part.dart';
 part 'sign_in_controller_signup_part.dart';
@@ -40,13 +41,10 @@ part 'sign_in_controller_support_part.dart';
 class SignInController extends GetxController
     with GetSingleTickerProviderStateMixin {
   static SignInController ensure({String? tag, bool permanent = false}) =>
-      maybeFind(tag: tag) ??
-      Get.put(SignInController(), tag: tag, permanent: permanent);
+      _ensureSignInControllerFacade(tag: tag, permanent: permanent);
 
   static SignInController? maybeFind({String? tag}) =>
-      Get.isRegistered<SignInController>(tag: tag)
-          ? Get.find<SignInController>(tag: tag)
-          : null;
+      _maybeFindSignInControllerFacade(tag: tag);
 
   final selection = 0.obs;
   final typedBrandLength = 0.obs;
@@ -70,12 +68,12 @@ class SignInController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    _handleLifecycleInit();
+    _handleSignInControllerInit(this);
   }
 
   @override
   void onClose() {
-    _handleLifecycleClose();
+    _handleSignInControllerClose(this);
     super.onClose();
   }
 }

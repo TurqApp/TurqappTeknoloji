@@ -4,30 +4,16 @@ import 'package:get/get.dart';
 part 'post_count_manager_actions_part.dart';
 part 'post_count_manager_facade_part.dart';
 part 'post_count_manager_fields_part.dart';
+part 'post_count_manager_static_part.dart';
 
 class PostCountManager extends GetxController {
   static PostCountManager? _instance;
 
-  static PostCountManager? maybeFind() {
-    final isRegistered = Get.isRegistered<PostCountManager>();
-    if (!isRegistered) return null;
-    return Get.find<PostCountManager>();
-  }
+  static PostCountManager? maybeFind() => _maybeFindPostCountManager();
 
-  static PostCountManager ensure() {
-    final existing = maybeFind();
-    if (existing != null) {
-      _instance = existing;
-      return existing;
-    }
-    final created = Get.put(PostCountManager());
-    _instance = created;
-    return created;
-  }
+  static PostCountManager ensure() => _ensurePostCountManager();
 
-  static PostCountManager get instance {
-    return _instance ??= ensure();
-  }
+  static PostCountManager get instance => _postCountManagerInstance();
 
   final _state = _PostCountManagerState();
 

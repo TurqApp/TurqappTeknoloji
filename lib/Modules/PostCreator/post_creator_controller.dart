@@ -50,6 +50,7 @@ part 'post_creator_controller_publish_upload_part.dart';
 part 'post_creator_controller_route_part.dart';
 part 'post_creator_controller_ui_part.dart';
 part 'post_creator_controller_fields_part.dart';
+part 'post_creator_controller_facade_part.dart';
 part 'post_creator_controller_lifecycle_part.dart';
 part 'post_creator_controller_models_part.dart';
 part 'post_creator_controller_runtime_part.dart';
@@ -67,16 +68,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   @override
   void onInit() {
     super.onInit();
-    _PostCreatorControllerLifecyclePart(this).handleOnInit();
+    _handlePostCreatorControllerInit(this);
   }
 
   @override
   void onClose() {
-    _PostCreatorControllerLifecyclePart(this).handleOnClose();
+    _handlePostCreatorControllerClose(this);
     super.onClose();
   }
 
   @override
-  void didChangeMetrics() =>
-      _PostCreatorControllerLifecyclePart(this).handleDidChangeMetrics();
+  void didChangeMetrics() => _handlePostCreatorControllerMetrics(this);
 }
