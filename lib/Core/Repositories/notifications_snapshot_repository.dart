@@ -10,6 +10,7 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 part 'notifications_snapshot_repository_query_part.dart';
 part 'notifications_snapshot_repository_action_part.dart';
 part 'notifications_snapshot_repository_fields_part.dart';
+part 'notifications_snapshot_repository_class_part.dart';
 
 class NotificationsSnapshotQuery {
   const NotificationsSnapshotQuery({
@@ -26,25 +27,4 @@ class NotificationsSnapshotQuery {
         'limit=$limit',
         'scope=${scopeTag.trim()}',
       ].join('|');
-}
-
-class NotificationsSnapshotRepository extends GetxService {
-  NotificationsSnapshotRepository();
-
-  static const String _surfaceKey = 'notifications_inbox_snapshot';
-
-  static NotificationsSnapshotRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<NotificationsSnapshotRepository>();
-    if (!isRegistered) return null;
-    return Get.find<NotificationsSnapshotRepository>();
-  }
-
-  static NotificationsSnapshotRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(NotificationsSnapshotRepository(), permanent: true);
-  }
-
-  late final _NotificationsSnapshotRepositoryState _state =
-      _NotificationsSnapshotRepositoryState(this);
 }
