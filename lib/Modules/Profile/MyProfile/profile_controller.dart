@@ -27,6 +27,7 @@ import '../../../Services/user_post_link_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'profile_controller_header_part.dart';
+part 'profile_controller_class_part.dart';
 part 'profile_controller_primary_part.dart';
 part 'profile_controller_cache_part.dart';
 part 'profile_controller_lifecycle_part.dart';
@@ -34,34 +35,3 @@ part 'profile_controller_selection_part.dart';
 part 'profile_controller_runtime_part.dart';
 part 'profile_controller_support_part.dart';
 part 'profile_controller_fields_part.dart';
-
-class ProfileController extends GetxController {
-  static ProfileController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ProfileController());
-  }
-
-  static ProfileController? maybeFind() {
-    final isRegistered = Get.isRegistered<ProfileController>();
-    if (!isRegistered) return null;
-    return Get.find<ProfileController>();
-  }
-
-  final _lifecycleState = _ProfileLifecycleState();
-  final _scrollState = _ProfileScrollState();
-  final _headerState = _ProfileHeaderState();
-  final _feedState = _ProfileFeedState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _performOnInit();
-  }
-
-  @override
-  void onClose() {
-    _performOnClose();
-    super.onClose();
-  }
-}
