@@ -12,6 +12,9 @@ extension _QALabViewSummaryPart on _QALabViewState {
       final remoteSyncAt = _remoteUploader.lastSyncedAt.value;
       final remoteGateCheckedAt = _remoteUploader.lastGateCheckedAt.value;
       final remoteGateEnabled = _remoteUploader.remoteCollectionEnabled.value;
+      final appPerformance = Map<String, dynamic>.from(
+        _recorder.appFramePerformance,
+      );
       final nativeErrors =
           (nativePlayback['errors'] as List<dynamic>? ?? const <dynamic>[])
               .map((item) => item.toString())
@@ -75,6 +78,14 @@ extension _QALabViewSummaryPart on _QALabViewState {
               Text(
                 'routes=${_recorder.routes.length} checkpoints=${_recorder.checkpoints.length}',
               ),
+              if (appPerformance.isNotEmpty)
+                Text(
+                  'appFrames=${appPerformance['frameCount'] ?? 0} '
+                  'slowFrames=${appPerformance['slowFrameCount'] ?? 0} '
+                  'slowRatio=${((((appPerformance['slowFrameRatio'] ?? 0.0) as num) * 100)).toStringAsFixed(1)}% '
+                  'avgFrame=${appPerformance['averageTotalMs'] ?? 0}ms '
+                  'worstFrame=${appPerformance['maxTotalMs'] ?? 0}ms',
+                ),
               if (nativePlayback.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(

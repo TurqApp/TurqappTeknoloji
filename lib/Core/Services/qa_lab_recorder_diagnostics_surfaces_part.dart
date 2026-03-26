@@ -88,6 +88,9 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
     List<QALabIssue> surfaceIssues,
     List<QALabCheckpoint> surfaceCheckpoints,
   ) {
+    final framePerformance = Map<String, dynamic>.from(
+      framePerformanceBySurface[surface] ?? const <String, dynamic>{},
+    );
     final surfaceTimeline = _surfaceTimelineEvents(surface);
     final videoStarts = surfaceIssues
         .where((issue) => issue.code == 'video_session_started')
@@ -160,6 +163,16 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
       'cacheFailureCount': cacheFailures,
       'jankEventCount': jankEvents,
       'worstFrameJankMs': worstFrameJankMs,
+      'frameSampleCount': _asInt(framePerformance['sampleCount']),
+      'frameCount': _asInt(framePerformance['frameCount']),
+      'slowFrameCount': _asInt(framePerformance['slowFrameCount']),
+      'slowFrameRatio': _asDouble(framePerformance['slowFrameRatio']),
+      'averageFrameTotalMs': _asInt(framePerformance['averageTotalMs']),
+      'maxFrameTotalMs': _asInt(framePerformance['maxTotalMs']),
+      'maxFrameBuildMs': _asInt(framePerformance['maxBuildMs']),
+      'maxFrameRasterMs': _asInt(framePerformance['maxRasterMs']),
+      'lastFrameObservedAt':
+          (framePerformance['lastObservedAt'] ?? '').toString(),
       'suppressedNoiseCount': suppressedNoiseCount,
       if (topSuppressedNoiseFamilies.isNotEmpty)
         'topSuppressedNoiseFamilies': topSuppressedNoiseFamilies,

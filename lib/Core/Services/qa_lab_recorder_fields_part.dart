@@ -14,6 +14,8 @@ class _QALabRecorderState {
   final timelineEvents = <QALabTimelineEvent>[].obs;
   final lastNativePlaybackSnapshot = <String, dynamic>{}.obs;
   final nativePlaybackSamples = <Map<String, dynamic>>[].obs;
+  final appFramePerformance = <String, dynamic>{}.obs;
+  final framePerformanceBySurface = <String, Map<String, dynamic>>{}.obs;
   Timer? periodicTimer;
   Timer? nativePlaybackTimer;
   final surfaceWatchdogs = <String, Timer>{};
@@ -44,6 +46,10 @@ extension QALabRecorderFieldsPart on QALabRecorder {
       _state.lastNativePlaybackSnapshot;
   RxList<Map<String, dynamic>> get nativePlaybackSamples =>
       _state.nativePlaybackSamples;
+  RxMap<String, dynamic> get appFramePerformance =>
+      _state.appFramePerformance;
+  RxMap<String, Map<String, dynamic>> get framePerformanceBySurface =>
+      _state.framePerformanceBySurface;
   Timer? get _periodicTimer => _state.periodicTimer;
   set _periodicTimer(Timer? value) => _state.periodicTimer = value;
   Timer? get _nativePlaybackTimer => _state.nativePlaybackTimer;
