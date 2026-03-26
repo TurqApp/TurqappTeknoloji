@@ -5,7 +5,6 @@ class OpticalPreviewController extends _OpticalPreviewControllerBase {
       : super(_buildOpticalPreviewControllerState(model, onUpdate)) {
     _initializeOpticalPreviewController(this);
   }
-
   @override
   void onClose() {
     _handleOpticalPreviewClose(this);
