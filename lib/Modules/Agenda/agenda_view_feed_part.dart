@@ -292,11 +292,12 @@ extension _AgendaViewFeedPart on AgendaView {
             ),
           ),
           if (!isModernView) ...[
+            const SizedBox(height: 7),
             Divider(
               color: Colors.grey.withAlpha(20),
               height: 3,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 13),
           ],
         ],
       );
