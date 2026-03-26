@@ -1,6 +1,8 @@
 part of 'deneme_sinavi_preview_controller.dart';
 
 class _DenemeSinaviPreviewControllerState {
+  final userSummaryResolver = UserSummaryResolver.ensure();
+  final practiceExamRepository = PracticeExamRepository.ensure();
   final displayName = ''.obs;
   final nickname = ''.obs;
   final avatarUrl = ''.obs;
@@ -17,6 +19,9 @@ class _DenemeSinaviPreviewControllerState {
 
 extension DenemeSinaviPreviewControllerFieldsPart
     on DenemeSinaviPreviewController {
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
+  PracticeExamRepository get _practiceExamRepository =>
+      _state.practiceExamRepository;
   RxString get displayName => _state.displayName;
   RxString get nickname => _state.nickname;
   RxString get avatarUrl => _state.avatarUrl;
@@ -29,4 +34,5 @@ extension DenemeSinaviPreviewControllerFieldsPart
   RxBool get isLoading => _state.isLoading;
   RxBool get isInitialized => _state.isInitialized;
   RxBool get isSaved => _state.isSaved;
+  String get _currentUserId => _currentPracticeExamPreviewUserId();
 }

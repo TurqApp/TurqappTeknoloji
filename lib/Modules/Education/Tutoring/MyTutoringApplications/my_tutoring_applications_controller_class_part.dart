@@ -21,29 +21,12 @@ class MyTutoringApplicationsController extends GetxController {
     return Get.find<MyTutoringApplicationsController>(tag: tag);
   }
 
-  final UserSubcollectionRepository _subcollectionRepository =
-      UserSubcollectionRepository.ensure();
-  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  RxList<TutoringApplicationModel> applications =
-      <TutoringApplicationModel>[].obs;
-  var isLoading = false.obs;
+  final _state = _MyTutoringApplicationsControllerState();
 
   @override
   void onInit() {
     super.onInit();
     _handleInit();
   }
-
-  Future<void> loadApplications({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) =>
-      _loadApplicationsImpl(
-        silent: silent,
-        forceRefresh: forceRefresh,
-      );
-
-  Future<void> cancelApplication(String tutoringDocID) =>
-      _cancelApplicationImpl(tutoringDocID);
 }

@@ -60,3 +60,24 @@ Future<void> _syncDenemePreviewSavedState(
   DenemeSinaviPreviewController controller,
 ) =>
     DenemeSinaviPreviewControllerRuntimePart(controller).syncSavedState();
+
+extension DenemeSinaviPreviewControllerFacadePart
+    on DenemeSinaviPreviewController {
+  Future<void> fetchUserData() => _fetchDenemePreviewUserData(this);
+
+  Future<void> getGecersizlikDurumu() => _getDenemePreviewInvalidState(this);
+
+  Future<void> sinaviBitirAlert() => _sinaviBitirAlertImpl();
+
+  void showGecersizAlert() => _showGecersizAlertImpl();
+
+  Future<void> addBasvuru() => _addBasvuruImpl();
+
+  Future<void> basvuruKontrol() => _checkDenemePreviewApplication(this);
+
+  Future<void> refreshData() => _refreshDenemePreviewData(this);
+
+  Future<void> syncSavedState() => _syncDenemePreviewSavedState(this);
+
+  Future<void> toggleSaved() => _toggleSavedImpl();
+}
