@@ -2,14 +2,9 @@ import 'dart:async';
 import 'dart:ui' show FrameTiming;
 
 import 'package:flutter/widgets.dart';
-import 'package:get/get.dart';
-import 'package:turqappv2/Modules/Profile/Settings/qa_lab_view.dart';
 
 import 'qa_lab_mode.dart';
 import 'qa_lab_recorder.dart';
-
-bool _qaLabAutoOpened = false;
-bool _qaLabLaunchAutoOpenScheduled = false;
 
 void ensureQALabIfEnabled() {
   if (!QALabMode.enabled) return;
@@ -19,13 +14,6 @@ void ensureQALabIfEnabled() {
 
 void scheduleQALabAutoOpenOnLaunch() {
   if (!QALabMode.enabled || !QALabMode.autoStartSession) return;
-  if (_qaLabAutoOpened || _qaLabLaunchAutoOpenScheduled) return;
-  _qaLabLaunchAutoOpenScheduled = true;
-
-  Future<void>.delayed(const Duration(seconds: 6), () {
-    _qaLabLaunchAutoOpenScheduled = false;
-    _openQALabIfNeeded(trigger: 'launch_delay');
-  });
 }
 
 Future<void> prepareQALabFreshStartIfNeeded({
@@ -45,33 +33,6 @@ void recordQALabRouteChange({
   QALabRecorder.ensure().recordRouteChange(
     current: current,
     previous: previous,
-  );
-  final normalizedRoute = current.trim().toLowerCase();
-  if (normalizedRoute.contains('qa_lab') || normalizedRoute.contains('qalab')) {
-    _qaLabAutoOpened = true;
-  }
-}
-
-void _openQALabIfNeeded({required String trigger}) {
-  if (_qaLabAutoOpened) return;
-
-  final currentRoute = Get.currentRoute.trim().toLowerCase();
-  if (currentRoute.contains('qa_lab') || currentRoute.contains('qalab')) {
-    _qaLabAutoOpened = true;
-    return;
-  }
-
-  _qaLabAutoOpened = true;
-  QALabRecorder.ensure().captureCheckpoint(
-    label: 'qa_lab_autostart_open',
-    surface: 'app',
-    extra: <String, dynamic>{
-      'trigger': trigger,
-      'route': currentRoute,
-    },
-  );
-  unawaited(
-    Get.to<void>(() => const QALabView()) ?? Future<void>.value(),
   );
 }
 
