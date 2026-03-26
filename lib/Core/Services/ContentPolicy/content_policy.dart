@@ -41,6 +41,7 @@ class ContentPolicy {
     required bool hasLocalContent,
   }) {
     if (!isConnected) return false;
+    if (screen == ContentScreenKind.feed) return true;
     if (isOnWiFi) return true;
     return !hasLocalContent;
   }

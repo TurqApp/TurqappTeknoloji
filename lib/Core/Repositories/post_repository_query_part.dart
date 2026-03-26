@@ -296,7 +296,11 @@ extension PostRepositoryQueryPart on PostRepository {
           cacheOnly: cacheOnly,
         );
         return snap.docs
-            .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+            .map(
+              (doc) => _normalizeLikelyCompletedOwnPost(
+                PostsModel.fromMap(doc.data(), doc.id),
+              ),
+            )
             .where(
               (post) =>
                   !post.shouldHideWhileUploading &&

@@ -52,7 +52,7 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
         (a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int),
       );
 
-    return _rerankMediaReadyEntries(merged);
+    return merged;
   }
 
   List<Map<String, dynamic>> filterEntries({
@@ -114,40 +114,6 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
       renderEntries: renderEntries,
     );
     return renderEntries;
-  }
-
-  List<Map<String, dynamic>> _rerankMediaReadyEntries(
-    List<Map<String, dynamic>> entries,
-  ) {
-    if (entries.length < 2) return entries;
-
-    final windowEnd = entries.length < FeedRenderCoordinator._mediaReadyWindow
-        ? entries.length
-        : FeedRenderCoordinator._mediaReadyWindow;
-    final head = entries.take(windowEnd).toList(growable: false);
-    final tail = entries.skip(windowEnd).toList(growable: false);
-
-    final readyVideo = <Map<String, dynamic>>[];
-    final readyVisual = <Map<String, dynamic>>[];
-    final rest = <Map<String, dynamic>>[];
-
-    for (final entry in head) {
-      final model = entry['model'] as PostsModel;
-      if (model.hasPlayableVideo) {
-        readyVideo.add(entry);
-      } else if (model.img.isNotEmpty || model.thumbnail.trim().isNotEmpty) {
-        readyVisual.add(entry);
-      } else {
-        rest.add(entry);
-      }
-    }
-
-    return <Map<String, dynamic>>[
-      ...readyVideo,
-      ...readyVisual,
-      ...rest,
-      ...tail,
-    ];
   }
 
   bool _shouldInsertPromoAfterPost(int postNumber) {

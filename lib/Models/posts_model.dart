@@ -255,10 +255,10 @@ class PostsModel {
       for (final item in field) {
         if (item is Map) {
           final url = (item['url'] ?? '').toString().trim();
-          if (url.isNotEmpty) out.add(url);
+          if (url.isNotEmpty) out.add(CdnUrlBuilder.toCdnUrl(url));
         } else {
           final url = item.toString().trim();
-          if (url.isNotEmpty) out.add(url);
+          if (url.isNotEmpty) out.add(CdnUrlBuilder.toCdnUrl(url));
         }
       }
       return out;
@@ -301,7 +301,11 @@ class PostsModel {
             resolvedAuthorNickname)
         .toString();
     final resolvedAuthorAvatarUrl =
-        (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '').toString();
+        CdnUrlBuilder.toCdnUrl(
+          (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '')
+              .toString()
+              .trim(),
+        );
     final resolvedRozet =
         (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
     final resolvedUserId = (data['userID'] ??
@@ -340,21 +344,25 @@ class PostsModel {
       quotedSourceDisplayName:
           (data['quotedSourceDisplayName'] ?? '').toString(),
       quotedSourceUsername: (data['quotedSourceUsername'] ?? '').toString(),
-      quotedSourceAvatarUrl: (data['quotedSourceAvatarUrl'] ?? '').toString(),
+      quotedSourceAvatarUrl: CdnUrlBuilder.toCdnUrl(
+        (data['quotedSourceAvatarUrl'] ?? '').toString().trim(),
+      ),
       paylasGizliligi: parseNum(data['paylasGizliligi'], 1),
       scheduledAt: parseNum(data['scheduledAt']),
       sikayetEdildi: data['sikayetEdildi'] ?? false,
       stabilized: data['stabilized'] ?? true,
       stats: PostStats.fromPostData(data),
       tags: parseList(data['tags']),
-      thumbnail: data['thumbnail'] ?? '',
+      thumbnail: CdnUrlBuilder.toCdnUrl(
+        (data['thumbnail'] ?? '').toString().trim(),
+      ),
       timeStamp: parseNum(data['timeStamp']),
       userID: resolvedUserId,
       authorNickname: resolvedAuthorNickname,
       authorDisplayName: resolvedAuthorDisplayName,
       authorAvatarUrl: resolvedAuthorAvatarUrl,
       rozet: resolvedRozet,
-      video: data['video'] ?? '',
+      video: CdnUrlBuilder.toCdnUrl((data['video'] ?? '').toString().trim()),
       videoLook: data['videoLook'] is Map<String, dynamic>
           ? Map<String, dynamic>.from(data['videoLook'] as Map<String, dynamic>)
           : (data['videoLook'] is Map
@@ -364,7 +372,9 @@ class PostsModel {
                   'version': 1,
                   'intensity': 1.0,
                 }),
-      hlsMasterUrl: data['hlsMasterUrl'] ?? '',
+      hlsMasterUrl: CdnUrlBuilder.toCdnUrl(
+        (data['hlsMasterUrl'] ?? '').toString().trim(),
+      ),
       hlsStatus: data['hlsStatus'] ?? 'none',
       hlsUpdatedAt: parseNum(data['hlsUpdatedAt']),
       yorum: data['yorum'] ?? true,

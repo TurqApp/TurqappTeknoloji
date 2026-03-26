@@ -67,11 +67,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   bool _shouldDeferInitialNetworkBootstrap() {
-    if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
-      return false;
-    }
-    if (agendaList.length < 8) return false;
-    return agendaList.any(_canAutoplayVideoPost);
+    return false;
   }
 
   bool _isTransientAgendaUnavailable(Object error) {
@@ -247,10 +243,13 @@ extension AgendaControllerLoadingPart on AgendaController {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
       final loadLimit = initial ? 30 : (pageLimit ?? fetchLimit);
+      final liveConnected = ContentPolicy.isConnected;
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         limit: loadLimit,
+        preferCache: !liveConnected,
+        cacheOnly: !liveConnected,
       );
       final visibleItems = page.items;
 
