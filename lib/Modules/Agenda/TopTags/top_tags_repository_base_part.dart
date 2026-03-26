@@ -22,3 +22,7 @@ abstract class _TopTagsRepositoryBase extends GetxService {
     SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
   }
 }
+
+class TopTagsRepository extends _TopTagsRepositoryBase {
+  TopTagsRepository({super.firestore});
+}

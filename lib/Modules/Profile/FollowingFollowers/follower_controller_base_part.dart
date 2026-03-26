@@ -7,3 +7,5 @@ abstract class _FollowerControllerBase extends GetxController {
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 }
+
+class FollowerController extends _FollowerControllerBase {}
