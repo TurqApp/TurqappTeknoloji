@@ -76,6 +76,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _disposeDelay = Duration(milliseconds: 300);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
+  static const double _promoSlotHeight = 270;
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
@@ -530,7 +531,7 @@ class _AdmobKareState extends State<AdmobKare> {
       child = const Padding(
         padding: EdgeInsets.all(8.0),
         child: SizedBox(
-          height: 250,
+          height: _promoSlotHeight,
           child: Center(
             child: Text(
               'Debug reklam gizlendi',
@@ -577,28 +578,31 @@ class _AdmobKareState extends State<AdmobKare> {
             child = Center(
               child: Padding(
                 padding: widget.contentPadding,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemGrey6,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
-                        child: Text(
-                          'Reklam',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: CupertinoColors.systemGrey,
-                            fontWeight: FontWeight.w500,
+                child: SizedBox(
+                  height: _promoSlotHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
+                          child: Text(
+                            'Reklam',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: CupertinoColors.systemGrey,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                      renderedAdBody,
-                      const SizedBox(height: 4),
-                    ],
+                        renderedAdBody,
+                        const SizedBox(height: 4),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -636,7 +640,7 @@ class _AdmobKareState extends State<AdmobKare> {
 
   Widget _buildPromoFallbackCard() {
     return Container(
-      height: 250,
+      height: _promoSlotHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(
