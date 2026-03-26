@@ -231,7 +231,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           ? _shortPlayResumeDelayAndroid
           : _shortPlayResumeDelay,
       () {
-        if (!mounted || page != currentPage) return;
+        if (!mounted || page != currentPage || isManuallyPaused) return;
         _enforceSingleActiveAudio(page);
         final vc = controller.cache[page];
         if (vc == null) return;
@@ -250,8 +250,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
         vc.setVolume(volume ? 1 : 0);
         _boostShortSegments(page);
-        final shouldGate =
-            !_autoplaySegmentGateTimedOut &&
+        final shouldGate = !_autoplaySegmentGateTimedOut &&
             vc.value.position <= Duration.zero &&
             !vc.value.isPlaying &&
             !_hasReadyShortSegment(page);
@@ -263,7 +262,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
             _playDebounce = Timer(
               _ShortViewState._shortAutoplaySegmentGatePollInterval,
               () {
-                if (!mounted || page != currentPage) return;
+                if (!mounted || page != currentPage || isManuallyPaused) {
+                  return;
+                }
                 _schedulePlayForPage(page);
               },
             );
@@ -273,6 +274,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         } else {
           _resetShortAutoplaySegmentGate();
         }
+        if (isManuallyPaused) return;
         if (!vc.value.isPlaying) {
           vc.play();
         }
@@ -328,7 +330,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _armStallWatchdog(int page, HLSVideoAdapter vc) {
     _stallWatchdogTimer?.cancel();
     _stallWatchdogTimer = Timer(const Duration(milliseconds: 900), () async {
-      if (!mounted || page != currentPage || vc.isDisposed) return;
+      if (!mounted ||
+          page != currentPage ||
+          vc.isDisposed ||
+          isManuallyPaused) {
+        return;
+      }
       final value = vc.value;
       if (!value.isInitialized || !value.hasRenderedFirstFrame) {
         _stallWatchdogLastPosition = value.position;
@@ -374,7 +381,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _armPlaybackWatchdog(int page, HLSVideoAdapter vc) {
     _playbackWatchdogTimer?.cancel();
     _playbackWatchdogTimer = Timer(_shortPlayWatchdogDelay, () async {
-      if (!mounted || page != currentPage || vc.isDisposed) return;
+      if (!mounted ||
+          page != currentPage ||
+          vc.isDisposed ||
+          isManuallyPaused) {
+        return;
+      }
       final value = vc.value;
       final hasStarted = value.isPlaying || value.position > Duration.zero;
       if (hasStarted) return;
