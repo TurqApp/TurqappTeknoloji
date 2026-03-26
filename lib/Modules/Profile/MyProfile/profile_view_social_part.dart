@@ -38,8 +38,9 @@ extension _ProfileViewSocialPart on _ProfileViewState {
         child: SizedBox(
           height: rowHeight,
           child: ListView.builder(
+            controller: _linksHighlightsScrollController,
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 20, right: 15),
+            padding: const EdgeInsets.only(left: 10, right: 15),
             itemCount: mixedItems.length,
             itemBuilder: (context, index) {
               final item = mixedItems[index];

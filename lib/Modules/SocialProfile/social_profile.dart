@@ -74,6 +74,8 @@ class SocialProfile extends StatefulWidget {
 class _SocialProfileState extends State<SocialProfile> {
   late SocialProfileController controller;
   late ChatListingController chatListingController;
+  final ScrollController _linksHighlightsScrollController =
+      ScrollController(keepScrollOffset: false);
   final Map<int, ScrollController> _scrollControllers =
       <int, ScrollController>{};
   bool _scrollProbeScheduled = false;

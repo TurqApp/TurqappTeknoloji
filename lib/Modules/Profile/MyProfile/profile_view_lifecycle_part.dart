@@ -60,6 +60,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
   void _disposeProfileView() {
     _marketUserWorker?.dispose();
     _profileTabWorker?.dispose();
+    _linksHighlightsScrollController.dispose();
     if (_ownsHighlightsController) {
       final uid = _myUserId;
       final tag = uid.isEmpty ? '' : 'highlights_$uid';

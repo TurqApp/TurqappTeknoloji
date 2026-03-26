@@ -39,6 +39,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
   }
 
   void _disposeSocialProfile() {
+    _linksHighlightsScrollController.dispose();
     for (final scrollController in _scrollControllers.values) {
       scrollController.dispose();
     }

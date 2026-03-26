@@ -96,6 +96,8 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> {
   late final ProfileController controller;
   late final SocialMediaController socialMediaController;
+  final ScrollController _linksHighlightsScrollController =
+      ScrollController(keepScrollOffset: false);
   final userService = CurrentUserService.instance;
   final PostRepository _postRepository = PostRepository.ensure();
   final MarketRepository _marketRepository = ensureMarketRepository();
