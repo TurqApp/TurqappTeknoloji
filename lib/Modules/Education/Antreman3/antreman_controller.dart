@@ -23,46 +23,9 @@ import 'package:turqappv2/Modules/Education/Antreman3/question_content.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'antreman_controller_actions_part.dart';
+part 'antreman_controller_class_part.dart';
 part 'antreman_controller_category_part.dart';
 part 'antreman_controller_fields_part.dart';
 part 'antreman_controller_models_part.dart';
 part 'antreman_controller_question_actions_part.dart';
 part 'antreman_controller_support_part.dart';
-
-class AntremanController extends GetxController {
-  static AntremanController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AntremanController(), permanent: permanent);
-  }
-
-  static AntremanController? maybeFind() {
-    final isRegistered = Get.isRegistered<AntremanController>();
-    if (!isRegistered) return null;
-    return Get.find<AntremanController>();
-  }
-
-  final QuestionBankSnapshotRepository _questionBankSnapshotRepository =
-      QuestionBankSnapshotRepository.ensure();
-  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
-  final UserRepository _userRepository = UserRepository.ensure();
-  final Map<String, Map<String, List<String>>> subjects = _antremanSubjects;
-
-  final Map<String, IconData> icons = _antremanIcons;
-  final _state = _AntremanControllerState();
-
-  final String userID = CurrentUserService.instance.effectiveUserId;
-  final int batchSize = 5;
-
-  @override
-  void onInit() {
-    super.onInit();
-    loadMainCategory();
-  }
-
-  @override
-  void onClose() {
-    _searchDebounce?.cancel();
-    super.onClose();
-  }
-}

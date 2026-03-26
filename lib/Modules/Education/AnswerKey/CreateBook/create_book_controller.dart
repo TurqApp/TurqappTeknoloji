@@ -16,54 +16,10 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'create_book_controller_class_part.dart';
 part 'create_book_controller_form_part.dart';
 part 'create_book_controller_submission_part.dart';
 part 'create_book_controller_answer_key_part.dart';
 part 'create_book_controller_facade_part.dart';
 part 'create_book_controller_fields_part.dart';
 part 'create_book_controller_support_part.dart';
-
-class CreateBookController extends GetxController {
-  static CreateBookController ensure(
-    Function? onBack, {
-    BookletModel? existingBook,
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      CreateBookController(onBack, existingBook: existingBook),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static CreateBookController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<CreateBookController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<CreateBookController>(tag: tag);
-  }
-
-  final _CreateBookControllerState _state;
-
-  CreateBookController(
-    Function? onBack, {
-    BookletModel? existingBook,
-  }) : _state = _CreateBookControllerState(
-          onBack: onBack,
-          existingBook: existingBook,
-        );
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleControllerInit();
-  }
-
-  @override
-  void onClose() {
-    _disposeCreateBookController();
-    super.onClose();
-  }
-}

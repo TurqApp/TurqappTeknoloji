@@ -27,6 +27,7 @@ import '../../../Themes/app_colors.dart';
 import '../post_creator_controller.dart';
 import 'composer_hashtag_utils.dart';
 
+part 'creator_content_controller_class_part.dart';
 part 'creator_content_controller_poll_part.dart';
 part 'creator_content_controller_facade_part.dart';
 part 'creator_content_controller_fields_part.dart';
@@ -35,34 +36,3 @@ part 'creator_content_controller_media_part.dart';
 part 'creator_content_controller_video_part.dart';
 part 'creator_content_controller_hashtag_part.dart';
 part 'creator_content_controller_runtime_part.dart';
-
-class CreatorContentController extends GetxController
-    with WidgetsBindingObserver {
-  static CreatorContentController ensure({
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureCreatorContentController(tag: tag, permanent: permanent);
-
-  static CreatorContentController? maybeFind({String? tag}) =>
-      _maybeFindCreatorContentController(tag: tag);
-
-  final _state = _CreatorContentControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _CreatorContentControllerLifecyclePart(this).handleOnInit();
-  }
-
-  @override
-  void onClose() {
-    _CreatorContentControllerLifecyclePart(this).handleOnClose();
-    super.onClose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) =>
-      _CreatorContentControllerLifecyclePart(this)
-          .didChangeAppLifecycleState(state);
-}
