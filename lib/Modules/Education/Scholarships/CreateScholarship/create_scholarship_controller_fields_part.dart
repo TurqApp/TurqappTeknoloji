@@ -22,9 +22,8 @@ class _CreateScholarshipControllerState {
   final ogrenciSayisiController = TextEditingController();
   final egitimKitlesi = ''.obs;
   final lisansTuru = <String>[].obs;
-  final geriOdemeli = CreateScholarshipController.repayableNoValue.obs;
-  final mukerrerDurumu =
-      CreateScholarshipController.duplicateStatusCanReceiveValue.obs;
+  final geriOdemeli = repayableNoValue.obs;
+  final mukerrerDurumu = duplicateStatusCanReceiveValue.obs;
   final hedefKitle = ''.obs;
   final sehirler = <String>[].obs;
   final ilceler = <String>[].obs;
@@ -37,11 +36,10 @@ class _CreateScholarshipControllerState {
   final selectedTemplateIndex = (-1).obs;
   final formKey = GlobalKey<FormState>();
   final applicationOption = <String>[
-    CreateScholarshipController.applicationPlaceTurqAppValue,
-    CreateScholarshipController.applicationPlaceWebsiteValue,
+    applicationPlaceTurqAppValue,
+    applicationPlaceWebsiteValue,
   ].obs;
-  final applicationOptionValue =
-      CreateScholarshipController.applicationPlaceTurqAppValue.obs;
+  final applicationOptionValue = applicationPlaceTurqAppValue.obs;
   final basvuruKosullari = ''.obs;
   final basvuruKosullariController = TextEditingController();
   final aylar = <String>[].obs;

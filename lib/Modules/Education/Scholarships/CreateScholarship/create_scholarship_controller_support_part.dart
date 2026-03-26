@@ -55,5 +55,5 @@ String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
 extension CreateScholarshipControllerSupportPart
     on CreateScholarshipController {
-  String get turkeyValue => CreateScholarshipController.turkeyCountryValue;
+  String get turkeyValue => turkeyCountryValue;
 }

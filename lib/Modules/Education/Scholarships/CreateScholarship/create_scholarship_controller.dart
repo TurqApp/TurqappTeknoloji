@@ -26,6 +26,7 @@ import 'package:path_provider/path_provider.dart';
 
 part 'create_scholarship_controller_form_part.dart';
 part 'create_scholarship_controller_facade_part.dart';
+part 'create_scholarship_controller_constants_part.dart';
 part 'create_scholarship_controller_fields_part.dart';
 part 'create_scholarship_controller_submission_part.dart';
 part 'create_scholarship_controller_labels_part.dart';

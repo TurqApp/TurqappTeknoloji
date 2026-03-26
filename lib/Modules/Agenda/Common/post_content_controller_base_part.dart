@@ -12,4 +12,13 @@ abstract class _PostContentControllerBase extends GetxController {
         );
 
   final _PostContentShellState _shellState;
+
+  void onPostInitialized() {}
+
+  void onPostFrameBound() {}
+
+  Future<void> onReshareRemoved(
+    String? uid, {
+    String? targetPostId,
+  }) async {}
 }

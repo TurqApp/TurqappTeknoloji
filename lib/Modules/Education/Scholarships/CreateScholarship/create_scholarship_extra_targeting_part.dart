@@ -9,10 +9,8 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
     return Column(
       children: [
         Obx(() {
-          if (controller.hedefKitle.value ==
-                  CreateScholarshipController.targetAudiencePopulationValue ||
-              controller.hedefKitle.value ==
-                  CreateScholarshipController.targetAudienceResidenceValue) {
+          if (controller.hedefKitle.value == targetAudiencePopulationValue ||
+              controller.hedefKitle.value == targetAudienceResidenceValue) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -116,9 +114,7 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
                                   final validUniversiteler = controller
                                       .universiteler
                                       .where((uni) =>
-                                          uni ==
-                                              CreateScholarshipController
-                                                  .allUniversitiesValue ||
+                                          uni == allUniversitiesValue ||
                                           controller
                                               .getUniversitiesForSelectedCities()
                                               .contains(uni))
@@ -163,8 +159,7 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
                       ),
                     ),
                     if (controller.egitimKitlesi.value !=
-                        CreateScholarshipController
-                            .educationAudienceUndergraduateValue) ...[
+                        educationAudienceUndergraduateValue) ...[
                       8.pw,
                       Expanded(
                         child: Column(
@@ -241,17 +236,14 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
           return const SizedBox.shrink();
         }),
         Obx(
-          () => controller.hedefKitle.value ==
-                      CreateScholarshipController
-                          .targetAudiencePopulationValue ||
-                  controller.hedefKitle.value ==
-                      CreateScholarshipController.targetAudienceResidenceValue
+          () => controller.hedefKitle.value == targetAudiencePopulationValue ||
+                  controller.hedefKitle.value == targetAudienceResidenceValue
               ? const SizedBox(height: 16)
               : const SizedBox.shrink(),
         ),
         Obx(() {
           if (controller.egitimKitlesi.value ==
-              CreateScholarshipController.educationAudienceUndergraduateValue) {
+              educationAudienceUndergraduateValue) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -262,8 +254,7 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
                 GestureDetector(
                   onTap: () {
                     if (controller.hedefKitle.value !=
-                            CreateScholarshipController
-                                .targetAudienceAllTurkeyValue &&
+                            targetAudienceAllTurkeyValue &&
                         controller.sehirler.isEmpty) {
                       AppSnackbar(
                         'common.error'.tr,
@@ -308,12 +299,10 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
                             controller.universiteler.isEmpty
                                 ? "scholarship.select_university".tr
                                 : controller.universiteler.contains(
-                                    CreateScholarshipController
-                                        .allUniversitiesValue,
+                                    allUniversitiesValue,
                                   )
                                     ? controller.universityLabel(
-                                        CreateScholarshipController
-                                            .allUniversitiesValue,
+                                        allUniversitiesValue,
                                       )
                                     : 'common.selected_count'.trParams({
                                         'count': controller.universiteler.length
@@ -348,9 +337,7 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
                               backgroundColor: Colors.grey.shade200,
                               label: Text(controller.universityLabel(uni)),
                               onDeleted: () {
-                                if (uni ==
-                                    CreateScholarshipController
-                                        .allUniversitiesValue) {
+                                if (uni == allUniversitiesValue) {
                                   controller.universiteler.clear();
                                 } else {
                                   controller.universiteler.remove(uni);
@@ -427,8 +414,7 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
         controller.hedefKitle.value.isNotEmpty &&
         controller.egitimKitlesi.value.isNotEmpty &&
         (controller.egitimKitlesi.value !=
-                CreateScholarshipController
-                    .educationAudienceUndergraduateValue ||
+                educationAudienceUndergraduateValue ||
             controller.lisansTuru.isNotEmpty) &&
         !_requiresCountryWithoutSelection(controller) &&
         !_requiresCityWithoutSelection(controller) &&
@@ -449,17 +435,14 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
     CreateScholarshipController controller,
   ) {
     return controller.egitimKitlesi.value ==
-            CreateScholarshipController.educationAudienceUndergraduateValue &&
-        controller.hedefKitle.value !=
-            CreateScholarshipController.targetAudienceAllTurkeyValue &&
+            educationAudienceUndergraduateValue &&
+        controller.hedefKitle.value != targetAudienceAllTurkeyValue &&
         controller.sehirler.isEmpty &&
         controller.universiteler.isEmpty;
   }
 
   bool _usesLocationAudience(CreateScholarshipController controller) {
-    return controller.hedefKitle.value ==
-            CreateScholarshipController.targetAudiencePopulationValue ||
-        controller.hedefKitle.value ==
-            CreateScholarshipController.targetAudienceResidenceValue;
+    return controller.hedefKitle.value == targetAudiencePopulationValue ||
+        controller.hedefKitle.value == targetAudienceResidenceValue;
   }
 }

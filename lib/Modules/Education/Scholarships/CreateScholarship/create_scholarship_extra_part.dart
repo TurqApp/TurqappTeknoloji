@@ -3,10 +3,9 @@ part of 'create_scholarship_view.dart';
 extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
   String _duplicateStatusLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.duplicateStatusCanReceiveValue:
+      case duplicateStatusCanReceiveValue:
         return 'scholarship.duplicate_status.can_receive'.tr;
-      case CreateScholarshipController
-            .duplicateStatusCannotReceiveExceptKykValue:
+      case duplicateStatusCannotReceiveExceptKykValue:
         return 'scholarship.duplicate_status.cannot_receive_except_kyk'.tr;
       default:
         return value;
@@ -15,9 +14,9 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
 
   String _repayableLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.repayableYesValue:
+      case repayableYesValue:
         return 'common.yes'.tr;
-      case CreateScholarshipController.repayableNoValue:
+      case repayableNoValue:
         return 'common.no'.tr;
       default:
         return value;
@@ -26,11 +25,11 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
 
   String _targetAudienceLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.targetAudiencePopulationValue:
+      case targetAudiencePopulationValue:
         return 'scholarship.target.population'.tr;
-      case CreateScholarshipController.targetAudienceResidenceValue:
+      case targetAudienceResidenceValue:
         return 'scholarship.target.residence'.tr;
-      case CreateScholarshipController.targetAudienceAllTurkeyValue:
+      case targetAudienceAllTurkeyValue:
         return 'scholarship.target.all_turkiye'.tr;
       default:
         return value;
@@ -39,13 +38,13 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
 
   String _educationAudienceLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.educationAudienceAllValue:
+      case educationAudienceAllValue:
         return 'scholarship.education.all'.tr;
-      case CreateScholarshipController.educationAudienceMiddleSchoolValue:
+      case educationAudienceMiddleSchoolValue:
         return 'scholarship.education.middle_school'.tr;
-      case CreateScholarshipController.educationAudienceHighSchoolValue:
+      case educationAudienceHighSchoolValue:
         return 'scholarship.education.high_school'.tr;
-      case CreateScholarshipController.educationAudienceUndergraduateValue:
+      case educationAudienceUndergraduateValue:
         return 'scholarship.education.undergraduate'.tr;
       default:
         return value;
@@ -54,13 +53,13 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
 
   String _degreeTypeLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.degreeAssociateValue:
+      case degreeAssociateValue:
         return 'scholarship.degree.associate'.tr;
-      case CreateScholarshipController.degreeBachelorValue:
+      case degreeBachelorValue:
         return 'scholarship.degree.bachelor'.tr;
-      case CreateScholarshipController.degreeMasterValue:
+      case degreeMasterValue:
         return 'scholarship.degree.master'.tr;
-      case CreateScholarshipController.degreePhdValue:
+      case degreePhdValue:
         return 'scholarship.degree.phd'.tr;
       default:
         return value;
@@ -199,10 +198,8 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                       AppBottomSheet.show(
                         context: Get.context!,
                         items: const [
-                          CreateScholarshipController
-                              .duplicateStatusCanReceiveValue,
-                          CreateScholarshipController
-                              .duplicateStatusCannotReceiveExceptKykValue,
+                          duplicateStatusCanReceiveValue,
+                          duplicateStatusCannotReceiveExceptKykValue,
                         ],
                         title: "scholarship.duplicate_status_label".tr,
                         selectedItem: controller.mukerrerDurumu.value,
@@ -255,8 +252,8 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                       AppBottomSheet.show(
                         context: Get.context!,
                         items: const [
-                          CreateScholarshipController.repayableYesValue,
-                          CreateScholarshipController.repayableNoValue,
+                          repayableYesValue,
+                          repayableNoValue,
                         ],
                         title: "scholarship.repayable_label".tr,
                         selectedItem: controller.geriOdemeli.value,
@@ -311,12 +308,9 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                       AppBottomSheet.show(
                         context: Get.context!,
                         items: const [
-                          CreateScholarshipController
-                              .targetAudiencePopulationValue,
-                          CreateScholarshipController
-                              .targetAudienceResidenceValue,
-                          CreateScholarshipController
-                              .targetAudienceAllTurkeyValue,
+                          targetAudiencePopulationValue,
+                          targetAudienceResidenceValue,
+                          targetAudienceAllTurkeyValue,
                         ],
                         title: "scholarship.target_audience_label".tr,
                         selectedItem: controller.hedefKitle.value,
@@ -324,15 +318,11 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                             _targetAudienceLabel(item.toString()),
                         onSelect: (value) {
                           controller.hedefKitle.value = value;
-                          if (value ==
-                              CreateScholarshipController
-                                  .targetAudienceAllTurkeyValue) {
+                          if (value == targetAudienceAllTurkeyValue) {
                             controller.sehirler.clear();
                             controller.ilceler.clear();
                           }
-                          if (value !=
-                              CreateScholarshipController
-                                  .educationAudienceUndergraduateValue) {
+                          if (value != educationAudienceUndergraduateValue) {
                             controller.universiteler.clear();
                           }
                         },
@@ -386,13 +376,10 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                       AppBottomSheet.show(
                         context: Get.context!,
                         items: const [
-                          CreateScholarshipController.educationAudienceAllValue,
-                          CreateScholarshipController
-                              .educationAudienceMiddleSchoolValue,
-                          CreateScholarshipController
-                              .educationAudienceHighSchoolValue,
-                          CreateScholarshipController
-                              .educationAudienceUndergraduateValue,
+                          educationAudienceAllValue,
+                          educationAudienceMiddleSchoolValue,
+                          educationAudienceHighSchoolValue,
+                          educationAudienceUndergraduateValue,
                         ],
                         title: "scholarship.education_audience_label".tr,
                         selectedItem: controller.egitimKitlesi.value,
@@ -400,9 +387,7 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                             _educationAudienceLabel(item.toString()),
                         onSelect: (value) {
                           controller.egitimKitlesi.value = value;
-                          if (value !=
-                              CreateScholarshipController
-                                  .educationAudienceUndergraduateValue) {
+                          if (value != educationAudienceUndergraduateValue) {
                             controller.lisansTuru.clear();
                             controller.universiteler.clear();
                           }
@@ -440,22 +425,18 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
               ),
             ),
             Obx(
-              () => controller.egitimKitlesi.value ==
-                          CreateScholarshipController
-                              .educationAudienceAllValue ||
-                      controller.egitimKitlesi.value ==
-                          CreateScholarshipController
-                              .educationAudienceMiddleSchoolValue ||
-                      controller.egitimKitlesi.value ==
-                          CreateScholarshipController
-                              .educationAudienceHighSchoolValue
-                  ? const SizedBox.shrink()
-                  : 8.pw,
+              () =>
+                  controller.egitimKitlesi.value == educationAudienceAllValue ||
+                          controller.egitimKitlesi.value ==
+                              educationAudienceMiddleSchoolValue ||
+                          controller.egitimKitlesi.value ==
+                              educationAudienceHighSchoolValue
+                      ? const SizedBox.shrink()
+                      : 8.pw,
             ),
             Obx(() {
               if (controller.egitimKitlesi.value ==
-                  CreateScholarshipController
-                      .educationAudienceUndergraduateValue) {
+                  educationAudienceUndergraduateValue) {
                 return Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,11 +459,10 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                             builder: (context) => MultiSelectBottomSheet2(
                               title: "scholarship.degree_type_select".tr,
                               items: const [
-                                CreateScholarshipController
-                                    .degreeAssociateValue,
-                                CreateScholarshipController.degreeBachelorValue,
-                                CreateScholarshipController.degreeMasterValue,
-                                CreateScholarshipController.degreePhdValue,
+                                degreeAssociateValue,
+                                degreeBachelorValue,
+                                degreeMasterValue,
+                                degreePhdValue,
                               ],
                               selectedItems: controller.lisansTuru,
                               itemLabelBuilder: _degreeTypeLabel,

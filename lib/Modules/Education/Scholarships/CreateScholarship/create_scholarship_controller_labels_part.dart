@@ -36,10 +36,10 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
 
   String applicationPlaceDisplayLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.applicationPlaceTurqAppValue:
+      case applicationPlaceTurqAppValue:
         return 'scholarship.application_place_turqapp'.tr;
       case 'Burs Web Site':
-      case CreateScholarshipController.applicationPlaceWebsiteValue:
+      case applicationPlaceWebsiteValue:
         return 'scholarship.application_place_website'.tr;
       default:
         return value;
@@ -47,8 +47,7 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
   }
 
   bool isWebsiteApplicationPlace(String value) =>
-      value == CreateScholarshipController.applicationPlaceWebsiteValue ||
-      value == 'Burs Web Site';
+      value == applicationPlaceWebsiteValue || value == 'Burs Web Site';
 
   String awardMonthLabel(String value) {
     switch (value) {
@@ -83,9 +82,9 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
 
   String scholarshipRepayableLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.repayableYesValue:
+      case repayableYesValue:
         return 'common.yes'.tr;
-      case CreateScholarshipController.repayableNoValue:
+      case repayableNoValue:
         return 'common.no'.tr;
       default:
         return value;
@@ -94,10 +93,9 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
 
   String scholarshipDuplicateStatusLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.duplicateStatusCanReceiveValue:
+      case duplicateStatusCanReceiveValue:
         return 'scholarship.duplicate_status.can_receive'.tr;
-      case CreateScholarshipController
-          .duplicateStatusCannotReceiveExceptKykValue:
+      case duplicateStatusCannotReceiveExceptKykValue:
         return 'scholarship.duplicate_status.cannot_receive_except_kyk'.tr;
       default:
         return value;
@@ -106,11 +104,11 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
 
   String scholarshipTargetAudienceLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.targetAudiencePopulationValue:
+      case targetAudiencePopulationValue:
         return 'scholarship.target.population'.tr;
-      case CreateScholarshipController.targetAudienceResidenceValue:
+      case targetAudienceResidenceValue:
         return 'scholarship.target.residence'.tr;
-      case CreateScholarshipController.targetAudienceAllTurkeyValue:
+      case targetAudienceAllTurkeyValue:
         return 'scholarship.target.all_turkiye'.tr;
       default:
         return value;
@@ -119,15 +117,15 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
 
   String scholarshipEducationAudienceLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.educationAudienceAllValue:
+      case educationAudienceAllValue:
         return 'scholarship.education.all'.tr;
-      case CreateScholarshipController.educationAudienceMiddleSchoolValue:
+      case educationAudienceMiddleSchoolValue:
         return 'scholarship.education.middle_school'.tr;
-      case CreateScholarshipController.educationAudienceHighSchoolValue:
+      case educationAudienceHighSchoolValue:
         return 'scholarship.education.high_school'.tr;
-      case CreateScholarshipController.educationAudienceUndergraduateValue:
+      case educationAudienceUndergraduateValue:
         return 'scholarship.education.undergraduate'.tr;
-      case CreateScholarshipController.educationAudienceAllExpandedValue:
+      case educationAudienceAllExpandedValue:
         return [
           'scholarship.education.middle_school'.tr,
           'scholarship.education.high_school'.tr,
@@ -140,7 +138,7 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
 
   String scholarshipCountryLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.turkeyCountryValue:
+      case turkeyCountryValue:
         return 'common.country_turkey'.tr;
       default:
         return value;
@@ -232,7 +230,7 @@ extension CreateScholarshipControllerLabelsPart on CreateScholarshipController {
   }
 
   String universityLabel(String value) {
-    return value == CreateScholarshipController.allUniversitiesValue
+    return value == allUniversitiesValue
         ? 'scholarship.all_universities'.tr
         : value;
   }

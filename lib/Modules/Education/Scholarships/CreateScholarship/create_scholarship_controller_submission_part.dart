@@ -149,24 +149,20 @@ extension CreateScholarshipControllerSubmissionPart
 
   List<String> _buildAltEducationAudience() {
     final altEgitimKitlesi = <String>[];
-    if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceMiddleSchoolValue) {
+    if (egitimKitlesi.value == educationAudienceMiddleSchoolValue) {
       altEgitimKitlesi.add(
-        CreateScholarshipController.educationAudienceMiddleSchoolValue,
+        educationAudienceMiddleSchoolValue,
       );
-    } else if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceHighSchoolValue) {
+    } else if (egitimKitlesi.value == educationAudienceHighSchoolValue) {
       altEgitimKitlesi.add(
-        CreateScholarshipController.educationAudienceHighSchoolValue,
+        educationAudienceHighSchoolValue,
       );
-    } else if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceUndergraduateValue) {
+    } else if (egitimKitlesi.value == educationAudienceUndergraduateValue) {
       altEgitimKitlesi.addAll(lisansTuru);
-    } else if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceAllValue) {
+    } else if (egitimKitlesi.value == educationAudienceAllValue) {
       altEgitimKitlesi.addAll([
-        CreateScholarshipController.educationAudienceMiddleSchoolValue,
-        CreateScholarshipController.educationAudienceHighSchoolValue,
+        educationAudienceMiddleSchoolValue,
+        educationAudienceHighSchoolValue,
       ]);
       altEgitimKitlesi.addAll(lisansTuru);
     }
@@ -174,9 +170,8 @@ extension CreateScholarshipControllerSubmissionPart
   }
 
   String _resolvedEducationAudienceValue() {
-    return egitimKitlesi.value ==
-            CreateScholarshipController.educationAudienceAllValue
-        ? CreateScholarshipController.educationAudienceAllExpandedValue
+    return egitimKitlesi.value == educationAudienceAllValue
+        ? educationAudienceAllExpandedValue
         : egitimKitlesi.value;
   }
 

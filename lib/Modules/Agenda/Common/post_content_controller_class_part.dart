@@ -7,6 +7,13 @@ class PostContentController extends _PostContentControllerBase {
     super.scrollFeedToTopOnReshare = false,
   });
 
+  Future<void> onReshareAdded(
+    String? uid, {
+    String? targetPostId,
+  }) async {
+    await _performOnReshareAdded(uid, targetPostId: targetPostId);
+  }
+
   @override
   void onInit() {
     super.onInit();
