@@ -41,25 +41,11 @@ extension FollowRepositoryActionPart on FollowRepository {
         .doc(otherUid)
         .collection('followers')
         .doc(currentUid);
-    final currentRootRef = firestore.collection('users').doc(currentUid);
-    final otherRootRef = firestore.collection('users').doc(otherUid);
     await firestore.runTransaction((tx) async {
       final existing = await tx.get(followingRef);
       if (existing.exists) return;
       tx.set(followingRef, {'timeStamp': now}, SetOptions(merge: true));
       tx.set(followerRef, {'timeStamp': now}, SetOptions(merge: true));
-      tx.set(
-          currentRootRef,
-          {
-            'counterOfFollowings': FieldValue.increment(1),
-          },
-          SetOptions(merge: true));
-      tx.set(
-          otherRootRef,
-          {
-            'counterOfFollowers': FieldValue.increment(1),
-          },
-          SetOptions(merge: true));
     });
     await applyToggle(currentUid, otherUid, nowFollowing: true);
   }
@@ -82,36 +68,11 @@ extension FollowRepositoryActionPart on FollowRepository {
         .doc(otherUid)
         .collection('followers')
         .doc(currentUid);
-    final currentRootRef = firestore.collection('users').doc(currentUid);
-    final otherRootRef = firestore.collection('users').doc(otherUid);
     await firestore.runTransaction((tx) async {
       final existing = await tx.get(followingRef);
       if (!existing.exists) return;
-      final currentRootSnap = await tx.get(currentRootRef);
-      final otherRootSnap = await tx.get(otherRootRef);
       tx.delete(followingRef);
       tx.delete(followerRef);
-      final currentCount =
-          (currentRootSnap.data()?['counterOfFollowings'] as num?)?.toInt() ??
-              0;
-      final otherCount =
-          (otherRootSnap.data()?['counterOfFollowers'] as num?)?.toInt() ?? 0;
-      if (currentCount > 0) {
-        tx.set(
-            currentRootRef,
-            {
-              'counterOfFollowings': FieldValue.increment(-1),
-            },
-            SetOptions(merge: true));
-      }
-      if (otherCount > 0) {
-        tx.set(
-            otherRootRef,
-            {
-              'counterOfFollowers': FieldValue.increment(-1),
-            },
-            SetOptions(merge: true));
-      }
     });
     await applyToggle(currentUid, otherUid, nowFollowing: false);
   }
@@ -133,8 +94,6 @@ extension FollowRepositoryActionPart on FollowRepository {
         .doc(otherUid)
         .collection('followers')
         .doc(currentUid);
-    final myRootRef = firestore.collection('users').doc(currentUid);
-    final otherRootRef = firestore.collection('users').doc(otherUid);
     final counterRef = firestore
         .collection('users')
         .doc(currentUid)
@@ -146,30 +105,8 @@ extension FollowRepositoryActionPart on FollowRepository {
       final myFollowSnap = await transaction.get(myFollowingRef);
 
       if (myFollowSnap.exists) {
-        final myRootSnap = await transaction.get(myRootRef);
-        final otherRootSnap = await transaction.get(otherRootRef);
         transaction.delete(myFollowingRef);
         transaction.delete(otherFollowersRef);
-        final myCount =
-            (myRootSnap.data()?['counterOfFollowings'] as num?)?.toInt() ?? 0;
-        final otherCount =
-            (otherRootSnap.data()?['counterOfFollowers'] as num?)?.toInt() ?? 0;
-        if (myCount > 0) {
-          transaction.set(
-              myRootRef,
-              {
-                'counterOfFollowings': FieldValue.increment(-1),
-              },
-              SetOptions(merge: true));
-        }
-        if (otherCount > 0) {
-          transaction.set(
-              otherRootRef,
-              {
-                'counterOfFollowers': FieldValue.increment(-1),
-              },
-              SetOptions(merge: true));
-        }
         return const FollowWriteResult(
           nowFollowing: false,
           limitReached: false,
@@ -201,16 +138,6 @@ extension FollowRepositoryActionPart on FollowRepository {
       transaction.set(
         otherFollowersRef,
         {'timeStamp': now},
-        SetOptions(merge: true),
-      );
-      transaction.set(
-        myRootRef,
-        {'counterOfFollowings': FieldValue.increment(1)},
-        SetOptions(merge: true),
-      );
-      transaction.set(
-        otherRootRef,
-        {'counterOfFollowers': FieldValue.increment(1)},
         SetOptions(merge: true),
       );
       transaction.set(
@@ -247,8 +174,6 @@ extension FollowRepositoryActionPart on FollowRepository {
         .doc(otherUid)
         .collection('followers')
         .doc(currentUid);
-    final myRootRef = firestore.collection('users').doc(currentUid);
-    final otherRootRef = firestore.collection('users').doc(otherUid);
     final counterRef = firestore
         .collection('users')
         .doc(currentUid)
@@ -291,16 +216,6 @@ extension FollowRepositoryActionPart on FollowRepository {
       transaction.set(
         otherFollowersRef,
         {'timeStamp': now},
-        SetOptions(merge: true),
-      );
-      transaction.set(
-        myRootRef,
-        {'counterOfFollowings': FieldValue.increment(1)},
-        SetOptions(merge: true),
-      );
-      transaction.set(
-        otherRootRef,
-        {'counterOfFollowers': FieldValue.increment(1)},
         SetOptions(merge: true),
       );
       return true;

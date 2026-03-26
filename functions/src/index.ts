@@ -343,8 +343,6 @@ export const enforceMandatoryFollowOnUserCreate = functions.firestore
       const now = Date.now();
       const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
       const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
-      const meRootRef = db.doc(`users/${uid}`);
-      const targetRootRef = db.doc(`users/${targetUid}`);
 
       await db.runTransaction(async (tx) => {
         const existing = await tx.get(myFollowingRef);
@@ -352,8 +350,24 @@ export const enforceMandatoryFollowOnUserCreate = functions.firestore
 
         tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
         tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
+      });
+    } catch (e) {
+      console.error("enforceMandatoryFollowOnUserCreate error", e);
+    }
+  });
+
+export const incrementFollowCountersOnFollowingCreate = functions.firestore
+  .document("users/{uid}/followings/{targetUid}")
+  .onCreate(async (_snap, context) => {
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = String(context.params.targetUid || "").trim();
+    if (!uid || !targetUid || uid == targetUid) return;
+
+    try {
+      const now = Date.now();
+      await db.runTransaction(async (tx) => {
         tx.set(
-          meRootRef,
+          db.doc(`users/${uid}`),
           {
             counterOfFollowings: admin.firestore.FieldValue.increment(1),
             updatedDate: now,
@@ -361,7 +375,7 @@ export const enforceMandatoryFollowOnUserCreate = functions.firestore
           { merge: true }
         );
         tx.set(
-          targetRootRef,
+          db.doc(`users/${targetUid}`),
           {
             counterOfFollowers: admin.firestore.FieldValue.increment(1),
             updatedDate: now,
@@ -370,7 +384,49 @@ export const enforceMandatoryFollowOnUserCreate = functions.firestore
         );
       });
     } catch (e) {
-      console.error("enforceMandatoryFollowOnUserCreate error", e);
+      console.error("incrementFollowCountersOnFollowingCreate error", e);
+    }
+  });
+
+export const decrementFollowCountersOnFollowingDelete = functions.firestore
+  .document("users/{uid}/followings/{targetUid}")
+  .onDelete(async (_snap, context) => {
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = String(context.params.targetUid || "").trim();
+    if (!uid || !targetUid || uid == targetUid) return;
+
+    try {
+      const now = Date.now();
+      const meRef = db.doc(`users/${uid}`);
+      const targetRef = db.doc(`users/${targetUid}`);
+      await db.runTransaction(async (tx) => {
+        const meSnap = await tx.get(meRef);
+        const targetSnap = await tx.get(targetRef);
+        const myCount = Number(meSnap.data()?.counterOfFollowings || 0);
+        const targetCount = Number(targetSnap.data()?.counterOfFollowers || 0);
+        if (myCount > 0) {
+          tx.set(
+            meRef,
+            {
+              counterOfFollowings: admin.firestore.FieldValue.increment(-1),
+              updatedDate: now,
+            },
+            { merge: true }
+          );
+        }
+        if (targetCount > 0) {
+          tx.set(
+            targetRef,
+            {
+              counterOfFollowers: admin.firestore.FieldValue.increment(-1),
+              updatedDate: now,
+            },
+            { merge: true }
+          );
+        }
+      });
+    } catch (e) {
+      console.error("decrementFollowCountersOnFollowingDelete error", e);
     }
   });
 
