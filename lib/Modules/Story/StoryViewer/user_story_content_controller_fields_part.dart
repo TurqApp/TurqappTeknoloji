@@ -29,11 +29,7 @@ UserStoryContentController? _maybeFindUserStoryContentController({
 }
 
 class _UserStoryContentControllerState {
-  _UserStoryContentControllerState({
-    required this.storyID,
-    required this.nickname,
-    required this.isMyStory,
-  });
+  _UserStoryContentControllerState(this.storyID, this.nickname, this.isMyStory);
 
   final String storyID;
   final String nickname;

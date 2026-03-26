@@ -1,11 +1,8 @@
 part of 'create_test_question_content_controller_library.dart';
 
 class _CreateTestQuestionContentControllerState {
-  _CreateTestQuestionContentControllerState({
-    required this.model,
-    required this.testID,
-    required this.index,
-  });
+  _CreateTestQuestionContentControllerState(
+      this.model, this.testID, this.index);
 
   final TestReadinessModel model;
   final String testID;

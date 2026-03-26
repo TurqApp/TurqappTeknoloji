@@ -5,11 +5,7 @@ abstract class _CreateTestQuestionContentControllerBase extends GetxController {
     required TestReadinessModel model,
     required String testID,
     required int index,
-  }) : _state = _CreateTestQuestionContentControllerState(
-          model: model,
-          testID: testID,
-          index: index,
-        );
+  }) : _state = _CreateTestQuestionContentControllerState(model, testID, index);
 
   final _CreateTestQuestionContentControllerState _state;
 }

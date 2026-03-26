@@ -5,11 +5,7 @@ abstract class _UserStoryContentControllerBase extends GetxController {
     required String storyID,
     required String nickname,
     required bool isMyStory,
-  }) : _state = _UserStoryContentControllerState(
-          storyID: storyID,
-          nickname: nickname,
-          isMyStory: isMyStory,
-        );
+  }) : _state = _UserStoryContentControllerState(storyID, nickname, isMyStory);
 
   final _UserStoryContentControllerState _state;
 }
