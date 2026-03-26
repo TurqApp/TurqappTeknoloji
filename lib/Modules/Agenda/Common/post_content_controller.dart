@@ -30,6 +30,7 @@ import '../../../Core/Repositories/admin_push_repository.dart';
 
 /// Shared interaction/controller layer for both Modern and Classic agenda views.
 
+part 'post_content_controller_class_part.dart';
 part 'post_content_controller_actions_part.dart';
 part 'post_content_controller_data_part.dart';
 part 'post_content_controller_profile_part.dart';
@@ -37,58 +38,3 @@ part 'post_content_controller_runtime_part.dart';
 part 'post_content_controller_shell_part.dart';
 part 'post_content_controller_support_part.dart';
 part 'post_content_controller_fields_part.dart';
-
-class PostContentController extends GetxController {
-  static PostContentController ensure({
-    required String tag,
-    required PostContentController Function() create,
-  }) =>
-      maybeFind(tag: tag) ?? Get.put(create(), tag: tag);
-
-  static PostContentController? maybeFind({required String tag}) =>
-      Get.isRegistered<PostContentController>(tag: tag)
-          ? Get.find<PostContentController>(tag: tag)
-          : null;
-
-  static void invalidateUserProfileCache(String userId) =>
-      _invalidatePostContentUserProfileCache(userId);
-  static void clearUserProfileCache() => _clearPostContentUserProfileCache();
-  static void clearReshareUsersCache() => _clearPostContentReshareUsersCache();
-
-  PostContentController({
-    required PostsModel model,
-    bool enableLegacyCommentSync = false,
-    bool scrollFeedToTopOnReshare = false,
-  }) : _shellState = _PostContentShellState(
-          model: model,
-          enableLegacyCommentSync: enableLegacyCommentSync,
-          scrollFeedToTopOnReshare: scrollFeedToTopOnReshare,
-        );
-
-  final _PostContentShellState _shellState;
-
-  @protected
-  void onPostInitialized() {}
-
-  @protected
-  void onPostFrameBound() {}
-
-  @protected
-  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async =>
-      _performOnReshareAdded(uid, targetPostId: targetPostId);
-
-  @protected
-  Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {}
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handlePostContentInit();
-  }
-
-  @override
-  void onClose() {
-    _handlePostContentClose();
-    super.onClose();
-  }
-}
