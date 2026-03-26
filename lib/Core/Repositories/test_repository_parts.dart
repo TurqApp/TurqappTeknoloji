@@ -11,4 +11,3 @@ part 'test_repository_query_part.dart';
 part 'test_repository_action_part.dart';
 part 'test_repository_cache_part.dart';
 part 'test_repository_facade_part.dart';
-part 'test_repository_models_part.dart';

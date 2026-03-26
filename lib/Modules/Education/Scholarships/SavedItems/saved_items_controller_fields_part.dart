@@ -8,7 +8,4 @@ extension SavedItemsControllerFieldsPart on SavedItemsController {
       _state.bookmarkedScholarships;
   RxInt get selectedTabIndex => _state.selectedTabIndex;
   PageController get pageController => _state.pageController;
-  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
-  ScholarshipRepository get _scholarshipRepository =>
-      _state.scholarshipRepository;
 }

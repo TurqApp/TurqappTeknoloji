@@ -18,7 +18,6 @@ import 'post_moderation_utils.dart';
 
 part 'post_interaction_service_actions_part.dart';
 part 'post_interaction_service_facade_part.dart';
-part 'post_interaction_service_class_part.dart';
 part 'post_interaction_service_helpers_part.dart';
 part 'post_interaction_service_moderation_part.dart';
 part 'post_interaction_service_query_part.dart';

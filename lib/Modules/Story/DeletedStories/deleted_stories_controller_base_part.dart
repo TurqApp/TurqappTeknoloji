@@ -20,3 +20,5 @@ abstract class _DeletedStoriesControllerBase extends GetxController {
     super.onClose();
   }
 }
+
+class DeletedStoriesController extends _DeletedStoriesControllerBase {}

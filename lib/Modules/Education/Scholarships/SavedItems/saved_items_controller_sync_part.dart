@@ -87,7 +87,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
     bool assignResult = true,
   }) async {
     try {
-      final docs = await _scholarshipRepository.fetchByArrayMembershipRaw(
+      final docs = await _state.scholarshipRepository.fetchByArrayMembershipRaw(
         isLiked ? 'begeniler' : 'kaydedenler',
         userId,
         limit: 50,
@@ -104,7 +104,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
       }
 
       final userDataMap = <String, Map<String, dynamic>>{};
-      final users = await _userSummaryResolver.resolveMany(
+      final users = await _state.userSummaryResolver.resolveMany(
         userIds.toList(growable: false),
         preferCache: true,
         cacheOnly: cacheOnly,
@@ -163,7 +163,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
     }
 
     try {
-      await _scholarshipRepository.toggleLike(
+      await _state.scholarshipRepository.toggleLike(
         docId,
         userId: userId,
       );
@@ -181,7 +181,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
     }
 
     try {
-      await _scholarshipRepository.toggleBookmark(
+      await _state.scholarshipRepository.toggleBookmark(
         docId,
         userId: userId,
       );
