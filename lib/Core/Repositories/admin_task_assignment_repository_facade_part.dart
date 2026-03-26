@@ -1,5 +1,17 @@
 part of 'admin_task_assignment_repository.dart';
 
+AdminTaskAssignmentRepository? maybeFindAdminTaskAssignmentRepository() {
+  final isRegistered = Get.isRegistered<AdminTaskAssignmentRepository>();
+  if (!isRegistered) return null;
+  return Get.find<AdminTaskAssignmentRepository>();
+}
+
+AdminTaskAssignmentRepository ensureAdminTaskAssignmentRepository() {
+  final existing = maybeFindAdminTaskAssignmentRepository();
+  if (existing != null) return existing;
+  return Get.put(AdminTaskAssignmentRepository(), permanent: true);
+}
+
 extension AdminTaskAssignmentRepositoryFacadePart
     on AdminTaskAssignmentRepository {
   CollectionReference<Map<String, dynamic>> get _ref =>

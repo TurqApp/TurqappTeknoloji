@@ -25,7 +25,7 @@ class AdminTaskAssignmentsView extends StatefulWidget {
 class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   final TextEditingController _nicknameController = TextEditingController();
   final AdminTaskAssignmentRepository _assignmentRepository =
-      AdminTaskAssignmentRepository.ensure();
+      ensureAdminTaskAssignmentRepository();
   final UserRepository _userRepository = UserRepository.ensure();
   late final Future<bool> _canAccessFuture;
 

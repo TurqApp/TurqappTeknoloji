@@ -99,7 +99,7 @@ class AdminAccessService {
     }
 
     try {
-      final assignment = await AdminTaskAssignmentRepository.ensure()
+      final assignment = await ensureAdminTaskAssignmentRepository()
           .fetchAssignment(currentUser.uid);
       _taskCache = normalizeAdminTaskIds(
         assignment?['taskIds'] is List

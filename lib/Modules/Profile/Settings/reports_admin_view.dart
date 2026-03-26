@@ -14,7 +14,7 @@ class ReportsAdminView extends StatefulWidget {
 }
 
 class _ReportsAdminViewState extends State<ReportsAdminView> {
-  final ReportRepository _reportRepository = ReportRepository.ensure();
+  final ReportRepository _reportRepository = ensureReportRepository();
   late final Future<bool> _canAccessFuture;
   bool _provisioning = false;
   String _busyAggregateId = '';

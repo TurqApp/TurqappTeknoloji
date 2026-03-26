@@ -90,7 +90,7 @@ class _SettingsViewState extends State<SettingsView> {
   final VerifiedAccountRepository _verifiedAccountRepository =
       ensureVerifiedAccountRepository();
   final AdminTaskAssignmentRepository _adminTaskAssignmentRepository =
-      AdminTaskAssignmentRepository.ensure();
+      ensureAdminTaskAssignmentRepository();
   final AdminApprovalRepository _adminApprovalRepository =
       AdminApprovalRepository.ensure();
   final AppLanguageService _languageService = ensureAppLanguageService();

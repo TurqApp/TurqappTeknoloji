@@ -51,7 +51,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   static const MarketContactService _contactService = MarketContactService();
   static const MarketReviewService _reviewService = MarketReviewService();
   static final MarketRepository _repository = ensureMarketRepository();
-  static final ReportRepository _reportRepository = ReportRepository.ensure();
+  static final ReportRepository _reportRepository = ensureReportRepository();
   static final UserRepository _userRepository = UserRepository.ensure();
   static final TypesenseMarketSearchService _typesense =
       TypesenseMarketSearchService.instance;

@@ -20,7 +20,7 @@ class _ReportUserControllerState {
   final RxBool blockedUser = false.obs;
   final RxBool isSubmitting = false.obs;
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
-  final ReportRepository reportRepository = ReportRepository.ensure();
+  final ReportRepository reportRepository = ensureReportRepository();
   final UserSubcollectionRepository userSubcollectionRepository =
       ensureUserSubcollectionRepository();
 }

@@ -1,5 +1,17 @@
 part of 'report_repository.dart';
 
+ReportRepository? maybeFindReportRepository() {
+  final isRegistered = Get.isRegistered<ReportRepository>();
+  if (!isRegistered) return null;
+  return Get.find<ReportRepository>();
+}
+
+ReportRepository ensureReportRepository() {
+  final existing = maybeFindReportRepository();
+  if (existing != null) return existing;
+  return Get.put(ReportRepository(), permanent: true);
+}
+
 extension ReportRepositoryFacadePart on ReportRepository {
   Future<void> submitReport({
     required String targetUserId,
