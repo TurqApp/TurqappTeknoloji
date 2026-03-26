@@ -17,7 +17,7 @@ TopTagsController? _maybeFindTopTagsController() {
   return Get.find<TopTagsController>();
 }
 
-extension TopTagsControllerFacadePart on TopTagsController {
+extension TopTagsControllerFacadePart on _TopTagsControllerBase {
   void resetFeedState() {
     hasMore = true;
     agendaList.clear();

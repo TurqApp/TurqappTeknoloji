@@ -1,6 +1,6 @@
 part of 'top_tags_contoller_library.dart';
 
-extension TopTagsControllerScrollPart on TopTagsController {
+extension TopTagsControllerScrollPart on _TopTagsControllerBase {
   int _resolveRestoreIndex() {
     if (agendaList.isEmpty) return -1;
     final pendingDocId = _pendingCenteredDocId;

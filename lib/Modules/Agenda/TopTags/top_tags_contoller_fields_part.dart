@@ -16,7 +16,7 @@ class _TopTagsControllerState {
   bool hasMore = true;
 }
 
-extension TopTagsControllerFieldsPart on TopTagsController {
+extension TopTagsControllerFieldsPart on _TopTagsControllerBase {
   NavBarController get navbar => _state.navbar;
   ScrollController get scrollController => _state.scrollController;
   double get _lastOffset => _state.lastOffset;
