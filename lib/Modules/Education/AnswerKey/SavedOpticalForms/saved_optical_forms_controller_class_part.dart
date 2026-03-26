@@ -4,6 +4,6 @@ class SavedOpticalFormsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_bootstrapData());
+    _bootstrapData();
   }
 }

@@ -56,7 +56,7 @@ class SpotifySelectorControllerRuntimePart {
       await controller._audioPlayer.play(UrlSource(url));
     }
     controller.currentPlayingUrl.value = url;
-    unawaited(StoryMusicLibraryService.instance.warmTrack(track));
+    StoryMusicLibraryService.instance.warmTrack(track);
   }
 
   Future<void> toggleSaved(MusicModel track) async {

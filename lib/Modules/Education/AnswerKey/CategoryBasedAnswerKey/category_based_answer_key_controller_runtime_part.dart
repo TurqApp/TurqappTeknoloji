@@ -40,7 +40,7 @@ extension CategoryBasedAnswerKeyControllerRuntimePart
   }
 
   void _handleCategoryAnswerKeyInit() {
-    unawaited(_bootstrapData());
+    _bootstrapData();
   }
 
   void _handleCategoryAnswerKeyClose() {
@@ -66,7 +66,7 @@ extension CategoryBasedAnswerKeyControllerRuntimePart
           'answer_key:type:$sinavTuru',
           minInterval: CategoryBasedAnswerKeyController._silentRefreshInterval,
         )) {
-          unawaited(getData(silent: true, forceRefresh: true));
+          getData(silent: true, forceRefresh: true);
         }
         return;
       }

@@ -73,11 +73,9 @@ class SavedOpticalFormsControllerRuntimePart {
             'answer_key:saved_books:$uid',
             minInterval: _savedOpticalFormsSilentRefreshInterval,
           )) {
-            unawaited(
-              controller.getData(
-                silent: true,
-                forceRefresh: true,
-              ),
+            controller.getData(
+              silent: true,
+              forceRefresh: true,
             );
           }
           return;
