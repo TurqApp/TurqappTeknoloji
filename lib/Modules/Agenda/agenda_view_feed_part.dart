@@ -272,14 +272,15 @@ extension _AgendaViewFeedPart on AgendaView {
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
     final isModernView = CurrentUserService.instance.effectiveViewSelection == 1;
     final edgeInsets = isModernView
-        ? const EdgeInsets.fromLTRB(40, 8, 5, 8)
-        : const EdgeInsets.fromLTRB(40, 8, 5, 8);
+        ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
+        : const EdgeInsets.fromLTRB(48, 8, 5, 8);
     if (promoType == 'ad') {
       return Padding(
         padding: edgeInsets,
         child: AdmobKare(
           key: ValueKey('agenda-feed-ad-$slotNumber'),
           contentPadding: EdgeInsets.zero,
+          liveAdOffsetX: 5,
         ),
       );
     }

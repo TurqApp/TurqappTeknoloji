@@ -13,11 +13,13 @@ class AdmobKare extends StatefulWidget {
     this.showChrome = true,
     this.onImpression,
     this.contentPadding = const EdgeInsets.all(8),
+    this.liveAdOffsetX = 0,
   });
 
   final bool showChrome;
   final VoidCallback? onImpression;
   final EdgeInsetsGeometry contentPadding;
+  final double liveAdOffsetX;
 
   static Future<void> warmupPool({
     int targetCount = 5,
@@ -600,8 +602,14 @@ class _AdmobKareState extends State<AdmobKare> {
               key: ValueKey('admob_${bannerAd.hashCode}'),
             ),
           );
+          final renderedAdBody = widget.liveAdOffsetX == 0
+              ? adBody
+              : Transform.translate(
+                  offset: Offset(widget.liveAdOffsetX, 0),
+                  child: adBody,
+                );
           if (!widget.showChrome) {
-            child = Center(child: adBody);
+            child = Center(child: renderedAdBody);
           } else {
             child = Center(
               child: Padding(
@@ -609,7 +617,7 @@ class _AdmobKareState extends State<AdmobKare> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: CupertinoColors.systemGrey6,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -625,7 +633,7 @@ class _AdmobKareState extends State<AdmobKare> {
                           ),
                         ),
                       ),
-                      adBody,
+                      renderedAdBody,
                       const SizedBox(height: 4),
                     ],
                   ),
@@ -667,7 +675,7 @@ class _AdmobKareState extends State<AdmobKare> {
     return Container(
       height: 250,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -721,9 +729,10 @@ class _AdmobKareState extends State<AdmobKare> {
               spacing: 8,
               runSpacing: 8,
               children: const [
-                _PromoChip(label: 'Pasaj'),
+                _PromoChip(label: 'MobilPazar'),
                 _PromoChip(label: 'İş İlanları'),
                 _PromoChip(label: 'Denemeler'),
+                _PromoChip(label: 'Burslar'),
               ],
             ),
           ],
