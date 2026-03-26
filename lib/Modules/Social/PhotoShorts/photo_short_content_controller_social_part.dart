@@ -55,7 +55,10 @@ extension PhotoShortContentControllerSocialPart
     takipEdiyorum.value = !wasFollowing;
     followLoading.value = true;
     try {
-      final outcome = await FollowService.toggleFollow(userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        userID,
+        assumedFollowing: wasFollowing,
+      );
       takipEdiyorum.value = outcome.nowFollowing;
       if (outcome.limitReached) {
         AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);

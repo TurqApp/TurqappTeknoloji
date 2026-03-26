@@ -214,18 +214,11 @@ extension ShortContentControllerActionsPart on ShortContentController {
     if (followLoading.value) return;
 
     try {
-      final currentUid = _shortCurrentUserId;
-      final alreadyFollowing = await FollowRepository.ensure().isFollowing(
-        model.userID,
-        currentUid: currentUid,
-        preferCache: true,
-      );
-      if (alreadyFollowing) {
-        takipEdiyorum.value = true;
-        return;
-      }
       followLoading.value = true;
-      final outcome = await FollowService.toggleFollow(model.userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        model.userID,
+        assumedFollowing: false,
+      );
       if (outcome.nowFollowing) {
         takipEdiyorum.value = true;
       }

@@ -55,7 +55,10 @@ class RecommendedUserContentController extends GetxController {
     isFollowing.value = !wasFollowing; // optimistic
     followLoading.value = true;
     try {
-      final outcome = await FollowService.toggleFollow(userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        userID,
+        assumedFollowing: wasFollowing,
+      );
       isFollowing.value = outcome.nowFollowing; // reconcile
       if (outcome.limitReached) {
         AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);

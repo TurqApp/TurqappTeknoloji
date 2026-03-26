@@ -8,7 +8,10 @@ extension FollowerControllerActionsPart on FollowerController {
     followLoading.value = true;
     late final FollowToggleOutcome outcome;
     try {
-      outcome = await FollowService.toggleFollow(otherUserID);
+      outcome = await FollowService.toggleFollowFromLocalState(
+        otherUserID,
+        assumedFollowing: wasFollowed,
+      );
     } catch (_) {
       isFollowed.value = wasFollowed;
       isFollowed.refresh();

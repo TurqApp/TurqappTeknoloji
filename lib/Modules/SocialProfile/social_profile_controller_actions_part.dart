@@ -144,7 +144,10 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
       }
 
       takipEdiyorum.value = !wasFollowing;
-      final outcome = await FollowService.toggleFollow(userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        userID,
+        assumedFollowing: wasFollowing,
+      );
       takipEdiyorum.value = outcome.nowFollowing;
       if (currentUid.isNotEmpty) {
         _followCheckCache['$currentUid:$userID'] = _SocialFollowCheckCacheEntry(

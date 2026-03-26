@@ -56,7 +56,10 @@ extension ScholarshipDetailControllerActionsPart
     isFollowing.value = !wasFollowing;
     isFollowLoading.value = true;
     try {
-      final outcome = await FollowService.toggleFollow(userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        userID,
+        assumedFollowing: wasFollowing,
+      );
       isFollowing.value = outcome.nowFollowing;
       if (outcome.limitReached) {
         AppSnackbar(

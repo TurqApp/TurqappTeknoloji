@@ -54,6 +54,45 @@ class FollowService {
     );
   }
 
+  static Future<FollowToggleOutcome> toggleFollowFromLocalState(
+    String otherUserID, {
+    required bool assumedFollowing,
+  }) async {
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
+    if (currentUserID.isEmpty || currentUserID == otherUserID) {
+      return const FollowToggleOutcome(
+        nowFollowing: false,
+        limitReached: false,
+      );
+    }
+
+    final actualFollowing = await FollowRepository.ensure().isFollowing(
+      otherUserID,
+      currentUid: currentUserID,
+      preferCache: false,
+    );
+    if (actualFollowing != assumedFollowing) {
+      await FollowRepository.ensure().applyToggle(
+        currentUserID,
+        otherUserID,
+        nowFollowing: actualFollowing,
+      );
+      final agenda = AgendaController.maybeFind();
+      if (agenda != null) {
+        if (actualFollowing) {
+          agenda.followingIDs.add(otherUserID);
+        } else {
+          agenda.followingIDs.remove(otherUserID);
+        }
+      }
+      return FollowToggleOutcome(
+        nowFollowing: actualFollowing,
+        limitReached: false,
+      );
+    }
+    return toggleFollow(otherUserID);
+  }
+
   /// Ensure current user follows [otherUserID].
   /// Returns true when a new follow relation is created, false when already following
   /// or when operation is not possible.

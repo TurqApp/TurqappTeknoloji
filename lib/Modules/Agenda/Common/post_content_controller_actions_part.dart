@@ -319,19 +319,11 @@ extension PostContentControllerActionsPart on PostContentController {
   Future<void> onlyFollowUserOneTime() async {
     try {
       if (followLoading.value) return;
-      final currentUid = _currentUid;
-      final alreadyFollowing = await FollowRepository.ensure().isFollowing(
-        model.userID,
-        currentUid: currentUid,
-        preferCache: true,
-      );
-      if (alreadyFollowing) {
-        isFollowing.value = true;
-        return;
-      }
-
       followLoading.value = true;
-      final outcome = await FollowService.toggleFollow(model.userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        model.userID,
+        assumedFollowing: false,
+      );
       if (outcome.nowFollowing) {
         isFollowing.value = true;
       }

@@ -8,7 +8,10 @@ extension _NotificationContentControllerActionsPart
     following.value = !wasFollowing;
     followLoading.value = true;
     try {
-      final outcome = await FollowService.toggleFollow(userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        userID,
+        assumedFollowing: wasFollowing,
+      );
       following.value = outcome.nowFollowing;
       if (outcome.limitReached) {
         AppSnackbar(

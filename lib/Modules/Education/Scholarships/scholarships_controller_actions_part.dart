@@ -4,9 +4,13 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
   Future<void> _toggleFollowImpl(String followedId) async {
     final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) return;
+    final wasFollowing = followedUsers[followedId] ?? false;
     followLoading[followedId] = true;
     try {
-      final outcome = await FollowService.toggleFollow(followedId);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        followedId,
+        assumedFollowing: wasFollowing,
+      );
       if (outcome.limitReached) {
         AppSnackbar(
           'common.warning'.tr,
