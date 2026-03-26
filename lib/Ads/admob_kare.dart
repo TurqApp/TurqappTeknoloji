@@ -14,12 +14,18 @@ class AdmobKare extends StatefulWidget {
     this.onImpression,
     this.contentPadding = const EdgeInsets.all(8),
     this.liveAdOffsetX = 0,
+    this.promoFallbackOffsetX = 0,
+    this.promoFallbackExtraWidth = 0,
+    this.forceSingleLinePromoChips = false,
   });
 
   final bool showChrome;
   final VoidCallback? onImpression;
   final EdgeInsetsGeometry contentPadding;
   final double liveAdOffsetX;
+  final double promoFallbackOffsetX;
+  final double promoFallbackExtraWidth;
+  final bool forceSingleLinePromoChips;
 
   static Future<void> warmupPool({
     int targetCount = 5,
@@ -578,7 +584,7 @@ class _AdmobKareState extends State<AdmobKare> {
         } else if (_showPromoFallback) {
           child = Padding(
             padding: widget.contentPadding,
-            child: _buildPromoFallbackCard(),
+            child: _buildPromoFallbackSurface(),
           );
         } else {
           child = Padding(
@@ -725,32 +731,100 @@ class _AdmobKareState extends State<AdmobKare> {
               ),
             ),
             const Spacer(),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: const [
-                _PromoChip(label: 'MobilPazar'),
-                _PromoChip(label: 'İş İlanları'),
-                _PromoChip(label: 'Denemeler'),
-                _PromoChip(label: 'Burslar'),
-              ],
-            ),
+            widget.forceSingleLinePromoChips
+                ? const Row(
+                    children: [
+                      Expanded(
+                        child: _PromoChip(
+                          label: 'MobilPazar',
+                          expandedLayout: true,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: _PromoChip(
+                          label: 'İş İlanları',
+                          expandedLayout: true,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: _PromoChip(
+                          label: 'Denemeler',
+                          expandedLayout: true,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: _PromoChip(
+                          label: 'Burslar',
+                          expandedLayout: true,
+                        ),
+                      ),
+                    ],
+                  )
+                : const Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _PromoChip(label: 'MobilPazar'),
+                      _PromoChip(label: 'İş İlanları'),
+                      _PromoChip(label: 'Denemeler'),
+                      _PromoChip(label: 'Burslar'),
+                    ],
+                  ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildPromoFallbackSurface() {
+    if (widget.promoFallbackOffsetX == 0 &&
+        widget.promoFallbackExtraWidth == 0) {
+      return _buildPromoFallbackCard();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final expandedWidth =
+            constraints.maxWidth + widget.promoFallbackExtraWidth;
+        final targetWidth =
+            expandedWidth > 0 ? expandedWidth : constraints.maxWidth;
+
+        return Transform.translate(
+          offset: Offset(widget.promoFallbackOffsetX, 0),
+          child: OverflowBox(
+            alignment: Alignment.topLeft,
+            minWidth: targetWidth,
+            maxWidth: targetWidth,
+            child: SizedBox(
+              width: targetWidth,
+              child: _buildPromoFallbackCard(),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _PromoChip extends StatelessWidget {
-  const _PromoChip({required this.label});
+  const _PromoChip({
+    required this.label,
+    this.expandedLayout = false,
+  });
 
   final String label;
+  final bool expandedLayout;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      alignment: Alignment.center,
+      padding: expandedLayout
+          ? const EdgeInsets.symmetric(horizontal: 6, vertical: 8)
+          : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: CupertinoColors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
@@ -758,12 +832,16 @@ class _PromoChip extends StatelessWidget {
           color: CupertinoColors.white.withValues(alpha: 0.18),
         ),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: CupertinoColors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          style: const TextStyle(
+            color: CupertinoColors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

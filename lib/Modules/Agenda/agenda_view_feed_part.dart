@@ -271,6 +271,7 @@ extension _AgendaViewFeedPart on AgendaView {
     final promoType = (entry['promoType'] ?? '').toString();
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
     final isModernView = CurrentUserService.instance.effectiveViewSelection == 1;
+    final liveAdOffsetX = isModernView ? 5.0 : -17.0;
     final edgeInsets = isModernView
         ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
         : const EdgeInsets.fromLTRB(48, 8, 5, 8);
@@ -280,7 +281,10 @@ extension _AgendaViewFeedPart on AgendaView {
         child: AdmobKare(
           key: ValueKey('agenda-feed-ad-$slotNumber'),
           contentPadding: EdgeInsets.zero,
-          liveAdOffsetX: 5,
+          liveAdOffsetX: liveAdOffsetX,
+          promoFallbackOffsetX: isModernView ? 0 : -43.0,
+          promoFallbackExtraWidth: isModernView ? 0 : 43.0,
+          forceSingleLinePromoChips: true,
         ),
       );
     }

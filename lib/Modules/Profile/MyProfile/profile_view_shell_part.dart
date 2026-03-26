@@ -159,6 +159,7 @@ extension _ProfileViewShellPart on _ProfileViewState {
                       ),
                       contentPadding: EdgeInsets.zero,
                       liveAdOffsetX: 5,
+                      forceSingleLinePromoChips: true,
                     ),
                   ),
                 if (combinedPosts.length < 4 &&
@@ -169,6 +170,7 @@ extension _ProfileViewShellPart on _ProfileViewState {
                       key: ValueKey('myprof-ad-end'),
                       contentPadding: EdgeInsets.zero,
                       liveAdOffsetX: 5,
+                      forceSingleLinePromoChips: true,
                     ),
                   ),
               ],
