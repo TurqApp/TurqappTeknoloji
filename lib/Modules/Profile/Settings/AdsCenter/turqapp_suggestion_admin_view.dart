@@ -25,6 +25,8 @@ class _TurqAppSuggestionAdminViewState
   final Set<String> _dirtyPlacements = <String>{};
   final Set<String> _savingPlacements = <String>{};
   final Map<String, bool> _sliderLoadedById = <String, bool>{};
+  final Map<String, SliderRuntimeSummary> _sliderSummaryById =
+      <String, SliderRuntimeSummary>{};
 
   bool _loading = true;
   String? _errorText;
@@ -61,6 +63,9 @@ class _TurqAppSuggestionAdminViewState
       }
       await Future.wait<void>(
         TurqAppSuggestionPlacements.entries.map(_refreshSliderStatus),
+      );
+      await Future.wait<void>(
+        TopScreenSliderPlacements.entries.map(_refreshTopSliderStatus),
       );
       _errorText = null;
     } catch (error) {
@@ -102,10 +107,20 @@ class _TurqAppSuggestionAdminViewState
 
   Future<void> _refreshSliderStatus(
       TurqAppSuggestionPlacement placement) async {
-    final hasSlider = await _service.hasSliderItems(placement.sliderId);
+    final summary = await _service.getSliderSummary(placement.sliderId);
     if (!mounted) return;
     setState(() {
-      _sliderLoadedById[placement.id] = hasSlider;
+      _sliderLoadedById[placement.id] = summary.hasActiveItems;
+      _sliderSummaryById[placement.sliderId] = summary;
+    });
+  }
+
+  Future<void> _refreshTopSliderStatus(
+      TopScreenSliderPlacement placement) async {
+    final summary = await _service.getSliderSummary(placement.sliderId);
+    if (!mounted) return;
+    setState(() {
+      _sliderSummaryById[placement.sliderId] = summary;
     });
   }
 
@@ -159,6 +174,16 @@ class _TurqAppSuggestionAdminViewState
     await _refreshSliderStatus(placement);
   }
 
+  Future<void> _openTopSliderAdmin(TopScreenSliderPlacement placement) async {
+    await Get.to(
+      () => SliderAdminView(
+        sliderId: placement.sliderId,
+        title: placement.title,
+      ),
+    );
+    await _refreshTopSliderStatus(placement);
+  }
+
   Widget _buildStatusChip(TurqAppSuggestionPlacement placement) {
     final sliderLoaded = _sliderLoadedById[placement.id] ?? false;
     final backgroundColor =
@@ -166,8 +191,8 @@ class _TurqAppSuggestionAdminViewState
     final textColor =
         sliderLoaded ? const Color(0xFF177245) : const Color(0xFF525252);
     final text = sliderLoaded
-        ? 'Slider aktif, Google reklam kesilir'
-        : 'Slider yok, random TurqApp önerisi aktif';
+        ? 'Yönetilen reklam aktif'
+        : 'Yönetilen reklam yok, mevcut yapı çalışır';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -302,6 +327,7 @@ class _TurqAppSuggestionAdminViewState
   }
 
   Widget _buildSliderPlacementCard(TurqAppSuggestionPlacement placement) {
+    final summary = _sliderSummaryById[placement.sliderId];
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -354,13 +380,38 @@ class _TurqAppSuggestionAdminViewState
           Row(
             children: [
               Expanded(
-                child: Text(
-                  'Slider kimliği: ${placement.sliderId}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                    fontFamily: 'MontserratMedium',
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Slider kimliği: ${placement.sliderId}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                    if (summary != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Aktif ${summary.activeItems} · Planlı ${summary.scheduledItems} · Süresi biten ${summary.expiredItems}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Görüntülenme ${summary.viewCount} · Kişi ${summary.uniqueViewCount}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(width: 12),
@@ -374,6 +425,82 @@ class _TurqAppSuggestionAdminViewState
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopSliderPlacementCard(TopScreenSliderPlacement placement) {
+    final summary = _sliderSummaryById[placement.sliderId];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            placement.title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            placement.surfaceSummary,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Slider kimliği: ${placement.sliderId}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+          if (summary != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Aktif ${summary.activeItems} · Planlı ${summary.scheduledItems} · Süresi biten ${summary.expiredItems}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black54,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Görüntülenme ${summary.viewCount} · Kişi ${summary.uniqueViewCount}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black54,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: () => _openTopSliderAdmin(placement),
+            icon: const Icon(CupertinoIcons.photo_on_rectangle),
+            label: const Text('Slider Yönet'),
           ),
         ],
       ),
@@ -435,6 +562,26 @@ class _TurqAppSuggestionAdminViewState
           const SizedBox(height: 18),
           for (final placement in TurqAppSuggestionPlacements.entries)
             _buildSliderPlacementCard(placement),
+          const SizedBox(height: 10),
+          const Text(
+            'Ekran üstü slider alanları',
+            style: TextStyle(
+              fontSize: 18,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Pasaj ve benzeri üst slider alanlarının süre ve görünme raporunu buradan yönetirsiniz.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.black54,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+          const SizedBox(height: 18),
+          for (final placement in TopScreenSliderPlacements.entries)
+            _buildTopSliderPlacementCard(placement),
           const SizedBox(height: 10),
           const Text(
             'TurqApp önerisi',

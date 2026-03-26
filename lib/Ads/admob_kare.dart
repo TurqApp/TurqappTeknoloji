@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:turqappv2/Core/Services/Ads/ads_analytics_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
 import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
@@ -169,9 +170,12 @@ class _AdmobKareState extends State<AdmobKare> {
   late final _PromoFallbackPalette _promoFallbackPalette =
       _promoFallbackPalettes[Random().nextInt(_promoFallbackPalettes.length)];
   final SliderCacheService _sliderCacheService = SliderCacheService();
+  final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
-  List<String> _suggestionSliderSources = const <String>[];
+  List<SliderResolvedItem> _suggestionSliderItems =
+      const <SliderResolvedItem>[];
   int _visibleSuggestionIndex = 0;
+  String _lastReportedManagedItemId = '';
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
@@ -348,7 +352,6 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_usePlaceholderOnly) return;
     if (_usesManagedSuggestion) {
       unawaited(_bootstrapManagedSuggestion());
-      return;
     }
   }
 
@@ -361,14 +364,18 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
     _suggestionConfig = null;
-    _suggestionSliderSources = const <String>[];
+    _suggestionSliderItems = const <SliderResolvedItem>[];
     _visibleSuggestionIndex = 0;
+    _lastReportedManagedItemId = '';
     if (nextPlacement.isNotEmpty) {
       unawaited(_bootstrapManagedSuggestion(forceRefresh: true));
     }
   }
 
   void _attachBannerOrLoad() {
+    if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
+      return;
+    }
     if (!_canStartOrRetryLoad()) {
       return;
     }
@@ -407,7 +414,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   bool _canStartOrRetryLoad() {
-    if (_usePlaceholderOnly || _isDisposed || _usesManagedSuggestion) {
+    if (_usePlaceholderOnly || _isDisposed) {
       return false;
     }
     final route = ModalRoute.of(context);
@@ -441,7 +448,7 @@ class _AdmobKareState extends State<AdmobKare> {
     if (!mounted || _isDisposed) return;
     if (snapshot.hasItems) {
       setState(() {
-        _suggestionSliderSources = snapshot.items;
+        _suggestionSliderItems = snapshot.resolvedItems;
       });
       _ensureVisibleSuggestionIndexInRange();
       unawaited(_sliderCacheService.warmImages(snapshot.items));
@@ -452,47 +459,56 @@ class _AdmobKareState extends State<AdmobKare> {
 
   Future<void> _refreshManagedSuggestionSlider(String sliderId) async {
     try {
-      final remote = await _sliderCacheService.refreshAndCacheSources(sliderId);
+      final remote = await _sliderCacheService.refreshAndCacheItems(sliderId);
       if (!mounted || _isDisposed) return;
       setState(() {
-        _suggestionSliderSources = remote;
+        _suggestionSliderItems = remote;
       });
       _ensureVisibleSuggestionIndexInRange();
+      if (_suggestionSliderItems.isEmpty && _isVisible) {
+        _attachBannerOrLoad();
+      } else {
+        _queueManagedSuggestionImpressionIfVisible();
+      }
     } catch (_) {}
   }
 
   void _ensureVisibleSuggestionIndexInRange() {
-    final sources = _suggestionSliderSources;
-    if (sources.isEmpty) {
+    final items = _suggestionSliderItems;
+    if (items.isEmpty) {
       _visibleSuggestionIndex = 0;
+      _lastReportedManagedItemId = '';
       return;
     }
-    if (_visibleSuggestionIndex >= sources.length) {
+    if (_visibleSuggestionIndex >= items.length) {
       _visibleSuggestionIndex = 0;
     }
   }
 
   void _advanceManagedSuggestionIndex() {
     final placementId = _managedSuggestionPlacementId;
-    final sources = _suggestionSliderSources;
-    if (placementId.isEmpty || sources.isEmpty) {
+    final items = _suggestionSliderItems;
+    if (placementId.isEmpty || items.isEmpty) {
       return;
     }
     final nextIndex =
         (_managedSuggestionNextIndexByPlacement[placementId] ?? 0) %
-            sources.length;
+            items.length;
     _managedSuggestionNextIndexByPlacement[placementId] =
-        (nextIndex + 1) % sources.length;
+        (nextIndex + 1) % items.length;
     if (_visibleSuggestionIndex == nextIndex) {
+      _queueManagedSuggestionImpressionIfVisible();
       return;
     }
     if (!mounted || _isDisposed) {
       _visibleSuggestionIndex = nextIndex;
+      _queueManagedSuggestionImpressionIfVisible();
       return;
     }
     setState(() {
       _visibleSuggestionIndex = nextIndex;
     });
+    _queueManagedSuggestionImpressionIfVisible();
   }
 
   void _scheduleRetry({
@@ -521,14 +537,13 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
     _isVisible = nextVisible;
-    if (_usesManagedSuggestion) {
-      if (_isVisible) {
-        _advanceManagedSuggestionIndex();
-      }
-      return;
-    }
     if (!_isVisible) {
       _retryTimer?.cancel();
+      return;
+    }
+    if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
+      _advanceManagedSuggestionIndex();
+      _queueManagedSuggestionImpressionIfVisible();
       return;
     }
     if (_bannerAd == null || !_isAdLoaded) {
@@ -537,6 +552,9 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _loadBanner() {
+    if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
+      return;
+    }
     if (!_canStartOrRetryLoad()) {
       return;
     }
@@ -708,6 +726,7 @@ class _AdmobKareState extends State<AdmobKare> {
             _impressionReported = true;
             widget.onImpression?.call();
           }
+          _lastReportedManagedItemId = '';
         },
       ),
     )..load();
@@ -751,12 +770,15 @@ class _AdmobKareState extends State<AdmobKare> {
           ),
         ),
       );
-    } else if (_usesManagedSuggestion) {
-      child = _buildManagedSuggestionSlot();
     } else {
+      final showManagedSuggestion =
+          _usesManagedSuggestion && _suggestionSliderItems.isNotEmpty;
       final ad = _bannerAd;
       final canRenderLiveAd = !_loadFailed && _canRenderAd(ad);
-      if (canRenderLiveAd) {
+      if (showManagedSuggestion) {
+        _queueManagedSuggestionImpressionIfVisible();
+        child = _buildManagedSuggestionSlot();
+      } else if (canRenderLiveAd) {
         final bannerAd = ad!;
 
         try {
@@ -998,7 +1020,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildManagedSuggestionSlot() {
-    final hasSlider = _suggestionSliderSources.isNotEmpty;
+    final hasSlider = _suggestionSliderItems.isNotEmpty;
     final slotBody = SizedBox(
       height: _promoSlotHeight,
       child: _buildPromoFrame(
@@ -1024,11 +1046,14 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildManagedSliderCard() {
-    if (_suggestionSliderSources.isEmpty) {
+    if (_suggestionSliderItems.isEmpty) {
       return _buildPromoFallbackCard();
     }
-    final source = _suggestionSliderSources[
-        _visibleSuggestionIndex.clamp(0, _suggestionSliderSources.length - 1)];
+    final item = _currentManagedSuggestionItem;
+    final source = item?.source ?? '';
+    if (source.isEmpty) {
+      return _buildPromoFallbackCard();
+    }
     return ColoredBox(
       color: CupertinoColors.systemGrey6,
       child: SizedBox(
@@ -1157,6 +1182,39 @@ class _AdmobKareState extends State<AdmobKare> {
         ),
       ],
     );
+  }
+
+  SliderResolvedItem? get _currentManagedSuggestionItem {
+    if (_suggestionSliderItems.isEmpty) {
+      return null;
+    }
+    return _suggestionSliderItems[
+        _visibleSuggestionIndex.clamp(0, _suggestionSliderItems.length - 1)];
+  }
+
+  void _queueManagedSuggestionImpressionIfVisible() {
+    if (!_usesManagedSuggestion || !_isVisible || _canRenderAd(_bannerAd)) {
+      return;
+    }
+    scheduleMicrotask(() async {
+      if (!mounted || _isDisposed || !_isVisible || _canRenderAd(_bannerAd)) {
+        return;
+      }
+      final item = _currentManagedSuggestionItem;
+      if (item == null || !item.isRemote || item.itemId.trim().isEmpty) {
+        return;
+      }
+      if (_lastReportedManagedItemId == item.itemId) {
+        return;
+      }
+      _lastReportedManagedItemId = item.itemId;
+      await _adsAnalyticsService.logManagedSliderView(
+        sliderId: _currentSuggestionConfig.sliderId,
+        itemId: item.itemId,
+        surfaceId: _managedSuggestionPlacementId,
+        sourceType: 'suggestion_slot',
+      );
+    });
   }
 }
 

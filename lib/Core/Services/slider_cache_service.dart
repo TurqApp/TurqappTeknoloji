@@ -1,20 +1,76 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Repositories/slider_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Slider/slider_catalog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class SliderResolvedItem {
+  const SliderResolvedItem({
+    required this.itemId,
+    required this.source,
+    required this.order,
+    required this.startDateMs,
+    required this.endDateMs,
+    required this.viewCount,
+    required this.uniqueViewCount,
+    required this.isRemote,
+    required this.isDefault,
+  });
+
+  final String itemId;
+  final String source;
+  final int order;
+  final int startDateMs;
+  final int endDateMs;
+  final int viewCount;
+  final int uniqueViewCount;
+  final bool isRemote;
+  final bool isDefault;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'itemId': itemId,
+      'source': source,
+      'order': order,
+      'startDateMs': startDateMs,
+      'endDateMs': endDateMs,
+      'viewCount': viewCount,
+      'uniqueViewCount': uniqueViewCount,
+      'isRemote': isRemote,
+      'isDefault': isDefault,
+    };
+  }
+
+  factory SliderResolvedItem.fromMap(Map<String, dynamic> map) {
+    return SliderResolvedItem(
+      itemId: (map['itemId'] ?? '').toString(),
+      source: (map['source'] ?? '').toString(),
+      order: (map['order'] as num?)?.toInt() ?? 0,
+      startDateMs: (map['startDateMs'] as num?)?.toInt() ?? 0,
+      endDateMs: (map['endDateMs'] as num?)?.toInt() ?? 0,
+      viewCount: (map['viewCount'] as num?)?.toInt() ?? 0,
+      uniqueViewCount: (map['uniqueViewCount'] as num?)?.toInt() ?? 0,
+      isRemote: map['isRemote'] == true,
+      isDefault: map['isDefault'] == true,
+    );
+  }
+}
+
 class SliderCacheSnapshot {
-  final List<String> items;
+  final List<SliderResolvedItem> resolvedItems;
   final int savedAtMs;
 
   const SliderCacheSnapshot({
-    required this.items,
+    required this.resolvedItems,
     required this.savedAtMs,
   });
 
-  bool get hasItems => items.isNotEmpty;
+  List<String> get items =>
+      resolvedItems.map((item) => item.source).toList(growable: false);
+
+  bool get hasItems => resolvedItems.isNotEmpty;
 
   bool get isFresh {
     if (savedAtMs <= 0) return false;
@@ -39,45 +95,117 @@ class SliderCacheService {
 
   Future<SliderCacheSnapshot> readSnapshot(String sliderId) async {
     if (sliderId.trim().isEmpty) {
-      return const SliderCacheSnapshot(items: <String>[], savedAtMs: 0);
+      return const SliderCacheSnapshot(
+        resolvedItems: <SliderResolvedItem>[],
+        savedAtMs: 0,
+      );
     }
     try {
       final prefs = await _prefsInstance();
       final raw = prefs.getString(_key(sliderId));
       if (raw == null || raw.trim().isEmpty) {
-        return const SliderCacheSnapshot(items: <String>[], savedAtMs: 0);
+        return const SliderCacheSnapshot(
+          resolvedItems: <SliderResolvedItem>[],
+          savedAtMs: 0,
+        );
       }
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
-        return const SliderCacheSnapshot(items: <String>[], savedAtMs: 0);
+        return const SliderCacheSnapshot(
+          resolvedItems: <SliderResolvedItem>[],
+          savedAtMs: 0,
+        );
       }
 
       final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
-      final items = decoded['items'];
-      if (items is! List) {
-        return SliderCacheSnapshot(items: const <String>[], savedAtMs: savedAt);
+      final resolvedItems = decoded['resolvedItems'];
+      if (resolvedItems is List) {
+        return SliderCacheSnapshot(
+          savedAtMs: savedAt,
+          resolvedItems: resolvedItems
+              .whereType<Map>()
+              .map((item) => SliderResolvedItem.fromMap(
+                    Map<String, dynamic>.from(item),
+                  ))
+              .where((item) => item.source.trim().isNotEmpty)
+              .toList(growable: false),
+        );
+      }
+
+      final legacyItems = decoded['items'];
+      if (legacyItems is! List) {
+        return SliderCacheSnapshot(
+          resolvedItems: const <SliderResolvedItem>[],
+          savedAtMs: savedAt,
+        );
       }
 
       return SliderCacheSnapshot(
         savedAtMs: savedAt,
-        items: items
+        resolvedItems: legacyItems
             .map((e) => e.toString().trim())
             .where((e) => e.isNotEmpty)
+            .toList(growable: false)
+            .asMap()
+            .entries
+            .map(
+              (entry) => SliderResolvedItem(
+                itemId: 'legacy_${entry.key}',
+                source: entry.value,
+                order: entry.key,
+                startDateMs: 0,
+                endDateMs: 0,
+                viewCount: 0,
+                uniqueViewCount: 0,
+                isRemote: entry.value.startsWith('http'),
+                isDefault: !entry.value.startsWith('http'),
+              ),
+            )
             .toList(growable: false),
       );
     } catch (_) {
-      return const SliderCacheSnapshot(items: <String>[], savedAtMs: 0);
+      return const SliderCacheSnapshot(
+        resolvedItems: <SliderResolvedItem>[],
+        savedAtMs: 0,
+      );
     }
+  }
+
+  Future<List<SliderResolvedItem>> readResolvedItems(
+    String sliderId, {
+    bool allowStale = false,
+  }) async {
+    final snapshot = await readSnapshot(sliderId);
+    if (!snapshot.hasItems) return const <SliderResolvedItem>[];
+    if (!allowStale && !snapshot.isFresh) {
+      return const <SliderResolvedItem>[];
+    }
+    return snapshot.resolvedItems;
   }
 
   Future<List<String>> readResolvedSources(
     String sliderId, {
     bool allowStale = false,
   }) async {
-    final snapshot = await readSnapshot(sliderId);
-    if (!snapshot.hasItems) return const <String>[];
-    if (!allowStale && !snapshot.isFresh) return const <String>[];
-    return snapshot.items;
+    final items = await readResolvedItems(sliderId, allowStale: allowStale);
+    return items.map((item) => item.source).toList(growable: false);
+  }
+
+  Future<void> writeResolvedItems(
+    String sliderId,
+    List<SliderResolvedItem> items,
+  ) async {
+    if (sliderId.trim().isEmpty || items.isEmpty) return;
+    try {
+      final prefs = await _prefsInstance();
+      await prefs.setString(
+        _key(sliderId),
+        jsonEncode({
+          'savedAt': DateTime.now().millisecondsSinceEpoch,
+          'resolvedItems': items.map((item) => item.toMap()).toList(),
+        }),
+      );
+    } catch (_) {}
   }
 
   Future<void> writeResolvedSources(
@@ -85,24 +213,35 @@ class SliderCacheService {
     List<String> sources,
   ) async {
     if (sliderId.trim().isEmpty || sources.isEmpty) return;
-    try {
-      final prefs = await _prefsInstance();
-      await prefs.setString(
-        _key(sliderId),
-        jsonEncode({
-          'savedAt': DateTime.now().millisecondsSinceEpoch,
-          'items': sources,
-        }),
-      );
-    } catch (_) {}
+    await writeResolvedItems(
+      sliderId,
+      sources
+          .asMap()
+          .entries
+          .map(
+            (entry) => SliderResolvedItem(
+              itemId: 'legacy_${entry.key}',
+              source: entry.value,
+              order: entry.key,
+              startDateMs: 0,
+              endDateMs: 0,
+              viewCount: 0,
+              uniqueViewCount: 0,
+              isRemote: entry.value.startsWith('http'),
+              isDefault: !entry.value.startsWith('http'),
+            ),
+          )
+          .toList(growable: false),
+    );
   }
 
-  Future<List<String>> resolveRemoteSources(String sliderId) async {
+  Future<List<SliderResolvedItem>> resolveRemoteItems(String sliderId) async {
     final cleanId = sliderId.trim();
-    if (cleanId.isEmpty) return const <String>[];
+    if (cleanId.isEmpty) return const <SliderResolvedItem>[];
     final remote = await _sliderRepository.fetchSlider(cleanId);
     final metaSnapshot = remote.meta;
     final itemsSnapshot = remote.items;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     final hiddenDefaults =
         ((metaSnapshot.data()?['hiddenDefaults'] as List<dynamic>?) ??
@@ -112,36 +251,86 @@ class SliderCacheService {
             .toSet();
 
     final defaults = SliderCatalog.defaultImagesFor(cleanId);
-    final remoteByOrder = <int, String>{};
-    final extras = <String>[];
+    final remoteByOrder = <int, SliderResolvedItem>{};
+    final extras = <SliderResolvedItem>[];
 
     for (final doc in itemsSnapshot.docs) {
       final order = (doc.data()['order'] as num?)?.toInt() ?? 0;
       final url = (doc.data()['imageUrl'] ?? '').toString().trim();
       if (url.isEmpty) continue;
+      final startDateMs = _readDateMs(doc.data()['startDate']);
+      final endDateMs = _readDateMs(doc.data()['endDate']);
+      final startsLater = startDateMs > 0 && startDateMs > nowMs;
+      final ended = endDateMs > 0 && endDateMs < nowMs;
+      if (startsLater || ended) {
+        continue;
+      }
+      final item = SliderResolvedItem(
+        itemId: doc.id,
+        source: url,
+        order: order,
+        startDateMs: startDateMs,
+        endDateMs: endDateMs,
+        viewCount: (doc.data()['viewCount'] as num?)?.toInt() ?? 0,
+        uniqueViewCount: (doc.data()['uniqueViewCount'] as num?)?.toInt() ?? 0,
+        isRemote: true,
+        isDefault: false,
+      );
       if (order < defaults.length) {
-        remoteByOrder[order] = url;
+        remoteByOrder[order] = item;
       } else {
-        extras.add(url);
+        extras.add(item);
       }
     }
 
-    final resolved = <String>[];
+    final resolved = <SliderResolvedItem>[];
     for (var i = 0; i < defaults.length; i++) {
       if (hiddenDefaults.contains(i) && !remoteByOrder.containsKey(i)) {
         continue;
       }
       final remote = remoteByOrder[i];
-      if (remote != null && remote.isNotEmpty) {
+      if (remote != null && remote.source.isNotEmpty) {
         resolved.add(remote);
         continue;
       }
       final fallback = defaults[i];
       if (fallback.isNotEmpty) {
-        resolved.add(fallback);
+        resolved.add(
+          SliderResolvedItem(
+            itemId: 'default_$i',
+            source: fallback,
+            order: i,
+            startDateMs: 0,
+            endDateMs: 0,
+            viewCount: 0,
+            uniqueViewCount: 0,
+            isRemote: false,
+            isDefault: true,
+          ),
+        );
       }
     }
+    extras.sort((a, b) => a.order.compareTo(b.order));
     resolved.addAll(extras);
+    return resolved;
+  }
+
+  Future<List<String>> resolveRemoteSources(String sliderId) async {
+    final items = await resolveRemoteItems(sliderId);
+    return items.map((item) => item.source).toList(growable: false);
+  }
+
+  Future<List<SliderResolvedItem>> refreshAndCacheItems(
+    String sliderId, {
+    int warmRemoteLimit = 8,
+  }) async {
+    final resolved = await resolveRemoteItems(sliderId);
+    if (resolved.isEmpty) return const <SliderResolvedItem>[];
+    await writeResolvedItems(sliderId, resolved);
+    await warmImages(
+      resolved.map((item) => item.source).toList(growable: false),
+      remoteLimit: warmRemoteLimit,
+    );
     return resolved;
   }
 
@@ -149,11 +338,11 @@ class SliderCacheService {
     String sliderId, {
     int warmRemoteLimit = 8,
   }) async {
-    final resolved = await resolveRemoteSources(sliderId);
-    if (resolved.isEmpty) return const <String>[];
-    await writeResolvedSources(sliderId, resolved);
-    await warmImages(resolved, remoteLimit: warmRemoteLimit);
-    return resolved;
+    final resolved = await refreshAndCacheItems(
+      sliderId,
+      warmRemoteLimit: warmRemoteLimit,
+    );
+    return resolved.map((item) => item.source).toList(growable: false);
   }
 
   Future<void> warmImages(
@@ -166,5 +355,18 @@ class SliderCacheService {
         await TurqImageCacheManager.instance.getSingleFile(url);
       } catch (_) {}
     }
+  }
+
+  int _readDateMs(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is Timestamp) return value.millisecondsSinceEpoch;
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+      final date = DateTime.tryParse(value);
+      if (date != null) return date.millisecondsSinceEpoch;
+    }
+    return 0;
   }
 }

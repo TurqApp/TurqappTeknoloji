@@ -1988,6 +1988,11 @@ service cloud.firestore {
       match /items/{itemId} {
         allow read: if isAuth();
         allow create, update, delete: if isAdmin();
+
+        match /viewers/{viewerId} {
+          allow read: if canManageAdminPanels();
+          allow write: if false;
+        }
       }
     }
     match /Analytics/{docId} {

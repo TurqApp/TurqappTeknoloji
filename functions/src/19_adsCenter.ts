@@ -502,6 +502,90 @@ export const adsLogEvent = functions.region("europe-west3").https.onCall(async (
   return { ok: true };
 });
 
+export const adsLogManagedSliderView = functions.region("europe-west3").https.onCall(async (data, context) => {
+  ensureAuth(context);
+
+  const flags = await getFlags();
+  if (!flags.adsInfrastructureEnabled) {
+    return { ok: false, reason: "ads_infrastructure_disabled" };
+  }
+
+  const sliderId = normalizeString(data?.sliderId);
+  const itemId = normalizeString(data?.itemId);
+  const surfaceId = normalizeString(data?.surfaceId);
+  const sourceType = normalizeString(data?.sourceType);
+  const userId = normalizeString(context.auth?.uid);
+  if (!sliderId || !itemId || !surfaceId || !sourceType || !userId) {
+    throw new functions.https.HttpsError("invalid-argument", "missing_required_fields");
+  }
+
+  const itemRef = db.collection("sliders").doc(sliderId).collection("items").doc(itemId);
+  const viewerRef = itemRef.collection("viewers").doc(userId);
+  const logRef = db.collection("ads_delivery_logs").doc();
+  const nowMs = Date.now();
+
+  await db.runTransaction(async (tx) => {
+    const itemSnap = await tx.get(itemRef);
+    if (!itemSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "slider_item_not_found");
+    }
+
+    const itemData = itemSnap.data() ?? {};
+    const startDate = parseDateMs(itemData.startDate ?? 0);
+    const endDate = parseDateMs(itemData.endDate ?? 0);
+    const startsLater = startDate > 0 && startDate > nowMs;
+    const ended = endDate > 0 && endDate < nowMs;
+    if (startsLater || ended) {
+      return;
+    }
+
+    const viewerSnap = await tx.get(viewerRef);
+    const isFirstViewer = !viewerSnap.exists;
+
+    tx.set(
+      itemRef,
+      {
+        viewCount: admin.firestore.FieldValue.increment(1),
+        uniqueViewCount: isFirstViewer
+          ? admin.firestore.FieldValue.increment(1)
+          : admin.firestore.FieldValue.increment(0),
+        lastViewDate: nowMs,
+        updatedDate: nowMs,
+      },
+      { merge: true }
+    );
+
+    tx.set(
+      viewerRef,
+      {
+        userId,
+        sliderId,
+        itemId,
+        surfaceId,
+        sourceType,
+        createdAt: viewerSnap.exists
+          ? (viewerSnap.data()?.createdAt ?? nowMs)
+          : nowMs,
+        lastViewDate: nowMs,
+      },
+      { merge: true }
+    );
+
+    tx.set(logRef, {
+      event: "managed_slider_view",
+      sliderId,
+      itemId,
+      surfaceId,
+      sourceType,
+      userId,
+      createdAt: nowMs,
+      isPreview: false,
+    });
+  });
+
+  return { ok: true };
+});
+
 export const syncAdsTargetingIndex = functions
   .region("europe-west3")
   .firestore.document("ads_campaigns/{campaignId}")

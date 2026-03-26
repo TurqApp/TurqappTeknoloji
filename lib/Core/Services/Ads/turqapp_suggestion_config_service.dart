@@ -92,6 +92,90 @@ class TurqAppSuggestionPlacements {
   }
 }
 
+class TopScreenSliderPlacement {
+  const TopScreenSliderPlacement({
+    required this.id,
+    required this.title,
+    required this.sliderId,
+    required this.surfaceSummary,
+  });
+
+  final String id;
+  final String title;
+  final String sliderId;
+  final String surfaceSummary;
+}
+
+class TopScreenSliderPlacements {
+  static const TopScreenSliderPlacement market = TopScreenSliderPlacement(
+    id: 'top_market',
+    title: 'Pasaj üst slider',
+    sliderId: 'market',
+    surfaceSummary: 'Mobil Pazar üst alan',
+  );
+  static const TopScreenSliderPlacement answerKey = TopScreenSliderPlacement(
+    id: 'top_answer_key',
+    title: 'Cevap Anahtarı üst slider',
+    sliderId: 'cevap_anahtari',
+    surfaceSummary: 'Cevap Anahtarı üst alan',
+  );
+  static const TopScreenSliderPlacement job = TopScreenSliderPlacement(
+    id: 'top_job',
+    title: 'İşveren üst slider',
+    sliderId: 'is_bul',
+    surfaceSummary: 'İşveren üst alan',
+  );
+  static const TopScreenSliderPlacement practiceExam = TopScreenSliderPlacement(
+    id: 'top_practice_exam',
+    title: 'Online Sınav üst slider',
+    sliderId: 'online_sinav',
+    surfaceSummary: 'Online Sınav üst alan',
+  );
+  static const TopScreenSliderPlacement tutoring = TopScreenSliderPlacement(
+    id: 'top_tutoring',
+    title: 'Özel Ders üst slider',
+    sliderId: 'ozel_ders',
+    surfaceSummary: 'Özel Ders üst alan',
+  );
+  static const TopScreenSliderPlacement previousQuestions =
+      TopScreenSliderPlacement(
+    id: 'top_previous_questions',
+    title: 'Çıkmış Sorular üst slider',
+    sliderId: 'denemeler',
+    surfaceSummary: 'Çıkmış Sorular üst alan',
+  );
+
+  static const List<TopScreenSliderPlacement> entries =
+      <TopScreenSliderPlacement>[
+    market,
+    answerKey,
+    job,
+    practiceExam,
+    tutoring,
+    previousQuestions,
+  ];
+}
+
+class SliderRuntimeSummary {
+  const SliderRuntimeSummary({
+    required this.totalItems,
+    required this.activeItems,
+    required this.scheduledItems,
+    required this.expiredItems,
+    required this.viewCount,
+    required this.uniqueViewCount,
+  });
+
+  final int totalItems;
+  final int activeItems;
+  final int scheduledItems;
+  final int expiredItems;
+  final int viewCount;
+  final int uniqueViewCount;
+
+  bool get hasActiveItems => activeItems > 0;
+}
+
 class TurqAppSuggestionConfig {
   const TurqAppSuggestionConfig({
     required this.placementId,
@@ -271,6 +355,47 @@ class TurqAppSuggestionConfigService {
     return snapshot.docs.isNotEmpty;
   }
 
+  Future<SliderRuntimeSummary> getSliderSummary(String sliderId) async {
+    final snapshot = await _firestore
+        .collection('sliders')
+        .doc(sliderId)
+        .collection('items')
+        .get(const GetOptions(source: Source.serverAndCache));
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    var activeItems = 0;
+    var scheduledItems = 0;
+    var expiredItems = 0;
+    var viewCount = 0;
+    var uniqueViewCount = 0;
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final startDate = _readDateMs(data['startDate']);
+      final endDate = _readDateMs(data['endDate']);
+      final startsLater = startDate > 0 && startDate > nowMs;
+      final ended = endDate > 0 && endDate < nowMs;
+      if (startsLater) {
+        scheduledItems++;
+      } else if (ended) {
+        expiredItems++;
+      } else {
+        activeItems++;
+      }
+      viewCount += (data['viewCount'] as num?)?.toInt() ?? 0;
+      uniqueViewCount += (data['uniqueViewCount'] as num?)?.toInt() ?? 0;
+    }
+
+    return SliderRuntimeSummary(
+      totalItems: snapshot.docs.length,
+      activeItems: activeItems,
+      scheduledItems: scheduledItems,
+      expiredItems: expiredItems,
+      viewCount: viewCount,
+      uniqueViewCount: uniqueViewCount,
+    );
+  }
+
   Future<TurqAppSuggestionConfig> _readRemoteConfig(
     TurqAppSuggestionPlacement placement,
   ) async {
@@ -290,6 +415,19 @@ class TurqAppSuggestionConfigService {
       return _cache[placement.id]?.config ??
           TurqAppSuggestionConfig.defaultsFor(placement);
     }
+  }
+
+  int _readDateMs(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is Timestamp) return value.millisecondsSinceEpoch;
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+      final date = DateTime.tryParse(value);
+      if (date != null) return date.millisecondsSinceEpoch;
+    }
+    return 0;
   }
 }
 

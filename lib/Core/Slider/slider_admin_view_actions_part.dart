@@ -26,6 +26,8 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
         'imageUrl': imageUrl,
         'storagePath': '$storagePath.webp',
         'order': nextOrder,
+        'viewCount': 0,
+        'uniqueViewCount': 0,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'updatedDate': DateTime.now().millisecondsSinceEpoch,
       });
@@ -71,6 +73,9 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
         'imageUrl': imageUrl,
         'storagePath': '$storagePath.webp',
         'order': index,
+        'viewCount': (remoteDoc?.data()['viewCount'] as num?)?.toInt() ?? 0,
+        'uniqueViewCount':
+            (remoteDoc?.data()['uniqueViewCount'] as num?)?.toInt() ?? 0,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'updatedDate': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
@@ -203,5 +208,78 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
       batch.update(extras[i].reference, {'order': _defaults.length + i});
     }
     await batch.commit();
+  }
+
+  Future<void> _setSlideBoundary({
+    required QueryDocumentSnapshot<Map<String, dynamic>> remoteDoc,
+    required bool isStart,
+  }) async {
+    final currentValue =
+        ((remoteDoc.data()[isStart ? 'startDate' : 'endDate'] as num?)
+                        ?.toInt() ??
+                    0) >
+                0
+            ? DateTime.fromMillisecondsSinceEpoch(
+                (remoteDoc.data()[isStart ? 'startDate' : 'endDate'] as num)
+                    .toInt(),
+              )
+            : DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: currentValue,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2100),
+    );
+    if (pickedDate == null) return;
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(currentValue),
+    );
+    if (pickedTime == null) return;
+
+    final dateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    _updateViewState(() => _isBusy = true);
+    try {
+      await remoteDoc.reference.set({
+        isStart ? 'startDate' : 'endDate': dateTime.millisecondsSinceEpoch,
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
+      }, SetOptions(merge: true));
+      AppSnackbar(
+        'common.ok'.tr,
+        isStart ? 'Başlangıç zamanı güncellendi' : 'Bitiş zamanı güncellendi',
+      );
+    } catch (e) {
+      AppSnackbar(
+        'common.error'.tr,
+        'Zaman güncellenemedi: $e',
+      );
+    } finally {
+      _updateViewState(() => _isBusy = false);
+    }
+  }
+
+  Future<void> _clearSlideWindow(
+    QueryDocumentSnapshot<Map<String, dynamic>> remoteDoc,
+  ) async {
+    _updateViewState(() => _isBusy = true);
+    try {
+      await remoteDoc.reference.set({
+        'startDate': FieldValue.delete(),
+        'endDate': FieldValue.delete(),
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
+      }, SetOptions(merge: true));
+      AppSnackbar('common.ok'.tr, 'Süre alanı temizlendi');
+    } catch (e) {
+      AppSnackbar('common.error'.tr, 'Süre temizlenemedi: $e');
+    } finally {
+      _updateViewState(() => _isBusy = false);
+    }
   }
 }

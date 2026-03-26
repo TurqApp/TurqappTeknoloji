@@ -207,6 +207,26 @@ extension _SliderAdminViewContentPart on _SliderAdminViewState {
                             fontFamily: 'MontserratMedium',
                           ),
                         ),
+                        if (remoteDoc != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _windowText(remoteDoc),
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 11,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _viewText(remoteDoc),
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 11,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -247,6 +267,18 @@ extension _SliderAdminViewContentPart on _SliderAdminViewState {
                         );
                       } else if (value == 'restore') {
                         await _restoreDefault(index);
+                      } else if (value == 'setStart' && remoteDoc != null) {
+                        await _setSlideBoundary(
+                          remoteDoc: remoteDoc,
+                          isStart: true,
+                        );
+                      } else if (value == 'setEnd' && remoteDoc != null) {
+                        await _setSlideBoundary(
+                          remoteDoc: remoteDoc,
+                          isStart: false,
+                        );
+                      } else if (value == 'clearWindow' && remoteDoc != null) {
+                        await _clearSlideWindow(remoteDoc);
                       }
                     },
                     itemBuilder: (context) => _buildMenuItems(
@@ -303,6 +335,40 @@ extension _SliderAdminViewContentPart on _SliderAdminViewState {
     return 'slider_admin.extra_image'.tr;
   }
 
+  String _windowText(QueryDocumentSnapshot<Map<String, dynamic>> remoteDoc) {
+    final startDate = _dateText(remoteDoc.data()['startDate']);
+    final endDate = _dateText(remoteDoc.data()['endDate']);
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final startMs = (remoteDoc.data()['startDate'] as num?)?.toInt() ?? 0;
+    final endMs = (remoteDoc.data()['endDate'] as num?)?.toInt() ?? 0;
+    final scheduled = startMs > 0 && startMs > nowMs;
+    final expired = endMs > 0 && endMs < nowMs;
+    final status = scheduled
+        ? 'Planlandı'
+        : expired
+            ? 'Süresi bitti'
+            : 'Aktif';
+    return '$status · Başlangıç: $startDate · Bitiş: $endDate';
+  }
+
+  String _viewText(QueryDocumentSnapshot<Map<String, dynamic>> remoteDoc) {
+    final viewCount = (remoteDoc.data()['viewCount'] as num?)?.toInt() ?? 0;
+    final uniqueViewCount =
+        (remoteDoc.data()['uniqueViewCount'] as num?)?.toInt() ?? 0;
+    return 'Görüntülenme: $viewCount · Kişi: $uniqueViewCount';
+  }
+
+  String _dateText(dynamic value) {
+    final ms = (value as num?)?.toInt() ?? 0;
+    if (ms <= 0) return 'Sınırsız';
+    final date = DateTime.fromMillisecondsSinceEpoch(ms);
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$day.$month.${date.year} $hour:$minute';
+  }
+
   List<PopupMenuEntry<String>> _buildMenuItems({
     required bool hasDefault,
     required bool isHidden,
@@ -314,6 +380,23 @@ extension _SliderAdminViewContentPart on _SliderAdminViewState {
         child: Text('slider_admin.replace'.tr),
       ),
     ];
+    if (remoteDoc != null) {
+      items.addAll([
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'setStart',
+          child: Text('Başlangıç ayarla'),
+        ),
+        const PopupMenuItem(
+          value: 'setEnd',
+          child: Text('Bitiş ayarla'),
+        ),
+        const PopupMenuItem(
+          value: 'clearWindow',
+          child: Text('Süreyi temizle'),
+        ),
+      ]);
+    }
     if (isHidden && hasDefault && remoteDoc == null) {
       items.add(
         PopupMenuItem(
