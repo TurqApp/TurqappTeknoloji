@@ -15,6 +15,7 @@ part 'deneme_sinavi_yap_controller_fields_part.dart';
 part 'deneme_sinavi_yap_controller_config_part.dart';
 part 'deneme_sinavi_yap_controller_facade_part.dart';
 part 'deneme_sinavi_yap_controller_runtime_part.dart';
+part 'deneme_sinavi_yap_controller_shell_part.dart';
 
 class DenemeSinaviYapController extends GetxController
     with WidgetsBindingObserver {
@@ -25,41 +26,35 @@ class DenemeSinaviYapController extends GetxController
     required Function showGecersizAlert,
     required bool uyariAtla,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      DenemeSinaviYapController(
+  }) =>
+      _ensureDenemeSinaviYapController(
+        tag: tag,
         model: model,
         sinaviBitir: sinaviBitir,
         showGecersizAlert: showGecersizAlert,
         uyariAtla: uyariAtla,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+        permanent: permanent,
+      );
 
-  static DenemeSinaviYapController? maybeFind({required String tag}) {
-    final isRegistered = Get.isRegistered<DenemeSinaviYapController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<DenemeSinaviYapController>(tag: tag);
-  }
+  static DenemeSinaviYapController? maybeFind({required String tag}) =>
+      _maybeFindDenemeSinaviYapController(tag: tag);
 
-  final _state = _DenemeSinaviYapControllerState();
-  final _DenemeSinaviYapControllerConfig _config;
+  final _DenemeSinaviYapControllerShellState _shellState =
+      _DenemeSinaviYapControllerShellState();
 
   DenemeSinaviYapController({
     required SinavModel model,
     required Function sinaviBitir,
     required Function showGecersizAlert,
     required bool uyariAtla,
-  }) : _config = _DenemeSinaviYapControllerConfig(
-          model: model,
-          sinaviBitir: sinaviBitir,
-          showGecersizAlert: showGecersizAlert,
-          uyariAtla: uyariAtla,
-        );
+  }) {
+    _shellState.config = _DenemeSinaviYapControllerConfig(
+      model: model,
+      sinaviBitir: sinaviBitir,
+      showGecersizAlert: showGecersizAlert,
+      uyariAtla: uyariAtla,
+    );
+  }
 
   @override
   void onInit() {

@@ -36,6 +36,7 @@ part 'social_profile_controller_feed_part.dart';
 part 'social_profile_controller_feed_selection_part.dart';
 part 'social_profile_controller_runtime_part.dart';
 part 'social_profile_controller_models_part.dart';
+part 'social_profile_controller_shell_part.dart';
 part 'social_profile_controller_support_part.dart';
 part 'social_profile_controller_fields_part.dart';
 
@@ -44,29 +45,17 @@ class SocialProfileController extends GetxController {
     required String userID,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      SocialProfileController(userID: userID),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureSocialProfileController(
+          userID: userID, tag: tag, permanent: permanent);
 
-  static SocialProfileController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<SocialProfileController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<SocialProfileController>(tag: tag);
-  }
+  static SocialProfileController? maybeFind({String? tag}) =>
+      _maybeFindSocialProfileController(tag: tag);
 
-  final _stats = _SocialProfileStatsState();
-  final _scrollState = _SocialProfileScrollState();
-  final _feedState = _SocialProfileFeedState();
-  final _SocialProfileProfileState _profileState;
+  final _SocialProfileShellState _shellState;
 
   SocialProfileController({required String userID})
-      : _profileState = _SocialProfileProfileState(userID);
+      : _shellState = _SocialProfileShellState(userID: userID);
 
   @override
   void onInit() {
