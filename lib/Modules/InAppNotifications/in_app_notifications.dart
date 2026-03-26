@@ -35,7 +35,7 @@ class _InAppNotificationsState extends State<InAppNotifications> {
     super.initState();
     _controllerTag = 'in_app_notifications_${identityHashCode(this)}';
     _pageLineBarTag = '${kNotificationsPageLineBarTag}_$_controllerTag';
-    controller = InAppNotificationsController.ensure(tag: _controllerTag);
+    controller = InAppNotificationsController.ensure();
     final existingRecommended = RecommendedUserListController.maybeFind();
     if (existingRecommended != null) {
       recommendedController = existingRecommended;
@@ -51,12 +51,6 @@ class _InAppNotificationsState extends State<InAppNotifications> {
 
   @override
   void dispose() {
-    if (identical(
-      InAppNotificationsController.maybeFind(tag: _controllerTag),
-      controller,
-    )) {
-      Get.delete<InAppNotificationsController>(tag: _controllerTag);
-    }
     if (_ownsRecommendedController &&
         identical(
             RecommendedUserListController.maybeFind(), recommendedController)) {

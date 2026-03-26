@@ -5,7 +5,7 @@ extension _RecommendedUserListControllerRuntimeX
   void _preloadInBackground() {
     Future.microtask(() async {
       try {
-        await ensureLoaded(limit: usersLimitInitial);
+        await ensureLoaded(limit: usersReadyCount);
       } catch (_) {}
     });
   }
@@ -19,6 +19,25 @@ extension _RecommendedUserListControllerRuntimeX
     if (_lastFollowingLoadTime == null) return false;
     return DateTime.now().difference(_lastFollowingLoadTime!) <
         _followingCacheValidDuration;
+  }
+
+  bool _hasEnoughUsers(int requiredCount) {
+    return list.length >= requiredCount;
+  }
+
+  List<RecommendedUserModel> _filterCandidates(
+    List<RecommendedUserModel> candidates,
+    String currentUserId,
+  ) {
+    return candidates.where((user) {
+      if (user.userID == currentUserId) return false;
+      if (takipEdilenler.contains(user.userID)) return false;
+      final normalizedRozet = normalizeRozetValue(user.rozet);
+      return normalizedRozet.isNotEmpty &&
+          normalizedRozet != 'kirmizi' &&
+          normalizedRozet != 'gri';
+    }).toList()
+      ..shuffle();
   }
 
   Future<void> getFollowing() async {
@@ -43,7 +62,8 @@ extension _RecommendedUserListControllerRuntimeX
   }
 
   Future<void> getUsers({int? limit}) async {
-    if (_isCacheValid() && list.isNotEmpty) return;
+    final requiredCount = limit ?? usersLimitFull;
+    if (_isCacheValid() && _hasEnoughUsers(requiredCount)) return;
     if (isLoading.value) return;
 
     isLoading.value = true;
@@ -52,24 +72,27 @@ extension _RecommendedUserListControllerRuntimeX
     try {
       final currentUserId = CurrentUserService.instance.effectiveUserId;
       await getFollowing();
-      final lim = limit ?? usersLimitFull;
+      final fetchLimit =
+          requiredCount <= usersReadyCount ? usersLimitInitial : requiredCount;
 
-      final candidates = await RecommendedUsersRepository.ensure()
-          .fetchCandidates(limit: lim, preferCache: true)
+      var candidates = await RecommendedUsersRepository.ensure()
+          .fetchCandidates(limit: fetchLimit, preferCache: true)
           .timeout(
             const Duration(seconds: 10),
             onTimeout: () => throw TimeoutException('Kullanıcılar yüklenemedi'),
           );
 
-      final filtered = candidates.where((user) {
-        if (user.userID == currentUserId) return false;
-        if (takipEdilenler.contains(user.userID)) return false;
-        final normalizedRozet = normalizeRozetValue(user.rozet);
-        return normalizedRozet.isNotEmpty &&
-            normalizedRozet != 'kirmizi' &&
-            normalizedRozet != 'gri';
-      }).toList()
-        ..shuffle();
+      var filtered = _filterCandidates(candidates, currentUserId);
+      if (filtered.length < requiredCount && fetchLimit < usersLimitFull) {
+        candidates = await RecommendedUsersRepository.ensure()
+            .fetchCandidates(limit: usersLimitFull, preferCache: false)
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () =>
+                  throw TimeoutException('Kullanıcılar yüklenemedi'),
+            );
+        filtered = _filterCandidates(candidates, currentUserId);
+      }
 
       list.assignAll(filtered);
       _lastLoadTime = DateTime.now();
@@ -81,13 +104,14 @@ extension _RecommendedUserListControllerRuntimeX
   }
 
   Future<void> ensureLoaded({int? limit}) async {
-    if (_isCacheValid() && list.isNotEmpty) return;
-    if (loadedOnce && list.isNotEmpty) {
+    final requiredCount = limit ?? usersReadyCount;
+    if (_isCacheValid() && _hasEnoughUsers(requiredCount)) return;
+    if (loadedOnce && _hasEnoughUsers(requiredCount)) {
       _scheduleBackgroundUsersLoad();
       return;
     }
 
-    await getUsers(limit: limit ?? usersLimitInitial);
+    await getUsers(limit: requiredCount);
     loadedOnce = true;
     _scheduleBackgroundUsersLoad();
   }

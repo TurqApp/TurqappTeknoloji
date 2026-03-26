@@ -60,10 +60,13 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _impressionReported = false;
   int _retryCount = 0;
   Timer? _retryTimer;
+  Timer? _fallbackPromoTimer;
   DateTime? _qaRequestStartedAt;
   late final Key _visibilityKey;
   bool _isVisible = false;
+  bool _showPromoFallback = false;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
+  static const Duration _fallbackPromoDelay = Duration(milliseconds: 650);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
 
@@ -237,6 +240,30 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_usePlaceholderOnly) return;
   }
 
+  void _schedulePromoFallback() {
+    if (_showPromoFallback || _isDisposed || !_isVisible) return;
+    _fallbackPromoTimer?.cancel();
+    _fallbackPromoTimer = Timer(_fallbackPromoDelay, () {
+      if (!mounted || _isDisposed || !_isVisible) return;
+      if (_canRenderAd(_bannerAd)) return;
+      setState(() {
+        _showPromoFallback = true;
+      });
+    });
+  }
+
+  void _resetPromoFallback() {
+    _fallbackPromoTimer?.cancel();
+    if (!_showPromoFallback) return;
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _showPromoFallback = false;
+      });
+    } else {
+      _showPromoFallback = false;
+    }
+  }
+
   void _attachBannerOrLoad() {
     if (!_canStartOrRetryLoad()) {
       return;
@@ -262,6 +289,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _isAdLoaded = true;
       _loadFailed = false;
       _impressionReported = false;
+      _resetPromoFallback();
       if (_supportsSharedPool) {
         unawaited(warmupPool(
           bypassMinInterval: true,
@@ -310,9 +338,11 @@ class _AdmobKareState extends State<AdmobKare> {
     _isVisible = nextVisible;
     if (!_isVisible) {
       _retryTimer?.cancel();
+      _fallbackPromoTimer?.cancel();
       return;
     }
     if (_bannerAd == null || !_isAdLoaded) {
+      _schedulePromoFallback();
       _attachBannerOrLoad();
     }
   }
@@ -352,6 +382,7 @@ class _AdmobKareState extends State<AdmobKare> {
       });
     }
     _impressionReported = false;
+    _schedulePromoFallback();
 
     _bannerAd = BannerAd(
       adUnitId: adUnitId,
@@ -384,8 +415,10 @@ class _AdmobKareState extends State<AdmobKare> {
             setState(() {
               _isAdLoaded = true;
               _loadFailed = false;
+              _showPromoFallback = false;
             });
           }
+          _fallbackPromoTimer?.cancel();
           if (_supportsSharedPool) {
             unawaited(warmupPool(
               bypassMinInterval: true,
@@ -498,6 +531,7 @@ class _AdmobKareState extends State<AdmobKare> {
   void dispose() {
     _isDisposed = true;
     _retryTimer?.cancel();
+    _fallbackPromoTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;
@@ -537,6 +571,11 @@ class _AdmobKareState extends State<AdmobKare> {
       if (_loadFailed || !_canRenderAd(ad)) {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
+        } else if (_showPromoFallback) {
+          child = Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: _buildPromoFallbackCard(),
+          );
         } else {
           child = Padding(
             padding: const EdgeInsets.all(8.0),
@@ -628,6 +667,103 @@ class _AdmobKareState extends State<AdmobKare> {
       key: _visibilityKey,
       onVisibilityChanged: _handleVisibilityChanged,
       child: child,
+    );
+  }
+
+  Widget _buildPromoFallbackCard() {
+    return Container(
+      height: 250,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFF0F172A),
+            Color(0xFF0F766E),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: CupertinoColors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Text(
+                'TurqApp onerisi',
+                style: TextStyle(
+                  color: CupertinoColors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Pasaj, ilanlar ve denemeleri kesfet',
+              style: TextStyle(
+                color: CupertinoColors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                height: 1.15,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Reklam yuklenene kadar TurqApp icindeki firsatlari one cikariyoruz.',
+              style: TextStyle(
+                color: Color(0xFFD9F7F1),
+                fontSize: 13,
+                height: 1.3,
+              ),
+            ),
+            const Spacer(),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: const [
+                _PromoChip(label: 'Pasaj'),
+                _PromoChip(label: 'Is Ilanlari'),
+                _PromoChip(label: 'Denemeler'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PromoChip extends StatelessWidget {
+  const _PromoChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: CupertinoColors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: CupertinoColors.white.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: CupertinoColors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

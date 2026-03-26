@@ -9,6 +9,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       final storyController = StoryRowController.maybeFind();
       if (storyController == null) return;
       final agendaController = AgendaController.ensure();
+      final recommendedController = RecommendedUserListController.ensure();
 
       await Future.wait([
         (() async {
@@ -69,24 +70,23 @@ extension _SplashViewWarmPart on _SplashViewState {
             );
           } catch (_) {}
         })(),
+        (() async {
+          try {
+            await recommendedController
+                .ensureLoaded(limit: recommendedController.usersReadyCount)
+                .timeout(
+                  Duration(milliseconds: onWiFi ? 1600 : 1100),
+                  onTimeout: () {},
+                );
+          } catch (_) {}
+        })(),
       ]);
-
-      unawaited(() async {
-        try {
-          final recommended = RecommendedUserListController.ensure();
-          await recommended.ensureLoaded(
-            limit: onWiFi
-                ? (isFirstLaunch ? 140 : 220)
-                : (isFirstLaunch ? 80 : 120),
-          );
-        } catch (_) {}
-      }());
 
       unawaited(
         _warmUserMetaAndAvatars(
           agendaController: agendaController,
           storyController: storyController,
-          recommendedController: null,
+          recommendedController: recommendedController,
           onWiFi: onWiFi,
         ).timeout(
           Duration(milliseconds: onWiFi ? 900 : 500),

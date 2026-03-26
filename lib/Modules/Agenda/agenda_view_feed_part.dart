@@ -270,9 +270,13 @@ extension _AgendaViewFeedPart on AgendaView {
   Widget _buildPromoSlot(Map<String, dynamic> entry) {
     final promoType = (entry['promoType'] ?? '').toString();
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
+    final isModernView = CurrentUserService.instance.effectiveViewSelection == 1;
+    final edgeInsets = isModernView
+        ? const EdgeInsets.fromLTRB(5, 8, 5, 8)
+        : const EdgeInsets.symmetric(vertical: 8);
     if (promoType == 'ad') {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: edgeInsets,
         child: AdmobKare(
           key: ValueKey('agenda-feed-ad-$slotNumber'),
         ),
@@ -280,7 +284,9 @@ extension _AgendaViewFeedPart on AgendaView {
     }
     final recommendedBatch = (entry['recommendedBatch'] ?? 0) as int;
     return Padding(
-      padding: const EdgeInsets.only(top: 2, bottom: 10),
+      padding: isModernView
+          ? const EdgeInsets.fromLTRB(5, 2, 5, 10)
+          : const EdgeInsets.only(top: 2, bottom: 10),
       child: RecommendedUserList(
         key: ValueKey('recommendedUserList-$recommendedBatch'),
         batch: recommendedBatch,

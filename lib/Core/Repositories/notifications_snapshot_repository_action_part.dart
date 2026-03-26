@@ -12,7 +12,6 @@ extension NotificationsSnapshotRepositoryActionPart
         .where((item) => item.docID.isNotEmpty)
         .take(limit)
         .toList(growable: false);
-    if (normalized.isEmpty) return;
     final query = NotificationsSnapshotQuery(
       userId: userId,
       limit: limit,

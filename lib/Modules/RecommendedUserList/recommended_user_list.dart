@@ -113,6 +113,10 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   void _tryPrefetch() {
     if (!mounted) return;
     if (_prefetchRequested) return;
+    if (controller.list.length >= controller.usersReadyCount) {
+      _prefetchRequested = true;
+      return;
+    }
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.attached) return;
     final pos = box.localToGlobal(Offset.zero);
@@ -122,7 +126,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     if (pos.dy < screenH + lookahead) {
       _prefetchRequested = true;
       try {
-        controller.ensureLoaded(limit: controller.usersLimitInitial);
+        controller.ensureLoaded(limit: controller.usersReadyCount);
       } catch (_) {
         _prefetchRequested = false; // controller bulunamazsa tekrar dene
       }
