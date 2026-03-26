@@ -275,7 +275,7 @@ extension _AgendaViewFeedPart on AgendaView {
     final liveAdOffsetX = isModernView ? 5.0 : 10.0;
     final edgeInsets = isModernView
         ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
-        : const EdgeInsets.fromLTRB(5, 8, 5, 8);
+        : const EdgeInsets.fromLTRB(5, 8, 5, 0);
     if (promoType == 'ad') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -291,10 +291,14 @@ extension _AgendaViewFeedPart on AgendaView {
               forceSingleLinePromoChips: true,
             ),
           ),
-          Divider(
-            color: Colors.grey.withAlpha(20),
-            height: 3,
-          ),
+          if (!isModernView) ...[
+            const SizedBox(height: 3),
+            Divider(
+              color: Colors.grey.withAlpha(20),
+              height: 3,
+            ),
+            const SizedBox(height: 5),
+          ],
         ],
       );
     }
