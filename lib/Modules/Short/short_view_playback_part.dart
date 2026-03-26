@@ -1,6 +1,32 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  void _resetShortAutoplaySegmentGate() {
+    _autoplaySegmentGateStartedAt = null;
+    _autoplaySegmentGateTimedOut = false;
+  }
+
+  bool _hasReadyShortSegment(int page) {
+    if (page < 0 || page >= _cachedShorts.length) return true;
+    try {
+      final entry =
+          SegmentCacheManager.maybeFind()?.getEntry(_cachedShorts[page].docID);
+      return (entry?.cachedSegmentCount ?? 0) >= 1;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  void _boostShortSegments(int page) {
+    if (page < 0 || page >= _cachedShorts.length) return;
+    try {
+      ensurePrefetchScheduler().boostDoc(
+        _cachedShorts[page].docID,
+        readySegments: 2,
+      );
+    } catch (_) {}
+  }
+
   bool _hasRenderableListChanged(
     List<PostsModel> previous,
     List<PostsModel> next,
@@ -88,6 +114,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       currentPage = page;
       _showOverlayControls = true;
     });
+    _resetShortAutoplaySegmentGate();
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       try {
         VideoStateManager.instance
@@ -222,6 +249,30 @@ extension ShortViewPlaybackPart on _ShortViewState {
           },
         );
         vc.setVolume(volume ? 1 : 0);
+        _boostShortSegments(page);
+        final shouldGate =
+            !_autoplaySegmentGateTimedOut &&
+            vc.value.position <= Duration.zero &&
+            !vc.value.isPlaying &&
+            !_hasReadyShortSegment(page);
+        if (shouldGate) {
+          _autoplaySegmentGateStartedAt ??= DateTime.now();
+          final elapsed =
+              DateTime.now().difference(_autoplaySegmentGateStartedAt!);
+          if (elapsed < _ShortViewState._shortAutoplaySegmentGateTimeout) {
+            _playDebounce = Timer(
+              _ShortViewState._shortAutoplaySegmentGatePollInterval,
+              () {
+                if (!mounted || page != currentPage) return;
+                _schedulePlayForPage(page);
+              },
+            );
+            return;
+          }
+          _autoplaySegmentGateTimedOut = true;
+        } else {
+          _resetShortAutoplaySegmentGate();
+        }
         if (!vc.value.isPlaying) {
           vc.play();
         }

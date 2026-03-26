@@ -180,6 +180,46 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _processQueue();
   }
 
+  void boostDoc(
+    String docID, {
+    int readySegments = _prefetchSchedulerTargetReadySegments,
+  }) {
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+    if (docID.trim().isEmpty) return;
+
+    _mobileSeedMode = _shouldEnableMobileSeedMode(
+      docIDs: _lastFeedDocIDs.isEmpty ? <String>[docID] : _lastFeedDocIDs,
+      cacheManager: cacheManager,
+    );
+
+    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+      return;
+    }
+
+    final entry = cacheManager.getEntry(docID);
+    if (entry != null && entry.cachedSegmentCount >= readySegments) {
+      return;
+    }
+
+    _queue.removeWhere((job) => job.docID == docID);
+    _queue.add(
+      _PrefetchJob(
+        docID: docID,
+        maxSegments: readySegments,
+        priority: -1,
+        sortScore:
+            (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0))
+                .toDouble(),
+      ),
+    );
+    _jobEnqueuedAt[docID] = DateTime.now();
+    cacheManager.touchEntry(docID);
+    _queue.sort(_compareJobs);
+    _publishPrefetchHealthIfNeeded();
+    _processQueue();
+  }
+
   int _compareJobs(_PrefetchJob a, _PrefetchJob b) {
     final scoreCompare = b.sortScore.compareTo(a.sortScore);
     if (scoreCompare != 0) return scoreCompare;

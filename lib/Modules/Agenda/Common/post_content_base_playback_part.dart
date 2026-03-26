@@ -2,11 +2,90 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  void _resetAutoplaySegmentGate() {
+    _autoplaySegmentGateTimer?.cancel();
+    _autoplaySegmentGateTimer = null;
+    _autoplaySegmentGateStartedAt = null;
+    _autoplaySegmentGateTimedOut = false;
+  }
+
+  bool get _hasReadyAutoplaySegment => cachedSegmentCountForCurrentVideo >= 1;
+
+  void _boostAutoplaySegments({int readySegments = 2}) {
+    try {
+      ensurePrefetchScheduler().boostDoc(
+        widget.model.docID,
+        readySegments: readySegments,
+      );
+    } catch (_) {}
+  }
+
+  bool _shouldDelayAutoplayForSegments(HLSVideoAdapter adapter) {
+    if (!widget.model.hasPlayableVideo) return false;
+    if (!widget.shouldPlay) return false;
+    if (_autoplaySegmentGateTimedOut) return false;
+    final value = adapter.value;
+    if (value.position > Duration.zero) return false;
+    if (value.isPlaying) return false;
+    return !_hasReadyAutoplaySegment;
+  }
+
+  void _startPlaybackWhenReady({
+    required String source,
+  }) {
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    _boostAutoplaySegments();
+    if (!_shouldDelayAutoplayForSegments(adapter)) {
+      _resetAutoplaySegmentGate();
+      _startPlayback(source: source);
+      return;
+    }
+
+    _autoplaySegmentGateStartedAt ??= DateTime.now();
+    final elapsed = DateTime.now().difference(_autoplaySegmentGateStartedAt!);
+    if (elapsed >= PostContentBaseState._autoplaySegmentGateTimeout) {
+      _autoplaySegmentGateTimedOut = true;
+      _recordPlaybackDispatch(
+        'feed_card_segment_gate_timeout',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'segment_gate_timeout',
+        metadata: <String, dynamic>{
+          'cachedSegmentCount': cachedSegmentCountForCurrentVideo,
+        },
+      );
+      _startPlayback(source: '$source:segment_gate_timeout');
+      return;
+    }
+
+    if (_autoplaySegmentGateTimer?.isActive ?? false) return;
+    _recordPlaybackDispatch(
+      'feed_card_segment_gate_wait',
+      source: source,
+      dispatchIssued: false,
+      skipReason: 'waiting_for_first_segment',
+      metadata: <String, dynamic>{
+        'cachedSegmentCount': cachedSegmentCountForCurrentVideo,
+      },
+    );
+    _autoplaySegmentGateTimer = Timer(
+      PostContentBaseState._autoplaySegmentGatePollInterval,
+      () {
+        _autoplaySegmentGateTimer = null;
+        if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
+        if (_hasAutoPlayed) return;
+        _startPlaybackWhenReady(source: source);
+      },
+    );
+  }
+
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
       v.pause();
       _hasAutoPlayed = false;
+      _resetAutoplaySegmentGate();
       _playbackIntentTracked = false;
       _syncRuntimeHints(hasStableFocus: false);
     }
@@ -54,6 +133,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
 
+    _boostAutoplaySegments();
     final adapter = _videoAdapter;
     if (adapter == null) {
       _recordPlaybackDispatch(
@@ -90,7 +170,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           'positionMs': adapter.value.position.inMilliseconds,
         },
       );
-      _startPlayback(source: '$source:resume_initialized');
+      _startPlaybackWhenReady(source: '$source:resume_initialized');
       return;
     }
 
@@ -117,6 +197,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _startPlayback({
     String source = 'start_unspecified',
   }) {
+    _resetAutoplaySegmentGate();
     final adapter = _videoAdapter;
     if (adapter == null) {
       _recordPlaybackDispatch(
@@ -280,8 +361,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         'feed_card_buffer_ready_play',
         source: 'buffer_ready',
       );
-      unawaited(_videoAdapter!.setLooping(shouldLoopVideo));
-      _videoAdapter!.play();
+      _startPlaybackWhenReady(source: 'buffer_ready');
     }
   }
 
@@ -301,7 +381,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _replayAdHideTimer?.cancel();
     await adapter.setLooping(shouldLoopVideo);
     await adapter.seekTo(Duration.zero);
-    _startPlayback(source: 'replay_button');
+    _startPlaybackWhenReady(source: 'replay_button');
   }
 
   void _onReplayAdImpression() {
