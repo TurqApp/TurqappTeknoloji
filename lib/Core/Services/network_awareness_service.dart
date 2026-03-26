@@ -7,6 +7,7 @@ import 'media_compression_service.dart';
 import 'SegmentCache/prefetch_scheduler.dart';
 
 part 'network_awareness_service_policy_part.dart';
+part 'network_awareness_service_fields_part.dart';
 part 'network_awareness_service_models_part.dart';
 part 'network_awareness_service_storage_part.dart';
 
@@ -44,16 +45,7 @@ class NetworkAwarenessService extends GetxController {
     return Get.put(NetworkAwarenessService(), permanent: true);
   }
 
-  final Rx<NetworkType> _currentNetwork = NetworkType.none.obs;
-  final Rx<NetworkSettings> _settings = NetworkSettings().obs;
-  final Rx<DataUsageStats> _dataUsage = DataUsageStats(
-    uploadedMB: 0,
-    downloadedMB: 0,
-    lastReset: DateTime.now(),
-  ).obs;
-
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-  NetworkType? _debugOverrideNetwork;
+  final _state = _NetworkAwarenessServiceState();
 
   NetworkType get currentNetwork =>
       _debugOverrideNetwork ?? _currentNetwork.value;

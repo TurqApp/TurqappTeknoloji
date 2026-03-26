@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deneme_sinavi_yap_controller_fields_part.dart';
+part 'deneme_sinavi_yap_controller_config_part.dart';
 part 'deneme_sinavi_yap_controller_facade_part.dart';
 part 'deneme_sinavi_yap_controller_runtime_part.dart';
 
@@ -46,22 +47,19 @@ class DenemeSinaviYapController extends GetxController
   }
 
   final _state = _DenemeSinaviYapControllerState();
-
-  final SinavModel model;
-  final Function sinaviBitir;
-  final Function showGecersizAlert;
-  final bool uyariAtla;
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+  final _DenemeSinaviYapControllerConfig _config;
 
   DenemeSinaviYapController({
-    required this.model,
-    required this.sinaviBitir,
-    required this.showGecersizAlert,
-    required this.uyariAtla,
-  });
+    required SinavModel model,
+    required Function sinaviBitir,
+    required Function showGecersizAlert,
+    required bool uyariAtla,
+  }) : _config = _DenemeSinaviYapControllerConfig(
+          model: model,
+          sinaviBitir: sinaviBitir,
+          showGecersizAlert: showGecersizAlert,
+          uyariAtla: uyariAtla,
+        );
 
   @override
   void onInit() {

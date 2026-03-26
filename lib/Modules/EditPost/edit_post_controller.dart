@@ -27,6 +27,7 @@ import '../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'edit_post_controller_media_part.dart';
 part 'edit_post_controller_actions_part.dart';
+part 'edit_post_controller_fields_part.dart';
 part 'edit_post_controller_runtime_part.dart';
 
 class EditPostController extends GetxController {
@@ -51,23 +52,7 @@ class EditPostController extends GetxController {
   }
 
   final EditPostModel model;
-  final TextEditingController text = TextEditingController();
-  final rxVideoController = Rxn<dynamic>();
-  final isPlaying = false.obs;
-  final imageUrls = <String>[].obs;
-  final videoUrl = ''.obs;
-  final adres = ''.obs;
-  final yorum = false.obs;
-  final thumbnail = ''.obs;
-  final waitingVideo = false.obs;
-  final bekle = false.obs;
-
-  final picker = ImagePicker();
-  final selectedImages = <File>[].obs;
-
-  // Internal flags to track video edit intentions
-  bool _newVideoSelected = false; // user picked a new local video
-  bool _videoRemoved = false; // user removed existing video
+  final _state = _EditPostControllerState();
 
   EditPostController({required this.model});
 

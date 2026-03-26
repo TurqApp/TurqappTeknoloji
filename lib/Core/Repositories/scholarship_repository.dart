@@ -10,6 +10,7 @@ import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 part 'scholarship_repository_query_part.dart';
 part 'scholarship_repository_action_part.dart';
 part 'scholarship_repository_cache_part.dart';
+part 'scholarship_repository_fields_part.dart';
 part 'scholarship_repository_models_part.dart';
 
 class ScholarshipRepository extends GetxService {
@@ -17,13 +18,7 @@ class ScholarshipRepository extends GetxService {
   static const String _prefsPrefix = 'scholarship_repository_v1:';
   static const String _applyPrefix = 'scholarship_apply_repository_v1:';
   static const String _countKey = 'scholarship_total_count_v1';
-
-  final Map<String, _TimedScholarship> _memory = <String, _TimedScholarship>{};
-  final Map<String, _TimedScholarshipList> _queryMemory =
-      <String, _TimedScholarshipList>{};
-  final Map<String, _TimedScholarshipApply> _applyMemory =
-      <String, _TimedScholarshipApply>{};
-  SharedPreferences? _prefs;
+  final _state = _ScholarshipRepositoryState();
 
   static ScholarshipRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ScholarshipRepository>();

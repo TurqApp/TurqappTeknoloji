@@ -20,6 +20,7 @@ part 'prefetch_scheduler_queue_part.dart';
 part 'prefetch_scheduler_worker_part.dart';
 part 'prefetch_scheduler_runtime_part.dart';
 part 'prefetch_scheduler_models_part.dart';
+part 'prefetch_scheduler_fields_part.dart';
 
 /// Wi-Fi prefetch kuyruğu.
 ///
@@ -58,24 +59,7 @@ class PrefetchScheduler extends GetxController {
   static const int _wifiMinFeedFullWindow = 15;
   static const int _wifiMinFeedPrepWindow = 20;
 
-  final List<_PrefetchJob> _queue = [];
-  bool _paused = false;
-  bool _mobileSeedMode = false;
-  int _activeDownloads = 0;
-  int _pendingDownloadBytes = 0;
-  final Map<String, DateTime> _jobEnqueuedAt = {};
-  List<String> _lastFeedDocIDs = const [];
-  int _lastFeedCurrentIndex = 0;
-  int _lastFeedReadyCount = 0;
-  int _lastFeedWindowCount = 0;
-  double _lastFeedReadyRatio = 0.0;
-  int _queueLatencySamples = 0;
-  double _avgQueueDispatchLatencyMs = 0.0;
-  String? _lastPrefetchHealthSignature;
-  DownloadWorker? _worker;
-  StreamSubscription? _workerSub;
-  Timer? _watchdogTimer;
-  final http.Client _httpClient = http.Client();
+  final _state = _PrefetchSchedulerState();
 
   @override
   void onClose() {

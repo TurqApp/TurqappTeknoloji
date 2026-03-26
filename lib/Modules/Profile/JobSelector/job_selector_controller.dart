@@ -3,6 +3,8 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/jobs.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'job_selector_controller_fields_part.dart';
+
 class JobSelectorController extends GetxController {
   static JobSelectorController ensure({bool permanent = false}) {
     final existing = maybeFind();
@@ -20,10 +22,7 @@ class JobSelectorController extends GetxController {
   }
 
   static const _studentJob = 'öğrenci';
-  var job = "".obs;
-  var filteredJobs = <String>[].obs;
-  final CurrentUserService _userService = CurrentUserService.instance;
-  late final List<String> _initialJobs;
+  final _state = _JobSelectorControllerState();
 
   List<String> _buildInitialJobs() {
     final idx = jobs.indexWhere(

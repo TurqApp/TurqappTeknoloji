@@ -15,6 +15,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'dormitory_info_controller_labels_part.dart';
 part 'dormitory_info_controller_data_part.dart';
 part 'dormitory_info_controller_actions_part.dart';
+part 'dormitory_info_controller_fields_part.dart';
 
 class DormitoryInfoController extends GetxController {
   static DormitoryInfoController ensure({
@@ -40,24 +41,12 @@ class DormitoryInfoController extends GetxController {
   String get selectCityValue => _selectCity;
   String get selectDistrictValue => _selectDistrict;
   String get selectAdminTypeValue => _selectAdminType;
-  final UserRepository _userRepository = UserRepository.ensure();
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
-  final EducationReferenceDataService _referenceDataService =
-      EducationReferenceDataService.ensure();
-  final isLoading = true.obs;
-  final sehir = _selectCity.obs;
-  final ilce = _selectDistrict.obs;
-  final yurt = "".obs;
-  final sub = _selectAdminType.obs;
-  final listedeYok = false.obs;
-  final yurtInput = TextEditingController();
-  final yurtSelectionController = TextEditingController();
-  final yurtInputText = "".obs;
-  final subList = [_publicAdminType, _privateAdminType].obs;
-  final sehirler = <String>[].obs;
-  final sehirlerVeIlcelerData = <CitiesModel>[].obs;
-  final yurtList = <DormitoryModel>[].obs;
+  final _state = _DormitoryInfoControllerState(
+    selectCityValue: _selectCity,
+    selectDistrictValue: _selectDistrict,
+    selectAdminTypeValue: _selectAdminType,
+    adminTypes: const <String>[_publicAdminType, _privateAdminType],
+  );
 
   @override
   void onInit() {

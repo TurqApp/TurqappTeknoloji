@@ -17,6 +17,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'create_test_controller_actions_part.dart';
 part 'create_test_controller_data_part.dart';
+part 'create_test_controller_fields_part.dart';
 
 const createTestTypeMiddleSchool = 'Ortaokul';
 const createTestTypeHighSchool = 'Lise';
@@ -46,26 +47,7 @@ class CreateTestController extends GetxController {
   }
 
   final TestsModel? model;
-  final aciklama = TextEditingController();
-  final selectedDers = <String>[].obs;
-  final showBransh = false.obs;
-  final showDiller = false.obs;
-  final selectedDil = ''.obs;
-  final testTuru = 'Lise'.obs;
-  final paylasilabilir = true.obs;
-  final check = false.obs;
-  final imageFile = Rx<File?>(null);
-  final foundImage = ''.obs;
-  final picker = ImagePicker();
-  final appStore = ''.obs;
-  final googlePlay = ''.obs;
-  final testID = DateTime.now().millisecondsSinceEpoch.obs;
-  final showSilButon = false.obs;
-  final kopyalandi = false.obs;
-  final sorularList = <TestReadinessModel>[
-    TestReadinessModel(id: 0, img: "", max: 5, dogruCevap: "", docID: "0"),
-  ].obs;
-  final isLoading = true.obs;
+  final _state = _CreateTestControllerState();
   final TestRepository _testRepository = TestRepository.ensure();
 
   CreateTestController(this.model);
