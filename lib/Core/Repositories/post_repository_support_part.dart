@@ -4,6 +4,24 @@ const Duration _postRepositoryInteractionTtl = Duration(seconds: 30);
 const Duration _postRepositoryStuckUploadingRepairAge = Duration(seconds: 10);
 final Set<String> _postRepositoryUploadRepairInFlight = <String>{};
 
+FirebaseFirestore _resolvePostRepositoryFirestore(
+  FirebaseFirestore? firestore,
+) =>
+    firestore ?? FirebaseFirestore.instance;
+
+FirebaseAuth _resolvePostRepositoryAuth(FirebaseAuth? auth) =>
+    auth ?? FirebaseAuth.instance;
+
+PostInteractionService _resolvePostRepositoryInteractionService(
+  PostInteractionService? interactionService,
+) =>
+    interactionService ?? ensurePostInteractionService();
+
+PostCountManager _resolvePostRepositoryCountManager(
+  PostCountManager? countManager,
+) =>
+    countManager ?? PostCountManager.instance;
+
 PostRepository? _maybeFindPostRepository() {
   final isRegistered = Get.isRegistered<PostRepository>();
   if (!isRegistered) return null;

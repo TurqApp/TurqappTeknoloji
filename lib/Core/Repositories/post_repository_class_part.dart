@@ -7,14 +7,12 @@ class PostRepository extends _PostRepositoryBase {
     PostInteractionService? interactionService,
     PostCountManager? countManager,
   }) : super(
-          firestore: firestore ?? FirebaseFirestore.instance,
-          auth: auth ?? FirebaseAuth.instance,
+          firestore: _resolvePostRepositoryFirestore(firestore),
+          auth: _resolvePostRepositoryAuth(auth),
           interactionService:
-              interactionService ?? ensurePostInteractionService(),
-          countManager: countManager ?? PostCountManager.instance,
+              _resolvePostRepositoryInteractionService(interactionService),
+          countManager: _resolvePostRepositoryCountManager(countManager),
         );
-
   static PostRepository? maybeFind() => _maybeFindPostRepository();
-
   static PostRepository ensure() => _ensurePostRepository();
 }
