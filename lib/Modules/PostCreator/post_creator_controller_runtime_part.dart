@@ -30,6 +30,6 @@ extension PostCreatorControllerRuntimePart on PostCreatorController {
 
   CreatorContentController ensureComposerControllerFor(int composerIndex) {
     final tag = composerIndex.toString();
-    return CreatorContentController.ensure(tag: tag);
+    return ensureCreatorContentController(tag: tag);
   }
 }

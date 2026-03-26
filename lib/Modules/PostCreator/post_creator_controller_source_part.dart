@@ -99,7 +99,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     await _hydrateQuotedSourceIfNeeded();
 
     const tag = '0';
-    final c = CreatorContentController.ensure(tag: tag);
+    final c = ensureCreatorContentController(tag: tag);
     if (cleanUrl.isNotEmpty) {
       await c.setReusedVideoSource(
         videoUrl: cleanUrl,
@@ -132,7 +132,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     paylasimSelection.value = editPost.paylasimVisibility;
 
     const tag = '0';
-    final c = CreatorContentController.ensure(tag: tag);
+    final c = ensureCreatorContentController(tag: tag);
     c.textEdit.text = editPost.metin;
     c.textEdit.selection = TextSelection.fromPosition(
       TextPosition(offset: c.textEdit.text.length),
@@ -151,7 +151,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     }
 
     const tag = '0';
-    final c = CreatorContentController.maybeFind(tag: tag);
+    final c = maybeFindCreatorContentController(tag: tag);
     if (c == null) {
       AppSnackbar(
         'common.error'.tr,

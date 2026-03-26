@@ -1,5 +1,21 @@
 part of 'optical_preview_controller.dart';
 
+OpticalPreviewController ensureOpticalPreviewController(
+  OpticalFormModel model,
+  Function? onUpdate, {
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureOpticalPreviewController(
+      model,
+      onUpdate,
+      tag: tag,
+      permanent: permanent,
+    );
+
+OpticalPreviewController? maybeFindOpticalPreviewController({String? tag}) =>
+    _maybeFindOpticalPreviewController(tag: tag);
+
 OpticalPreviewController _ensureOpticalPreviewController(
   OpticalFormModel model,
   Function? onUpdate, {

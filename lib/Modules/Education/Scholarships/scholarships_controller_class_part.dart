@@ -4,17 +4,13 @@ class ScholarshipsController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
       'scholarship_listing_selection';
 
-  static ScholarshipsController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ScholarshipsController(), permanent: permanent);
-  }
+  static ScholarshipsController ensure({bool permanent = false}) =>
+      maybeFind() ?? Get.put(ScholarshipsController(), permanent: permanent);
 
-  static ScholarshipsController? maybeFind() {
-    final isRegistered = Get.isRegistered<ScholarshipsController>();
-    if (!isRegistered) return null;
-    return Get.find<ScholarshipsController>();
-  }
+  static ScholarshipsController? maybeFind() =>
+      Get.isRegistered<ScholarshipsController>()
+          ? Get.find<ScholarshipsController>()
+          : null;
 
   final _state = _ScholarshipsControllerState();
 

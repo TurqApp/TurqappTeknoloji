@@ -2,24 +2,26 @@ part of 'post_content_controller.dart';
 
 class PostContentController extends _PostContentControllerBase {
   PostContentController({
-    required PostsModel model,
-    bool enableLegacyCommentSync = false,
-    bool scrollFeedToTopOnReshare = false,
-  }) : super(
-          model: model,
-          enableLegacyCommentSync: enableLegacyCommentSync,
-          scrollFeedToTopOnReshare: scrollFeedToTopOnReshare,
-        );
+    required super.model,
+    super.enableLegacyCommentSync = false,
+    super.scrollFeedToTopOnReshare = false,
+  });
 
   @protected
   void onPostInitialized() {}
   @protected
   void onPostFrameBound() {}
   @protected
-  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async =>
+  Future<void> onReshareAdded(
+    String? uid, {
+    String? targetPostId,
+  }) async =>
       _performOnReshareAdded(uid, targetPostId: targetPostId);
   @protected
-  Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {}
+  Future<void> onReshareRemoved(
+    String? uid, {
+    String? targetPostId,
+  }) async {}
 
   @override
   void onInit() {

@@ -93,7 +93,7 @@ extension CreatorContentTextPart on CreatorContent {
                               mainController.selectedIndex.value;
                           if (indexInList == 0) {
                             for (final post in mainController.postList) {
-                              if (CreatorContentController.maybeFind(
+                              if (maybeFindCreatorContentController(
                                     tag: post.index.toString(),
                                   ) !=
                                   null) {
@@ -110,7 +110,7 @@ extension CreatorContentTextPart on CreatorContent {
                             mainController.resetComposerItemIndexSeed(1);
                             mainController.selectedIndex.value = 0;
                           } else {
-                            if (CreatorContentController.maybeFind(
+                            if (maybeFindCreatorContentController(
                                   tag: model.index.toString(),
                                 ) !=
                                 null) {
@@ -192,7 +192,9 @@ extension CreatorContentTextPart on CreatorContent {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          for (var index = 0; index < items.length; index++) ...[
+                          for (var index = 0;
+                              index < items.length;
+                              index++) ...[
                             if (index > 0)
                               Divider(
                                 height: 1,
@@ -257,8 +259,7 @@ extension CreatorContentTextPart on CreatorContent {
                                               style: const TextStyle(
                                                 color: Colors.grey,
                                                 fontSize: 13,
-                                                fontFamily:
-                                                    "MontserratMedium",
+                                                fontFamily: "MontserratMedium",
                                               ),
                                             ),
                                           ],

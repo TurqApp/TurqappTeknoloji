@@ -16,11 +16,11 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       _ownsChatListingController = true;
     }
     final existingController =
-        SocialProfileController.maybeFind(tag: widget.userID);
+        maybeFindSocialProfileController(tag: widget.userID);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = SocialProfileController.ensure(
+      controller = ensureSocialProfileController(
         userID: widget.userID,
         tag: widget.userID,
       );
@@ -53,7 +53,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
     }
     if (_ownsController &&
         identical(
-          SocialProfileController.maybeFind(tag: widget.userID),
+          maybeFindSocialProfileController(tag: widget.userID),
           controller,
         )) {
       Get.delete<SocialProfileController>(tag: widget.userID, force: true);

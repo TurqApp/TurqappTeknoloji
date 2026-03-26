@@ -1,22 +1,18 @@
 part of 'answer_key_controller.dart';
 
 class AnswerKeyController extends GetxController {
-  static AnswerKeyController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AnswerKeyController(), permanent: permanent);
-  }
+  static AnswerKeyController ensure({bool permanent = false}) =>
+      maybeFind() ?? Get.put(AnswerKeyController(), permanent: permanent);
 
-  static AnswerKeyController? maybeFind() {
-    final isRegistered = Get.isRegistered<AnswerKeyController>();
-    if (!isRegistered) return null;
-    return Get.find<AnswerKeyController>();
-  }
+  static AnswerKeyController? maybeFind() =>
+      Get.isRegistered<AnswerKeyController>()
+          ? Get.find<AnswerKeyController>()
+          : null;
 
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_answer_key_listing_selection';
-  final _AnswerKeyControllerState _state = _AnswerKeyControllerState();
   static const int _pageSize = 30;
+  final _AnswerKeyControllerState _state = _AnswerKeyControllerState();
 
   @override
   void onInit() {

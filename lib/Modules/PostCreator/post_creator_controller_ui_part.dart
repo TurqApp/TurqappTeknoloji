@@ -12,7 +12,7 @@ extension _PostCreatorControllerUiX on PostCreatorController {
 
     for (final postModel in postList) {
       final tag = postModel.index.toString();
-      final c = CreatorContentController.ensure(tag: tag);
+      final c = ensureCreatorContentController(tag: tag);
       allImages.addAll(c.selectedImages);
       if (c.selectedVideo.value != null) {
         allVideos.add(c.selectedVideo.value!);

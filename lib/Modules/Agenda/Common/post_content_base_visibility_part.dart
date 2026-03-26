@@ -26,7 +26,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
       }
     }
 
-    final socialProfileController = SocialProfileController.maybeFind();
+    final socialProfileController = maybeFindSocialProfileController();
     if (surfaceTag.startsWith('social_') && socialProfileController != null) {
       final socialIndex = socialProfileController.indexOfCombinedEntry(
         docId: widget.model.docID,

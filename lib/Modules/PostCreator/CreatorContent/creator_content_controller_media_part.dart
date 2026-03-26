@@ -106,7 +106,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
             final newModel = postCreator.insertComposerItemAfter(insertCursor);
             insertCursor++;
             final newTag = newModel.index.toString();
-            targetController = CreatorContentController.ensure(tag: newTag);
+            targetController = ensureCreatorContentController(tag: newTag);
           }
 
           await targetController._replaceWithSingleImage(
@@ -335,7 +335,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
             final newModel = postCreator.insertComposerItemAfter(insertCursor);
             insertCursor++;
             final newTag = newModel.index.toString();
-            targetController = CreatorContentController.ensure(tag: newTag);
+            targetController = ensureCreatorContentController(tag: newTag);
           }
 
           await targetController._replaceWithSingleVideo(file);

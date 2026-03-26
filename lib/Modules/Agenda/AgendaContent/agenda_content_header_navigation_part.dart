@@ -33,7 +33,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final socialProfileController = SocialProfileController.maybeFind();
+    final socialProfileController = maybeFindSocialProfileController();
     if (socialProfileController != null) {
       final socialIndex = socialProfileController.indexOfCombinedEntry(
         docId: widget.model.docID,
@@ -132,7 +132,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final socialProfileController = SocialProfileController.maybeFind();
+    final socialProfileController = maybeFindSocialProfileController();
     if (socialProfileController != null) {
       final socialIndex = socialProfileController.indexOfCombinedEntry(
         docId: widget.model.docID,

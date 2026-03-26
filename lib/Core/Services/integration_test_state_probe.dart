@@ -296,7 +296,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _socialProfileSnapshot() {
-    final controller = SocialProfileController.maybeFind();
+    final controller = maybeFindSocialProfileController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }

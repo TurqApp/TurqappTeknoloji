@@ -6,21 +6,18 @@ class TestsGridController extends GetxController {
     Function? onUpdate,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      TestsGridController(model, onUpdate),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      maybeFind(tag: tag) ??
+      Get.put(
+        TestsGridController(model, onUpdate),
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static TestsGridController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<TestsGridController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<TestsGridController>(tag: tag);
-  }
+  static TestsGridController? maybeFind({String? tag}) =>
+      Get.isRegistered<TestsGridController>(tag: tag)
+          ? Get.find<TestsGridController>(tag: tag)
+          : null;
 
   final TestsModel model;
   final Function? onUpdate;

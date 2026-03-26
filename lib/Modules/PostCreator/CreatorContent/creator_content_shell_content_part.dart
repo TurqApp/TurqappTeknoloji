@@ -2,7 +2,7 @@ part of 'creator_content.dart';
 
 extension CreatorContentShellContentPart on CreatorContent {
   Widget _buildComposerContent(BuildContext context) {
-    controller = CreatorContentController.ensure(
+    controller = ensureCreatorContentController(
       tag: model.index.toString(),
     );
 

@@ -1,5 +1,14 @@
 part of 'creator_content_controller.dart';
 
+CreatorContentController ensureCreatorContentController({
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureCreatorContentController(tag: tag, permanent: permanent);
+
+CreatorContentController? maybeFindCreatorContentController({String? tag}) =>
+    _maybeFindCreatorContentController(tag: tag);
+
 CreatorContentController _ensureCreatorContentController({
   String? tag,
   bool permanent = false,

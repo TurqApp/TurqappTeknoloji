@@ -15,7 +15,7 @@ extension _PostCreatorControllerRouteX on PostCreatorController {
   Future<void> _resetComposerState() async {
     for (final post in postList) {
       final tag = post.index.toString();
-      final controller = CreatorContentController.maybeFind(tag: tag);
+      final controller = maybeFindCreatorContentController(tag: tag);
       if (controller != null) {
         await controller.resetComposerState();
         Get.delete<CreatorContentController>(tag: tag, force: true);

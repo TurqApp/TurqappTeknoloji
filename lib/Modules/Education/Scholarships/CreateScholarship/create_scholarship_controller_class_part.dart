@@ -1,26 +1,25 @@
 part of 'create_scholarship_controller.dart';
 
 class CreateScholarshipController extends GetxController {
-  static const String allUniversitiesValue = 'Tüm Üniversiteler';
-  static const String turkeyCountryValue = 'Türkiye';
-  static const String applicationPlaceTurqAppValue = 'TurqApp';
-  static const String applicationPlaceWebsiteValue = 'Web Site';
-  static const String targetAudiencePopulationValue = 'Nüfusa Göre';
-  static const String targetAudienceResidenceValue = 'İkamete Göre';
-  static const String targetAudienceAllTurkeyValue = 'Tüm Türkiye';
-  static const String repayableYesValue = 'Evet';
-  static const String repayableNoValue = 'Hayır';
+  static const String allUniversitiesValue = 'Tüm Üniversiteler',
+      turkeyCountryValue = 'Türkiye',
+      applicationPlaceTurqAppValue = 'TurqApp',
+      applicationPlaceWebsiteValue = 'Web Site';
+  static const String targetAudiencePopulationValue = 'Nüfusa Göre',
+      targetAudienceResidenceValue = 'İkamete Göre',
+      targetAudienceAllTurkeyValue = 'Tüm Türkiye';
+  static const String repayableYesValue = 'Evet', repayableNoValue = 'Hayır';
   static const String duplicateStatusCanReceiveValue = 'Alabilir';
   static const String duplicateStatusCannotReceiveExceptKykValue =
       'Alamaz (KYK Hariç)';
-  static const String educationAudienceAllValue = 'Hepsi';
-  static const String educationAudienceMiddleSchoolValue = 'Ortaokul';
-  static const String educationAudienceHighSchoolValue = 'Lise';
-  static const String educationAudienceUndergraduateValue = 'Lisans';
-  static const String degreeAssociateValue = 'Ön Lisans';
-  static const String degreeBachelorValue = 'Lisans';
-  static const String degreeMasterValue = 'Yüksek Lisans';
-  static const String degreePhdValue = 'Doktora';
+  static const String educationAudienceAllValue = 'Hepsi',
+      educationAudienceMiddleSchoolValue = 'Ortaokul',
+      educationAudienceHighSchoolValue = 'Lise',
+      educationAudienceUndergraduateValue = 'Lisans';
+  static const String degreeAssociateValue = 'Ön Lisans',
+      degreeBachelorValue = 'Lisans',
+      degreeMasterValue = 'Yüksek Lisans',
+      degreePhdValue = 'Doktora';
   static const String educationAudienceAllExpandedValue =
       'Ortaokul, Lise, Lisans';
   final _state = _CreateScholarshipControllerState();

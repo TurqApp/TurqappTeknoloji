@@ -126,7 +126,7 @@ extension CreatorContentQuotedPart on CreatorContent {
     return GestureDetector(
       onTap: () {
         final tag = mainController.selectedIndex.value.toString();
-        final targetController = CreatorContentController.maybeFind(tag: tag);
+        final targetController = maybeFindCreatorContentController(tag: tag);
         if (targetController == null) return;
         targetController.selectedImages.clear();
         targetController.croppedImages.clear();
