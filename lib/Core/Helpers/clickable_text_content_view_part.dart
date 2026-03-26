@@ -84,6 +84,14 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
       fontFamily: "Montserrat",
       height: 1.4,
     );
+    final expandStyle = TextStyle(
+      fontSize: widget.expandButtonFontSize ?? ((widget.fontSize ?? 15) - 1),
+      color: widget.expandButtonColor ??
+          widget.interactiveColor ??
+          widget.urlColor ??
+          AppColors.primaryColor,
+      fontFamily: "Montserrat",
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -98,9 +106,12 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
           final collapsed = !controller.expanded.value;
           final maxLines =
               collapsed ? (controller.startWith7line ? 7 : 2) : null;
+          final showInlineExpand =
+              collapsed && controller.showExpandButton.value;
           final showOverlay = widget.showEllipsisOverlay &&
               collapsed &&
-              controller.showExpandButton.value;
+              controller.showExpandButton.value &&
+              !showInlineExpand;
           Widget textBody = showOverlay
               ? RichText(
                   key: ValueKey(controller.expanded.value),
@@ -122,6 +133,38 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
                       collapsed ? TextOverflow.ellipsis : TextOverflow.visible,
                 );
 
+          if (showInlineExpand) {
+            textBody = Stack(
+              children: [
+                RichText(
+                  key: ValueKey('${controller.expanded.value}_collapsed'),
+                  text: TextSpan(
+                    style: baseStyle,
+                    children: controller.spans,
+                  ),
+                  maxLines: maxLines,
+                  overflow: TextOverflow.clip,
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: controller.toggleExpand,
+                    child: Container(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Text(
+                        'common.show_more'.tr,
+                        style: expandStyle,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
           if (widget.toggleExpandOnTextTap &&
               controller.showExpandButton.value) {
             textBody = GestureDetector(
@@ -135,7 +178,7 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               textBody,
-              if (controller.showExpandButton.value)
+              if (controller.showExpandButton.value && !collapsed)
                 TextButton(
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
@@ -147,15 +190,7 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
                     controller.expanded.value
                         ? 'common.show_less'.tr
                         : 'common.show_more'.tr,
-                    style: TextStyle(
-                      fontSize: widget.expandButtonFontSize ??
-                          ((widget.fontSize ?? 15) - 1),
-                      color: widget.expandButtonColor ??
-                          widget.interactiveColor ??
-                          widget.urlColor ??
-                          AppColors.primaryColor,
-                      fontFamily: "Montserrat",
-                    ),
+                    style: expandStyle,
                   ),
                 ),
             ],

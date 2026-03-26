@@ -679,7 +679,7 @@ class AppTranslations extends Translations {
         'common.details': 'Ayrıntılı Bilgi',
         'common.share': 'Paylaş',
         'common.share_external': 'Dış kaynakta paylaş',
-        'common.show_more': 'Daha Fazla Göster',
+        'common.show_more': '... devamı',
         'common.show_less': 'Daha Az Göster',
         'common.hide': 'Gizle',
         'common.push': 'Push',

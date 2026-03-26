@@ -2,7 +2,7 @@ part of 'classic_content.dart';
 
 extension ClassicContentBodyPart on _ClassicContentState {
   double get _captionFontSize =>
-      Theme.of(context).platform == TargetPlatform.iOS ? 14 : 13;
+      Theme.of(context).platform == TargetPlatform.iOS ? 13 : 12;
 
   Widget textOnlyBody(BuildContext context) {
     final sanitizedCaption =

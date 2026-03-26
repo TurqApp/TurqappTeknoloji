@@ -33,21 +33,23 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     required String nickname,
     required String text,
   }) {
-    const nameStyle = TextStyle(
+    final captionFontSize =
+        Theme.of(context).platform == TargetPlatform.iOS ? 13.0 : 12.0;
+    final nameStyle = TextStyle(
       color: Color(0xFF20252B),
-      fontSize: 14,
+      fontSize: captionFontSize,
       fontFamily: 'MontserratBold',
       height: 1.35,
     );
-    const bodyStyle = TextStyle(
+    final bodyStyle = TextStyle(
       color: Color(0xFF20252B),
-      fontSize: 13,
+      fontSize: captionFontSize,
       fontFamily: 'Montserrat',
       height: 1.35,
     );
-    const moreStyle = TextStyle(
+    final moreStyle = TextStyle(
       color: Color(0xFF6E7680),
-      fontSize: 14,
+      fontSize: captionFontSize,
       fontFamily: 'Montserrat',
       height: 1.35,
     );
@@ -105,7 +107,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: Container(
+                  child: Container(
                   color: Colors.white,
                   padding: const EdgeInsets.only(left: 8),
                   child: Text('common.show_more'.tr, style: moreStyle),
@@ -129,21 +131,23 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     String text, {
     required String sourceUserId,
   }) {
-    const bodyStyle = TextStyle(
+    final captionFontSize =
+        Theme.of(context).platform == TargetPlatform.iOS ? 13.0 : 12.0;
+    final bodyStyle = TextStyle(
       color: Color(0xFF8A9199),
-      fontSize: 13,
+      fontSize: captionFontSize,
       fontFamily: 'Montserrat',
       height: 1.35,
     );
-    const moreStyle = TextStyle(
+    final moreStyle = TextStyle(
       color: Color(0xFF8A9199),
-      fontSize: 13,
+      fontSize: captionFontSize,
       fontFamily: 'Montserrat',
       height: 1.35,
     );
-    const nickStyle = TextStyle(
+    final nickStyle = TextStyle(
       color: Color(0xFF4B5561),
-      fontSize: 13,
+      fontSize: captionFontSize,
       fontFamily: 'MontserratBold',
       height: 1.35,
     );
