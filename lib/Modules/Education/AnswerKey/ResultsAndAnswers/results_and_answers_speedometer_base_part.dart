@@ -6,15 +6,16 @@ abstract class _SpeedometerControllerBase extends GetxController
     _state = _buildSpeedometerControllerState(
       targetValue: targetValue,
       tickerProvider: this,
-      onTick: (value) => currentValue.value = value,
+      onTick: (value) => _self.currentValue.value = value,
     );
   }
 
   late final _SpeedometerControllerState _state;
+  SpeedometerController get _self => this as SpeedometerController;
 
   @override
   void onClose() {
-    _controller.dispose();
+    _self._controller.dispose();
     super.onClose();
   }
 }

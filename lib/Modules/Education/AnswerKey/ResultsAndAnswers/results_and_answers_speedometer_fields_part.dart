@@ -34,5 +34,4 @@ extension SpeedometerControllerFieldsPart on SpeedometerController {
   double get targetValue => _state.targetValue;
   RxDouble get currentValue => _state.currentValue;
   AnimationController get _controller => _state.controller;
-  Animation<double> get _animation => _state.animation;
 }
