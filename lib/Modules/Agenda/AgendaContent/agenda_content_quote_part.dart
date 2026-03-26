@@ -15,7 +15,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
       return;
     }
 
-    final profileCache = UserProfileCacheService.ensure();
+    final profileCache = ensureUserProfileCacheService();
     final postRepository = PostRepository.ensure();
 
     _quotedSourceFuture = Future.wait<dynamic>([
@@ -482,7 +482,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
 
     if (sourceUserId.isNotEmpty) {
       try {
-        final profileCache = UserProfileCacheService.ensure();
+        final profileCache = ensureUserProfileCacheService();
         final profile = (await profileCache.getProfile(
               sourceUserId,
               preferCache: true,

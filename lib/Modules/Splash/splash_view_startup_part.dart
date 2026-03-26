@@ -339,7 +339,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       DeepLinkService.ensure();
     }
     IndexPoolStore.ensure(permanent: true);
-    UserProfileCacheService.ensure();
+    ensureUserProfileCacheService();
     StorageBudgetManager.ensure();
     ensurePlaybackPolicyEngine();
     ensurePlaybackKpiService();

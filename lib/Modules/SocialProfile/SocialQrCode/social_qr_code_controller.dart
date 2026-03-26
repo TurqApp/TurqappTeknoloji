@@ -12,4 +12,5 @@ import 'package:turqappv2/Core/Utils/url_utils.dart';
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
 part 'social_qr_code_controller_class_part.dart';
+part 'social_qr_code_controller_facade_part.dart';
 part 'social_qr_code_controller_runtime_part.dart';

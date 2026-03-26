@@ -1,5 +1,29 @@
 part of 'tutoring_application_review_controller.dart';
 
+TutoringApplicationReviewController ensureTutoringApplicationReviewController({
+  required String tutoringDocID,
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = maybeFindTutoringApplicationReviewController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(
+    TutoringApplicationReviewController(tutoringDocID: tutoringDocID),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
+TutoringApplicationReviewController?
+    maybeFindTutoringApplicationReviewController({
+  String? tag,
+}) {
+  final isRegistered =
+      Get.isRegistered<TutoringApplicationReviewController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<TutoringApplicationReviewController>(tag: tag);
+}
+
 extension TutoringApplicationReviewControllerFacadePart
     on TutoringApplicationReviewController {
   Future<void> loadApplicants() =>

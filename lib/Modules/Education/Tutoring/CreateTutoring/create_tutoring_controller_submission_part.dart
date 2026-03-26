@@ -302,7 +302,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
       }
     }
 
-    final myTutoringsController = MyTutoringsController.maybeFind();
+    final myTutoringsController = maybeFindMyTutoringsController();
     if (myTutoringsController != null) {
       final ownerIndex = myTutoringsController.myTutorings.indexWhere(
         (item) => item.docID == patchedModel.docID,

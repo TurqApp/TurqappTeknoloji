@@ -27,8 +27,8 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
     _controllerTag =
         'lesson_based_tests_${widget.testTuru.hashCode}_${identityHashCode(this)}';
     _ownsController =
-        LessonBasedTestsController.maybeFind(tag: _controllerTag) == null;
-    controller = LessonBasedTestsController.ensure(
+        maybeFindLessonBasedTestsController(tag: _controllerTag) == null;
+    controller = ensureLessonBasedTestsController(
       widget.testTuru,
       tag: _controllerTag,
     );
@@ -38,7 +38,7 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          LessonBasedTestsController.maybeFind(tag: _controllerTag);
+          maybeFindLessonBasedTestsController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<LessonBasedTestsController>(tag: _controllerTag);
       }

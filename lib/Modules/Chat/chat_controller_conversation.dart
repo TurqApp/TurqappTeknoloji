@@ -47,7 +47,7 @@ extension _ChatControllerConversationX on ChatController {
 
   void getUserData() async {
     try {
-      final data = (await UserProfileCacheService.ensure().getProfile(
+      final data = (await ensureUserProfileCacheService().getProfile(
             userID,
             preferCache: true,
             cacheOnly: _isOffline,

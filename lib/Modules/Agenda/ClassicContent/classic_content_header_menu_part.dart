@@ -251,7 +251,7 @@ extension ClassicContentHeaderMenuPart on _ClassicContentState {
 
     if (sourceUserId.isNotEmpty) {
       try {
-        final profileCache = UserProfileCacheService.ensure();
+        final profileCache = ensureUserProfileCacheService();
         final profile = (await profileCache.getProfile(
               sourceUserId,
               preferCache: true,

@@ -435,7 +435,7 @@ extension _SplashViewWarmPart on _SplashViewState {
 
       if (userIds.isEmpty) return;
 
-      final userCache = UserProfileCacheService.ensure();
+      final userCache = ensureUserProfileCacheService();
       final profiles = await userCache.getProfiles(
         userIds.toList(),
         preferCache: true,

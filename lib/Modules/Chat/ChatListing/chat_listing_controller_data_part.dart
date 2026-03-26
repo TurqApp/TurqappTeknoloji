@@ -211,7 +211,7 @@ extension ChatListingControllerDataPart on ChatListingController {
       return tempList;
     }
 
-    final userCache = UserProfileCacheService.ensure();
+    final userCache = ensureUserProfileCacheService();
     for (final doc in docs) {
       final data = doc.data();
       final isArchived =

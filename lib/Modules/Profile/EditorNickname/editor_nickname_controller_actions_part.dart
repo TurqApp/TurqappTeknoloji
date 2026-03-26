@@ -67,7 +67,7 @@ extension EditorNicknameControllerActionsPart on EditorNicknameController {
   }
 
   Future<void> _refreshNicknameSurfaces() async {
-    await UserProfileCacheService.invalidateIfRegistered(uid);
+    await invalidateUserProfileCacheIfRegistered(uid);
     invalidatePostContentUserProfileCache(uid);
     await CurrentUserService.instance.forceRefresh();
     await refreshStoryRowGlobally();

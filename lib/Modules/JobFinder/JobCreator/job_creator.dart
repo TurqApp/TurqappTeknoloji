@@ -34,8 +34,8 @@ class _JobCreatorState extends State<JobCreator> {
     super.initState();
     _tag =
         'job_creator_${widget.existingJob?.docID ?? 'new'}_${identityHashCode(this)}';
-    _ownsController = JobCreatorController.maybeFind(tag: _tag) == null;
-    controller = JobCreatorController.ensure(
+    _ownsController = maybeFindJobCreatorController(tag: _tag) == null;
+    controller = ensureJobCreatorController(
       existingJob: widget.existingJob,
       tag: _tag,
     );
@@ -44,7 +44,7 @@ class _JobCreatorState extends State<JobCreator> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(JobCreatorController.maybeFind(tag: _tag), controller)) {
+        identical(maybeFindJobCreatorController(tag: _tag), controller)) {
       Get.delete<JobCreatorController>(tag: _tag);
     }
     super.dispose();

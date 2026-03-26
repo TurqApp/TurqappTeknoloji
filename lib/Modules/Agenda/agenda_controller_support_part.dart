@@ -1,7 +1,7 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerSupportPart on AgendaController {
-  UserProfileCacheService get _profileCache => UserProfileCacheService.ensure();
+  UserProfileCacheService get _profileCache => ensureUserProfileCacheService();
 
   UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
 

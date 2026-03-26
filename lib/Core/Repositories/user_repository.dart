@@ -31,6 +31,6 @@ class UserRepository extends GetxService {
   }
 
   UserProfileCacheService get _cache {
-    return UserProfileCacheService.ensure();
+    return ensureUserProfileCacheService();
   }
 }

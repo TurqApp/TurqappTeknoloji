@@ -6,7 +6,7 @@ const int _recentSearchUsersLimit = 100;
 const Duration _searchDebounceDuration = Duration(milliseconds: 300);
 
 extension _ExploreControllerSupportX on ExploreController {
-  UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
+  UserProfileCacheService get _userCache => ensureUserProfileCacheService();
 
   UserSubcollectionRepository get _subcollectionRepository =>
       ensureUserSubcollectionRepository();

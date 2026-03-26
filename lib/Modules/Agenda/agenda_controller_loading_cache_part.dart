@@ -1,8 +1,10 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingCachePart on AgendaController {
-  Future<void> _tryQuickFillFromCache() async {
-    final hadWarmSnapshot = await _tryQuickFillFromPool();
+  Future<void> _tryQuickFillFromCache({int? limit}) async {
+    final effectiveLimit =
+        limit ?? ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
+    final hadWarmSnapshot = await _tryQuickFillFromPool(limit: effectiveLimit);
     if (agendaList.isNotEmpty) return;
 
     if (ContentPolicy.isConnected) {
@@ -16,7 +18,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         userId: me,
         followingIds: followingIDs.toSet(),
         hiddenPostIds: hiddenPosts.toSet(),
-        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
+        limit: effectiveLimit,
       );
       if (quickFallback.isEmpty) return;
 
@@ -45,7 +47,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final page = await _loadAgendaSourcePage(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: fetchLimit,
+      limit: effectiveLimit,
       preferCache: true,
       cacheOnly: true,
     );
@@ -69,12 +71,14 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     }
   }
 
-  Future<bool> _tryQuickFillFromPool() async {
+  Future<bool> _tryQuickFillFromPool({int? limit}) async {
     final me = CurrentUserService.instance.effectiveUserId;
     if (me.isEmpty) return false;
+    final effectiveLimit =
+        limit ?? ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
     final snapshot = await _feedSnapshotRepository.bootstrapHome(
       userId: me,
-      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
+      limit: effectiveLimit,
     );
     final hadWarmSnapshot = snapshot.hasLocalSnapshot;
     final quickFiltered = snapshot.data ?? const <PostsModel>[];
@@ -243,9 +247,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }
 
   Future<void> _saveFeedPostsToPool(
-    List<PostsModel> posts,
-    Map<String, Map<String, dynamic>> _,
-  ) async {
+      List<PostsModel> posts, Map<String, Map<String, dynamic>> _,
+      {CachedResourceSource source = CachedResourceSource.server}) async {
     if (posts.isEmpty) return;
     final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) return;
@@ -253,7 +256,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       userId: userId,
       posts: posts,
       limit: 40,
-      source: CachedResourceSource.server,
+      source: source,
     );
   }
 
@@ -263,7 +266,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       final indexPool = IndexPoolStore.maybeFind();
       if (indexPool == null) return;
 
-      final posts = agendaList.take(40).toList(growable: false);
+      final posts = _buildOrderedAgendaSnapshot(limit: 40);
       if (posts.isEmpty) return;
 
       final userIds = <String>{
@@ -274,7 +277,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
 
       final userMeta = <String, Map<String, dynamic>>{};
       if (userIds.isNotEmpty) {
-        final profileCache = UserProfileCacheService.ensure();
+        final profileCache = ensureUserProfileCacheService();
         final cachedProfiles = await profileCache.getProfiles(
           userIds,
           preferCache: true,
@@ -283,7 +286,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         userMeta.addAll(cachedProfiles);
       }
 
-      await _saveFeedPostsToPool(posts, userMeta);
+      await _saveFeedPostsToPool(
+        posts,
+        userMeta,
+        source: CachedResourceSource.memory,
+      );
     } catch (_) {}
   }
 
@@ -291,8 +298,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int nowMs,
     required int cutoffMs,
     required int limit,
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
     bool preferCache = true,
     bool cacheOnly = false,
+    bool? usePrimaryFeedPaging,
   }) async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
@@ -300,6 +309,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         limit: limit,
+        startAfter: startAfter,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
@@ -312,12 +322,13 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: limit,
-      startAfter: lastDoc is DocumentSnapshot<Map<String, dynamic>>
-          ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
-          : null,
+      startAfter: startAfter ??
+          (lastDoc is DocumentSnapshot<Map<String, dynamic>>
+              ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
+              : null),
       preferCache: preferCache,
       cacheOnly: cacheOnly,
-      usePrimaryFeedPaging: _usePrimaryFeedPaging,
+      usePrimaryFeedPaging: usePrimaryFeedPaging ?? _usePrimaryFeedPaging,
     );
     return _AgendaSourcePage(
       items: page.items,
@@ -330,6 +341,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int nowMs,
     required int cutoffMs,
     required int limit,
+    DocumentSnapshot? startAfter,
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
@@ -337,7 +349,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       cutoffMs: cutoffMs,
       nowMs: nowMs,
       limit: limit,
-      startAfter: lastDoc,
+      startAfter: startAfter ?? lastDoc,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );
@@ -351,6 +363,12 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     );
   }
 
+  List<PostsModel> _buildOrderedAgendaSnapshot({required int limit}) {
+    final ordered = agendaList.toList(growable: false)
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    return ordered.take(limit).toList(growable: false);
+  }
+
   List<List<T>> _chunkList<T>(List<T> input, int size) {
     if (input.isEmpty) return <List<T>>[];
     final chunks = <List<T>>[];
@@ -359,5 +377,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       chunks.add(input.sublist(i, end));
     }
     return chunks;
+  }
+
+  Future<void> hydrateInitialFeedFromCache({int? targetCount}) async {
+    if (agendaList.isNotEmpty) return;
+    await _tryQuickFillFromCache(limit: targetCount);
   }
 }

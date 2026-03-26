@@ -14,6 +14,7 @@ import 'turq_image_cache_manager.dart';
 
 part 'user_profile_cache_service_fetch_part.dart';
 part 'user_profile_cache_service_class_part.dart';
+part 'user_profile_cache_service_facade_part.dart';
 part 'user_profile_cache_service_storage_part.dart';
 
 class _CachedUserProfile {

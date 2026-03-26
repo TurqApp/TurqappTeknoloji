@@ -32,11 +32,11 @@ class _TutoringApplicationReviewState extends State<TutoringApplicationReview> {
   @override
   void initState() {
     super.initState();
-    _ownsController = TutoringApplicationReviewController.maybeFind(
+    _ownsController = maybeFindTutoringApplicationReviewController(
           tag: widget.tutoringDocID,
         ) ==
         null;
-    controller = TutoringApplicationReviewController.ensure(
+    controller = ensureTutoringApplicationReviewController(
       tutoringDocID: widget.tutoringDocID,
       tag: widget.tutoringDocID,
     );
@@ -46,7 +46,7 @@ class _TutoringApplicationReviewState extends State<TutoringApplicationReview> {
   void dispose() {
     if (_ownsController &&
         identical(
-          TutoringApplicationReviewController.maybeFind(
+          maybeFindTutoringApplicationReviewController(
             tag: widget.tutoringDocID,
           ),
           controller,

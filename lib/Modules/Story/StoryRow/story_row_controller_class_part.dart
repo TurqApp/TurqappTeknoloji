@@ -7,7 +7,7 @@ class StoryRowController extends GetxController {
 
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
   final userService = CurrentUserService.instance;
-  UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
+  UserProfileCacheService get _userCache => ensureUserProfileCacheService();
 
   final int initialLimit = 30;
   final int fullLimit = 100;

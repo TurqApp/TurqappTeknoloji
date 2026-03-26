@@ -66,7 +66,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
       await _applyOptimisticLocalPatch(normalizedFields);
       _purgeUserScopedCaches(firebaseUser.uid);
-      await UserProfileCacheService.invalidateIfRegistered(firebaseUser.uid);
+      await invalidateUserProfileCacheIfRegistered(firebaseUser.uid);
     } catch (_) {
       rethrow;
     }

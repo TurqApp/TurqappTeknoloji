@@ -2,7 +2,7 @@ part of 'story_repository.dart';
 
 extension StoryRepositoryFoundationPart on StoryRepository {
   UserProfileCacheService _resolveUserCache() {
-    return UserProfileCacheService.ensure();
+    return ensureUserProfileCacheService();
   }
 
   int _performAsEpochMillis(dynamic value, {required int fallback}) {

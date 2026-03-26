@@ -24,7 +24,7 @@ class _ViewChangerState extends State<ViewChanger> {
     super.initState();
     _controllerTag = 'view_changer_${identityHashCode(this)}';
     final initialSelection = (userService.currentUser?.viewSelection ?? 1).obs;
-    controller = ViewChangerController.ensure(
+    controller = ensureViewChangerController(
       selection: initialSelection,
       tag: _controllerTag,
     );
@@ -32,9 +32,9 @@ class _ViewChangerState extends State<ViewChanger> {
 
   @override
   void dispose() {
-    if (ViewChangerController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindViewChangerController(tag: _controllerTag) != null &&
         identical(
-          ViewChangerController.maybeFind(tag: _controllerTag),
+          maybeFindViewChangerController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ViewChangerController>(tag: _controllerTag);

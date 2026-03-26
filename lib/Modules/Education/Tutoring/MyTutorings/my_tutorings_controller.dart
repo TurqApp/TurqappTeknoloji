@@ -14,4 +14,5 @@ import 'package:flutter/material.dart';
 part 'my_tutorings_controller_sync_part.dart';
 part 'my_tutorings_controller_runtime_part.dart';
 part 'my_tutorings_controller_fields_part.dart';
+part 'my_tutorings_controller_facade_part.dart';
 part 'my_tutorings_controller_class_part.dart';

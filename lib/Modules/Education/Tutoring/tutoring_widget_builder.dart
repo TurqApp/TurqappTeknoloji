@@ -81,7 +81,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
   Widget build(BuildContext context) {
     final savedController = ensureSavedTutoringsController();
     final tutoringController = ensureTutoringController();
-    final myTutoringsController = MyTutoringsController.maybeFind();
+    final myTutoringsController = maybeFindMyTutoringsController();
     final currentUserId = getCurrentUserId();
 
     if (tutoringList.isEmpty) {
