@@ -33,6 +33,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _startPlaybackWhenReady({
     required String source,
   }) {
+    if (_manualPauseRequested) {
+      _recordPlaybackDispatch(
+        'feed_card_start_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'manual_pause_requested',
+      );
+      return;
+    }
     final adapter = _videoAdapter;
     if (adapter == null) return;
     _boostAutoplaySegments();
@@ -74,6 +83,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       () {
         _autoplaySegmentGateTimer = null;
         if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
+        if (_manualPauseRequested) return;
         if (_hasAutoPlayed) return;
         _startPlaybackWhenReady(source: source);
       },
@@ -464,15 +474,24 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                                   onTap: () =>
                                       unawaited(replayVideoFromStart()),
                                   child: Container(
-                                    padding: const EdgeInsets.all(9),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
                                     ),
-                                    child: Icon(
-                                      CupertinoIcons.arrow_counterclockwise,
-                                      color: Colors.white,
-                                      size: 18,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                    child: const Text(
+                                      'Tekrar izle',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontFamily: 'MontserratSemiBold',
+                                        height: 1.0,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -488,15 +507,24 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                               behavior: HitTestBehavior.opaque,
                               onTap: () => unawaited(replayVideoFromStart()),
                               child: Container(
-                                padding: const EdgeInsets.all(9),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
                                 ),
-                                child: Icon(
-                                  CupertinoIcons.arrow_counterclockwise,
-                                  color: Colors.white,
-                                  size: 18,
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: const Text(
+                                  'Tekrar izle',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontFamily: 'MontserratSemiBold',
+                                    height: 1.0,
+                                  ),
                                 ),
                               ),
                             ),

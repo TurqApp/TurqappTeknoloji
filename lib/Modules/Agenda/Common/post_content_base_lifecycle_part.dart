@@ -176,7 +176,9 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
 
     if (v.isInitialized && !_hasAutoPlayed) {
       if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
-        _startPlaybackWhenReady(source: 'video_initialized');
+        if (!_manualPauseRequested) {
+          _startPlaybackWhenReady(source: 'video_initialized');
+        }
       } else {
         _applyPlaybackVolume();
       }
