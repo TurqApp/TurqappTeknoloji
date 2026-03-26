@@ -4,10 +4,6 @@ class OfflineModeService extends GetxController {
   static final OfflineModeService instance = OfflineModeService._internal();
   OfflineModeService._internal();
 
-  static OfflineModeService ensure() => _ensureOfflineModeService();
-
-  static OfflineModeService? maybeFind() => _maybeFindOfflineModeService();
-
   static const int _maxRetryAttempts = 5;
   static const int _baseRetryDelayMs = 1500;
   static const int _maxRetryDelayMs = 5 * 60 * 1000;

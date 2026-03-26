@@ -12,18 +12,6 @@ part 'recommended_user_list_controller_fields_part.dart';
 part 'recommended_user_list_controller_runtime_part.dart';
 
 class RecommendedUserListController extends GetxController {
-  static RecommendedUserListController ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(RecommendedUserListController());
-  }
-
-  static RecommendedUserListController? maybeFind() {
-    final isRegistered = Get.isRegistered<RecommendedUserListController>();
-    if (!isRegistered) return null;
-    return Get.find<RecommendedUserListController>();
-  }
-
   final _state = _RecommendedUserListControllerState();
 
   @override

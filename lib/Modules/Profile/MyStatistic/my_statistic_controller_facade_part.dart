@@ -1,5 +1,14 @@
 part of 'my_statistic_controller.dart';
 
+MyStatisticController ensureMyStatisticController({
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureMyStatisticController(tag: tag, permanent: permanent);
+
+MyStatisticController? maybeFindMyStatisticController({String? tag}) =>
+    _maybeFindMyStatisticController(tag: tag);
+
 MyStatisticController _ensureMyStatisticController({
   String? tag,
   bool permanent = false,

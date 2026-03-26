@@ -3,7 +3,7 @@ part of 'location_based_tutoring_controller.dart';
 class LocationBasedTutoringController extends GetxController {
   static const String _cacheKey = 'location_tutoring_cache_v1';
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
-      TutoringSnapshotRepository.ensure();
+      ensureTutoringSnapshotRepository();
   final _state = _LocationBasedTutoringControllerState();
 
   @override

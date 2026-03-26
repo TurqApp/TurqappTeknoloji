@@ -22,7 +22,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   @override
   void initState() {
     super.initState();
-    controller = RecommendedUserListController.ensure();
+    controller = ensureRecommendedUserListController();
     _scrollController = ScrollController(keepScrollOffset: false);
     // İlk frame’den sonra görünürlüğe yakınsa prefetch et
     WidgetsBinding.instance.addPostFrameCallback((_) {

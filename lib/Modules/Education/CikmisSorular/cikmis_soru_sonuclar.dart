@@ -16,7 +16,7 @@ class CikmisSoruSonuclar extends StatefulWidget {
 }
 
 class _CikmisSoruSonuclarState extends State<CikmisSoruSonuclar> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<CikmisSoruSonucModel> list = [];
   @override
   void initState() {

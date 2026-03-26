@@ -1,5 +1,17 @@
 part of 'tutoring_snapshot_repository.dart';
 
+TutoringSnapshotRepository? maybeFindTutoringSnapshotRepository() {
+  final isRegistered = Get.isRegistered<TutoringSnapshotRepository>();
+  if (!isRegistered) return null;
+  return Get.find<TutoringSnapshotRepository>();
+}
+
+TutoringSnapshotRepository ensureTutoringSnapshotRepository() {
+  final existing = maybeFindTutoringSnapshotRepository();
+  if (existing != null) return existing;
+  return Get.put(TutoringSnapshotRepository(), permanent: true);
+}
+
 extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
   Stream<CachedResource<List<TutoringModel>>> openHome({
     required String userId,

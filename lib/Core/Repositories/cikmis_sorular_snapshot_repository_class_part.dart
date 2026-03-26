@@ -17,7 +17,7 @@ class CikmisSorularSnapshotRepository extends GetxService {
     return Get.put(CikmisSorularSnapshotRepository(), permanent: true);
   }
 
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
 
   late final CacheFirstCoordinator<List<Map<String, dynamic>>> _coordinator =
       _buildPastQuestionCoordinator(this);

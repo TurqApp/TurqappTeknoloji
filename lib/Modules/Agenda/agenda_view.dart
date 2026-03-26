@@ -55,7 +55,7 @@ class AgendaView extends StatelessWidget {
   }
 
   RecommendedUserListController get recommendedController {
-    return RecommendedUserListController.ensure();
+    return ensureRecommendedUserListController();
   }
 
   InAppNotificationsController get notificationsController {

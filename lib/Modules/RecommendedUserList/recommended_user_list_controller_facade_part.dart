@@ -1,5 +1,17 @@
 part of 'recommended_user_list_controller.dart';
 
+RecommendedUserListController? maybeFindRecommendedUserListController() {
+  final isRegistered = Get.isRegistered<RecommendedUserListController>();
+  if (!isRegistered) return null;
+  return Get.find<RecommendedUserListController>();
+}
+
+RecommendedUserListController ensureRecommendedUserListController() {
+  final existing = maybeFindRecommendedUserListController();
+  if (existing != null) return existing;
+  return Get.put(RecommendedUserListController());
+}
+
 extension RecommendedUserListControllerFacadePart
     on RecommendedUserListController {
   void reshuffleLocal() {

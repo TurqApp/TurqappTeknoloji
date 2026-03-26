@@ -2,7 +2,7 @@ part of 'tutoring_controller.dart';
 
 class TutoringController extends GetxController {
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
-      TutoringSnapshotRepository.ensure();
+      ensureTutoringSnapshotRepository();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final FocusNode focusNode = FocusNode();
   final TextEditingController searchPreviewController = TextEditingController();

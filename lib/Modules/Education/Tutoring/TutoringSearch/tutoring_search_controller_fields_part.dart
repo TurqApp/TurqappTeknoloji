@@ -2,7 +2,7 @@ part of 'tutoring_search_controller.dart';
 
 class _TutoringSearchControllerState {
   final TutoringSnapshotRepository tutoringSnapshotRepository =
-      TutoringSnapshotRepository.ensure();
+      ensureTutoringSnapshotRepository();
   final TextEditingController searchController = TextEditingController();
   final RxBool isLoading = true.obs;
   final RxString searchQuery = ''.obs;

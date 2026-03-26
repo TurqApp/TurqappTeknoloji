@@ -9,7 +9,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       final storyController = maybeFindStoryRowController();
       if (storyController == null) return;
       final agendaController = ensureAgendaController();
-      final recommendedController = RecommendedUserListController.ensure();
+      final recommendedController = ensureRecommendedUserListController();
 
       await Future.wait([
         (() async {

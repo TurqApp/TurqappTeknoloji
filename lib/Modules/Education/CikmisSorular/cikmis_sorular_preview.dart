@@ -35,7 +35,7 @@ class CikmisSorularPreview extends StatefulWidget {
 }
 
 class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<CikmisSorularinModeli> list = [];
   List<String> selectedAnswers = [];
   List<String> dogruCevaplarList = [];

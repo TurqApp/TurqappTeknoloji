@@ -11,18 +11,6 @@ class CikmisSorularRepository extends GetxService {
   final Map<String, _TimedJsonList> _memory = <String, _TimedJsonList>{};
   SharedPreferences? _prefs;
 
-  static CikmisSorularRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<CikmisSorularRepository>();
-    if (!isRegistered) return null;
-    return Get.find<CikmisSorularRepository>();
-  }
-
-  static CikmisSorularRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(CikmisSorularRepository(), permanent: true);
-  }
-
   @override
   void onInit() {
     super.onInit();

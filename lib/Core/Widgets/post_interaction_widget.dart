@@ -38,8 +38,8 @@ class _PostInteractionWidgetState extends State<PostInteractionWidget> {
     super.initState();
     _controllerTag =
         'post_interaction_${widget.post.docID}_${identityHashCode(this)}';
-    _ownsController = PostController.maybeFind(tag: _controllerTag) == null;
-    _controller = PostController.ensure(tag: _controllerTag);
+    _ownsController = maybeFindPostController(tag: _controllerTag) == null;
+    _controller = ensurePostController(tag: _controllerTag);
   }
 
   void _refreshStatusFutures(PostController controller) {
@@ -60,7 +60,7 @@ class _PostInteractionWidgetState extends State<PostInteractionWidget> {
   void dispose() {
     if (_ownsController &&
         identical(
-          PostController.maybeFind(tag: _controllerTag),
+          maybeFindPostController(tag: _controllerTag),
           _controller,
         )) {
       Get.delete<PostController>(tag: _controllerTag);
@@ -265,15 +265,15 @@ class _PostViewTrackerState extends State<PostViewTracker> {
   void initState() {
     super.initState();
     _controllerTag = 'post_view_${widget.post.docID}_${identityHashCode(this)}';
-    _ownsController = PostController.maybeFind(tag: _controllerTag) == null;
-    _controller = PostController.ensure(tag: _controllerTag);
+    _ownsController = maybeFindPostController(tag: _controllerTag) == null;
+    _controller = ensurePostController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          PostController.maybeFind(tag: _controllerTag),
+          maybeFindPostController(tag: _controllerTag),
           _controller,
         )) {
       Get.delete<PostController>(tag: _controllerTag);

@@ -50,14 +50,14 @@ class _MyStatisticViewState extends State<MyStatisticView> {
   void initState() {
     super.initState();
     _controllerTag = 'my_statistic_${identityHashCode(this)}';
-    controller = MyStatisticController.ensure(tag: _controllerTag);
+    controller = ensureMyStatisticController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (MyStatisticController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindMyStatisticController(tag: _controllerTag) != null &&
         identical(
-          MyStatisticController.maybeFind(tag: _controllerTag),
+          maybeFindMyStatisticController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<MyStatisticController>(tag: _controllerTag);

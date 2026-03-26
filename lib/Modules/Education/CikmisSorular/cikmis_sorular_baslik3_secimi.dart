@@ -30,7 +30,7 @@ class CikmisSorularBaslik3Secimi extends StatefulWidget {
 
 class _CikmisSorularBaslik3SecimiState
     extends State<CikmisSorularBaslik3Secimi> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> basliklar = [];
 
   String _localizedExamType(String raw) {

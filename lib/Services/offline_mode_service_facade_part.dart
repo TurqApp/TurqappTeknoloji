@@ -1,5 +1,10 @@
 part of 'offline_mode_service.dart';
 
+OfflineModeService ensureOfflineModeService() => _ensureOfflineModeService();
+
+OfflineModeService? maybeFindOfflineModeService() =>
+    _maybeFindOfflineModeService();
+
 OfflineModeService _ensureOfflineModeService() =>
     _maybeFindOfflineModeService() ??
     Get.put(OfflineModeService.instance, permanent: true);

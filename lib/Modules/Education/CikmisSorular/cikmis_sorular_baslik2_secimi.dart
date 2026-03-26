@@ -31,7 +31,7 @@ class _CikmisSorularBaslik2SecimiState
     extends State<CikmisSorularBaslik2Secimi> {
   static const _undergraduate = 'Lisans';
 
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> basliklar = [];
 
   String _localizedExamType(String raw) {

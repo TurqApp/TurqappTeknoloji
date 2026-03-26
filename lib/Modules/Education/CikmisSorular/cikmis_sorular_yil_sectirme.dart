@@ -29,7 +29,7 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 }
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> yillar = [];
   static const _english = 'İngilizce';
   static const _german = 'Almanca';

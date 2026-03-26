@@ -13,7 +13,7 @@ Future<List<TutoringModel>?> _loadWarmTutoringSnapshot(
     cacheOnly: true,
   );
   final items =
-      _resolveTutoringHits(TutoringSnapshotRepository.ensure(), raw.hits);
+      _resolveTutoringHits(ensureTutoringSnapshotRepository(), raw.hits);
   return items.isEmpty ? null : items;
 }
 

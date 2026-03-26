@@ -34,8 +34,8 @@ class _PostSharersState extends State<PostSharers> {
     _controllerTag =
         'post_sharers_${widget.postID}_${DateTime.now().microsecondsSinceEpoch}';
     _ownsController =
-        PostSharersController.maybeFind(tag: _controllerTag) == null;
-    controller = PostSharersController.ensure(
+        maybeFindPostSharersController(tag: _controllerTag) == null;
+    controller = ensurePostSharersController(
       postID: widget.postID,
       tag: _controllerTag,
     );
@@ -45,7 +45,7 @@ class _PostSharersState extends State<PostSharers> {
   void dispose() {
     if (_ownsController &&
         identical(
-          PostSharersController.maybeFind(tag: _controllerTag),
+          maybeFindPostSharersController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PostSharersController>(tag: _controllerTag, force: true);

@@ -36,11 +36,11 @@ class _InAppNotificationsState extends State<InAppNotifications> {
     _controllerTag = 'in_app_notifications_${identityHashCode(this)}';
     _pageLineBarTag = '${kNotificationsPageLineBarTag}_$_controllerTag';
     controller = InAppNotificationsController.ensure();
-    final existingRecommended = RecommendedUserListController.maybeFind();
+    final existingRecommended = maybeFindRecommendedUserListController();
     if (existingRecommended != null) {
       recommendedController = existingRecommended;
     } else {
-      recommendedController = RecommendedUserListController.ensure();
+      recommendedController = ensureRecommendedUserListController();
       _ownsRecommendedController = true;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -53,7 +53,7 @@ class _InAppNotificationsState extends State<InAppNotifications> {
   void dispose() {
     if (_ownsRecommendedController &&
         identical(
-            RecommendedUserListController.maybeFind(), recommendedController)) {
+            maybeFindRecommendedUserListController(), recommendedController)) {
       Get.delete<RecommendedUserListController>();
     }
     super.dispose();

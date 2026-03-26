@@ -1,14 +1,6 @@
 part of 'my_statistic_controller.dart';
 
 class MyStatisticController extends GetxController {
-  static MyStatisticController ensure({
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureMyStatisticController(tag: tag, permanent: permanent);
-
-  static MyStatisticController? maybeFind({String? tag}) =>
-      _maybeFindMyStatisticController(tag: tag);
   final _MyStatisticControllerState _state = _MyStatisticControllerState();
 
   @override

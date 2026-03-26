@@ -4,7 +4,7 @@ part of 'package:turqappv2/Modules/Profile/Settings/settings.dart';
 
 extension _SettingsViewDiagnosticsDetailPart on _SettingsViewState {
   void _showOfflineQueueDetails() {
-    final offline = OfflineModeService.ensure();
+    final offline = ensureOfflineModeService();
 
     Get.dialog(
       AlertDialog(

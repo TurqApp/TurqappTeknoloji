@@ -18,7 +18,7 @@ extension _SettingsViewDiagnosticsUsagePart on _SettingsViewState {
     final cacheSizeText = cacheManager != null
         ? CacheMetrics.formatBytes(cacheManager.totalSizeBytes)
         : "settings.diagnostics.unknown".tr;
-    final offline = OfflineModeService.ensure();
+    final offline = ensureOfflineModeService();
     final queueStats = offline.getQueueStats();
     final queueLastSyncMs = (queueStats['lastSyncAt'] as int?) ?? 0;
     final queueLastSyncText = queueLastSyncMs <= 0

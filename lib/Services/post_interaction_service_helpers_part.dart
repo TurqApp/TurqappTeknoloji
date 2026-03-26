@@ -7,7 +7,7 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
   }
 
   bool get _isOffline =>
-      !(OfflineModeService.maybeFind()?.isOnline.value ?? true);
+      !(maybeFindOfflineModeService()?.isOnline.value ?? true);
 
   DocumentReference<Map<String, dynamic>> _postRef(String postId) =>
       _firestore.collection('Posts').doc(postId);
