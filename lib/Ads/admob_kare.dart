@@ -545,13 +545,19 @@ class _AdmobKareState extends State<AdmobKare> {
       );
     } else {
       final ad = _bannerAd;
-      if (_loadFailed || !_canRenderAd(ad)) {
+      final canRenderLiveAd = !_loadFailed && _canRenderAd(ad);
+      if (!canRenderLiveAd) {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
         } else {
           child = Padding(
             padding: widget.contentPadding,
-            child: _buildPromoFallbackSurface(),
+            child: SizedBox(
+              height: _promoSlotHeight,
+              child: _buildPromoFrame(
+                child: _buildPromoFallbackSurface(),
+              ),
+            ),
           );
         }
       } else {
@@ -575,35 +581,12 @@ class _AdmobKareState extends State<AdmobKare> {
           if (!widget.showChrome) {
             child = Center(child: renderedAdBody);
           } else {
-            child = Center(
-              child: Padding(
-                padding: widget.contentPadding,
-                child: SizedBox(
-                  height: _promoSlotHeight,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey6,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
-                          child: Text(
-                            'Reklam',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: CupertinoColors.systemGrey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        renderedAdBody,
-                        const SizedBox(height: 4),
-                      ],
-                    ),
-                  ),
+            child = Padding(
+              padding: widget.contentPadding,
+              child: SizedBox(
+                height: _promoSlotHeight,
+                child: _buildPromoFrame(
+                  child: _buildLiveAdSurface(renderedAdBody),
                 ),
               ),
             );
@@ -635,6 +618,46 @@ class _AdmobKareState extends State<AdmobKare> {
       key: _visibilityKey,
       onVisibilityChanged: _handleVisibilityChanged,
       child: child,
+    );
+  }
+
+  Widget _buildPromoFrame({required Widget child}) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemGrey6,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0x338E8E93),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildLiveAdSurface(Widget renderedAdBody) {
+    return ColoredBox(
+      color: CupertinoColors.systemGrey6,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
+            child: Text(
+              'Reklam',
+              style: TextStyle(
+                fontSize: 10,
+                color: CupertinoColors.systemGrey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          renderedAdBody,
+          const SizedBox(height: 4),
+        ],
+      ),
     );
   }
 
@@ -725,17 +748,28 @@ class _AdmobKareState extends State<AdmobKare> {
             constraints.maxWidth + widget.promoFallbackExtraWidth;
         final targetWidth =
             expandedWidth > 0 ? expandedWidth : constraints.maxWidth;
+        final fallbackCard = SizedBox(
+          width: targetWidth,
+          child: _buildPromoFallbackCard(),
+        );
 
-        return Transform.translate(
-          offset: Offset(widget.promoFallbackOffsetX, 0),
-          child: OverflowBox(
-            alignment: Alignment.topLeft,
-            minWidth: targetWidth,
-            maxWidth: targetWidth,
-            child: SizedBox(
-              width: targetWidth,
-              child: _buildPromoFallbackCard(),
-            ),
+        if (widget.promoFallbackExtraWidth == 0) {
+          return Transform.translate(
+            offset: Offset(widget.promoFallbackOffsetX, 0),
+            child: fallbackCard,
+          );
+        }
+
+        return SizedBox(
+          width: constraints.maxWidth,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Transform.translate(
+                offset: Offset(widget.promoFallbackOffsetX, 0),
+                child: fallbackCard,
+              ),
+            ],
           ),
         );
       },
