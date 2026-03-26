@@ -14,7 +14,7 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _syncUnreadIndicatorsLocal() {
-    UnreadMessagesController.maybeFind()?.updateConversationUnreadLocal(
+    maybeFindUnreadMessagesController()?.updateConversationUnreadLocal(
       otherUid: userID,
       unreadCount: 0,
       chatId: chatID,

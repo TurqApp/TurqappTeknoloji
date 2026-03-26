@@ -62,7 +62,7 @@ class NavBarView extends StatelessWidget {
     // ⚠️ CRITICAL FIX: Start UnreadMessagesController listeners after user is logged in
     // Note: startListeners() has internal guard against multiple calls
     if (!isIOS) {
-      final unreadController = UnreadMessagesController.maybeFind();
+      final unreadController = maybeFindUnreadMessagesController();
       if (unreadController == null) {
         _controllersPrepared = true;
         return;

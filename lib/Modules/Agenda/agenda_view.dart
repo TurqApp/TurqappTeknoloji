@@ -51,7 +51,7 @@ class AgendaView extends StatelessWidget {
 
   // ⚠️ CRITICAL FIX: Safe lazy loading for UnreadMessagesController
   UnreadMessagesController get unreadController {
-    return UnreadMessagesController.ensure();
+    return ensureUnreadMessagesController();
   }
 
   RecommendedUserListController get recommendedController {

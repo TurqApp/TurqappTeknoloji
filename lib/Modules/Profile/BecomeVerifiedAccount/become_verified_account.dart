@@ -28,15 +28,14 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
   void initState() {
     super.initState();
     _controllerTag = 'become_verified_${identityHashCode(this)}';
-    controller = BecomeVerifiedAccountController.ensure(tag: _controllerTag);
+    controller = ensureBecomeVerifiedAccountController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (BecomeVerifiedAccountController.maybeFind(tag: _controllerTag) !=
-            null &&
+    if (maybeFindBecomeVerifiedAccountController(tag: _controllerTag) != null &&
         identical(
-          BecomeVerifiedAccountController.maybeFind(tag: _controllerTag),
+          maybeFindBecomeVerifiedAccountController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<BecomeVerifiedAccountController>(tag: _controllerTag);

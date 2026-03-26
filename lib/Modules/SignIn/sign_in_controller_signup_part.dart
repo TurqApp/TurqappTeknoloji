@@ -116,7 +116,7 @@ extension SignInControllerSignupPart on SignInController {
       }
 
       try {
-        UnreadMessagesController.maybeFind()?.startListeners();
+        maybeFindUnreadMessagesController()?.startListeners();
       } catch (_) {}
 
       wait.value = false;

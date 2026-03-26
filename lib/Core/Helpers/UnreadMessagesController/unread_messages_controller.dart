@@ -9,5 +9,6 @@ import '../../Services/network_awareness_service.dart';
 
 part 'unread_messages_controller_fields_part.dart';
 part 'unread_messages_controller_class_part.dart';
+part 'unread_messages_controller_facade_part.dart';
 part 'unread_messages_controller_support_part.dart';
 part 'unread_messages_controller_sync_part.dart';

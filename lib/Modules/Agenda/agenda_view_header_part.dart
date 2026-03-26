@@ -305,7 +305,7 @@ class _DeferredNotificationInboxActionsState
 
   @override
   Widget build(BuildContext context) {
-    final unreadController = UnreadMessagesController.ensure();
+    final unreadController = ensureUnreadMessagesController();
     return Obx(() {
       final hasChatUnread = unreadController.totalUnreadCount.value > 0;
       final hasNotificationUnread =

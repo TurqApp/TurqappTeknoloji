@@ -7,22 +7,6 @@ class PostContentController extends _PostContentControllerBase {
     super.scrollFeedToTopOnReshare = false,
   });
 
-  @protected
-  void onPostInitialized() {}
-  @protected
-  void onPostFrameBound() {}
-  @protected
-  Future<void> onReshareAdded(
-    String? uid, {
-    String? targetPostId,
-  }) async =>
-      _performOnReshareAdded(uid, targetPostId: targetPostId);
-  @protected
-  Future<void> onReshareRemoved(
-    String? uid, {
-    String? targetPostId,
-  }) async {}
-
   @override
   void onInit() {
     super.onInit();

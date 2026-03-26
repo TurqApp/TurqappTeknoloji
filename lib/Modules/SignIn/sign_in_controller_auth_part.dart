@@ -51,7 +51,7 @@ extension SignInControllerAuthPart on SignInController {
       );
 
       try {
-        UnreadMessagesController.maybeFind()?.startListeners();
+        maybeFindUnreadMessagesController()?.startListeners();
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[SignIn] unread listener skipped: $e');
@@ -336,7 +336,7 @@ extension SignInControllerAuthPart on SignInController {
       }
 
       try {
-        UnreadMessagesController.maybeFind()?.startListeners();
+        maybeFindUnreadMessagesController()?.startListeners();
       } catch (_) {}
 
       wait.value = false;

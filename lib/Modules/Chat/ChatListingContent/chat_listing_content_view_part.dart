@@ -193,7 +193,7 @@ extension ChatListingContentViewPart on ChatListingContent {
     );
     controller.notReadCounter.value = 0;
     model.unreadCount = 0;
-    UnreadMessagesController.maybeFind()?.updateConversationUnreadLocal(
+    maybeFindUnreadMessagesController()?.updateConversationUnreadLocal(
       otherUid: model.userID,
       unreadCount: 0,
       chatId: model.chatID,

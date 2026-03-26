@@ -1,5 +1,16 @@
 part of 'become_verified_account_controller.dart';
 
+BecomeVerifiedAccountController ensureBecomeVerifiedAccountController({
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureBecomeVerifiedAccountController(tag: tag, permanent: permanent);
+
+BecomeVerifiedAccountController? maybeFindBecomeVerifiedAccountController({
+  String? tag,
+}) =>
+    _maybeFindBecomeVerifiedAccountController(tag: tag);
+
 BecomeVerifiedAccountController _ensureBecomeVerifiedAccountController({
   String? tag,
   bool permanent = false,

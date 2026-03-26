@@ -348,4 +348,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   void onPostInitialized() {}
+  void onPostFrameBound() {}
+  Future<void> onReshareAdded(
+    String? uid, {
+    String? targetPostId,
+  }) async {}
+  Future<void> onReshareRemoved(
+    String? uid, {
+    String? targetPostId,
+  }) async {}
 }
