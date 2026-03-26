@@ -10,6 +10,7 @@ import 'package:turqappv2/Modules/SpotifySelector/spotify_selector_controller.da
 
 part 'spotify_selector_list_part.dart';
 part 'spotify_selector_shell_part.dart';
+part 'spotify_selector_shell_content_part.dart';
 
 class SpotifySelector extends StatefulWidget {
   const SpotifySelector({super.key});

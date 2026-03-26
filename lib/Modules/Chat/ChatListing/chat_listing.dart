@@ -16,6 +16,7 @@ import 'chat_search_field.dart';
 import 'chat_listing_controller.dart';
 
 part 'chat_listing_shell_part.dart';
+part 'chat_listing_shell_content_part.dart';
 part 'chat_listing_content_part.dart';
 
 class ChatListing extends StatefulWidget {
