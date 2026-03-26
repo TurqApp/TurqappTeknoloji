@@ -1,7 +1,7 @@
 part of 'video_state_manager.dart';
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
-  void saveVideoState(String docID, PlaybackHandle handle) {
+  void _saveVideoState(String docID, PlaybackHandle handle) {
     if (!handle.isInitialized) return;
 
     _videoStates[docID] = VideoState(
@@ -11,7 +11,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     );
   }
 
-  void saveVideoStateFromController(
+  void _saveVideoStateFromController(
     String docID,
     VideoPlayerController controller,
   ) {
@@ -24,30 +24,30 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     );
   }
 
-  VideoState? getVideoState(String docID) {
+  VideoState? _getVideoState(String docID) {
     return _videoStates[docID];
   }
 
-  void clearVideoState(String docID) {
+  void _clearVideoState(String docID) {
     _videoStates.remove(docID);
   }
 
-  void clearAllStates() {
+  void _clearAllStates() {
     _videoStates.clear();
   }
 
-  void cleanOldStates() {
+  void _cleanOldStates() {
     final now = DateTime.now();
     _videoStates.removeWhere((key, state) {
       return now.difference(state.lastUpdated).inMinutes > 5;
     });
   }
 
-  Future<void> restoreVideoState(
+  Future<void> _restoreVideoState(
     String docID,
     PlaybackHandle handle,
   ) async {
-    final state = getVideoState(docID);
+    final state = _getVideoState(docID);
     if (state == null || !handle.isInitialized) return;
 
     if (state.position.inMilliseconds > 0) {
@@ -55,11 +55,11 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
   }
 
-  Future<void> restoreVideoStateFromController(
+  Future<void> _restoreVideoStateFromController(
     String docID,
     VideoPlayerController controller,
   ) async {
-    final state = getVideoState(docID);
+    final state = _getVideoState(docID);
     if (state == null || !controller.value.isInitialized) return;
 
     if (state.position.inMilliseconds > 0) {
@@ -67,7 +67,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
   }
 
-  void updatePosition(String docID, Duration position) {
+  void _updatePosition(String docID, Duration position) {
     final state = _videoStates[docID];
     if (state != null) {
       _videoStates[docID] = VideoState(
@@ -78,7 +78,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
   }
 
-  void registerPlaybackHandle(String docID, PlaybackHandle handle) {
+  void _registerPlaybackHandle(String docID, PlaybackHandle handle) {
     _allVideoControllers[docID] = handle;
 
     if (_allVideoControllers.length >
@@ -95,11 +95,14 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
   }
 
-  void registerVideoController(String docID, VideoPlayerController controller) {
+  void _registerVideoController(
+    String docID,
+    VideoPlayerController controller,
+  ) {
     _allVideoControllers[docID] = LegacyPlaybackHandle(controller);
   }
 
-  void unregisterVideoController(String docID) {
+  void _unregisterVideoController(String docID) {
     _allVideoControllers.remove(docID);
     if (_currentPlayingDocID == docID) {
       _pendingPlayTimer?.cancel();
@@ -108,7 +111,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
   }
 
-  void pauseAllExcept(String? allowedDocID) {
+  void _pauseAllExcept(String? allowedDocID) {
     for (final entry in _allVideoControllers.entries) {
       if (entry.key == allowedDocID) continue;
 
@@ -124,7 +127,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _currentPlayingDocID = allowedDocID;
   }
 
-  void playOnlyThis(String docID) {
+  void _playOnlyThis(String docID) {
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
 
@@ -140,7 +143,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       return;
     }
 
-    pauseAllExcept(docID);
+    _pauseAllExcept(docID);
 
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = Timer(VideoStateManager._playResumeDelay, () {
@@ -153,7 +156,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     });
   }
 
-  void reassertOnlyThis(String docID) {
+  void _reassertOnlyThis(String docID) {
     if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
       return;
     }
@@ -163,7 +166,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
-    pauseAllExcept(docID);
+    _pauseAllExcept(docID);
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = Timer(VideoStateManager._playResumeDelay, () {
       if (requestSeq != _playRequestSeq) return;
@@ -175,54 +178,54 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     });
   }
 
-  void requestPlayVideo(String docID, PlaybackHandle handle) {
+  void _requestPlayVideo(String docID, PlaybackHandle handle) {
     _allVideoControllers[docID] = handle;
-    pauseAllExcept(docID);
+    _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
   }
 
-  void requestPlayVideoFromController(
+  void _requestPlayVideoFromController(
     String docID,
     VideoPlayerController controller,
   ) {
-    requestPlayVideo(docID, LegacyPlaybackHandle(controller));
+    _requestPlayVideo(docID, LegacyPlaybackHandle(controller));
   }
 
-  void requestStopVideo(String docID) {
+  void _requestStopVideo(String docID) {
     if (_currentPlayingDocID == docID) {
       _currentPlayingDocID = null;
     }
   }
 
-  void pauseAllVideos({bool force = false}) {
+  void _pauseAllVideos({bool force = false}) {
     if (!force && _exclusiveMode) {
       if (_exclusiveDocID != null) {
-        pauseAllExcept(_exclusiveDocID);
+        _pauseAllExcept(_exclusiveDocID);
       }
       return;
     }
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
     _playRequestSeq++;
-    pauseAllExcept(null);
+    _pauseAllExcept(null);
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
   }
 
-  void enterExclusiveMode(String docID) {
+  void _enterExclusiveMode(String docID) {
     _exclusiveMode = true;
     _exclusiveDocID = docID;
-    playOnlyThis(docID);
+    _playOnlyThis(docID);
   }
 
-  void updateExclusiveModeDoc(String docID) {
+  void _updateExclusiveModeDoc(String docID) {
     if (!_exclusiveMode) return;
     _exclusiveDocID = docID;
-    playOnlyThis(docID);
+    _playOnlyThis(docID);
   }
 
-  void exitExclusiveMode() {
+  void _exitExclusiveMode() {
     _exclusiveMode = false;
     _exclusiveDocID = null;
   }

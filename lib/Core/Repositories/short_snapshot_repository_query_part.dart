@@ -30,7 +30,7 @@ Future<CachedResource<List<PostsModel>>> _bootstrapHome(
       userId: query.userId.trim(),
       scopeId: query.scopeId,
     ),
-    loadWarmSnapshot: () => repository._loadWarmSnapshot(query),
+    loadWarmSnapshot: () => _performLoadWarmSnapshot(repository, query),
   );
 }
 

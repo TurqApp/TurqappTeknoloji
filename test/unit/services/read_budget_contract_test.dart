@@ -68,22 +68,22 @@ void main() {
     final savedPostsSource = _read('lib/Services/user_post_link_service.dart');
     final followRepositorySource =
         _read('lib/Core/Repositories/follow_repository_query_part.dart');
-    final notificationsRepositorySource =
-        _read('lib/Core/Repositories/notifications_repository.dart');
+    final notificationsRepositorySource = _read(
+        'lib/Core/Repositories/notifications_repository_runtime_part.dart');
     final notificationsSnapshotSource = _read(
         'lib/Core/Repositories/notifications_snapshot_repository_query_part.dart');
-    final marketSnapshotSource =
-        _read('lib/Core/Repositories/market_snapshot_repository.dart');
+    final marketSnapshotSource = _read(
+        'lib/Core/Repositories/market_snapshot_repository_facade_part.dart');
     final marketHomeSource =
         _read('lib/Modules/Market/market_controller_home_part.dart');
-    final jobHomeSource =
-        _read('lib/Core/Repositories/job_home_snapshot_repository.dart');
+    final jobHomeSource = _read(
+        'lib/Core/Repositories/job_home_snapshot_repository_facade_part.dart');
     final jobFinderSource =
-        _read('lib/Modules/JobFinder/job_finder_controller.dart');
+        _read('lib/Modules/JobFinder/job_finder_controller_support_part.dart');
     final scholarshipRepoSource =
         _read('lib/Core/Repositories/scholarship_repository_query_part.dart');
     final scholarshipProviderSource = _read(
-      'lib/Modules/Education/Scholarships/ScholarshipProviders/scholarship_providers_controller.dart',
+      'lib/Modules/Education/Scholarships/ScholarshipProviders/scholarship_providers_controller_runtime_part.dart',
     );
     final practiceExamRepoSource =
         _read('lib/Core/Repositories/practice_exam_repository_query_part.dart');
@@ -92,7 +92,7 @@ void main() {
     final reshareControllerSource =
         _read('lib/Modules/Agenda/agenda_controller_reshare_part.dart');
     final postContentControllerSource = _read(
-        'lib/Modules/Agenda/Common/post_content_controller_actions_part.dart');
+        'lib/Modules/Agenda/Common/post_content_controller_profile_part.dart');
     final antremanRepositorySource =
         _read('lib/Core/Repositories/antreman_repository_query_part.dart');
     final antremanControllerSource = _read(

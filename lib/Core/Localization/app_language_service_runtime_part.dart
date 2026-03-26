@@ -15,7 +15,7 @@ extension AppLanguageServiceRuntimePart on AppLanguageService {
     return this;
   }
 
-  Future<void> changeLanguage(String code) async {
+  Future<void> _changeLanguage(String code) async {
     final normalized = AppLanguageService._normalizeCode(code);
     if (_currentCode.value == normalized) return;
     _currentCode.value = normalized;

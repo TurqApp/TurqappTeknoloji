@@ -4,7 +4,7 @@ extension FollowRepositoryQueryPart on FollowRepository {
   Future<List<String>> _fetchRelationPreviewIdsOnce(
     String uid, {
     required String relation,
-    required int limit,
+    required int fetchLimit,
     required Source source,
   }) async {
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance
@@ -14,11 +14,12 @@ extension FollowRepositoryQueryPart on FollowRepository {
     try {
       final snap = await query
           .orderBy('timeStamp', descending: true)
-          .limit(limit)
+          .limit(fetchLimit)
           .get(GetOptions(source: source));
       return snap.docs.map((doc) => doc.id.trim()).toList(growable: false);
     } on FirebaseException {
-      final snap = await query.limit(limit).get(GetOptions(source: source));
+      final snap =
+          await query.limit(fetchLimit).get(GetOptions(source: source));
       return snap.docs.map((doc) => doc.id.trim()).toList(growable: false);
     }
   }
@@ -96,7 +97,7 @@ extension FollowRepositoryQueryPart on FollowRepository {
     final first = await _fetchRelationPreviewIdsOnce(
       uid,
       relation: relation,
-      limit: fetchLimit,
+      fetchLimit: fetchLimit,
       source: initialSource,
     );
     final normalizedFirst =
@@ -109,7 +110,7 @@ extension FollowRepositoryQueryPart on FollowRepository {
     final refreshed = await _fetchRelationPreviewIdsOnce(
       uid,
       relation: relation,
-      limit: fetchLimit,
+      fetchLimit: fetchLimit,
       source: Source.server,
     );
     return refreshed

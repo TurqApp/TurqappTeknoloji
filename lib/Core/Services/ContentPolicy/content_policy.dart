@@ -9,7 +9,7 @@ enum ContentScreenKind {
 }
 
 class ContentPolicy {
-  static const int feedInitialFromPool = 5;
+  static const int feedInitialFromPool = 12;
   static const int mobileWarmWindow = 20;
   static const int mobileNextWindow = 10;
   static const int minGlobalCachedVideos = 50;

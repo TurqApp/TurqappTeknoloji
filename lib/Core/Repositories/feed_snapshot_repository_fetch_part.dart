@@ -110,12 +110,13 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     }
 
     if (startAfter == null) {
+      final preferLiveOwnPosts = !cacheOnly;
       final ownPosts = await _postRepository.fetchRecentPostsForAuthors(
         <String>[normalizedUserId],
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         perAuthorLimit: min(limit, 10),
-        preferCache: preferCache,
+        preferCache: preferLiveOwnPosts ? false : preferCache,
         cacheOnly: cacheOnly,
       );
       for (final post in ownPosts) {

@@ -2,85 +2,88 @@ part of 'video_state_manager.dart';
 
 extension VideoStateManagerFacadePart on VideoStateManager {
   void saveVideoState(String docID, PlaybackHandle handle) =>
-      VideoStateManagerPlaybackPart(this).saveVideoState(docID, handle);
+      VideoStateManagerPlaybackPart(this)._saveVideoState(docID, handle);
 
   void saveVideoStateFromController(
     String docID,
     VideoPlayerController controller,
   ) =>
       VideoStateManagerPlaybackPart(this)
-          .saveVideoStateFromController(docID, controller);
+          ._saveVideoStateFromController(docID, controller);
 
   VideoState? getVideoState(String docID) =>
-      VideoStateManagerPlaybackPart(this).getVideoState(docID);
+      VideoStateManagerPlaybackPart(this)._getVideoState(docID);
 
   void clearVideoState(String docID) =>
-      VideoStateManagerPlaybackPart(this).clearVideoState(docID);
+      VideoStateManagerPlaybackPart(this)._clearVideoState(docID);
 
-  void clearAllStates() => VideoStateManagerPlaybackPart(this).clearAllStates();
+  void clearAllStates() =>
+      VideoStateManagerPlaybackPart(this)._clearAllStates();
 
-  void cleanOldStates() => VideoStateManagerPlaybackPart(this).cleanOldStates();
+  void cleanOldStates() =>
+      VideoStateManagerPlaybackPart(this)._cleanOldStates();
 
   Future<void> restoreVideoState(
     String docID,
     PlaybackHandle handle,
   ) =>
-      VideoStateManagerPlaybackPart(this).restoreVideoState(docID, handle);
+      VideoStateManagerPlaybackPart(this)._restoreVideoState(docID, handle);
 
   Future<void> restoreVideoStateFromController(
     String docID,
     VideoPlayerController controller,
   ) =>
       VideoStateManagerPlaybackPart(this)
-          .restoreVideoStateFromController(docID, controller);
+          ._restoreVideoStateFromController(docID, controller);
 
   void updatePosition(String docID, Duration position) =>
-      VideoStateManagerPlaybackPart(this).updatePosition(docID, position);
+      VideoStateManagerPlaybackPart(this)._updatePosition(docID, position);
 
   void registerPlaybackHandle(String docID, PlaybackHandle handle) =>
-      VideoStateManagerPlaybackPart(this).registerPlaybackHandle(docID, handle);
+      VideoStateManagerPlaybackPart(this)
+          ._registerPlaybackHandle(docID, handle);
 
   void registerVideoController(
     String docID,
     VideoPlayerController controller,
   ) =>
       VideoStateManagerPlaybackPart(this)
-          .registerVideoController(docID, controller);
+          ._registerVideoController(docID, controller);
 
   void unregisterVideoController(String docID) =>
-      VideoStateManagerPlaybackPart(this).unregisterVideoController(docID);
+      VideoStateManagerPlaybackPart(this)._unregisterVideoController(docID);
 
   void pauseAllExcept(String? allowedDocID) =>
-      VideoStateManagerPlaybackPart(this).pauseAllExcept(allowedDocID);
+      VideoStateManagerPlaybackPart(this)._pauseAllExcept(allowedDocID);
 
   void playOnlyThis(String docID) =>
-      VideoStateManagerPlaybackPart(this).playOnlyThis(docID);
+      VideoStateManagerPlaybackPart(this)._playOnlyThis(docID);
 
   void reassertOnlyThis(String docID) =>
-      VideoStateManagerPlaybackPart(this).reassertOnlyThis(docID);
+      VideoStateManagerPlaybackPart(this)._reassertOnlyThis(docID);
 
   void requestPlayVideo(String docID, PlaybackHandle handle) =>
-      VideoStateManagerPlaybackPart(this).requestPlayVideo(docID, handle);
+      VideoStateManagerPlaybackPart(this)._requestPlayVideo(docID, handle);
 
   void requestPlayVideoFromController(
     String docID,
     VideoPlayerController controller,
   ) =>
       VideoStateManagerPlaybackPart(this)
-          .requestPlayVideoFromController(docID, controller);
+          ._requestPlayVideoFromController(docID, controller);
 
   void requestStopVideo(String docID) =>
-      VideoStateManagerPlaybackPart(this).requestStopVideo(docID);
+      VideoStateManagerPlaybackPart(this)._requestStopVideo(docID);
 
   void pauseAllVideos({bool force = false}) =>
-      VideoStateManagerPlaybackPart(this).pauseAllVideos(force: force);
+      VideoStateManagerPlaybackPart(this)._pauseAllVideos(force: force);
 
   void enterExclusiveMode(String docID) =>
-      VideoStateManagerPlaybackPart(this).enterExclusiveMode(docID);
+      VideoStateManagerPlaybackPart(this)._enterExclusiveMode(docID);
 
   void updateExclusiveModeDoc(String docID) =>
-      VideoStateManagerPlaybackPart(this).updateExclusiveModeDoc(docID);
+      VideoStateManagerPlaybackPart(this)._updateExclusiveModeDoc(docID);
 
   void exitExclusiveMode() =>
-      VideoStateManagerPlaybackPart(this).exitExclusiveMode();
+      VideoStateManagerPlaybackPart(this)._exitExclusiveMode();
 }
