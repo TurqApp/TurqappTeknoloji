@@ -31,30 +31,4 @@ part 'job_details_controller_actions_part.dart';
 part 'job_details_controller_facade_part.dart';
 part 'job_details_controller_fields_part.dart';
 part 'job_details_controller_runtime_part.dart';
-
-class JobDetailsController extends GetxController {
-  static JobDetailsController ensure({
-    required JobModel model,
-    String? tag,
-    bool permanent = false,
-  }) =>
-      _ensureJobDetailsController(
-        model: model,
-        tag: tag,
-        permanent: permanent,
-      );
-
-  static JobDetailsController? maybeFind({String? tag}) =>
-      _maybeFindJobDetailsController(tag: tag);
-
-  final Rx<JobModel> model;
-  final _state = _JobDetailsControllerState();
-
-  JobDetailsController({required JobModel model}) : model = model.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleJobDetailsInit(this);
-  }
-}
+part 'job_details_controller_class_part.dart';

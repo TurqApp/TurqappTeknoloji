@@ -37,25 +37,4 @@ part 'market_controller_fields_part.dart';
 part 'market_controller_lifecycle_part.dart';
 part 'market_controller_runtime_part.dart';
 part 'market_controller_support_part.dart';
-
-class MarketController extends GetxController {
-  static MarketController ensure({bool permanent = false}) =>
-      maybeFind() ?? Get.put(MarketController(), permanent: permanent);
-
-  static MarketController? maybeFind() => Get.isRegistered<MarketController>()
-      ? Get.find<MarketController>()
-      : null;
-  final _state = _MarketControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleLifecycleInit();
-  }
-
-  @override
-  void onClose() {
-    _handleLifecycleClose();
-    super.onClose();
-  }
-}
+part 'market_controller_class_part.dart';
