@@ -1,5 +1,17 @@
 part of 'antreman_controller.dart';
 
+AntremanController ensureAntremanController({bool permanent = false}) {
+  final existing = maybeFindAntremanController();
+  if (existing != null) return existing;
+  return Get.put(AntremanController(), permanent: permanent);
+}
+
+AntremanController? maybeFindAntremanController() {
+  final isRegistered = Get.isRegistered<AntremanController>();
+  if (!isRegistered) return null;
+  return Get.find<AntremanController>();
+}
+
 const String _mainCategoryPrefKeyPrefix = 'antreman_main_category';
 const String _categoryCachePrefix = 'antreman_category_cache_';
 const String _categoryCacheTimePrefix = 'antreman_category_cache_time_';

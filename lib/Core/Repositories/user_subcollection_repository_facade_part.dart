@@ -1,5 +1,17 @@
 part of 'user_subcollection_repository.dart';
 
+UserSubcollectionRepository? maybeFindUserSubcollectionRepository() {
+  final isRegistered = Get.isRegistered<UserSubcollectionRepository>();
+  if (!isRegistered) return null;
+  return Get.find<UserSubcollectionRepository>();
+}
+
+UserSubcollectionRepository ensureUserSubcollectionRepository() {
+  final existing = maybeFindUserSubcollectionRepository();
+  if (existing != null) return existing;
+  return Get.put(UserSubcollectionRepository(), permanent: true);
+}
+
 extension UserSubcollectionRepositoryFacadePart on UserSubcollectionRepository {
   Future<List<UserSubcollectionEntry>> getEntries(
     String uid, {

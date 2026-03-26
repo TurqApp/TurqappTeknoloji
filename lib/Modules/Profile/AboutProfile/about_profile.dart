@@ -25,11 +25,11 @@ class _AboutProfileState extends State<AboutProfile> {
     super.initState();
     _controllerTag = 'about_profile_${widget.userID}_${identityHashCode(this)}';
     final existingController =
-        AboutProfileController.maybeFind(tag: _controllerTag);
+        maybeFindAboutProfileController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = AboutProfileController.ensure(tag: _controllerTag);
+      controller = ensureAboutProfileController(tag: _controllerTag);
       _ownsController = true;
     }
     controller.getUserData(widget.userID);
@@ -47,7 +47,7 @@ class _AboutProfileState extends State<AboutProfile> {
   void dispose() {
     if (_ownsController &&
         identical(
-          AboutProfileController.maybeFind(tag: _controllerTag),
+          maybeFindAboutProfileController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<AboutProfileController>(tag: _controllerTag);

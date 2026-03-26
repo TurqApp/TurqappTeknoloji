@@ -378,7 +378,7 @@ class IntegrationTestStateProbe {
 
   static Map<String, dynamic> _authSnapshot() {
     final currentUserService = CurrentUserService.instance;
-    final accountCenter = AccountCenterService.maybeFind();
+    final accountCenter = maybeFindAccountCenterService();
     final activeUid = accountCenter?.activeUid.value.trim() ?? '';
     final lastUsedUid = accountCenter?.lastUsedUid.value.trim() ?? '';
     String currentUid;

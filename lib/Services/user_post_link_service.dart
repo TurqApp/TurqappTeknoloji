@@ -23,7 +23,7 @@ class UserPostLinkService {
 
   UserPostLinkService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance,
-        _userSubcollectionRepository = UserSubcollectionRepository.ensure(),
+        _userSubcollectionRepository = ensureUserSubcollectionRepository(),
         _postRepository = PostRepository.ensure();
 
   final FirebaseFirestore _firestore;

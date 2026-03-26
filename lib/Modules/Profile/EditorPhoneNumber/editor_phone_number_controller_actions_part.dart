@@ -114,7 +114,7 @@ extension EditorPhoneNumberControllerActionsPart
         return;
       }
 
-      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
+      await ensureAccountCenterService().refreshCurrentAccountMetadata();
       Get.back();
       AppSnackbar('common.success'.tr, 'editor_phone.updated'.tr);
     } on FirebaseFunctionsException catch (e) {

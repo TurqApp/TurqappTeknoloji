@@ -26,7 +26,7 @@ class SavedOpticalFormsController extends GetxController {
   final list = <BookletModel>[].obs;
   final isLoading = false.obs;
   final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
 
   @override
   void onInit() {

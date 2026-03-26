@@ -25,7 +25,7 @@ class AntremanView2 extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final AntremanController controller =
-      AntremanController.ensure(permanent: true);
+      ensureAntremanController(permanent: true);
 
   @override
   Widget build(BuildContext context) {

@@ -327,7 +327,7 @@ extension EducationViewActionsPart on EducationView {
             title: 'education.change_main_category'.tr,
             icon: CupertinoIcons.square_grid_2x2,
             onTap: () {
-              final antController = AntremanController.ensure();
+              final antController = ensureAntremanController();
               antController.openMainCategoryPicker(context, force: true);
             },
           ),

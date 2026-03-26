@@ -1,5 +1,11 @@
 part of 'account_center_service.dart';
 
+AccountCenterService? maybeFindAccountCenterService() =>
+    _maybeFindAccountCenterService();
+
+AccountCenterService ensureAccountCenterService() =>
+    _ensureAccountCenterService();
+
 AccountCenterService? _maybeFindAccountCenterService() {
   final isRegistered = Get.isRegistered<AccountCenterService>();
   if (!isRegistered) return null;

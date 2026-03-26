@@ -8,18 +8,6 @@ class TypesenseUserCardCacheService extends GetxService {
       <String, _CachedUserCardsResult>{};
   SharedPreferences? _prefs;
 
-  static TypesenseUserCardCacheService? maybeFind() {
-    final isRegistered = Get.isRegistered<TypesenseUserCardCacheService>();
-    if (!isRegistered) return null;
-    return Get.find<TypesenseUserCardCacheService>();
-  }
-
-  static TypesenseUserCardCacheService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(TypesenseUserCardCacheService(), permanent: true);
-  }
-
   Future<Map<String, Map<String, dynamic>>> getUserCardsByIds(
     List<String> ids, {
     bool preferCache = true,

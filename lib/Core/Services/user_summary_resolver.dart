@@ -13,5 +13,5 @@ class UserSummaryResolver extends GetxService {
 
   UserRepository get _users => UserRepository.ensure();
   TypesenseUserCardCacheService get _typesenseCards =>
-      TypesenseUserCardCacheService.ensure();
+      ensureTypesenseUserCardCacheService();
 }

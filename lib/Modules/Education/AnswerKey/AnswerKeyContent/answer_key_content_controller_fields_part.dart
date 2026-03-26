@@ -10,7 +10,7 @@ class _AnswerKeyContentControllerState {
   final Function(bool) onUpdate;
   final isBookmarked = false.obs;
   final secim = ''.obs;
-  final userSubcollectionRepository = UserSubcollectionRepository.ensure();
+  final userSubcollectionRepository = ensureUserSubcollectionRepository();
 }
 
 extension AnswerKeyContentControllerFieldsPart on AnswerKeyContentController {

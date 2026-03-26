@@ -6,7 +6,7 @@ class PostInteractionService extends GetxController {
 
   final FirebaseFirestore _firestore;
   final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
 
   static PostInteractionService? maybeFind() {
     final isRegistered = Get.isRegistered<PostInteractionService>();

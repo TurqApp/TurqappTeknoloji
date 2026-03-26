@@ -133,7 +133,7 @@ extension EditProfileControllerActionsPart on EditProfileController {
         if (newImageUrl != null) "avatarUrl": newImageUrl,
       });
       await _refreshAvatarNicknameSurfaces(uid);
-      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
+      await ensureAccountCenterService().refreshCurrentAccountMetadata();
 
       Get.back();
       AppSnackbar('common.success'.tr, 'edit_profile.update_success'.tr);
@@ -159,7 +159,7 @@ extension EditProfileControllerActionsPart on EditProfileController {
           if (uid.isEmpty) return;
           await userService.updateFields({'avatarUrl': defaultAvatarUrl});
           await _refreshAvatarNicknameSurfaces(uid);
-          await AccountCenterService.ensure().refreshCurrentAccountMetadata();
+          await ensureAccountCenterService().refreshCurrentAccountMetadata();
 
           croppedImage.value = null;
           selectedImage.value = null;
@@ -179,7 +179,7 @@ extension EditProfileControllerActionsPart on EditProfileController {
     await UserProfileCacheService.invalidateIfRegistered(uid);
     invalidatePostContentUserProfileCache(uid);
     await userService.forceRefresh();
-    await StoryRowController.refreshStoriesGlobally();
+    await refreshStoryRowGlobally();
   }
 
   Future<void> _cleanupOldAvatarFiles(

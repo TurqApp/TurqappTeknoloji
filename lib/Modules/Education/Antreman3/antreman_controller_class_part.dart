@@ -1,18 +1,6 @@
 part of 'antreman_controller.dart';
 
 class AntremanController extends GetxController {
-  static AntremanController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(AntremanController(), permanent: permanent);
-  }
-
-  static AntremanController? maybeFind() {
-    final isRegistered = Get.isRegistered<AntremanController>();
-    if (!isRegistered) return null;
-    return Get.find<AntremanController>();
-  }
-
   final QuestionBankSnapshotRepository _questionBankSnapshotRepository =
       QuestionBankSnapshotRepository.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();

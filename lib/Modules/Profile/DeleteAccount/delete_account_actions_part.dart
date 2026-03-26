@@ -176,7 +176,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
 
       await _hideUserPosts(user.uid);
 
-      await AccountCenterService.ensure().removeAccount(user.uid);
+      await ensureAccountCenterService().removeAccount(user.uid);
       await CurrentUserService.instance.logout();
       await auth.signOut();
       if (!mounted) return;

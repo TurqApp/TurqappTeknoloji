@@ -343,7 +343,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getMediaStats() {
-    final mediaService = MediaEnhancementService.maybeFind();
+    final mediaService = maybeFindMediaEnhancementService();
     if (mediaService != null) {
       return mediaService.getProcessingStats();
     }

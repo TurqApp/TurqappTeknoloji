@@ -131,7 +131,7 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
       await _userService.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );
-      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
+      await ensureAccountCenterService().refreshCurrentAccountMetadata();
       isEmailConfirmed.value = true;
 
       Get.back();

@@ -28,8 +28,8 @@ class _BookletResultContentState extends State<BookletResultContent> {
     _controllerTag =
         'booklet_result_content_${widget.model.kitapcikID}_${identityHashCode(this)}';
     _ownsController =
-        BookletResultContentController.maybeFind(tag: _controllerTag) == null;
-    controller = BookletResultContentController.ensure(
+        maybeFindBookletResultContentController(tag: _controllerTag) == null;
+    controller = ensureBookletResultContentController(
       widget.model,
       tag: _controllerTag,
     );
@@ -37,7 +37,7 @@ class _BookletResultContentState extends State<BookletResultContent> {
 
   @override
   void dispose() {
-    final registeredController = BookletResultContentController.maybeFind(
+    final registeredController = maybeFindBookletResultContentController(
       tag: _controllerTag,
     );
     if (_ownsController && identical(registeredController, controller)) {

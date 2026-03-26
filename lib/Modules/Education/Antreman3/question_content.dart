@@ -24,7 +24,7 @@ const _antremanLgsType = 'LGS';
 class QuestionContent extends StatelessWidget {
   QuestionContent({super.key});
 
-  final AntremanController controller = AntremanController.ensure();
+  final AntremanController controller = ensureAntremanController();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 

@@ -50,12 +50,12 @@ class _TestsState extends State<Tests> {
     super.initState();
     _controllerTag =
         'tests_${embedded ? 'embedded' : 'root'}_${identityHashCode(this)}';
-    controller = TestsController.ensure(tag: _controllerTag);
+    controller = ensureTestsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    final existing = TestsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindTestsController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<TestsController>(tag: _controllerTag);
     }

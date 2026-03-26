@@ -121,7 +121,7 @@ extension CurrentUserServiceSyncPart on CurrentUserService {
     if (uid.isEmpty) return;
     if (!DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) return;
     try {
-      await AccountCenterService.ensure()
+      await ensureAccountCenterService()
           .registerCurrentDeviceSessionIfEnabled();
     } catch (_) {}
   }

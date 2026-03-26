@@ -32,8 +32,4 @@ class AccountCenterService extends GetxService {
     super.onInit();
     _handleAccountCenterServiceInit(this);
   }
-
-  static AccountCenterService? maybeFind() => _maybeFindAccountCenterService();
-
-  static AccountCenterService ensure() => _ensureAccountCenterService();
 }

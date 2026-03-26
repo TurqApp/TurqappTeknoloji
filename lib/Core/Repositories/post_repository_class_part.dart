@@ -23,7 +23,7 @@ class PostRepository extends GetxService {
   final Map<String, List<PostSharersModel>> _postSharersMemory =
       <String, List<PostSharersModel>>{};
   final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
 
   static PostRepository? maybeFind() => _maybeFindPostRepository();
 

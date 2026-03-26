@@ -2,7 +2,7 @@ part of 'sign_in.dart';
 
 extension SignInStartPart on _SignInState {
   Widget startScreen() {
-    final accountCenter = AccountCenterService.ensure();
+    final accountCenter = ensureAccountCenterService();
     return Expanded(
       child: Column(
         children: [

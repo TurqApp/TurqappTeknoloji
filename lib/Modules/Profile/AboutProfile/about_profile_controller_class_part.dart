@@ -1,25 +1,6 @@
 part of 'about_profile_controller.dart';
 
 class AboutProfileController extends GetxController {
-  static AboutProfileController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      AboutProfileController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static AboutProfileController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<AboutProfileController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<AboutProfileController>(tag: tag);
-  }
-
   final userService = CurrentUserService.instance;
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();

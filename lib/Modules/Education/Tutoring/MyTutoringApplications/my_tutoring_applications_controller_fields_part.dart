@@ -2,7 +2,7 @@ part of 'my_tutoring_applications_controller.dart';
 
 class _MyTutoringApplicationsControllerState {
   final UserSubcollectionRepository subcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
   final TutoringRepository tutoringRepository = TutoringRepository.ensure();
   final RxList<TutoringApplicationModel> applications =
       <TutoringApplicationModel>[].obs;

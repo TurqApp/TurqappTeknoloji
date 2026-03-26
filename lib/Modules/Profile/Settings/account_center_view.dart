@@ -22,10 +22,10 @@ part 'account_center_view_details_part.dart';
 class AccountCenterView extends StatelessWidget {
   AccountCenterView({super.key});
 
-  final AccountCenterService accountCenter = AccountCenterService.ensure();
+  final AccountCenterService accountCenter = ensureAccountCenterService();
   final UserRepository _userRepository = UserRepository.ensure();
   final SignInController _signInController = SignInController();
-  final Future<void> _initFuture = AccountCenterService.ensure().init();
+  final Future<void> _initFuture = ensureAccountCenterService().init();
 
   bool get _isLoggedIn => _currentUid.isNotEmpty;
 

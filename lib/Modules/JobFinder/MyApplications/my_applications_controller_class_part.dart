@@ -21,7 +21,7 @@ class MyApplicationsController extends GetxController {
   }
 
   final UserSubcollectionRepository _subcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
   final JobRepository _jobRepository = JobRepository.ensure();
   RxList<JobApplicationModel> applications = <JobApplicationModel>[].obs;
   var isLoading = false.obs;

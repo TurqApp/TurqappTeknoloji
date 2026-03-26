@@ -9,7 +9,7 @@ class BlockedUsersController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final UserSubcollectionRepository _subcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 

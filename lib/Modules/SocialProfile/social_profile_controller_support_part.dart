@@ -7,7 +7,7 @@ final SocialMediaLinksRepository _socialLinksRepository =
     SocialMediaLinksRepository.ensure();
 final StoryRepository _storyRepository = StoryRepository.ensure();
 final UserSubcollectionRepository _userSubcollectionRepository =
-    UserSubcollectionRepository.ensure();
+    ensureUserSubcollectionRepository();
 final UserPostLinkService _linkService = UserPostLinkService.ensure();
 final ProfileRepository _profileRepository = ProfileRepository.ensure();
 final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();

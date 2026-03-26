@@ -11,7 +11,7 @@ extension SignInControllerAccountPart on SignInController {
         '[AccountCenterTrack] start uid=${firebaseUser.uid} currentUserReady=${currentUser != null}',
       );
     }
-    final service = AccountCenterService.ensure();
+    final service = ensureAccountCenterService();
     await service.init();
     if (currentUser != null) {
       if (kDebugMode) {
@@ -124,7 +124,7 @@ extension SignInControllerAccountPart on SignInController {
       return;
     }
     selectedStoredAccount.value =
-        AccountCenterService.ensure().accountByUid(normalized);
+        ensureAccountCenterService().accountByUid(normalized);
   }
 
   Future<void> continueWithStoredAccount(StoredAccount account) async {

@@ -22,7 +22,7 @@ class _ReportUserControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final ReportRepository reportRepository = ReportRepository.ensure();
   final UserSubcollectionRepository userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
 }
 
 extension ReportUserControllerFieldsPart on ReportUserController {

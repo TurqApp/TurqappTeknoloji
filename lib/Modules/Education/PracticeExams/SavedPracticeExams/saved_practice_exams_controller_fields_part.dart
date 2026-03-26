@@ -4,7 +4,7 @@ class _SavedPracticeExamsControllerState {
   final PracticeExamRepository practiceExamRepository =
       PracticeExamRepository.ensure();
   final UserSubcollectionRepository subcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
   final RxList<String> savedExamIds = <String>[].obs;
   final RxList<SinavModel> savedExams = <SinavModel>[].obs;
   final RxBool isLoading = false.obs;

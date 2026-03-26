@@ -7,7 +7,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
     UploadQueueService.ensure();
     DraftService.ensure();
     ensurePostEditingService();
-    MediaEnhancementService.ensure();
+    ensureMediaEnhancementService();
     StorageBudgetManager.ensure();
     ensurePlaybackKpiService();
     ensurePlaybackPolicyEngine();
@@ -194,7 +194,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   }
 
   void _showMediaStats() {
-    final mediaService = MediaEnhancementService.maybeFind();
+    final mediaService = maybeFindMediaEnhancementService();
     if (mediaService != null) {
       final stats = mediaService.getProcessingStats();
 

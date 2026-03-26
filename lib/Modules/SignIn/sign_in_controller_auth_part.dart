@@ -38,7 +38,7 @@ extension SignInControllerAuthPart on SignInController {
           '_trackCurrentAccountForDevice', _trackCurrentAccountForDevice);
       await runStep(
         'registerCurrentDeviceSessionIfEnabled',
-        () => AccountCenterService.ensure()
+        () => ensureAccountCenterService()
             .registerCurrentDeviceSessionIfEnabled(),
       );
       await runStep(
@@ -100,7 +100,7 @@ extension SignInControllerAuthPart on SignInController {
     } on FirebaseAuthException catch (_) {
       wait.value = false;
       await AccountSessionVault.instance.delete(account.uid);
-      await AccountCenterService.ensure().markSessionState(
+      await ensureAccountCenterService().markSessionState(
         uid: account.uid,
         isSessionValid: false,
         requiresReauth: true,
@@ -301,7 +301,7 @@ extension SignInControllerAuthPart on SignInController {
       await _clearSessionCachesAfterAccountSwitch();
       await CurrentUserService.instance.forceRefresh();
       await _trackCurrentAccountForDevice();
-      await AccountCenterService.ensure()
+      await ensureAccountCenterService()
           .registerCurrentDeviceSessionIfEnabled();
       await _persistStoredSessionCredential(
         email: resetMail.value,
@@ -372,7 +372,7 @@ extension SignInControllerAuthPart on SignInController {
       if (signedUid.isNotEmpty) {
         DeviceSessionService.instance.beginSessionClaim(signedUid);
         try {
-          await AccountCenterService.ensure()
+          await ensureAccountCenterService()
               .registerCurrentDeviceSessionIfEnabled();
         } catch (_) {}
       }

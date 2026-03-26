@@ -26,7 +26,7 @@ extension _SplashViewStartupPart on _SplashViewState {
 
       late final bool isFirstLaunch;
       final userService = CurrentUserService.ensure();
-      final accountCenter = AccountCenterService.ensure();
+      final accountCenter = ensureAccountCenterService();
       await accountCenter.init();
 
       if (Platform.isIOS) {
@@ -362,7 +362,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       if (!hasLaunchedBefore && firebaseUser != null) {
         await FirebaseAuth.instance.signOut();
         await CurrentUserService.instance.logout();
-        await AccountCenterService.ensure().signOutAllLocal();
+        await ensureAccountCenterService().signOutAllLocal();
       }
 
       if (!hasLaunchedBefore) {
@@ -373,7 +373,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       try {
         await FirebaseAuth.instance.signOut();
         await CurrentUserService.instance.logout();
-        await AccountCenterService.ensure().signOutAllLocal();
+        await ensureAccountCenterService().signOutAllLocal();
       } catch (_) {}
       return true;
     }

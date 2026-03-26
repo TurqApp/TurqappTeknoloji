@@ -14,7 +14,7 @@ Future<Set<String>> _loadAnswerKeyContentSavedIds(String userId) {
   }
 
   final loader = () async {
-    final entries = await UserSubcollectionRepository.ensure().getEntries(
+    final entries = await ensureUserSubcollectionRepository().getEntries(
       userId,
       subcollection: 'books',
       orderByField: 'createdAt',

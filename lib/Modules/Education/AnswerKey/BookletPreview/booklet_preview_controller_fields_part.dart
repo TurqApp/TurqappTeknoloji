@@ -6,7 +6,7 @@ class _BookletPreviewControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
   final BookletRepository bookletRepository = ensureBookletRepository();
   final UserSubcollectionRepository subcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
   final BookletModel model;
   final RxBool isBookmarked = false.obs;
   final RxString nickname = ''.obs;

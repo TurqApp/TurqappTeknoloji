@@ -23,7 +23,7 @@ class SearchUserContent extends StatelessWidget {
   static final UserSummaryResolver _userSummaryResolver =
       UserSummaryResolver.ensure();
   static final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
   static final UsernameLookupRepository _usernameLookupRepository =
       UsernameLookupRepository.ensure();
 

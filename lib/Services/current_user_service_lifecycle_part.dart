@@ -51,14 +51,14 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     if (activeDeviceKey == localDeviceKey) return false;
     if (DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) {
       try {
-        await AccountCenterService.ensure()
+        await ensureAccountCenterService()
             .registerCurrentDeviceSessionIfEnabled();
         return false;
       } catch (_) {}
     }
     if (DeviceSessionService.instance.hasPendingSessionClaim(uid)) {
       try {
-        await AccountCenterService.ensure()
+        await ensureAccountCenterService()
             .registerCurrentDeviceSessionIfEnabled();
         return false;
       } catch (_) {}
@@ -67,7 +67,7 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
         (await DeviceSessionService.instance.getLegacyDeviceKey() ?? '').trim();
     if (legacyDeviceKey.isNotEmpty && activeDeviceKey == legacyDeviceKey) {
       try {
-        await AccountCenterService.ensure()
+        await ensureAccountCenterService()
             .registerCurrentDeviceSessionIfEnabled();
         return false;
       } catch (_) {}
@@ -75,7 +75,7 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
 
     _handlingSessionDisplacement = true;
     try {
-      await AccountCenterService.ensure().markSessionState(
+      await ensureAccountCenterService().markSessionState(
         uid: uid,
         isSessionValid: false,
         requiresReauth: true,

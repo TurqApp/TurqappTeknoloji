@@ -28,7 +28,7 @@ extension EditorNicknameControllerActionsPart on EditorNicknameController {
 
       _originalNickname = normalized;
       await _refreshNicknameSurfaces();
-      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
+      await ensureAccountCenterService().refreshCurrentAccountMetadata();
       await fetchAndSetUserData();
       Get.back();
     } on FirebaseFunctionsException catch (e) {

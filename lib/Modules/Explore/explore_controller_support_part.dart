@@ -9,7 +9,7 @@ extension _ExploreControllerSupportX on ExploreController {
   UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
 
   UserSubcollectionRepository get _subcollectionRepository =>
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
 
   TopTagsRepository get _topTagsRepository => TopTagsRepository.ensure();
 

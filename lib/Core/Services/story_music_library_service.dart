@@ -28,7 +28,7 @@ class StoryMusicLibraryService {
   static const String _cacheTimeKey = 'storyMusic.library.updatedAt.v1';
   static const Duration _cacheTtl = Duration(days: 7);
   final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
 
   CollectionReference<Map<String, dynamic>> get _collection =>
       FirebaseFirestore.instance.collection('storyMusic');

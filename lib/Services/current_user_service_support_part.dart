@@ -27,7 +27,7 @@ bool _isInitialized = false;
 bool _isSyncing = false;
 int? _lastKnownViewSelection;
 final UserSubcollectionRepository _userSubcollectionRepository =
-    UserSubcollectionRepository.ensure();
+    ensureUserSubcollectionRepository();
 const Duration _rootDocCacheTtl = Duration(minutes: 2);
 const Duration _subdocCacheTtl = Duration(minutes: 10);
 const Duration _listCacheTtl = Duration(minutes: 2);

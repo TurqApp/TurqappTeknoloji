@@ -119,7 +119,7 @@ extension _SettingsViewSectionsTasksPart on _SettingsViewState {
             currentUser,
             {"token": ""},
           );
-          await AccountCenterService.ensure().markSessionState(
+          await ensureAccountCenterService().markSessionState(
             uid: currentUser,
             isSessionValid: false,
           );

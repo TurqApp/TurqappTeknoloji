@@ -4,7 +4,7 @@ class _SearchUserContentControllerState {
   _SearchUserContentControllerState({required this.userID});
 
   final UserSubcollectionRepository userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
   final String userID;
   final RxBool isNavigated = false.obs;
 }

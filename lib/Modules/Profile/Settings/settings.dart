@@ -169,7 +169,7 @@ class _SettingsViewState extends State<SettingsView> {
     UploadQueueService.ensure();
     DraftService.ensure();
     ensurePostEditingService();
-    MediaEnhancementService.ensure();
+    ensureMediaEnhancementService();
     OfflineModeService.ensure();
     ensureQALabIfEnabled();
   }

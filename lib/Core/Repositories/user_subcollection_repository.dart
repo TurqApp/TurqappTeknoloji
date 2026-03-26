@@ -17,18 +17,6 @@ class UserSubcollectionRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedUserSubcollection> _memory = {};
 
-  static UserSubcollectionRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<UserSubcollectionRepository>();
-    if (!isRegistered) return null;
-    return Get.find<UserSubcollectionRepository>();
-  }
-
-  static UserSubcollectionRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(UserSubcollectionRepository(), permanent: true);
-  }
-
   @override
   void onInit() {
     super.onInit();

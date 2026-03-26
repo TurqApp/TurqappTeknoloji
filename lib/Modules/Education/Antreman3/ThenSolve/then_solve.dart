@@ -25,7 +25,7 @@ const _thenSolveLgsType = 'LGS';
 class ThenSolve extends StatelessWidget {
   ThenSolve({super.key});
 
-  final AntremanController controller = AntremanController.ensure();
+  final AntremanController controller = ensureAntremanController();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 
