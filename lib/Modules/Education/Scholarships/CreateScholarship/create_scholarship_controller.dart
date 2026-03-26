@@ -29,5 +29,5 @@ part 'create_scholarship_controller_facade_part.dart';
 part 'create_scholarship_controller_fields_part.dart';
 part 'create_scholarship_controller_submission_part.dart';
 part 'create_scholarship_controller_labels_part.dart';
-part 'create_scholarship_controller_shell_part.dart';
+part 'create_scholarship_controller_class_part.dart';
 part 'create_scholarship_controller_support_part.dart';

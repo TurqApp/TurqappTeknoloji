@@ -42,5 +42,5 @@ part 'agenda_controller_models_part.dart';
 part 'agenda_controller_playback_part.dart';
 part 'agenda_controller_render_part.dart';
 part 'agenda_controller_reshare_part.dart';
-part 'agenda_controller_shell_part.dart';
+part 'agenda_controller_class_part.dart';
 part 'agenda_controller_support_part.dart';

@@ -18,26 +18,4 @@ part 'chat_listing_controller_data_part.dart';
 part 'chat_listing_controller_actions_part.dart';
 part 'chat_listing_controller_facade_part.dart';
 part 'chat_listing_controller_fields_part.dart';
-
-class ChatListingController extends GetxController {
-  static ChatListingController ensure() => _ensureChatListingController();
-
-  static ChatListingController? maybeFind() =>
-      _maybeFindChatListingController();
-
-  final _state = _ChatListingControllerState();
-  final ConversationRepository _conversationRepository =
-      ConversationRepository.ensure();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleChatListingInit(this);
-  }
-
-  @override
-  void onClose() {
-    _handleChatListingClose(this);
-    super.onClose();
-  }
-}
+part 'chat_listing_controller_class_part.dart';
