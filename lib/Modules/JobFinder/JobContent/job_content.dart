@@ -56,8 +56,8 @@ class _JobContentState extends State<JobContent> {
     super.initState();
     _controllerTag = 'job_content_${_baseTag}_${identityHashCode(this)}';
     _ownsController =
-        JobContentController.maybeFind(tag: _controllerTag) == null;
-    controller = JobContentController.ensure(tag: _controllerTag);
+        maybeFindJobContentController(tag: _controllerTag) == null;
+    controller = ensureJobContentController(tag: _controllerTag);
     _primeSavedState();
   }
 
@@ -73,7 +73,7 @@ class _JobContentState extends State<JobContent> {
   void dispose() {
     if (_ownsController &&
         identical(
-            JobContentController.maybeFind(tag: _controllerTag), controller)) {
+            maybeFindJobContentController(tag: _controllerTag), controller)) {
       Get.delete<JobContentController>(tag: _controllerTag);
     }
     super.dispose();

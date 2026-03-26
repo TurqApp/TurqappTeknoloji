@@ -136,7 +136,7 @@ class _UserStoryContentState extends State<UserStoryContent>
   void _initializeController() {
     if (widget.user.stories.isNotEmpty &&
         storyIndex < widget.user.stories.length) {
-      controller = UserStoryContentController.ensure(
+      controller = ensureUserStoryContentController(
         tag: _controllerTagFor(storyIndex),
         storyID: widget.user.stories[storyIndex].id,
         nickname: widget.user.nickname,
@@ -149,14 +149,14 @@ class _UserStoryContentState extends State<UserStoryContent>
     if (widget.user.stories.isNotEmpty &&
         storyIndex < widget.user.stories.length) {
       final previousTag = _controllerTagFor(storyIndex - 1);
-      if (UserStoryContentController.maybeFind(tag: previousTag) != null) {
+      if (maybeFindUserStoryContentController(tag: previousTag) != null) {
         try {
           Get.delete<UserStoryContentController>(tag: previousTag);
         } catch (e) {
           // Controller bulunamadıysa devam et
         }
       }
-      controller = UserStoryContentController.ensure(
+      controller = ensureUserStoryContentController(
         tag: _controllerTagFor(storyIndex),
         storyID: widget.user.stories[storyIndex].id,
         nickname: widget.user.nickname,
@@ -173,7 +173,7 @@ class _UserStoryContentState extends State<UserStoryContent>
     AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
     final tag = _controllerTagFor(storyIndex);
-    if (identical(UserStoryContentController.maybeFind(tag: tag), controller)) {
+    if (identical(maybeFindUserStoryContentController(tag: tag), controller)) {
       try {
         Get.delete<UserStoryContentController>(tag: tag);
       } catch (e) {

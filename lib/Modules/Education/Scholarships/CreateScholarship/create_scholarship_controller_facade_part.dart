@@ -1,10 +1,10 @@
 part of 'create_scholarship_controller.dart';
 
-CreateScholarshipController _ensureCreateScholarshipController({
+CreateScholarshipController ensureCreateScholarshipController({
   required String tag,
   bool permanent = false,
 }) {
-  final existing = _maybeFindCreateScholarshipController(tag: tag);
+  final existing = maybeFindCreateScholarshipController(tag: tag);
   if (existing != null) return existing;
   return Get.put(
     CreateScholarshipController(),
@@ -13,7 +13,7 @@ CreateScholarshipController _ensureCreateScholarshipController({
   );
 }
 
-CreateScholarshipController? _maybeFindCreateScholarshipController({
+CreateScholarshipController? maybeFindCreateScholarshipController({
   required String tag,
 }) {
   final isRegistered = Get.isRegistered<CreateScholarshipController>(tag: tag);

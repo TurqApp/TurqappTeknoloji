@@ -1,15 +1,6 @@
 part of 'create_scholarship_controller.dart';
 
 class CreateScholarshipController extends GetxController {
-  static CreateScholarshipController ensure({
-    required String tag,
-    bool permanent = false,
-  }) =>
-      _ensureCreateScholarshipController(tag: tag, permanent: permanent);
-
-  static CreateScholarshipController? maybeFind({required String tag}) =>
-      _maybeFindCreateScholarshipController(tag: tag);
-
   static const String allUniversitiesValue = 'Tüm Üniversiteler';
   static const String turkeyCountryValue = 'Türkiye';
   static const String applicationPlaceTurqAppValue = 'TurqApp';

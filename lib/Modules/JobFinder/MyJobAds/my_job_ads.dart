@@ -23,15 +23,15 @@ class _MyJobAdsState extends State<MyJobAds> {
   @override
   void initState() {
     super.initState();
-    _ownsController = MyJobAdsController.maybeFind(tag: _controllerTag) == null;
-    controller = MyJobAdsController.ensure(tag: _controllerTag);
+    _ownsController = maybeFindMyJobAdsController(tag: _controllerTag) == null;
+    controller = ensureMyJobAdsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          MyJobAdsController.maybeFind(tag: _controllerTag),
+          maybeFindMyJobAdsController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<MyJobAdsController>(tag: _controllerTag, force: true);

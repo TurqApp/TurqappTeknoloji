@@ -1,5 +1,25 @@
 part of 'user_story_content_controller.dart';
 
+UserStoryContentController ensureUserStoryContentController({
+  required String tag,
+  required String storyID,
+  required String nickname,
+  required bool isMyStory,
+  bool permanent = false,
+}) =>
+    _ensureUserStoryContentController(
+      tag: tag,
+      storyID: storyID,
+      nickname: nickname,
+      isMyStory: isMyStory,
+      permanent: permanent,
+    );
+
+UserStoryContentController? maybeFindUserStoryContentController({
+  required String tag,
+}) =>
+    _maybeFindUserStoryContentController(tag: tag);
+
 extension UserStoryContentControllerFacadePart on UserStoryContentController {
   Future<void> getLikes(String storyID) =>
       _UserStoryContentControllerRuntimePart(this).getLikes(storyID);

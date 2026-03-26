@@ -20,15 +20,15 @@ class _SearchDenemeState extends State<SearchDeneme> {
   @override
   void initState() {
     super.initState();
-    final existing = SearchDenemeController.maybeFind();
+    final existing = maybeFindSearchDenemeController();
     _ownsController = existing == null;
-    controller = existing ?? SearchDenemeController.ensure();
+    controller = existing ?? ensureSearchDenemeController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(SearchDenemeController.maybeFind(), controller)) {
+        identical(maybeFindSearchDenemeController(), controller)) {
       Get.delete<SearchDenemeController>();
     }
     super.dispose();

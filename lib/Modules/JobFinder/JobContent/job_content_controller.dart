@@ -16,4 +16,5 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'job_content_controller_actions_part.dart';
 part 'job_content_controller_class_part.dart';
+part 'job_content_controller_facade_part.dart';
 part 'job_content_controller_saved_part.dart';

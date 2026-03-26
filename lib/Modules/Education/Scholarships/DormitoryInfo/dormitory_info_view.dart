@@ -32,17 +32,16 @@ class _DormitoryInfoViewState extends State<DormitoryInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_dormitory_${identityHashCode(this)}';
-    final existing = DormitoryInfoController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindDormitoryInfoController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller =
-        existing ?? DormitoryInfoController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureDormitoryInfoController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          DormitoryInfoController.maybeFind(tag: _controllerTag),
+          maybeFindDormitoryInfoController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<DormitoryInfoController>(tag: _controllerTag, force: true);

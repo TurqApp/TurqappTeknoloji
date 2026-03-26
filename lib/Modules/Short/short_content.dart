@@ -127,8 +127,8 @@ class _ShortsContentState extends State<ShortsContent> {
     super.initState();
     _controllerTag = model.docID;
     _ownsController =
-        ShortContentController.maybeFind(tag: _controllerTag) == null;
-    controller = ShortContentController.ensure(
+        maybeFindShortContentController(tag: _controllerTag) == null;
+    controller = ensureShortContentController(
       postID: model.docID,
       model: model,
       tag: _controllerTag,
@@ -140,7 +140,7 @@ class _ShortsContentState extends State<ShortsContent> {
     Future.microtask(() {
       if (_ownsController &&
           identical(
-            ShortContentController.maybeFind(tag: _controllerTag),
+            maybeFindShortContentController(tag: _controllerTag),
             controller,
           )) {
         Get.delete<ShortContentController>(tag: _controllerTag);

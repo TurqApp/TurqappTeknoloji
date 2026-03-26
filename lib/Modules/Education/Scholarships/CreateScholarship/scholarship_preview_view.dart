@@ -21,7 +21,7 @@ class ScholarshipPreviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = CreateScholarshipController.ensure(tag: controllerTag);
+    final controller = ensureCreateScholarshipController(tag: controllerTag);
     final CarouselSliderController carouselController =
         CarouselSliderController();
     final currentIndex = 0.obs;

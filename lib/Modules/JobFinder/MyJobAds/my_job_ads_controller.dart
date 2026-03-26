@@ -14,3 +14,4 @@ import '../../../Models/job_model.dart';
 part 'my_job_ads_controller_data_part.dart';
 part 'my_job_ads_controller_runtime_part.dart';
 part 'my_job_ads_controller_class_part.dart';
+part 'my_job_ads_controller_facade_part.dart';

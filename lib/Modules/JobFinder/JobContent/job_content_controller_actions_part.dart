@@ -28,7 +28,7 @@ extension JobContentControllerActionsPart on JobContentController {
       "timeStamp": now,
     });
 
-    final myJobAdsController = MyJobAdsController.maybeFind();
+    final myJobAdsController = maybeFindMyJobAdsController();
     if (myJobAdsController != null) {
       await myJobAdsController.getActive();
     }

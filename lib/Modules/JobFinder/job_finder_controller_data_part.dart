@@ -32,7 +32,7 @@ extension JobFinderControllerDataPart on JobFinderController {
 
   Future<void> bootstrapStartData() async {
     final currentUid = CurrentUserService.instance.effectiveUserId;
-    await JobContentController.warmSavedIdsForCurrentUser();
+    await warmJobContentSavedIdsForCurrentUser();
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _jobHomeSnapshotRepository
         .openHome(

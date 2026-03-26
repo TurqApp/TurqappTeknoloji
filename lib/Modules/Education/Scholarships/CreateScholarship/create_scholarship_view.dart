@@ -43,10 +43,10 @@ class _CreateScholarshipViewState extends State<CreateScholarshipView> {
   void initState() {
     super.initState();
     _controllerTag = 'create_scholarship_${identityHashCode(this)}';
-    final existing = CreateScholarshipController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindCreateScholarshipController(tag: _controllerTag);
     _ownsController = existing == null;
     controller =
-        existing ?? CreateScholarshipController.ensure(tag: _controllerTag);
+        existing ?? ensureCreateScholarshipController(tag: _controllerTag);
     controller.controllerTag = _controllerTag;
   }
 
@@ -54,7 +54,7 @@ class _CreateScholarshipViewState extends State<CreateScholarshipView> {
   void dispose() {
     if (_ownsController &&
         identical(
-          CreateScholarshipController.maybeFind(tag: _controllerTag),
+          maybeFindCreateScholarshipController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<CreateScholarshipController>(tag: _controllerTag);
