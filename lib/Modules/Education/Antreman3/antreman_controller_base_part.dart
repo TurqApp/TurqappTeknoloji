@@ -1,6 +1,6 @@
 part of 'antreman_controller.dart';
 
-mixin _AntremanControllerBasePart on GetxController {
+abstract class _AntremanControllerBase extends GetxController {
   final QuestionBankSnapshotRepository _questionBankSnapshotRepository =
       QuestionBankSnapshotRepository.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();

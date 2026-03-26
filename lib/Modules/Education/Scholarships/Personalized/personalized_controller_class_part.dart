@@ -1,7 +1,6 @@
 part of 'personalized_controller.dart';
 
-class PersonalizedController extends GetxController
-    with _PersonalizedControllerBasePart {
+class PersonalizedController extends _PersonalizedControllerBase {
   @override
   void onInit() {
     super.onInit();

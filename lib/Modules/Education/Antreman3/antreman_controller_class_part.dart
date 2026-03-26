@@ -1,7 +1,6 @@
 part of 'antreman_controller.dart';
 
-class AntremanController extends GetxController
-    with _AntremanControllerBasePart {
+class AntremanController extends _AntremanControllerBase {
   @override
   void onInit() {
     super.onInit();

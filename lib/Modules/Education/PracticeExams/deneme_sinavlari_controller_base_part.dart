@@ -1,5 +1,5 @@
 part of 'deneme_sinavlari_controller.dart';
 
-mixin _DenemeSinavlariControllerBasePart on GetxController {
+abstract class _DenemeSinavlariControllerBase extends GetxController {
   final _state = _DenemeSinavlariControllerState();
 }
