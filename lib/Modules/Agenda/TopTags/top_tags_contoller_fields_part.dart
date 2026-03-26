@@ -1,7 +1,7 @@
 part of 'top_tags_contoller.dart';
 
 class _TopTagsControllerState {
-  final navbar = NavBarController.ensure();
+  final navbar = ensureNavBarController();
   final scrollController = ScrollController();
   double lastOffset = 0;
   final tags = <HashtagModel>[].obs;

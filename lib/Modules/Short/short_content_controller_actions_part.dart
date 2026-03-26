@@ -55,7 +55,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = true;
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
 
     final index3 = explore?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) explore!.explorePosts[index3].gizlendi = true;
@@ -85,7 +85,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = false;
 
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
 
     final index3 = explore?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) explore!.explorePosts[index3].gizlendi = false;
@@ -117,7 +117,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = true;
 
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
 
     final index3 = explore?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) explore!.explorePosts[index3].arsiv = true;
@@ -146,7 +146,7 @@ extension ShortContentControllerActionsPart on ShortContentController {
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = false;
 
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
 
     final index3 = explore?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) explore!.explorePosts[index3].arsiv = false;

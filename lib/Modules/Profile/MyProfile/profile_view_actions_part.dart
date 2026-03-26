@@ -304,7 +304,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
     final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = true;
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
 
     final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) {

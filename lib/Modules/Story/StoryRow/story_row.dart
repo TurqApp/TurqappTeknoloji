@@ -22,7 +22,8 @@ class _StoryRowState extends State<StoryRow> {
   late final StoryRowController controller;
   bool _ownsController = false;
 
-  StoryInteractionOptimizer get _storyOptimizer => StoryInteractionOptimizer.to;
+  StoryInteractionOptimizer get _storyOptimizer =>
+      ensureStoryInteractionOptimizer();
 
   @override
   void initState() {

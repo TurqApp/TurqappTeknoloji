@@ -130,7 +130,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       maybeFindAgendaController()?.resetSurfaceForTabTransition();
     } catch (_) {}
     try {
-      ExploreController.maybeFind()?.resetSurfaceForTabTransition();
+      maybeFindExploreController()?.resetSurfaceForTabTransition();
     } catch (_) {}
     try {
       ProfileController.maybeFind()?.resetSurfaceForTabTransition();

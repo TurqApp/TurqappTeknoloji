@@ -10,4 +10,16 @@ abstract class _ShareGridControllerBase extends GetxController {
         );
 
   final _ShareGridControllerState _state;
+
+  @override
+  void onInit() {
+    super.onInit();
+    (this as ShareGridController)._handleShareGridInit();
+  }
+
+  @override
+  void onClose() {
+    (this as ShareGridController)._handleShareGridClose();
+    super.onClose();
+  }
 }

@@ -93,7 +93,7 @@ extension StoryViewerStoryPart on _StoryViewerState {
         final latestStoryTime = _latestStoryMillis(user);
         final latestStoryId = user.stories.first.id;
 
-        await StoryInteractionOptimizer.to.markStoryViewed(
+        await ensureStoryInteractionOptimizer().markStoryViewed(
           targetUserId,
           latestStoryId,
           latestStoryTime,

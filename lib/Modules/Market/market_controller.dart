@@ -34,6 +34,8 @@ part 'market_controller_filter_part.dart';
 part 'market_controller_home_part.dart';
 part 'market_controller_actions_part.dart';
 part 'market_controller_fields_part.dart';
+part 'market_controller_base_part.dart';
+part 'market_controller_facade_part.dart';
 part 'market_controller_lifecycle_part.dart';
 part 'market_controller_runtime_part.dart';
 part 'market_controller_support_part.dart';

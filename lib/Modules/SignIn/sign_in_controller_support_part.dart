@@ -20,7 +20,7 @@ void _logSignupOtp(String stage, [Map<String, Object?> details = const {}]) {
 }
 
 void _ensureFeedTabSelected() {
-  final nav = NavBarController.maybeFind() ?? NavBarController.ensure();
+  final nav = maybeFindNavBarController() ?? ensureNavBarController();
   nav.selectedIndex.value = 0;
 }
 

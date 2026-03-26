@@ -197,7 +197,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     }
     _didNavigate = true;
     if (loggedIn) {
-      NavBarController.maybeFind()?.selectedIndex.value = 0;
+      maybeFindNavBarController()?.selectedIndex.value = 0;
       Get.offAll(() => NavBarView());
       return;
     }
@@ -322,7 +322,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     GlobalLoaderController.ensure();
     ensureAdmobBannerWarmupService();
     ensureAdmobUnitConfigService(permanent: true);
-    StoryInteractionOptimizer.ensure();
+    ensureStoryInteractionOptimizer();
     Get.lazyPut(() => UnreadMessagesController());
     Get.lazyPut(() => NavBarController());
     Get.lazyPut(() => ProfileController());

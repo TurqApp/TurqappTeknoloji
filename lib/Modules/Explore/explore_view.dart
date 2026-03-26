@@ -72,11 +72,11 @@ class _ExploreViewState extends State<ExploreView> {
   @override
   void initState() {
     super.initState();
-    final existingController = ExploreController.maybeFind();
+    final existingController = maybeFindExploreController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = ExploreController.ensure();
+      controller = ensureExploreController();
       _ownsController = true;
     }
   }
@@ -84,7 +84,7 @@ class _ExploreViewState extends State<ExploreView> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(ExploreController.maybeFind(), controller)) {
+        identical(maybeFindExploreController(), controller)) {
       Get.delete<ExploreController>();
     }
     super.dispose();

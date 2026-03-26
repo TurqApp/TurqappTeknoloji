@@ -2,7 +2,7 @@ part of 'profile_view.dart';
 
 extension _ProfileViewLifecyclePart on _ProfileViewState {
   bool _isProfileSurfaceActive() {
-    final nav = NavBarController.maybeFind();
+    final nav = maybeFindNavBarController();
     if (nav == null) {
       final route = Get.currentRoute.trim();
       if (route == '/NavBarView' || route == 'NavBarView') {
@@ -49,7 +49,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     _marketUserWorker = ever(userService.currentUserRx, (_) {
       _refreshProfileSurfaceMetaIfActive(force: false);
     });
-    final nav = NavBarController.maybeFind();
+    final nav = maybeFindNavBarController();
     if (nav != null) {
       _profileTabWorker = ever<int>(nav.selectedIndex, (_) {
         _refreshProfileSurfaceMetaIfActive(force: false);

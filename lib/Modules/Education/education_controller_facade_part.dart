@@ -11,3 +11,11 @@ EducationController? maybeFindEducationController() {
   if (!isRegistered) return null;
   return Get.find<EducationController>();
 }
+
+extension EducationControllerFacadePart on EducationController {
+  void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
+
+  void ensureVisibleSurfaceReset() => _ensureVisibleSurfaceResetImpl();
+
+  void resetVisibleSearchOnReturn() => _performResetVisibleSearchOnReturn();
+}

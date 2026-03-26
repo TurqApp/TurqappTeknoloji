@@ -2,7 +2,7 @@ part of 'post_content_controller.dart';
 
 extension PostContentControllerActionsPart on PostContentController {
   ExploreController? get _exploreControllerOrNull =>
-      ExploreController.maybeFind();
+      maybeFindExploreController();
 
   ProfileController? get _profileControllerOrNull =>
       ProfileController.maybeFind();

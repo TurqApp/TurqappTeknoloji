@@ -298,7 +298,7 @@ extension EducationViewBodyPart on EducationView {
           showEmbeddedControls: false,
         );
       case PasajTabIds.market:
-        final marketController = MarketController.ensure(permanent: true);
+        final marketController = ensureMarketController(permanent: true);
         return MarketView(
           embedded: true,
           showEmbeddedControls: false,
@@ -348,7 +348,7 @@ extension EducationViewBodyPart on EducationView {
       final scrollController = _activeScrollController();
       final showMenu = _showMenuByScrollOffset();
       final menuItems = _menuItemsForActiveTab(context);
-      final tabBarVisible = NavBarController.maybeFind()?.showBar.value ?? true;
+      final tabBarVisible = maybeFindNavBarController()?.showBar.value ?? true;
       final searchActive =
           controller.isKeyboardOpen.value || controller.isSearchMode.value;
 

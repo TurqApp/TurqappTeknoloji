@@ -226,7 +226,7 @@ extension CreateScholarshipControllerSubmissionPart
 
     try {
       Get.offAll(() => NavBarView());
-      NavBarController.maybeFind()?.changeIndex(3);
+      maybeFindNavBarController()?.changeIndex(3);
     } catch (_) {}
 
     try {

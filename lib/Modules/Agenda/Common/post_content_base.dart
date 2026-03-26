@@ -154,7 +154,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!_isProfileFamilySurfaceInstance) {
       return agendaController.canClaimPlaybackNow;
     }
-    final nav = NavBarController.maybeFind();
+    final nav = maybeFindNavBarController();
     final settings = maybeFindSettingsController();
     final hasEducation = settings?.educationScreenIsOn.value ?? false;
     final profileIndex = hasEducation ? 4 : 3;
@@ -263,7 +263,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         },
       );
 
-      final nav = NavBarController.maybeFind();
+      final nav = maybeFindNavBarController();
       if (nav != null) {
         _navSelectionWorker = ever<int>(nav.selectedIndex, (_) {
           if (!_isSurfacePlaybackAllowed) {

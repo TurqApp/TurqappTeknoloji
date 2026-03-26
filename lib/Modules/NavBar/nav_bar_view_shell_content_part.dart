@@ -251,7 +251,7 @@ extension _NavBarViewShellContentPart on NavBarView {
     }
 
     if (index == 1 && controller.selectedIndex.value == 1) {
-      final explore = ExploreController.maybeFind();
+      final explore = maybeFindExploreController();
       if (explore != null) {
         final tab = maybeFindPageLineBarController(kExplorePageLineBarTag)
                 ?.selection

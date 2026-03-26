@@ -88,5 +88,5 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
     throw lastError!;
   }
 
-  NavBarController? _maybeNavBarController() => NavBarController.maybeFind();
+  NavBarController? _maybeNavBarController() => maybeFindNavBarController();
 }

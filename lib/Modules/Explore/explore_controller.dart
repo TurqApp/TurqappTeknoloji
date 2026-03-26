@@ -32,4 +32,6 @@ part 'explore_controller_runtime_part.dart';
 part 'explore_controller_search_part.dart';
 part 'explore_controller_support_part.dart';
 part 'explore_controller_api_part.dart';
+part 'explore_controller_base_part.dart';
+part 'explore_controller_facade_part.dart';
 part 'explore_controller_class_part.dart';

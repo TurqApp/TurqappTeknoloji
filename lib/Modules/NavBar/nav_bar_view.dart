@@ -37,7 +37,7 @@ class NavBarView extends StatelessWidget {
   NavBarView({super.key}) {
     _ensureControllersReady();
   }
-  final NavBarController controller = NavBarController.ensure();
+  final NavBarController controller = ensureNavBarController();
   final SettingsController settingController = ensureSettingsController();
   final DeepLinkService? deepLinkService = maybeFindDeepLinkService();
 

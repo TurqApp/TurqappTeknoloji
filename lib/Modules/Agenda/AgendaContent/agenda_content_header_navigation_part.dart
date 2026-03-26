@@ -93,7 +93,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
     if (exploreController != null) {
       final exploreIndex = exploreController.exploreFloods
           .indexWhere((p) => p.docID == widget.model.docID);
@@ -193,7 +193,7 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
       }
     }
 
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
     if (exploreController != null) {
       final exploreIndex = exploreController.exploreFloods
           .indexWhere((p) => p.docID == widget.model.docID);

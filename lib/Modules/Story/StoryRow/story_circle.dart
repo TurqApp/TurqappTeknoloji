@@ -35,7 +35,8 @@ class StoryCircle extends StatefulWidget {
 
 class _StoryCircleState extends State<StoryCircle> {
   final userService = CurrentUserService.instance;
-  StoryInteractionOptimizer get _storyOptimizer => StoryInteractionOptimizer.to;
+  StoryInteractionOptimizer get _storyOptimizer =>
+      ensureStoryInteractionOptimizer();
   static const double _storyCircleSize = 78;
   static const double _storyAvatarRadius = 39;
   static const double _labelWidth = 82;

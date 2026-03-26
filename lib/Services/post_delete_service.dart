@@ -203,7 +203,7 @@ class PostDeleteService {
     }
 
     // Explore listeleri
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
     if (explore != null) {
       final i1 = explore.explorePosts.indexWhere((e) => e.docID == docID);
       if (i1 != -1) {

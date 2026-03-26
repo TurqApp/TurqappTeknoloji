@@ -17,7 +17,7 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.market) {
       return null;
     }
-    return MarketController.ensure(permanent: true);
+    return ensureMarketController(permanent: true);
   }
 
   bool _showInlineMarketActions() {
@@ -234,7 +234,7 @@ extension EducationViewActionsPart on EducationView {
       case PasajTabIds.tutoring:
         return maybeFindTutoringController()?.scrollController;
       case PasajTabIds.market:
-        return MarketController.maybeFind()?.scrollController;
+        return maybeFindMarketController()?.scrollController;
       default:
         return null;
     }
@@ -257,7 +257,7 @@ extension EducationViewActionsPart on EducationView {
       case PasajTabIds.tutoring:
         return (maybeFindTutoringController()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.market:
-        return (MarketController.maybeFind()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindMarketController()?.scrollOffset.value ?? 0) <= 350;
       default:
         return true;
     }
@@ -347,7 +347,7 @@ extension EducationViewActionsPart on EducationView {
             title: 'pasaj.market.add_listing'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () {
-              final marketController = MarketController.maybeFind();
+              final marketController = maybeFindMarketController();
               if (marketController != null) {
                 marketController.openRoundMenu('create');
               } else {
@@ -359,21 +359,21 @@ extension EducationViewActionsPart on EducationView {
             title: 'pasaj.market.my_listings'.tr,
             icon: CupertinoIcons.cube_box,
             onTap: () {
-              MarketController.maybeFind()?.openRoundMenu('my_items');
+              maybeFindMarketController()?.openRoundMenu('my_items');
             },
           ),
           PullDownMenuItem(
             title: 'pasaj.market.saved_items'.tr,
             icon: CupertinoIcons.hand_thumbsup,
             onTap: () {
-              MarketController.maybeFind()?.openRoundMenu('saved');
+              maybeFindMarketController()?.openRoundMenu('saved');
             },
           ),
           PullDownMenuItem(
             title: 'pasaj.market.my_offers'.tr,
             icon: CupertinoIcons.tag,
             onTap: () {
-              MarketController.maybeFind()?.openRoundMenu('offers');
+              maybeFindMarketController()?.openRoundMenu('offers');
             },
           ),
           PullDownMenuItem(

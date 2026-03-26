@@ -61,7 +61,7 @@ extension EducationControllerSearchPart on EducationController {
         }
         break;
       case PasajTabIds.market:
-        MarketController.maybeFind()?.setSearchQuery(query);
+        maybeFindMarketController()?.setSearchQuery(query);
         break;
       case PasajTabIds.questionBank:
         maybeFindAntremanController()?.setSearchQuery(query);
@@ -90,7 +90,7 @@ extension EducationControllerSearchPart on EducationController {
         maybeFindJobFinderController()?.search.clear();
         break;
       case PasajTabIds.market:
-        MarketController.maybeFind()?.setSearchQuery('');
+        maybeFindMarketController()?.setSearchQuery('');
         break;
       case PasajTabIds.questionBank:
         maybeFindAntremanController()?.setSearchQuery('');

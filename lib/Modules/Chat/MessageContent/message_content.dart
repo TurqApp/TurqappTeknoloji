@@ -45,7 +45,7 @@ class MessageContent extends StatelessWidget {
       this.dateSeparatorText});
   late final MessageContentController controller;
   late final ChatController chatController;
-  final ExploreController? explore = ExploreController.maybeFind();
+  final ExploreController? explore = maybeFindExploreController();
   final ValueNotifier<Offset?> _lastLongPressGlobal =
       ValueNotifier<Offset?>(null);
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;

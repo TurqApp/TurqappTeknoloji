@@ -71,7 +71,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _navBarSnapshot() {
-    final controller = NavBarController.maybeFind();
+    final controller = maybeFindNavBarController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -140,7 +140,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _exploreSnapshot() {
-    final controller = ExploreController.maybeFind();
+    final controller = maybeFindExploreController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }

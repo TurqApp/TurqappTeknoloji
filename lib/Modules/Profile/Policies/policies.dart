@@ -35,8 +35,8 @@ class _PoliciesState extends State<Policies>
   @override
   void initState() {
     super.initState();
-    _ownsController = PoliciesController.maybeFind(tag: _controllerTag) == null;
-    _controller = PoliciesController.ensure(tag: _controllerTag);
+    _ownsController = maybeFindPoliciesController(tag: _controllerTag) == null;
+    _controller = ensurePoliciesController(tag: _controllerTag);
     _tabController = TabController(
       length: _policies.length,
       vsync: this,
@@ -48,7 +48,7 @@ class _PoliciesState extends State<Policies>
   void dispose() {
     if (_ownsController &&
         identical(
-            PoliciesController.maybeFind(tag: _controllerTag), _controller)) {
+            maybeFindPoliciesController(tag: _controllerTag), _controller)) {
       Get.delete<PoliciesController>(tag: _controllerTag);
     }
     _tabController.dispose();

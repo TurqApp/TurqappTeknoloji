@@ -12,6 +12,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/job_model.dart';
 
 part 'my_job_ads_controller_data_part.dart';
+part 'my_job_ads_controller_base_part.dart';
 part 'my_job_ads_controller_runtime_part.dart';
 part 'my_job_ads_controller_class_part.dart';
 part 'my_job_ads_controller_facade_part.dart';

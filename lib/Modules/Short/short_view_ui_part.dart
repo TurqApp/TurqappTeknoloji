@@ -21,12 +21,10 @@ extension ShortViewUiPart on _ShortViewState {
       return;
     }
 
-    final goForward =
-        velocity < -_shortManualGestureTriggerVelocity ||
-            delta < -_shortManualGestureTriggerDistance;
-    final goBackward =
-        velocity > _shortManualGestureTriggerVelocity ||
-            delta > _shortManualGestureTriggerDistance;
+    final goForward = velocity < -_shortManualGestureTriggerVelocity ||
+        delta < -_shortManualGestureTriggerDistance;
+    final goBackward = velocity > _shortManualGestureTriggerVelocity ||
+        delta > _shortManualGestureTriggerDistance;
     if (goForward == goBackward) return;
 
     final targetPage = goForward
@@ -248,7 +246,7 @@ extension ShortViewUiPart on _ShortViewState {
                             await PostRepository.ensure().toggleLike(list[idx]);
                           },
                           onSwipeRight: () async {
-                            NavBarController.maybeFind()?.changeIndex(0);
+                            maybeFindNavBarController()?.changeIndex(0);
                           },
                           volumeOff: (v) {
                             if (v) {

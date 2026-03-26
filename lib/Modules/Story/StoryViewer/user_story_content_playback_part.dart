@@ -212,7 +212,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       final userID = widget.user.userID;
 
       // Optimize edilmiş debounced marking (500ms batch)
-      StoryInteractionOptimizer.to.markStoryViewed(userID, currentStory.id,
+      ensureStoryInteractionOptimizer().markStoryViewed(userID, currentStory.id,
           currentStory.createdAt.millisecondsSinceEpoch);
     }
   }

@@ -36,7 +36,7 @@ class MarketView extends StatelessWidget {
     this.embedded = false,
     this.showEmbeddedControls = true,
     MarketController? controller,
-  }) : controller = controller ?? MarketController.ensure();
+  }) : controller = controller ?? ensureMarketController();
 
   final bool embedded;
   final bool showEmbeddedControls;

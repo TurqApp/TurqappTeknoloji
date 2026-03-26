@@ -29,7 +29,7 @@ extension EducationControllerPasajPart on EducationController {
   void _disposeEducationController() {
     _pasajConfigSub?.cancel();
     _didRunVisibleSurfaceReset = false;
-    NavBarController.maybeFind()?.showBar.value = true;
+    maybeFindNavBarController()?.showBar.value = true;
     tabScrollController.dispose();
     searchController.dispose();
     searchFocus.dispose();
@@ -195,7 +195,7 @@ extension EducationControllerPasajPart on EducationController {
   void resetActivePasajSurfaceToTop() {
     switch (titles[selectedTab.value]) {
       case PasajTabIds.market:
-        final market = MarketController.maybeFind();
+        final market = maybeFindMarketController();
         if (market != null) {
           _resetTrackedScrollController(market.scrollController);
           market.scrollOffset.value = 0;
@@ -256,7 +256,7 @@ extension EducationControllerPasajPart on EducationController {
   }
 
   void onVerticalScrollDirection(ScrollDirection direction) {
-    final nav = NavBarController.maybeFind();
+    final nav = maybeFindNavBarController();
     if (nav == null || direction == ScrollDirection.idle) return;
 
     final now = DateTime.now();
@@ -273,7 +273,7 @@ extension EducationControllerPasajPart on EducationController {
   bool handleEducationBoundarySwipe(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.horizontal) return false;
 
-    final nav = NavBarController.maybeFind();
+    final nav = maybeFindNavBarController();
     if (nav != null && !nav.showBar.value) {
       nav.showBar.value = true;
     }
@@ -313,7 +313,7 @@ extension EducationControllerPasajPart on EducationController {
   }
 
   void _suppressBackgroundFeedMedia() {
-    final nav = NavBarController.maybeFind();
+    final nav = maybeFindNavBarController();
     final hasEducation = settingsController.educationScreenIsOn.value;
     final educationIndex = hasEducation ? 3 : -1;
     if (nav?.selectedIndex.value != educationIndex) {

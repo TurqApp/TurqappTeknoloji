@@ -164,7 +164,7 @@ extension DeepLinkServiceOpenPart on DeepLinkService {
       return;
     }
 
-    final navController = NavBarController.ensure();
+    final navController = ensureNavBarController();
     final educationController = ensureEducationController();
 
     navController.changeIndex(3);

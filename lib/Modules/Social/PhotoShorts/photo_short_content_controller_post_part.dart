@@ -59,7 +59,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = true;
 
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
     final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) {
       exploreController!.explorePosts[index3].gizlendi = true;
@@ -94,7 +94,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].gizlendi = false;
 
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
 
     final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) {
@@ -132,7 +132,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = true;
 
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
     final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) exploreController!.explorePosts[index3].arsiv = true;
 
@@ -162,7 +162,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
     final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = false;
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
 
     final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
     if (index3 >= 0) exploreController!.explorePosts[index3].arsiv = false;
@@ -197,7 +197,7 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
     });
 
     Future.delayed(const Duration(seconds: 3), () {
-      final explore = ExploreController.maybeFind();
+      final explore = maybeFindExploreController();
       if (explore != null) {
         final i1 =
             explore.explorePhotos.indexWhere((e) => e.docID == model.docID);

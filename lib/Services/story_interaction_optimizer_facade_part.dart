@@ -1,5 +1,11 @@
 part of 'story_interaction_optimizer.dart';
 
+StoryInteractionOptimizer? maybeFindStoryInteractionOptimizer() =>
+    _maybeFindStoryInteractionOptimizer();
+
+StoryInteractionOptimizer ensureStoryInteractionOptimizer() =>
+    _ensureStoryInteractionOptimizer();
+
 StoryInteractionOptimizer? _maybeFindStoryInteractionOptimizer() =>
     Get.isRegistered<StoryInteractionOptimizer>()
         ? Get.find<StoryInteractionOptimizer>()

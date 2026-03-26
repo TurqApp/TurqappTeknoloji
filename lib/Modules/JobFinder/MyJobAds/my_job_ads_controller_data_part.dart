@@ -22,7 +22,7 @@ extension MyJobAdsControllerDataPart on MyJobAdsController {
       isLoadingActive.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'jobs:my_ads:active:$uid',
-        minInterval: MyJobAdsController._silentRefreshInterval,
+        minInterval: _myJobAdsSilentRefreshInterval,
       )) {
         unawaited(getActive(silent: true, forceRefresh: true));
       }
@@ -42,7 +42,7 @@ extension MyJobAdsControllerDataPart on MyJobAdsController {
       isLoadingDeactive.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'jobs:my_ads:ended:$uid',
-        minInterval: MyJobAdsController._silentRefreshInterval,
+        minInterval: _myJobAdsSilentRefreshInterval,
       )) {
         unawaited(getDeactive(silent: true, forceRefresh: true));
       }

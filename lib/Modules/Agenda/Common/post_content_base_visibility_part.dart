@@ -121,7 +121,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
       }
     }
 
-    final exploreController = ExploreController.maybeFind();
+    final exploreController = maybeFindExploreController();
     if (surfaceTag.startsWith('explore_series_') && exploreController != null) {
       final exploreIndex = exploreController.exploreFloods
           .indexWhere((p) => p.docID == widget.model.docID);

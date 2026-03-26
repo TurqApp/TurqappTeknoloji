@@ -8,16 +8,4 @@ class ShortController extends _ShortControllerBase {
 
   bool _isEligibleShortPost(PostsModel post) =>
       _ShortControllerRuntimeX(this).isEligibleShortPost(post);
-
-  @override
-  void onInit() {
-    super.onInit();
-    _ShortControllerRuntimeX(this).handleOnInit();
-  }
-
-  @override
-  void onClose() {
-    _ShortControllerRuntimeX(this).handleOnClose();
-    super.onClose();
-  }
 }

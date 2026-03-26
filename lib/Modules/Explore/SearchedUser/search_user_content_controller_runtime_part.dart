@@ -7,7 +7,7 @@ Future<void> _goToSearchUserProfile(
   if (controller.userID.trim().isEmpty) return;
   controller.isNavigated.value = true;
   try {
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
     explore?.suspendExplorePreview();
     await Get.to(
       () => SocialProfile(userID: controller.userID),
@@ -31,7 +31,7 @@ Future<void> _goToSearchUserProfile(
     await CurrentUserService.instance.forceRefresh();
   } catch (_) {
   } finally {
-    ExploreController.maybeFind()?.resumeExplorePreview();
+    maybeFindExploreController()?.resumeExplorePreview();
     controller.isNavigated.value = false;
   }
 }
