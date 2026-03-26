@@ -1,4 +1,4 @@
-part of 'tutoring_filter_controller.dart';
+part of 'tutoring_filter_controller_library.dart';
 
 abstract class _TutoringFilterControllerBase extends GetxController {
   final _state = _TutoringFilterControllerState();

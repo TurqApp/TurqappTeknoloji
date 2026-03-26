@@ -1,4 +1,4 @@
-part of 'top_tags_contoller.dart';
+part of 'top_tags_contoller_library.dart';
 
 extension TopTagsControllerScrollPart on TopTagsController {
   int _resolveRestoreIndex() {

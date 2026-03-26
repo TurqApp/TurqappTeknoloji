@@ -1,4 +1,4 @@
-part of 'tests_controller.dart';
+part of 'tests_controller_library.dart';
 
 abstract class _TestsControllerBase extends GetxController {
   final _state = _TestsControllerState();

@@ -1,4 +1,4 @@
-part of 'sinav_sonuclarim_controller.dart';
+part of 'sinav_sonuclarim_controller_library.dart';
 
 class SinavSonuclarimController extends GetxController {
   final _state = _SinavSonuclarimControllerState();

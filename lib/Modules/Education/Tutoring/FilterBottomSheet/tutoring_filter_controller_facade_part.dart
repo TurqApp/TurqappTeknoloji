@@ -1,4 +1,4 @@
-part of 'tutoring_filter_controller.dart';
+part of 'tutoring_filter_controller_library.dart';
 
 TutoringFilterController? maybeFindTutoringFilterController() {
   final isRegistered = Get.isRegistered<TutoringFilterController>();

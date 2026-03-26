@@ -1,4 +1,4 @@
-part of 'sinav_sonuclarim_controller.dart';
+part of 'sinav_sonuclarim_controller_library.dart';
 
 extension _SinavSonuclarimControllerRuntimeX on SinavSonuclarimController {
   Future<void> bootstrapData() async {

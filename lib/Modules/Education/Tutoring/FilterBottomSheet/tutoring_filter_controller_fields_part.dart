@@ -1,4 +1,4 @@
-part of 'tutoring_filter_controller.dart';
+part of 'tutoring_filter_controller_library.dart';
 
 class _TutoringFilterControllerState {
   final TutoringController tutoringController = ensureTutoringController();

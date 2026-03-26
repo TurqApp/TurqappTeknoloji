@@ -1,4 +1,4 @@
-part of 'create_test_question_content_controller.dart';
+part of 'create_test_question_content_controller_library.dart';
 
 class CreateTestQuestionContentController extends GetxController {
   final _CreateTestQuestionContentControllerState _state;

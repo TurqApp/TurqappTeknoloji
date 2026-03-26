@@ -1,4 +1,4 @@
-part of 'sinav_sonuclarim_controller.dart';
+part of 'sinav_sonuclarim_controller_library.dart';
 
 SinavSonuclarimController ensureSinavSonuclarimController({
   bool permanent = false,

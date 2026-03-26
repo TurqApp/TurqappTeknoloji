@@ -1,4 +1,4 @@
-part of 'top_tags_contoller.dart';
+part of 'top_tags_contoller_library.dart';
 
 abstract class _TopTagsControllerBase extends GetxController {
   _TopTagsControllerBase({TopTagsRepository? repository})

@@ -1,4 +1,4 @@
-part of 'tests_controller.dart';
+part of 'tests_controller_library.dart';
 
 class TestsController extends _TestsControllerBase {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

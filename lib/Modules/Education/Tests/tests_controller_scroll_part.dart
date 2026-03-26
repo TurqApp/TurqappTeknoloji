@@ -1,4 +1,4 @@
-part of 'tests_controller.dart';
+part of 'tests_controller_library.dart';
 
 extension TestsControllerScrollPart on TestsController {
   void _bindScrollControl() {
