@@ -4,11 +4,11 @@ extension _EnhancedTextEditorLifecyclePart on _EnhancedTextEditorState {
   void _initEnhancedTextEditorLifecycle() {
     super.initState();
     _editingService = ensurePostEditingService();
-    widget.controller.addListener(_onTextChanged);
+    widget.controller.addListener(_onTextChangedLifecycle);
   }
 
   void _disposeEnhancedTextEditorLifecycle() {
-    widget.controller.removeListener(_onTextChanged);
+    widget.controller.removeListener(_onTextChangedLifecycle);
     _focusNode.dispose();
   }
 

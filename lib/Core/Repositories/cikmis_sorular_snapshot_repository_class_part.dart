@@ -5,12 +5,6 @@ class CikmisSorularSnapshotRepository extends GetxService {
 
   static const String _homeSurfaceKey = 'past_question_home_snapshot';
 
-  static CikmisSorularSnapshotRepository? maybeFind() =>
-      maybeFindCikmisSorularSnapshotRepository();
-
-  static CikmisSorularSnapshotRepository ensure() =>
-      ensureCikmisSorularSnapshotRepository();
-
   final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
 
   late final CacheFirstCoordinator<List<Map<String, dynamic>>> _coordinator =

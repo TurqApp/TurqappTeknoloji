@@ -7,14 +7,6 @@ class NotifyLookupRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
 
-  static const Duration _postLookupTtl = Duration(seconds: 30);
-  static const Duration _chatLookupTtl = Duration(seconds: 30);
-  static const Duration _jobLookupTtl = Duration(seconds: 30);
-  static const Duration _tutoringLookupTtl = Duration(seconds: 30);
-  static const Duration _marketLookupTtl = Duration(seconds: 30);
-  static const Duration _staleRetention = Duration(minutes: 3);
-  static const int _maxLookupEntries = 300;
-
   final Map<String, NotifyPostLookup> _postLookupCache =
       <String, NotifyPostLookup>{};
   final Map<String, NotifyChatLookup> _chatLookupCache =

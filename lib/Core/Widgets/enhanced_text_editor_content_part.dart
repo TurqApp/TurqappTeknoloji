@@ -35,7 +35,7 @@ extension _EnhancedTextEditorContentPart on _EnhancedTextEditorState {
                       beforeState: {'text': oldText},
                       afterState: {'text': text},
                     );
-                    _onTextChanged();
+                    _onTextChangedLifecycle();
                   },
                 ),
               ),
@@ -105,7 +105,7 @@ extension _EnhancedTextEditorContentPart on _EnhancedTextEditorState {
           Obx(
             () => IconButton(
               icon: const Icon(Icons.undo, size: 18),
-              onPressed: _editingService.canUndo ? _performUndo : null,
+              onPressed: _editingService.canUndo ? _performUndoAction : null,
               color: _editingService.canUndo ? Colors.blue : Colors.grey,
               splashRadius: 18,
             ),
@@ -113,7 +113,7 @@ extension _EnhancedTextEditorContentPart on _EnhancedTextEditorState {
           Obx(
             () => IconButton(
               icon: const Icon(Icons.redo, size: 18),
-              onPressed: _editingService.canRedo ? _performRedo : null,
+              onPressed: _editingService.canRedo ? _performRedoAction : null,
               color: _editingService.canRedo ? Colors.blue : Colors.grey,
               splashRadius: 18,
             ),
@@ -230,7 +230,7 @@ extension _EnhancedTextEditorContentPart on _EnhancedTextEditorState {
         style: const TextStyle(color: Colors.white, fontSize: 12),
       ),
       backgroundColor: chipColor,
-      onPressed: () => _applySuggestion(suggestion),
+      onPressed: () => _applySuggestionAction(suggestion),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }

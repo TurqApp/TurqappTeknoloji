@@ -58,6 +58,14 @@ class _PostContentControllerState {
 }
 
 extension PostContentControllerFieldsPart on PostContentController {
+  PostsModel get model => _shellState.model;
+  bool get enableLegacyCommentSync => _shellState.enableLegacyCommentSync;
+  bool get scrollFeedToTopOnReshare => _shellState.scrollFeedToTopOnReshare;
+  _PostContentIdentityState get _identityState => _shellState.identityState;
+  _PostContentControllerState get _controllerState =>
+      _shellState.controllerState;
+  AgendaController get agendaController =>
+      _shellState.agendaController ??= _resolveAgendaController();
   bool get _canSendAdminPush => _controllerState.canSendAdminPush;
   set _canSendAdminPush(bool value) =>
       _controllerState.canSendAdminPush = value;

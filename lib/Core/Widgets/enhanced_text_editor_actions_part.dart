@@ -5,7 +5,7 @@ extension _EnhancedTextEditorActionsPart on _EnhancedTextEditorState {
     final undoState = _editingService.undo();
     if (undoState != null && undoState.containsKey('text')) {
       widget.controller.text = undoState['text'] as String;
-      _onTextChanged();
+      _onTextChangedLifecycle();
     }
   }
 
@@ -13,7 +13,7 @@ extension _EnhancedTextEditorActionsPart on _EnhancedTextEditorState {
     final redoState = _editingService.redo();
     if (redoState != null && redoState.containsKey('text')) {
       widget.controller.text = redoState['text'] as String;
-      _onTextChanged();
+      _onTextChangedLifecycle();
     }
   }
 
@@ -28,7 +28,7 @@ extension _EnhancedTextEditorActionsPart on _EnhancedTextEditorState {
     );
 
     widget.controller.text = newText;
-    _onTextChanged();
+    _onTextChangedLifecycle();
 
     AppSnackbar(
       'common.success'.tr,

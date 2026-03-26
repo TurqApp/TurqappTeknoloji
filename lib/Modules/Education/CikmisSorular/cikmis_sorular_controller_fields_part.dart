@@ -2,7 +2,7 @@ part of 'cikmis_sorular_controller.dart';
 
 class _CikmisSorularControllerState {
   final CikmisSorularSnapshotRepository snapshotRepository =
-      CikmisSorularSnapshotRepository.ensure();
+      ensureCikmisSorularSnapshotRepository();
   final RxList<Map<String, dynamic>> covers = <Map<String, dynamic>>[].obs;
   final RxList<Map<String, dynamic>> searchResults =
       <Map<String, dynamic>>[].obs;

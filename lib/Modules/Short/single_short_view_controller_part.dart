@@ -16,13 +16,4 @@ extension SingleShortViewControllerPart on _SingleShortViewState {
       unawaited(_releaseControllerAt(idx));
     }
   }
-
-  void _preloadRange(int center) {
-    final len = shorts.length;
-    final start = (center - 1).clamp(0, len - 1);
-    final end = (center + 5).clamp(0, len - 1);
-    for (var i = start; i <= end; i++) {
-      _ensureController(i);
-    }
-  }
 }

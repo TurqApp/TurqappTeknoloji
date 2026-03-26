@@ -16,13 +16,4 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
   @override
   Widget build(BuildContext context) =>
       _buildEnhancedTextEditorContent(context);
-
-  void _onTextChanged() => _onTextChangedLifecycle();
-
-  void _performUndo() => _performUndoAction();
-
-  void _performRedo() => _performRedoAction();
-
-  void _applySuggestion(SmartSuggestion suggestion) =>
-      _applySuggestionAction(suggestion);
 }

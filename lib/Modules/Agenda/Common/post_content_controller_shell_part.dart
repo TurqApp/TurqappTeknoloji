@@ -15,14 +15,3 @@ class _PostContentShellState {
   final _PostContentControllerState controllerState;
   AgendaController? agendaController;
 }
-
-extension PostContentControllerShellPart on PostContentController {
-  PostsModel get model => _shellState.model;
-  bool get enableLegacyCommentSync => _shellState.enableLegacyCommentSync;
-  bool get scrollFeedToTopOnReshare => _shellState.scrollFeedToTopOnReshare;
-  _PostContentIdentityState get _identityState => _shellState.identityState;
-  _PostContentControllerState get _controllerState =>
-      _shellState.controllerState;
-  AgendaController get agendaController =>
-      _shellState.agendaController ??= _resolveAgendaController();
-}
