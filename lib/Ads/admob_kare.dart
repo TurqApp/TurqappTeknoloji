@@ -686,9 +686,11 @@ class _AdmobKareState extends State<AdmobKare> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
-            Color(0xFF0F172A),
-            Color(0xFF0F766E),
+            Color(0xFF08313A),
+            Color(0xFF0097A7),
+            Color(0xFF00BCD4),
           ],
+          stops: <double>[0, 0.62, 1],
         ),
       ),
       child: Padding(
@@ -699,8 +701,11 @@ class _AdmobKareState extends State<AdmobKare> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: CupertinoColors.white.withValues(alpha: 0.18),
+                color: const Color(0x3800BCD4),
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: const Color(0x6600BCD4),
+                ),
               ),
               child: const Text(
                 'TurqApp önerisi',
@@ -713,7 +718,7 @@ class _AdmobKareState extends State<AdmobKare> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Pasaj, ilanlar ve denemeleri keşfet',
+              'Fırsat, gelişim ve ihtiyaç aynı yerde',
               style: TextStyle(
                 color: CupertinoColors.white,
                 fontSize: 22,
