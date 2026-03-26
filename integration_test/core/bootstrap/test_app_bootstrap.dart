@@ -3,10 +3,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
@@ -39,8 +43,10 @@ IntegrationTestWidgetsFlutterBinding ensureIntegrationBinding() {
 
 Future<void> launchTurqApp(WidgetTester tester) async {
   debugPrint('[integration-smoke] launch: app.main start');
+  final originalFlutterOnError = FlutterError.onError;
   final originalErrorWidgetBuilder = ErrorWidget.builder;
   await app.main();
+  FlutterError.onError = originalFlutterOnError;
   ErrorWidget.builder = originalErrorWidgetBuilder;
   debugPrint('[integration-smoke] launch: app.main done');
   await pumpForAppStartup(tester);
@@ -134,7 +140,7 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   await CurrentUserService.instance.initialize();
   debugPrint('[integration-smoke] auth: current user initialized');
 
-  final accountCenter = AccountCenterService.ensure();
+  final accountCenter = ensureAccountCenterService();
   await accountCenter.init();
   final firebaseUser = FirebaseAuth.instance.currentUser;
   if (firebaseUser != null) {
@@ -154,19 +160,12 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
     }
   }
   debugPrint('[integration-smoke] auth: account center synced');
+  await _primeNotificationsForSmoke(tester);
+  await _primeFeedSnapshotForSmoke(tester);
+  await _primeMarketForSmoke(tester);
 
   if (Get.currentRoute != '/NavBarView') {
-    try {
-      Get.offAll(() => NavBarView());
-      await pumpForAppStartup(
-        tester,
-        step: const Duration(milliseconds: 250),
-        maxPumps: 12,
-      );
-      debugPrint('[integration-smoke] auth: routed to NavBar');
-    } catch (error) {
-      debugPrint('[integration-smoke] auth: route to NavBar skipped: $error');
-    }
+    await _routeToNavBarForSmoke(tester);
   }
 
   await _primeFeedForSmoke(tester);
@@ -174,7 +173,7 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
 
 Future<void> performSmokeSignOut(WidgetTester tester) async {
   final currentUid = CurrentUserService.instance.effectiveUserId.trim();
-  final accountCenter = AccountCenterService.ensure();
+  final accountCenter = ensureAccountCenterService();
 
   if (currentUid.isNotEmpty) {
     try {
@@ -220,7 +219,7 @@ Future<void> performSmokeReauth(
   await tester.pump(const Duration(milliseconds: 300));
   drainExpectedTesterExceptions(tester, context: 'smoke reauth init');
 
-  final accountCenter = AccountCenterService.ensure();
+  final accountCenter = ensureAccountCenterService();
   await accountCenter.init();
   final firebaseUser = FirebaseAuth.instance.currentUser;
   if (firebaseUser != null) {
@@ -259,7 +258,7 @@ Future<void> _resetSmokeSessionForDeterministicSignIn(
   }
 
   try {
-    await AccountCenterService.ensure().signOutAllLocal();
+    await ensureAccountCenterService().signOutAllLocal();
   } catch (error) {
     debugPrint('[integration-smoke] auth: AccountCenter reset skipped: $error');
   }
@@ -324,7 +323,7 @@ Future<void> _refreshAccountCenterMetadataForSmoke(
 
 Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   final agendaController =
-      AgendaController.maybeFind() ?? AgendaController.ensure();
+      maybeFindAgendaController() ?? ensureAgendaController();
   agendaController.setFeedViewMode(FeedViewMode.forYou);
   if (_feedSatisfiesFixtureContract(agendaController)) {
     debugPrint(
@@ -332,6 +331,18 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
       '(count=${agendaController.agendaList.length})',
     );
     return;
+  }
+
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 250));
+    drainExpectedTesterExceptions(tester, context: 'feed settle');
+    if (_feedSatisfiesFixtureContract(agendaController)) {
+      debugPrint(
+        '[integration-smoke] feed: primed after settle '
+        '(count=${agendaController.agendaList.length})',
+      );
+      return;
+    }
   }
 
   try {
@@ -410,6 +421,83 @@ bool _feedSatisfiesFixtureContract(AgendaController controller) {
   return true;
 }
 
+Future<void> _primeNotificationsForSmoke(WidgetTester tester) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  if (uid.isEmpty) return;
+
+  final repository = NotificationsSnapshotRepository.ensure();
+  try {
+    await repository.loadInbox(
+      userId: uid,
+      forceSync: true,
+    );
+    await repository.bootstrapInbox(userId: uid);
+    await tester.pump(const Duration(milliseconds: 250));
+    drainExpectedTesterExceptions(tester, context: 'notifications prime');
+  } catch (error) {
+    debugPrint('[integration-smoke] notifications prime skipped: $error');
+  }
+}
+
+Future<void> _primeFeedSnapshotForSmoke(WidgetTester tester) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  if (uid.isEmpty) return;
+
+  final repository = FeedSnapshotRepository.ensure();
+  try {
+    await repository.loadHome(
+      userId: uid,
+      forceSync: true,
+    );
+    await repository.bootstrapHome(userId: uid);
+    await tester.pump(const Duration(milliseconds: 250));
+    drainExpectedTesterExceptions(tester, context: 'feed snapshot prime');
+  } catch (error) {
+    debugPrint('[integration-smoke] feed snapshot prime skipped: $error');
+  }
+}
+
+Future<void> _primeMarketForSmoke(WidgetTester tester) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  if (uid.isEmpty) return;
+
+  final repository = MarketSnapshotRepository.ensure();
+  try {
+    await repository.loadHome(
+      userId: uid,
+      forceSync: true,
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    drainExpectedTesterExceptions(tester, context: 'market snapshot prime');
+  } catch (error) {
+    debugPrint('[integration-smoke] market snapshot prime skipped: $error');
+  }
+}
+
+Future<void> _routeToNavBarForSmoke(WidgetTester tester) async {
+  try {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.currentRoute == '/NavBarView') return;
+      NavBarController.maybeFind()?.selectedIndex.value = 0;
+      Get.offAll(() => NavBarView());
+    });
+    await pumpForAppStartup(
+      tester,
+      step: const Duration(milliseconds: 250),
+      maxPumps: 12,
+    );
+    await pumpUntilVisible(
+      tester,
+      byItKey(IntegrationTestKeys.navBarRoot),
+      step: const Duration(milliseconds: 250),
+      maxPumps: 12,
+    );
+    debugPrint('[integration-smoke] auth: routed to NavBar');
+  } catch (error) {
+    debugPrint('[integration-smoke] auth: route to NavBar skipped: $error');
+  }
+}
+
 Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {
   final envEmail = kIntegrationLoginEmail.trim().toLowerCase();
   final envPassword = kIntegrationLoginPassword;
@@ -417,7 +505,7 @@ Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {
     return AccountSessionCredential(email: envEmail, password: envPassword);
   }
 
-  final accountCenter = AccountCenterService.ensure();
+  final accountCenter = ensureAccountCenterService();
   await accountCenter.init();
   final candidates = <String>{
     if (accountCenter.lastUsedUid.value.trim().isNotEmpty)

@@ -54,6 +54,11 @@ class PlaybackWatchdog(
     private fun evaluatePlayer(player: Player) {
         val now = SystemClock.elapsedRealtime()
         val positionMs = player.currentPosition.coerceAtLeast(0L)
+        if (player.playbackState == Player.STATE_ENDED) {
+            lastObservedPositionMs = positionMs
+            lastProgressedAt = 0L
+            return
+        }
         val canRenderNow =
             monitor.hasActiveSurface() ||
                 monitor.awaitingFullscreenRecovery ||

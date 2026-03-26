@@ -7,7 +7,7 @@ cd "$REPO_ROOT"
 adb_bin="${ANDROID_ADB_BIN:-/Users/turqapp/Library/Android/sdk/platform-tools/adb}"
 device_id="${ANDROID_DEVICE_ID:-}"
 package_name="${ANDROID_PACKAGE_NAME:-com.turqapp.app}"
-line_count="${DEVICE_LOG_LINE_COUNT:-400}"
+line_count="${DEVICE_LOG_LINE_COUNT:-1500}"
 raw_output="${DEVICE_LOG_RAW_OUTPUT:-artifacts/device_logs/android_logcat_latest.txt}"
 report_output="${DEVICE_LOG_REPORT_OUTPUT:-artifacts/device_log_report_latest.json}"
 

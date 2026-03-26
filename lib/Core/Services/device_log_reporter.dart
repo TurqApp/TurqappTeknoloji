@@ -8,6 +8,7 @@ class DeviceLogIssue {
     required this.message,
     required this.count,
     required this.sampleLine,
+    this.context,
   });
 
   final String code;
@@ -16,9 +17,10 @@ class DeviceLogIssue {
   final String message;
   final int count;
   final String sampleLine;
+  final Map<String, dynamic>? context;
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{
+    final json = <String, dynamic>{
       'code': code,
       'severity': severity,
       'tag': tag,
@@ -27,6 +29,10 @@ class DeviceLogIssue {
       'sampleLine': sampleLine,
       'type': 'device_log',
     };
+    if (context != null && context!.isNotEmpty) {
+      json['context'] = context;
+    }
+    return json;
   }
 }
 
@@ -86,6 +92,10 @@ class DeviceLogReporter {
   const DeviceLogReporter._();
 
   static const int _stagnantPlaybackPositionThreshold = 10;
+  static const int _frameBurstGapMs = 250;
+  static const int _frameContextWindowMs = 1500;
+  static const String _frameAcquireFenceMessage =
+      'Frame acquire fence was missing during rendering.';
 
   static DeviceLogReport buildReport(
     String rawLog, {
@@ -99,10 +109,17 @@ class DeviceLogReporter {
         .map((line) => line.trimRight())
         .where((line) => line.isNotEmpty)
         .toList(growable: false);
+    final parsedEntries = lines
+        .asMap()
+        .entries
+        .map((entry) => _parseLine(entry.value, lineNumber: entry.key + 1))
+        .whereType<_ParsedLogLine>()
+        .toList(growable: false);
 
     final issueBuckets = <String, _MutableLogEntry>{};
     final observationBuckets = <String, _MutableLogEntry>{};
     final playbackPositionBuckets = <String, _MutableLogEntry>{};
+    final endedPlaybackSources = <String>{};
     int? firstFrameTtffMs;
     var firstFrameRenderedCount = 0;
     var playerReadyCount = 0;
@@ -110,12 +127,10 @@ class DeviceLogReporter {
     var frameAcquireFenceMissCount = 0;
     var chromaSitingWarningCount = 0;
     var pesStartCodeWarningCount = 0;
+    _MutableLogEntry? frameAcquireFenceIssue;
 
-    for (final line in lines) {
-      final entry = _parseLine(line);
-      if (entry == null) {
-        continue;
-      }
+    for (final entry in parsedEntries) {
+      final line = entry.rawLine;
       final tag = entry.tag;
       final message = entry.message;
 
@@ -158,13 +173,23 @@ class DeviceLogReporter {
         continue;
       }
 
+      if (tag == 'ExoPlayerPlaybackProbe' &&
+          message.startsWith('state=ENDED')) {
+        endedPlaybackSources.add(entry.sourceKey);
+        continue;
+      }
+
       if (tag == 'PlaybackHealthMonitor' && message.startsWith('position=')) {
+        if (endedPlaybackSources.contains(entry.sourceKey)) {
+          continue;
+        }
         _addObservation(
           playbackPositionBuckets,
           code: 'playback_position',
           tag: tag,
           message: message,
           sampleLine: line,
+          bucketKey: '${entry.sourceKey}|$message',
         );
         continue;
       }
@@ -183,12 +208,12 @@ class DeviceLogReporter {
 
       if (tag == 'FrameEvents' && message.contains('Did not find frame')) {
         frameAcquireFenceMissCount += 1;
-        _addIssue(
+        frameAcquireFenceIssue = _addIssue(
           issueBuckets,
           code: 'frame_events_missing_acquire_fence',
           severity: 'warning',
           tag: tag,
-          message: 'Frame acquire fence was missing during rendering.',
+          message: _frameAcquireFenceMessage,
           sampleLine: line,
         );
         continue;
@@ -260,6 +285,17 @@ class DeviceLogReporter {
           message: 'Fatal runtime signal observed in device logs.',
           sampleLine: line,
         );
+      }
+    }
+
+    if (frameAcquireFenceIssue != null) {
+      final correlation = _buildFrameEventsCorrelation(parsedEntries);
+      if (correlation != null) {
+        frameAcquireFenceIssue.context = correlation.toJson();
+        if (correlation.rootCauseCategory != 'unknown') {
+          frameAcquireFenceIssue.message =
+              '$_frameAcquireFenceMessage ${correlation.messageSuffix}';
+        }
       }
     }
 
@@ -361,21 +397,38 @@ class DeviceLogReporter {
     }
   }
 
-  static _ParsedLogLine? _parseLine(String raw) {
+  static _ParsedLogLine? _parseLine(String raw, {required int lineNumber}) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty || trimmed.startsWith('---------')) {
       return null;
     }
     final match = RegExp(
-      r'^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+[A-Z]\s+([^:]+):\s+(.*)$',
+      r'^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+\s+[A-Z]\s+([^:]+):\s+(.*)$',
     ).firstMatch(trimmed);
     if (match == null) {
-      return _ParsedLogLine(tag: 'unknown', message: trimmed);
+      return _ParsedLogLine(
+        tag: 'unknown',
+        sourceKey: 'unknown',
+        rawLine: trimmed,
+        lineNumber: lineNumber,
+        timestampMs: null,
+        message: trimmed,
+      );
     }
-    final rawTag = match.group(1)?.trim() ?? 'unknown';
-    final tag = rawTag.split('#').first.trim();
-    final message = match.group(2)?.trim() ?? '';
-    return _ParsedLogLine(tag: tag, message: message);
+    final timestampRaw = match.group(1)?.trim() ?? '';
+    final rawTag = match.group(2)?.trim() ?? 'unknown';
+    final tagParts = rawTag.split('#');
+    final tag = tagParts.first.trim();
+    final sourceKey = tagParts.length > 1 ? tagParts.last.trim() : rawTag;
+    final message = match.group(3)?.trim() ?? '';
+    return _ParsedLogLine(
+      tag: tag,
+      sourceKey: sourceKey,
+      rawLine: trimmed,
+      lineNumber: lineNumber,
+      timestampMs: _parseTimestampMs(timestampRaw),
+      message: message,
+    );
   }
 
   static int? _firstInt(String input) {
@@ -383,7 +436,204 @@ class DeviceLogReporter {
     return int.tryParse(match?.group(1) ?? '');
   }
 
-  static void _addIssue(
+  static int? _parseTimestampMs(String input) {
+    final match = RegExp(r'^\d{2}-\d{2} (\d{2}):(\d{2}):(\d{2})\.(\d{3})$')
+        .firstMatch(input);
+    if (match == null) {
+      return null;
+    }
+    final hour = int.tryParse(match.group(1) ?? '');
+    final minute = int.tryParse(match.group(2) ?? '');
+    final second = int.tryParse(match.group(3) ?? '');
+    final millisecond = int.tryParse(match.group(4) ?? '');
+    if (hour == null ||
+        minute == null ||
+        second == null ||
+        millisecond == null) {
+      return null;
+    }
+    return (((hour * 60) + minute) * 60 + second) * 1000 + millisecond;
+  }
+
+  static _FrameEventsCorrelation? _buildFrameEventsCorrelation(
+    List<_ParsedLogLine> entries,
+  ) {
+    final frameEntries = entries
+        .where(
+          (entry) =>
+              entry.tag == 'FrameEvents' &&
+              entry.timestampMs != null &&
+              entry.message.contains('Did not find frame'),
+        )
+        .toList(growable: false);
+    if (frameEntries.isEmpty) {
+      return null;
+    }
+
+    final bursts = <List<_ParsedLogLine>>[];
+    var currentBurst = <_ParsedLogLine>[frameEntries.first];
+    for (final entry in frameEntries.skip(1)) {
+      final previous = currentBurst.last;
+      final gapMs = entry.timestampMs! - previous.timestampMs!;
+      if (gapMs <= _frameBurstGapMs) {
+        currentBurst.add(entry);
+        continue;
+      }
+      bursts.add(currentBurst);
+      currentBurst = <_ParsedLogLine>[entry];
+    }
+    bursts.add(currentBurst);
+    bursts.sort((a, b) {
+      final countCompare = b.length.compareTo(a.length);
+      if (countCompare != 0) {
+        return countCompare;
+      }
+      return (b.last.timestampMs ?? 0).compareTo(a.last.timestampMs ?? 0);
+    });
+    final burst = bursts.first;
+    final startMs = burst.first.timestampMs!;
+    final endMs = burst.last.timestampMs!;
+    final contextEntries = entries
+        .where(
+          (entry) =>
+              entry.timestampMs != null &&
+              entry.timestampMs! >= startMs - _frameContextWindowMs &&
+              entry.timestampMs! <= endMs + _frameContextWindowMs &&
+              !(entry.tag == 'FrameEvents' &&
+                  entry.message.contains('Did not find frame')),
+        )
+        .toList(growable: false);
+
+    final rendererRecovery = _lastMatchingEntry(
+      contextEntries,
+      (entry) =>
+          entry.tag == 'ExoPlayerView' &&
+          (entry.message.startsWith('rendererStall') ||
+              entry.message.startsWith('surfaceRebind')),
+    );
+    final surfaceLifecycle = _lastMatchingEntry(
+      contextEntries,
+      (entry) =>
+          entry.tag == 'PlaybackHealthMonitor' &&
+          (entry.message == 'surfaceAttached' ||
+              entry.message == 'surfaceDetached' ||
+              entry.message == 'fullscreenTransitionStarted' ||
+              entry.message == 'fullscreenTransitionEnded' ||
+              entry.message == 'appBackgrounded' ||
+              entry.message == 'appForegrounded'),
+    );
+    final bufferingTransition = _lastMatchingEntry(
+      contextEntries,
+      (entry) =>
+          (entry.tag == 'ExoPlayerPlaybackProbe' &&
+              entry.message.startsWith('state=BUFFERING')) ||
+          (entry.tag == 'PlaybackHealthMonitor' &&
+              (entry.message == 'bufferingStarted' ||
+                  entry.message == 'bufferingEnded')),
+    );
+    final playbackTeardown = _lastMatchingEntry(
+      contextEntries,
+      (entry) =>
+          (entry.tag == 'ExoPlayerPlaybackProbe' &&
+              (entry.message.startsWith('state=ENDED') ||
+                  entry.message.startsWith('state=IDLE'))) ||
+          (entry.tag == 'PlaybackHealthMonitor' &&
+              entry.message == 'playbackPaused'),
+    );
+    final startupTransition = _lastMatchingEntry(
+      contextEntries,
+      (entry) =>
+          (entry.tag == 'PlaybackHealthMonitor' &&
+              (entry.message == 'playerReady' ||
+                  entry.message == 'playbackStarted' ||
+                  entry.message.startsWith('firstFrameRendered'))) ||
+          (entry.tag == 'ExoPlayerPlaybackProbe' &&
+              (entry.message.startsWith('state=READY') ||
+                  entry.message.startsWith('firstFrameRendered'))),
+    );
+
+    String category = 'unknown';
+    _ParsedLogLine? detailEntry;
+    if (rendererRecovery != null) {
+      category = 'renderer_recovery';
+      detailEntry = rendererRecovery;
+    } else if (surfaceLifecycle != null) {
+      category = 'surface_lifecycle';
+      detailEntry = surfaceLifecycle;
+    } else if (bufferingTransition != null) {
+      category = 'buffering_transition';
+      detailEntry = bufferingTransition;
+    } else if (playbackTeardown != null) {
+      category = 'playback_teardown';
+      detailEntry = playbackTeardown;
+    } else if (startupTransition != null) {
+      category = 'startup_render_transition';
+      detailEntry = startupTransition;
+    }
+
+    final signalEntries = <_ParsedLogLine>[
+      if (detailEntry != null) detailEntry,
+      ...contextEntries.where(
+        (entry) =>
+            entry.tag == 'ExoPlayerPlaybackProbe' ||
+            entry.tag == 'PlaybackHealthMonitor' ||
+            entry.tag == 'ExoPlayerView',
+      ),
+    ];
+    final contextSignals = <String>[];
+    final seenSignals = <String>{};
+    for (final entry in signalEntries.reversed) {
+      final signal = _signalLabel(entry);
+      if (signal.isEmpty || !seenSignals.add(signal)) {
+        continue;
+      }
+      contextSignals.add(signal);
+      if (contextSignals.length >= 6) {
+        break;
+      }
+    }
+
+    final playbackSources = contextEntries
+        .where((entry) =>
+            entry.sourceKey != 'unknown' && entry.sourceKey != entry.tag)
+        .map((entry) => entry.sourceKey)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+
+    return _FrameEventsCorrelation(
+      burstCount: burst.length,
+      startLine: burst.first.lineNumber,
+      endLine: burst.last.lineNumber,
+      playbackSources: playbackSources,
+      rootCauseCategory: category,
+      rootCauseDetail: detailEntry?.message ?? '',
+      contextSignals: contextSignals,
+    );
+  }
+
+  static _ParsedLogLine? _lastMatchingEntry(
+    List<_ParsedLogLine> entries,
+    bool Function(_ParsedLogLine entry) predicate,
+  ) {
+    for (var index = entries.length - 1; index >= 0; index -= 1) {
+      final entry = entries[index];
+      if (predicate(entry)) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  static String _signalLabel(_ParsedLogLine entry) {
+    final sourceSuffix =
+        entry.sourceKey == 'unknown' || entry.sourceKey == entry.tag
+            ? ''
+            : '#${entry.sourceKey}';
+    return '${entry.tag}$sourceSuffix ${entry.message}';
+  }
+
+  static _MutableLogEntry _addIssue(
     Map<String, _MutableLogEntry> buckets, {
     required String code,
     required String severity,
@@ -404,6 +654,7 @@ class DeviceLogReporter {
       ),
     );
     entry.count += increment;
+    return entry;
   }
 
   static void _addObservation(
@@ -412,8 +663,9 @@ class DeviceLogReporter {
     required String tag,
     required String message,
     required String sampleLine,
+    String? bucketKey,
   }) {
-    final key = '$code|$tag|$message';
+    final key = bucketKey ?? '$code|$tag|$message';
     final entry = buckets.putIfAbsent(
       key,
       () => _MutableLogEntry(
@@ -440,8 +692,9 @@ class _MutableLogEntry {
   final String code;
   final String severity;
   final String tag;
-  final String message;
+  String message;
   final String sampleLine;
+  Map<String, dynamic>? context;
   int count = 0;
 
   DeviceLogIssue toIssue() {
@@ -452,6 +705,7 @@ class _MutableLogEntry {
       message: message,
       count: count,
       sampleLine: sampleLine,
+      context: context,
     );
   }
 
@@ -468,9 +722,66 @@ class _MutableLogEntry {
 class _ParsedLogLine {
   const _ParsedLogLine({
     required this.tag,
+    required this.sourceKey,
+    required this.rawLine,
+    required this.lineNumber,
+    required this.timestampMs,
     required this.message,
   });
 
   final String tag;
+  final String sourceKey;
+  final String rawLine;
+  final int lineNumber;
+  final int? timestampMs;
   final String message;
+}
+
+class _FrameEventsCorrelation {
+  const _FrameEventsCorrelation({
+    required this.burstCount,
+    required this.startLine,
+    required this.endLine,
+    required this.playbackSources,
+    required this.rootCauseCategory,
+    required this.rootCauseDetail,
+    required this.contextSignals,
+  });
+
+  final int burstCount;
+  final int startLine;
+  final int endLine;
+  final List<String> playbackSources;
+  final String rootCauseCategory;
+  final String rootCauseDetail;
+  final List<String> contextSignals;
+
+  String get messageSuffix {
+    switch (rootCauseCategory) {
+      case 'renderer_recovery':
+        return 'Correlated with renderer recovery: $rootCauseDetail';
+      case 'surface_lifecycle':
+        return 'Correlated with surface lifecycle: $rootCauseDetail';
+      case 'buffering_transition':
+        return 'Correlated with buffering transition: $rootCauseDetail';
+      case 'playback_teardown':
+        return 'Correlated with playback teardown: $rootCauseDetail';
+      case 'startup_render_transition':
+        return 'Correlated with startup/render transition: $rootCauseDetail';
+      default:
+        return '';
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'burstCount': burstCount,
+      'startLine': startLine,
+      'endLine': endLine,
+      'playbackSources': playbackSources,
+      'rootCauseCategory': rootCauseCategory,
+      'rootCauseDetail': rootCauseDetail,
+      'contextSignals': contextSignals,
+    };
+  }
 }

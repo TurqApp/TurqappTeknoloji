@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('state probe returns unregistered snapshots when controllers are absent',
       () {
     final snapshot = IntegrationTestStateProbe.snapshot();

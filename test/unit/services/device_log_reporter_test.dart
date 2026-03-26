@@ -38,6 +38,10 @@ void main() {
           'frame_events_missing_acquire_fence'),
       isTrue,
     );
+    final frameIssue = issues.cast<Map<String, dynamic>>().firstWhere(
+        (issue) => issue['code'] == 'frame_events_missing_acquire_fence');
+    final context = frameIssue['context'] as Map<String, dynamic>;
+    expect(context['rootCauseCategory'], 'startup_render_transition');
   });
 
   test('marks fatal signals as blocking', () {
@@ -93,6 +97,58 @@ void main() {
       stuckIssues.any(
         (issue) => (issue['message'] as String).contains('position=41730'),
       ),
+      isTrue,
+    );
+  });
+
+  test('ignores stagnant playback positions after playback ended', () {
+    final rawLog = <String>[
+      '03-25 22:15:36.349 22496 22496 D ExoPlayerPlaybackProbe#191: state=ENDED position=75137',
+      for (var i = 0; i < 12; i += 1)
+        '03-25 22:15:36.${400 + i} 22496 22496 D PlaybackHealthMonitor#191: position=75137',
+    ].join('\n');
+
+    final report = DeviceLogReporter.buildReport(
+      rawLog,
+      deviceId: 'device-4',
+      platform: 'android',
+    );
+    final json = report.toJson();
+    final summary = json['summary'] as Map<String, dynamic>;
+    final issues =
+        (json['issues'] as List<dynamic>).cast<Map<String, dynamic>>();
+
+    expect(summary['hasIssues'], isFalse);
+    expect(summary['issueCount'], 0);
+    expect(
+      issues.any((issue) => issue['code'] == 'playback_position_stuck'),
+      isFalse,
+    );
+  });
+
+  test('correlates frame event bursts with renderer recovery signals', () {
+    const rawLog = '''
+03-25 22:15:34.100 22496 22496 W ExoPlayerView#191: rendererStall kind=clock_stalled position=74.1 frameSilenceMs=2200 firstFrameAgeMs=8000 advancedMs=0 recoveryAttempt=1
+03-25 22:15:34.120 22496 22496 W ExoPlayerView#191: surfaceRebind position=74.1 recoveryAttempt=1
+03-25 22:15:34.125 22496 22625 E FrameEvents: updateAcquireFence: Did not find frame.
+03-25 22:15:34.157 22496 22625 E FrameEvents: updateAcquireFence: Did not find frame.
+''';
+
+    final report = DeviceLogReporter.buildReport(
+      rawLog,
+      deviceId: 'device-5',
+      platform: 'android',
+    );
+    final issue = (report.toJson()['issues'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .firstWhere(
+          (item) => item['code'] == 'frame_events_missing_acquire_fence',
+        );
+    final context = issue['context'] as Map<String, dynamic>;
+
+    expect(context['rootCauseCategory'], 'renderer_recovery');
+    expect(
+      (issue['message'] as String).contains('renderer recovery'),
       isTrue,
     );
   });

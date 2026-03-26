@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -485,14 +484,18 @@ Future<T> _stepWithResult<T>(
 }
 
 Future<String> _waitForFirstFeedPostId(WidgetTester tester) async {
-  final controller = AgendaController.ensure();
+  final controller = ensureAgendaController();
   for (var i = 0; i < 40; i++) {
     await tester.pump(const Duration(milliseconds: 250));
-    final first = controller.agendaList.firstWhereOrNull(
-      (post) => post.docID.trim().isNotEmpty,
-    );
+    String? first;
+    for (final post in controller.agendaList) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty) continue;
+      first = docId;
+      break;
+    }
     if (first != null) {
-      return first.docID;
+      return first;
     }
   }
   throw TestFailure('Feed did not expose a usable first post for master E2E.');
@@ -526,6 +529,12 @@ Finder _findStoryCircle() {
 
 Future<void> _tapByExactItKey(WidgetTester tester, String key) async {
   final finder = byItKey(key);
+  for (var i = 0; i < 16; i++) {
+    if (finder.evaluate().isNotEmpty) {
+      break;
+    }
+    await tester.pump(const Duration(milliseconds: 200));
+  }
   expect(finder, findsOneWidget);
   await tester.ensureVisible(finder);
   await tester.pump(const Duration(milliseconds: 100));

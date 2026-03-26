@@ -7,6 +7,7 @@ import android.os.Debug
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
@@ -614,6 +615,10 @@ class ExoPlayerView(
                         frameSilenceMs >= 1800L
 
                 if (rendererFrozenAfterAdvance || playbackClockStalled) {
+                    Log.w(
+                        "ExoPlayerView#$viewId",
+                        "rendererStall kind=${if (playbackClockStalled) "clock_stalled" else "renderer_frozen"} position=${positionMs / 1000.0} frameSilenceMs=$frameSilenceMs firstFrameAgeMs=$firstFrameAgeMs advancedMs=$advancedMs recoveryAttempt=${stallRecoveries + 1}"
+                    )
                     sendEvent(
                         mapOf(
                             "event" to "rendererStall",
@@ -648,6 +653,10 @@ class ExoPlayerView(
         val currentPosition = p.currentPosition
         handler.post {
             try {
+                Log.w(
+                    "ExoPlayerView#$viewId",
+                    "surfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$stallRecoveries"
+                )
                 sendEvent(
                     mapOf(
                         "event" to "surfaceRebind",

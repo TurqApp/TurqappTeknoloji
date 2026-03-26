@@ -380,6 +380,27 @@ exports.reviewReportedTarget = functions
                 }, { merge: true });
             }
         }
+        else if (targetType === "market" && targetId) {
+            const marketRef = db.collection("marketStore").doc(targetId);
+            if (action === "restore") {
+                tx.set(marketRef, {
+                    reportStatus: "restored",
+                    "moderation.status": "active",
+                    "moderation.reportReviewState": "restored",
+                    "moderation.restoredAt": nowMs,
+                    "moderation.reviewedBy": uid,
+                }, { merge: true });
+            }
+            else {
+                tx.set(marketRef, {
+                    reportStatus: "actioned_hidden",
+                    "moderation.status": "shadow_hidden",
+                    "moderation.reportReviewState": "confirmed_hidden",
+                    "moderation.reviewedAt": nowMs,
+                    "moderation.reviewedBy": uid,
+                }, { merge: true });
+            }
+        }
     });
     return { ok: true };
 });
