@@ -6,6 +6,14 @@ const String _iosInterstitialCursorKey = 'ios_interstitial';
 const String _androidSquareCursorKey = 'android_square';
 const String _androidInterstitialCursorKey = 'android_interstitial';
 
+abstract class _AdmobUnitConfigServiceBase extends GetxService {
+  _AdmobUnitConfig _config = _AdmobUnitConfig.defaults;
+  final Map<String, int> _cursorByKey = <String, int>{};
+  StreamSubscription<Map<String, dynamic>>? _sub;
+  Future<void>? _initFuture;
+  bool _initialized = false;
+}
+
 class AdmobUnitConfigService extends _AdmobUnitConfigServiceBase {
   @override
   void onClose() {

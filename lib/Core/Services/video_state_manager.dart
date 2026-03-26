@@ -9,5 +9,4 @@ part 'video_state_manager_playback_part.dart';
 part 'video_state_manager_facade_part.dart';
 part 'video_state_manager_fields_part.dart';
 part 'video_state_manager_models_part.dart';
-part 'video_state_manager_class_part.dart';
 part 'video_state_manager_runtime_part.dart';
