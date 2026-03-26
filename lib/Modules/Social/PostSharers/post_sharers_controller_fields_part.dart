@@ -1,5 +1,7 @@
 part of 'post_sharers_controller.dart';
 
+const int _postSharersPageSize = 20;
+
 PostSharersController? _maybeFindPostSharersController({String? tag}) {
   final isRegistered = Get.isRegistered<PostSharersController>(tag: tag);
   if (!isRegistered) return null;

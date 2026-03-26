@@ -14,7 +14,7 @@ extension PostSharersControllerPagingPart on PostSharersController {
       final page = await _postRepository.fetchPostSharersPage(
         _resolvedPostId,
         lastDoc: _lastSharerDoc,
-        limit: PostSharersController._pageSize,
+        limit: _postSharersPageSize,
       );
       if (page.items.isEmpty) {
         hasMore.value = false;
@@ -105,10 +105,10 @@ extension PostSharersControllerPagingPart on PostSharersController {
       return;
     }
 
-    final nextOffset = (_fallbackOffset + PostSharersController._pageSize) >
-            _fallbackSharers.length
-        ? _fallbackSharers.length
-        : _fallbackOffset + PostSharersController._pageSize;
+    final nextOffset =
+        (_fallbackOffset + _postSharersPageSize) > _fallbackSharers.length
+            ? _fallbackSharers.length
+            : _fallbackOffset + _postSharersPageSize;
     final pageItems = _fallbackSharers.sublist(_fallbackOffset, nextOffset);
     _fallbackOffset = nextOffset;
     postSharers.addAll(pageItems);

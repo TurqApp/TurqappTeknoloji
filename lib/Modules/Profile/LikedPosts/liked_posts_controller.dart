@@ -15,4 +15,5 @@ part 'liked_posts_controller_data_part.dart';
 part 'liked_posts_controller_fields_part.dart';
 part 'liked_posts_controller_facade_part.dart';
 part 'liked_posts_controller_navigation_part.dart';
+part 'liked_posts_controller_base_part.dart';
 part 'liked_posts_controller_class_part.dart';

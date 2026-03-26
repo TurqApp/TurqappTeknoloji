@@ -13,4 +13,5 @@ part 'archives_controller_data_part.dart';
 part 'archives_controller_support_part.dart';
 part 'archives_controller_fields_part.dart';
 part 'archives_controller_facade_part.dart';
+part 'archives_controller_base_part.dart';
 part 'archives_controller_class_part.dart';

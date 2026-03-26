@@ -49,7 +49,7 @@ extension SavedPostsControllerDataPart on SavedPostsController {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'saved_posts:$userId',
-        minInterval: SavedPostsController._silentRefreshInterval,
+        minInterval: _savedPostsSilentRefreshInterval,
       )) {
         unawaited(_hydrateSavedPosts(
           userId,

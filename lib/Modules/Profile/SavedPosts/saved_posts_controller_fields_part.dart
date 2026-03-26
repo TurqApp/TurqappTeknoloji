@@ -1,5 +1,7 @@
 part of 'saved_posts_controller.dart';
 
+const Duration _savedPostsSilentRefreshInterval = Duration(minutes: 5);
+
 class _SavedPostsControllerState {
   final RxList<PostsModel> savedAgendas = <PostsModel>[].obs;
   final RxList<PostsModel> savedPostsOnly = <PostsModel>[].obs;

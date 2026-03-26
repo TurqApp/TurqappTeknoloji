@@ -30,14 +30,14 @@ class _MyQRCodeState extends State<MyQRCode> {
   void initState() {
     super.initState();
     _controllerTag = 'my_qr_code_${identityHashCode(this)}';
-    controller = MyQRCodeController.ensure(tag: _controllerTag);
+    controller = ensureMyQRCodeController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (MyQRCodeController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindMyQRCodeController(tag: _controllerTag) != null &&
         identical(
-          MyQRCodeController.maybeFind(tag: _controllerTag),
+          maybeFindMyQRCodeController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<MyQRCodeController>(tag: _controllerTag);

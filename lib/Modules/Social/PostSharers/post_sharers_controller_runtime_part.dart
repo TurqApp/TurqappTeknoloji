@@ -29,7 +29,7 @@ extension PostSharersControllerRuntimePart on PostSharersController {
       var targetPostId = _resolvedPostId;
       var page = await _postRepository.fetchPostSharersPage(
         targetPostId,
-        limit: PostSharersController._pageSize,
+        limit: _postSharersPageSize,
       );
       if (page.items.isEmpty && targetPostId.isNotEmpty) {
         final model = await _postRepository.fetchPostById(
@@ -41,7 +41,7 @@ extension PostSharersControllerRuntimePart on PostSharersController {
           targetPostId = originalPostId;
           page = await _postRepository.fetchPostSharersPage(
             targetPostId,
-            limit: PostSharersController._pageSize,
+            limit: _postSharersPageSize,
           );
         }
       }
