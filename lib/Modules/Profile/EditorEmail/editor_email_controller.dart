@@ -10,39 +10,6 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'editor_email_controller_fields_part.dart';
+part 'editor_email_controller_class_part.dart';
 part 'editor_email_controller_facade_part.dart';
 part 'editor_email_controller_runtime_part.dart';
-
-class EditorEmailController extends GetxController {
-  static EditorEmailController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(
-      EditorEmailController(),
-      permanent: permanent,
-    );
-  }
-
-  static EditorEmailController? maybeFind() {
-    final isRegistered = Get.isRegistered<EditorEmailController>();
-    if (!isRegistered) return null;
-    return Get.find<EditorEmailController>();
-  }
-
-  final _EditorEmailControllerState _state = _EditorEmailControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _seedFromCurrentSources();
-    unawaited(_EditorEmailControllerRuntimeX(this).fetchAndSetUserData());
-  }
-
-  @override
-  void onClose() {
-    _timer?.cancel();
-    emailController.dispose();
-    codeController.dispose();
-    super.onClose();
-  }
-}
