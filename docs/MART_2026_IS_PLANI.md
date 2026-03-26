@@ -1,215 +1,242 @@
-# TurqApp — Mart 2026 Üretim İş Planı
-**Audit Tarihi:** 2026-03-03
-**Hazırlayan:** Staff Mobile + Video + Security + Backend + FinOps Ekibi
-**Hedef:** Instagram / X seviyesinde akıcılık, güvenlik, ölçeklenebilirlik
+# TurqApp — Mart 2026 Is Plani (Analiz Tabanli)
+**Audit Tarihi:** 2026-03-26  
+**Durum:** Kanonik Mart plani  
+**Bu dokuman neyi degistirir:** 2026-03-03 tarihli benchmark/Instagram seviyesi odakli eski planin yerine, kod analizi temelli ve degisim tipi bazli gercek oncelik sirasini koyar.
 
 ---
 
-## 0) HEDEF KPI'LAR (Instagram/X Benchmark)
+## 0. Dokuman Amaci
 
-### Feed KPI'ları
+Bu plan, repo ustunde yapilan kod analizi sonrasinda cikarilan teknik is sirasini kayda gecirir.
 
-| KPI | Hedef | Telemetry Event | Alarm Eşiği |
-|-----|-------|-----------------|-------------|
-| Warm first content | < 500ms | `feed_ttfc_warm` | > 800ms → P1 |
-| Cold first content | < 1.5s | `feed_ttfc_cold` | > 2.5s → P1 |
-| Scroll jank (p95) | < %5 | `scroll_jank_pct` | > %10 → P2 |
-| Image cache hit | > %85 | `img_cache_hit_rate` | < %70 → P2 |
-| Feed data cache hit | > %70 | `feed_cache_hit_rate` | < %55 → P2 |
-| CDN hit ratio | > %90 | `cdn_hit_ratio` | < %80 → P1 |
-| Firestore reads/screen | < 8 | `firestore_reads_per_screen` | > 20 → P2 |
+Bu planin ozel kurali su:
 
-### Video KPI'ları
+- once uygulama davranisini ve mimariyi kokten degistirmeyen isler
+- sonra kontrollu bug-fix ve kontrat duzeltmeleri
+- en son yapisal refactor ve domain ayristirma
 
-| KPI | Hedef | Telemetry Event | Alarm Eşiği |
-|-----|-------|-----------------|-------------|
-| TTFF (warm) | < 400ms | `video_ttff_ms` | > 700ms → P1 |
-| TTFF (cold) | < 1.2s | `video_ttff_cold_ms` | > 2s → P1 |
-| Autoplay start | < 300ms | `video_autoplay_start_ms` | > 500ms → P2 |
-| Rebuffer rate | < %1 | `video_rebuffer_rate` | > %3 → P1 |
-| Bellek (feed scroll) | < 150MB | `memory_rss_mb` | > 220MB → P1 |
-| Dropped frames | < %2 | `video_dropped_frame_pct` | > %5 → P2 |
+Bu dosya bilincli olarak su iki alani kapsam disi birakir:
+
+- `users` migration backlog'u
+- burs / scholarship migration backlog'u
+
+Bu iki alan ayri kritik yol olarak ele alinmalidir. Bu dosya, onlar disinda kalan backlog'un Mart ayindaki dogru teknik sirasini tanimlar.
+
+Kaynak gerceklik koddur. Bu dokumandaki her oncelik, kod referansi ile yazilmistir.
 
 ---
 
-## 1) GERÇEK KOD AUDIT BULGULARI (2026-03-03)
+## 1. Analizden Cikan Ana Karar
 
-### Kritik Güvenlik Açıkları (Tespit Edildi)
+Kod tabani su anda ayni listede hem dusuk riskli kontrat duzeltmeleri hem de yuksek riskli mimari kirilimlar tasiyor.
 
-| # | Dosya | Açık | Severity |
-|---|-------|------|----------|
-| S1 | `firestore.rules:115` | `Posts update: if isAuth()` → herhangi auth user herhangi postu güncelleyebilir | 🔴 CRITICAL |
-| S2 | `firestore.rules:421` | `CevapAnahtarlari read: if isAuth()` → tüm cevap anahtarları auth'a açık | 🔴 CRITICAL |
-| S3 | `firestore.rules:200` | `Chat/{chatId} read,write: if isAuth()` → herkes herkese ait sohbeti okuyabilir | 🔴 HIGH |
-| S4 | `firestore.rules:24` | `users/{uid} update: if isOwner(uid)` → `role`/`stats` field koruması yok | 🔴 HIGH |
-| S5 | `storage.rules:18-25` | HLS segmentleri `allow read;` (no auth) → hotlink açığı | 🟡 MEDIUM |
-| S6 | `firestore.rules:350` | `Testler/{sub=**} write: if isAuth()` → herkes alt koleksiyonlara yazabilir | 🟡 MEDIUM |
-| S7 | `firestore.rules:267` | `SoruBankasi/{sub=**} write: if isAuth()` → benzer wildcard write | 🟡 MEDIUM |
+En buyuk hata, bunlari ayni sprintte ele almak olur.
 
-### Performans Bug'ları (Tespit Edildi)
+Mart plani su ilkeye gore uygulanir:
 
-| # | Dosya | Bug | Etki |
-|---|-------|-----|------|
-| P1 | `short_view.dart:112,268` | `_lastPersistedProgress` video değişimde sıfırlanmıyor | Yanlış progress tracking |
-| P2 | `video_state_manager.dart:21` | `_allVideoControllers` Map sınırsız büyüyor | Memory leak → OOM |
-| P3 | `short_controller.dart:184` | `_fetchUsersPrivacy` her page'de ayrı Firestore sorgusu | N+1 okuma |
-| P4 | `short_controller.dart:126` | Feed query tüm Posts çekiyor, Dart'ta video filtresi yapıyor | Fazla okuma |
-| P5 | `short_controller.dart:478` | `_globalShuffleCompleted` static — controller yeniden oluşturulsa sıfırlanmaz | Shuffle kaybolabilir |
-
-### Mevcut İyi Pratikler (Korunacak)
-
-- ✅ `cache_manager.dart` — `_isLowQualityEntry` `_recentlyPlayed` kontrolü var (MEMORY.md'deki bug zaten fix edilmiş)
-- ✅ `short_view.dart` — `_videoEndListener` `removeListener` → `addListener` pattern doğru
-- ✅ `short_controller.dart` — realtime listener yerine `get()` kullanımı
-- ✅ 3-tier cache (HOT/WARM/COLD) doğru çalışıyor
-- ✅ Coalesced eviction pattern (`_evictionInFlight`)
-- ✅ Per-key write lock (`_writeInFlight`)
-- ✅ 3-tier aspect ratio sistemi (`short_view.dart`, `single_short_view.dart`)
+1. Operasyonel risk kapatilir.
+2. Admin ve contract akislari netlestirilir.
+3. Test bariyeri gercek riskleri olcer hale getirilir.
+4. Davranis duzeltmeleri kontrollu ilerler.
+5. `Posts`, legacy schema ve domain split gibi yapisal isler Mart'ta coding backlog'una alinmaz; sadece hazirlik notu olarak tutulur.
 
 ---
 
-## 2) UYGULANABİLİR BACKLOG
+## 2. Mart Ayinda Bilerek Once Yapilmayacak Isler
 
-### PHASE 1: 0-7 Gün — Kritik Hotfix
+Asagidaki isler kod tabaninda gercek ama Mart ayinda ilk dalga is degildir:
 
-| # | İş | Dosya | Etki | Efor | Status |
-|---|----|----|------|------|--------|
-| **H1** | `Posts` update rule'u düzelt: sadece sahip güncelleyebilir + field whitelist | `firestore.rules` | CRITICAL güvenlik | 2s | ✅ 2026-03-03 |
-| **H2** | `CevapAnahtarlari` okumayı kapat: `allow read: if false` | `firestore.rules` | CRITICAL güvenlik | 30dk | ✅ 2026-03-03 |
-| **H3** | `Chat/{chatId}` legacy rule'u katılımcı kontrolüne al | `firestore.rules` | HIGH güvenlik | 1s | ✅ 2026-03-03 |
-| **H4** | `users/{uid}` update'de `role`/`stats` field koruması ekle | `firestore.rules` | HIGH güvenlik | 1s | ✅ 2026-03-03 |
-| **H5** | `short_view.dart` — `_lastPersistedProgress` video değişimde sıfırla | `short_view.dart` | Progress bug fix | 30dk | ✅ 2026-03-03 |
-| **H6** | `VideoStateManager._allVideoControllers` max 30 entry limiti ekle | `video_state_manager.dart` | Memory leak fix | 1s | ✅ 2026-03-03 |
-| **H7** | `Testler` + `SoruBankasi` wildcard write kurallarını daralt | `firestore.rules` | MEDIUM güvenlik | 1s | ✅ 2026-03-03 |
+- `Posts` projection/refactor  
+  Dosyalar: [lib/Core/Repositories/post_repository_query_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/post_repository_query_part.dart), [lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart), [functions/src/hybridFeed.ts](/Users/turqapp/Desktop/TurqApp/functions/src/hybridFeed.ts)
+- legacy chat/story/question bank schema tasfiyesi  
+  Dosyalar: [lib/Core/Repositories/conversation_repository_state_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/conversation_repository_state_part.dart), [lib/Core/Repositories/story_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/story_repository.dart), [lib/Core/Repositories/question_bank_snapshot_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/question_bank_snapshot_repository.dart), [firestore.rules](/Users/turqapp/Desktop/TurqApp/firestore.rules)
+- domain split / Pasaj ayristirma  
+  Dosyalar: [lib/Modules/Education/pasaj_tabs.dart](/Users/turqapp/Desktop/TurqApp/lib/Modules/Education/pasaj_tabs.dart), [lib/Core/Repositories/job_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/job_repository.dart), [lib/Core/Repositories/market_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/market_repository.dart), [lib/Core/Repositories/tutoring_repository_query_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/tutoring_repository_query_part.dart)
 
-### PHASE 2: 1-4 Hafta — Mimari Düzen
+Sebep:
 
-| # | İş | Dosya | Etki | Efor | Status |
-|---|----|----|------|------|--------|
-| **A1** | L1 LRU cache (feed summaries + user profiles) | Yeni: `lru_cache.dart` | -70% Firestore read | 1h | ✅ 2026-03-03 |
-| **A2** | Feed query'e `videoHLSMasterUrl != ''` filtresi ekle (DB seviyesi) | `short_controller.dart` | -30% okuma | 2s | ⏭️ Firestore index kısıtı |
-| **A3** | `_fetchUsersPrivacy` sonuçlarını oturum boyunca cache'le | `short_controller.dart` | -N extra read/page | 2s | ✅ 2026-03-03 |
-| **A4** | Rate limiter (Cloud Functions) — like/yorum/follow sınırı | `functions/src/rateLimiter.ts` | Spam önleme | 3g | ✅ 2026-03-03 |
-| **A5** | Cloud Functions auth check audit — purge fonksiyonları admin zorunluluğu | `functions/src/index.ts` | Güvenlik | 1h | ✅ 2026-03-03 |
-| **A6** | ExoPlayer LoadControl buffer tuning (2s min, 15s max) | `ExoPlayerView.kt` | -200ms TTFF | 2h | ✅ 2026-03-03 |
-| **A7** | AVPlayer preferredForwardBufferDuration = 10s | `HLSPlayerView.swift` | -150ms TTFF | 2h | ✅ 2026-03-03 |
-| **A8** | Disk cache — feed pages offline | `IndexPoolStore` (zaten mevcut) | Offline support | - | ✅ Mevcut |
-| **A9** | Aggregation counter sharding (likes/views) | `functions/src/counterShards.ts` | Ölçeklenme | 2h | ✅ 2026-03-03 |
-| **A10** | Video telemetry (TTFF, rebuffer, position) | `short_view.dart` + `video_telemetry_service.dart` | Observability | 1h | ✅ 2026-03-03 |
-
-### PHASE 3: 1-3 Ay — Instagram Seviyesine Çıkış
-
-| # | İş | Etki | Efor | Status |
-|---|----|----|------|--------|
-| **B1** | SWR controller base class | `lib/Core/Services/swr_controller.dart` | Anında yükleme hissi | ✅ 2026-03-03 |
-| **B2** | HLS ABR ladder optimize (FPS tespiti, 1s init, 1080p) | `functions/src/hlsTranscode.ts` | Rebuffer < %1 | ✅ 2026-03-03 |
-| **B3** | Typesense entegrasyon (search) | Zaten mevcut (`explore_controller.dart`) | Search p95 < 200ms | ✅ Mevcut |
-| **B4** | Hybrid feed fan-out/fan-in (>10K takipçi) | `functions/src/hybridFeed.ts` | 100K+ ölçeklenme | ✅ 2026-03-03 |
-| **B5** | Design system token'ları (Dart) | `lib/Themes/app_tokens.dart` | UI tutarlılık | ✅ 2026-03-03 |
-| **B6** | Skeleton loader standardize | `lib/Core/Widgets/skeleton_loader.dart` | Perceived performance | ✅ 2026-03-03 |
-| **B7** | Observability SLO tanımları | `docs/observability/slo_definitions.yaml` | SLO görünürlük | ✅ 2026-03-03 |
-| **B8** | Load test k6 scripti | `tests/load/k6_turqapp_load_test.js` | Regression önleme | ✅ 2026-03-03 |
-| **B9** | WebP thumbnail pipeline | `functions/src/hlsTranscode.ts` + `thumbnails.ts` | -30% bandwidth | ✅ 2026-03-03 |
-| **B10** | Feed denormalizasyon (author inline) | `PostsModel` + `functions/src/authorDenorm.ts` | N+1 → 1 okuma | ✅ 2026-03-03 |
+- bunlar koklu veri akisi veya mimari sinir degisimi uretiyor
+- Mart onceligi bunlar degil
+- once dusuk riskli backlog temizlenmeden acilmamalilar
 
 ---
 
-## 3) GÜVENLİK AUDIT — Top 20 Risk
+## 3. Mart Oncelik Merdiveni
 
-| # | Açık | Severity | Exploit | Çözüm |
-|---|------|----------|---------|-------|
-| 1 | `Posts` update rule — herkes günceller | 🔴 CRITICAL | `stats.likeCount = 9999` | Field whitelist + owner check |
-| 2 | `CevapAnahtarlari` herkese açık | 🔴 CRITICAL | `.get()` → tüm cevaplar | `allow read: if false` |
-| 3 | `Chat` legacy — herkese açık | 🔴 HIGH | Başkasının mesajlarını oku | Participant check |
-| 4 | `users.role` field korumasız | 🔴 HIGH | `role: 'admin'` yaz | update field blacklist |
-| 5 | Rate limit yok | 🔴 HIGH | Sonsuz like/spam | Redis sliding window |
-| 6 | HLS Signed URL TTL belirsiz | 🟡 MEDIUM | URL paylaşımıyla hotlink | TTL = 1 saat |
-| 7 | CF auth check eksik olabilir | 🟡 MEDIUM | Unauthenticated CF call | Her CF'de `if (!request.auth)` |
-| 8 | Subscription check client-side | 🟡 MEDIUM | Premium bypass | Custom claim + CF verify |
-| 9 | `Testler/{sub=**}` wildcard write | 🟡 MEDIUM | Herkes sınav alt koleksiyonuna yazar | Daralt |
-| 10 | `SoruBankasi/{sub=**}` wildcard write | 🟡 MEDIUM | Benzer | Daralt |
-| 11 | Firebase Auth token revocation yok | 🟡 MEDIUM | Stolen token uzun süre geçerli | Token revoke + short TTL |
-| 12 | OTP/PIN brute force koruması yok | 🟡 MEDIUM | Sınav PIN deneme | 5 hata → 30dk kilit |
-| 13 | FCM token farming sınırsız | 🟡 LOW | Push spam | Max 10 device/user |
-| 14 | CORS wildcard CF | 🟡 LOW | Herhangi domain CF çağırır | Origin allowlist |
-| 15 | Deep link validation yok | 🟡 LOW | Phishing | Universal Links + PKCE |
-| 16 | Bundle'da hardcoded key riski | 🟡 LOW | APK analizi | Secrets CF'e taşı |
-| 17 | Unvalidated redirect | 🟡 LOW | `?next=evil.com` | Allowlist |
-| 18 | Comment injection | 🟡 LOW | Markdown exploit | Server-side sanitize |
-| 19 | Video thumbnail public (intentional) | 🟢 INFO | Hotlink | Signed thumbnail (opsiyonel) |
-| 20 | `VideoStateManager` memory leak | 🟡 MEDIUM | OOM → crash | Max 30 controller limit |
+### Band A — Davranista ve Mimaride Koklu Degisiklik Yapmayanlar
 
----
+Bu band Mart ayinin ilk yarisi icin ana coding backlog'dur.
 
-## 4) MALİYET (FinOps) — En Pahalı 10 Pattern
+#### A1. Secret cleanup ve leak guard
+**Amac:** Repo icindeki service-account leak riskini sifira indirmek.  
+**Dosyalar:** [burs-city-firebase-adminsdk-fbsvc-c6d03fc771.json](/Users/turqapp/Desktop/TurqApp/burs-city-firebase-adminsdk-fbsvc-c6d03fc771.json), [turqappteknoloji-firebase-adminsdk-fbsvc-51cf82d72b.json](/Users/turqapp/Desktop/TurqApp/turqappteknoloji-firebase-adminsdk-fbsvc-51cf82d72b.json), [scripts/set_admob_reklam_config.mjs](/Users/turqapp/Desktop/TurqApp/scripts/set_admob_reklam_config.mjs), [scripts/check_repo_security_regressions.sh](/Users/turqapp/Desktop/TurqApp/scripts/check_repo_security_regressions.sh)  
+**Yapilacak:** key rotate, repo temizligi, script default key path kaldirma, guard fail kriteri kalici hale getirme.  
+**Kabul Kriteri:** repo icinde aktif private key yok, guard service-account pattern'lerini fail ediyor.  
+**Risk:** sadece operasyonel; uygulama davranisini degistirmez.  
+**Status:** guard tarafi kodda sertlestirildi, operasyonel cleanup halen gerekli.
 
-| # | Pattern | Tahmini Maliyet | Çözüm |
-|---|---------|-----------------|-------|
-| 1 | Feed her scroll → full Firestore | $800/ay | L1 cache |
-| 2 | `_fetchUsersPrivacy` her sayfada | $200/ay | Session cache |
-| 3 | Sınav sorularını her açılışta çek | $200/ay | Disk cache |
-| 4 | View count realtime increment | $200/ay | Shard + batch |
-| 5 | Video progress sync her 2s | $150/ay | Debounce 30s |
-| 6 | Comment count realtime listener | $150/ay | SWR 60s |
-| 7 | Follow/follower list full read | $100/ay | Count only |
-| 8 | Search: Firestore full-scan | $100/ay | Typesense |
-| 9 | Notification badge listener | $100/ay | FCM data + polling |
-| 10 | User profile N+1 read | $300/ay | Denormalizasyon |
+#### A2. HLS comment/code kontrat temizligi
+**Amac:** yorumun soyledigi ile backend matcher'in yaptigi isi ayni hale getirmek.  
+**Dosya:** [functions/src/hlsTranscode.ts](/Users/turqapp/Desktop/TurqApp/functions/src/hlsTranscode.ts)  
+**Yapilacak:** chat HLS destekleniyorsa matcher'a ekle; desteklenmiyorsa yorumu daralt.  
+**Kabul Kriteri:** dosya, kapsam konusunda yanlis bir vaat icermiyor.  
+**Risk:** sadece kontrat netligi; runtime degisimi zorunlu degil.
+
+#### A3. Report restore simetrisi
+**Amac:** admin review akisinin post ve market icin tutarli olmasi.  
+**Dosyalar:** [functions/src/24_reports.ts](/Users/turqapp/Desktop/TurqApp/functions/src/24_reports.ts), [lib/Modules/Profile/Settings/reports_admin_view.dart](/Users/turqapp/Desktop/TurqApp/lib/Modules/Profile/Settings/reports_admin_view.dart)  
+**Yapilacak:** restore / keep-hidden mantigini market tarafinda da netlestirmek, admin UI beklentisini dosyayla uyumlu hale getirmek.  
+**Kabul Kriteri:** auto-hide edilen market kaydi admin aksiyonu ile deterministik restore veya confirmed-hidden state'e gider.  
+**Risk:** son kullanici mimarisini degistirmez; admin akis duzeltmesidir.  
+**Status:** backend simetri kismi kodda duzeltildi; fonksiyonel dogrulama backlog'da kalir.
+
+#### A4. Release gate ve test bariyerini gercek riske cekmek
+**Amac:** playback agirlikli sahte guveni azaltmak.  
+**Dosyalar:** [scripts/run_release_gate_checks.sh](/Users/turqapp/Desktop/TurqApp/scripts/run_release_gate_checks.sh), [config/test_suites/release_gate_e2e.txt](/Users/turqapp/Desktop/TurqApp/config/test_suites/release_gate_e2e.txt), [functions/tests/rules/firestore.rules.test.js](/Users/turqapp/Desktop/TurqApp/functions/tests/rules/firestore.rules.test.js)  
+**Yapilacak:** release-blocking suite'e contract ve rules senaryolari eklemek, sadece playback smokelara guvenmemek.  
+**Kabul Kriteri:** release gate app riskini daha gercekci olcer.  
+**Risk:** runtime davranisi degismez; sadece kalite kapisi degisir.
 
 ---
 
-## 5) OBSERVABILITY — SLO Tanımları
+### Band B — Kontrollu Davranis Degisikligi Yapanlar, Ama Mimariyi Kokten Oynatmayanlar
 
-```yaml
-slos:
-  feed_availability: 99.9% (43.8 dk/ay downtime)
-  video_ttff_p95: < 400ms
-  feed_ttfc_warm_p95: < 500ms
-  rebuffer_rate: < %1
-```
+Bu band Mart ayinin ikinci yarisi icin uygundur.
 
----
+#### B1. Author/profile sync icin tek authoritative yol secmek
+**Amac:** ayni isi iki function'in farkli limit ve mantikla yapmasini bitirmek.  
+**Dosyalar:** [functions/src/09_userProfile.ts](/Users/turqapp/Desktop/TurqApp/functions/src/09_userProfile.ts), [functions/src/authorDenorm.ts](/Users/turqapp/Desktop/TurqApp/functions/src/authorDenorm.ts)  
+**Yapilacak:** tek ana yol secilecek, digeri read-only yardimci veya tamamen kaldirilacak.  
+**Kabul Kriteri:** profile degisikligi sonrasi author alanlari tek backend akisa bagli.  
+**Risk:** veri tutarliligi degisir; ama mimari sinir hala ayni kalir.
 
-## 6) LOAD TEST — 100K DAU Hesaplama
+#### B2. iOS / Android playback parity
+**Amac:** ayni Dart kontratinin iki platformda da ayni calismasi.  
+**Dosyalar:** [lib/hls_player/hls_controller_playback_part.dart](/Users/turqapp/Desktop/TurqApp/lib/hls_player/hls_controller_playback_part.dart), [ios/Runner/HLSPlayerPlugin.swift](/Users/turqapp/Desktop/TurqApp/ios/Runner/HLSPlayerPlugin.swift), [ios/Runner/HLSPlayerView.swift](/Users/turqapp/Desktop/TurqApp/ios/Runner/HLSPlayerView.swift), [android/app/src/main/kotlin/com/turqapp/app/ExoPlayerPlugin.kt](/Users/turqapp/Desktop/TurqApp/android/app/src/main/kotlin/com/turqapp/app/ExoPlayerPlugin.kt)  
+**Yapilacak:** `loadVideo(url, autoPlay, loop)` parametrelerinin her iki platformda da ayni uygulanmasi, parity smoke eklenmesi.  
+**Kabul Kriteri:** ayni method-channel cagrisi platforma gore farkli davranmiyor.  
+**Risk:** runtime davranisi degisir ama bu bug-fix seviyesindedir.  
+**Status:** iOS runtime parametre aktarimi kodda duzeltildi; tam derleme dogrulamasi ortam bagimliliklari nedeniyle acik.
 
-```
-DAU = 100,000
-Peak concurrent = ~50,000
-Feed scroll QPS = 5,000
-Video autoplay QPS = 1,667
-Firestore read QPS (cache'li) = 1,500
-CF invoke QPS = ~500
-CDN bandwidth (peak) = ~75 Gbps
-```
+#### B3. Startup init zincirini `critical` / `best-effort` diye ayirmak
+**Amac:** sessiz bozulmayi azaltmak.  
+**Dosyalar:** [lib/main.dart](/Users/turqapp/Desktop/TurqApp/lib/main.dart), [lib/Modules/Splash/splash_view_startup_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Modules/Splash/splash_view_startup_part.dart), [lib/Modules/NavBar/nav_bar_view.dart](/Users/turqapp/Desktop/TurqApp/lib/Modules/NavBar/nav_bar_view.dart)  
+**Yapilacak:** kritik init adimlari hata aldiginda degrade-state veya fail-fast; opsiyonel warmup'lar best-effort kalacak.  
+**Kabul Kriteri:** startup'ta sessizce yutulup yarim acilan uygulama akislari azalir.  
+**Risk:** hata anindaki kullanici deneyimi degisir; mimari komple yeniden yazilmaz.
 
----
-
-## 7) EN YÜKSEK ROI 10 İŞ
-
-| # | İş | ROI |
-|---|----|----|
-| 1 | Posts update rule fix | Kritik güvenlik, 30dk efor |
-| 2 | CevapAnahtarlari kapat | Kritik güvenlik, 30dk efor |
-| 3 | L1 LRU cache | -70% Firestore, -300ms TTFC |
-| 4 | Chat rule fix | HIGH güvenlik |
-| 5 | users field protection | HIGH güvenlik |
-| 6 | ExoPlayer/AVPlayer buffer tuning | -200ms TTFF |
-| 7 | `_lastPersistedProgress` reset | Doğru progress sync |
-| 8 | VideoStateManager limit | Memory crash önleme |
-| 9 | Rate limiter CF | Spam/abuse önleme |
-| 10 | Video telemetry | Tüm iyileştirmeler ölçülebilir |
+#### B4. Notification payload ve rate limiter sertlestirmesi
+**Amac:** gevsek payload ve instance-memory tabanli abuse savunmasini toparlamak.  
+**Dosyalar:** [functions/src/notificationInbox.ts](/Users/turqapp/Desktop/TurqApp/functions/src/notificationInbox.ts), [functions/src/notificationPushPolicy.ts](/Users/turqapp/Desktop/TurqApp/functions/src/notificationPushPolicy.ts), [functions/src/index.ts](/Users/turqapp/Desktop/TurqApp/functions/src/index.ts), [functions/src/rateLimiter.ts](/Users/turqapp/Desktop/TurqApp/functions/src/rateLimiter.ts)  
+**Yapilacak:** payload alanlarini daraltmak, abuse riski yuksek call'larda daha guclu limit dusunmek.  
+**Kabul Kriteri:** inbox/push kontrati daha tipli, rate limit daha acik tanimli.  
+**Risk:** gercek davranis degisimi var; ama domain veya veri modeli tamamen yeniden cizilmez.
 
 ---
 
-## 8) YÜRÜTME TAKVİMİ
+### Band C — Mart'ta Coding Olarak Acilmamasi Gereken Koklu Isler
 
-```
-HAFTA 1 (Mart 1-7):   H1-H7 güvenlik hotfix'leri
-HAFTA 2-3 (Mart 8-21): A1-A5 cache + rate limit
-HAFTA 4-6 (Mart 22 - Nisan 5): A6-A10 video + telemetry
-AY 2-3 (Nisan-Mayıs): B1-B10 Instagram seviyesi
-```
+Bu band backlog olarak dokumanda kalir ama aktif sprint isine donusmez.
+
+#### C1. `Posts` projection ve sosyal veri modeli ayristirma
+**Dosyalar:** [lib/Core/Repositories/post_repository_query_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/post_repository_query_part.dart), [lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart), [lib/Core/Repositories/short_repository_query_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/short_repository_query_part.dart), [lib/Core/Repositories/explore_repository_query_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/explore_repository_query_part.dart), [functions/src/hybridFeed.ts](/Users/turqapp/Desktop/TurqApp/functions/src/hybridFeed.ts)  
+**Sebep:** koklu veri akisi degisimi.
+
+#### C2. Legacy schema tasfiyesi
+**Dosyalar:** [lib/Core/Repositories/conversation_repository_state_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/conversation_repository_state_part.dart), [lib/Core/Repositories/conversation_repository_message_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/conversation_repository_message_part.dart), [lib/Core/Repositories/story_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/story_repository.dart), [lib/Core/Repositories/question_bank_snapshot_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/question_bank_snapshot_repository.dart), [firestore.rules](/Users/turqapp/Desktop/TurqApp/firestore.rules)  
+**Sebep:** migration ve read/write compatibility gerektirir.
+
+#### C3. Domain split / Pasaj ayristirma
+**Dosyalar:** [lib/Modules/Education/pasaj_tabs.dart](/Users/turqapp/Desktop/TurqApp/lib/Modules/Education/pasaj_tabs.dart), [lib/Core/Repositories/job_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/job_repository.dart), [lib/Core/Repositories/market_repository.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/market_repository.dart), [lib/Core/Repositories/tutoring_repository_query_part.dart](/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/tutoring_repository_query_part.dart)  
+**Sebep:** bu artik duzeltme degil, urun/mimari yeniden cizimidir.
 
 ---
 
-*Bu doküman otomatik olarak güncellenmektedir. Her tamamlanan item için checkbox işaretleyin.*
+## 4. Mart Sprint Dagilimi
+
+### Sprint M1 — Dusuk Riskli Temizlik ve Kontrat Netlestirme
+
+Hedef:
+
+- A1 tamamlanir
+- A2 tamamlanir
+- A3 fonksiyonel olarak dogrulanir
+- A4 backlog'u aktif hale getirilir
+
+Sprint cikisi:
+
+- repo secret hygiene konusunda korunur
+- HLS backend kapsaminda yanlis vaat kalmaz
+- report admin akisi tutarsiz kalmaz
+- test bariyeri hangi riskleri olctugunu daha net soyler
+
+### Sprint M2 — Kontrollu Bug-Fix Dalgasi
+
+Hedef:
+
+- B1 ownership karari cikar
+- B2 parity smoke ile birlikte kapanir
+- B3 icin kritik init matrisi olusur
+- B4 icin notification/rate limit contract'i yazilir
+
+Sprint cikisi:
+
+- platformlar arasi farklar azalir
+- duplicate backend ownership alanlari azalir
+- startup akisinda sessiz bozulma noktasi envanteri kapanir
+
+### Sprint M3 — Yapisal Isler Icin Karar Sprinti, Coding Degil
+
+Hedef:
+
+- C1, C2, C3 icin sadece karar dokumani ve dependency haritasi hazirlanir
+- kod degisikligi acilmaz
+
+Sprint cikisi:
+
+- yapisal backlog acik ama kontrol altinda olur
+- Mart ayinda yanlislikla buyuk refactor baslatilmaz
+
+---
+
+## 5. Kabul Kurallari
+
+Bu plan uygulanirken su kurallar korunur:
+
+1. Band A bitmeden Band B acilmaz.
+2. Band B bitmeden Band C coding olarak baslatilmaz.
+3. Release gate duzeltilmeden parity ve startup gibi davranis degistiren isler kapatilmis sayilmaz.
+4. Kod analiziyle celisen eski plan ciktisi dogru kabul edilmez.
+
+---
+
+## 6. Mart Sonu Basari Tanimi
+
+Mart sonunda bu plan basarili sayilacaksa en az su durum gorulmeli:
+
+- repo secret hygiene kontrol altinda
+- HLS / report / test kontratlari daha net
+- iOS ve Android playback kontrati ayni
+- duplicate backend ownership alanlari daralmis
+- startup'taki sessiz bozulma noktalarinin listesi kapanmis
+- yapisal buyuk isler mart coding backlog'una acilmamis
+
+Bu basari tanimi bilerek muhafazakardir.
+
+Mart hedefi sistemi yeniden yazmak degil, rastgele refactor'a gitmeden riskli ama dusuk etkili kiriklari temizlemektir.
+
+---
+
+## 7. Bu Dokumanin Kaynagi
+
+Bu dokuman asagidaki analiz basliklarindan turetilmistir:
+
+- sert bulgular
+- gercek mimari
+- moduller arasi coupling
+- backend contract analizi
+- playback / native hat analizi
+- test sistemi gercekligi
+
+Bu nedenle bu dokuman bir fikir listesi degil; repo koduna dayali oncelik sirasi dokumanidir.
+

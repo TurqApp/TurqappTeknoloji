@@ -97,7 +97,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             if let url = params["url"] as? String {
                 isAutoPlay = params["autoPlay"] as? Bool ?? true
                 isLooping = params["loop"] as? Bool ?? false
-                loadVideo(url: url)
+                loadVideo(url: url, autoPlay: isAutoPlay, loop: isLooping)
             }
         }
 
@@ -117,7 +117,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     // MARK: - Video Loading
-    func loadVideo(url: String) {
+    func loadVideo(url: String, autoPlay: Bool? = nil, loop: Bool? = nil) {
+        if let autoPlay = autoPlay {
+            isAutoPlay = autoPlay
+        }
+        if let loop = loop {
+            isLooping = loop
+        }
         log("loadVideo url=\(url)")
         guard let videoURL = URL(string: url) else {
             log("invalidUrl url=\(url)")
