@@ -16,6 +16,7 @@ import 'package:turqappv2/Modules/Education/Tests/AddTestQuestion/add_test_quest
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'create_test_controller_actions_part.dart';
+part 'create_test_controller_class_part.dart';
 part 'create_test_controller_data_part.dart';
 part 'create_test_controller_fields_part.dart';
 
@@ -24,43 +25,3 @@ const createTestTypeHighSchool = 'Lise';
 const createTestTypePrep = 'Hazırlık';
 const createTestTypeLanguage = 'Dil';
 const createTestTypeBranch = 'Branş';
-
-class CreateTestController extends GetxController {
-  static CreateTestController ensure(
-    TestsModel? model, {
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      CreateTestController(model),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static CreateTestController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<CreateTestController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<CreateTestController>(tag: tag);
-  }
-
-  final TestsModel? model;
-  final _state = _CreateTestControllerState();
-  final TestRepository _testRepository = TestRepository.ensure();
-
-  CreateTestController(this.model);
-
-  @override
-  void onInit() {
-    super.onInit();
-    initializeData();
-  }
-
-  @override
-  void onClose() {
-    aciklama.dispose();
-    super.onClose();
-  }
-}

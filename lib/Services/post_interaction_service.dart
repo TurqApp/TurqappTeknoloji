@@ -17,6 +17,7 @@ import 'offline_mode_service.dart';
 import 'post_moderation_utils.dart';
 
 part 'post_interaction_service_actions_part.dart';
+part 'post_interaction_service_class_part.dart';
 part 'post_interaction_service_helpers_part.dart';
 part 'post_interaction_service_moderation_part.dart';
 part 'post_interaction_service_query_part.dart';
@@ -28,38 +29,3 @@ part 'post_interaction_service_models_part.dart';
 /// yorum, kaydetme, yeniden paylaşma, görüntüleme, şikayet) Posts alt
 /// koleksiyonları ile users alt koleksiyonları arasında çift yönlü olarak
 /// senkronize eder.
-class PostInteractionService extends GetxController {
-  PostInteractionService({FirebaseFirestore? firestore, FirebaseAuth? auth})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
-
-  final FirebaseFirestore _firestore;
-  final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
-
-  static PostInteractionService? maybeFind() {
-    final isRegistered = Get.isRegistered<PostInteractionService>();
-    if (!isRegistered) return null;
-    return Get.find<PostInteractionService>();
-  }
-
-  static PostInteractionService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(PostInteractionService());
-  }
-
-  static const Duration _cacheTTL = Duration(seconds: 30);
-  final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
-  final Set<String> _reportedByMe = <String>{};
-  bool _permissionDeniedLogged = false;
-  static const String _moderationConfigPath = 'adminConfig/moderation';
-
-  // ---------------------------------------------------------------------------
-  // BEĞENİ
-  // ---------------------------------------------------------------------------
-
-  /// Post'u beğenir veya beğeniyi kaldırır. İşlem sonucunu döndürür.
-  // ---------------------------------------------------------------------------
-  // BİLDİRİMLER & SAYIMLAR
-  // ---------------------------------------------------------------------------
-}

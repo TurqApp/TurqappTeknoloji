@@ -29,6 +29,7 @@ import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deep_link_service_fields_part.dart';
+part 'deep_link_service_class_part.dart';
 part 'deep_link_service_lookup_part.dart';
 part 'deep_link_service_facade_part.dart';
 part 'deep_link_service_models_part.dart';
@@ -36,31 +37,3 @@ part 'deep_link_service_parse_part.dart';
 part 'deep_link_service_open_part.dart';
 part 'deep_link_service_runtime_part.dart';
 part 'deep_link_service_support_part.dart';
-
-class DeepLinkService extends GetxService {
-  static DeepLinkService ensure() => _ensureDeepLinkService();
-
-  static DeepLinkService? maybeFind() => _maybeFindDeepLinkService();
-  static const Duration _lookupTtl = Duration(seconds: 30);
-  static final Map<String, _PostLookupCache> _postLookupCache =
-      <String, _PostLookupCache>{};
-  static final Map<String, _JobLookupCache> _jobLookupCache =
-      <String, _JobLookupCache>{};
-  static final Map<String, _MarketLookupCache> _marketLookupCache =
-      <String, _MarketLookupCache>{};
-  static final Map<String, _UserLookupCache> _userLookupCache =
-      <String, _UserLookupCache>{};
-  static final Map<String, _StoryListLookupCache> _storyListLookupCache =
-      <String, _StoryListLookupCache>{};
-  static final Map<String, _StoryDocLookupCache> _storyDocLookupCache =
-      <String, _StoryDocLookupCache>{};
-  static const Duration _staleRetention = Duration(minutes: 3);
-  static const int _maxLookupEntries = 400;
-  final _state = _DeepLinkServiceState();
-
-  @override
-  void onClose() {
-    _handleDeepLinkServiceClose(this);
-    super.onClose();
-  }
-}

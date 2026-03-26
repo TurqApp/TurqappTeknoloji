@@ -19,47 +19,7 @@ import '../../Services/current_user_service.dart';
 
 part 'short_content_controller_data_part.dart';
 part 'short_content_controller_actions_part.dart';
+part 'short_content_controller_class_part.dart';
 part 'short_content_controller_fields_part.dart';
 part 'short_content_controller_runtime_part.dart';
 part 'short_content_controller_support_part.dart';
-
-class ShortContentController extends GetxController {
-  static ShortContentController ensure({
-    required String postID,
-    required PostsModel model,
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      ShortContentController(postID: postID, model: model),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static ShortContentController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<ShortContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<ShortContentController>(tag: tag);
-  }
-
-  ShortContentController({
-    required String postID,
-    required PostsModel model,
-  }) : _state = _ShortContentControllerState(postID: postID, model: model);
-  final _ShortContentControllerState _state;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleRuntimeInit();
-  }
-
-  @override
-  void onClose() {
-    _handleRuntimeClose();
-    super.onClose();
-  }
-}
