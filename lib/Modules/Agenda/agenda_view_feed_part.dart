@@ -272,7 +272,7 @@ extension _AgendaViewFeedPart on AgendaView {
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
     final isModernView =
         CurrentUserService.instance.effectiveViewSelection == 1;
-    final liveAdOffsetX = isModernView ? 5.0 : 0.0;
+    final liveAdOffsetX = isModernView ? 5.0 : 10.0;
     final edgeInsets = isModernView
         ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
         : const EdgeInsets.fromLTRB(5, 8, 5, 8);
