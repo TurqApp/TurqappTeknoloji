@@ -1,4 +1,4 @@
-part of 'post_comment_controller.dart';
+part of 'post_comment_controller_library.dart';
 
 extension PostCommentControllerActions on PostCommentController {
   Future<void> yorumYap(

@@ -1,4 +1,4 @@
-part of 'liked_posts_controller.dart';
+part of 'liked_posts_controller_library.dart';
 
 abstract class _LikedPostsControllerBase extends GetxController {
   final _LikedPostsControllerState _state = _LikedPostsControllerState();

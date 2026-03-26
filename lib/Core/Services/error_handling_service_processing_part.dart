@@ -1,4 +1,4 @@
-part of 'error_handling_service.dart';
+part of 'error_handling_service_library.dart';
 
 extension ErrorHandlingServiceProcessingPart on ErrorHandlingService {
   Future<void> handleError(

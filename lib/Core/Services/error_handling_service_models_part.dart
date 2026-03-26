@@ -1,4 +1,4 @@
-part of 'error_handling_service.dart';
+part of 'error_handling_service_library.dart';
 
 enum ErrorSeverity {
   low('error_handling.severity_low'),

@@ -1,4 +1,4 @@
-part of 'ads_center_controller.dart';
+part of 'ads_center_controller_library.dart';
 
 extension AdsCenterControllerRuntimePart on AdsCenterController {
   void _handleRuntimeInit() {

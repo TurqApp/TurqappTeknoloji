@@ -1,4 +1,4 @@
-part of 'ads_center_controller.dart';
+part of 'ads_center_controller_library.dart';
 
 extension AdsCenterControllerStreamPart on AdsCenterController {
   void applyFilters({

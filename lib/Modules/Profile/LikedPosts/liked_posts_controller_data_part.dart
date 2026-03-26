@@ -1,4 +1,4 @@
-part of 'liked_posts_controller.dart';
+part of 'liked_posts_controller_library.dart';
 
 extension _LikedPostsControllerDataPart on LikedPostControllers {
   void _bindAuth() {

@@ -1,4 +1,4 @@
-part of 'error_handling_service.dart';
+part of 'error_handling_service_library.dart';
 
 extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
   void _updateErrorStats(AppError error) {

@@ -1,4 +1,4 @@
-part of 'post_comment_controller.dart';
+part of 'post_comment_controller_library.dart';
 
 abstract class _PostCommentControllerBase extends GetxController {
   _PostCommentControllerBase({

@@ -1,4 +1,4 @@
-part of 'error_handling_service.dart';
+part of 'error_handling_service_library.dart';
 
 const String _errorHandlingHistoryKey = 'error_history';
 const int _errorHandlingMaxHistory = 100;

@@ -1,4 +1,4 @@
-part of 'post_comment_controller.dart';
+part of 'post_comment_controller_library.dart';
 
 PostCommentController _ensurePostCommentController({
   required String postID,

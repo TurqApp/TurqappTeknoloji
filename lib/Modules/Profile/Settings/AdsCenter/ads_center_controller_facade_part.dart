@@ -1,4 +1,4 @@
-part of 'ads_center_controller.dart';
+part of 'ads_center_controller_library.dart';
 
 AdsCenterController ensureAdsCenterController({bool permanent = false}) {
   final existing = maybeFindAdsCenterController();
