@@ -28,6 +28,7 @@ import '../ApplicationReview/application_review.dart';
 
 part 'job_details_controller_data_part.dart';
 part 'job_details_controller_actions_part.dart';
+part 'job_details_controller_facade_part.dart';
 part 'job_details_controller_fields_part.dart';
 part 'job_details_controller_runtime_part.dart';
 
@@ -36,41 +37,24 @@ class JobDetailsController extends GetxController {
     required JobModel model,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      JobDetailsController(model: model),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+  }) =>
+      _ensureJobDetailsController(
+        model: model,
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static JobDetailsController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<JobDetailsController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<JobDetailsController>(tag: tag);
-  }
+  static JobDetailsController? maybeFind({String? tag}) =>
+      _maybeFindJobDetailsController(tag: tag);
 
   final Rx<JobModel> model;
   final _state = _JobDetailsControllerState();
-  final UserRepository _userRepository = UserRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final CvRepository _cvRepository = CvRepository.ensure();
-  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
-      JobHomeSnapshotRepository.ensure();
-  final JobRepository _jobRepository = JobRepository.ensure();
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   JobDetailsController({required JobModel model}) : model = model.obs;
 
   @override
   void onInit() {
     super.onInit();
-    _handleOnInit();
-  }
-
-  void _handleOnInit() {
-    _JobDetailsControllerRuntimeX(this).handleOnInit();
+    _handleJobDetailsInit(this);
   }
 }

@@ -29,6 +29,9 @@ class _SignInFocusNodes {
 }
 
 class _SignInStateFields {
+  final selection = 0.obs;
+  final typedBrandLength = 0.obs;
+  final showBrandCursor = true.obs;
   final firstName = ''.obs,
       lastName = ''.obs,
       phoneNumber = ''.obs,
@@ -54,10 +57,28 @@ class _SignInStateFields {
       resetOldPassword = ''.obs,
       resetUserID = ''.obs,
       signInEmail = ''.obs;
+  final otpTimer = 0.obs;
+  final signupCodeRequested = false.obs;
+  final otpRequestInFlight = false.obs;
+  final otpTimerReset = 0.obs;
+  final resetCodeRequested = false.obs;
+  final resetOtpRequestInFlight = false.obs;
+  Timer? timer;
+  Timer? emailAvailabilityDebounce;
+  Timer? nicknameAvailabilityDebounce;
+  Timer? typewriterTimer;
+  Timer? cursorBlinkTimer;
+  Timer? timerReset;
+  Worker? selectionWorker;
+  int emailAvailabilityRequestId = 0;
+  int nicknameAvailabilityRequestId = 0;
   final Rxn<StoredAccount> selectedStoredAccount = Rxn<StoredAccount>();
 }
 
 extension SignInControllerFieldsPart on SignInController {
+  RxInt get selection => _state.selection;
+  RxInt get typedBrandLength => _state.typedBrandLength;
+  RxBool get showBrandCursor => _state.showBrandCursor;
   TextEditingController get emailcontroller => _controllers.emailcontroller;
   TextEditingController get passwordcontroller =>
       _controllers.passwordcontroller;
@@ -112,6 +133,36 @@ extension SignInControllerFieldsPart on SignInController {
   RxBool get showNewPassword => _state.showNewPassword;
   RxBool get showNewPasswordRepeat => _state.showNewPasswordRepeat;
   RxBool get isFormValid => _state.isFormValid;
+  RxInt get otpTimer => _state.otpTimer;
+  RxBool get signupCodeRequested => _state.signupCodeRequested;
+  RxBool get otpRequestInFlight => _state.otpRequestInFlight;
+  RxInt get otpTimerReset => _state.otpTimerReset;
+  RxBool get resetCodeRequested => _state.resetCodeRequested;
+  RxBool get resetOtpRequestInFlight => _state.resetOtpRequestInFlight;
+  Timer? get _timer => _state.timer;
+  set _timer(Timer? value) => _state.timer = value;
+  Timer? get _emailAvailabilityDebounce => _state.emailAvailabilityDebounce;
+  set _emailAvailabilityDebounce(Timer? value) =>
+      _state.emailAvailabilityDebounce = value;
+  Timer? get _nicknameAvailabilityDebounce =>
+      _state.nicknameAvailabilityDebounce;
+  set _nicknameAvailabilityDebounce(Timer? value) =>
+      _state.nicknameAvailabilityDebounce = value;
+  Timer? get _typewriterTimer => _state.typewriterTimer;
+  set _typewriterTimer(Timer? value) => _state.typewriterTimer = value;
+  Timer? get _cursorBlinkTimer => _state.cursorBlinkTimer;
+  set _cursorBlinkTimer(Timer? value) => _state.cursorBlinkTimer = value;
+  Timer? get _timerReset => _state.timerReset;
+  set _timerReset(Timer? value) => _state.timerReset = value;
+  Worker? get _selectionWorker => _state.selectionWorker;
+  set _selectionWorker(Worker? value) => _state.selectionWorker = value;
+  int get _emailAvailabilityRequestId => _state.emailAvailabilityRequestId;
+  set _emailAvailabilityRequestId(int value) =>
+      _state.emailAvailabilityRequestId = value;
+  int get _nicknameAvailabilityRequestId =>
+      _state.nicknameAvailabilityRequestId;
+  set _nicknameAvailabilityRequestId(int value) =>
+      _state.nicknameAvailabilityRequestId = value;
   Rxn<StoredAccount> get selectedStoredAccount => _state.selectedStoredAccount;
   RxString get resetPhoneNumber => _state.resetPhoneNumber;
   RxString get resetOldPassword => _state.resetOldPassword;

@@ -11,6 +11,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'notification_content_controller_fields_part.dart';
 part 'notification_content_controller_actions_part.dart';
+part 'notification_content_controller_facade_part.dart';
 part 'notification_content_controller_runtime_part.dart';
 
 class NotificationContentController extends GetxController {
@@ -19,25 +20,16 @@ class NotificationContentController extends GetxController {
     required NotificationModel notification,
     String? tag,
     bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      NotificationContentController(
+  }) =>
+      _ensureNotificationContentController(
         userID: userID,
         notification: notification,
-      ),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
+        tag: tag,
+        permanent: permanent,
+      );
 
-  static NotificationContentController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<NotificationContentController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<NotificationContentController>(tag: tag);
-  }
+  static NotificationContentController? maybeFind({String? tag}) =>
+      _maybeFindNotificationContentController(tag: tag);
 
   static const String _userType = kNotificationPostTypeUserLower;
   static const String _commentType = kNotificationPostTypeCommentLower;
@@ -63,13 +55,12 @@ class NotificationContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _NotificationContentControllerRuntimePart(this).handleOnInit();
+    _handleNotificationContentInit(this);
   }
 
   Future<void> getPostData(String docID) =>
-      _NotificationContentControllerRuntimePart(this).getPostData(docID);
+      _loadNotificationContentPostData(this, docID);
 
   Future<void> toggleFollowStatus(String userID) =>
-      _NotificationContentControllerActionsPart(this)
-          .toggleFollowStatus(userID);
+      _toggleNotificationContentFollowStatus(this, userID);
 }

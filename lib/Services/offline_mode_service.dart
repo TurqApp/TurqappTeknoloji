@@ -15,6 +15,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'offline_mode_service_queue_part.dart';
 part 'offline_mode_service_persistence_part.dart';
 part 'offline_mode_service_action_part.dart';
+part 'offline_mode_service_facade_part.dart';
+part 'offline_mode_service_fields_part.dart';
 part 'offline_mode_service_runtime_part.dart';
 part 'offline_mode_service_models_part.dart';
 
@@ -22,35 +24,15 @@ class OfflineModeService extends GetxController {
   static final OfflineModeService instance = OfflineModeService._internal();
   OfflineModeService._internal();
 
-  static OfflineModeService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(instance, permanent: true);
-  }
+  static OfflineModeService ensure() => _ensureOfflineModeService();
 
-  static OfflineModeService? maybeFind() {
-    final isRegistered = Get.isRegistered<OfflineModeService>();
-    if (!isRegistered) return null;
-    return Get.find<OfflineModeService>();
-  }
+  static OfflineModeService? maybeFind() => _maybeFindOfflineModeService();
 
   static const int _maxRetryAttempts = 5;
   static const int _baseRetryDelayMs = 1500;
   static const int _maxRetryDelayMs = 5 * 60 * 1000;
 
-  final RxBool isOnline = true.obs;
-  final RxBool isSyncing = false.obs;
-  final Rxn<DateTime> lastSyncAt = Rxn<DateTime>();
-  final RxInt processedCount = 0.obs;
-  final RxInt failedCount = 0.obs;
-  final RxList<PendingAction> pendingActions = <PendingAction>[].obs;
-  final RxList<PendingAction> deadLetterActions = <PendingAction>[].obs;
-
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-  StreamSubscription<User?>? _authSubscription;
-  Timer? _retryTimer;
-  SharedPreferences? _prefs;
-  bool _isProcessing = false;
+  final _state = _OfflineModeServiceState();
 
   static const String _pendingActionsKeyPrefix = 'pending_actions';
   static const String _deadLetterActionsKeyPrefix =
@@ -63,12 +45,12 @@ class OfflineModeService extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleOnInit();
+    _handleOfflineModeServiceInit(this);
   }
 
   @override
   void onClose() {
-    _handleOnClose();
+    _handleOfflineModeServiceClose(this);
     super.onClose();
   }
 }

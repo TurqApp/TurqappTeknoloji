@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 part 'short_repository_models_part.dart';
+part 'short_repository_facade_part.dart';
 part 'short_repository_query_part.dart';
 
 class ShortRepository extends GetxService {
@@ -13,17 +14,9 @@ class ShortRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
 
-  static ShortRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<ShortRepository>();
-    if (!isRegistered) return null;
-    return Get.find<ShortRepository>();
-  }
+  static ShortRepository? maybeFind() => _maybeFindShortRepository();
 
-  static ShortRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ShortRepository(), permanent: true);
-  }
+  static ShortRepository ensure() => _ensureShortRepository();
 
   Future<ShortPageResult> fetchReadyPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
@@ -39,37 +32,18 @@ class ShortRepository extends GetxService {
   Future<List<PostsModel>> fetchRandomReadyPosts({
     int limit = 1000,
     int? nowMs,
-  }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
-    final snap = await _firestore
-        .collection('Posts')
-        .where('hlsStatus', isEqualTo: 'ready')
-        .limit(limit)
-        .get();
-    return snap.docs
-        .map(PostsModel.fromFirestore)
-        .where((p) => p.timeStamp <= ts)
-        .toList(growable: false);
-  }
+  }) =>
+      _fetchRandomReadyShortPosts(this, limit: limit, nowMs: nowMs);
 
   Future<PostsModel?> fetchById(
     String docId, {
     bool preferCache = true,
-  }) async {
-    final map = await PostRepository.ensure().fetchPostCardsByIds(
-      <String>[docId],
-      preferCache: preferCache,
-    );
-    return map[docId];
-  }
+  }) =>
+      _fetchShortById(docId, preferCache: preferCache);
 
   Future<Map<String, PostsModel>> fetchByIds(
     List<String> postIds, {
     bool preferCache = true,
-  }) {
-    return PostRepository.ensure().fetchPostCardsByIds(
-      postIds,
-      preferCache: preferCache,
-    );
-  }
+  }) =>
+      _fetchShortByIds(postIds, preferCache: preferCache);
 }

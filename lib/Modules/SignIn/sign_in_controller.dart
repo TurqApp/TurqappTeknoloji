@@ -46,24 +46,9 @@ class SignInController extends GetxController
   static SignInController? maybeFind({String? tag}) =>
       _maybeFindSignInControllerFacade(tag: tag);
 
-  final selection = 0.obs;
-  final typedBrandLength = 0.obs;
-  final showBrandCursor = true.obs;
   final _controllers = _SignInTextControllers();
   final _focuses = _SignInFocusNodes();
   final _state = _SignInStateFields();
-
-  final otpTimer = 0.obs;
-  Timer? _timer, _emailAvailabilityDebounce, _nicknameAvailabilityDebounce;
-  Timer? _typewriterTimer, _cursorBlinkTimer;
-  Worker? _selectionWorker;
-  final signupCodeRequested = false.obs, otpRequestInFlight = false.obs;
-
-  final otpTimerReset = 0.obs;
-  Timer? _timerReset;
-  final resetCodeRequested = false.obs, resetOtpRequestInFlight = false.obs;
-  int _emailAvailabilityRequestId = 0;
-  int _nicknameAvailabilityRequestId = 0;
 
   @override
   void onInit() {

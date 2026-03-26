@@ -27,6 +27,7 @@ part 'story_repository_cache_part.dart';
 part 'story_repository_deleted_part.dart';
 part 'story_repository_engagement_part.dart';
 part 'story_repository_models_part.dart';
+part 'story_repository_facade_part.dart';
 part 'story_repository_engagement_facade_part.dart';
 part 'story_repository_cache_facade_part.dart';
 part 'story_repository_query_facade_part.dart';
@@ -39,7 +40,8 @@ class StoryRepository extends GetxService {
   Duration get deletedStoriesCacheTtlInternal => _deletedStoriesCacheTtl;
   int get deletedStoriesCacheLimitInternal => _deletedStoriesCacheLimit;
 
-  UserProfileCacheService get _userCache => _resolveUserCache();
+  UserProfileCacheService get _userCache =>
+      _resolveStoryRepositoryUserCache(this);
 
   final UserRepository _userRepository = UserRepository.ensure();
   final VisibilityPolicyService _visibilityPolicy =
@@ -53,25 +55,17 @@ class StoryRepository extends GetxService {
   DateTime get storyExpiryCutoffInternal => _storyExpiryCutoff;
 
   int _asEpochMillis(dynamic value, {int fallback = 0}) =>
-      _performAsEpochMillis(value, fallback: fallback);
+      _storyRepositoryAsEpochMillis(this, value, fallback: fallback);
 
   List<Map<String, dynamic>> _normalizeStoryElements(dynamic raw) =>
-      _performNormalizeStoryElements(raw);
+      _normalizeStoryRepositoryElements(this, raw);
 
-  static StoryRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(StoryRepository(), permanent: true);
-  }
+  static StoryRepository ensure() => _ensureStoryRepository();
 
-  static StoryRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<StoryRepository>();
-    if (!isRegistered) return null;
-    return Get.find<StoryRepository>();
-  }
+  static StoryRepository? maybeFind() => _maybeFindStoryRepository();
 
-  Future<void> _ensureInitialized() => _performEnsureInitialized();
+  Future<void> _ensureInitialized() => _ensureStoryRepositoryInitialized(this);
 
   String? _storyRowCachePathForOwner(String ownerUid) =>
-      _performStoryRowCachePathForOwner(ownerUid);
+      _storyRepositoryCachePathForOwner(this, ownerUid);
 }

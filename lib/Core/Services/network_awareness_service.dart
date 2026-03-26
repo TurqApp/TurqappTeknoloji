@@ -7,6 +7,7 @@ import 'media_compression_service.dart';
 import 'SegmentCache/prefetch_scheduler.dart';
 
 part 'network_awareness_service_policy_part.dart';
+part 'network_awareness_service_facade_part.dart';
 part 'network_awareness_service_fields_part.dart';
 part 'network_awareness_service_models_part.dart';
 part 'network_awareness_service_storage_part.dart';
@@ -33,17 +34,10 @@ enum DataUsageMode {
 }
 
 class NetworkAwarenessService extends GetxController {
-  static NetworkAwarenessService? maybeFind() {
-    final isRegistered = Get.isRegistered<NetworkAwarenessService>();
-    if (!isRegistered) return null;
-    return Get.find<NetworkAwarenessService>();
-  }
+  static NetworkAwarenessService? maybeFind() =>
+      _maybeFindNetworkAwarenessService();
 
-  static NetworkAwarenessService ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(NetworkAwarenessService(), permanent: true);
-  }
+  static NetworkAwarenessService ensure() => _ensureNetworkAwarenessService();
 
   final _state = _NetworkAwarenessServiceState();
 
@@ -62,14 +56,12 @@ class NetworkAwarenessService extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadSettings();
-    _loadDataUsage();
-    _startNetworkMonitoring();
+    _handleNetworkAwarenessInit(this);
   }
 
   @override
   void onClose() {
-    _connectivitySubscription?.cancel();
+    _handleNetworkAwarenessClose(this);
     super.onClose();
   }
 }

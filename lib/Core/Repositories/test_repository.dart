@@ -10,6 +10,7 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 part 'test_repository_query_part.dart';
 part 'test_repository_action_part.dart';
 part 'test_repository_cache_part.dart';
+part 'test_repository_facade_part.dart';
 part 'test_repository_models_part.dart';
 
 class TestRepository extends GetxService {
@@ -22,54 +23,13 @@ class TestRepository extends GetxService {
   final Map<String, _TimedTests> _memory = <String, _TimedTests>{};
   SharedPreferences? _prefs;
 
-  static TestRepository? maybeFind() {
-    final isRegistered = Get.isRegistered<TestRepository>();
-    if (!isRegistered) return null;
-    return Get.find<TestRepository>();
-  }
+  static TestRepository? maybeFind() => _maybeFindTestRepository();
 
-  static TestRepository ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(TestRepository(), permanent: true);
-  }
+  static TestRepository ensure() => _ensureTestRepository();
 
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    _handleTestRepositoryInit(this);
   }
-
-  TestsModel _fromDoc(String id, Map<String, dynamic> data) =>
-      _TestRepositoryCacheX(this)._fromDoc(id, data);
-
-  Future<void> _store(String cacheKey, List<TestsModel> items) =>
-      _TestRepositoryCacheX(this)._store(cacheKey, items);
-
-  Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) =>
-      _TestRepositoryCacheX(this)._storeRawDoc(cacheKey, data);
-
-  Future<void> _storeRawList(
-    String cacheKey,
-    List<Map<String, dynamic>> data,
-  ) =>
-      _TestRepositoryCacheX(this)._storeRawList(cacheKey, data);
-
-  Future<List<Map<String, dynamic>>?> _getRawList(String cacheKey) =>
-      _TestRepositoryCacheX(this)._getRawList(cacheKey);
-
-  Future<Map<String, dynamic>?> _getRawDoc(String cacheKey) =>
-      _TestRepositoryCacheX(this)._getRawDoc(cacheKey);
-
-  List<TestsModel>? _getFromMemory(String cacheKey) =>
-      _TestRepositoryCacheX(this)._getFromMemory(cacheKey);
-
-  Future<_TimedTests?> _getTimedFromPrefs(String cacheKey) =>
-      _TestRepositoryCacheX(this)._getTimedFromPrefs(cacheKey);
-
-  List<List<String>> _chunkIds(List<String> ids, int size) =>
-      _TestRepositoryCacheX(this)._chunkIds(ids, size);
-
-  TestReadinessModel? _questionFromMap(Map<String, dynamic> raw) =>
-      _TestRepositoryCacheX(this)._questionFromMap(raw);
 }

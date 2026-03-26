@@ -4,44 +4,24 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'story_interaction_optimizer_facade_part.dart';
+part 'story_interaction_optimizer_fields_part.dart';
 part 'story_interaction_optimizer_runtime_part.dart';
 
 class StoryInteractionOptimizer extends GetxService {
-  static StoryInteractionOptimizer? maybeFind() {
-    final isRegistered = Get.isRegistered<StoryInteractionOptimizer>();
-    if (!isRegistered) return null;
-    return Get.find<StoryInteractionOptimizer>();
-  }
+  static StoryInteractionOptimizer? maybeFind() =>
+      _maybeFindStoryInteractionOptimizer();
 
-  static StoryInteractionOptimizer ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(StoryInteractionOptimizer(), permanent: true);
-  }
+  static StoryInteractionOptimizer ensure() =>
+      _ensureStoryInteractionOptimizer();
 
   static StoryInteractionOptimizer get to => ensure();
-  final CurrentUserService _userService = CurrentUserService.instance;
-
-  // Debouncing ve batching için
-  Timer? _writeTimer;
-  final Map<String, int> _pendingWrites = {};
-  final Set<String> _pendingUsers = {};
-
-  // Concurrency kontrolü
-  bool _isWriting = false;
-  final List<Future<void>> _pendingOperations = [];
-
-  // Local cache için (public reactive access)
-  final RxMap<String, bool> localStoryCache = <String, bool>{}.obs;
-  final RxMap<String, int> localTimeCache = <String, int>{}.obs;
-
-  // Stream subscriptions for cleanup
-  StreamSubscription? _userSubscription;
+  final _state = _StoryInteractionOptimizerState();
 
   @override
   void onInit() {
     super.onInit();
-    _StoryInteractionOptimizerRuntimePart(this).handleOnInit();
+    _handleStoryInteractionOptimizerInit(this);
   }
 
   Future<void> markStoryViewed(
@@ -49,27 +29,27 @@ class StoryInteractionOptimizer extends GetxService {
     String storyId,
     int storyTime,
   ) =>
-      _StoryInteractionOptimizerRuntimePart(this).markStoryViewed(
+      _markStoryInteractionViewed(
+        this,
         storyOwnerId,
         storyId,
         storyTime,
       );
 
   bool areAllStoriesSeenCached(String storyOwnerId, List<dynamic> stories) =>
-      _StoryInteractionOptimizerRuntimePart(this).areAllStoriesSeenCached(
+      _readAllStoriesSeenCached(
+        this,
         storyOwnerId,
         stories,
       );
 
-  Future<void> forceFlush() =>
-      _StoryInteractionOptimizerRuntimePart(this).forceFlush();
+  Future<void> forceFlush() => _forceFlushStoryInteraction(this);
 
-  Future<void> cleanup() =>
-      _StoryInteractionOptimizerRuntimePart(this).cleanup();
+  Future<void> cleanup() => _cleanupStoryInteraction(this);
 
   @override
   void onClose() {
-    _StoryInteractionOptimizerRuntimePart(this).handleOnClose();
+    _handleStoryInteractionOptimizerClose(this);
     super.onClose();
   }
 }
