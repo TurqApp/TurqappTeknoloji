@@ -27,38 +27,8 @@ import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_i
 
 part 'scholarships_controller_data_part.dart';
 part 'scholarships_controller_actions_part.dart';
+part 'scholarships_controller_class_part.dart';
 part 'scholarships_controller_fields_part.dart';
 part 'scholarships_controller_models_part.dart';
 part 'scholarships_controller_runtime_part.dart';
 part 'scholarships_controller_support_part.dart';
-
-class ScholarshipsController extends GetxController {
-  static const String _listingSelectionPrefKeyPrefix =
-      'scholarship_listing_selection';
-
-  static ScholarshipsController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(ScholarshipsController(), permanent: permanent);
-  }
-
-  static ScholarshipsController? maybeFind() {
-    final isRegistered = Get.isRegistered<ScholarshipsController>();
-    if (!isRegistered) return null;
-    return Get.find<ScholarshipsController>();
-  }
-
-  final _state = _ScholarshipsControllerState();
-
-  @override
-  void onInit() {
-    super.onInit();
-    _handleOnInit();
-  }
-
-  @override
-  void onClose() {
-    _handleOnClose();
-    super.onClose();
-  }
-}
