@@ -18,12 +18,12 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
   @override
   void initState() {
     super.initState();
-    final existingController = EditorPhoneNumberController.maybeFind();
+    final existingController = maybeFindEditorPhoneNumberController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = EditorPhoneNumberController.ensure();
+      controller = ensureEditorPhoneNumberController();
       _ownsController = true;
     }
   }
@@ -31,7 +31,7 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(EditorPhoneNumberController.maybeFind(), controller)) {
+        identical(maybeFindEditorPhoneNumberController(), controller)) {
       Get.delete<EditorPhoneNumberController>(force: true);
     }
     super.dispose();

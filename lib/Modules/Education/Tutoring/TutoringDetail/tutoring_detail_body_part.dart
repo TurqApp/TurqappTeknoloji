@@ -5,7 +5,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
     final TutoringDetailController controller =
         TutoringDetailController.ensure();
     final SavedTutoringsController savedController =
-        SavedTutoringsController.ensure();
+        ensureSavedTutoringsController();
     final TutoringController tutoringController = TutoringController.ensure();
     final String? currentUserId = getCurrentUserId();
 

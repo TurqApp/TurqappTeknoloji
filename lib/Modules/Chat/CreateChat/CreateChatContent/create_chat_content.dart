@@ -22,7 +22,7 @@ class _CreateChatContentState extends State<CreateChatContent> {
   @override
   void initState() {
     super.initState();
-    cont = CreateChatController.ensure();
+    cont = ensureCreateChatController();
     _controllerTag =
         'create_chat_content_${widget.userID}_${identityHashCode(this)}';
     controller = CreateChatContentController.ensure(

@@ -23,10 +23,10 @@ class _DenemeTurleriListesiState extends State<DenemeTurleriListesi> {
   void initState() {
     super.initState();
     _tag = 'practice_exam_type_${widget.sinavTuru}_${identityHashCode(this)}';
-    final existing = DenemeTurleriListesiController.maybeFind(tag: _tag);
+    final existing = maybeFindDenemeTurleriListesiController(tag: _tag);
     _ownsController = existing == null;
     controller = existing ??
-        DenemeTurleriListesiController.ensure(
+        ensureDenemeTurleriListesiController(
           tag: _tag,
           sinavTuru: widget.sinavTuru,
         );
@@ -36,7 +36,7 @@ class _DenemeTurleriListesiState extends State<DenemeTurleriListesi> {
   void dispose() {
     if (_ownsController &&
         identical(
-          DenemeTurleriListesiController.maybeFind(tag: _tag),
+          maybeFindDenemeTurleriListesiController(tag: _tag),
           controller,
         )) {
       Get.delete<DenemeTurleriListesiController>(tag: _tag);

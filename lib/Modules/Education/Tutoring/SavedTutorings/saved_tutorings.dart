@@ -21,14 +21,14 @@ class _SavedTutoringsState extends State<SavedTutorings> {
   @override
   void initState() {
     super.initState();
-    _ownsSavedController = SavedTutoringsController.maybeFind() == null;
-    savedController = SavedTutoringsController.ensure();
+    _ownsSavedController = maybeFindSavedTutoringsController() == null;
+    savedController = ensureSavedTutoringsController();
   }
 
   @override
   void dispose() {
     if (_ownsSavedController &&
-        identical(SavedTutoringsController.maybeFind(), savedController)) {
+        identical(maybeFindSavedTutoringsController(), savedController)) {
       Get.delete<SavedTutoringsController>();
     }
     super.dispose();

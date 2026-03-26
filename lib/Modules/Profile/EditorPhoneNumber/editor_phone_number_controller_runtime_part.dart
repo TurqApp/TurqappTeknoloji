@@ -47,8 +47,8 @@ Future<String> _resolveEditorPhoneAccountEmail(
 }
 
 void _handleEditorPhoneOnInit(EditorPhoneNumberController controller) {
-  controller._seedFromCurrentUser();
-  unawaited(controller._loadInitialPhone());
+  _seedEditorPhoneFromCurrentUser(controller);
+  unawaited(_loadEditorPhoneInitial(controller));
 
   controller.phoneController.addListener(() {
     controller.phoneValue.value = controller.phoneController.text;

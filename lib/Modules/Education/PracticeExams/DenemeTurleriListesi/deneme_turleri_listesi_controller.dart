@@ -8,4 +8,5 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 part 'deneme_turleri_listesi_controller_class_part.dart';
+part 'deneme_turleri_listesi_controller_facade_part.dart';
 part 'deneme_turleri_listesi_controller_runtime_part.dart';

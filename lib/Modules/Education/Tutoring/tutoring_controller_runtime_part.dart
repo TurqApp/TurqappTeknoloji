@@ -21,7 +21,7 @@ void _handleTutoringControllerInit(TutoringController controller) {
 }
 
 Future<void> _bootstrapTutoringDataImpl(TutoringController controller) async {
-  final savedController = SavedTutoringsController.ensure(permanent: true);
+  final savedController = ensureSavedTutoringsController(permanent: true);
   await savedController.loadSavedTutorings();
   final userId = CurrentUserService.instance.effectiveUserId;
   controller._homeSnapshotSub?.cancel();

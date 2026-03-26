@@ -1,18 +1,6 @@
 part of 'create_chat_controller.dart';
 
 class CreateChatController extends GetxController {
-  static CreateChatController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(CreateChatController(), permanent: permanent);
-  }
-
-  static CreateChatController? maybeFind() {
-    final isRegistered = Get.isRegistered<CreateChatController>();
-    if (!isRegistered) return null;
-    return Get.find<CreateChatController>();
-  }
-
   TextEditingController search = TextEditingController();
   var selected = "".obs;
   final RxString query = ''.obs;

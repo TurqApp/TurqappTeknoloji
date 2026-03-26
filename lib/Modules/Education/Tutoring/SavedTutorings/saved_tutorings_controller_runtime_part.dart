@@ -11,7 +11,7 @@ bool _sameSavedTutoringIds(
 }
 
 void _handleSavedTutoringsInit(SavedTutoringsController controller) {
-  controller.loadSavedTutorings();
+  _loadSavedTutorings(controller);
 }
 
 Future<void> _loadSavedTutorings(SavedTutoringsController controller) async {
@@ -25,7 +25,7 @@ Future<void> _loadSavedTutorings(SavedTutoringsController controller) async {
       forceRefresh: false,
     );
     final nextIds = entries.map((doc) => doc.id).toList(growable: false);
-    if (!controller._sameIds(nextIds)) {
+    if (!_sameSavedTutoringIds(controller, nextIds)) {
       controller.savedTutoringIds.assignAll(nextIds);
     }
   } catch (_) {}

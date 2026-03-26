@@ -21,7 +21,7 @@ extension EditorPhoneNumberControllerActionsPart
       AppSnackbar('common.info'.tr, 'editor_phone.session_missing'.tr);
       return;
     }
-    final email = await _resolveAccountEmail();
+    final email = await resolveAccountEmail();
     if (email.isEmpty) {
       AppSnackbar('common.info'.tr, 'editor_phone.email_missing'.tr);
       return;
@@ -81,7 +81,7 @@ extension EditorPhoneNumberControllerActionsPart
       AppSnackbar('common.info'.tr, 'editor_phone.session_missing'.tr);
       return;
     }
-    final email = await _resolveAccountEmail();
+    final email = await resolveAccountEmail();
     if (email.isEmpty) {
       AppSnackbar('common.info'.tr, 'editor_phone.email_missing'.tr);
       return;

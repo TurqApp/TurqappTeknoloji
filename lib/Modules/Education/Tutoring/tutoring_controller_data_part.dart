@@ -4,7 +4,7 @@ extension TutoringControllerDataPart on TutoringController {
   // Kept for staged rollout; real-time bootstrap is wired by follow-up controller refactor.
   // ignore: unused_element
   Future<void> _bootstrapTutoringData() async {
-    final savedController = SavedTutoringsController.ensure(permanent: true);
+    final savedController = ensureSavedTutoringsController(permanent: true);
     await savedController.loadSavedTutorings();
     final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
