@@ -34,6 +34,42 @@ class _DenemeSinaviYapControllerShellState {
   late _DenemeSinaviYapControllerConfig config;
 }
 
+_DenemeSinaviYapControllerShellState _buildDenemeSinaviYapControllerShellState({
+  required SinavModel model,
+  required Function sinaviBitir,
+  required Function showGecersizAlert,
+  required bool uyariAtla,
+}) {
+  final shellState = _DenemeSinaviYapControllerShellState();
+  shellState.config = _DenemeSinaviYapControllerConfig(
+    model: model,
+    sinaviBitir: sinaviBitir,
+    showGecersizAlert: showGecersizAlert,
+    uyariAtla: uyariAtla,
+  );
+  return shellState;
+}
+
+void _handleDenemeSinaviYapControllerInit(
+  DenemeSinaviYapController controller,
+) {
+  _DenemeSinaviYapControllerRuntimePart(controller).handleOnInit();
+}
+
+void _handleDenemeSinaviYapControllerClose(
+  DenemeSinaviYapController controller,
+) {
+  _DenemeSinaviYapControllerRuntimePart(controller).handleOnClose();
+}
+
+void _handleDenemeSinaviYapControllerLifecycleChange(
+  DenemeSinaviYapController controller,
+  AppLifecycleState state,
+) {
+  _DenemeSinaviYapControllerRuntimePart(controller)
+      .didChangeAppLifecycleState(state);
+}
+
 extension DenemeSinaviYapControllerShellPart on DenemeSinaviYapController {
   _DenemeSinaviYapControllerState get _state => _shellState.state;
   _DenemeSinaviYapControllerConfig get _config => _shellState.config;

@@ -28,39 +28,16 @@ class ProfileContactController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _syncFromCurrentUser();
-    _userWorker = ever(userService.currentUserRx, (_) {
-      _syncFromCurrentUser();
-    });
+    _handleProfileContactControllerInit(this);
   }
 
-  void _syncFromCurrentUser() {
-    final current = userService.currentUser;
-    isEmailVisible.value = current?.mailIzin == true;
-    isCallVisible.value = current?.aramaIzin == true;
-  }
+  Future<void> toggleEmailVisibility() => _toggleProfileEmailVisibility(this);
 
-  Future<void> toggleEmailVisibility() async {
-    final next = !isEmailVisible.value;
-    isEmailVisible.value = next;
-    await userService.updateFields({
-      "mailIzin": next,
-      "preferences.mailIzin": next,
-    });
-  }
-
-  Future<void> toggleCallVisibility() async {
-    final next = !isCallVisible.value;
-    isCallVisible.value = next;
-    await userService.updateFields({
-      "aramaIzin": next,
-      "preferences.aramaIzin": next,
-    });
-  }
+  Future<void> toggleCallVisibility() => _toggleProfileCallVisibility(this);
 
   @override
   void onClose() {
-    _userWorker?.dispose();
+    _handleProfileContactControllerClose(this);
     super.onClose();
   }
 }
