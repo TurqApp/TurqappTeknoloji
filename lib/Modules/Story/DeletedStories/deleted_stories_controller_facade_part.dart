@@ -11,3 +11,9 @@ DeletedStoriesController? maybeFindDeletedStoriesController() {
   if (!isRegistered) return null;
   return Get.find<DeletedStoriesController>();
 }
+
+extension DeletedStoriesControllerFacadePart on DeletedStoriesController {
+  void goToPage(int index) {
+    _handleGoToPage(index);
+  }
+}

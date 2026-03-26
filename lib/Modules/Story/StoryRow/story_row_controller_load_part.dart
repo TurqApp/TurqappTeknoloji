@@ -7,7 +7,7 @@ extension StoryRowControllerLoadPart on StoryRowController {
     if (users.isEmpty ||
         SilentRefreshGate.shouldRefresh(
           'story:row:$myUid',
-          minInterval: StoryRowController._silentRefreshInterval,
+          minInterval: _storyRowSilentRefreshInterval,
         )) {
       unawaited(loadStories(silentLoad: true, cacheFirst: true));
     }
@@ -35,7 +35,7 @@ extension StoryRowControllerLoadPart on StoryRowController {
         final now = DateTime.now();
         final shouldCleanup = _lastExpireCleanupAt == null ||
             now.difference(_lastExpireCleanupAt!) >=
-                StoryRowController._expireCleanupInterval;
+                _storyRowExpireCleanupInterval;
         if (shouldCleanup) {
           _lastExpireCleanupAt = now;
           await _storyRepository.markExpiredStoriesDeleted(myUid);

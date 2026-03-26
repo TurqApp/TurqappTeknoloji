@@ -16,5 +16,6 @@ import 'story_user_model.dart';
 
 part 'story_row_controller_cache_part.dart';
 part 'story_row_controller_class_part.dart';
+part 'story_row_controller_fields_part.dart';
 part 'story_row_controller_load_part.dart';
 part 'story_row_controller_support_part.dart';

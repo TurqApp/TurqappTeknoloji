@@ -1,5 +1,7 @@
 part of 'liked_posts_controller.dart';
 
+bool _isLikedPostsSeriesPost(PostsModel post) => post.floodCount > 1;
+
 LikedPostControllers? maybeFindLikedPostControllers() {
   final isRegistered = Get.isRegistered<LikedPostControllers>();
   if (!isRegistered) return null;
@@ -16,11 +18,11 @@ extension LikedPostsControllerFacadePart on LikedPostControllers {
   List<PostsModel> get likedAll => all;
 
   List<PostsModel> get likedPostsOnly => all
-      .where((post) => !LikedPostControllers.isSeriesPost(post))
+      .where((post) => !_isLikedPostsSeriesPost(post))
       .toList(growable: false);
 
   List<PostsModel> get likedSeries =>
-      all.where(LikedPostControllers.isSeriesPost).toList(growable: false);
+      all.where(_isLikedPostsSeriesPost).toList(growable: false);
 
   void goToPage(int index) =>
       _LikedPostsControllerNavigationPart(this).goToPage(index);

@@ -36,7 +36,7 @@ extension _LikedPostsControllerDataPart on LikedPostControllers {
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'liked_posts:$userId',
-        minInterval: LikedPostControllers._silentRefreshInterval,
+        minInterval: _likedPostsSilentRefreshInterval,
       )) {
         unawaited(_hydrate(
           userId,

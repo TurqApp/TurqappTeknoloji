@@ -14,5 +14,6 @@ part 'ads_center_controller_stream_part.dart';
 part 'ads_center_controller_actions_part.dart';
 part 'ads_center_controller_runtime_part.dart';
 part 'ads_center_controller_fields_part.dart';
+part 'ads_center_controller_base_part.dart';
 part 'ads_center_controller_class_part.dart';
 part 'ads_center_controller_facade_part.dart';

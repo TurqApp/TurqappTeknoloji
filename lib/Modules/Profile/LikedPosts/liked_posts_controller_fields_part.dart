@@ -1,5 +1,7 @@
 part of 'liked_posts_controller.dart';
 
+const Duration _likedPostsSilentRefreshInterval = Duration(minutes: 5);
+
 class _LikedPostsControllerState {
   final all = <PostsModel>[].obs;
   final selection = 0.obs;
@@ -14,6 +16,7 @@ class _LikedPostsControllerState {
   String? currentUserId;
   List<UserPostReference> latestRefs = const [];
   final isLoading = false.obs;
+  final UserPostLinkService linkService = UserPostLinkService.ensure();
 }
 
 extension LikedPostsControllerFieldsPart on LikedPostControllers {
@@ -38,4 +41,5 @@ extension LikedPostsControllerFieldsPart on LikedPostControllers {
   List<UserPostReference> get _latestRefs => _state.latestRefs;
   set _latestRefs(List<UserPostReference> value) => _state.latestRefs = value;
   RxBool get isLoading => _state.isLoading;
+  UserPostLinkService get _linkService => _state.linkService;
 }
