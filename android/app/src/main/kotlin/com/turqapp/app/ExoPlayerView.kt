@@ -665,6 +665,11 @@ class ExoPlayerView(
                     "ExoPlayerView#$viewId",
                     "surfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$stallRecoveries"
                 )
+                didRenderFirstFrame = false
+                pendingRevealRunnable?.let(handler::removeCallbacks)
+                pendingRevealRunnable = null
+                playerView.animate().cancel()
+                playerView.alpha = 0f
                 sendEvent(
                     mapOf(
                         "event" to "surfaceRebind",
@@ -672,9 +677,9 @@ class ExoPlayerView(
                         "recoveryAttempt" to stallRecoveries,
                     )
                 )
+                sendEvent(mapOf("event" to "surfaceDetached"))
                 playerView.player = null
                 playerView.player = p
-                revealSurface(immediate = true)
                 p.seekTo(currentPosition)
                 p.playWhenReady = true
                 p.play()
@@ -734,7 +739,13 @@ class ExoPlayerView(
             }
             return
         }
-        if (!hasVideoSize || (!didRenderFirstFrame && !isPlayerReady)) {
+        val needsFreshFrame = playerView.alpha < 1f
+        val canReveal = if (needsFreshFrame) {
+            didRenderFirstFrame
+        } else {
+            didRenderFirstFrame || (hasVideoSize && isPlayerReady)
+        }
+        if (!canReveal) {
             return
         }
         handler.post {
