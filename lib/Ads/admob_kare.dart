@@ -298,9 +298,6 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _attachBannerOrLoad() {
-    if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
-      return;
-    }
     if (!_canStartOrRetryLoad()) {
       return;
     }
@@ -471,8 +468,10 @@ class _AdmobKareState extends State<AdmobKare> {
     }
     if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
       _advanceManagedSuggestionIndex();
+      if (_canRenderAd(_bannerAd)) {
+        return;
+      }
       _queueManagedSuggestionImpressionIfVisible();
-      return;
     }
     if (_bannerAd == null || !_isAdLoaded) {
       _attachBannerOrLoad();
@@ -480,9 +479,6 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _loadBanner() {
-    if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
-      return;
-    }
     if (!_canStartOrRetryLoad()) {
       return;
     }
@@ -699,14 +695,11 @@ class _AdmobKareState extends State<AdmobKare> {
         ),
       );
     } else {
-      final showManagedSuggestion =
-          _usesManagedSuggestion && _suggestionSliderItems.isNotEmpty;
       final ad = _bannerAd;
       final canRenderLiveAd = !_loadFailed && _canRenderAd(ad);
-      if (showManagedSuggestion) {
-        _queueManagedSuggestionImpressionIfVisible();
-        child = _buildManagedSuggestionSlot();
-      } else if (canRenderLiveAd) {
+      final showManagedSuggestion =
+          _usesManagedSuggestion && _suggestionSliderItems.isNotEmpty;
+      if (canRenderLiveAd) {
         final bannerAd = ad!;
 
         try {
@@ -758,6 +751,9 @@ class _AdmobKareState extends State<AdmobKare> {
           }
           child = const SizedBox.shrink();
         }
+      } else if (showManagedSuggestion) {
+        _queueManagedSuggestionImpressionIfVisible();
+        child = _buildManagedSuggestionSlot();
       } else {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
