@@ -1,6 +1,6 @@
 part of 'upload_queue_service.dart';
 
-abstract class _UploadQueueServiceBase extends GetxController {
+abstract class _UploadQueueServiceBase extends GetxService {
   final _state = _UploadQueueServiceState();
 
   @override

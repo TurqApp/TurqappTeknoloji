@@ -1,6 +1,6 @@
 part of 'offline_mode_service.dart';
 
-abstract class _OfflineModeServiceBase extends GetxController {
+abstract class _OfflineModeServiceBase extends GetxService {
   final _state = _OfflineModeServiceState();
 
   @override

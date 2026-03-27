@@ -1,6 +1,6 @@
 part of 'draft_service_library.dart';
 
-abstract class _DraftServiceBase extends GetxController {
+abstract class _DraftServiceBase extends GetxService {
   final _state = _DraftServiceState();
 
   @override

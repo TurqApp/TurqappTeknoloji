@@ -1,6 +1,6 @@
 part of 'network_awareness_service.dart';
 
-abstract class _NetworkAwarenessServiceBase extends GetxController {
+abstract class _NetworkAwarenessServiceBase extends GetxService {
   final _state = _NetworkAwarenessServiceState();
 
   @override
