@@ -331,120 +331,116 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
   }
 
   Widget _buildOverallHealthCard() {
-    return GetBuilder<ErrorHandlingService>(
-      builder: (errorService) {
-        final health = errorService.getSystemHealth();
-        final status = health['status'] as String;
+    final health = _getSystemHealth();
+    final status = health['status'] as String;
 
-        Color statusColor;
-        IconData statusIcon;
-        String statusText;
-        String statusDescription;
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+    String statusDescription;
 
-        switch (status) {
-          case 'good':
-            statusColor = Colors.green;
-            statusIcon = Icons.check_circle;
-            statusText = 'app_health.status_excellent'.tr;
-            statusDescription = 'app_health.status_excellent_desc'.tr;
-            break;
-          case 'fair':
-            statusColor = Colors.orange;
-            statusIcon = Icons.warning;
-            statusText = 'app_health.status_good'.tr;
-            statusDescription = 'app_health.status_good_desc'.tr;
-            break;
-          case 'poor':
-            statusColor = Colors.red;
-            statusIcon = Icons.error;
-            statusText = 'app_health.status_attention'.tr;
-            statusDescription = 'app_health.status_attention_desc'.tr;
-            break;
-          default:
-            statusColor = Colors.grey;
-            statusIcon = Icons.help;
-            statusText = 'common.unknown'.tr;
-            statusDescription = 'app_health.status_unknown_desc'.tr;
-        }
+    switch (status) {
+      case 'good':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        statusText = 'app_health.status_excellent'.tr;
+        statusDescription = 'app_health.status_excellent_desc'.tr;
+        break;
+      case 'fair':
+        statusColor = Colors.orange;
+        statusIcon = Icons.warning;
+        statusText = 'app_health.status_good'.tr;
+        statusDescription = 'app_health.status_good_desc'.tr;
+        break;
+      case 'poor':
+        statusColor = Colors.red;
+        statusIcon = Icons.error;
+        statusText = 'app_health.status_attention'.tr;
+        statusDescription = 'app_health.status_attention_desc'.tr;
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help;
+        statusText = 'common.unknown'.tr;
+        statusDescription = 'app_health.status_unknown_desc'.tr;
+    }
 
-        return Card(
-          elevation: 4,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  statusColor.withValues(alpha: 0.1),
-                  statusColor.withValues(alpha: 0.05)
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
+    return Card(
+      elevation: 4,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              statusColor.withValues(alpha: 0.1),
+              statusColor.withValues(alpha: 0.05)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Icon(statusIcon, color: statusColor, size: 40),
+                const SizedBox(width: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(statusIcon, color: statusColor, size: 40),
-                    const SizedBox(width: 15),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Sistem Durumu: $statusText',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: statusColor,
-                          ),
-                        ),
-                        Text(
-                          statusDescription,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Sistem Durumu: $statusText',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildMetric(
-                      'app_health.recent_errors_30m'.tr,
-                      '${health['recentErrors']}',
-                      Icons.bug_report,
-                      (health['recentErrors'] as int) > 5
-                          ? Colors.orange
-                          : Colors.green,
-                    ),
-                    _buildMetric(
-                      'app_health.connection'.tr,
-                      (health['isOnline'] as bool)
-                          ? 'app_health.online_status'.tr
-                          : 'app_health.offline_status'.tr,
-                      Icons.wifi,
-                      (health['isOnline'] as bool) ? Colors.blue : Colors.red,
-                    ),
-                    _buildMetric(
-                      'app_health.critical_short'.tr,
-                      '${health['criticalErrors']}',
-                      Icons.error_outline,
-                      health['criticalErrors'] > 0 ? Colors.red : Colors.green,
+                    Text(
+                      statusDescription,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMetric(
+                  'app_health.recent_errors_30m'.tr,
+                  '${health['recentErrors']}',
+                  Icons.bug_report,
+                  (health['recentErrors'] as int) > 5
+                      ? Colors.orange
+                      : Colors.green,
+                ),
+                _buildMetric(
+                  'app_health.connection'.tr,
+                  (health['isOnline'] as bool)
+                      ? 'app_health.online_status'.tr
+                      : 'app_health.offline_status'.tr,
+                  Icons.wifi,
+                  (health['isOnline'] as bool) ? Colors.blue : Colors.red,
+                ),
+                _buildMetric(
+                  'app_health.critical_short'.tr,
+                  '${health['criticalErrors']}',
+                  Icons.error_outline,
+                  health['criticalErrors'] > 0 ? Colors.red : Colors.green,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
