@@ -39,9 +39,6 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
       controller = ensureDeletedStoriesController();
       _ownsController = true;
     }
-    Future<void>.delayed(Duration.zero, () {
-      controller.fetch(initial: false, forceRemote: true);
-    });
   }
 
   @override
