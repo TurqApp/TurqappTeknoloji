@@ -30,3 +30,11 @@ abstract class _SocialProfileFollowersControllerBase extends GetxController {
     super.onClose();
   }
 }
+
+class SocialProfileFollowersController
+    extends _SocialProfileFollowersControllerBase {
+  SocialProfileFollowersController({
+    required super.initialPage,
+    required super.userID,
+  });
+}
