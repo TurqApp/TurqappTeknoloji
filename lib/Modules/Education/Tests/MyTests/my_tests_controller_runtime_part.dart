@@ -1,5 +1,28 @@
 part of 'my_tests_controller.dart';
 
+class MyTestsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  final _state = _MyTestsControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    handleRuntimeInit();
+  }
+}
+
+class _MyTestsControllerState {
+  final testRepository = ensureTestRepository();
+  final list = <TestsModel>[].obs;
+  final isLoading = true.obs;
+}
+
+extension MyTestsControllerFieldsPart on MyTestsController {
+  TestRepository get _testRepository => _state.testRepository;
+  RxList<TestsModel> get list => _state.list;
+  RxBool get isLoading => _state.isLoading;
+}
+
 extension MyTestsControllerRuntimePart on MyTestsController {
   void handleRuntimeInit() {
     unawaited(_bootstrapData());

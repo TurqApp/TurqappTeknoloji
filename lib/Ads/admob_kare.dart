@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -59,6 +60,7 @@ class _AdmobKareState extends State<AdmobKare> {
       <String, DateTime>{};
   static final Map<String, int> _managedSuggestionNextIndexByPlacement =
       <String, int>{};
+  static final Random _suggestionRandom = Random();
   static int _loadingCount = 0;
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
@@ -89,6 +91,7 @@ class _AdmobKareState extends State<AdmobKare> {
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
+  TurqAppSuggestionConfig? _fallbackSuggestionConfig;
   List<SliderResolvedItem> _suggestionSliderItems =
       const <SliderResolvedItem>[];
   int _visibleSuggestionIndex = 0;
@@ -268,6 +271,8 @@ class _AdmobKareState extends State<AdmobKare> {
     _visibilityKey = ValueKey<String>('admob-kare-${identityHashCode(this)}');
     if (_usePlaceholderOnly) return;
     if (_usesManagedSuggestion) {
+      _fallbackSuggestionConfig =
+          _pickRandomFallbackConfig(const <String, TurqAppSuggestionConfig>{});
       unawaited(_bootstrapManagedSuggestion());
     }
   }
@@ -281,6 +286,9 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
     _suggestionConfig = null;
+    _fallbackSuggestionConfig = nextPlacement.isEmpty
+        ? null
+        : _pickRandomFallbackConfig(const <String, TurqAppSuggestionConfig>{});
     _suggestionSliderItems = const <SliderResolvedItem>[];
     _visibleSuggestionIndex = 0;
     _lastReportedManagedItemId = '';
@@ -352,13 +360,16 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
 
-    final config = await TurqAppSuggestionConfigService.instance.getConfig(
-      placementId,
+    final configs = await TurqAppSuggestionConfigService.instance.loadAll(
       forceRefresh: forceRefresh,
     );
+    final config =
+        configs[placementId] ?? TurqAppSuggestionConfig.defaultsFor(placement);
+    final fallbackConfig = _pickRandomFallbackConfig(configs);
     if (!mounted || _isDisposed) return;
     setState(() {
       _suggestionConfig = config;
+      _fallbackSuggestionConfig = fallbackConfig;
     });
 
     final snapshot = await _sliderCacheService.readSnapshot(config.sliderId);
@@ -817,7 +828,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildPromoFallbackCard() {
-    final config = _currentSuggestionConfig;
+    final config = _currentFallbackSuggestionConfig;
     final accentColor = _promoAccentColorFor(config.placementId);
     final accentTint = accentColor.withValues(alpha: 0.12);
     return Container(
@@ -887,7 +898,7 @@ class _AdmobKareState extends State<AdmobKare> {
                     ),
                   ),
                   child: const Text(
-                    'TurqApp önerisi',
+                    'TurqApp Önerisi',
                     style: TextStyle(
                       color: Color(0xFF111827),
                       fontSize: 11,
@@ -1001,6 +1012,25 @@ class _AdmobKareState extends State<AdmobKare> {
       );
     }
     return _suggestionConfig ?? TurqAppSuggestionConfig.defaultsFor(placement);
+  }
+
+  TurqAppSuggestionConfig get _currentFallbackSuggestionConfig =>
+      _fallbackSuggestionConfig ?? _currentSuggestionConfig;
+
+  TurqAppSuggestionConfig _pickRandomFallbackConfig(
+    Map<String, TurqAppSuggestionConfig> configs,
+  ) {
+    final available = TurqAppSuggestionPlacements.entries
+        .map(
+          (placement) =>
+              configs[placement.id] ??
+              TurqAppSuggestionConfig.defaultsFor(placement),
+        )
+        .toList(growable: false);
+    if (available.isEmpty) {
+      return _currentSuggestionConfig;
+    }
+    return available[_suggestionRandom.nextInt(available.length)];
   }
 
   Color _promoAccentColorFor(String placementId) {

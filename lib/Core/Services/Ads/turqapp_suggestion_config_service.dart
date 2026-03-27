@@ -20,7 +20,7 @@ class TurqAppSuggestionPlacement {
 class TurqAppSuggestionPlacements {
   static const TurqAppSuggestionPlacement feed = TurqAppSuggestionPlacement(
     id: 'feed',
-    title: 'Feed',
+    title: 'Anasayfa',
     sliderId: 'ads_feed',
     surfaceSummary: 'Agenda, Classic, Seri gönderi',
   );
@@ -52,7 +52,7 @@ class TurqAppSuggestionPlacements {
   );
   static const TurqAppSuggestionPlacement job = TurqAppSuggestionPlacement(
     id: 'job',
-    title: 'İşveren',
+    title: 'İşVeren',
     sliderId: 'ads_job',
     surfaceSummary: 'Grid, liste, ilan detayı',
   );
@@ -458,9 +458,7 @@ class TurqAppSuggestionConfig {
   ) {
     return TurqAppSuggestionConfig(
       placementId: placement.id,
-      title: (data['title'] ?? '').toString().trim().isEmpty
-          ? placement.title
-          : (data['title'] ?? '').toString().trim(),
+      title: placement.title,
       sliderId: (data['sliderId'] ?? '').toString().trim().isEmpty
           ? placement.sliderId
           : (data['sliderId'] ?? '').toString().trim(),

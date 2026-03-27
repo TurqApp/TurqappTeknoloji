@@ -195,7 +195,7 @@ class SliderCacheService {
     String sliderId,
     List<SliderResolvedItem> items,
   ) async {
-    if (sliderId.trim().isEmpty || items.isEmpty) return;
+    if (sliderId.trim().isEmpty) return;
     try {
       final prefs = await _prefsInstance();
       await prefs.setString(
@@ -205,6 +205,14 @@ class SliderCacheService {
           'resolvedItems': items.map((item) => item.toMap()).toList(),
         }),
       );
+    } catch (_) {}
+  }
+
+  Future<void> clearResolvedItems(String sliderId) async {
+    if (sliderId.trim().isEmpty) return;
+    try {
+      final prefs = await _prefsInstance();
+      await prefs.remove(_key(sliderId));
     } catch (_) {}
   }
 
@@ -325,8 +333,8 @@ class SliderCacheService {
     int warmRemoteLimit = 8,
   }) async {
     final resolved = await resolveRemoteItems(sliderId);
-    if (resolved.isEmpty) return const <SliderResolvedItem>[];
     await writeResolvedItems(sliderId, resolved);
+    if (resolved.isEmpty) return const <SliderResolvedItem>[];
     await warmImages(
       resolved.map((item) => item.source).toList(growable: false),
       remoteLimit: warmRemoteLimit,

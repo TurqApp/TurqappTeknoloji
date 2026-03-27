@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.dart';
+import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 
 class TurqAppSuggestionAdminView extends StatefulWidget {
@@ -24,8 +27,10 @@ class _TurqAppSuggestionAdminViewState
       <String, TextEditingController>{};
   final Set<String> _dirtyPlacements = <String>{};
   final Set<String> _savingPlacements = <String>{};
+  final Set<String> _removingPlacements = <String>{};
   final Map<String, ManagedAdInventoryItem> _inventoryById =
       <String, ManagedAdInventoryItem>{};
+  final SliderCacheService _sliderCacheService = SliderCacheService();
 
   bool _loading = true;
   String? _errorText;
@@ -184,6 +189,95 @@ class _TurqAppSuggestionAdminViewState
     await _refreshManagedInventory();
   }
 
+  Future<void> _confirmRemoveSlider(ManagedAdPlacement placement) async {
+    if (_removingPlacements.contains(placement.id)) {
+      return;
+    }
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) {
+        return CupertinoAlertDialog(
+          title: Text('${placement.title} sliderını kaldır'),
+          content: const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Yüklenen görseller kaldırılacak. Slot, tekrar random TurqApp Önerisi yapısına döner.',
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Vazgeç'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Kaldır'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) {
+      return;
+    }
+    await _removeSlider(placement);
+  }
+
+  Future<void> _removeSlider(ManagedAdPlacement placement) async {
+    setState(() {
+      _removingPlacements.add(placement.id);
+    });
+    try {
+      final sliderMeta = FirebaseFirestore.instance
+          .collection('sliders')
+          .doc(placement.sliderId);
+      final itemsSnapshot = await sliderMeta.collection('items').get();
+      final batch = FirebaseFirestore.instance.batch();
+      final storagePaths = <String>[];
+      for (final doc in itemsSnapshot.docs) {
+        batch.delete(doc.reference);
+        final storagePath = (doc.data()['storagePath'] ?? '').toString().trim();
+        if (storagePath.isNotEmpty) {
+          storagePaths.add(storagePath);
+        }
+      }
+      if (itemsSnapshot.docs.isNotEmpty) {
+        await batch.commit();
+      }
+      for (final storagePath in storagePaths) {
+        try {
+          await FirebaseStorage.instance.ref().child(storagePath).delete();
+        } catch (_) {}
+      }
+      await sliderMeta.set({
+        'hiddenDefaults': FieldValue.delete(),
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
+      }, SetOptions(merge: true));
+      await _sliderCacheService.clearResolvedItems(placement.sliderId);
+      await _refreshManagedInventory();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${placement.title} sliderı kaldırıldı'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${placement.title} kaldırılamadı: $error'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _removingPlacements.remove(placement.id);
+        });
+      }
+    }
+  }
+
   Widget _buildStatusChip(ManagedAdInventoryItem item) {
     final sliderLoaded = item.hasManagedAd;
     final backgroundColor =
@@ -193,7 +287,7 @@ class _TurqAppSuggestionAdminViewState
     final text = sliderLoaded
         ? 'Yönetilen reklam aktif'
         : item.placement.supportsFallbackText
-            ? 'Slider boşsa TurqApp önerisi çalışır'
+            ? 'Slider boşsa TurqApp Önerisi çalışır'
             : 'Slider boşsa mevcut ekran yapısı çalışır';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -275,6 +369,8 @@ class _TurqAppSuggestionAdminViewState
     final bodyController = _bodyControllers[placement.id]!;
     final saving = _savingPlacements.contains(placement.id);
     final inventoryItem = _inventoryForPlacement(placement);
+    final removing = _removingPlacements.contains(placement.id);
+    final hasSliderItems = inventoryItem.sliderSummary.totalItems > 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -352,35 +448,52 @@ class _TurqAppSuggestionAdminViewState
                   onPressed: () => _openSliderAdmin(inventoryItem.placement),
                   icon: const Icon(CupertinoIcons.photo_on_rectangle),
                   label: Text(
-                    inventoryItem.hasManagedAd
-                        ? 'Slider Yönet'
-                        : 'Slider Yükle',
+                    hasSliderItems ? 'Slider Yönet' : 'Slider Yükle',
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: saving ? null : () => _savePlacement(placement),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+              if (hasSliderItems) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: removing
+                        ? null
+                        : () => _confirmRemoveSlider(inventoryItem.placement),
+                    icon: removing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(CupertinoIcons.trash),
+                    label: const Text('Kaldır'),
                   ),
-                  icon: saving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(CupertinoIcons.check_mark),
-                  label: const Text('Kaydet'),
                 ),
-              ),
+              ],
             ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: saving ? null : () => _savePlacement(placement),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+              icon: saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(CupertinoIcons.check_mark),
+              label: const Text('Kaydet'),
+            ),
           ),
         ],
       ),
@@ -599,7 +712,7 @@ class _TurqAppSuggestionAdminViewState
               _buildManagedInventoryCard(_inventoryById[placement.id]!),
           const SizedBox(height: 10),
           const Text(
-            'TurqApp önerisi',
+            'TurqApp Önerisi',
             style: TextStyle(
               fontSize: 18,
               fontFamily: 'MontserratBold',
