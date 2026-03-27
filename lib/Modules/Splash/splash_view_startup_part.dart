@@ -326,7 +326,9 @@ extension _SplashViewStartupPart on _SplashViewState {
     Get.lazyPut(() => UnreadMessagesController());
     Get.lazyPut(() => NavBarController());
     Get.lazyPut(() => ProfileController());
-    Get.lazyPut(() => AgendaController());
+    if (maybeFindAgendaController() == null) {
+      Get.put(AgendaController(), permanent: true);
+    }
     Get.lazyPut(() => RecommendedUserListController(), fenix: true);
     Get.lazyPut(() => ExploreController());
     Get.lazyPut(() => ShortController());
