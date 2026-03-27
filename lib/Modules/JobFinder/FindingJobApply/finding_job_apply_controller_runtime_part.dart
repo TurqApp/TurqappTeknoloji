@@ -1,5 +1,28 @@
 part of 'finding_job_apply_controller.dart';
 
+class FindingJobApplyController extends GetxController {
+  final _FindingJobApplyControllerState _state =
+      _FindingJobApplyControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _handleFindingJobApplyControllerInit(this);
+  }
+}
+
+class _FindingJobApplyControllerState {
+  final CvRepository cvRepository = ensureCvRepository();
+  final RxBool cvVar = false.obs;
+  final RxBool isFinding = false.obs;
+}
+
+extension FindingJobApplyControllerFieldsPart on FindingJobApplyController {
+  CvRepository get _cvRepository => _state.cvRepository;
+  RxBool get cvVar => _state.cvVar;
+  RxBool get isFinding => _state.isFinding;
+}
+
 void _handleFindingJobApplyControllerInit(
     FindingJobApplyController controller) {
   controller.cvCheck();
