@@ -10,7 +10,6 @@ import 'StoryLikes/story_likes.dart';
 import 'StorySeens/story_seens.dart';
 
 part 'user_story_content_controller_base_part.dart';
-part 'user_story_content_controller_class_part.dart';
 part 'user_story_content_controller_fields_part.dart';
 part 'user_story_content_controller_facade_part.dart';
 part 'user_story_content_controller_runtime_part.dart';

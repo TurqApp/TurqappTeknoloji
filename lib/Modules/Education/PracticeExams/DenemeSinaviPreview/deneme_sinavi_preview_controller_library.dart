@@ -9,7 +9,6 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'deneme_sinavi_preview_controller_base_part.dart';
-part 'deneme_sinavi_preview_controller_constants_part.dart';
 part 'deneme_sinavi_preview_controller_fields_part.dart';
 part 'deneme_sinavi_preview_controller_actions_part.dart';
 part 'deneme_sinavi_preview_controller_facade_part.dart';

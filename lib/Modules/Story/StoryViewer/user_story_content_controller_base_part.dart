@@ -9,3 +9,20 @@ abstract class _UserStoryContentControllerBase extends GetxController {
 
   final _UserStoryContentControllerState _state;
 }
+
+class UserStoryContentController extends _UserStoryContentControllerBase {
+  UserStoryContentController({
+    required super.storyID,
+    required super.nickname,
+    required super.isMyStory,
+  }) : super();
+
+  static const List<String> reactionEmojis = [
+    '❤️',
+    '😂',
+    '😮',
+    '😢',
+    '🔥',
+    '👏'
+  ];
+}

@@ -13,4 +13,3 @@ part 'my_past_test_results_preview_controller_base_part.dart';
 part 'my_past_test_results_preview_controller_constants_part.dart';
 part 'my_past_test_results_preview_controller_fields_part.dart';
 part 'my_past_test_results_preview_controller_ui_part.dart';
-part 'my_past_test_results_preview_controller_class_part.dart';

@@ -5,3 +5,13 @@ abstract class _MyPastTestResultsPreviewBase extends GetxController {
       : _state = _MyPastTestResultsPreviewControllerState(model);
   final _MyPastTestResultsPreviewControllerState _state;
 }
+
+class MyPastTestResultsPreviewController extends _MyPastTestResultsPreviewBase {
+  MyPastTestResultsPreviewController(super.model);
+
+  @override
+  void onInit() {
+    super.onInit();
+    _handleControllerInit();
+  }
+}
