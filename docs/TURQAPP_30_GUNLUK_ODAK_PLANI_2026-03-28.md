@@ -66,17 +66,25 @@ Bu plan yalnizca bir niyet listesi degil, sirali uygulama protokoludur.
 
 Baglayici kurallar:
 
-- Ayni anda yalnizca 1 kritik-yol isi aktif olabilir
-- Kritik yola dokunmayan en fazla 1 yan is, cakismayan dosya ve alanlarda paralel ilerleyebilir
+- Plan disina cikilmaz
+- Ayni anda yalnizca `1` is aktif olabilir
 - Is sirasi onaysiz degistirilemez
 - Aktif is bitmeden yeni bulguya gecilemez
 - Yeni bulgular kayda girer ama aktif isi bolmez
+- Belirsizlik varsa durum acikca `eksik bilgi` diye yazilir
+- Varsayim ile is kapanisi yapilmaz
 - Her is icin kabul kriteri ve teknik dogrulama zorunludur
+- Kabul kriteri veya teknik dogrulamasi tanimli olmayan is baslatilmaz
+- Her is icin yan etki kontrolu zorunludur
+- Her is icin planla uyum kontrolu zorunludur
 - Her is sonunda kullanici kontrol checklist'i verilir
+- Kullanici onayi olmadan bir sonraki resmi ise gecilmez
 - "Bunu da duzeltmisken" yaklasimi yasaktir
 - Plansiz refactor yasaktir
 - Yeni feature kodu icin yatay koklere donus yasaktir
 - Hiz, dogrulama ve sira disiplininin yerine gecemez
+- Konu disi mimari degisiklik yasaktir
+- Ben istenmeden yeni hedef uretilmez
 
 Zorunlu kayit tipleri:
 
@@ -93,8 +101,35 @@ Kurallar:
 
 - `RISK/GAP/DEBT/BLOCK` kayitlari aktif isten bagimsiz loglanir
 - aktif is tamamlanmadan uygulanmaz
-- yan is, kritik-yol isinin onune gecemez ve aktif kritik-yol isini bloke edemez
 - yalnizca kritik blokaj, guvenlik acigi, veri kaybi riski veya uretim cokus riski varsa plan revizyonu istenir
+
+## Is Baslangic Protokolu
+
+Her yeni is baslamadan once asagidaki 4 satir zorunludur:
+
+- aktif is no
+- isin amaci
+- bagimliliklar tamam mi
+- basari olcutu
+
+Kural:
+
+- bu ozet yazilmadan yeni is teknik olarak baslamis sayilmaz
+- aktif is bilgisi, resmi yurutme sirasindaki is numarasi ile birebir ayni olmali
+
+## Is Sirasi Davranis Kurallari
+
+- aktif is sirasinda yalnizca o isin kapsaminda kalinir
+- aktif is sirasinda gorulen baska problemler `Yeni bulunan ama plana alinmamis konular` altinda loglanir
+- loglanan yeni kayitlar aktif isi durdurmaz
+- `BLOCK-###` disindaki hicbir kayit aktif isi kendiliginden yon degistirme sebebi olamaz
+
+## Eksik Bilgi ve Blokaj Kurali
+
+- kritik karar icin veri yoksa durum `eksik bilgi` olarak yazilir
+- `eksik bilgi` aktif isin kabul kriterini etkiliyorsa `BLOCK-###` kaydi acilir
+- blokaj yoksa makul yorumla degil, gozlenen veriyle ilerlenir
+- blokaj varsa plan revizyonu istemeden once aktif isin neden durdugu acik yazilir
 
 ## Ilerleme ve Puanlama Modeli
 
@@ -136,6 +171,16 @@ Bir is ancak asagidaki sartlarin tamami saglandiginda bitmis sayilir:
 - kullanici kontrol adimlari verilmis olacak
 - ilerleme ve kalan is raporu guncellenmis olacak
 
+Bu liste, minimum zorunlu 7 kosulu da kapsar:
+
+- hedef
+- kabul kriteri
+- teknik dogrulama
+- yan etki kontrolu
+- dosya listesi
+- kullanici kontrol adimlari
+- ilerleme raporu
+
 ## Plan Revizyon Protokolu
 
 Plan yalnizca asagidaki durumlarda revize edilir:
@@ -155,6 +200,25 @@ Revizyon formati:
 - risk
 - kazanım
 - onay gerekiyor / gerekmiyor
+
+Kapsam degisikligi gerekiyorsa bu durum acikca `Plan Revizyon Talebi` basligi ile sunulur.
+
+## Davranis Sinirlari ve Hiz Kurali
+
+Davranis sinirlari:
+
+- gereksiz iyimserlik yapilmaz
+- gercek disi hiz vaadi verilmez
+- "AI oldugum icin yetisir" varsayimi ile dogrulama azaltılmaz
+- paralel is acilmaz
+- is gereksiz buyutulmez
+- kullanici istemeden yeni hedef uretilmez
+
+Hiz kurali:
+
+- hiz sadece daha hizli analiz, daha hizli uygulama ve daha hizli dogrulama icin kullanilir
+- sira, kontrol ve disiplin bozulmaz
+- hiz kazanmak icin test, guard veya yan etki kontrolu atlanmaz
 
 ## Hedef Katman Modeli
 
@@ -365,7 +429,7 @@ Kurallar:
 ## Resmi Yurutme Sirasi
 
 Bu zincir planin risk-kontrollu resmi uygulama sirasidir.
-Bagimlilik grafigi icinde paralel acilabilecek bazi isler bulunsa da, bu liste operasyonel disiplin icin hangi sirayla ilerleyecegimizi sabitler.
+Bu liste operasyonel disiplin icin hangi sirayla ilerleyecegimizi sabitler.
 
 - `T-001 -> T-002 -> T-003 -> T-004 -> T-005 -> T-006 -> T-007 -> T-008 -> T-009 -> T-010 -> T-011 -> T-012 -> T-013 -> T-027 -> T-015 -> T-016 -> T-019 -> T-020 -> T-023A -> T-017 -> T-018 -> T-029 -> T-021 -> T-022 -> T-024 -> T-026`
 
@@ -389,6 +453,11 @@ Destekleyici ama resmi siralama disi isler:
 - `T-030`
 - `T-031`
 - `T-025`
+
+Kural:
+
+- bu isler planda kayitli olsa da kullanici onayi olmadan resmi siraya alinamaz
+- ayni anda ikinci aktif is acilamaz
 
 ## Cevresel Onkosullar ve Blokaj Kontrolu
 
@@ -491,6 +560,7 @@ Her tamamlanan is en az bir kanit kaydi uretir.
 | Artifact ID | Is No | Kanit tipi | Dosya / cikti | Uretim komutu | Reviewed by | Durum |
 | --- | --- | --- | --- | --- | --- | --- |
 | ART-001 | T-001 | baseline envanteri | `docs/architecture/T-001_BASELINE_ENVANTERI_2026-03-28.md` | `git status` + `git rev-parse` + `find/rg` bazli envanter komutlari | Codex local review | Hazir |
+| ART-010 | T-002 | yurutme anayasasi ve rapor standardi diff'i | `docs/TURQAPP_30_GUNLUK_ODAK_PLANI_2026-03-28.md` | `git diff -- docs/TURQAPP_30_GUNLUK_ODAK_PLANI_2026-03-28.md` | Codex local review | Hazir |
 | ART-002 | T-003 | import graph + locator raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-003 | T-009 | architecture guard ciktilari | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-004 | T-021 | backend/rules regression test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
@@ -1138,47 +1208,46 @@ Zincir kontrolu yapilmadan hicbir is `Tamamlandi` durumuna gecemez.
 
 ## Her Is Sonu Zorunlu Rapor Formati
 
-Her is bitiminde asagidaki format zorunludur:
+Her is bitiminde asagidaki format ve sira zorunludur:
 
-- Is No
-- Baslik
-- Durum: `Tamamlandi / Kismi / Bloklu`
-- Bu iste yapilanlar
-- Somut kazanımlar
-- Etkilenen dosyalar
-- Artifact / kanit kayitlari
-- Teknik dogrulama
-- Bagli zincir kontrolu
-- Kirilma var mi
-- Regresyon var mi
-- Zincir durumu
-- Bozulan akislar
-- Regresyon riski
-- Reviewer sonucu
-- Final approval durumu
-- Benim kontrol etmem gerekenler
-- Risk veya dikkat notu
-- Toplam ilerleme
-- Tamamlanan puan
-- Kalan puan
-- Tamamlanan is sayisi
-- Kalan is sayisi
-- Siradaki onerilen is
-- Yeni bulunan ama plana alinmamis konular
+- `Is No`
+- `Baslik`
+- `Durum: Tamamlandi / Kismi / Bloklu`
+- `Bu iste yapilanlar`
+- `Somut kazanımlar`
+- `Etkilenen dosyalar`
+- `Artifact / kanit kayitlari`
+- `Teknik dogrulama`
+- `Bagli zincir kontrolu`
+- `Benim kontrol etmem gerekenler`
+- `Risk veya dikkat notu`
+- `Toplam ilerleme`
+- `Tamamlanan puan`
+- `Kalan puan`
+- `Tamamlanan is sayisi`
+- `Kalan is sayisi`
+- `Siradaki onerilen is`
+- `Yeni bulunan ama plana alinmamis konular`
 
-`Benim kontrol etmem gerekenler` alani zorunludur ve kisa maddeler halinde yazilir.
+Ek zorunlu notlar:
 
-## Plan Sagligi Gozden Gecirme Milestone'lari
+- `Benim kontrol etmem gerekenler` alani kisa ve maddeli yazilir
+- teknik dogrulama icinde yan etki kontrolu ve planla uyum kontrolu yazilir
+- gerekirse `Bagli zincir kontrolu` altinda kirilma/regresyon notu verilir
+- kullanici onayi gelmeden bir sonraki resmi ise gecilmez
 
-Asagidaki milestone'lar tamamlandiginda plan yeniden gozden gecirilir.
-Bu tetikleme sabit sayi degil, riskli gecis noktalarina baglidir:
+## Plan Sagligi Gozden Gecirme Dongusu
 
-- `T-005`
-- `T-010`
-- `T-015`
-- `T-020`
-- `T-025`
-- `T-029`
+Plan, tamamlanan is sayisi `5`'in katina her ulastiginda yeniden gozden gecirilir.
+
+Tetikleme noktaları:
+
+- `5`
+- `10`
+- `15`
+- `20`
+- `25`
+- `30`
 
 Zorunlu kontrol basliklari:
 
@@ -1195,6 +1264,12 @@ Cikti formati:
 - yeni eksikler
 - kapatilan riskler
 - kalan ana riskler
+
+Kural:
+
+- bu gozden gecirme, aktif isi birakip yeni ise atlamak icin kullanilmaz
+- yeni sorunlar bulunursa yalnizca `RISK/GAP/DEBT/BLOCK` kaydina donusturulur
+- resmi sira yalnizca plan revizyon protokolu ile degisebilir
 
 ## Gunlere Gore Onerilen Sira
 
