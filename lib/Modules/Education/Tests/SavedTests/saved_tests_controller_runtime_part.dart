@@ -1,5 +1,28 @@
 part of 'saved_tests_controller.dart';
 
+class SavedTestsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  final _state = _SavedTestsControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    handleRuntimeInit();
+  }
+}
+
+class _SavedTestsControllerState {
+  final testRepository = ensureTestRepository();
+  final list = <TestsModel>[].obs;
+  final isLoading = true.obs;
+}
+
+extension SavedTestsControllerFieldsPart on SavedTestsController {
+  TestRepository get _testRepository => _state.testRepository;
+  RxList<TestsModel> get list => _state.list;
+  RxBool get isLoading => _state.isLoading;
+}
+
 extension SavedTestsControllerRuntimePart on SavedTestsController {
   void handleRuntimeInit() {
     unawaited(_bootstrapData());

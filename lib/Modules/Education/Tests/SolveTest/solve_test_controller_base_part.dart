@@ -1,5 +1,12 @@
 part of 'solve_test_controller.dart';
 
+class SolveTestController extends _SolveTestControllerBase {
+  SolveTestController({
+    required super.testID,
+    required super.showSucces,
+  });
+}
+
 abstract class _SolveTestControllerBase extends GetxController {
   _SolveTestControllerBase({
     required String testID,
