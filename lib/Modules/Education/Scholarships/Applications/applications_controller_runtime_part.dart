@@ -1,5 +1,7 @@
 part of 'applications_controller_library.dart';
 
+const Duration _applicationsSilentRefreshInterval = Duration(minutes: 5);
+
 ApplicationsController ensureApplicationsController(
   String tag, {
   bool permanent = false,
@@ -11,6 +13,14 @@ ApplicationsController? maybeFindApplicationsController(String tag) =>
     Get.isRegistered<ApplicationsController>(tag: tag)
         ? Get.find<ApplicationsController>(tag: tag)
         : null;
+
+class ApplicationsController extends GetxController {
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_handleOnInit());
+  }
+}
 
 extension ApplicationsControllerRuntimeX on ApplicationsController {
   Future<void> _handleOnInit() async {

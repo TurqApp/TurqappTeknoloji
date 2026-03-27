@@ -1,5 +1,18 @@
 part of 'tutoring_detail_controller_library.dart';
 
+class TutoringDetailController extends GetxController {
+  final _state = _TutoringDetailControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    final tutoringData = Get.arguments as TutoringModel?;
+    if (tutoringData != null) {
+      _TutoringDetailControllerRuntimeX(this).bootstrap(tutoringData);
+    }
+  }
+}
+
 extension _TutoringDetailControllerRuntimeX on TutoringDetailController {
   void bootstrap(TutoringModel tutoringData) {
     fetchTutoringDetail(tutoringData.docID);

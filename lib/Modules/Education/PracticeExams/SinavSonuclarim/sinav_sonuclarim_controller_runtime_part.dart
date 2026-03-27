@@ -1,5 +1,48 @@
 part of 'sinav_sonuclarim_controller_library.dart';
 
+class SinavSonuclarimController extends GetxController {
+  final _state = _SinavSonuclarimControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _handleSinavSonuclarimControllerInit(this);
+  }
+
+  @override
+  void onClose() {
+    _handleSinavSonuclarimControllerClose(this);
+    super.onClose();
+  }
+}
+
+SinavSonuclarimController ensureSinavSonuclarimController({
+  bool permanent = false,
+}) {
+  final existing = maybeFindSinavSonuclarimController();
+  if (existing != null) return existing;
+  return Get.put(SinavSonuclarimController(), permanent: permanent);
+}
+
+SinavSonuclarimController? maybeFindSinavSonuclarimController() {
+  final isRegistered = Get.isRegistered<SinavSonuclarimController>();
+  if (!isRegistered) return null;
+  return Get.find<SinavSonuclarimController>();
+}
+
+void _handleSinavSonuclarimControllerInit(
+  SinavSonuclarimController controller,
+) {
+  controller.scrolControlcu();
+  unawaited(_SinavSonuclarimControllerRuntimeX(controller).bootstrapData());
+}
+
+void _handleSinavSonuclarimControllerClose(
+  SinavSonuclarimController controller,
+) {
+  controller.scrollController.dispose();
+}
+
 extension _SinavSonuclarimControllerRuntimeX on SinavSonuclarimController {
   Future<void> bootstrapData() async {
     final currentUserID = CurrentUserService.instance.effectiveUserId;
@@ -94,4 +137,18 @@ extension _SinavSonuclarimControllerRuntimeX on SinavSonuclarimController {
         .toList(growable: false);
     return listEquals(currentKeys, nextKeys);
   }
+}
+
+extension SinavSonuclarimControllerFacadePart on SinavSonuclarimController {
+  void scrolControlcu() =>
+      _SinavSonuclarimControllerRuntimeX(this).setupScrollController();
+
+  Future<void> findAndGetSinavlar({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) =>
+      _SinavSonuclarimControllerRuntimeX(this).findAndGetSinavlar(
+        silent: silent,
+        forceRefresh: forceRefresh,
+      );
 }
