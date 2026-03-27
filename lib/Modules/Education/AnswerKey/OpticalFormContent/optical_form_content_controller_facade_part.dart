@@ -21,3 +21,15 @@ OpticalFormContentController? maybeFindOpticalFormContentController({
   if (!isRegistered) return null;
   return Get.find<OpticalFormContentController>(tag: tag);
 }
+
+extension OpticalFormContentControllerDataPart on OpticalFormContentController {
+  Future<void> fetchTotal() async => total
+    ..value = 0
+    ..value = await _opticalFormRepository.fetchAnswerCount(model.docID);
+
+  Future<void> deleteOpticalForm() async {
+    try {
+      await _opticalFormRepository.deleteForm(model.docID);
+    } catch (_) {}
+  }
+}
