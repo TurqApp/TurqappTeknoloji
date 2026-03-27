@@ -334,13 +334,25 @@ Bu liste planin resmi uygulama sirasidir.
 | T-025 | Yaniltici widget testlerini gercek ekran davranisina bagla | 4 | QA/Platform | M | 2 | T-022 |
 | T-026 | Dokuman tek-kaynak kuralini ve tarihli plan yigilmama guard'ini koy | 4 | QA/Platform | S | 1 | T-009 |
 
-## Kritik Yol
+## Resmi Yurutme Sirasi
 
-Bu zincir planin resmi kritik yoludur:
+Bu zincir planin risk-kontrollu resmi uygulama sirasidir.
+Bagimlilik grafigi icinde paralel acilabilecek bazi isler bulunsa da, bu liste operasyonel disiplin icin hangi sirayla ilerleyecegimizi sabitler.
 
 - `T-001 -> T-002 -> T-003 -> T-004 -> T-005 -> T-006 -> T-007 -> T-008 -> T-009 -> T-010 -> T-011 -> T-012 -> T-013 -> T-027 -> T-015 -> T-016 -> T-019 -> T-020 -> T-023A -> T-017 -> T-018 -> T-029 -> T-021 -> T-022 -> T-024 -> T-026`
 
-Destekleyici ama kritik yol disi isler:
+## Bagimlilik Bazli En Uzun Zincir
+
+Bagimlilik tablosuna gore bugun hesaplanan en uzun zincir su hattir:
+
+- `T-001 -> T-004 -> T-008 -> T-010 -> T-012 -> T-023A -> T-017 -> T-018 -> T-022 -> T-024`
+
+Kural:
+
+- resmi yurutme sirasi bozulmaz
+- bagimlilik bazli en uzun zincir plan sagligi ve gecikme riskini okumak icin tutulur
+
+Destekleyici ama resmi siralama disi isler:
 
 - `T-014`
 - `T-023B`
@@ -382,6 +394,7 @@ Kritik islerden once ve sonra bu tablo doldurulur.
 | CP-004 | T-010 oncesi | doldurulacak | startup route ve splash davranisi | startup rollback plani | Acik |
 | CP-005 | T-015 oncesi | doldurulacak | feed source davranisi | feed contract rollback plani | Acik |
 | CP-006 | T-023A oncesi | doldurulacak | pilot modul davranisi | pilot modul rollback plani | Acik |
+| CP-007 | T-028 / T-029 oncesi | doldurulacak | runtime/playback/cache/session davranisi | runtime boundary rollback plani | Acik |
 
 Kurallar:
 
@@ -628,7 +641,7 @@ Ilk 30 gunde cikarilacak UseCase/Application Service adaylari:
   - `SignInWithPasswordUseCase`
   - `SwitchStoredAccountUseCase`
   - `ResetPasswordUseCase`
-  - `PersistSessionCredentialUseCase`
+  - `PersistSessionHandleUseCase`
 
 - `AgendaController`
   - `LoadHomeFeedUseCase`
@@ -976,6 +989,8 @@ Her is bitiminde asagidaki format zorunludur:
 - Teknik dogrulama
 - Bagli zincir kontrolu
 - Kirilma var mi
+- Regresyon var mi
+- Zincir durumu
 - Bozulan akislar
 - Regresyon riski
 - Benim kontrol etmem gerekenler
@@ -990,9 +1005,10 @@ Her is bitiminde asagidaki format zorunludur:
 
 `Benim kontrol etmem gerekenler` alani zorunludur ve kisa maddeler halinde yazilir.
 
-## Her 5 Iste Bir Plan Sagligi Gozden Gecirmesi
+## Plan Sagligi Gozden Gecirme Milestone'lari
 
-Asagidaki islerden sonra plan yeniden gozden gecirilir:
+Asagidaki milestone'lar tamamlandiginda plan yeniden gozden gecirilir.
+Bu tetikleme sabit sayi degil, riskli gecis noktalarina baglidir:
 
 - `T-005`
 - `T-010`
