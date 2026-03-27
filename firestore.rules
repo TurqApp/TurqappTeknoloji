@@ -44,6 +44,9 @@ service cloud.firestore {
     function canManageAdminPanels() {
       return isAdmin() || isAllowlistedAdmin();
     }
+    function canAccessAdsCenterPanel() {
+      return canManageAdminPanels() || hasAssignedAdminTask('ads_center');
+    }
     function hasAssignedAdminTask(taskId) {
       return isAuth()
         && exists(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid))
@@ -1101,27 +1104,27 @@ service cloud.firestore {
 
     // New Ads Center (admin internal only)
     match /ads_campaigns/{campaignId} {
-      allow read: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow read: if canAccessAdsCenterPanel();
+      allow create, update, delete: if canAccessAdsCenterPanel();
     }
 
     match /ads_creatives/{creativeId} {
-      allow read: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow read: if canAccessAdsCenterPanel();
+      allow create, update, delete: if canAccessAdsCenterPanel();
     }
 
     match /ads_advertisers/{advertiserId} {
-      allow read: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow read: if canAccessAdsCenterPanel();
+      allow create, update, delete: if canAccessAdsCenterPanel();
     }
 
     match /ads_targeting_index/{docId} {
-      allow read: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow read: if canAccessAdsCenterPanel();
+      allow create, update, delete: if canAccessAdsCenterPanel();
     }
 
     match /ads_delivery_logs/{docId} {
-      allow read: if isAdmin();
+      allow read: if canAccessAdsCenterPanel();
       allow create, update, delete: if false; // Cloud Functions only
     }
 
@@ -1142,7 +1145,7 @@ service cloud.firestore {
 
     match /ads/{docId} {
       allow read: if isAuth();
-      allow create, update, delete: if canManageAdminPanels();
+      allow create, update, delete: if canAccessAdsCenterPanel();
     }
 
     match /system_flags/{docId} {
@@ -1983,14 +1986,14 @@ service cloud.firestore {
     }
     match /sliders/{sliderId} {
       allow read: if isAuth();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if canAccessAdsCenterPanel();
 
       match /items/{itemId} {
         allow read: if isAuth();
-        allow create, update, delete: if isAdmin();
+        allow create, update, delete: if canAccessAdsCenterPanel();
 
         match /viewers/{viewerId} {
-          allow read: if canManageAdminPanels();
+          allow read: if canAccessAdsCenterPanel();
           allow write: if false;
         }
       }
