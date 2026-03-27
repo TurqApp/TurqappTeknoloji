@@ -237,6 +237,151 @@ Destekleyici ama kritik yol disi isler:
 - `T-023`
 - `T-025`
 
+## Cevresel Onkosullar ve Blokaj Kontrolu
+
+Bu plan calismaya baslamadan once asagidaki onkosullar dogrulanir:
+
+- Flutter SDK, Android toolchain ve iOS toolchain calisir durumda olacak
+- Firebase Emulator Suite lokal olarak ayaga kalkabiliyor olacak
+- `functions` bagimliliklari kurulabiliyor olacak
+- test kullanicilari ve fixture/seed akislarina erisim olacak
+- Android fiziksel cihaz veya emulator, iOS simulator veya fiziksel cihaz hazir olacak
+- CI tarafinda gerekli secret'lar tanimli olacak:
+  - `INTEGRATION_LOGIN_EMAIL`
+  - `INTEGRATION_LOGIN_PASSWORD`
+  - `FIREBASE_SERVICE_ACCOUNT_JSON`
+- Kritik degisikliklerden once geri donus icin commit/checkpoint alinmis olacak
+
+Bir is baslamadan once blokaj sorulari:
+
+- Bu is icin gerekli emulator/cihaz hazir mi
+- Bu is icin gerekli secret veya fixture var mi
+- Rules veya backend degisikligi lokal test edilebilir mi
+- Rollback noktasi alinmis mi
+
+## Standart Dogrulama Paketi
+
+Her iste tum paket kosulmaz; ama is tipine gore asagidaki standart setten secim yapilir:
+
+- Mimari/disiplin isleri:
+  - `architecture-guards`
+  - import graph raporu
+  - locator envanteri diff'i
+- Flutter davranis degisikligi:
+  - ilgili unit/widget testleri
+  - gerekiyorsa `flutter analyze --no-fatal-infos`
+  - ilgili smoke veya manuel cihaz dogrulamasi
+- Backend/rules degisikligi:
+  - ilgili `functions/tests`
+  - `npm run test:rules`
+  - callable veya rule davranisinin fixture ile dogrulanmasi
+- CI/policy degisikligi:
+  - ilgili script dry-run veya local invocation
+  - workflow mantiginin satir bazli kontrolu
+
+Zorunlu minimum:
+
+- Her is en az 1 teknik dogrulama adimi ile kapanir
+- Kurali degistiren her is en az 1 guard/test ile kapanir
+- Auth, rules, feed ve session isleri yalnizca kod okumasiyla kapanmaz
+
+## Gorev Karti Matrisi
+
+Bu matris her `T-###` isinin kapanis olcutunu resmi hale getirir.
+
+| Is No | Kabul kriteri | Teknik dogrulama | Benim kontrol etmem gerekenler |
+| --- | --- | --- | --- |
+| T-001 | Baseline risk/checkpoint kaydi ve mevcut durum tablosu cikmis olacak | git/status + envanter raporu | Risk listesi ve checkpoint mantikli mi |
+| T-002 | Yurutme kurallari plana baglanmis olacak | plan diff kontrolu | Is sirasi ve rapor formati net mi |
+| T-003 | import graph, locator ve god-object raporu uretilmis olacak | guard script veya rapor dosyasi | En sorunlu moduller gercekten gorunuyor mu |
+| T-004 | auth fallback yolu tamamen kapanmis olacak | functions unit testi + callable kontrolu | Yetkisiz kullanici artik review path'ine giremiyor mu |
+| T-005 | `/users/{uid}` okuma yuzeyi daralmis olacak | rules testi | Profil akislari gerektigi kadar calisiyor mu |
+| T-006 | `marketStore` client counter update yolu kapanmis olacak | rules testi | Kaydetme/sayac davranisi bozuldu mu |
+| T-007 | storage bypass UID yolu kalkmis veya kontrollu hale gelmis olacak | storage rules testi | Upload akislarinda gizli bypass kaldi mi |
+| T-008 | parola cihazda tutulmayacak; re-auth yolu net olacak | sign-in/account testleri | Hesap gecisi ve yeniden giris davranisi dogru mu |
+| T-009 | architecture guards CI oncesi fail-fast kosacak | local guard run + workflow kontrolu | Yeni ihlal oldugunda CI duruyor mu |
+| T-010 | splash artik merkezi orkestrasyon yigini olmayacak | ilgili startup testleri | Acilis akisinda ekran sapmasi var mi |
+| T-011 | startup rolleri ayrismis olacak | birim test + satir bazli akis kontrolu | Session/bootstrap rolleri ayrik mi |
+| T-012 | `CurrentUserService` auth/cache/sync/account-center olarak parcali hale gelmis olacak | service testleri + import kontrolu | Tek mega servis davranisi gercekten azaldi mi |
+| T-013 | sign-in ve stored-account akislarinin ana orkestrasyonu usecase'e alinmis olacak | davranis testleri | Giris ve hesap gecisi akisi stabil mi |
+| T-014 | genis sessiz catch bloklari siniflandirilmis olacak | ilgili test + log kontrolu | Hata oldugunda artik nedeni gorunuyor mu |
+| T-015 | tek birincil feed yolu ve contract notu olacak | contract testi + dokuman kontrolu | Feed'in resmi birincil yolu net mi |
+| T-016 | istemci feed contract'i backend ile uyumlu olacak | unit/integration dogrulamasi | Feed bos/yanlis fallback'e dusuyor mu |
+| T-017 | `AgendaController` orchestration'i usecase'e alinmis olacak | unit test + import kontrolu | Feed controller daha sade mi |
+| T-018 | short/story orchestration'i usecase'e alinmis olacak | ilgili testler | Story/short lifecycle bozuldu mu |
+| T-019 | direct Firebase erisim envanteri cikarilmis olacak | kod tarama raporu | En riskli dogrudan erisimler gorunuyor mu |
+| T-020 | ilk yuksek riskli direct Firebase akislar repository/usecase arkasina alinmis olacak | ilgili testler + guard | Artik widget/controller dogrudan Firebase'e gidiyor mu |
+| T-021 | reports/moderation/security regression test paketi eklenmis olacak | functions test run | Kritik backend korumalari testle gorunuyor mu |
+| T-022 | auth/session/feed davranis testleri genislemis olacak | test run | En kritik akislarda regression kapsaniyor mu |
+| T-023 | chat, market/job, ads center icin ilk usecase cikarlari baslamis olacak | ilgili test/guard | Controller'larda orkestrasyon azaldi mi |
+| T-024 | coverage gate gercek risk gosterecek seviyeye gelmis olacak | script calistirma + policy kontrolu | Gate sahte yesil uretmiyor mu |
+| T-025 | yaniltici widget testleri ekran davranisina baglanmis olacak | widget test run | Test gercek davranisi olcuyor mu |
+| T-026 | dokuman tek-kaynak guard'i aktif olacak | repo guard + policy kontrolu | Yeni tarihli plan yigini tekrar olusuyor mu |
+
+## Buyuk Islerin Alt Kirilimi
+
+Asagidaki isler tek parca ilerlemeye uygun degil; resmi is numarasi korunur ama ic icra sirasinda alt kirilim kullanilir.
+
+`T-012` alt kirilim:
+
+- `T-012A` `AuthSessionService`
+- `T-012B` `UserCacheService`
+- `T-012C` `UserProfileStore`
+- `T-012D` `AccountCenterSyncService`
+- `T-012E` `UserLifecycleGuard`
+
+`T-020` alt kirilim:
+
+- `T-020A` auth ve session kaynakli direct Firebase akislar
+- `T-020B` post delete / phone limiter / moderation benzeri yuksek riskli akislar
+- `T-020C` short post / offline mode / upload siniri benzeri akislar
+
+`T-023` alt kirilim:
+
+- `T-023A` chat usecase cikarlari
+- `T-023B` market/job usecase cikarlari
+- `T-023C` ads center usecase cikarlari
+
+Kurallar:
+
+- yuzdesel ilerleme parent is puani uzerinden kalir
+- alt kirilim yalnizca icra netligi icindir
+- parent is, tum alt kirilimlar bitmeden kapanmis sayilmaz
+
+## Mimari Kontrat Testi Esleme Matrisi
+
+Bu esleme, hangi testin hangi isi kapattigini netlestirir.
+
+| Test/Kontrat | Bagli isler |
+| --- | --- |
+| startup akis testi | T-010, T-011, T-014 |
+| session restore ve sign-out testi | T-008, T-012, T-013 |
+| account switching testi | T-008, T-013 |
+| feed source secimi testi | T-015, T-016, T-017, T-018 |
+| admin callable auth siniri testi | T-004 |
+| visibility/filter policy testi | T-015, T-016 |
+| chat send/read policy testi | T-023A |
+| market/job apply-save-review policy testi | T-023B |
+| feature ic import ihlali testi | T-009, T-026 |
+| presentation -> infra erisim ihlali testi | T-009, T-020 |
+| locator kullanim siniri testi | T-009, T-017, T-018, T-023 |
+| legacy folder freeze testi | T-009, T-026 |
+| yeni part-sprawl kaliplari testi | T-009, T-026 |
+
+## Aktif Risk Register
+
+Bu tablo canli tutulur; her is sonu guncellenir.
+
+| Kayit | Tip | Siddet | Ilgili is | Durum | Aciklama |
+| --- | --- | --- | --- | --- | --- |
+| RISK-001 | Risk | Yuksek | T-005, T-007 | Acik | Rules daraltilirken profil okuma ve upload akislarinin kirilma riski var |
+| RISK-002 | Risk | Yuksek | T-008, T-013 | Acik | Parola saklama kalkarken mevcut hesap gecisi davranisi bozulabilir |
+| RISK-003 | Risk | Orta | T-009 | Acik | Architecture guard false-positive uretip CI'yi gereksiz kilitleyebilir |
+| RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
+| GAP-001 | Gap | Orta | T-001 | Acik | Rollback/checkpoint kaydi daha plan basinda standart tabloya baglanmali |
+| GAP-002 | Gap | Orta | T-021, T-022 | Acik | Test fixture/seed veri standardi ayri checklist olarak acilmali |
+
+
 ## Feature Sahiplik Matrisi
 
 Bu tablo "bu feature'i kim sahipleniyor" sorusunu kod bazli olarak tek cevaba indirir:
