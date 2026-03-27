@@ -2,7 +2,6 @@ part of 'type_writer_controller.dart';
 
 class _TypewriterControllerState {
   _TypewriterControllerState(this.fullText);
-
   final String fullText;
   final RxString displayedText = ''.obs;
   int currentIndex = 0;

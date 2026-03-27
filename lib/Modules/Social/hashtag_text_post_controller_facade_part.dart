@@ -10,7 +10,6 @@ extension HashtagTextVideoPostControllerFacadePart
     _buildSpans();
   }
 
-  void checkOverflow(TextPainter tp) {
-    showExpandButton.value = tp.didExceedMaxLines;
-  }
+  void checkOverflow(TextPainter tp) =>
+      showExpandButton.value = tp.didExceedMaxLines;
 }
