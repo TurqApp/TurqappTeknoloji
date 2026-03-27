@@ -377,61 +377,6 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                   ),
                 );
               }),
-              const SizedBox(width: 8),
-              // Share button
-              GestureDetector(
-                onTap: () async {
-                  await _pauseStoryAudio();
-                  _timer?.cancel();
-                  await ShareActionGuard.run(() async {
-                    try {
-                      final currentStory = widget.user.stories[storyIndex];
-                      String previewImage = '';
-                      if (currentStory.elements.isNotEmpty) {
-                        previewImage = currentStory.elements
-                            .firstWhere(
-                              (e) => e.type == StoryElementType.image,
-                              orElse: () => currentStory.elements.first,
-                            )
-                            .content;
-                      }
-                      final shortUrl =
-                          await ShortLinkService().getStoryPublicUrl(
-                        storyId: currentStory.id,
-                        title: 'story.share_title'
-                            .trParams({'name': widget.user.nickname}),
-                        desc: 'story.share_desc'.tr,
-                        imageUrl: previewImage.isEmpty ? null : previewImage,
-                        existingShortUrl: currentStory.shortUrl,
-                      );
-                      await ShareLinkService.shareUrl(
-                        url: shortUrl,
-                        title: 'story.share_title'
-                            .trParams({'name': widget.user.nickname}),
-                        subject: 'story.share_title'
-                            .trParams({'name': widget.user.nickname}),
-                      );
-                    } catch (_) {}
-                  });
-                  if (!mounted) return;
-                  _startProgress();
-                  await _resumeStoryAudio();
-                },
-                child: Container(
-                  height: 50,
-                  width: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.share_up,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
             ],
           ),
         ],

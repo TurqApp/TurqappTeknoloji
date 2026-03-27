@@ -1268,12 +1268,6 @@ export const ensurePostShortLinkOnCreate = functions.firestore
     await _ensureShortLinkOnCreate(getFirestore(), "post", context.params.postId);
   });
 
-export const ensureStoryShortLinkOnCreate = functions.firestore
-  .document("stories/{storyId}")
-  .onCreate(async (_snap, context) => {
-    await _ensureShortLinkOnCreate(getFirestore(), "story", context.params.storyId);
-  });
-
 export const ensureMarketShortLinkOnCreate = functions.firestore
   .document("marketStore/{itemId}")
   .onCreate(async (_snap, context) => {

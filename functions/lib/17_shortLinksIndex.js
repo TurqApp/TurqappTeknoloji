@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ensureUserShortLinkOnWrite = exports.ensureTutoringShortLinkOnCreate = exports.ensureQuestionShortLinkOnCreate = exports.ensureAnswerKeyShortLinkOnCreate = exports.ensurePracticeExamShortLinkOnCreate = exports.ensureScholarshipShortLinkOnCreate = exports.ensureJobShortLinkOnCreate = exports.ensureMarketShortLinkOnCreate = exports.ensureStoryShortLinkOnCreate = exports.ensurePostShortLinkOnCreate = exports.shortLinkIndexConfig = exports.resolveShortLink = exports.upsertShortLink = void 0;
+exports.ensureUserShortLinkOnWrite = exports.ensureTutoringShortLinkOnCreate = exports.ensureQuestionShortLinkOnCreate = exports.ensureAnswerKeyShortLinkOnCreate = exports.ensurePracticeExamShortLinkOnCreate = exports.ensureScholarshipShortLinkOnCreate = exports.ensureJobShortLinkOnCreate = exports.ensureMarketShortLinkOnCreate = exports.ensurePostShortLinkOnCreate = exports.shortLinkIndexConfig = exports.resolveShortLink = exports.upsertShortLink = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -1048,11 +1048,6 @@ exports.ensurePostShortLinkOnCreate = functions.firestore
     .document("Posts/{postId}")
     .onCreate(async (snap, context) => {
     await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "post", context.params.postId);
-});
-exports.ensureStoryShortLinkOnCreate = functions.firestore
-    .document("stories/{storyId}")
-    .onCreate(async (_snap, context) => {
-    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "story", context.params.storyId);
 });
 exports.ensureMarketShortLinkOnCreate = functions.firestore
     .document("marketStore/{itemId}")
