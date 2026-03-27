@@ -45,6 +45,11 @@ extension HLSControllerEventsPart on HLSController {
             _markFirstFrameRendered();
             break;
 
+          case 'surfaceDetached':
+            _hasRenderedFirstFrame = false;
+            _firstFrameController.add(false);
+            break;
+
           case 'pause':
             if (_state == PlayerState.completed || _isAtPlaybackEnd) {
               _updateState(PlayerState.completed);

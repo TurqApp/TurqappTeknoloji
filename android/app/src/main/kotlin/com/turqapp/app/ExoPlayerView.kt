@@ -162,6 +162,14 @@ class ExoPlayerView(
             override fun onViewDetachedFromWindow(v: View) {
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
+                didRenderFirstFrame = false
+                handler.post {
+                    pendingRevealRunnable?.let(handler::removeCallbacks)
+                    pendingRevealRunnable = null
+                    playerView.animate().cancel()
+                    playerView.alpha = 0f
+                }
+                sendEvent(mapOf("event" to "surfaceDetached"))
                 smokeProbe?.onSurfaceDetached()
                 isSmokeRegistryActive = false
                 ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
@@ -706,8 +714,13 @@ class ExoPlayerView(
 
     private fun scheduleSurfaceReveal() {
         if (!forceFullscreen) {
-            val canReveal = didRenderFirstFrame ||
-                (isPlayerReady && hasVideoSize && hasStableSurfaceLayout)
+            val needsFreshFrame = playerView.alpha < 1f
+            val canReveal = if (needsFreshFrame) {
+                didRenderFirstFrame
+            } else {
+                didRenderFirstFrame ||
+                    (isPlayerReady && hasVideoSize && hasStableSurfaceLayout)
+            }
             if (!canReveal) return
             handler.post {
                 pendingRevealRunnable?.let(handler::removeCallbacks)
