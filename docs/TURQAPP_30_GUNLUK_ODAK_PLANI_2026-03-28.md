@@ -46,6 +46,20 @@ Bu plan yalnizca nitel degil, olculebilir sinyallerle takip edilir.
 - `KPI-08`
   - `T-026` tamamlandiginda tarihli yeni plan/doc yigini olusturan ihlal en az bir guard ile gorunur olacak
 
+## KPI Olcum Matrisi
+
+| KPI | Bagli isler | Baseline | Hedef | Olcum kaynagi | Olcum zamani |
+| --- | --- | --- | --- | --- | --- |
+| KPI-01 | T-004 - T-007 | mevcut rules/authz aciklari ve daginik test durumu | ilgili rules ve authz testleri yesil | `functions/tests`, `npm run test:rules` | her ilgili is kapanisinda |
+| KPI-02 | T-008 | cihazda parola saklayan aktif akisin varligi | parola saklayan aktif yol `0` | sign-in/account davranis testi + manuel cihaz kontrolu | T-008 kapanisinda |
+| KPI-03 | T-009 | guard yok, yeni erozyon sessiz ilerleyebilir | yeni `Core/Services/Models` feature dosyasi ve yeni part-sprawl ihlali CI'da fail | `architecture-guards` job ciktilari | T-009 kapanisinda ve sonraki her PR'da |
+| KPI-04 | T-010 - T-011 | startup rolleri tek akis icinde toplu | en az 4 ayri startup rolu gorunur | startup akisi kod haritasi + davranis testi | T-011 kapanisinda |
+| KPI-05 | T-015 - T-016 | feed fallback zinciri daginik | `1` birincil yol + en fazla `1` acil fallback | feed contract notu + feed source testi | T-016 kapanisinda |
+| KPI-06 | T-022 | startup/session/feed davranis kapsami eksik | startup, session, account switching ve feed source testleri yesil | test raporu | T-022 kapanisinda |
+| KPI-07 | T-024 | coverage gate sahte yesil uretebilir | esik, istisna ve fail kosullari yazili ve isliyor | coverage policy dosyalari + script ciktilari | T-024 kapanisinda |
+| KPI-08 | T-026 | dokuman yigini guard ile korunmuyor | tarihli plan/doc ihlali guard ile gorunur | repo guard ciktilari | T-026 kapanisinda |
+| KPI-09 | T-029 | playback/runtime bozulmalari sayisal izlenmiyor | watchdog/freeze sinyalleri acik kayitli ve kapanis testinde degerlendiriliyor | Android/iOS smoke loglari + runtime testleri | T-029 kapanisinda |
+
 ## Yurutme Anayasasi
 
 Bu plan yalnizca bir niyet listesi degil, sirali uygulama protokoludur.
@@ -116,6 +130,9 @@ Bir is ancak asagidaki sartlarin tamami saglandiginda bitmis sayilir:
 - teknik dogrulama yapilmis olacak
 - yan etki kontrolu yapilmis olacak
 - etkilenen dosyalar acikca listelenmis olacak
+- ilgili artifact/kanit kaydi eklenmis olacak
+- reviewer sonucu yazilmis olacak
+- final approval durumu kaydedilmis olacak
 - kullanici kontrol adimlari verilmis olacak
 - ilerleme ve kalan is raporu guncellenmis olacak
 
@@ -300,39 +317,46 @@ Kurallar:
 
 Bu liste planin resmi uygulama sirasidir.
 
-| Is No | Baslik | Hafta | Owner | Efor | Puan | Bagimlilik |
-| --- | --- | --- | --- | --- | --- | --- |
-| T-001 | Baseline envanteri, risk kaydi ve checkpoint matrisi | Hazirlik | Flutter/Fullstack | M | 2 | - |
-| T-002 | Yurutme anayasasi, DoD ve rapor standardini plana bagla | Hazirlik | Flutter/Fullstack | S | 1 | T-001 |
-| T-003 | Import graph, GetX locator ve god-object envanteri cikar | 1 | QA/Platform | M | 2 | T-001 |
-| T-004 | `reviewReportedTarget` auth fallback yolunu kapat | 1 | Backend | M | 2 | T-001 |
-| T-005 | `firestore.rules` icinde `/users/{uid}` okuma yuzeyini daralt | 1 | Backend | M | 2 | T-004 |
-| T-006 | `marketStore` client counter update yetkisini kapat | 1 | Backend | M | 2 | T-004 |
-| T-007 | `storage.rules` bypass UID yolunu kaldir veya kontrollu hale getir | 1 | Backend | M | 2 | T-004 |
-| T-008 | Parola saklama davranisini sonlandir ve re-auth kararini netlestir | 1 | Flutter/Fullstack | L | 3 | T-004 |
-| T-009 | `architecture-guards` altyapisini ve CI fail-fast zincirini kur | 1 | QA/Platform | M | 2 | T-003 |
-| T-010 | Splash startup orkestrasyonunu ayir | 2 | Flutter/Fullstack | L | 3 | T-008, T-009 |
-| T-011 | `StartupBootstrap`, `SessionBootstrap`, `PostLoginWarmup`, `DependencyRegistrar` ayrimini kur | 2 | Flutter/Fullstack | L | 3 | T-010 |
-| T-012 | `CurrentUserService` sorumluluklarini auth/cache/sync/account-center olarak ayir | 2 | Flutter/Fullstack | XL | 5 | T-008, T-010 |
-| T-013 | Sign-in ve stored-account akislarini UseCase/Application Service katmanina tasimaya basla | 2 | Flutter/Fullstack | L | 3 | T-011, T-012 |
-| T-014 | Startup/session tarafindaki genis `catch (_) {}` bloklarini siniflandirilmis failure modeline cevir | 2 | Flutter/Fullstack | M | 2 | T-010 |
-| T-015 | Feed icin tek birincil akis ve istemci contract tanimini yaz | 3 | Flutter/Fullstack | M | 2 | T-003, T-009 |
-| T-016 | `hybridFeed.ts` ile istemci feed contract'ini hizala | 3 | Backend | L | 3 | T-015 |
-| T-017 | `AgendaController` orchestration adimlarini UseCase'e cek | 4 | Flutter/Fullstack | L | 3 | T-015, T-016, T-023A |
-| T-018 | `ShortController` ve `StoryRowController` orchestration adimlarini UseCase'e cek | 4 | Flutter/Fullstack | L | 3 | T-015, T-016, T-017 |
-| T-019 | Yuksek riskli direct Firebase erisim envanterini cikar | 3 | QA/Platform | M | 2 | T-003 |
-| T-020 | Ilk direct Firebase akislarini repository/usecase arkasina al | 3 | Flutter/Fullstack | L | 3 | T-019 |
-| T-021 | `functions/tests` altina reports/moderation/security regression testleri ekle | 4 | Backend | L | 3 | T-004, T-005, T-006, T-007 |
-| T-022 | Auth/session/feed davranis testlerini genislet | 4 | QA/Platform | L | 3 | T-013, T-015, T-016, T-017, T-018 |
-| T-023A | Market/job icin ilk bounded-context UseCase pilotunu uygula | 3 | Flutter/Fullstack | M | 2 | T-009, T-012, T-020 |
-| T-023B | Ads center icin ikinci kucuk UseCase pilotunu uygula | 4 | Flutter/Fullstack | S | 1 | T-009, T-012, T-023A |
-| T-023C | Chat icin ilk UseCase cikarimini baslat | 4 | Flutter/Fullstack | M | 2 | T-009, T-012, T-023A |
-| T-027 | Runtime servis sahiplik haritasi ve erisim envanterini cikar | 3 | Flutter/Platform | M | 2 | T-003, T-009, T-012 |
-| T-028 | Upload, network ve device-session akislarini runtime boundary icine al | 4 | Flutter/Fullstack | M | 2 | T-012, T-020, T-027 |
-| T-029 | `VideoStateManager` ve `SegmentCacheManager` kullanim sinirlarini netlestir; lifecycle testlerini ekle | 4 | Flutter/Platform | L | 3 | T-017, T-018, T-027 |
-| T-024 | Coverage gate'i gercek risk gosterecek seviyeye cek | 4 | QA/Platform | S | 1 | T-021, T-022 |
-| T-025 | Yaniltici widget testlerini gercek ekran davranisina bagla | 4 | QA/Platform | M | 2 | T-022 |
-| T-026 | Dokuman tek-kaynak kuralini ve tarihli plan yigilmama guard'ini koy | 4 | QA/Platform | S | 1 | T-009 |
+| Is No | Baslik | Hafta | Primary Owner | Reviewer | Final Approval | Efor | Puan | Bagimlilik |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T-001 | Baseline envanteri, risk kaydi ve checkpoint matrisi | Hazirlik | Flutter/Fullstack | QA/Platform | User | M | 2 | - |
+| T-002 | Yurutme anayasasi, DoD ve rapor standardini plana bagla | Hazirlik | Flutter/Fullstack | QA/Platform | User | S | 1 | T-001 |
+| T-003 | Import graph, GetX locator ve god-object envanteri cikar | 1 | QA/Platform | Flutter/Fullstack | User | M | 2 | T-001 |
+| T-004 | `reviewReportedTarget` auth fallback yolunu kapat | 1 | Backend | QA/Platform | User | M | 2 | T-001 |
+| T-005 | `firestore.rules` icinde `/users/{uid}` okuma yuzeyini daralt | 1 | Backend | QA/Platform | User | M | 2 | T-004 |
+| T-006 | `marketStore` client counter update yetkisini kapat | 1 | Backend | QA/Platform | User | M | 2 | T-004 |
+| T-007 | `storage.rules` bypass UID yolunu kaldir veya kontrollu hale getir | 1 | Backend | QA/Platform | User | M | 2 | T-004 |
+| T-008 | Parola saklama davranisini sonlandir ve re-auth kararini netlestir | 1 | Flutter/Fullstack | QA/Platform | User | L | 3 | T-004 |
+| T-009 | `architecture-guards` altyapisini ve CI fail-fast zincirini kur | 1 | QA/Platform | Flutter/Fullstack | User | M | 2 | T-003 |
+| T-010 | Splash startup orkestrasyonunu ayir | 2 | Flutter/Fullstack | QA/Platform | User | L | 3 | T-008, T-009 |
+| T-011 | `StartupBootstrap`, `SessionBootstrap`, `PostLoginWarmup`, `DependencyRegistrar` ayrimini kur | 2 | Flutter/Fullstack | QA/Platform | User | L | 3 | T-010 |
+| T-012 | `CurrentUserService` sorumluluklarini auth/cache/sync/account-center olarak ayir | 2 | Flutter/Fullstack | QA/Platform | User | XL | 5 | T-008, T-010 |
+| T-013 | Sign-in ve stored-account akislarini UseCase/Application Service katmanina tasimaya basla | 2 | Flutter/Fullstack | QA/Platform | User | L | 3 | T-011, T-012 |
+| T-014 | Startup/session tarafindaki genis `catch (_) {}` bloklarini siniflandirilmis failure modeline cevir | 2 | Flutter/Fullstack | QA/Platform | User | M | 2 | T-010 |
+| T-015 | Feed icin tek birincil akis ve istemci contract tanimini yaz | 3 | Flutter/Fullstack | Backend | User | M | 2 | T-003, T-009 |
+| T-016 | `hybridFeed.ts` ile istemci feed contract'ini hizala | 3 | Backend | Flutter/Fullstack | User | L | 3 | T-015 |
+| T-017 | `AgendaController` orchestration adimlarini UseCase'e cek | 4 | Flutter/Fullstack | QA/Platform | User | L | 3 | T-015, T-016, T-023A |
+| T-018 | `ShortController` ve `StoryRowController` orchestration adimlarini UseCase'e cek | 4 | Flutter/Fullstack | QA/Platform | User | L | 3 | T-015, T-016, T-017 |
+| T-019 | Yuksek riskli direct Firebase erisim envanterini cikar | 3 | QA/Platform | Flutter/Fullstack | User | M | 2 | T-003 |
+| T-020 | Ilk direct Firebase akislarini repository/usecase arkasina al | 3 | Flutter/Fullstack | QA/Platform | User | L | 3 | T-019 |
+| T-021 | `functions/tests` altina reports/moderation/security regression testleri ekle | 4 | Backend | QA/Platform | User | L | 3 | T-004, T-005, T-006, T-007 |
+| T-022 | Auth/session/feed davranis testlerini genislet | 4 | QA/Platform | Flutter/Fullstack | User | L | 3 | T-013, T-015, T-016, T-017, T-018 |
+| T-023A | Market/job icin ilk bounded-context UseCase pilotunu uygula | 3 | Flutter/Fullstack | QA/Platform | User | M | 2 | T-009, T-012, T-020 |
+| T-023B | Ads center icin ikinci kucuk UseCase pilotunu uygula | 4 | Flutter/Fullstack | QA/Platform | User | S | 1 | T-009, T-012, T-023A |
+| T-023C | Chat icin ilk UseCase cikarimini baslat | 4 | Flutter/Fullstack | QA/Platform | User | M | 2 | T-009, T-012, T-023A |
+| T-027 | Runtime servis sahiplik haritasi ve erisim envanterini cikar | 3 | Flutter/Platform | QA/Platform | User | M | 2 | T-003, T-009, T-012 |
+| T-028 | Upload, network ve device-session akislarini runtime boundary icine al | 4 | Flutter/Fullstack | QA/Platform | User | M | 2 | T-012, T-020, T-027 |
+| T-029 | `VideoStateManager` ve `SegmentCacheManager` kullanim sinirlarini netlestir; lifecycle testlerini ekle | 4 | Flutter/Platform | QA/Platform | User | L | 3 | T-017, T-018, T-027 |
+| T-024 | Coverage gate'i gercek risk gosterecek seviyeye cek | 4 | QA/Platform | Flutter/Fullstack | User | S | 1 | T-021, T-022 |
+| T-025 | Yaniltici widget testlerini gercek ekran davranisina bagla | 4 | QA/Platform | Flutter/Fullstack | User | M | 2 | T-022 |
+| T-026 | Dokuman tek-kaynak kuralini ve tarihli plan yigilmama guard'ini koy | 4 | QA/Platform | Flutter/Fullstack | User | S | 1 | T-009 |
+
+Kurallar:
+
+- `Primary Owner` isi surer
+- `Reviewer` teknik kapanis kalitesini dogrular
+- `Final Approval` bir sonraki resmi ise gecis iznini verir
+- reviewer sonucu olmadan is `Tamamlandi` sayilmaz
 
 ## Resmi Yurutme Sirasi
 
@@ -453,6 +477,26 @@ Zorunlu minimum:
 - Her is en az 1 teknik dogrulama adimi ile kapanir
 - Kurali degistiren her is en az 1 guard/test ile kapanir
 - Auth, rules, feed ve session isleri yalnizca kod okumasiyla kapanmaz
+
+## Kanit / Artifact Register
+
+Her tamamlanan is en az bir kanit kaydi uretir.
+
+| Artifact ID | Is No | Kanit tipi | Dosya / cikti | Uretim komutu | Reviewed by | Durum |
+| --- | --- | --- | --- | --- | --- | --- |
+| ART-001 | T-001 | baseline envanteri | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-002 | T-003 | import graph + locator raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-003 | T-009 | architecture guard ciktilari | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-004 | T-021 | backend/rules regression test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-005 | T-022 | startup/session/feed davranis test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-006 | T-024 | coverage gate policy ve cikti | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-007 | T-029 | runtime/playback lifecycle smoke ve log notu | doldurulacak | doldurulacak | doldurulacak | Acik |
+
+Kurallar:
+
+- artifact kaydi olmayan is kapanmaz
+- artifact path veya cikti adi gorev raporunda acik yazilir
+- reviewer artifact'i gormeden kapanis veremez
 
 ## Gorev Karti Matrisi
 
@@ -921,6 +965,31 @@ Cikis Kriteri:
 - Dokuman seti yeniden dagilmayacak sekilde sade kalacak
 - `T-017`, `T-018`, `T-021`, `T-022`, `T-023B`, `T-023C`, `T-024`, `T-025`, `T-026`, `T-028`, `T-029` tamamlanmis olacak
 
+## Hafta Gecis Kapilari
+
+Hafta gecisi sadece takvimle degil, cikis kapisi ile olur.
+
+- `Week-1 -> Week-2 Gate`
+  - `T-004` - `T-009` tamamlanmis olacak
+  - ilgili rules/authz testleri yesil olacak
+  - en az `CP-002` ve `CP-003` doldurulmus olacak
+
+- `Week-2 -> Week-3 Gate`
+  - `T-010` - `T-014` tamamlanmis olacak
+  - startup/session davranis testleri yesil olacak
+  - `CurrentUserService` parcasi reviewer tarafindan dogrulanmis olacak
+
+- `Week-3 -> Week-4 Gate`
+  - `T-015`, `T-016`, `T-019`, `T-020`, `T-023A`, `T-027` tamamlanmis olacak
+  - feed contract ve runtime sahiplik artefact'lari kayda gecmis olacak
+  - direct Firebase ve feed fallback riskleri plan sagligi kontrolunden gecmis olacak
+
+Kurallar:
+
+- gate fail ise sonraki haftanin resmi isleri acilmaz
+- gate fail durumu plan revizyon protokolune girer
+- yan isler gate'i dolanmak icin kullanilmaz
+
 ## Mimari Kontrat Testleri
 
 Refactor sonrasi su davranis testleri olmadan is tamamlanmis sayilmaz:
@@ -976,6 +1045,17 @@ Standart minimum zincir listesi:
 Her gorev icin bu listenin tamami degil, etkilenme ihtimali olan zincirler secilir ve raporda acikca yazilir.
 Zincir kontrolu yapilmadan hicbir is `Tamamlandi` durumuna gecemez.
 
+## Is Tipine Gore Zincir Kontrol Matrisi
+
+| Is ailesi | Zorunlu zincirler | Minimum kontrol |
+| --- | --- | --- |
+| Rules / Authz / Backend | `Data/Authz`, `Session` | profile read, upload, admin callable, save/apply akislari |
+| Startup / Session | `Startup`, `Session`, `CI` | app acilisi, session restore, sign-in, sign-out, initial route |
+| Feed / Social | `Social`, `Startup`, `CI` | feed render, story row, story viewer, short, playback sahipligi |
+| Runtime / Media / Cache | `Social`, `Session`, `CI` | upload queue, playback exclusivity, cache davranisi, device session |
+| Guard / CI / Policy | `CI` + etkilenen feature zinciri | guard fail/pass, analyze, test, smoke, coverage |
+| Docs / Repo Guard | `CI` | dokuman guard'i, tek-kaynak kurali, policy ihlali gorunurlugu |
+
 ## Her Is Sonu Zorunlu Rapor Formati
 
 Her is bitiminde asagidaki format zorunludur:
@@ -986,6 +1066,7 @@ Her is bitiminde asagidaki format zorunludur:
 - Bu iste yapilanlar
 - Somut kazanımlar
 - Etkilenen dosyalar
+- Artifact / kanit kayitlari
 - Teknik dogrulama
 - Bagli zincir kontrolu
 - Kirilma var mi
@@ -993,6 +1074,8 @@ Her is bitiminde asagidaki format zorunludur:
 - Zincir durumu
 - Bozulan akislar
 - Regresyon riski
+- Reviewer sonucu
+- Final approval durumu
 - Benim kontrol etmem gerekenler
 - Risk veya dikkat notu
 - Toplam ilerleme
