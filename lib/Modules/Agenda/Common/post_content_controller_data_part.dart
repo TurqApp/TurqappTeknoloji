@@ -136,86 +136,29 @@ extension PostContentControllerDataPart on PostContentController {
   Future<void> votePoll(int optionIndex) async {
     final uid = _currentUid;
     if (uid.isEmpty) return;
-    final postRef =
-        FirebaseFirestore.instance.collection('Posts').doc(model.docID);
-
     final originalPoll = Map<String, dynamic>.from(model.poll);
+    final optimisticPoll = _postRepository.buildVotedPoll(
+      poll: originalPoll,
+      optionIndex: optionIndex,
+      fallbackTimestampMs: model.timeStamp.toInt(),
+      currentUid: uid,
+    );
+    if (optimisticPoll == null) return;
     try {
-      final localPoll = Map<String, dynamic>.from(model.poll);
-      if (localPoll.isEmpty) return;
-      final createdAt = (localPoll['createdDate'] ?? model.timeStamp) as num;
-      final durationHours = (localPoll['durationHours'] ?? 24) as num;
-      final expiresAt =
-          createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
-      if (DateTime.now().millisecondsSinceEpoch > expiresAt) return;
-
-      final options = (localPoll['options'] is List)
-          ? List<Map<String, dynamic>>.from(
-              (localPoll['options'] as List)
-                  .map((o) => Map<String, dynamic>.from(o)),
-            )
-          : <Map<String, dynamic>>[];
-      if (optionIndex < 0 || optionIndex >= options.length) return;
-
-      final userVotes = localPoll['userVotes'] is Map
-          ? Map<String, dynamic>.from(localPoll['userVotes'])
-          : <String, dynamic>{};
-      if (userVotes.containsKey(uid)) return;
-
-      final opt = Map<String, dynamic>.from(options[optionIndex]);
-      final currentVotes = (opt['votes'] ?? 0) as num;
-      opt['votes'] = currentVotes.toInt() + 1;
-      options[optionIndex] = opt;
-
-      final totalVotes = (localPoll['totalVotes'] ?? 0) as num;
-      localPoll['totalVotes'] = totalVotes.toInt() + 1;
-      userVotes[uid] = optionIndex;
-      localPoll['options'] = options;
-      localPoll['userVotes'] = userVotes;
-
-      model.poll = localPoll;
+      model.poll = optimisticPoll;
       currentModel.value = model;
-
-      await FirebaseFirestore.instance.runTransaction((tx) async {
-        final snap = await tx.get(postRef);
-        final data = snap.data();
-        if (data == null) return;
-        final poll = Map<String, dynamic>.from(data['poll'] ?? {});
-        if (poll.isEmpty) return;
-
-        final createdAt =
-            (poll['createdDate'] ?? data['timeStamp'] ?? 0) as num;
-        final durationHours = (poll['durationHours'] ?? 24) as num;
-        final expiresAt =
-            createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
-        if (DateTime.now().millisecondsSinceEpoch > expiresAt) return;
-
-        final options = (poll['options'] is List)
-            ? List<Map<String, dynamic>>.from(
-                (poll['options'] as List)
-                    .map((o) => Map<String, dynamic>.from(o)),
-              )
-            : <Map<String, dynamic>>[];
-        if (optionIndex < 0 || optionIndex >= options.length) return;
-
-        final userVotes = poll['userVotes'] is Map
-            ? Map<String, dynamic>.from(poll['userVotes'])
-            : <String, dynamic>{};
-        if (userVotes.containsKey(uid)) return;
-
-        final opt = Map<String, dynamic>.from(options[optionIndex]);
-        final currentVotes = (opt['votes'] ?? 0) as num;
-        opt['votes'] = currentVotes.toInt() + 1;
-        options[optionIndex] = opt;
-
-        final totalVotes = (poll['totalVotes'] ?? 0) as num;
-        poll['totalVotes'] = totalVotes.toInt() + 1;
-        userVotes[uid] = optionIndex;
-        poll['options'] = options;
-        poll['userVotes'] = userVotes;
-
-        tx.update(postRef, {'poll': poll});
-      });
+      final confirmedPoll = await _postRepository.commitPollVote(
+        postId: model.docID,
+        optionIndex: optionIndex,
+        fallbackTimestampMs: model.timeStamp.toInt(),
+        currentUid: uid,
+      );
+      if (confirmedPoll == null) {
+        model.poll = originalPoll;
+      } else {
+        model.poll = confirmedPoll;
+      }
+      currentModel.value = model;
     } catch (_) {
       model.poll = originalPoll;
       currentModel.value = model;

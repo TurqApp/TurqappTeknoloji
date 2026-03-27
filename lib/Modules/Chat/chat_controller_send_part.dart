@@ -296,9 +296,6 @@ extension ChatControllerSendPart on ChatController {
             preferCache: true,
             cacheOnly: false,
           );
-          final marketContext = Map<String, dynamic>.from(
-            convMeta?['marketContext'] as Map? ?? const <String, dynamic>{},
-          );
           final senderLabel = (() {
             final full = CurrentUserService.instance.fullName.trim();
             if (full.isNotEmpty) return full;
@@ -308,17 +305,13 @@ extension ChatControllerSendPart on ChatController {
             if (authName.isNotEmpty) return authName;
             return 'app.name'.tr;
           })();
-          final marketItemId = (marketContext['itemId'] ?? '').toString();
-          if (marketItemId.isNotEmpty) {
-            await MarketNotificationService.notifyMarketMessage(
-              targetUserId: resolvedTargetUid,
-              chatId: chatID,
-              sellerId: (marketContext['sellerId'] ?? '').toString(),
-              itemId: marketItemId,
-              itemTitle: (marketContext['title'] ?? '').toString(),
-              coverImageUrl: (marketContext['coverImageUrl'] ?? '').toString(),
-            );
-          } else {
+          final marketNotified =
+              await MarketNotificationService.notifyConversationMessageIfNeeded(
+            targetUserId: resolvedTargetUid,
+            chatId: chatID,
+            conversationData: convMeta,
+          );
+          if (!marketNotified) {
             NotificationService.instance.sendNotification(
               token: "",
               title: senderLabel,

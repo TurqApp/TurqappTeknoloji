@@ -198,6 +198,73 @@ extension PostRepositoryInteractionPart on PostRepository {
     }
   }
 
+  Map<String, dynamic>? _performBuildVotedPoll({
+    required Map<String, dynamic> poll,
+    required int optionIndex,
+    required int fallbackTimestampMs,
+    required String currentUid,
+  }) {
+    if (currentUid.trim().isEmpty || poll.isEmpty) return null;
+    final createdAt = (poll['createdDate'] ?? fallbackTimestampMs) as num;
+    final durationHours = (poll['durationHours'] ?? 24) as num;
+    final expiresAt = createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
+    if (DateTime.now().millisecondsSinceEpoch > expiresAt) return null;
+
+    final options = (poll['options'] is List)
+        ? List<Map<String, dynamic>>.from(
+            (poll['options'] as List)
+                .map((value) => Map<String, dynamic>.from(value)),
+          )
+        : <Map<String, dynamic>>[];
+    if (optionIndex < 0 || optionIndex >= options.length) return null;
+
+    final userVotes = poll['userVotes'] is Map
+        ? Map<String, dynamic>.from(poll['userVotes'])
+        : <String, dynamic>{};
+    if (userVotes.containsKey(currentUid)) return null;
+
+    final next = Map<String, dynamic>.from(poll);
+    final option = Map<String, dynamic>.from(options[optionIndex]);
+    final currentVotes = (option['votes'] ?? 0) as num;
+    option['votes'] = currentVotes.toInt() + 1;
+    options[optionIndex] = option;
+
+    final totalVotes = (next['totalVotes'] ?? 0) as num;
+    next['totalVotes'] = totalVotes.toInt() + 1;
+    userVotes[currentUid] = optionIndex;
+    next['options'] = options;
+    next['userVotes'] = userVotes;
+    return next;
+  }
+
+  Future<Map<String, dynamic>?> _performCommitPollVote({
+    required String postId,
+    required int optionIndex,
+    required int fallbackTimestampMs,
+    required String currentUid,
+  }) async {
+    if (postId.trim().isEmpty || currentUid.trim().isEmpty) return null;
+    final postRef = _firestore.collection('Posts').doc(postId);
+    Map<String, dynamic>? updatedPoll;
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(postRef);
+      final data = snap.data();
+      if (data == null) return;
+      final nextPoll = _performBuildVotedPoll(
+        poll: Map<String, dynamic>.from(
+            data['poll'] ?? const <String, dynamic>{}),
+        optionIndex: optionIndex,
+        fallbackTimestampMs:
+            ((data['timeStamp'] ?? fallbackTimestampMs) as num).toInt(),
+        currentUid: currentUid,
+      );
+      if (nextPoll == null) return;
+      tx.update(postRef, {'poll': nextPoll});
+      updatedPoll = nextPoll;
+    });
+    return updatedPoll;
+  }
+
   void _performSeedCounts(PostRepositoryState state, PostsModel model) {
     if (state.latestPostData.value != null) return;
     _countManager.initializeCounts(

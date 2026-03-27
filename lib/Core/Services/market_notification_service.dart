@@ -81,6 +81,27 @@ class MarketNotificationService {
     );
   }
 
+  static Future<bool> notifyConversationMessageIfNeeded({
+    required String targetUserId,
+    required String chatId,
+    required Map<String, dynamic>? conversationData,
+  }) async {
+    final marketContext = Map<String, dynamic>.from(
+      conversationData?['marketContext'] as Map? ?? const <String, dynamic>{},
+    );
+    final itemId = (marketContext['itemId'] ?? '').toString().trim();
+    if (itemId.isEmpty) return false;
+    await notifyMarketMessage(
+      targetUserId: targetUserId,
+      chatId: chatId,
+      sellerId: (marketContext['sellerId'] ?? '').toString(),
+      itemId: itemId,
+      itemTitle: (marketContext['title'] ?? '').toString(),
+      coverImageUrl: (marketContext['coverImageUrl'] ?? '').toString(),
+    );
+    return true;
+  }
+
   static Future<void> _writeNotification({
     required String targetUserId,
     required String type,

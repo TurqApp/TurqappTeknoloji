@@ -26,6 +26,32 @@ extension PostRepositoryFacadePart on PostRepository {
   Future<void> setArchived(PostsModel model, bool archived) =>
       _performSetArchived(model, archived);
 
+  Map<String, dynamic>? buildVotedPoll({
+    required Map<String, dynamic> poll,
+    required int optionIndex,
+    required int fallbackTimestampMs,
+    required String currentUid,
+  }) =>
+      _performBuildVotedPoll(
+        poll: poll,
+        optionIndex: optionIndex,
+        fallbackTimestampMs: fallbackTimestampMs,
+        currentUid: currentUid,
+      );
+
+  Future<Map<String, dynamic>?> commitPollVote({
+    required String postId,
+    required int optionIndex,
+    required int fallbackTimestampMs,
+    required String currentUid,
+  }) =>
+      _performCommitPollVote(
+        postId: postId,
+        optionIndex: optionIndex,
+        fallbackTimestampMs: fallbackTimestampMs,
+        currentUid: currentUid,
+      );
+
   Future<Map<String, PostsModel>> fetchPostsByIds(
     List<String> postIds, {
     bool preferCache = true,

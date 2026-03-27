@@ -1,6 +1,42 @@
 part of 'conversation_repository.dart';
 
 extension ConversationRepositoryStatePart on ConversationRepository {
+  List<String> normalizeConversationParticipants({
+    required String chatId,
+    required String currentUid,
+    required List<String> participants,
+    required String userId1,
+    required String userId2,
+  }) {
+    final cleaned = participants
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList();
+    if (cleaned.length == 2 && cleaned.contains(currentUid)) {
+      cleaned.sort();
+      return cleaned;
+    }
+
+    final inferred = <String>{};
+    if (userId1.trim().isNotEmpty) inferred.add(userId1.trim());
+    if (userId2.trim().isNotEmpty) inferred.add(userId2.trim());
+    for (final part in chatId.split('_')) {
+      final candidate = part.trim();
+      if (candidate.isNotEmpty) inferred.add(candidate);
+    }
+    if (inferred.length != 2 || !inferred.contains(currentUid)) return cleaned;
+    final normalized = inferred.toList()..sort();
+    unawaited(
+      _firestore.collection('conversations').doc(chatId).set({
+        'participants': normalized,
+        'userID1': normalized.first,
+        'userID2': normalized.last,
+      }, SetOptions(merge: true)),
+    );
+    return normalized;
+  }
+
   bool participantBoolValue(
     dynamic raw,
     String uid, {

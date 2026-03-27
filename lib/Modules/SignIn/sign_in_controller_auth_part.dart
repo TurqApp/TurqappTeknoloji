@@ -130,11 +130,7 @@ extension SignInControllerAuthPart on SignInController {
     wait.value = true;
     resetOtpRequestInFlight.value = true;
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
-          .httpsCallable('sendPasswordResetSmsCode')
-          .call({
-        "email": targetEmail,
-      });
+      await _remoteService.sendPasswordResetSmsCode(email: targetEmail);
       startOtpTimerForTimer();
       resetCodeRequested.value = true;
       AppSnackbar(
@@ -236,12 +232,10 @@ extension SignInControllerAuthPart on SignInController {
 
     wait.value = true;
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
-          .httpsCallable('verifyPasswordResetSmsCode')
-          .call({
-        "email": targetEmail,
-        "verificationCode": code,
-      });
+      await _remoteService.verifyPasswordResetSmsCode(
+        email: targetEmail,
+        verificationCode: code,
+      );
       selection.value = 6;
       resetOtpFocus.value.unfocus();
       resetMailFocus.value.unfocus();

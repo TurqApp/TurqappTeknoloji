@@ -222,34 +222,18 @@ extension ChatListingControllerDataPart on ChatListingController {
           _conversationRepository.participantBoolValue(data["muted"], uid);
       final userID1 = (data["userID1"] ?? "").toString().trim();
       final userID2 = (data["userID2"] ?? "").toString().trim();
-      var participants = data["participants"] is List
-          ? List<String>.from(
-              (data["participants"] as List).map((e) => e.toString().trim()),
-            ).where((e) => e.isNotEmpty).toList()
-          : <String>[];
-
-      if (participants.length != 2 || !participants.contains(uid)) {
-        final inferred = <String>{};
-        if (userID1.isNotEmpty) inferred.add(userID1);
-        if (userID2.isNotEmpty) inferred.add(userID2);
-        for (final part in doc.id.split('_')) {
-          final cleaned = part.trim();
-          if (cleaned.isNotEmpty) inferred.add(cleaned);
-        }
-        if (inferred.length == 2 && inferred.contains(uid)) {
-          participants = inferred.toList()..sort();
-          unawaited(
-            FirebaseFirestore.instance
-                .collection("conversations")
-                .doc(doc.id)
-                .set({
-              "participants": participants,
-              "userID1": participants.first,
-              "userID2": participants.last,
-            }, SetOptions(merge: true)),
-          );
-        }
-      }
+      final participants =
+          _conversationRepository.normalizeConversationParticipants(
+        chatId: doc.id,
+        currentUid: uid,
+        participants: data["participants"] is List
+            ? List<String>.from(
+                (data["participants"] as List).map((e) => e.toString().trim()),
+              ).where((e) => e.isNotEmpty).toList()
+            : <String>[],
+        userId1: userID1,
+        userId2: userID2,
+      );
 
       String? otherUserId = participants.firstWhereOrNull((v) => v != uid);
       if ((otherUserId == null || otherUserId.isEmpty) &&

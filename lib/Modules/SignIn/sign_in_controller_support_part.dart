@@ -2,18 +2,8 @@ part of 'sign_in_controller.dart';
 
 final UserRepository _userRepository = UserRepository.ensure();
 final UserSubdocRepository _userSubdocRepository = ensureUserSubdocRepository();
-final FirebaseFunctions _functions =
-    FirebaseFunctions.instanceFor(region: 'europe-west3');
-final Dio _dio = Dio(
-  BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ),
-);
-
+SignInRemoteService get _remoteService => SignInRemoteService.ensure();
 const String _loginWord = 'TurqApp';
-const String _signupAvailabilityUrl =
-    'https://europe-west3-turqappteknoloji.cloudfunctions.net/checkSignupAvailabilityHttp';
 
 void _logSignupOtp(String stage, [Map<String, Object?> details = const {}]) {
   debugPrint('[SignupOtp] $stage ${details.isEmpty ? "" : details}');

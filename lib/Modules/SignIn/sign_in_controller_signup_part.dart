@@ -288,42 +288,10 @@ extension SignInControllerSignupPart on SignInController {
     String? nickname,
     bool showServiceError = false,
   }) async {
-    final normalizedEmail = normalizeEmailAddress(email);
-    final normalizedNickname = normalizeNicknameInput(nickname ?? '');
-
     try {
-      final response = await _dio.post(
-        _signupAvailabilityUrl,
-        data: {
-          if (normalizedEmail.isNotEmpty) 'email': normalizedEmail,
-          if (normalizedNickname.isNotEmpty) 'nickname': normalizedNickname,
-        },
-      );
-      final data = Map<String, dynamic>.from(response.data as Map);
-      return (
-        emailAvailable: data['emailAvailable'] == true,
-        nicknameAvailable: data['nicknameAvailable'] == true,
-        reachable: true,
-      );
-    } on DioException catch (e) {
-      final responseData = e.response?.data;
-      if (responseData is Map<String, dynamic>) {
-        return (
-          emailAvailable: responseData['emailAvailable'] == true,
-          nicknameAvailable: responseData['nicknameAvailable'] == true,
-          reachable: e.response?.statusCode == 400,
-        );
-      }
-      if (showServiceError) {
-        AppSnackbar(
-          'signup.check_failed_title'.tr,
-          'signup.check_failed_body'.tr,
-        );
-      }
-      return (
-        emailAvailable: false,
-        nicknameAvailable: false,
-        reachable: false,
+      return await _remoteService.checkSignupAvailability(
+        email: email,
+        nickname: nickname,
       );
     } catch (_) {
       if (showServiceError) {
@@ -388,10 +356,13 @@ extension SignInControllerSignupPart on SignInController {
         'email': payload['email'],
         'nickname': payload['nickname'],
       });
-      final result =
-          await _functions.httpsCallable('sendSignupSmsCode').call(payload);
+      await _remoteService.sendSignupSmsCode(
+        phone: phone,
+        email: email.value,
+        nickname: nickname.value,
+      );
       _logSignupOtp('callable_success', {
-        'data': result.data,
+        'phone': phone,
       });
       selection.value = 4;
       startOtpTimer();
@@ -485,12 +456,12 @@ extension SignInControllerSignupPart on SignInController {
 
     wait.value = true;
     try {
-      await _functions.httpsCallable('verifySignupSmsCode').call({
-        "phone": phone,
-        "verificationCode": code,
-        "email": normalizeEmailAddress(email.value),
-        "nickname": normalizeNicknameInput(nickname.value),
-      });
+      await _remoteService.verifySignupSmsCode(
+        phone: phone,
+        verificationCode: code,
+        email: email.value,
+        nickname: nickname.value,
+      );
 
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: normalizeEmailAddress(email.value),
