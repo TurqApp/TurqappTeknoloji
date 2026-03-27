@@ -172,6 +172,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     bool useAspectRatio = true,
     bool? overrideAutoPlay,
     bool forceFullscreenOnAndroid = false,
+    bool suppressLoadingOverlay = false,
   }) =>
       _performBuildPlayer(
         key: key,
@@ -179,6 +180,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         useAspectRatio: useAspectRatio,
         overrideAutoPlay: overrideAutoPlay,
         forceFullscreenOnAndroid: forceFullscreenOnAndroid,
+        suppressLoadingOverlay: suppressLoadingOverlay,
       );
 
   @override

@@ -116,11 +116,6 @@ extension SingleShortViewUiPart on _SingleShortViewState {
         AnimatedBuilder(
           animation: injected,
           builder: (_, __) {
-            if (!injected.value.isInitialized) {
-              return const Center(
-                child: CupertinoActivityIndicator(color: Colors.white),
-              );
-            }
             return const SizedBox.shrink();
           },
         ),
@@ -146,9 +141,6 @@ extension SingleShortViewUiPart on _SingleShortViewState {
             _cachedThumb(thumb)
         else
           const SizedBox.shrink(),
-        const Center(
-          child: CupertinoActivityIndicator(color: Colors.white),
-        ),
       ],
     );
   }
@@ -216,11 +208,6 @@ extension SingleShortViewUiPart on _SingleShortViewState {
               AnimatedBuilder(
                 animation: vp,
                 builder: (_, __) {
-                  if (!vp.value.isInitialized) {
-                    return const Center(
-                      child: CupertinoActivityIndicator(color: Colors.white),
-                    );
-                  }
                   return const SizedBox.shrink();
                 },
               ),

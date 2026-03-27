@@ -114,8 +114,9 @@ class ExoPlayerView(
             .inflate(layoutRes, container, false) as PlayerView).apply {
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            setShutterBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
-            setBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
+            setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
+            setShutterBackgroundColor(Color.TRANSPARENT)
+            setBackgroundColor(Color.TRANSPARENT)
             setKeepContentOnPlayerReset(true)
             alpha = if (forceFullscreen) 0f else 1f
             layoutParams = FrameLayout.LayoutParams(

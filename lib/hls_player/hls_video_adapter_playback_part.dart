@@ -173,6 +173,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool useAspectRatio,
     required bool? overrideAutoPlay,
     required bool forceFullscreenOnAndroid,
+    bool suppressLoadingOverlay = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
     _refreshProxyUrlIfNeeded();
@@ -183,6 +184,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       autoPlay: overrideAutoPlay ?? autoPlay,
       loop: loop,
       showControls: false,
+      suppressLoadingOverlay: suppressLoadingOverlay,
       aspectRatio: aspectRatio,
       useAspectRatio: useAspectRatio,
       forceFullscreenOnAndroid: forceFullscreenOnAndroid,

@@ -108,6 +108,7 @@ extension ShortViewUiPart on _ShortViewState {
       key: ValueKey(keyId),
       useAspectRatio: false,
       forceFullscreenOnAndroid: true,
+      suppressLoadingOverlay: true,
     );
 
     if (ar > 1.2) {
@@ -211,13 +212,7 @@ extension ShortViewUiPart on _ShortViewState {
                 if (vp == null) {
                   return Stack(
                     fit: StackFit.expand,
-                    children: [
-                      _buildThumbOverlay(thumb, modelAr),
-                      if (thumb.isEmpty)
-                        const Center(
-                          child: CupertinoActivityIndicator(color: Colors.white),
-                        ),
-                    ],
+                    children: [_buildThumbOverlay(thumb, modelAr)],
                   );
                 }
 
@@ -267,14 +262,7 @@ extension ShortViewUiPart on _ShortViewState {
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
-                            if (vp.value.isInitialized || thumb.isNotEmpty) {
-                              return const SizedBox.shrink();
-                            }
-                            return const Center(
-                              child: CupertinoActivityIndicator(
-                                color: Colors.white,
-                              ),
-                            );
+                            return const SizedBox.shrink();
                           },
                         ),
                       if (isActivePage)

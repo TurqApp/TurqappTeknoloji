@@ -346,6 +346,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       useAspectRatio: false,
       overrideAutoPlay: overrideAutoPlay,
       forceFullscreenOnAndroid: true,
+      suppressLoadingOverlay: true,
     );
 
     if (ar > 1.2) {
