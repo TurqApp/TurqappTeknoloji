@@ -39,7 +39,8 @@ extension QALabRecorderRuntimeRootCauseMapPart on QALabRecorder {
       );
     }
     if (code.contains('scroll_dispatch') ||
-        code.contains('scroll_first_frame')) {
+        code.contains('scroll_first_frame') ||
+        code.contains('transition_visual')) {
       return (
         'scroll_autoplay_latency',
         '${diagnostic.surface} lost time between scroll settle, playback dispatch, and the first rendered frame.',

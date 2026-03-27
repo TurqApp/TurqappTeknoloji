@@ -32,6 +32,15 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
       docId: expectedDocId,
     );
     final scrollToken = (latestSettle.metadata['scrollToken'] ?? '').toString();
+    final stableFrameEvent = surface != 'short'
+        ? null
+        : _firstScrollPhaseAfter(
+            surfaceTimeline: surfaceTimeline,
+            after: latestSettle.timestamp,
+            phase: 'stable_frame',
+            docId: expectedDocId,
+            scrollToken: scrollToken,
+          );
     final dispatchLatencyMs = dispatch == null
         ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
         : dispatch.timestamp.difference(latestSettle.timestamp).inMilliseconds;
@@ -139,6 +148,58 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
           },
         ),
       );
+    }
+
+    if (surface == 'short') {
+      final stableFrameLatencyMs = stableFrameEvent == null
+          ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
+          : stableFrameEvent.timestamp
+              .difference(latestSettle.timestamp)
+              .inMilliseconds;
+      if (stableFrameEvent == null &&
+          stableFrameLatencyMs >= QALabMode.shortVisualStableFrameBlockingMs) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: QALabIssueSeverity.blocking,
+            code: 'short_transition_visual_missing',
+            message:
+                'Short page settled, but QA never confirmed a visually stable frame before the transition threshold.',
+            route: route,
+            surface: surface,
+            timestamp: latestSettle.timestamp,
+            context: <String, dynamic>{
+              'docId': expectedDocId,
+              'scrollToken': scrollToken,
+              'stableFrameLatencyMs': stableFrameLatencyMs,
+            },
+          ),
+        );
+      } else if (stableFrameEvent != null &&
+          stableFrameLatencyMs >= QALabMode.shortVisualStableFrameWarningMs) {
+        findings.add(
+          QALabPinpointFinding(
+            severity:
+                stableFrameLatencyMs >=
+                        QALabMode.shortVisualStableFrameBlockingMs
+                    ? QALabIssueSeverity.error
+                    : QALabIssueSeverity.warning,
+            code: 'short_transition_visual_slow',
+            message:
+                'Short transition reached a visually stable frame too late after scroll settle.',
+            route: route,
+            surface: surface,
+            timestamp: stableFrameEvent.timestamp,
+            context: <String, dynamic>{
+              'docId': expectedDocId,
+              'scrollToken': scrollToken,
+              'stableFrameLatencyMs': stableFrameLatencyMs,
+              'positionMs': _asInt(stableFrameEvent.metadata['positionMs']),
+              'isPlaying': stableFrameEvent.metadata['isPlaying'] == true,
+              'isBuffering': stableFrameEvent.metadata['isBuffering'] == true,
+            },
+          ),
+        );
+      }
     }
 
     final duplicateBursts = _duplicatePlaybackDispatchBursts(

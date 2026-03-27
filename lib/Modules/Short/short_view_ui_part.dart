@@ -95,6 +95,38 @@ extension ShortViewUiPart on _ShortViewState {
     return SizedBox.expand(child: _cachedThumb(thumb));
   }
 
+  void _reportStableShortFrameIfNeeded(
+    int idx,
+    HLSVideoAdapter adapter,
+    bool hasStableVideoFrame,
+  ) {
+    if (!hasStableVideoFrame || idx != currentPage) return;
+    if (_currentScrollToken.isEmpty) return;
+    if (idx < 0 || idx >= _cachedShorts.length) return;
+    final docId = _cachedShorts[idx].docID.trim();
+    if (docId.isEmpty) return;
+    final token = '$_currentScrollToken|$docId';
+    if (_lastReportedStableFrameToken == token) return;
+    _lastReportedStableFrameToken = token;
+    final scrollToken = _currentScrollToken;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || idx != currentPage) return;
+      recordQALabScrollEvent(
+        surface: 'short',
+        phase: 'stable_frame',
+        metadata: <String, dynamic>{
+          'docId': docId,
+          'page': idx,
+          'scrollToken': scrollToken,
+          'positionMs': adapter.value.position.inMilliseconds,
+          'isPlaying': adapter.value.isPlaying,
+          'isBuffering': adapter.value.isBuffering,
+          'hasRenderedFirstFrame': adapter.value.hasRenderedFirstFrame,
+        },
+      );
+    });
+  }
+
   Widget _buildFullscreenVideoSurface(
     HLSVideoAdapter adapter,
     String keyId, {
@@ -244,6 +276,11 @@ extension ShortViewUiPart on _ShortViewState {
                                             const Duration(
                                               milliseconds: 180,
                                             ));
+                            _reportStableShortFrameIfNeeded(
+                              idx,
+                              vp,
+                              hasStableVideoFrame,
+                            );
                             if (thumb.isEmpty) {
                               return const SizedBox.shrink();
                             }

@@ -179,6 +179,16 @@ class QALabMode {
     defaultValue: 3600,
   );
 
+  static const int shortVisualStableFrameWarningMs = int.fromEnvironment(
+    'QA_LAB_SHORT_VISUAL_STABLE_FRAME_WARNING_MS',
+    defaultValue: 280,
+  );
+
+  static const int shortVisualStableFrameBlockingMs = int.fromEnvironment(
+    'QA_LAB_SHORT_VISUAL_STABLE_FRAME_BLOCKING_MS',
+    defaultValue: 700,
+  );
+
   static const int adLoadWarningMs = int.fromEnvironment(
     'QA_LAB_AD_LOAD_WARNING_MS',
     defaultValue: 1800,

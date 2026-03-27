@@ -186,6 +186,7 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
       'duplicatePlaybackDispatchCount': duplicatePlaybackDispatches,
       'latestScrollDispatchLatencyMs': latestScrollLatency.$1,
       'latestScrollFirstFrameLatencyMs': latestScrollLatency.$2,
+      'latestScrollStableFrameLatencyMs': latestScrollLatency.$3,
       'adRequestCount': adSummary.$1,
       'adLoadCount': adSummary.$2,
       'adFailureCount': adSummary.$3,

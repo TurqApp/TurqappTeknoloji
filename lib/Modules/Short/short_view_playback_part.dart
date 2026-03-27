@@ -82,6 +82,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final nextDocId = page >= 0 && page < _cachedShorts.length
         ? _cachedShorts[page].docID
         : '';
+    _currentScrollToken = nextDocId.isEmpty
+        ? ''
+        : '${DateTime.now().microsecondsSinceEpoch}:$page:$nextDocId';
     recordQALabScrollEvent(
       surface: 'short',
       phase: 'settled',
@@ -90,6 +93,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         'toIndex': page,
         'docId': nextDocId,
         'count': _cachedShorts.length,
+        'scrollToken': _currentScrollToken,
       },
     );
 

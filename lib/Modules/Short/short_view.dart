@@ -157,6 +157,8 @@ class _ShortViewState extends State<ShortView> {
   bool _didPrimeInitialPlayback = false;
   bool _isTransitioning = false;
   bool _manualSnapInProgress = false;
+  String _currentScrollToken = '';
+  String _lastReportedStableFrameToken = '';
   List<PostsModel> _cachedShorts = [];
   double _manualGestureDragDy = 0.0;
 
