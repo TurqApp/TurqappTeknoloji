@@ -396,8 +396,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                     switch player.timeControlStatus {
                 case .playing:
                         self?.log("timeControlStatus=playing url=\(self?.currentUrl ?? "-")")
-                        self?.refreshPlayerLayer(forceReattach: false)
-                        self?.scheduleVisualLayerStabilization(forceReattach: false)
+                        if self?.didRenderFirstFrame == false {
+                            self?.scheduleVisualLayerStabilization(forceReattach: false)
+                        }
                         self?.sendEvent(["event": "play"])
                     case .paused:
                         self?.log("timeControlStatus=paused url=\(self?.currentUrl ?? "-")")
@@ -420,7 +421,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             let currentTime = time.seconds
             let totalDuration = duration.seconds
 
-            if currentTime >= 0.0 && currentTime < 1.2 && !self.didStabilizeVisualLayer {
+            if currentTime >= 0.0 &&
+                currentTime < 1.2 &&
+                !self.didRenderFirstFrame &&
+                !self.didStabilizeVisualLayer {
                 self.scheduleVisualLayerStabilization(forceReattach: false)
             }
 
@@ -536,15 +540,16 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                         playerLayer.removeFromSuperlayer()
                     }
                     self._view.layer.addSublayer(playerLayer)
-                    self.playbackHealthMonitor.onPlayerLayerAttached()
                 }
                 self._view.linkedPlayerLayer = playerLayer
-                self.playbackHealthProbe?.attachPlayerLayer(playerLayer)
+                self.playbackHealthProbe?.attachPlayerLayer(playerLayer, didAttach: needsAttach)
             }
-            self._view.setNeedsLayout()
-            self._view.layoutIfNeeded()
-            self.playerLayer?.setNeedsDisplay()
-            self._view.layer.setNeedsDisplay()
+            if forceReattach || !self.didRenderFirstFrame {
+                self._view.setNeedsLayout()
+                self._view.layoutIfNeeded()
+                self.playerLayer?.setNeedsDisplay()
+                self._view.layer.setNeedsDisplay()
+            }
             CATransaction.commit()
         }
     }
@@ -641,7 +646,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         let delays: [Double] = [0.0, 0.08, 0.22]
         for delay in delays {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                self?.refreshPlayerLayer(forceReattach: forceReattach)
+                guard let self = self else { return }
+                if self.didRenderFirstFrame && delay > 0 && !forceReattach {
+                    return
+                }
+                self.refreshPlayerLayer(forceReattach: forceReattach)
             }
         }
     }
