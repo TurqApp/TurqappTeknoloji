@@ -50,6 +50,16 @@ Examples:
 `);
 }
 
+function readJsonFileLoose(filePath) {
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const trimmed = raw.replace(/^\uFEFF/, '');
+  const startIndex = trimmed.indexOf('{');
+  if (startIndex < 0) {
+    throw new Error(`JSON object start not found in ${filePath}`);
+  }
+  return JSON.parse(trimmed.slice(startIndex));
+}
+
 function sanitize(value) {
   if (
     value == null ||
@@ -103,7 +113,7 @@ function resolveProjectId() {
   if (explicitProjectId) return explicitProjectId;
   if (!serviceAccountPath || !fs.existsSync(serviceAccountPath)) return '';
   try {
-    const raw = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    const raw = readJsonFileLoose(serviceAccountPath);
     return String(raw.project_id ?? '').trim();
   } catch (_) {
     return '';
@@ -114,7 +124,7 @@ const projectId = resolveProjectId();
 
 if (!admin.apps.length) {
   if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    const serviceAccount = readJsonFileLoose(serviceAccountPath);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: projectId || serviceAccount.project_id || undefined,
@@ -165,16 +175,31 @@ async function fetchSessionDocument(sessionId) {
 
 async function fetchOccurrenceDocuments(sessionId) {
   if (sessionOnly) return [];
-  const snap = await db
-    .collectionGroup('occurrences')
-    .where('sessionId', '==', sessionId)
-    .get();
-  const items = snap.docs.map((doc) => ({
-    id: doc.id,
-    ref: doc.ref.path,
-    ...sanitize(doc.data() ?? {}),
-  }));
-  return sortByIsoTimestampDesc(items, 'timestamp').slice(0, occurrenceLimit);
+  try {
+    const snap = await db
+      .collectionGroup('occurrences')
+      .where('sessionId', '==', sessionId)
+      .get();
+    const items = snap.docs.map((doc) => ({
+      id: doc.id,
+      ref: doc.ref.path,
+      ...sanitize(doc.data() ?? {}),
+    }));
+    return {
+      items: sortByIsoTimestampDesc(items, 'timestamp').slice(0, occurrenceLimit),
+      warning: '',
+    };
+  } catch (error) {
+    const code = String(error?.code ?? '');
+    if (code === '9' || String(error?.message ?? '').includes('FAILED_PRECONDITION')) {
+      return {
+        items: [],
+        warning:
+          'occurrence_query_failed_precondition: collectionGroup(occurrences) query could not run; session payload fetched without occurrence detail.',
+      };
+    }
+    throw error;
+  }
 }
 
 async function fetchIssueAggregates(signatures) {
@@ -204,10 +229,15 @@ async function main() {
   const sessionId = await resolveSessionId();
   const scopeSnap = await scopeRef.get();
   const session = await fetchSessionDocument(sessionId);
-  const occurrences = await fetchOccurrenceDocuments(sessionId);
+  const occurrenceResult = await fetchOccurrenceDocuments(sessionId);
+  const occurrences = occurrenceResult.items;
   const issueAggregates = await fetchIssueAggregates(
     occurrences.map((item) => item.signature),
   );
+  const warnings = [];
+  if (occurrenceResult.warning) {
+    warnings.push(occurrenceResult.warning);
+  }
 
   const payload = {
     fetchedAt: new Date().toISOString(),
@@ -235,6 +265,7 @@ async function main() {
       occurrenceCount: occurrences.length,
       issueAggregateCount: issueAggregates.length,
     },
+    warnings,
     session,
     issueAggregates,
     occurrences,
