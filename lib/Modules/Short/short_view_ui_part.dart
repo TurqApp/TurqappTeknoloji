@@ -71,13 +71,28 @@ extension ShortViewUiPart on _ShortViewState {
     );
   }
 
-  Widget _buildVideoLoadingSurface() {
-    return const ColoredBox(
-      color: Colors.black,
-      child: Center(
-        child: CupertinoActivityIndicator(color: Colors.white),
-      ),
+  Widget _cachedThumb(String url) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (_, __) => const SizedBox.shrink(),
+      errorWidget: (_, __, ___) => const SizedBox.shrink(),
     );
+  }
+
+  Widget _buildThumbOverlay(String thumb, double modelAr) {
+    if (thumb.isEmpty) {
+      return const ColoredBox(color: Colors.black);
+    }
+    if (modelAr > 1.2) {
+      return Center(
+        child: AspectRatio(
+          aspectRatio: modelAr,
+          child: _cachedThumb(thumb),
+        ),
+      );
+    }
+    return SizedBox.expand(child: _cachedThumb(thumb));
   }
 
   Widget _buildFullscreenVideoSurface(
@@ -188,12 +203,21 @@ extension ShortViewUiPart on _ShortViewState {
               onPageChanged: _onPageChanged,
               itemBuilder: (_, idx) {
                 final vp = controller.cache[idx];
+                final thumb = list[idx].thumbnail;
                 final modelAr = list[idx].aspectRatio > 0
                     ? list[idx].aspectRatio.toDouble()
                     : (9 / 16);
 
                 if (vp == null) {
-                  return _buildVideoLoadingSurface();
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _buildThumbOverlay(thumb, modelAr),
+                      const Center(
+                        child: CupertinoActivityIndicator(color: Colors.white),
+                      ),
+                    ],
+                  );
                 }
 
                 final isActivePage = idx == currentPage;
@@ -209,26 +233,47 @@ extension ShortViewUiPart on _ShortViewState {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      const ColoredBox(color: Colors.black),
+                      _buildThumbOverlay(thumb, modelAr),
                       if (isActivePage) videoWidget,
                       if (isActivePage)
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
-                            if (vp.value.hasRenderedFirstFrame) {
+                            final value = vp.value;
+                            final hasStableVideoFrame =
+                                value.hasRenderedFirstFrame &&
+                                    !value.isBuffering &&
+                                    (value.isPlaying ||
+                                        value.position >
+                                            const Duration(
+                                              milliseconds: 180,
+                                            ));
+                            if (thumb.isEmpty) {
                               return const SizedBox.shrink();
                             }
-                            return _buildVideoLoadingSurface();
+                            return IgnorePointer(
+                              ignoring: true,
+                              child: AnimatedOpacity(
+                                opacity: hasStableVideoFrame ? 0 : 1,
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                child: _buildThumbOverlay(thumb, modelAr),
+                              ),
+                            );
                           },
                         ),
                       if (isActivePage)
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
-                            if (vp.value.hasRenderedFirstFrame) {
+                            if (vp.value.isInitialized) {
                               return const SizedBox.shrink();
                             }
-                            return _buildVideoLoadingSurface();
+                            return const Center(
+                              child: CupertinoActivityIndicator(
+                                color: Colors.white,
+                              ),
+                            );
                           },
                         ),
                       if (isActivePage)
