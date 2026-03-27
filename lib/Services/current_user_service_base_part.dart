@@ -1,6 +1,6 @@
 part of 'current_user_service.dart';
 
-abstract class _CurrentUserServiceBase extends GetxController
+abstract class _CurrentUserServiceBase extends GetxService
     with WidgetsBindingObserver {
   final _state = _CurrentUserServiceState();
 
