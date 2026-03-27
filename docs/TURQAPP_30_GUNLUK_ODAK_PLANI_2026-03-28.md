@@ -110,8 +110,8 @@ Puanlar:
 Hesap:
 
 - toplam ilerleme `% = tamamlanan puan / toplam puan x 100`
-- toplam plan puani: `72`
-- toplam numarali is sayisi: `31`
+- toplam plan puani: `76`
+- toplam numarali is sayisi: `33`
 
 Rapor zorunlulugu:
 
@@ -224,6 +224,8 @@ Bu matris, uygulamayi tek tek moduller degil sistem olarak okuyup eksik kalan ta
 | Pasaj Alt Alanlari | Market/job disindaki sekmeler icin katman disiplini ve ortak davranis matrisi zayif | scholarships, question bank, practice exams, online exam, answer key, tutoring taraflari shell icine dogrudan bagli | Pasaj bir butun olarak buyuyor ama alt alanlar ortak contract ile korunmuyor | `T-023A`, `T-023B`, sonraki dalga isleri |
 | Profile / Settings | Kismi no-op ayarlar ve schema drift var | Pasaj reorder hareketleri gercekte default siraya donuyor; profil counter alanlari coklu isimle okunuyor | Kullanici ayari guvenilmez olur; veri kontrati bulanir | `T-005`, `T-012`, `T-026`, ek profile/settings dalgasi |
 | Runtime / Media / Cache | Runtime servisleri icin acik sahiplik ve erisim siniri yok | upload, playback, cache, network, device-session servislerine birden fazla yuzey dogrudan dokunuyor | Arka plan akislarinda sessiz regression ve lifecycle bozulmasi uretir | `T-027`, `T-028`, `T-029` |
+| Yapisal Hijyen / Part Sprawl | Mikro `facade/fields/class part` parcaciklari ve sahte modulerlik birikmis | okuma yolu gereksiz uzuyor; degisiklik icin fazla dosya aciliyor; parcalar tek sorumluluk uretmiyor | Gelistirme hizi dusuyor, refactor guveni azaliyor, yeni gelen gelistirici icin sistem daha karisik gorunuyor | `T-009`, `T-026`, `T-030` |
+| Repo Yuzeyi / Dosya Sişkinligi | Repo genelinde dosya yuzeyi cok buyuk; sicak akislar cok sayida dosyaya dagilmis | repo genelinde `2888` adet `.dart` dosyasi var; kritik akislarin takibi birden fazla klasor ve part kumesine yayiliyor | Kod takibi, onboarding, review ve degisiklik guveni dusuyor; her dokunus daha fazla dosya acmayi gerektiriyor | `T-030`, `T-031` |
 | Testing / Reliability | Test dagilimi urunun agirlik merkeziyle uyumlu degil | startup/session/Pasaj/runtime alanlari sosyal tarafa gore daha zayif korunuyor; bazi testler gercek urun yuzeyi degil | Mimari degisiklikler guvenle yapilamaz; sahte guven olusur | `T-021`, `T-022`, `T-024`, `T-025`, `T-029` |
 
 Kurallar:
@@ -347,6 +349,8 @@ Bu liste planin resmi uygulama sirasidir.
 | T-027 | Runtime servis sahiplik haritasi ve erisim envanterini cikar | 3 | Flutter/Platform | QA/Platform | User | M | 2 | T-003, T-009, T-012 |
 | T-028 | Upload, network ve device-session akislarini runtime boundary icine al | 4 | Flutter/Fullstack | QA/Platform | User | M | 2 | T-012, T-020, T-027 |
 | T-029 | `VideoStateManager` ve `SegmentCacheManager` kullanim sinirlarini netlestir; lifecycle testlerini ekle | 4 | Flutter/Platform | QA/Platform | User | L | 3 | T-017, T-018, T-027 |
+| T-030 | Part-sprawl envanteri cikar ve sicak alanlarda secici sadeleştirme uygula | 4 | Flutter/Fullstack | QA/Platform | User | M | 2 | T-009, T-012, T-023A |
+| T-031 | Repo surface area envanteri cikar; sicak yol dosya kumeleri icin sadeleştirme butcesi ve hedef listesi olustur | 4 | Flutter/Fullstack | QA/Platform | User | M | 2 | T-030 |
 | T-024 | Coverage gate'i gercek risk gosterecek seviyeye cek | 4 | QA/Platform | Flutter/Fullstack | User | S | 1 | T-021, T-022 |
 | T-025 | Yaniltici widget testlerini gercek ekran davranisina bagla | 4 | QA/Platform | Flutter/Fullstack | User | M | 2 | T-022 |
 | T-026 | Dokuman tek-kaynak kuralini ve tarihli plan yigilmama guard'ini koy | 4 | QA/Platform | Flutter/Fullstack | User | S | 1 | T-009 |
@@ -382,6 +386,8 @@ Destekleyici ama resmi siralama disi isler:
 - `T-023B`
 - `T-023C`
 - `T-028`
+- `T-030`
+- `T-031`
 - `T-025`
 
 ## Cevresel Onkosullar ve Blokaj Kontrolu
@@ -491,6 +497,8 @@ Her tamamlanan is en az bir kanit kaydi uretir.
 | ART-005 | T-022 | startup/session/feed davranis test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-006 | T-024 | coverage gate policy ve cikti | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-007 | T-029 | runtime/playback lifecycle smoke ve log notu | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-008 | T-030 | part-sprawl envanteri ve secili sadeleştirme diff'i | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-009 | T-031 | repo surface area envanteri ve sicak yol sadeleştirme hedef listesi | doldurulacak | doldurulacak | doldurulacak | Acik |
 
 Kurallar:
 
@@ -532,6 +540,8 @@ Bu matris her `T-###` isinin kapanis olcutunu resmi hale getirir.
 | T-027 | runtime servis sahiplik haritasi ve erisim envanteri cikmis olacak | runtime envanter raporu + import/lookup kontrolu | Upload/cache/playback/session sahibi net gorunuyor mu |
 | T-028 | upload, network ve device-session akislarinda runtime boundary netlesmis olacak | davranis testi + lifecycle kontrolu | Bu servisler artik gelisiguzel feature icinden cagriliyor mu |
 | T-029 | video/cache lifecycle sinirlari netlesmis ve testlenmis olacak | lifecycle testi + manuel dogrulama | Story/short/feed gecislerinde playback ve cache davranisi stabil mi |
+| T-030 | yapay part-sprawl envanteri cikmis olacak; dokunulan sicak alanlarda secili sadeleştirme davranis bozmadan uygulanmis olacak | guard calistirma + odak testleri + diff kontrolu | Daha az dosya ile ayni akis okunabiliyor mu; gereksiz mikro parcalar azaldi mi |
+| T-031 | repo genel dosya yuzeyi envanteri cikmis olacak; sicak yol kume bazli sadeleştirme hedefleri ve butcesi belirlenmis olacak | envanter raporu + hedef liste diff'i | En pahali dosya kumeleri net mi; hangi alanlarda dosya yuzeyi azaltilacak gorunuyor mu |
 | T-024 | coverage gate gercek risk gosterecek seviyeye gelmis olacak | script calistirma + policy kontrolu | Gate sahte yesil uretmiyor mu |
 | T-025 | yaniltici widget testleri ekran davranisina baglanmis olacak | widget test run | Test gercek davranisi olcuyor mu |
 | T-026 | dokuman tek-kaynak guard'i aktif olacak | repo guard + policy kontrolu | Yeni tarihli plan yigini tekrar olusuyor mu |
@@ -576,6 +586,8 @@ Bu esleme, hangi testin hangi isi kapattigini netlestirir.
 | network awareness policy testi | T-028 |
 | video playback exclusivity/lifecycle testi | T-029 |
 | segment cache quota/eviction/hls proxy testi | T-029 |
+| part-sprawl inventory ve hot-path sadeleştirme diff kontrolu | T-030 |
+| repo surface area inventory ve hot-cluster hedef listesi | T-031 |
 | feature ic import ihlali testi | T-009, T-026 |
 | presentation -> infra erisim ihlali testi | T-009, T-020 |
 | locator kullanim siniri testi | T-009, T-017, T-018, T-023A, T-023B, T-023C |
@@ -593,6 +605,8 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-003 | Risk | Orta | T-009 | Acik | Architecture guard false-positive uretip CI'yi gereksiz kilitleyebilir |
 | RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
 | RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
+| DEBT-001 | Debt | Orta | T-030 | Acik | Mikro `facade/fields/class part` dagilimi okuma maliyeti ve sahte modulerlik uretiyor; secici sadeleştirme gerekiyor |
+| DEBT-002 | Debt | Orta | T-031 | Acik | Repo genelinde dosya yuzeyi cok buyuk; kritik akislar fazla dosyaya dagiliyor ve takip maliyeti yukseliyor |
 | GAP-001 | Gap | Orta | T-001 | Kapandi | Rollback/checkpoint standardi plan icine eklendi; T-001'de canli kayit doldurulacak |
 | GAP-002 | Gap | Orta | T-021, T-022 | Kapandi | Fixture/seed checklist planda tanimlandi; uygulamada test bazli doldurulacak |
 
@@ -670,6 +684,24 @@ Runtime / Media / Cache:
 - `lib/Modules/NavBar/nav_bar_controller_lifecycle_part.dart`
 - `lib/Modules/Splash/splash_view_startup_part.dart`
 - `lib/main.dart`
+
+Part Sprawl / Yapisal Hijyen:
+
+- `lib/Modules/Education/education_controller.dart`
+- `lib/Modules/Profile/Settings/settings_controller.dart`
+- `lib/Modules/JobFinder/job_finder_controller.dart`
+- `lib/Modules/Chat/chat_controller.dart`
+- `lib/Services/current_user_service.dart`
+
+Repo Surface Area / Dosya Sişkinligi:
+
+- `lib/Modules/Education/**`
+- `lib/Modules/Chat/**`
+- `lib/Modules/Story/**`
+- `lib/Modules/Short/**`
+- `lib/Modules/Profile/**`
+- `lib/Services/**`
+- `lib/Core/Repositories/**`
 
 ## Controller -> UseCase Cikarim Listesi
 
@@ -764,6 +796,54 @@ Beklenen ciktılar:
 - hangi yuzeyin hangi runtime servise bakabildigi listesi
 - upload/playback/cache/session icin lifecycle kontratlari
 - testle dogrulanan minimum stabilizasyon paketi
+
+## Part Sprawl / Yapisal Hijyen Kontrolu
+
+Bu eksen dosya sayisini azaltma hedefi degil, yapay parcacik birikimini kontrol etme eksenidir.
+
+Kapsam:
+
+- yeni `*_facade_part.dart`, `*_fields_part.dart`, `*_class_part.dart` turevlerinin buyumesini durdurmak
+- sicak alanlarda okumayi zorlastiran mikro parcaciklari envanterlemek
+- yalnizca dokunulan akislarda secici sadeleştirme yapmak
+
+Kurallar:
+
+- tum repoda toplu dosya birlestirme turu yapilmaz
+- sadece aktif is kapsaminda dokunulan sicak alanlarda sadeleştirme yapilir
+- davranis degismeden yapisal sadeleştirme hedeflenir
+- yeni part-sprawl uretimi guard ile engellenir; eski birikim secili dalgalarla azaltilir
+
+Beklenen ciktılar:
+
+- part-sprawl envanter raporu
+- secilen sicak alanlar icin once/sonra diff'i
+- davranis bozmadan kapanmis secili sadeleştirmeler
+
+## Repo Surface Area / Dosya Sişkinligi Kontrolu
+
+Bu eksen toplam dosya sayisini sayisal takinti haline getirmek icin degil, kritik akislarin asiri genis dosya yuzeyine dagilmasini kontrol etmek icindir.
+
+Kapsam:
+
+- repo genelindeki buyuk dosya/kume envanterini cikarmak
+- sicak akislar icin "bir degisiklikte kac dosya aciliyor" maliyetini gorunur hale getirmek
+- en pahali kume ve klasorler icin sadeleştirme butcesi belirlemek
+- yalnizca aktif refactor alanlarinda secili dosya birleştirme veya dosya azaltma uygulamak
+
+Kurallar:
+
+- tum repoda toplu dosya birleştirme turu yapilmaz
+- dosya sayisini dusurmek tek basina hedef degildir; okuma ve degisim maliyetini azaltmak hedeftir
+- sadece sicak yol ve aktif is kapsamindaki kumelerde secili sadeleştirme yapilir
+- yeni dosya eklemek yasak degildir; ama yeni dosya gercek sorumluluk ayrimi uretmiyorsa kabul edilmez
+
+Beklenen ciktılar:
+
+- repo surface area envanteri
+- sicak yol dosya kumeleri listesi
+- sadeleştirme butcesi ve hedef alan listesi
+- secili kumelerde once/sonra diff'i
 
 ## Kritik Parcalama Hedefleri
 
