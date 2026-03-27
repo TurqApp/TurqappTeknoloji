@@ -1,19 +1,9 @@
-# TurqApp Working Rules
+# TurqApp Working Notes
 
-Bu repo uzerinde herhangi bir gorevde calismadan once `docs/codex_anayasasi.md` dosyasini oku ve tum oturum boyunca eksiksiz uygula. Bu zorunluluk her yeni Codex oturumunda ve `qa baslat` dahil tum komutlarda gecerlidir.
+Bu repo icin kanonik insan/AI belge girisi `docs/README.md` dosyasidir.
 
-Ek repo kurallari:
+Notlar:
 
-- Ise baslamadan once yapilacak isi 1-2 cumleyle ozetle.
-- Ayni anda tek is yap.
-- Baslanan isi bitirmeden baska ise gecme.
-- Yarim is teslim etme.
-- Istenen kapsamin disina cikma.
-- Genel temizlik, ekstra refactor veya gereksiz duzenleme yapma.
-- Belirsizlik varsa varsayim yapmadan netlestir.
-- Kod veya dosya duzenlemesi yaptiysan sormadan Android tarafinda calistir.
-- Aktif Flutter oturumu varsa `R` ile restart ver.
-- Aktif oturum yoksa `flutter run` ile Android ayaga kaldir.
-- Is tamamlaninca sonucu kisa ve net yaz.
-- Her tamamlanan isin sonunda commit al.
-- Calisma agacini kirli birakma.
+- Tarihli plan, migration, handoff ve analiz dokumanlari kasitli olarak temizlenmistir.
+- Yeni calisma plani gerekiyorsa tek kaynak olarak guncel plan dokumani kullanilmalidir.
+- Kod gercegi ile uyusmayan tarihli dokumanlar yeniden eklenmemelidir.

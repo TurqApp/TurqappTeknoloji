@@ -194,6 +194,27 @@ Kural:
 - pilotlar yalnizca kalip dogrulamak icindir
 - ana hedef uygulamanin tum yuzeylerinde ayni katman ve sahiplik disiplinini kurmaktir
 
+## Uygulama Butunu Eksik Alanlar Matrisi
+
+Bu matris, uygulamayi tek tek moduller degil sistem olarak okuyup eksik kalan taraflari sabitler.
+
+| Sistem Alani | Onaylanmis eksik | Kod bazli belirti | Neden onemli | Hangi islerle kapanacak |
+| --- | --- | --- | --- | --- |
+| App Shell | Tek sahipli orchestration katmani yok | `main`, `Splash`, `NavBar` ve overlay/lifecycle kodu farkli yerlerde ayni sorumluluklari tasiyor | Acilis, tab gecisi, resume/pause ve surface reset davranislarinda regression riski yuksek | `T-010`, `T-011`, `T-027` |
+| Session / Identity | Auth, cache, sync ve account switching tek merkezde yigiliyor | `CurrentUserService` hem veri erisimi hem lifecycle hem session sahibi gibi davraniyor | Session bug'lari tum uygulamayi etkiliyor; guvenli refactor zorlasiyor | `T-008`, `T-012`, `T-013`, `T-028` |
+| Social Yuzeyler | Feed/story/short/chat icin ortak orchestrator ve yuzey kontrati yok | playback, overlay, visibility ve notification davranisleri controller ve runtime arasinda daginik | Story/short/feed/chat birlikte calistiginda yan etki yonetimi zorlasiyor | `T-015`, `T-016`, `T-017`, `T-018`, `T-023C`, `T-029` |
+| Pasaj Shell | Sekmeler icin public shell contract yok | `EducationController` ve `EducationView` child controller API'lerine dogrudan baglaniyor | Ortak arama, tab reset, menu ve scroll davranislari kirilgan hale geliyor | `T-023A`, `T-023B`, `T-027` |
+| Pasaj Alt Alanlari | Market/job disindaki sekmeler icin katman disiplini ve ortak davranis matrisi zayif | scholarships, question bank, practice exams, online exam, answer key, tutoring taraflari shell icine dogrudan bagli | Pasaj bir butun olarak buyuyor ama alt alanlar ortak contract ile korunmuyor | `T-023A`, `T-023B`, sonraki dalga isleri |
+| Profile / Settings | Kismi no-op ayarlar ve schema drift var | Pasaj reorder hareketleri gercekte default siraya donuyor; profil counter alanlari coklu isimle okunuyor | Kullanici ayari guvenilmez olur; veri kontrati bulanir | `T-005`, `T-012`, `T-026`, ek profile/settings dalgasi |
+| Runtime / Media / Cache | Runtime servisleri icin acik sahiplik ve erisim siniri yok | upload, playback, cache, network, device-session servislerine birden fazla yuzey dogrudan dokunuyor | Arka plan akislarinda sessiz regression ve lifecycle bozulmasi uretir | `T-027`, `T-028`, `T-029` |
+| Testing / Reliability | Test dagilimi urunun agirlik merkeziyle uyumlu degil | startup/session/Pasaj/runtime alanlari sosyal tarafa gore daha zayif korunuyor; bazi testler gercek urun yuzeyi degil | Mimari degisiklikler guvenle yapilamaz; sahte guven olusur | `T-021`, `T-022`, `T-024`, `T-025`, `T-029` |
+
+Kurallar:
+
+- bu matris yeni scope acmak icin degil, eksigi isimlendirmek icin tutulur
+- bir eksik ancak ilgili is ve test/guard ile kapatilmis sayilir
+- matriste yer alan alanlar plan sagligi gozden gecirmelerinde tek tek kontrol edilir
+
 ## Repo Guardrail'leri
 
 Bu kurallar 30 gunluk planin disinda degil, planin baslangic kosuludur:
