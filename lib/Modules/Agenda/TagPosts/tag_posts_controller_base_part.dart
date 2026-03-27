@@ -25,3 +25,11 @@ abstract class _TagPostsControllerBase extends GetxController {
     (this as TagPostsController)._handleTagPostsInit();
   }
 }
+
+class TagPostsController extends _TagPostsControllerBase {
+  TagPostsController({
+    required super.tag,
+    required super.controllerTag,
+    super.repository,
+  });
+}
