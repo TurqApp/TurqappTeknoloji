@@ -1,5 +1,15 @@
 part of 'saved_optical_forms_controller_library.dart';
 
+const Duration _savedOpticalFormsSilentRefreshInterval = Duration(minutes: 5);
+
+class SavedOpticalFormsController extends GetxController {
+  @override
+  void onInit() {
+    super.onInit();
+    _bootstrapData();
+  }
+}
+
 SavedOpticalFormsController ensureSavedOpticalFormsController({
   String? tag,
   bool permanent = false,

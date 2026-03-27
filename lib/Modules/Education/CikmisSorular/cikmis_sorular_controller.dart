@@ -10,4 +10,3 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'cikmis_sorular_controller_runtime_part.dart';
 part 'cikmis_sorular_controller_fields_part.dart';
 part 'cikmis_sorular_controller_facade_part.dart';
-part 'cikmis_sorular_controller_class_part.dart';
