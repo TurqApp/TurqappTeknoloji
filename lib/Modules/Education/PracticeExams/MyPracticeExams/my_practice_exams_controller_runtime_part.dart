@@ -104,3 +104,14 @@ extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
     }
   }
 }
+
+MyPracticeExamsController? maybeFindMyPracticeExamsController() =>
+    Get.isRegistered<MyPracticeExamsController>()
+        ? Get.find<MyPracticeExamsController>()
+        : null;
+
+MyPracticeExamsController ensureMyPracticeExamsController({
+  bool permanent = false,
+}) =>
+    maybeFindMyPracticeExamsController() ??
+    Get.put(MyPracticeExamsController(), permanent: permanent);

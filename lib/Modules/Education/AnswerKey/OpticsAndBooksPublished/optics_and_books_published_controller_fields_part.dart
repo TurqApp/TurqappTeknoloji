@@ -25,3 +25,14 @@ extension OpticsAndBooksPublishedControllerFieldsPart
   int get _lastOpenRefreshAt => _state.lastOpenRefreshAt;
   set _lastOpenRefreshAt(int value) => _state.lastOpenRefreshAt = value;
 }
+
+class OpticsAndBooksPublishedController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  final _state = _OpticsAndBooksPublishedControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _handleOpticsAndBooksPublishedInit(this);
+  }
+}

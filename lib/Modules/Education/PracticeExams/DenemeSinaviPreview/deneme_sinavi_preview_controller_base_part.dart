@@ -10,3 +10,14 @@ extension DenemeSinaviPreviewControllerBasePart
   _DenemeSinaviPreviewControllerState get _state =>
       _stateExpando[this] ??= _DenemeSinaviPreviewControllerState();
 }
+
+class DenemeSinaviPreviewController extends GetxController {
+  final SinavModel model;
+  DenemeSinaviPreviewController(this.model);
+
+  @override
+  void onInit() {
+    super.onInit();
+    _handleDenemeSinaviPreviewInit(this);
+  }
+}
