@@ -96,8 +96,8 @@ Puanlar:
 Hesap:
 
 - toplam ilerleme `% = tamamlanan puan / toplam puan x 100`
-- toplam plan puani: `65`
-- toplam numarali is sayisi: `28`
+- toplam plan puani: `72`
+- toplam numarali is sayisi: `31`
 
 Rapor zorunlulugu:
 
@@ -153,6 +153,46 @@ Ayri tutulacak runtime servisleri:
 - `UploadQueueService`
 - `SegmentCacheManager`
 - `DeviceSessionService`
+
+## Uygulama Butunu Sistem Haritasi
+
+Bu plan tek bir modulu degil, uygulamanin tamamini kapsar. Yurutme ve refactor kararlari asagidaki sistem eksenlerine gore okunur:
+
+- `App Shell`
+  - `main`, `Splash`, `NavBar`, deep link, unread badge, tab gecisleri, acilis ve ilk route karari
+
+- `Session / Identity`
+  - `SignIn`, `CurrentUserService`, account switching, user cache, account center, auth/session dogrulama
+
+- `Social Yuzeyler`
+  - `Agenda`, `Story`, `Short`, `Chat`
+  - feed, playback, overlay, visibility, notification ve lifecycle koordinasyonu
+
+- `Pasaj Shell`
+  - `EducationView` ve `EducationController`
+  - ortak arama, sekme gorunurlugu, tab/page koordinasyonu, floating action menu, aktif yuzey reset ve child controller baglari
+
+- `Pasaj Alt Alanlari`
+  - `Market`
+  - `JobFinder`
+  - `Scholarships`
+  - `QuestionBank / Antreman`
+  - `PracticeExams`
+  - `OnlineExam`
+  - `AnswerKey`
+  - `Tutoring`
+
+- `Profile / Settings`
+  - profil akislari, saved surfaces, follow/follower, profile render, settings ve kullanici tercihi temelli davranislar
+
+- `Shared Runtime / Infra`
+  - media playback, upload queue, cache, notification, network awareness, telemetry, deep link, secure storage, repository ve datasource sinirlari
+
+Kural:
+
+- hicbir pilot alan, planin merkezi gibi yorumlanmaz
+- pilotlar yalnizca kalip dogrulamak icindir
+- ana hedef uygulamanin tum yuzeylerinde ayni katman ve sahiplik disiplinini kurmaktir
 
 ## Repo Guardrail'leri
 
@@ -266,6 +306,9 @@ Bu liste planin resmi uygulama sirasidir.
 | T-023A | Market/job icin ilk bounded-context UseCase pilotunu uygula | 3 | Flutter/Fullstack | M | 2 | T-009, T-012, T-020 |
 | T-023B | Ads center icin ikinci kucuk UseCase pilotunu uygula | 4 | Flutter/Fullstack | S | 1 | T-009, T-012, T-023A |
 | T-023C | Chat icin ilk UseCase cikarimini baslat | 4 | Flutter/Fullstack | M | 2 | T-009, T-012, T-023A |
+| T-027 | Runtime servis sahiplik haritasi ve erisim envanterini cikar | 3 | Flutter/Platform | M | 2 | T-003, T-009, T-012 |
+| T-028 | Upload, network ve device-session akislarini runtime boundary icine al | 4 | Flutter/Fullstack | M | 2 | T-012, T-020, T-027 |
+| T-029 | `VideoStateManager` ve `SegmentCacheManager` kullanim sinirlarini netlestir; lifecycle testlerini ekle | 4 | Flutter/Platform | L | 3 | T-017, T-018, T-027 |
 | T-024 | Coverage gate'i gercek risk gosterecek seviyeye cek | 4 | QA/Platform | S | 1 | T-021, T-022 |
 | T-025 | Yaniltici widget testlerini gercek ekran davranisina bagla | 4 | QA/Platform | M | 2 | T-022 |
 | T-026 | Dokuman tek-kaynak kuralini ve tarihli plan yigilmama guard'ini koy | 4 | QA/Platform | S | 1 | T-009 |
@@ -274,13 +317,14 @@ Bu liste planin resmi uygulama sirasidir.
 
 Bu zincir planin resmi kritik yoludur:
 
-- `T-001 -> T-002 -> T-003 -> T-004 -> T-005 -> T-006 -> T-007 -> T-008 -> T-009 -> T-010 -> T-011 -> T-012 -> T-013 -> T-015 -> T-016 -> T-019 -> T-020 -> T-023A -> T-017 -> T-018 -> T-021 -> T-022 -> T-024 -> T-026`
+- `T-001 -> T-002 -> T-003 -> T-004 -> T-005 -> T-006 -> T-007 -> T-008 -> T-009 -> T-010 -> T-011 -> T-012 -> T-013 -> T-027 -> T-015 -> T-016 -> T-019 -> T-020 -> T-023A -> T-017 -> T-018 -> T-029 -> T-021 -> T-022 -> T-024 -> T-026`
 
 Destekleyici ama kritik yol disi isler:
 
 - `T-014`
 - `T-023B`
 - `T-023C`
+- `T-028`
 - `T-025`
 
 ## Cevresel Onkosullar ve Blokaj Kontrolu
@@ -364,6 +408,11 @@ Her iste tum paket kosulmaz; ama is tipine gore asagidaki standart setten secim 
 - CI/policy degisikligi:
   - ilgili script dry-run veya local invocation
   - workflow mantiginin satir bazli kontrolu
+- Runtime/media/cache degisikligi:
+  - lifecycle ve davranis testleri
+  - upload persistence/retry dogrulamasi
+  - playback exclusivity ve cache davranisi kontrolu
+  - gerekiyorsa ayar/diagnostic ekranindan manuel saglik kontrolu
 
 Zorunlu minimum:
 
@@ -402,6 +451,9 @@ Bu matris her `T-###` isinin kapanis olcutunu resmi hale getirir.
 | T-023A | market/job bounded-context usecase pilotu calisiyor olacak | ilgili davranis testleri + guard | Pilot model diger alanlara tasinabilir kadar net mi |
 | T-023B | ads center icin ikinci kucuk usecase pilotu calisiyor olacak | ilgili test/guard | Kucuk ikinci pilotta katman kurali korunuyor mu |
 | T-023C | chat usecase cikarimi baslamis olacak | ilgili test/guard | Sohbet akisinda controller orkestrasyonu azaldi mi |
+| T-027 | runtime servis sahiplik haritasi ve erisim envanteri cikmis olacak | runtime envanter raporu + import/lookup kontrolu | Upload/cache/playback/session sahibi net gorunuyor mu |
+| T-028 | upload, network ve device-session akislarinda runtime boundary netlesmis olacak | davranis testi + lifecycle kontrolu | Bu servisler artik gelisiguzel feature icinden cagriliyor mu |
+| T-029 | video/cache lifecycle sinirlari netlesmis ve testlenmis olacak | lifecycle testi + manuel dogrulama | Story/short/feed gecislerinde playback ve cache davranisi stabil mi |
 | T-024 | coverage gate gercek risk gosterecek seviyeye gelmis olacak | script calistirma + policy kontrolu | Gate sahte yesil uretmiyor mu |
 | T-025 | yaniltici widget testleri ekran davranisina baglanmis olacak | widget test run | Test gercek davranisi olcuyor mu |
 | T-026 | dokuman tek-kaynak guard'i aktif olacak | repo guard + policy kontrolu | Yeni tarihli plan yigini tekrar olusuyor mu |
@@ -441,6 +493,11 @@ Bu esleme, hangi testin hangi isi kapattigini netlestirir.
 | chat send/read policy testi | T-023C |
 | market/job apply-save-review policy testi | T-023A |
 | ads center dashboard/campaign policy testi | T-023B |
+| upload queue persistence/retry testi | T-028 |
+| device session claim/auth boundary testi | T-028 |
+| network awareness policy testi | T-028 |
+| video playback exclusivity/lifecycle testi | T-029 |
+| segment cache quota/eviction/hls proxy testi | T-029 |
 | feature ic import ihlali testi | T-009, T-026 |
 | presentation -> infra erisim ihlali testi | T-009, T-020 |
 | locator kullanim siniri testi | T-009, T-017, T-018, T-023A, T-023B, T-023C |
@@ -457,6 +514,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-002 | Risk | Yuksek | T-008, T-013 | Acik | Parola saklama kalkarken mevcut hesap gecisi davranisi bozulabilir |
 | RISK-003 | Risk | Orta | T-009 | Acik | Architecture guard false-positive uretip CI'yi gereksiz kilitleyebilir |
 | RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
+| RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
 | GAP-001 | Gap | Orta | T-001 | Kapandi | Rollback/checkpoint standardi plan icine eklendi; T-001'de canli kayit doldurulacak |
 | GAP-002 | Gap | Orta | T-021, T-022 | Kapandi | Fixture/seed checklist planda tanimlandi; uygulamada test bazli doldurulacak |
 
@@ -475,6 +533,7 @@ Bu tablo "bu feature'i kim sahipleniyor" sorusunu kod bazli olarak tek cevaba in
 | Market | `SaveMarketItemUseCase`, `SubmitMarketOfferUseCase`, `SubmitMarketReviewUseCase` | `MarketRepository` | market cache | UseCase | Controller/UI |
 | Job | `ApplyJobUseCase`, `SaveJobUseCase`, `SubmitJobReviewUseCase` | `JobRepository` | job cache | UseCase | Controller/UI |
 | Ads Center | `LoadAdsDashboardUseCase`, `SaveAdCampaignUseCase` | ads repository | ads runtime/config cache | UseCase | Controller/UI |
+| Runtime / Media / Cache | runtime coordinator / policy layer | runtime services + approved adapters | `SegmentCacheManager`, upload queue persistence, device/session state | runtime policy / coordinator | UI diagnostics + caller surface |
 
 ## Dosya Bazli Odak Alanlari
 
@@ -522,6 +581,17 @@ Ads Center:
 - `lib/Modules/Profile/Settings/AdsCenter/ads_center_controller_runtime_part.dart`
 - `lib/Core/Services/Ads/ads_repository_service.dart`
 - `lib/Core/Services/Ads/ads_delivery_service.dart`
+
+Runtime / Media / Cache:
+
+- `lib/Core/Services/upload_queue_service.dart`
+- `lib/Core/Services/video_state_manager.dart`
+- `lib/Core/Services/network_awareness_service.dart`
+- `lib/Core/Services/SegmentCache/cache_manager.dart`
+- `lib/Services/device_session_service.dart`
+- `lib/Modules/NavBar/nav_bar_controller_lifecycle_part.dart`
+- `lib/Modules/Splash/splash_view_startup_part.dart`
+- `lib/main.dart`
 
 ## Controller -> UseCase Cikarim Listesi
 
@@ -587,6 +657,35 @@ Asagidaki tipler UseCase olmayacak; bunlar runtime altyapi servisleri olarak kal
 - upload queue ve background retry
 - cihaz/session claim mekanigi
 - network farkindaligi
+
+## Runtime / Media / Cache Stabilizasyonu
+
+Bu eksen planin disinda degil; tum uygulama genelinde zorunlu capraz eksendir.
+
+Kapsam:
+
+- `UploadQueueService`
+- `VideoStateManager`
+- `SegmentCacheManager`
+- `NetworkAwarenessService`
+- `DeviceSessionService`
+
+Kurallar:
+
+- feature widget ve view'lar runtime servis yasam dongusunu dogrudan yonetmez
+- upload tetikleme feature tarafindan yapilabilir; queue policy, persistence ve retry runtime servisinde kalir
+- playback exclusivity, pause/resume ve overlay davranisi yalnizca onayli playback coordinator / runtime katmani uzerinden gider
+- segment cache feature icinden gelisiguzel okunmaz veya yazilmaz; yalnizca onayli adapter ve coordinator uzerinden kullanilir
+- `DeviceSessionService` yalnizca auth/session akislarinda ve ilgili usecase/application service tarafinda kullanilir
+- `NetworkAwarenessService` UI dallanma mantiginin rastgele parcasi olmaz; policy/coordinator veya approved helper uzerinden kullanilir
+- settings/diagnostics yuzeyi runtime servislerini gozetleyebilir; ama feature business flow sahibi olamaz
+
+Beklenen ciktılar:
+
+- runtime servis sahibi ve cagri haritasi
+- hangi yuzeyin hangi runtime servise bakabildigi listesi
+- upload/playback/cache/session icin lifecycle kontratlari
+- testle dogrulanan minimum stabilizasyon paketi
 
 ## Kritik Parcalama Hedefleri
 
@@ -729,6 +828,7 @@ Isler:
 - `lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart` icin birincil feed yolunu netlestir
 - `functions/src/hybridFeed.ts` ile istemci feed contract'ini uyumlu hale getir
 - `lib/Modules`, `lib/Services`, `lib/Core` altinda dogrudan Firebase kullanan yuksek riskli akislari envanterle
+- `UploadQueueService`, `VideoStateManager`, `SegmentCacheManager`, `NetworkAwarenessService` ve `DeviceSessionService` icin runtime sahiplik ve cagri haritasini cikar
 - Yeni kural koy:
   - Controller/widget dogrudan Firebase'e gitmez
   - Service/use-case ve repository uzerinden gider
@@ -741,13 +841,15 @@ Teslimatlar:
 - Dogrudan Firebase cagri envanteri
 - Ilk tasinmis yuksek riskli akislar
 - Calisan ilk pilot modul kalibi
+- Runtime servis sahiplik ve erisim haritasi
 
 Cikis Kriteri:
 
 - Feed icin birincil yol tanimli olacak
 - Yeni direct Firebase erisimi eklenmeyecek
 - Daha kucuk bir pilot modulde katman kurali sahada kanitlanmis olacak
-- `T-015`, `T-016`, `T-019`, `T-020` ve `T-023A` tamamlanmis olacak
+- Runtime/media/cache akislarinin sahibi ve sinirlari acikca gorunur olacak
+- `T-015`, `T-016`, `T-019`, `T-020`, `T-023A` ve `T-027` tamamlanmis olacak
 
 ## 4. Hafta: Sosyal Orkestrasyon, Test, CI ve Kalici Dokuman Seti
 
@@ -762,6 +864,8 @@ Isler:
 - `AgendaController`, `ShortController`, `StoryRowController` icindeki orchestration adimlarini UseCase'e cek
 - Ads center icin ikinci kucuk UseCase pilotunu cikar
 - Chat akislarinda ilk UseCase cikarimlarini baslat
+- Upload, network ve device-session akislarinda runtime boundary'leri netlestir
+- `VideoStateManager` ve `SegmentCacheManager` icin kullanim sinirlarini ve lifecycle kontratlarini testle sabitle
 - `functions/tests` altina reports/moderation/security regression testleri ekle
 - Auth/session/feed kritik akislari icin davranis testlerini genislet
 - `scripts/check_flutter_coverage.sh` ve `config/quality/flutter_coverage_policy.env` icindeki zayif coverage gate'i gercekci seviyeye cek
@@ -773,13 +877,15 @@ Teslimatlar:
 - Kritik backend test paketi
 - Guclendirilmis coverage gate
 - Temiz ve tek kaynakli dokuman girisi
+- Runtime/media/cache stabilizasyon paketi
 
 Cikis Kriteri:
 
 - CI mevcut durumu gizleyen degil, gercek risk gosteren sinyaller uretecek
 - Sosyal controller refactor'u pilotta dogrulanan kalipla ilerlemis olacak
+- Upload, playback, cache ve session runtime servisleri icin minimum sinirlar testle gorunur olacak
 - Dokuman seti yeniden dagilmayacak sekilde sade kalacak
-- `T-017`, `T-018`, `T-021`, `T-022`, `T-023B`, `T-023C`, `T-024`, `T-025`, `T-026` tamamlanmis olacak
+- `T-017`, `T-018`, `T-021`, `T-022`, `T-023B`, `T-023C`, `T-024`, `T-025`, `T-026`, `T-028`, `T-029` tamamlanmis olacak
 
 ## Mimari Kontrat Testleri
 
@@ -793,6 +899,10 @@ Refactor sonrasi su davranis testleri olmadan is tamamlanmis sayilmaz:
 - visibility/filter policy testi
 - chat send/read policy testi
 - market/job apply-save-review policy testi
+- upload queue persistence/retry testi
+- device session claim/auth boundary testi
+- video playback exclusivity/lifecycle testi
+- segment cache quota/eviction/hls proxy testi
 
 Static guard testleri:
 
@@ -801,6 +911,36 @@ Static guard testleri:
 - locator kullanim siniri testi
 - legacy folder freeze testi
 - yeni part-sprawl kaliplari testi
+
+## Zincir Sagligi Kontrolu
+
+Her is kapanisinda sadece ilgili degisiklik degil, bagli akis zincirleri de kontrol edilir.
+Amaç, tekil gorev tamamlaniyor gorunurken baska bir kritik akis veya bagimlilik zincirinin sessizce kirilmasini engellemektir.
+
+Her is sonunda asagidaki alanlar zorunlu degerlendirilir:
+
+- Etkilenen zincirler
+- Kontrol edilen bagli akislar
+- Kirilma var mi: `Evet / Hayir`
+- Regresyon var mi: `Evet / Hayir`
+- Zincir durumu: `Temiz / Riskli / Kirik`
+- Bozulan akislar varsa acik kaydi
+
+Standart minimum zincir listesi:
+
+- `Startup Zinciri`
+  splash -> auth bootstrap -> session restore -> initial route
+- `Session Zinciri`
+  sign-in -> current user load -> account switch -> sign-out
+- `Social Zinciri`
+  feed -> story row -> story viewer -> short -> playback ownership
+- `Data/Authz Zinciri`
+  firestore rules -> storage rules -> callable auth -> client write path
+- `CI Zinciri`
+  architecture guards -> analyze/test -> smoke -> coverage/reporting
+
+Her gorev icin bu listenin tamami degil, etkilenme ihtimali olan zincirler secilir ve raporda acikca yazilir.
+Zincir kontrolu yapilmadan hicbir is `Tamamlandi` durumuna gecemez.
 
 ## Her Is Sonu Zorunlu Rapor Formati
 
@@ -813,6 +953,10 @@ Her is bitiminde asagidaki format zorunludur:
 - Somut kazanımlar
 - Etkilenen dosyalar
 - Teknik dogrulama
+- Bagli zincir kontrolu
+- Kirilma var mi
+- Bozulan akislar
+- Regresyon riski
 - Benim kontrol etmem gerekenler
 - Risk veya dikkat notu
 - Toplam ilerleme
@@ -834,6 +978,7 @@ Asagidaki islerden sonra plan yeniden gozden gecirilir:
 - `T-015`
 - `T-020`
 - `T-025`
+- `T-029`
 
 Zorunlu kontrol basliklari:
 
