@@ -13,6 +13,10 @@ class OpticalFormRepository extends _OpticalFormRepositoryBase {
 
   OpticalFormRepository({FirebaseFirestore? firestore})
       : super(firestore: firestore);
+
+  static OpticalFormRepository? maybeFind() => maybeFindOpticalFormRepository();
+
+  static OpticalFormRepository ensure() => ensureOpticalFormRepository();
 }
 
 abstract class _OpticalFormRepositoryBase extends GetxService {
@@ -32,3 +36,12 @@ abstract class _OpticalFormRepositoryBase extends GetxService {
     SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
   }
 }
+
+OpticalFormRepository? maybeFindOpticalFormRepository() =>
+    Get.isRegistered<OpticalFormRepository>()
+        ? Get.find<OpticalFormRepository>()
+        : null;
+
+OpticalFormRepository ensureOpticalFormRepository() =>
+    maybeFindOpticalFormRepository() ??
+    Get.put(OpticalFormRepository(), permanent: true);

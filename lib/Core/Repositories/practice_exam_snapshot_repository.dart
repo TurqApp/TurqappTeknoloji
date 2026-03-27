@@ -8,5 +8,4 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 part 'practice_exam_snapshot_repository_query_part.dart';
 part 'practice_exam_snapshot_repository_codec_part.dart';
 part 'practice_exam_snapshot_repository_facade_part.dart';
-part 'practice_exam_snapshot_repository_members_part.dart';
 part 'practice_exam_snapshot_repository_runtime_part.dart';

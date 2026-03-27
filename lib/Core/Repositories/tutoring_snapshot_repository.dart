@@ -8,5 +8,4 @@ import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 part 'tutoring_snapshot_repository_data_part.dart';
 part 'tutoring_snapshot_repository_facade_part.dart';
-part 'tutoring_snapshot_repository_members_part.dart';
 part 'tutoring_snapshot_repository_pipeline_part.dart';
