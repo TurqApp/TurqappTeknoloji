@@ -561,7 +561,7 @@ Her tamamlanan is en az bir kanit kaydi uretir.
 | --- | --- | --- | --- | --- | --- | --- |
 | ART-001 | T-001 | baseline envanteri | `docs/architecture/T-001_BASELINE_ENVANTERI_2026-03-28.md` | `git status` + `git rev-parse` + `find/rg` bazli envanter komutlari | Codex local review | Hazir |
 | ART-010 | T-002 | yurutme anayasasi ve rapor standardi diff'i | `docs/TURQAPP_30_GUNLUK_ODAK_PLANI_2026-03-28.md` | `git diff -- docs/TURQAPP_30_GUNLUK_ODAK_PLANI_2026-03-28.md` | Codex local review | Hazir |
-| ART-002 | T-003 | import graph + locator raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-002 | T-003 | import graph + locator raporu | `docs/architecture/T-003_IMPORT_GRAPH_GETX_GOD_OBJECT_ENVANTERI_2026-03-28.md` | `rg/find/wc/awk` bazli import + locator + buyuk kume envanteri | Codex local review | Hazir |
 | ART-003 | T-009 | architecture guard ciktilari | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-004 | T-021 | backend/rules regression test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-005 | T-022 | startup/session/feed davranis test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
