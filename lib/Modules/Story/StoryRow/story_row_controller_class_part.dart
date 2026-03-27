@@ -8,4 +8,11 @@ class StoryRowController extends GetxController {
     super.onInit();
     _handleStoryRowInit(this);
   }
+
+  @override
+  void onClose() {
+    _backgroundFullLoadTimer?.cancel();
+    _backgroundFullLoadTimer = null;
+    super.onClose();
+  }
 }

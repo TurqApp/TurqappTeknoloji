@@ -10,6 +10,7 @@ class _StoryRowControllerState {
   final int initialLimit = 30;
   final int fullLimit = 100;
   bool backgroundScheduled = false;
+  Timer? backgroundFullLoadTimer;
   final RxBool isLoading = false.obs;
   DateTime? lastExpireCleanupAt;
   final StoryRepository storyRepository = StoryRepository.ensure();
@@ -24,6 +25,9 @@ extension StoryRowControllerFieldsPart on StoryRowController {
   int get fullLimit => _state.fullLimit;
   bool get _backgroundScheduled => _state.backgroundScheduled;
   set _backgroundScheduled(bool value) => _state.backgroundScheduled = value;
+  Timer? get _backgroundFullLoadTimer => _state.backgroundFullLoadTimer;
+  set _backgroundFullLoadTimer(Timer? value) =>
+      _state.backgroundFullLoadTimer = value;
   RxBool get isLoading => _state.isLoading;
   DateTime? get _lastExpireCleanupAt => _state.lastExpireCleanupAt;
   set _lastExpireCleanupAt(DateTime? value) =>

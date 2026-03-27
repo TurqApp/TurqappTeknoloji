@@ -139,14 +139,19 @@ extension StoryRowControllerLoadPart on StoryRowController {
     if (_backgroundScheduled) return;
     if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.story)) return;
     _backgroundScheduled = true;
-    Future.delayed(const Duration(seconds: 12), () async {
+    _backgroundFullLoadTimer?.cancel();
+    _backgroundFullLoadTimer = Timer(const Duration(seconds: 12), () async {
+      _backgroundFullLoadTimer = null;
       try {
-        if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.story)) {
+        if (isClosed ||
+            !ContentPolicy.allowBackgroundRefresh(ContentScreenKind.story)) {
           return;
         }
         await loadStories(limit: fullLimit, silentLoad: true);
       } catch (_) {}
-      _backgroundScheduled = false;
+      if (!isClosed) {
+        _backgroundScheduled = false;
+      }
     });
   }
 }
