@@ -213,9 +213,10 @@ extension ShortViewUiPart on _ShortViewState {
                     fit: StackFit.expand,
                     children: [
                       _buildThumbOverlay(thumb, modelAr),
-                      const Center(
-                        child: CupertinoActivityIndicator(color: Colors.white),
-                      ),
+                      if (thumb.isEmpty)
+                        const Center(
+                          child: CupertinoActivityIndicator(color: Colors.white),
+                        ),
                     ],
                   );
                 }
@@ -266,7 +267,7 @@ extension ShortViewUiPart on _ShortViewState {
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
-                            if (vp.value.isInitialized) {
+                            if (vp.value.isInitialized || thumb.isNotEmpty) {
                               return const SizedBox.shrink();
                             }
                             return const Center(
