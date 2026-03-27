@@ -1,5 +1,55 @@
 part of 'profile_repository_library.dart';
 
+class ProfileRepository extends _ProfileRepositoryBase {
+  ProfileRepository({
+    FirebaseFirestore? firestore,
+    ProfilePostsCacheService? cacheService,
+  }) : super(
+          firestore: firestore ?? FirebaseFirestore.instance,
+          cacheService: cacheService ?? ProfilePostsCacheService(),
+        );
+}
+
+abstract class _ProfileRepositoryBase extends GetxService {
+  _ProfileRepositoryBase({
+    required FirebaseFirestore firestore,
+    required ProfilePostsCacheService cacheService,
+  }) : _state = _ProfileRepositoryState(
+          firestore: firestore,
+          cacheService: cacheService,
+        );
+
+  final _ProfileRepositoryState _state;
+}
+
+class ProfileBuckets {
+  const ProfileBuckets({
+    required this.all,
+    required this.photos,
+    required this.videos,
+    required this.scheduled,
+  });
+
+  final List<PostsModel> all;
+  final List<PostsModel> photos;
+  final List<PostsModel> videos;
+  final List<PostsModel> scheduled;
+}
+
+class ProfilePageResult extends ProfileBuckets {
+  const ProfilePageResult({
+    required super.all,
+    required super.photos,
+    required super.videos,
+    required super.scheduled,
+    required this.lastDoc,
+    required this.hasMore,
+  });
+
+  final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
+  final bool hasMore;
+}
+
 class _ProfileRepositoryState {
   _ProfileRepositoryState({
     required this.firestore,
