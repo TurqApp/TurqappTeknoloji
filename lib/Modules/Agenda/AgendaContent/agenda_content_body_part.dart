@@ -238,6 +238,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               }
                                               final hasStableVideoFrame =
                                                   v.hasRenderedFirstFrame &&
+                                                      !v.isBuffering &&
                                                       !v.isCompleted &&
                                                       (v.isPlaying ||
                                                           v.position >

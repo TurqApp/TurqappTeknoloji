@@ -333,6 +333,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool _hasStableVideoFrame(HLSVideoValue value) {
     return value.hasRenderedFirstFrame &&
+        !value.isBuffering &&
         !value.isCompleted &&
         (value.isPlaying || value.position > _stableFramePositionThreshold);
   }

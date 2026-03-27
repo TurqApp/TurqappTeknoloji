@@ -562,6 +562,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
                       final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                          !v.isBuffering &&
                           !v.isCompleted &&
                           (v.isPlaying ||
                               v.position > const Duration(milliseconds: 180));

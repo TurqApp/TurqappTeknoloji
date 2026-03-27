@@ -86,6 +86,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
           builder: (_, __) {
             final v = injected.value;
             final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                !v.isBuffering &&
                 (v.isPlaying || v.position > const Duration(milliseconds: 180));
             if (injThumb.isEmpty) {
               return const SizedBox.shrink();
@@ -184,6 +185,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 builder: (_, __) {
                   final v = vp.value;
                   final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                      !v.isBuffering &&
                       (v.isPlaying ||
                           v.position > const Duration(milliseconds: 180));
                   if (thumb.isEmpty) {
