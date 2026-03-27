@@ -41,10 +41,11 @@ extension JobDetailsControllerActionsPart on JobDetailsController {
       return;
     }
     await ShareActionGuard.run(() async {
-      final shortUrl = ShortLinkService().getJobPublicUrlForImmediateShare(
+      final shortUrl = await ShortLinkService().getJobPublicUrl(
         jobId: current.docID,
-        title:
-            current.ilanBasligi.isNotEmpty ? current.ilanBasligi : current.meslek,
+        title: current.ilanBasligi.isNotEmpty
+            ? current.ilanBasligi
+            : current.meslek,
         desc: current.about.isNotEmpty ? current.about : current.isTanimi,
         imageUrl: current.logo,
       );

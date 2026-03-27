@@ -512,7 +512,7 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
         ? burs.baslik.trim()
         : 'scholarship.share_detail_title'.tr;
 
-    final shortUrl = _shortLinkService.getEducationPublicUrlForImmediateShare(
+    final shortUrl = await _shortLinkService.getEducationPublicUrl(
       shareId: shareId,
       title: title,
       desc: _pickScholarshipShareDesc(burs),

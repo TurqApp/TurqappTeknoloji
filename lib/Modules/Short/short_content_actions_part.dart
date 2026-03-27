@@ -35,25 +35,6 @@ extension ShortsContentActionsPart on _ShortsContentState {
     return '$_shortLinkFallbackDomain/p/$sharePostId';
   }
 
-  String _resolveShortPublicUrlForImmediateShare() {
-    final originalPostId = PostStoryShareService.resolveOriginalPostId(model);
-    final sharePostId =
-        originalPostId.isNotEmpty ? originalPostId : model.docID.trim();
-    if (sharePostId.isEmpty) {
-      return _shortLinkFallbackDomain;
-    }
-
-    final currentShortId = model.docID.trim();
-    return ShortLinkService().getPostPublicUrlForImmediateShare(
-      postId: sharePostId,
-      desc: model.metin,
-      imageUrl: _shortPreviewImage(),
-      shortId: currentShortId.isNotEmpty && currentShortId != sharePostId
-          ? currentShortId
-          : null,
-    );
-  }
-
   Widget pulldownmenu(BuildContext context) {
     return PullDownButton(
       itemBuilder: (context) => [
@@ -128,7 +109,7 @@ extension ShortsContentActionsPart on _ShortsContentState {
         PullDownMenuItem(
           onTap: () async {
             await ShareActionGuard.run(() async {
-              final url = _resolveShortPublicUrlForImmediateShare();
+              final url = await _resolveShortPublicUrl();
               await ShareLinkService.shareUrl(
                 url: url,
                 title: 'common.post_share_title'.tr,
@@ -419,7 +400,7 @@ extension ShortsContentActionsPart on _ShortsContentState {
             child: IconButton(
               onPressed: () async {
                 await ShareActionGuard.run(() async {
-                  final url = _resolveShortPublicUrlForImmediateShare();
+                  final url = await _resolveShortPublicUrl();
                   await ShareLinkService.shareUrl(
                     url: url,
                     title: 'post.share_title'.tr,

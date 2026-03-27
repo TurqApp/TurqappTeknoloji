@@ -62,7 +62,7 @@ extension AntremanControllerQuestionActionsPart on AntremanController {
     try {
       await ShareActionGuard.run(() async {
         final shareId = 'question:${question.docID}';
-        final shortUrl = ShortLinkService().getEducationPublicUrlForImmediateShare(
+        final shortUrl = await ShortLinkService().getEducationPublicUrl(
           shareId: shareId,
           title: 'training.share_question_link_title'.trParams({
             'exam': question.sinavTuru,

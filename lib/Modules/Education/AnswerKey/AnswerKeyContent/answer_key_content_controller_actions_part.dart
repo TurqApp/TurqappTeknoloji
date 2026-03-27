@@ -160,8 +160,7 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
 
     try {
       await ShareActionGuard.run(() async {
-        final shortUrl =
-            ShortLinkService().getEducationPublicUrlForImmediateShare(
+        final shortUrl = await ShortLinkService().getEducationPublicUrl(
           shareId: shareId,
           title: model.baslik,
           desc: model.yayinEvi.isNotEmpty

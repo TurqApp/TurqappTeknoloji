@@ -97,8 +97,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 14,
-                                              fontFamily:
-                                                  AppFontFamilies.mbold,
+                                              fontFamily: AppFontFamilies.mbold,
                                             ),
                                           ),
                                         ),
@@ -407,7 +406,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                     : (widget.model.img.isNotEmpty
                         ? widget.model.img.first.trim()
                         : null);
-                final url = ShortLinkService().getPostPublicUrlForImmediateShare(
+                final url = await ShortLinkService().getPostPublicUrl(
                   postId: widget.model.docID,
                   desc: widget.model.metin,
                   imageUrl: previewImage,
@@ -527,7 +526,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   : (widget.model.img.isNotEmpty
                       ? widget.model.img.first.trim()
                       : null);
-              final url = ShortLinkService().getPostPublicUrlForImmediateShare(
+              final url = await ShortLinkService().getPostPublicUrl(
                 postId: widget.model.docID,
                 desc: widget.model.metin,
                 imageUrl: previewImage,

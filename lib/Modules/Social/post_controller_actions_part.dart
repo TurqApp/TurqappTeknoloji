@@ -98,7 +98,7 @@ extension PostControllerActionsPart on PostController {
         final previewImage = model.thumbnail.trim().isNotEmpty
             ? model.thumbnail.trim()
             : (model.img.isNotEmpty ? model.img.first.trim() : null);
-        final shortUrl = ShortLinkService().getPostPublicUrlForImmediateShare(
+        final shortUrl = await ShortLinkService().getPostPublicUrl(
           postId: model.docID,
           desc: model.metin,
           imageUrl: previewImage,

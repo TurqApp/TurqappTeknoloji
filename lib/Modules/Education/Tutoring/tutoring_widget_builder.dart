@@ -45,7 +45,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
   Future<void> _shareExternally(TutoringModel tutoring) async {
     await ShareActionGuard.run(() async {
       final shareId = 'tutoring:${tutoring.docID}';
-      final shortUrl = ShortLinkService().getEducationPublicUrlForImmediateShare(
+      final shortUrl = await ShortLinkService().getEducationPublicUrl(
         shareId: shareId,
         title: tutoring.baslik,
         desc: tutoring.brans.isNotEmpty ? tutoring.brans : 'Özel ders ilanı',

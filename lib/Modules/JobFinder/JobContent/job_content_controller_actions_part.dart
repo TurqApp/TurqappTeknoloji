@@ -62,7 +62,7 @@ extension JobContentControllerActionsPart on JobContentController {
       return;
     }
     await ShareActionGuard.run(() async {
-      final shortUrl = ShortLinkService().getJobPublicUrlForImmediateShare(
+      final shortUrl = await ShortLinkService().getJobPublicUrl(
         jobId: model.docID,
         title: model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
         desc: model.about.isNotEmpty ? model.about : model.isTanimi,
