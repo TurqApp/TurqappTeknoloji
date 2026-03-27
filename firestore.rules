@@ -800,11 +800,19 @@ service cloud.firestore {
         && request.resource.data.updatedAt is int;
     }
 
+    function canListUsersRoot() {
+      return isAuth()
+        && request.query.limit != null
+        && request.query.limit <= 500
+        && (request.query.offset == null || request.query.offset == 0);
+    }
+
     // ──────────────────────────────────────────────
     // USERS
     // ──────────────────────────────────────────────
     match /users/{uid} {
-      allow read: if isAuth();
+      allow get: if isAuth();
+      allow list: if canListUsersRoot();
       allow create: if isOwner(uid);
       // Kullanıcı kendi profilini güncelleyebilir; ancak moderasyon, rol ve
       // sayaç alanlarını client değiştiremez.

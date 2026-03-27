@@ -67,6 +67,55 @@ test("users collection blocks owner from writing moderation fields", async () =>
   );
 });
 
+test("users collection allows authenticated limited list queries", async () => {
+  const owner1Ctx = testEnv.authenticatedContext("list-user-1");
+  const owner2Ctx = testEnv.authenticatedContext("list-user-2");
+  await assertSucceeds(
+    setDoc(doc(owner1Ctx.firestore(), "users/list-user-1"), {
+      nickname: "alpha",
+      isDeleted: false,
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(owner2Ctx.firestore(), "users/list-user-2"), {
+      nickname: "beta",
+      isDeleted: false,
+    }),
+  );
+
+  const actorCtx = testEnv.authenticatedContext("list-actor");
+  await assertSucceeds(
+    actorCtx.firestore().collection("users").limit(10).get(),
+  );
+});
+
+test("users collection allows authenticated direct get for another user's document", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "users/public-user"), {
+      nickname: "public",
+      isDeleted: false,
+    });
+  });
+
+  const actorCtx = testEnv.authenticatedContext("other-actor");
+  await assertSucceeds(getDoc(doc(actorCtx.firestore(), "users/public-user")));
+});
+
+test("users collection blocks oversized list queries", async () => {
+  const ownerCtx = testEnv.authenticatedContext("list-user-3");
+  await assertSucceeds(
+    setDoc(doc(ownerCtx.firestore(), "users/list-user-3"), {
+      nickname: "gamma",
+      isDeleted: false,
+    }),
+  );
+
+  const actorCtx = testEnv.authenticatedContext("oversized-list-actor");
+  await assertFails(
+    actorCtx.firestore().collection("users").limit(501).get(),
+  );
+});
+
 test("marketStore allows owner to create item", async () => {
   const uid = "market-owner";
   const ownerCtx = testEnv.authenticatedContext(uid);
