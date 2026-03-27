@@ -8,5 +8,4 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answer.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'booklet_preview_controller_facade_part.dart';
 part 'booklet_preview_controller_runtime_part.dart';
