@@ -324,9 +324,25 @@ class _QALabViewState extends State<QALabView> {
                     reason: 'manual_cloud_sync',
                     immediate: true,
                   );
+                  final syncState = _remoteUploader.lastSyncState.value.trim();
+                  final syncError = _remoteUploader.lastSyncError.value.trim();
+                  if (syncState == 'synced') {
+                    _recorder.resetSession();
+                    AppSnackbar(
+                      'common.success'.tr,
+                      'QA Cloud Sync complete. Session reset.',
+                    );
+                    return;
+                  }
                   AppSnackbar(
-                    'common.success'.tr,
-                    'QA Cloud Sync queued',
+                    syncState == 'error' ||
+                            syncState == 'permission_denied' ||
+                            syncState == 'gate_error'
+                        ? 'common.error'.tr
+                        : 'common.warning'.tr,
+                    syncError.isNotEmpty
+                        ? 'QA Cloud Sync state=$syncState error=$syncError'
+                        : 'QA Cloud Sync state=$syncState',
                   );
                 } catch (error) {
                   AppSnackbar(
