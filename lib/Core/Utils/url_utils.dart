@@ -56,5 +56,5 @@ bool isHlsPlaylistUrl(String raw) {
 }
 
 String buildTurqAppProfileUrl(String slugOrId) {
-  return 'https://turqapp.com/u/${slugOrId.trim()}';
+  return 'https://turqapp.com/${slugOrId.trim()}';
 }

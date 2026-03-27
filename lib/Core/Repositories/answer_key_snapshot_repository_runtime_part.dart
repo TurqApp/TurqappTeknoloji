@@ -104,6 +104,8 @@ extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
               'yayinEvi': item.yayinEvi,
               'userID': item.userID,
               'viewCount': item.viewCount,
+              'shortId': item.shortId,
+              'shortUrl': item.shortUrl,
             },
           )
           .toList(growable: false),
@@ -136,6 +138,8 @@ extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
             viewCount: item['viewCount'] is num
                 ? (item['viewCount'] as num).toInt()
                 : int.tryParse((item['viewCount'] ?? '0').toString()) ?? 0,
+            shortId: (item['shortId'] ?? '').toString(),
+            shortUrl: (item['shortUrl'] ?? '').toString(),
           );
         })
         .where((item) => item.docID.isNotEmpty)

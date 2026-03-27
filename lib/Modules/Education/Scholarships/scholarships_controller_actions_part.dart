@@ -207,6 +207,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
           title: title,
           desc: desc,
           imageUrl: shareImageUrl,
+          existingShortUrl: existingShortUrl,
         );
         final resolvedUrl = shortUrl.trim().isNotEmpty &&
                 shortUrl.trim() != 'https://turqapp.com'
@@ -250,6 +251,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
                 ? _pickScholarshipShareDesc(model)
                 : 'scholarship.share_fallback_desc'.tr,
             imageUrl: imageUrl,
+            existingShortUrl: _readTextField(item, 'shortUrl'),
           );
           if (shortUrl.trim().isNotEmpty &&
               shortUrl.trim() != 'https://turqapp.com') {

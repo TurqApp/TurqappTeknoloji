@@ -31,6 +31,8 @@ class JobModel {
   final String authorAvatarUrl;
   final String authorDisplayName;
   final String authorNickname;
+  final String shortId;
+  final String shortUrl;
   final String rozet;
 
   JobModel({
@@ -66,6 +68,8 @@ class JobModel {
     this.authorAvatarUrl = "",
     this.authorDisplayName = "",
     this.authorNickname = "",
+    this.shortId = "",
+    this.shortUrl = "",
     this.rozet = "",
   });
 
@@ -102,6 +106,8 @@ class JobModel {
       authorAvatarUrl: map['authorAvatarUrl'] ?? map['avatarUrl'] ?? '',
       authorDisplayName: map['authorDisplayName'] ?? map['displayName'] ?? '',
       authorNickname: map['authorNickname'] ?? map['nickname'] ?? '',
+      shortId: map['shortId'] ?? '',
+      shortUrl: map['shortUrl'] ?? '',
       rozet: map['rozet'] ?? '',
     );
   }
@@ -156,18 +162,17 @@ class JobModel {
       ilanBasligi: (hit['ilanBasligi'] ?? hit['title'] ?? '').toString(),
       deneyimSeviyesi: (hit['deneyimSeviyesi'] ?? '').toString(),
       basvuruSayisi: asInt(hit['basvuruSayisi']),
-      pozisyonSayisi: asInt(hit['pozisyonSayisi']) == 0
-          ? 1
-          : asInt(hit['pozisyonSayisi']),
+      pozisyonSayisi:
+          asInt(hit['pozisyonSayisi']) == 0 ? 1 : asInt(hit['pozisyonSayisi']),
       viewCount: asInt(hit['viewCount']),
       applicationCount: asInt(hit['applicationCount']),
       endedAt: asInt(hit['endedAt']),
-      authorAvatarUrl:
-          firstNonEmpty(hit['avatarUrl'], hit['authorAvatarUrl']),
+      authorAvatarUrl: firstNonEmpty(hit['avatarUrl'], hit['authorAvatarUrl']),
       authorDisplayName:
           firstNonEmpty(hit['displayName'], hit['authorDisplayName']),
-      authorNickname:
-          firstNonEmpty(hit['nickname'], hit['authorNickname']),
+      authorNickname: firstNonEmpty(hit['nickname'], hit['authorNickname']),
+      shortId: (hit['shortId'] ?? '').toString(),
+      shortUrl: (hit['shortUrl'] ?? '').toString(),
       rozet: (hit['rozet'] ?? '').toString(),
     );
   }
@@ -204,6 +209,8 @@ class JobModel {
       'authorAvatarUrl': authorAvatarUrl,
       'authorDisplayName': authorDisplayName,
       'authorNickname': authorNickname,
+      'shortId': shortId,
+      'shortUrl': shortUrl,
       'rozet': rozet,
     };
   }
@@ -223,6 +230,8 @@ class JobModel {
     String? authorAvatarUrl,
     String? authorDisplayName,
     String? authorNickname,
+    String? shortId,
+    String? shortUrl,
     String? rozet,
   }) {
     return JobModel(
@@ -259,6 +268,8 @@ class JobModel {
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
       authorDisplayName: authorDisplayName ?? this.authorDisplayName,
       authorNickname: authorNickname ?? this.authorNickname,
+      shortId: shortId ?? this.shortId,
+      shortUrl: shortUrl ?? this.shortUrl,
       rozet: rozet ?? this.rozet,
     );
   }

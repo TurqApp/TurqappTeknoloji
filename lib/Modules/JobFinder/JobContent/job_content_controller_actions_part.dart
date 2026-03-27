@@ -67,6 +67,7 @@ extension JobContentControllerActionsPart on JobContentController {
         title: model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
         desc: model.about.isNotEmpty ? model.about : model.isTanimi,
         imageUrl: model.logo,
+        existingShortUrl: model.shortUrl,
       );
 
       final title =

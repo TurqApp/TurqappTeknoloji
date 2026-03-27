@@ -20,6 +20,8 @@ Map<String, dynamic> _encodePracticeExamSnapshotItems(List<SinavModel> items) {
             'bitis': item.bitis,
             'bitisDk': item.bitisDk,
             'participantCount': item.participantCount,
+            'shortId': item.shortId,
+            'shortUrl': item.shortUrl,
           },
         )
         .toList(growable: false),
@@ -64,6 +66,8 @@ List<SinavModel> _decodePracticeExamSnapshotItems(Map<String, dynamic> json) {
           participantCount: item['participantCount'] is num
               ? item['participantCount'] as num
               : num.tryParse((item['participantCount'] ?? '0').toString()) ?? 0,
+          shortId: (item['shortId'] ?? '').toString(),
+          shortUrl: (item['shortUrl'] ?? '').toString(),
         );
       })
       .where((item) => item.docID.isNotEmpty)

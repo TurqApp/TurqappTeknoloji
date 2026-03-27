@@ -226,6 +226,7 @@ extension ClassicContentHeaderInteractionsPart on _ClassicContentState {
         postId: widget.model.docID,
         desc: widget.model.metin,
         imageUrl: previewImage,
+        existingShortUrl: widget.model.shortUrl,
       );
       await ShareLinkService.shareUrl(
         url: url,

@@ -101,6 +101,8 @@ extension TypesenseMarketSearchServiceSearchPart
           sellerUsername: (hitMap['sellerUsername'] ?? '').toString(),
           sellerPhotoUrl: (hitMap['sellerPhotoUrl'] ?? '').toString(),
           sellerRozet: (hitMap['sellerRozet'] ?? '').toString(),
+          shortId: (hitMap['shortId'] ?? '').toString(),
+          shortUrl: (hitMap['shortUrl'] ?? '').toString(),
           sellerPhoneNumber: sellerPhoneNumber,
           showPhone: showPhone,
           contactPreference: contactPreference,

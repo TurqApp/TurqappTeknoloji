@@ -402,6 +402,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                             .trParams({'name': widget.user.nickname}),
                         desc: 'story.share_desc'.tr,
                         imageUrl: previewImage.isEmpty ? null : previewImage,
+                        existingShortUrl: currentStory.shortUrl,
                       );
                       await ShareLinkService.shareUrl(
                         url: shortUrl,

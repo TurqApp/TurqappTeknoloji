@@ -33,6 +33,8 @@ extension TutoringModelExtension on TutoringModel {
     String? avatarUrl,
     String? displayName,
     String? nickname,
+    String? shortId,
+    String? shortUrl,
     String? rozet,
   }) {
     return TutoringModel(
@@ -67,6 +69,8 @@ extension TutoringModelExtension on TutoringModel {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       displayName: displayName ?? this.displayName,
       nickname: nickname ?? this.nickname,
+      shortId: shortId ?? this.shortId,
+      shortUrl: shortUrl ?? this.shortUrl,
       rozet: rozet ?? this.rozet,
     );
   }

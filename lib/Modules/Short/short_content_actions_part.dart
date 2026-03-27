@@ -27,6 +27,7 @@ extension ShortsContentActionsPart on _ShortsContentState {
       shortId: currentShortId.isNotEmpty && currentShortId != sharePostId
           ? currentShortId
           : null,
+      existingShortUrl: model.shortUrl,
     );
     final normalizedUrl = url.trim();
     if (normalizedUrl.isNotEmpty && normalizedUrl != _shortLinkFallbackDomain) {

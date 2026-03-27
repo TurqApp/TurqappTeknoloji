@@ -48,6 +48,7 @@ extension JobDetailsControllerActionsPart on JobDetailsController {
             : current.meslek,
         desc: current.about.isNotEmpty ? current.about : current.isTanimi,
         imageUrl: current.logo,
+        existingShortUrl: current.shortUrl,
       );
 
       final title =

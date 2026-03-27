@@ -102,6 +102,7 @@ extension PostControllerActionsPart on PostController {
           postId: model.docID,
           desc: model.metin,
           imageUrl: previewImage,
+          existingShortUrl: model.shortUrl,
         );
         await ShareLinkService.shareUrl(
           url: shortUrl,

@@ -16,21 +16,30 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     String? imageUrl,
     bool forceRefresh = false,
     String? shortId,
+    String? existingShortUrl,
   }) async {
-    final cached = ShortLinkService._postUrlCache[postId];
+    final normalized = postId.trim();
+    final existing = _cacheExistingUrl(
+      ShortLinkService._postUrlCache,
+      normalized,
+      existingShortUrl,
+    );
+    if (!forceRefresh && existing != null) return existing;
+
+    final cached = ShortLinkService._postUrlCache[normalized];
     if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
 
     final url = await _safeUpsertUrl(
       fallbackPath: '/p/',
       request: () => upsertPost(
-        postId: postId,
+        postId: normalized,
         title: title,
         desc: desc,
         imageUrl: imageUrl,
         shortId: shortId,
       ),
     );
-    if (url.isNotEmpty) ShortLinkService._postUrlCache[postId] = url;
+    if (url.isNotEmpty) ShortLinkService._postUrlCache[normalized] = url;
     return url;
   }
 
@@ -86,21 +95,30 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     String? desc,
     String? imageUrl,
     int? expiresAt,
+    String? existingShortUrl,
   }) async {
-    final cached = ShortLinkService._storyUrlCache[storyId];
+    final normalized = storyId.trim();
+    final existing = _cacheExistingUrl(
+      ShortLinkService._storyUrlCache,
+      normalized,
+      existingShortUrl,
+    );
+    if (existing != null) return existing;
+
+    final cached = ShortLinkService._storyUrlCache[normalized];
     if (cached != null && cached.isNotEmpty) return cached;
 
     final url = await _safeUpsertUrl(
       fallbackPath: '/s/',
       request: () => upsertStory(
-        storyId: storyId,
+        storyId: normalized,
         title: title,
         desc: desc,
         imageUrl: imageUrl,
         expiresAt: expiresAt,
       ),
     );
-    if (url.isNotEmpty) ShortLinkService._storyUrlCache[storyId] = url;
+    if (url.isNotEmpty) ShortLinkService._storyUrlCache[normalized] = url;
     return url;
   }
 
@@ -156,21 +174,30 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     String? imageUrl,
     bool forceRefresh = false,
     String? shortId,
+    String? existingShortUrl,
   }) async {
-    final cached = ShortLinkService._eduUrlCache[shareId];
+    final normalized = shareId.trim();
+    final existing = _cacheExistingUrl(
+      ShortLinkService._eduUrlCache,
+      normalized,
+      existingShortUrl,
+    );
+    if (!forceRefresh && existing != null) return existing;
+
+    final cached = ShortLinkService._eduUrlCache[normalized];
     if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
 
     final url = await _safeUpsertUrl(
       fallbackPath: '/e/',
       request: () => upsertEducation(
-        shareId: shareId,
+        shareId: normalized,
         title: title,
         desc: desc,
         imageUrl: imageUrl,
         shortId: shortId,
       ),
     );
-    if (url.isNotEmpty) ShortLinkService._eduUrlCache[shareId] = url;
+    if (url.isNotEmpty) ShortLinkService._eduUrlCache[normalized] = url;
     return url;
   }
 
@@ -225,20 +252,29 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     String? title,
     String? desc,
     String? imageUrl,
+    String? existingShortUrl,
   }) async {
-    final cached = ShortLinkService._jobUrlCache[jobId];
+    final normalized = jobId.trim();
+    final existing = _cacheExistingUrl(
+      ShortLinkService._jobUrlCache,
+      normalized,
+      existingShortUrl,
+    );
+    if (existing != null) return existing;
+
+    final cached = ShortLinkService._jobUrlCache[normalized];
     if (cached != null && cached.isNotEmpty) return cached;
 
     final url = await _safeUpsertUrl(
       fallbackPath: '/i/',
       request: () => upsertJob(
-        jobId: jobId,
+        jobId: normalized,
         title: title,
         desc: desc,
         imageUrl: imageUrl,
       ),
     );
-    if (url.isNotEmpty) ShortLinkService._jobUrlCache[jobId] = url;
+    if (url.isNotEmpty) ShortLinkService._jobUrlCache[normalized] = url;
     return url;
   }
 
@@ -292,21 +328,30 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     String? imageUrl,
     bool forceRefresh = false,
     String? shortId,
+    String? existingShortUrl,
   }) async {
-    final cached = ShortLinkService._marketUrlCache[itemId];
+    final normalized = itemId.trim();
+    final existing = _cacheExistingUrl(
+      ShortLinkService._marketUrlCache,
+      normalized,
+      existingShortUrl,
+    );
+    if (!forceRefresh && existing != null) return existing;
+
+    final cached = ShortLinkService._marketUrlCache[normalized];
     if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
 
     final url = await _safeUpsertUrl(
       fallbackPath: '/m/',
       request: () => upsertMarket(
-        itemId: itemId,
+        itemId: normalized,
         title: title,
         desc: desc,
         imageUrl: imageUrl,
         shortId: shortId,
       ),
     );
-    if (url.isNotEmpty) ShortLinkService._marketUrlCache[itemId] = url;
+    if (url.isNotEmpty) ShortLinkService._marketUrlCache[normalized] = url;
     return url;
   }
 
@@ -379,6 +424,20 @@ extension ShortLinkServiceUrlPart on ShortLinkService {
     final id = (response['id'] ?? '').toString().trim();
     if (id.isEmpty) return 'https://${ShortLinkService._defaultDomain}';
     return 'https://${ShortLinkService._defaultDomain}$fallbackPath$id';
+  }
+
+  String? _cacheExistingUrl(
+    Map<String, String> cache,
+    String cacheKey,
+    String? existingShortUrl,
+  ) {
+    final normalized = existingShortUrl?.trim() ?? '';
+    if (normalized.isEmpty ||
+        normalized == 'https://${ShortLinkService._defaultDomain}') {
+      return null;
+    }
+    cache[cacheKey] = normalized;
+    return normalized;
   }
 
   Future<String> _safeUpsertUrl({

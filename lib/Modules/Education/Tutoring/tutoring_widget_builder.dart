@@ -52,6 +52,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
         imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
             ? tutoring.imgs!.first
             : null,
+        existingShortUrl: tutoring.shortUrl,
       );
 
       await ShareLinkService.shareUrl(

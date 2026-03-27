@@ -35,6 +35,8 @@ class ScholarshipsModel {
   final List<String> universiteler;
   final List<String> kaydedenler;
   final String docID;
+  final String shortId;
+  final String shortUrl;
 
   ScholarshipsModel({
     required this.aciklama,
@@ -71,6 +73,8 @@ class ScholarshipsModel {
     required this.universiteler,
     required this.kaydedenler,
     required this.docID,
+    this.shortId = '',
+    this.shortUrl = '',
   });
 
   factory ScholarshipsModel.fromSnapshot(DocumentSnapshot doc) {
@@ -110,6 +114,8 @@ class ScholarshipsModel {
       universiteler: List<String>.from(data['universiteler'] ?? []),
       kaydedenler: List<String>.from(data['kaydedenler'] ?? []),
       docID: doc.id,
+      shortId: data['shortId'] ?? '',
+      shortUrl: data['shortUrl'] ?? '',
     );
   }
 
@@ -148,6 +154,8 @@ class ScholarshipsModel {
       'universiteSehirler': universiteSehirler,
       'universiteler': universiteler,
       'kaydedenler': kaydedenler,
+      'shortId': shortId,
+      'shortUrl': shortUrl,
     };
   }
 }

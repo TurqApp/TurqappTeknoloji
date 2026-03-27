@@ -14,6 +14,8 @@ class SinavModel {
   num bitisDk;
   num bitis;
   num participantCount;
+  String shortId;
+  String shortUrl;
   SinavModel({
     required this.docID,
     required this.cover,
@@ -30,5 +32,7 @@ class SinavModel {
     required this.bitis,
     required this.bitisDk,
     this.participantCount = 0,
+    this.shortId = '',
+    this.shortUrl = '',
   });
 }

@@ -11,6 +11,7 @@ extension _DenemeGridActionsPart on DenemeGrid {
             ? model.sinavAciklama
             : model.sinavTuru,
         imageUrl: model.cover.isNotEmpty ? model.cover : null,
+        existingShortUrl: model.shortUrl,
       );
 
       await ShareLinkService.shareUrl(

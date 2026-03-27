@@ -167,6 +167,7 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
               ? model.yayinEvi
               : '${model.sinavTuru} ${'answer_key.book_answer_key_desc'.tr}',
           imageUrl: model.cover.isNotEmpty ? model.cover : null,
+          existingShortUrl: model.shortUrl,
         );
 
         await ShareLinkService.shareUrl(

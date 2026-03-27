@@ -106,6 +106,8 @@ class PostsModel {
   String authorNickname;
   String authorDisplayName;
   String authorAvatarUrl;
+  String shortId;
+  String shortUrl;
   String rozet;
   String video;
   Map<String, dynamic> videoLook;
@@ -157,6 +159,8 @@ class PostsModel {
     this.authorNickname = '',
     this.authorDisplayName = '',
     this.authorAvatarUrl = '',
+    this.shortId = '',
+    this.shortUrl = '',
     this.rozet = '',
     required this.video,
     this.videoLook = const {
@@ -300,12 +304,11 @@ class PostsModel {
             authorMap['fullName'] ??
             resolvedAuthorNickname)
         .toString();
-    final resolvedAuthorAvatarUrl =
-        CdnUrlBuilder.toCdnUrl(
-          (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '')
-              .toString()
-              .trim(),
-        );
+    final resolvedAuthorAvatarUrl = CdnUrlBuilder.toCdnUrl(
+      (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '')
+          .toString()
+          .trim(),
+    );
     final resolvedRozet =
         (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
     final resolvedUserId = (data['userID'] ??
@@ -361,6 +364,8 @@ class PostsModel {
       authorNickname: resolvedAuthorNickname,
       authorDisplayName: resolvedAuthorDisplayName,
       authorAvatarUrl: resolvedAuthorAvatarUrl,
+      shortId: (data['shortId'] ?? '').toString(),
+      shortUrl: (data['shortUrl'] ?? '').toString(),
       rozet: resolvedRozet,
       video: CdnUrlBuilder.toCdnUrl((data['video'] ?? '').toString().trim()),
       videoLook: data['videoLook'] is Map<String, dynamic>
@@ -424,6 +429,8 @@ class PostsModel {
       if (authorNickname.isNotEmpty) 'authorNickname': authorNickname,
       if (authorDisplayName.isNotEmpty) 'authorDisplayName': authorDisplayName,
       if (authorAvatarUrl.isNotEmpty) 'authorAvatarUrl': authorAvatarUrl,
+      if (shortId.isNotEmpty) 'shortId': shortId,
+      if (shortUrl.isNotEmpty) 'shortUrl': shortUrl,
       if (rozet.isNotEmpty) 'rozet': rozet,
       'video': video,
       'videoLook': videoLook,
@@ -475,6 +482,8 @@ class PostsModel {
       authorNickname: '',
       authorDisplayName: '',
       authorAvatarUrl: '',
+      shortId: '',
+      shortUrl: '',
       rozet: '',
       video: '',
       videoLook: const {
@@ -532,6 +541,8 @@ class PostsModel {
     String? authorNickname,
     String? authorDisplayName,
     String? authorAvatarUrl,
+    String? shortId,
+    String? shortUrl,
     String? rozet,
     String? video,
     Map<String, dynamic>? videoLook,
@@ -585,6 +596,8 @@ class PostsModel {
       authorNickname: authorNickname ?? this.authorNickname,
       authorDisplayName: authorDisplayName ?? this.authorDisplayName,
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      shortId: shortId ?? this.shortId,
+      shortUrl: shortUrl ?? this.shortUrl,
       rozet: rozet ?? this.rozet,
       video: video ?? this.video,
       videoLook: videoLook ?? this.videoLook,

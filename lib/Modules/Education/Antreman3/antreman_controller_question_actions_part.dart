@@ -73,6 +73,7 @@ extension AntremanControllerQuestionActionsPart on AntremanController {
               ? question.anaBaslik
               : 'training.share_question_desc'.tr,
           imageUrl: question.soru.isNotEmpty ? question.soru : null,
+          existingShortUrl: question.shortUrl,
         );
 
         await ShareLinkService.shareUrl(

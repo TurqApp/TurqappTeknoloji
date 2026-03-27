@@ -19,6 +19,8 @@ class QuestionBankModel {
   final String sinavTuru;
   final String soru;
   final String soruNo;
+  final String shortId;
+  final String shortUrl;
   final int wrongCount;
   final String yil;
   final bool active;
@@ -42,6 +44,8 @@ class QuestionBankModel {
     required this.sinavTuru,
     required this.soru,
     required this.soruNo,
+    this.shortId = '',
+    this.shortUrl = '',
     required this.wrongCount,
     required this.yil,
     required this.active,
@@ -72,6 +76,8 @@ class QuestionBankModel {
       sinavTuru: json['sinavTuru'] as String? ?? '',
       soru: json['soru'] as String? ?? '',
       soruNo: json['soruNo'] as String? ?? '',
+      shortId: json['shortId'] as String? ?? '',
+      shortUrl: json['shortUrl'] as String? ?? '',
       wrongCount: (json['wrongCount'] as num?)?.toInt() ?? 0,
       yil: json['yil'] as String? ?? '',
       active: json['active'] as bool? ?? true,
@@ -79,8 +85,9 @@ class QuestionBankModel {
   }
 
   factory QuestionBankModel.fromTypesenseHit(Map<String, dynamic> json) {
-    final docID =
-        (json['docId'] as String?)?.trim() ?? (json['id'] as String?)?.trim() ?? '';
+    final docID = (json['docId'] as String?)?.trim() ??
+        (json['id'] as String?)?.trim() ??
+        '';
     if (docID.isEmpty) {
       throw Exception("Geçersiz docID: Typesense hit boş");
     }
@@ -103,6 +110,8 @@ class QuestionBankModel {
       sinavTuru: json['sinavTuru'] as String? ?? '',
       soru: json['soru'] as String? ?? (json['cover'] as String? ?? ''),
       soruNo: json['soruNo'] as String? ?? '',
+      shortId: json['shortId'] as String? ?? '',
+      shortUrl: json['shortUrl'] as String? ?? '',
       wrongCount: (json['wrongCount'] as num?)?.toInt() ?? 0,
       yil: json['yil'] as String? ?? '',
       active: json['active'] as bool? ?? true,
@@ -129,6 +138,8 @@ class QuestionBankModel {
       'sinavTuru': sinavTuru,
       'soru': soru,
       'soruNo': soruNo,
+      'shortId': shortId,
+      'shortUrl': shortUrl,
       'wrongCount': wrongCount,
       'yil': yil,
       'active': active,

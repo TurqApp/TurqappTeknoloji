@@ -517,6 +517,7 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
       title: title,
       desc: _pickScholarshipShareDesc(burs),
       imageUrl: _pickScholarshipShareImage(burs),
+      existingShortUrl: (scholarshipData['shortUrl'] ?? '').toString(),
     );
     final resolvedUrl =
         shortUrl.trim().isNotEmpty && shortUrl.trim() != 'https://turqapp.com'

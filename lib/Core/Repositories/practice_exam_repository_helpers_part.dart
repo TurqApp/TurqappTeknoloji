@@ -30,6 +30,8 @@ extension PracticeExamRepositoryHelpersPart on PracticeExamRepository {
       participantCount: data['participantCount'] is num
           ? data['participantCount'] as num
           : num.tryParse((data['participantCount'] ?? '0').toString()) ?? 0,
+      shortId: (data['shortId'] ?? '').toString(),
+      shortUrl: (data['shortUrl'] ?? '').toString(),
     );
   }
 

@@ -19,6 +19,8 @@ class MarketItemModel {
     this.sellerUsername = '',
     this.sellerPhotoUrl = '',
     this.sellerRozet = '',
+    this.shortId = '',
+    this.shortUrl = '',
     this.sellerPhoneNumber = '',
     this.showPhone = false,
     required this.contactPreference,
@@ -48,6 +50,8 @@ class MarketItemModel {
   final String sellerUsername;
   final String sellerPhotoUrl;
   final String sellerRozet;
+  final String shortId;
+  final String shortUrl;
   final String sellerPhoneNumber;
   final bool showPhone;
   final String contactPreference;
@@ -115,6 +119,8 @@ class MarketItemModel {
       sellerRozet:
           (seller['rozet'] ?? json['sellerRozet'] ?? json['sellerBadge'] ?? '')
               .toString(),
+      shortId: (json['shortId'] ?? '').toString(),
+      shortUrl: (json['shortUrl'] ?? '').toString(),
       sellerPhoneNumber: (seller['phoneNumber'] ??
               json['sellerPhoneNumber'] ??
               json['phoneNumber'] ??
@@ -158,6 +164,8 @@ class MarketItemModel {
       'sellerUsername': sellerUsername,
       'sellerPhotoUrl': sellerPhotoUrl,
       'sellerRozet': sellerRozet,
+      'shortId': shortId,
+      'shortUrl': shortUrl,
       'sellerPhoneNumber': sellerPhoneNumber,
       'showPhone': showPhone,
       'contactPreference': contactPreference,
@@ -189,6 +197,8 @@ class MarketItemModel {
     String? sellerUsername,
     String? sellerPhotoUrl,
     String? sellerRozet,
+    String? shortId,
+    String? shortUrl,
     String? sellerPhoneNumber,
     bool? showPhone,
     String? contactPreference,
@@ -218,6 +228,8 @@ class MarketItemModel {
       sellerUsername: sellerUsername ?? this.sellerUsername,
       sellerPhotoUrl: sellerPhotoUrl ?? this.sellerPhotoUrl,
       sellerRozet: sellerRozet ?? this.sellerRozet,
+      shortId: shortId ?? this.shortId,
+      shortUrl: shortUrl ?? this.shortUrl,
       sellerPhoneNumber: sellerPhoneNumber ?? this.sellerPhoneNumber,
       showPhone: showPhone ?? this.showPhone,
       contactPreference: contactPreference ?? this.contactPreference,

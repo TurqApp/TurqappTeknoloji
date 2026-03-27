@@ -30,6 +30,8 @@ class TutoringModel {
   final String avatarUrl;
   final String displayName;
   final String nickname;
+  final String shortId;
+  final String shortUrl;
   final String rozet;
 
   TutoringModel({
@@ -64,6 +66,8 @@ class TutoringModel {
     this.avatarUrl = '',
     this.displayName = '',
     this.nickname = '',
+    this.shortId = '',
+    this.shortUrl = '',
     this.rozet = '',
   });
 
@@ -111,6 +115,8 @@ class TutoringModel {
       avatarUrl: json['avatarUrl'] as String? ?? '',
       displayName: json['displayName'] as String? ?? '',
       nickname: json['nickname'] as String? ?? '',
+      shortId: json['shortId'] as String? ?? '',
+      shortUrl: json['shortUrl'] as String? ?? '',
       rozet: json['rozet'] as String? ?? '',
     );
   }
@@ -118,7 +124,10 @@ class TutoringModel {
   factory TutoringModel.fromTypesenseHit(Map<String, dynamic> hit) {
     List<String> asStringList(dynamic value) {
       if (value is List) {
-        return value.map((e) => '$e').where((e) => e.trim().isNotEmpty).toList();
+        return value
+            .map((e) => '$e')
+            .where((e) => e.trim().isNotEmpty)
+            .toList();
       }
       return const <String>[];
     }
@@ -171,6 +180,8 @@ class TutoringModel {
       avatarUrl: (hit['avatarUrl'] ?? '').toString(),
       displayName: (hit['displayName'] ?? '').toString(),
       nickname: (hit['nickname'] ?? '').toString(),
+      shortId: (hit['shortId'] ?? '').toString(),
+      shortUrl: (hit['shortUrl'] ?? '').toString(),
       rozet: (hit['rozet'] ?? '').toString(),
     );
   }
@@ -207,6 +218,8 @@ class TutoringModel {
       if (avatarUrl.isNotEmpty) 'avatarUrl': avatarUrl,
       if (displayName.isNotEmpty) 'displayName': displayName,
       if (nickname.isNotEmpty) 'nickname': nickname,
+      if (shortId.isNotEmpty) 'shortId': shortId,
+      if (shortUrl.isNotEmpty) 'shortUrl': shortUrl,
       if (rozet.isNotEmpty) 'rozet': rozet,
     };
   }

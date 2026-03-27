@@ -410,6 +410,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   postId: widget.model.docID,
                   desc: widget.model.metin,
                   imageUrl: previewImage,
+                  existingShortUrl: widget.model.shortUrl,
                 );
                 await ShareLinkService.shareUrl(
                   url: url,
@@ -510,6 +511,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
               postId: widget.model.docID,
               desc: widget.model.metin,
               imageUrl: previewImage,
+              existingShortUrl: widget.model.shortUrl,
             );
             await Clipboard.setData(ClipboardData(text: url));
 
@@ -530,6 +532,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 postId: widget.model.docID,
                 desc: widget.model.metin,
                 imageUrl: previewImage,
+                existingShortUrl: widget.model.shortUrl,
               );
               await ShareLinkService.shareUrl(
                 url: url,

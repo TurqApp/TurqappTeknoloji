@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.shortLinkIndexConfig = exports.resolveShortLink = exports.upsertShortLink = void 0;
+exports.ensureUserShortLinkOnWrite = exports.ensureTutoringShortLinkOnCreate = exports.ensureQuestionShortLinkOnCreate = exports.ensureAnswerKeyShortLinkOnCreate = exports.ensurePracticeExamShortLinkOnCreate = exports.ensureScholarshipShortLinkOnCreate = exports.ensureJobShortLinkOnCreate = exports.ensureMarketShortLinkOnCreate = exports.ensureStoryShortLinkOnCreate = exports.ensurePostShortLinkOnCreate = exports.shortLinkIndexConfig = exports.resolveShortLink = exports.upsertShortLink = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -181,6 +181,9 @@ function kvPrefix(type, entityId = "") {
     return routeKindFor(type, entityId);
 }
 function buildPublicUrl(routeKind, id) {
+    if (routeKind === "u") {
+        return `https://${SHORT_LINK_DOMAIN}/${id}`;
+    }
     return `https://${SHORT_LINK_DOMAIN}/${routeKind}/${id}`;
 }
 function normalizeExpiresAt(type, v) {
@@ -529,15 +532,84 @@ function normalizeMetaPayload(type, entityId, title, desc, imageUrl) {
     const nextImage = toDirectCdnImageUrl(normalizeText(imageUrl, 2048));
     return { title: nextTitle, desc: nextDesc, imageUrl: nextImage };
 }
-exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public" }, async (req) => {
-    ensureAdmin();
-    const db = (0, firestore_1.getFirestore)();
-    const type = normalizeType(req.data?.type);
-    const callerUid = ensureAuth(req);
-    (0, rateLimiter_1.enforceRateLimit)(callerUid, "short_link_upsert", 30, 600);
-    const entityId = normalizeText(req.data?.entityId, 128);
-    if (!entityId)
+async function persistShortLinkToEntityRoot(db, type, entityId, shortId, publicUrl, now, expiresAt, slug) {
+    const commonPatch = {
+        shortId,
+        shortUrl: publicUrl,
+        shortLinkUpdatedAt: now,
+        shortLinkStatus: "active",
+    };
+    if (type === "post") {
+        await db.collection("Posts").doc(entityId).set(commonPatch, { merge: true });
+        return;
+    }
+    if (type === "job") {
+        await db.collection("isBul").doc(entityId.replace(/^job:/, "")).set(commonPatch, { merge: true });
+        return;
+    }
+    if (type === "market") {
+        await db.collection("marketStore").doc(entityId).set(commonPatch, { merge: true });
+        return;
+    }
+    if (type === "story") {
+        await db.collection("stories").doc(entityId).set({
+            ...commonPatch,
+            shortLinkExpiresAt: expiresAt,
+        }, { merge: true });
+        return;
+    }
+    if (type === "user") {
+        await db.collection("users").doc(entityId).set({
+            profileSlug: slug,
+            profileUrl: publicUrl,
+            shortLinkUpdatedAt: now,
+        }, { merge: true });
+        return;
+    }
+    if (entityId.startsWith("scholarship:")) {
+        await db
+            .collection("catalog")
+            .doc("education")
+            .collection("scholarships")
+            .doc(entityId.replace(/^scholarship:/, ""))
+            .set(commonPatch, { merge: true });
+        return;
+    }
+    if (entityId.startsWith("practice-exam:")) {
+        await db
+            .collection("practiceExams")
+            .doc(entityId.replace(/^practice-exam:/, ""))
+            .set(commonPatch, { merge: true });
+        return;
+    }
+    if (entityId.startsWith("answer-key:")) {
+        await db
+            .collection("books")
+            .doc(entityId.replace(/^answer-key:/, ""))
+            .set(commonPatch, { merge: true });
+        return;
+    }
+    if (entityId.startsWith("question:")) {
+        await db
+            .collection("questionBank")
+            .doc(entityId.replace(/^question:/, ""))
+            .set(commonPatch, { merge: true });
+        return;
+    }
+    if (entityId.startsWith("tutoring:")) {
+        await db
+            .collection("educators")
+            .doc(entityId.replace(/^tutoring:/, ""))
+            .set(commonPatch, { merge: true });
+    }
+}
+async function upsertShortLinkForEntity(options) {
+    const db = options.db;
+    const type = normalizeType(options.type);
+    const entityId = normalizeText(options.entityId, 128);
+    if (!entityId) {
         throw new https_1.HttpsError("invalid-argument", "entityId zorunlu.");
+    }
     const entityTarget = parseEntityTarget(db, type, entityId);
     if (!entityTarget) {
         throw new https_1.HttpsError("not-found", "Entity bulunamadı.");
@@ -548,21 +620,24 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
     }
     const entityData = (entitySnap.data() || {});
     const ownerUid = pickOwnerUid(entityData);
-    const isAdmin = await isAdminUid(db, callerUid);
-    const canPersistToEntity = isAdmin || ownerUid === callerUid;
-    const canCustomizeRoute = canPersistToEntity;
-    let title = normalizeText(req.data?.title, 140);
-    let desc = normalizeText(req.data?.desc, 280);
-    let imageUrl = normalizeText(req.data?.imageUrl, 1024);
-    const expiresAt = normalizeExpiresAt(type, req.data?.expiresAt);
+    const callerUid = normalizeText(options.callerUid, 128);
+    const isAdmin = callerUid ? await isAdminUid(db, callerUid) : false;
+    const canPersistToEntity = options.forcePersistToEntity == null
+        ? (!callerUid || isAdmin || ownerUid === callerUid)
+        : options.forcePersistToEntity;
+    const canCustomizeRoute = options.forceDisableRouteCustomization == true
+        ? false
+        : canPersistToEntity;
+    let title = normalizeText(options.title, 140);
+    let desc = normalizeText(options.desc, 280);
+    let imageUrl = normalizeText(options.imageUrl, 1024);
+    const expiresAt = normalizeExpiresAt(type, options.expiresAt);
     const now = Date.now();
     if (type === "post") {
         const postMeta = await buildPostMeta(db, entityId);
         title = postMeta.title;
         if (!desc)
             desc = postMeta.desc;
-        // Post paylasiminda gorsel secimini backend tek kaynaktan belirler:
-        // foto: img[0], video: thumbnail
         imageUrl = postMeta.imageUrl || imageUrl;
     }
     else if (type === "user") {
@@ -613,8 +688,6 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
     if (!imageUrl) {
         imageUrl = await buildEntityMetaImage(db, type, entityId);
     }
-    // Burs paylasimlarinda aciklama metnini kaldir:
-    // preview'de sadece baslik + gorsel gosterilsin.
     if (type === "edu" && entityId.startsWith("scholarship:")) {
         desc = "";
     }
@@ -628,11 +701,11 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
         .collection("shortLinks")
         .doc("public")
         .get();
-    const existingEntityShortLink = existingEntityShortLinkSnap?.exists
+    const existingEntityShortLink = existingEntityShortLinkSnap.exists
         ? existingEntityShortLinkSnap.data()
         : null;
     if (type === "user") {
-        const requestedSlug = normalizeSlug(req.data?.slug);
+        const requestedSlug = normalizeSlug(options.requestedSlug);
         const existingSlug = normalizeSlug(existingEntityShortLink?.shortId);
         const canonicalSlug = resolveCanonicalUserSlug(entityData, entityId);
         slug = canCustomizeRoute
@@ -642,7 +715,7 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
         shortId = slug;
     }
     else {
-        shortId = normalizeText(req.data?.shortId, 24);
+        shortId = normalizeText(options.requestedShortId, 24);
         if (!canCustomizeRoute) {
             shortId = "";
         }
@@ -662,16 +735,13 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
             validateShortId(shortId);
         }
         else {
-            // Ilk olusturmada kisa id random uretilir; sonra entity shortLinks/public
-            // ve shortRoutes uzerinden her zaman ayni id tekrar kullanilir.
             shortId = await findFreeShortId(db);
         }
     }
     const idForUrl = type === "user" ? slug : shortId;
     const routeKind = routeKindFor(type, entityId);
     const publicUrl = buildPublicUrl(routeKind, idForUrl);
-    const resolvedImageUrl = imageUrl;
-    const entityShortLinkDoc = buildEntityShortLinkDoc(routeKind, type, entityId, shortId, publicUrl, title, desc, resolvedImageUrl, expiresAt, now);
+    const entityShortLinkDoc = buildEntityShortLinkDoc(routeKind, type, entityId, shortId, publicUrl, title, desc, imageUrl, expiresAt, now);
     const routeRef = db.collection(SHORT_LINK_ROUTE_COLLECTION).doc(`${routeKind}:${idForUrl}`);
     const routeSnap = await routeRef.get();
     if (routeSnap.exists) {
@@ -680,45 +750,8 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
             throw new https_1.HttpsError("already-exists", "Bu kısa link başka kayıt için kullanılıyor.");
         }
     }
-    if (type === "post" && canPersistToEntity) {
-        await db.collection("Posts").doc(entityId).set({
-            shortId,
-            shortUrl: publicUrl,
-            shortLinkUpdatedAt: now,
-            shortLinkStatus: "active",
-        }, { merge: true });
-    }
-    else if (type === "job" && canPersistToEntity) {
-        await db.collection("isBul").doc(entityId.replace(/^job:/, "")).set({
-            shortId,
-            shortUrl: publicUrl,
-            shortLinkUpdatedAt: now,
-            shortLinkStatus: "active",
-        }, { merge: true });
-    }
-    else if (type === "market" && canPersistToEntity) {
-        await db.collection("marketStore").doc(entityId).set({
-            shortId,
-            shortUrl: publicUrl,
-            shortLinkUpdatedAt: now,
-            shortLinkStatus: "active",
-        }, { merge: true });
-    }
-    else if (type === "story" && canPersistToEntity) {
-        await db.collection("stories").doc(entityId).set({
-            shortId,
-            shortUrl: publicUrl,
-            shortLinkUpdatedAt: now,
-            shortLinkStatus: "active",
-            shortLinkExpiresAt: expiresAt,
-        }, { merge: true });
-    }
-    else if (type === "user" && canPersistToEntity) {
-        await db.collection("users").doc(entityId).set({
-            profileSlug: slug,
-            profileUrl: publicUrl,
-            shortLinkUpdatedAt: now,
-        }, { merge: true });
+    if (canPersistToEntity) {
+        await persistShortLinkToEntityRoot(db, type, entityId, shortId, publicUrl, now, expiresAt, slug);
     }
     await entityTarget.ref.collection("shortLinks").doc("public").set(entityShortLinkDoc, { merge: true });
     await routeRef.set({
@@ -743,7 +776,7 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
             slug,
             title,
             desc,
-            imageUrl: resolvedImageUrl,
+            imageUrl,
             expiresAt,
             url: publicUrl,
             updatedAt: now,
@@ -764,6 +797,25 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
         routeCollection: SHORT_LINK_ROUTE_COLLECTION,
         domain: SHORT_LINK_DOMAIN,
     };
+}
+exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public" }, async (req) => {
+    ensureAdmin();
+    const db = (0, firestore_1.getFirestore)();
+    const type = normalizeType(req.data?.type);
+    const callerUid = ensureAuth(req);
+    (0, rateLimiter_1.enforceRateLimit)(callerUid, "short_link_upsert", 30, 600);
+    return upsertShortLinkForEntity({
+        db,
+        type,
+        entityId: req.data?.entityId || "",
+        callerUid,
+        requestedShortId: req.data?.shortId,
+        requestedSlug: req.data?.slug,
+        title: req.data?.title,
+        desc: req.data?.desc,
+        imageUrl: req.data?.imageUrl,
+        expiresAt: req.data?.expiresAt,
+    });
 });
 exports.resolveShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public" }, async (req) => {
     ensureAdmin();
@@ -968,10 +1020,97 @@ exports.shortLinkIndexConfig = (0, https_1.onCall)({ region: REGION, invoker: "p
         ok: true,
         routeCollection: SHORT_LINK_ROUTE_COLLECTION,
         domain: SHORT_LINK_DOMAIN,
-        routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id", "/i/:id", "/m/:id"],
+        routes: ["/p/:id", "/s/:id", "/:nickname", "/u/:id", "/e/:id", "/i/:id", "/m/:id"],
         cloudflareKvSyncEnabled: !!getEnv("CF_API_TOKEN") &&
             !!getEnv("CF_ACCOUNT_ID") &&
             !!getEnv("CF_KV_NAMESPACE_ID"),
     };
+});
+async function _ensureShortLinkOnCreate(db, type, entityId) {
+    try {
+        await upsertShortLinkForEntity({
+            db,
+            type,
+            entityId,
+            forcePersistToEntity: true,
+            forceDisableRouteCustomization: true,
+        });
+    }
+    catch (error) {
+        functions.logger.error("ensureShortLinkOnCreate error", {
+            type,
+            entityId,
+            error,
+        });
+    }
+}
+exports.ensurePostShortLinkOnCreate = functions.firestore
+    .document("Posts/{postId}")
+    .onCreate(async (snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "post", context.params.postId);
+});
+exports.ensureStoryShortLinkOnCreate = functions.firestore
+    .document("stories/{storyId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "story", context.params.storyId);
+});
+exports.ensureMarketShortLinkOnCreate = functions.firestore
+    .document("marketStore/{itemId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "market", context.params.itemId);
+});
+exports.ensureJobShortLinkOnCreate = functions.firestore
+    .document("isBul/{jobId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "job", `job:${context.params.jobId}`);
+});
+exports.ensureScholarshipShortLinkOnCreate = functions.firestore
+    .document("catalog/education/scholarships/{scholarshipId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "edu", `scholarship:${context.params.scholarshipId}`);
+});
+exports.ensurePracticeExamShortLinkOnCreate = functions.firestore
+    .document("practiceExams/{examId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "edu", `practice-exam:${context.params.examId}`);
+});
+exports.ensureAnswerKeyShortLinkOnCreate = functions.firestore
+    .document("books/{bookId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "edu", `answer-key:${context.params.bookId}`);
+});
+exports.ensureQuestionShortLinkOnCreate = functions.firestore
+    .document("questionBank/{questionId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "edu", `question:${context.params.questionId}`);
+});
+exports.ensureTutoringShortLinkOnCreate = functions.firestore
+    .document("educators/{tutoringId}")
+    .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "edu", `tutoring:${context.params.tutoringId}`);
+});
+function _shouldRefreshUserProfileLink(beforeData, afterData, uid) {
+    const beforeSlug = beforeData
+        ? resolveCanonicalUserSlug(beforeData, uid)
+        : "";
+    const afterSlug = resolveCanonicalUserSlug(afterData, uid);
+    const profileUrl = String(afterData.profileUrl || "").trim();
+    return !profileUrl || beforeSlug !== afterSlug;
+}
+exports.ensureUserShortLinkOnWrite = functions.firestore
+    .document("users/{uid}")
+    .onWrite(async (change, context) => {
+    if (!change.after.exists)
+        return;
+    const afterData = (change.after.data() || {});
+    const beforeData = change.before.exists
+        ? (change.before.data() || {})
+        : undefined;
+    const uid = String(context.params.uid || "").trim();
+    if (!uid)
+        return;
+    if (!_shouldRefreshUserProfileLink(beforeData, afterData, uid))
+        return;
+    await _ensureShortLinkOnCreate((0, firestore_1.getFirestore)(), "user", uid);
 });
 //# sourceMappingURL=17_shortLinksIndex.js.map

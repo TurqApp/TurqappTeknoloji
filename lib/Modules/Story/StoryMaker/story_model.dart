@@ -13,6 +13,8 @@ class StoryModel {
   final String musicArtist;
   final String musicCoverUrl;
   final String hlsVideoUrl;
+  final String shortId;
+  final String shortUrl;
   final List<StoryElement> elements;
 
   StoryModel({
@@ -26,6 +28,8 @@ class StoryModel {
     required this.musicArtist,
     required this.musicCoverUrl,
     required this.hlsVideoUrl,
+    this.shortId = '',
+    this.shortUrl = '',
     required this.elements,
   });
 
@@ -49,10 +53,10 @@ class StoryModel {
       );
       return StoryElement(
         type: type,
-        content: type == StoryElementType.video &&
-                normalizedHlsVideoUrl.isNotEmpty
-            ? normalizedHlsVideoUrl
-            : m['content'] as String,
+        content:
+            type == StoryElementType.video && normalizedHlsVideoUrl.isNotEmpty
+                ? normalizedHlsVideoUrl
+                : m['content'] as String,
         width: (m['width'] as num).toDouble(),
         height: (m['height'] as num).toDouble(),
         position: pos,
@@ -104,6 +108,8 @@ class StoryModel {
       musicArtist: data['musicArtist'] as String? ?? "",
       musicCoverUrl: data['musicCoverUrl'] as String? ?? "",
       hlsVideoUrl: normalizedHlsVideoUrl,
+      shortId: data['shortId'] as String? ?? "",
+      shortUrl: data['shortUrl'] as String? ?? "",
       elements: elems,
     );
   }
@@ -119,6 +125,8 @@ class StoryModel {
         'musicArtist': musicArtist,
         'musicCoverUrl': musicCoverUrl,
         'hlsVideoUrl': hlsVideoUrl,
+        'shortId': shortId,
+        'shortUrl': shortUrl,
         'elements': elements
             .map(
               (e) => {
@@ -215,10 +223,10 @@ class StoryModel {
       );
       return StoryElement(
         type: type,
-        content: type == StoryElementType.video &&
-                normalizedHlsVideoUrl.isNotEmpty
-            ? normalizedHlsVideoUrl
-            : (m['content'] ?? '').toString(),
+        content:
+            type == StoryElementType.video && normalizedHlsVideoUrl.isNotEmpty
+                ? normalizedHlsVideoUrl
+                : (m['content'] ?? '').toString(),
         width: (m['width'] as num?)?.toDouble() ?? 0.0,
         height: (m['height'] as num?)?.toDouble() ?? 0.0,
         position: pos,
@@ -259,6 +267,8 @@ class StoryModel {
       musicArtist: (data['musicArtist'] ?? '').toString(),
       musicCoverUrl: (data['musicCoverUrl'] ?? '').toString(),
       hlsVideoUrl: normalizedHlsVideoUrl,
+      shortId: (data['shortId'] ?? '').toString(),
+      shortUrl: (data['shortUrl'] ?? '').toString(),
       elements: elems,
     );
   }

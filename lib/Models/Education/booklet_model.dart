@@ -10,6 +10,8 @@ class BookletModel {
   String docID;
   String userID;
   int viewCount;
+  String shortId;
+  String shortUrl;
 
   BookletModel({
     required this.dil,
@@ -23,6 +25,8 @@ class BookletModel {
     required this.yayinEvi,
     required this.userID,
     required this.viewCount,
+    this.shortId = '',
+    this.shortUrl = '',
   });
 
   factory BookletModel.fromMap(Map<String, dynamic> data, String docID) {
@@ -47,6 +51,8 @@ class BookletModel {
       viewCount: data["viewCount"] is num
           ? (data["viewCount"] as num).toInt()
           : fallbackViewCount,
+      shortId: (data["shortId"] ?? '').toString(),
+      shortUrl: (data["shortUrl"] ?? '').toString(),
     );
   }
 }
