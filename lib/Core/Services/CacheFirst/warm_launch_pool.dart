@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 

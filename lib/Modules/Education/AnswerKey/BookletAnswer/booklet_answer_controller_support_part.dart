@@ -1,5 +1,27 @@
 part of 'booklet_answer_controller.dart';
 
+class _BookletAnswerControllerState {
+  _BookletAnswerControllerState({
+    required this.model,
+    required this.anaModel,
+    ConfigRepository? configRepository,
+  }) : configRepository = configRepository ?? ConfigRepository();
+
+  final ConfigRepository configRepository;
+  final AnswerKeySubModel model;
+  final BookletModel anaModel;
+  final RxList<String> cevaplar = <String>[].obs;
+  final RxBool completed = false.obs;
+  final RxInt correctCount = 0.obs;
+  final RxInt wrongCount = 0.obs;
+  final RxInt emptyCount = 0.obs;
+  final RxDouble scorePercent = 0.0.obs;
+  final RxDouble netScore = 0.0.obs;
+  final RxBool isInterstitialAdReady = false.obs;
+  final RxString iosList = ''.obs;
+  final RxString androidList = ''.obs;
+}
+
 class BookletAnswerController extends GetxController {
   final _BookletAnswerControllerState _state;
 
