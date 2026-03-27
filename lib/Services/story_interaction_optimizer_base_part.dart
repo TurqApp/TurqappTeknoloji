@@ -15,3 +15,5 @@ abstract class _StoryInteractionOptimizerBase extends GetxService {
     super.onClose();
   }
 }
+
+class StoryInteractionOptimizer extends _StoryInteractionOptimizerBase {}

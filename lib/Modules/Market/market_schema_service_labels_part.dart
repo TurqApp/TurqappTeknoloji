@@ -97,3 +97,11 @@ class MarketSchemaServiceLabelsPart {
     }
   }
 }
+
+extension MarketSchemaServiceLabelsFacadePart on MarketSchemaService {
+  List<Map<String, dynamic>> roundMenuItems() =>
+      MarketSchemaServiceLabelsPart(this).roundMenuItems();
+
+  List<Map<String, dynamic>> categories() =>
+      MarketSchemaServiceLabelsPart(this).categories();
+}

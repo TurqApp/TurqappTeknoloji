@@ -14,3 +14,12 @@ abstract class _RecommendedUserContentControllerBase extends GetxController {
     unawaited((this as RecommendedUserContentController).getTakipStatus());
   }
 }
+
+class RecommendedUserContentController
+    extends _RecommendedUserContentControllerBase {
+  RecommendedUserContentController({required super.userID});
+
+  Future<void> getTakipStatus() => _loadRecommendedUserFollowStatus(this);
+
+  Future<void> follow() => _toggleRecommendedUserFollow(this);
+}

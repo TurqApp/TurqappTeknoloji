@@ -9,4 +9,3 @@ part 'market_schema_service_constants_part.dart';
 part 'market_schema_service_fields_part.dart';
 part 'market_schema_service_labels_part.dart';
 part 'market_schema_service_runtime_part.dart';
-part 'market_schema_service_facade_part.dart';
