@@ -6,7 +6,6 @@ const int _personalizedCacheLimit = 30;
 
 extension PersonalizedControllerSupportPart on PersonalizedController {
   UserRepository get _userRepository => UserRepository.ensure();
-
   ScholarshipRepository get _scholarshipRepository =>
       ensureScholarshipRepository();
 }

@@ -7,6 +7,5 @@ class ReshareUserItem {
     required this.fullName,
     required this.avatarUrl,
   });
-
   final String userID, nickname, fullName, avatarUrl;
 }
