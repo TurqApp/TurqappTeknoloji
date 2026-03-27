@@ -5,7 +5,12 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_campaign_editor
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 
 class AdsCampaignListView extends StatelessWidget {
-  const AdsCampaignListView({super.key});
+  const AdsCampaignListView({
+    super.key,
+    this.onCreateCampaign,
+  });
+
+  final VoidCallback? onCreateCampaign;
 
   Widget _buildFilters(AdsCenterController controller) {
     return Padding(
@@ -93,6 +98,11 @@ class AdsCampaignListView extends StatelessWidget {
           const Spacer(),
           ElevatedButton.icon(
             onPressed: () {
+              final openEditor = onCreateCampaign;
+              if (openEditor != null) {
+                openEditor();
+                return;
+              }
               Get.to(() => const AdsCampaignEditorView());
             },
             icon: const Icon(Icons.add, size: 16),

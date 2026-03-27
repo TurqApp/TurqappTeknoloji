@@ -22,6 +22,7 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
   late final TabController _tabController;
   late final AdsCenterController _controller;
   bool _ownsController = false;
+  int _editorSeed = 0;
 
   @override
   void initState() {
@@ -124,16 +125,23 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
   Widget _buildTabs() {
     return TabBarView(
       controller: _tabController,
-      children: const [
-        AdsDashboardView(),
-        AdsCampaignListView(),
-        AdsCampaignEditorView(),
-        AdsCreativeReviewView(),
-        AdsDeliveryMonitorView(),
-        AdsPreviewScreen(),
-        TurqAppSuggestionAdminView(),
+      children: [
+        const AdsDashboardView(),
+        AdsCampaignListView(onCreateCampaign: _openCampaignEditor),
+        AdsCampaignEditorView(
+            key: ValueKey('ads_campaign_editor_$_editorSeed')),
+        const AdsCreativeReviewView(),
+        const AdsDeliveryMonitorView(),
+        const AdsPreviewScreen(),
+        const TurqAppSuggestionAdminView(),
       ],
     );
+  }
+
+  void _openCampaignEditor() {
+    if (!mounted) return;
+    setState(() => _editorSeed++);
+    _tabController.animateTo(2);
   }
 
   Widget _buildPage(BuildContext context) {

@@ -16,3 +16,9 @@ class MarketRepository extends _MarketRepositoryBase {
   static const Duration _ttl = Duration(hours: 3);
   static const String _prefsPrefix = 'market_repository_v1';
 }
+
+MarketRepository? maybeFindMarketRepository() =>
+    Get.isRegistered<MarketRepository>() ? Get.find<MarketRepository>() : null;
+
+MarketRepository ensureMarketRepository() =>
+    maybeFindMarketRepository() ?? Get.put(MarketRepository(), permanent: true);

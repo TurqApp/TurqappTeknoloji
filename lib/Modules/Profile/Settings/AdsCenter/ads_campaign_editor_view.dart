@@ -143,17 +143,15 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: Colors.white,
-        body: Obx(
-          () => ListView(
-            padding: const EdgeInsets.all(14),
-            children: [
-              _buildCampaignSection(),
-              _buildTargetingSection(),
-              _buildCreativeSection(),
-              _buildSubmitActions(),
-              const SizedBox(height: 28),
-            ],
-          ),
+        body: ListView(
+          padding: const EdgeInsets.all(14),
+          children: [
+            _buildCampaignSection(),
+            _buildTargetingSection(),
+            _buildCreativeSection(),
+            _buildSubmitActions(),
+            const SizedBox(height: 28),
+          ],
         ),
       );
 
