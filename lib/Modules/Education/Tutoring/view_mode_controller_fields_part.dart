@@ -7,6 +7,5 @@ class _ViewModeControllerState {
 extension ViewModeControllerFieldsPart on ViewModeController {
   RxBool get isGridView => _state.isGridView;
   RxBool get isReady => _state.isReady;
-
   void toggleView() => _ViewModeControllerRuntimePart(this).toggleView();
 }

@@ -45,6 +45,22 @@ class _SolveTestControllerState {
   late Timer timer;
 }
 
+SolveTestController ensureSolveTestController({
+  required String testID,
+  required Function showSucces,
+  String? tag,
+  bool permanent = false,
+}) =>
+    _ensureSolveTestController(
+      testID: testID,
+      showSucces: showSucces,
+      tag: tag,
+      permanent: permanent,
+    );
+
+SolveTestController? maybeFindSolveTestController({String? tag}) =>
+    _maybeFindSolveTestController(tag: tag);
+
 extension SolveTestControllerFieldsPart on SolveTestController {
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   TestRepository get _testRepository => _state.testRepository;

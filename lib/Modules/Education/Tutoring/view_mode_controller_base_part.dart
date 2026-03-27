@@ -10,3 +10,14 @@ abstract class _ViewModeControllerBase extends GetxController {
         .restoreViewMode());
   }
 }
+
+class ViewModeController extends _ViewModeControllerBase {}
+
+ViewModeController? maybeFindViewModeController() =>
+    Get.isRegistered<ViewModeController>()
+        ? Get.find<ViewModeController>()
+        : null;
+
+ViewModeController ensureViewModeController({bool permanent = false}) =>
+    maybeFindViewModeController() ??
+    Get.put(ViewModeController(), permanent: permanent);
