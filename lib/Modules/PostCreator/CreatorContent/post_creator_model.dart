@@ -4,10 +4,8 @@ class PostCreatorModel {
 
   PostCreatorModel({required this.index, required this.text});
 
-  PostCreatorModel copyWith({int? index, String? text}) {
-    return PostCreatorModel(
-      index: index ?? this.index,
-      text: text ?? this.text,
-    );
-  }
+  PostCreatorModel copyWith({int? index, String? text}) => PostCreatorModel(
+        index: index ?? this.index,
+        text: text ?? this.text,
+      );
 }

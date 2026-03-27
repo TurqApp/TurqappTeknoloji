@@ -19,3 +19,11 @@ abstract class _ReportUserControllerBase extends GetxController {
     _ReportUserControllerRuntimePart(this as ReportUserController).loadUser();
   }
 }
+
+class ReportUserController extends _ReportUserControllerBase {
+  ReportUserController({
+    required super.userID,
+    required super.postID,
+    required super.commentID,
+  });
+}

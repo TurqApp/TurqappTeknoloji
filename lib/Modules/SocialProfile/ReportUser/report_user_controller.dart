@@ -10,4 +10,3 @@ part 'report_user_controller_fields_part.dart';
 part 'report_user_controller_base_part.dart';
 part 'report_user_controller_facade_part.dart';
 part 'report_user_controller_runtime_part.dart';
-part 'report_user_controller_class_part.dart';
