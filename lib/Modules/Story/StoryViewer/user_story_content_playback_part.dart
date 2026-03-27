@@ -23,6 +23,51 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     await _audioPlayer.play(source);
   }
 
+  Future<void> _pauseCurrentStoryPlayback() async {
+    _timer?.cancel();
+    _musicStartFallbackTimer?.cancel();
+    await _pauseStoryAudio();
+  }
+
+  Future<void> _resumeCurrentStoryPlayback() async {
+    if (!mounted ||
+        _isHoldPaused ||
+        storyIndex < 0 ||
+        storyIndex >= widget.user.stories.length) {
+      return;
+    }
+
+    _timer?.cancel();
+    _musicStartFallbackTimer?.cancel();
+
+    final currentStory = widget.user.stories[storyIndex];
+    final hasMusic = currentStory.musicUrl.trim().isNotEmpty;
+    final hasVideo = currentStory.elements
+        .any((element) => element.type == StoryElementType.video);
+
+    if (hasMusic) {
+      if (!_waitingForMusic) {
+        setState(() {
+          _waitingForMusic = true;
+        });
+      }
+
+      _musicStartFallbackTimer = Timer(const Duration(seconds: 2), () {
+        if (!mounted || _isHoldPaused || !_waitingForMusic) return;
+        setState(() {
+          _waitingForMusic = false;
+        });
+        _startProgress();
+      });
+
+      await _resumeStoryAudio();
+      return;
+    }
+
+    if (hasVideo && _waitingForVideo) return;
+    _startProgress();
+  }
+
   Future<void> _startOrWait() async {
     _timer?.cancel();
     _musicStateSubscription?.cancel();
@@ -223,16 +268,14 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     final currentStory = widget.user.stories[storyIndex];
     try {
       FocusScope.of(context).unfocus();
-      await _pauseStoryAudio();
-      _timer?.cancel();
+      await _pauseCurrentStoryPlayback();
       await controller.showPostCommentsBottomSheet(
         currentStory.id,
         widget.user.nickname,
         widget.user.userID == _currentUid,
         onClosed: (v) {
           if (!mounted) return;
-          _startProgress();
-          unawaited(_resumeStoryAudio());
+          unawaited(_resumeCurrentStoryPlayback());
         },
       );
     } catch (_) {}

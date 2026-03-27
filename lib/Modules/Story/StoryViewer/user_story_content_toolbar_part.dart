@@ -49,15 +49,13 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
               _buildMyStoryActionButton(
                 icon: CupertinoIcons.bubble_left_bubble_right,
                 onTap: () async {
-                  await _pauseStoryAudio();
-                  _timer?.cancel();
+                  await _pauseCurrentStoryPlayback();
                   await controller.showPostCommentsBottomSheet(
                     currentStory.id,
                     widget.user.nickname,
                     widget.user.userID == _currentUid,
                     onClosed: (v) {
-                      _startProgress();
-                      unawaited(_resumeStoryAudio());
+                      unawaited(_resumeCurrentStoryPlayback());
                     },
                   );
                 },
@@ -65,32 +63,27 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
               _buildMyStoryActionButton(
                 icon: CupertinoIcons.hand_thumbsup,
                 onTap: () {
-                  unawaited(_pauseStoryAudio());
-                  _timer?.cancel();
+                  unawaited(_pauseCurrentStoryPlayback());
                   controller.showLikesBottomSheet(currentStory.id,
                       onClosed: (v) {
-                    _startProgress();
-                    unawaited(_resumeStoryAudio());
+                    unawaited(_resumeCurrentStoryPlayback());
                   });
                 },
               ),
               _buildMyStoryActionButton(
                 icon: CupertinoIcons.eyeglasses,
                 onTap: () {
-                  unawaited(_pauseStoryAudio());
-                  _timer?.cancel();
+                  unawaited(_pauseCurrentStoryPlayback());
                   controller.showSeensBottomSheet(currentStory.id,
                       onClosed: (v) {
-                    _startProgress();
-                    unawaited(_resumeStoryAudio());
+                    unawaited(_resumeCurrentStoryPlayback());
                   });
                 },
               ),
               _buildMyStoryActionButton(
                 icon: Icons.star_rounded,
                 onTap: () async {
-                  unawaited(_pauseStoryAudio());
-                  _timer?.cancel();
+                  unawaited(_pauseCurrentStoryPlayback());
                   final rawStory = await StoryRepository.ensure().getStoryRaw(
                     currentStory.id,
                     preferCache: true,
@@ -132,8 +125,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     ),
                     backgroundColor: Colors.white,
                   ).then((_) {
-                    _startProgress();
-                    unawaited(_resumeStoryAudio());
+                    unawaited(_resumeCurrentStoryPlayback());
                   });
                 },
               ),
@@ -290,21 +282,20 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     IntegrationTestKeys.actionStoryOpenComments,
                   ),
                   onTap: () async {
-                    await _pauseStoryAudio();
-                    _timer?.cancel();
+                    await _pauseCurrentStoryPlayback();
+                    var resumed = false;
                     await controller.showPostCommentsBottomSheet(
                       currentStory.id,
                       widget.user.nickname,
                       false,
                       onClosed: (v) {
                         if (!mounted) return;
-                        _startProgress();
-                        unawaited(_resumeStoryAudio());
+                        resumed = true;
+                        unawaited(_resumeCurrentStoryPlayback());
                       },
                     );
-                    if (!mounted) return;
-                    _startProgress();
-                    await _resumeStoryAudio();
+                    if (!mounted || resumed) return;
+                    await _resumeCurrentStoryPlayback();
                   },
                   child: Container(
                     height: 50,
@@ -334,12 +325,10 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     controller.like(currentStory.id);
                   },
                   onLongPress: () {
-                    unawaited(_pauseStoryAudio());
-                    _timer?.cancel();
+                    unawaited(_pauseCurrentStoryPlayback());
                     controller.showLikesBottomSheet(currentStory.id,
                         onClosed: (v) {
-                      _startProgress();
-                      unawaited(_resumeStoryAudio());
+                      unawaited(_resumeCurrentStoryPlayback());
                     });
                   },
                   child: Container(
