@@ -7,6 +7,5 @@ import 'package:turqappv2/Core/strings.dart';
 import 'package:turqappv2/Models/report_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-part 'report_repository_models_part.dart';
 part 'report_repository_facade_part.dart';
 part 'report_repository_data_part.dart';

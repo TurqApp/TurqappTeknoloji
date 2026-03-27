@@ -13,6 +13,17 @@ class _CreateAnswerKeyControllerState {
   final RxInt mainSelection = 0.obs;
 }
 
+class CreateAnswerKeyController extends GetxController {
+  final _CreateAnswerKeyControllerState _state;
+  CreateAnswerKeyController(Function onBack)
+      : _state = _CreateAnswerKeyControllerState(onBack: onBack);
+  @override
+  void onClose() {
+    _disposeCreateAnswerKeyController(this);
+    super.onClose();
+  }
+}
+
 extension CreateAnswerKeyControllerFieldsPart on CreateAnswerKeyController {
   Function get onBack => _state.onBack;
   TextEditingController get nameController => _state.nameController;

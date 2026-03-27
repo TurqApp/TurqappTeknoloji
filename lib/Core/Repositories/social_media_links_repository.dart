@@ -8,5 +8,4 @@ import 'package:turqappv2/Models/social_media_model.dart';
 part 'social_media_links_repository_query_part.dart';
 part 'social_media_links_repository_action_part.dart';
 part 'social_media_links_repository_base_part.dart';
-part 'social_media_links_repository_fields_part.dart';
 part 'social_media_links_repository_storage_part.dart';

@@ -1,5 +1,20 @@
 part of 'social_media_links_repository.dart';
 
+class _CachedSocialMediaLinks {
+  final List<SocialMediaModel> items;
+  final DateTime cachedAt;
+
+  const _CachedSocialMediaLinks({
+    required this.items,
+    required this.cachedAt,
+  });
+}
+
+class _SocialMediaLinksRepositoryState {
+  SharedPreferences? prefs;
+  final memory = <String, _CachedSocialMediaLinks>{};
+}
+
 class SocialMediaLinksRepository extends _SocialMediaLinksRepositoryBase {
   static const Duration _ttl = Duration(hours: 12);
   static const String _prefsPrefix = 'social_media_links_repository_v1';
@@ -19,6 +34,12 @@ abstract class _SocialMediaLinksRepositoryBase extends GetxService {
     super.onInit();
     _handleSocialMediaLinksRepositoryInit(this as SocialMediaLinksRepository);
   }
+}
+
+extension SocialMediaLinksRepositoryFieldsPart on SocialMediaLinksRepository {
+  SharedPreferences? get _prefs => _state.prefs;
+  set _prefs(SharedPreferences? value) => _state.prefs = value;
+  Map<String, _CachedSocialMediaLinks> get _memory => _state.memory;
 }
 
 SocialMediaLinksRepository? _maybeFindSocialMediaLinksRepository() {

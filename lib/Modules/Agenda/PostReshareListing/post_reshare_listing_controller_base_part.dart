@@ -18,3 +18,7 @@ abstract class _PostReshareListingControllerBase extends GetxController {
     super.onClose();
   }
 }
+
+class PostReshareListingController extends _PostReshareListingControllerBase {
+  PostReshareListingController({required super.postID});
+}
