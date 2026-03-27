@@ -1,6 +1,21 @@
 part of 'story_circle.dart';
 
 extension _StoryCircleContentPart on _StoryCircleState {
+  AgendaController? _prepareAgendaForStoryOverlay() {
+    final agenda = maybeFindAgendaController();
+    final prevIndex = agenda?.lastCenteredIndex;
+    if (agenda != null) {
+      agenda.lastCenteredIndex = prevIndex;
+      agenda.centeredIndex.value = -1;
+      agenda.suspendPlaybackForOverlay();
+    }
+    return agenda;
+  }
+
+  void _resumeAgendaAfterStoryOverlay(AgendaController? agenda) {
+    agenda?.resumePlaybackAfterOverlay();
+  }
+
   Widget _buildStoryCircle(BuildContext context) {
     return Column(
       children: [
@@ -63,10 +78,6 @@ extension _StoryCircleContentPart on _StoryCircleState {
   }
 
   Future<void> _handleTap() async {
-    final cont = maybeFindAgendaController();
-    final prevIndex = cont?.lastCenteredIndex;
-    cont?.lastCenteredIndex = prevIndex;
-    cont?.centeredIndex.value = -1;
     final myUserID = _currentUid;
     final isMe = myUserID.isNotEmpty && widget.model.userID == myUserID;
 
@@ -80,7 +91,9 @@ extension _StoryCircleContentPart on _StoryCircleState {
           ),
         );
       } else {
+        final agenda = _prepareAgendaForStoryOverlay();
         await Get.to(() => StoryMaker());
+        _resumeAgendaAfterStoryOverlay(agenda);
       }
     } else {
       await Get.to(
@@ -90,10 +103,6 @@ extension _StoryCircleContentPart on _StoryCircleState {
         ),
       );
     }
-
-    if (cont != null) {
-      cont.resumeFeedPlayback();
-    }
   }
 
   void _handleLongPress() {
@@ -101,34 +110,20 @@ extension _StoryCircleContentPart on _StoryCircleState {
     final isMe = myId.isNotEmpty && widget.model.userID == myId;
     if (!isMe) return;
 
-    final agenda = maybeFindAgendaController();
-    final prevIndex = agenda?.lastCenteredIndex;
-    if (agenda != null) {
-      agenda.lastCenteredIndex = prevIndex;
-      agenda.centeredIndex.value = -1;
-      agenda.pauseAll.value = true;
-    }
+    final agenda = _prepareAgendaForStoryOverlay();
     if (maybeFindDeletedStoriesController() != null) {
       Get.delete<DeletedStoriesController>(force: true);
     }
     Get.to(() => const DeletedStoriesView())?.then((_) {
-      if (agenda != null) {
-        agenda.pauseAll.value = false;
-        agenda.resumeFeedPlayback();
-      }
+      _resumeAgendaAfterStoryOverlay(agenda);
     });
   }
 
   void _openStoryMaker() {
-    final cont = maybeFindAgendaController();
-    final prevIndex = cont?.lastCenteredIndex;
-    cont?.lastCenteredIndex = prevIndex;
-    cont?.centeredIndex.value = -1;
+    final agenda = _prepareAgendaForStoryOverlay();
 
     Get.to(() => StoryMaker())?.then((_) {
-      if (cont != null) {
-        cont.resumeFeedPlayback();
-      }
+      _resumeAgendaAfterStoryOverlay(agenda);
     });
   }
 
