@@ -33,10 +33,6 @@ class MarketSavedStore {
         .doc(uid);
   }
 
-  static DocumentReference<Map<String, dynamic>> _itemDoc(String itemId) {
-    return _firestore.collection('marketStore').doc(itemId);
-  }
-
   static Future<bool> isSaved(String uid, String itemId) async {
     try {
       final snap = await _userSavedDoc(uid, itemId).get();
@@ -65,30 +61,21 @@ class MarketSavedStore {
   }
 
   static Future<void> save(String uid, String itemId) async {
-    final now = DateTime.now().millisecondsSinceEpoch;
     await _firestore.runTransaction((transaction) async {
       final savedRef = _userSavedDoc(uid, itemId);
       final favoriteRef = _favoriteDoc(itemId, uid);
-      final itemRef = _itemDoc(itemId);
       final savedSnap = await transaction.get(savedRef);
       if (savedSnap.exists) return;
       transaction.set(savedRef, {
         'itemId': itemId,
         'userId': uid,
-        'createdAt': now,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
       transaction.set(favoriteRef, {
         'itemId': itemId,
         'userId': uid,
-        'createdAt': now,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
-      transaction.set(
-          itemRef,
-          {
-            'favoriteCount': FieldValue.increment(1),
-            'updatedAt': now,
-          },
-          SetOptions(merge: true));
     });
     await ensureMarketRepository().invalidateItemCaches(
       userId: uid,
@@ -97,22 +84,13 @@ class MarketSavedStore {
   }
 
   static Future<void> unsave(String uid, String itemId) async {
-    final now = DateTime.now().millisecondsSinceEpoch;
     await _firestore.runTransaction((transaction) async {
       final savedRef = _userSavedDoc(uid, itemId);
       final favoriteRef = _favoriteDoc(itemId, uid);
-      final itemRef = _itemDoc(itemId);
       final savedSnap = await transaction.get(savedRef);
       if (!savedSnap.exists) return;
       transaction.delete(savedRef);
       transaction.delete(favoriteRef);
-      transaction.set(
-          itemRef,
-          {
-            'favoriteCount': FieldValue.increment(-1),
-            'updatedAt': now,
-          },
-          SetOptions(merge: true));
     });
     await ensureMarketRepository().invalidateItemCaches(
       userId: uid,

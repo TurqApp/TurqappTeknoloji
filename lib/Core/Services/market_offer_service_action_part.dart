@@ -29,10 +29,11 @@ Future<void> _createOfferImpl({
 
   final now = DateTime.now().millisecondsSinceEpoch;
   final offerId = now.toString();
-  final itemRef = MarketOfferService._firestore.collection('marketStore').doc(
-        item.id,
-      );
-  final offerRef = itemRef.collection('offers').doc(offerId);
+  final offerRef = MarketOfferService._firestore
+      .collection('marketStore')
+      .doc(item.id)
+      .collection('offers')
+      .doc(offerId);
   final sentRef = MarketOfferService._firestore
       .collection('users')
       .doc(buyerId)
@@ -63,15 +64,6 @@ Future<void> _createOfferImpl({
     tx.set(offerRef, offerPayload);
     tx.set(sentRef, offerPayload);
     tx.set(receivedRef, offerPayload);
-    tx.set(
-      itemRef,
-      {
-        'offerCount': FieldValue.increment(1),
-        'lastOfferAt': now,
-        'updatedAt': now,
-      },
-      SetOptions(merge: true),
-    );
   });
   try {
     await MarketNotificationService.notifyOfferCreated(

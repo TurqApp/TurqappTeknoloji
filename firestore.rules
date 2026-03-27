@@ -717,57 +717,6 @@ service cloud.firestore {
         && request.resource.data.updatedAt is int
         && request.resource.data.attributes is map;
     }
-    function marketIntFieldUnchangedOrDeltaOne(field) {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
-        || (
-          (!(field in resource.data) || resource.data[field] is int)
-          && request.resource.data[field] is int
-          && request.resource.data[field] >= 0
-          && (
-            request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) + 1
-            || request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) - 1
-          )
-        );
-    }
-    function marketIntFieldUnchangedOrIncrement(field) {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
-        || (
-          (!(field in resource.data) || resource.data[field] is int)
-          && request.resource.data[field] is int
-          && request.resource.data[field] >= ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0)
-          && request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) + 1
-        );
-    }
-    function canClientUpdateMarketCounters() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'favoriteCount', 'offerCount', 'viewCount', 'lastOfferAt', 'updatedAt',
-          'averageRating', 'reviewCount'
-        ])
-        && marketIntFieldUnchangedOrDeltaOne('favoriteCount')
-        && marketIntFieldUnchangedOrIncrement('offerCount')
-        && marketIntFieldUnchangedOrIncrement('viewCount')
-        && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reviewCount'])
-          || (request.resource.data.reviewCount is int && request.resource.data.reviewCount >= 0)
-        )
-        && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['averageRating'])
-          || request.resource.data.averageRating == null
-          || (
-            request.resource.data.averageRating is number
-            && request.resource.data.averageRating >= 0
-            && request.resource.data.averageRating <= 5
-          )
-        )
-        && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastOfferAt'])
-          || request.resource.data.lastOfferAt is int
-        )
-        && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedAt'])
-          || request.resource.data.updatedAt is int
-        );
-    }
     function canSellerRespondToMarketOffer(itemId) {
       return isAuth()
         && exists(/databases/$(database)/documents/marketStore/$(itemId))
@@ -1222,10 +1171,7 @@ service cloud.firestore {
       allow create: if isAuth()
         && request.resource.data.userId == request.auth.uid
         && isValidMarketItemPayload();
-      allow update: if isAuth() && (
-        resource.data.userId == request.auth.uid
-        || canClientUpdateMarketCounters()
-      );
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
 
       match /favorites/{favoriteId} {

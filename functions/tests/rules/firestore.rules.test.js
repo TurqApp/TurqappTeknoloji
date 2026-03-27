@@ -174,7 +174,7 @@ test("marketStore blocks creating item for another user", async () => {
   );
 });
 
-test("marketStore allows authenticated single-step view increments", async () => {
+test("marketStore blocks authenticated viewer counter increments", async () => {
   const ownerUid = "market-owner-view";
   const viewerUid = "market-viewer";
 
@@ -205,10 +205,48 @@ test("marketStore allows authenticated single-step view increments", async () =>
   });
 
   const viewerCtx = testEnv.authenticatedContext(viewerUid);
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(viewerCtx.firestore(), "marketStore/1742160000003"), {
       viewCount: 2,
       updatedAt: 1742160000100,
+    }),
+  );
+});
+
+test("marketStore allows owner item updates", async () => {
+  const ownerUid = "market-owner-edit";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "marketStore/1742160000004"), {
+      id: "1742160000004",
+      userId: ownerUid,
+      title: "Eski Baslik",
+      description: "Aciklama",
+      price: 100,
+      currency: "TRY",
+      categoryKey: "elektronik/bilgisayar",
+      categoryPath: ["Elektronik", "Bilgisayar"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Üsküdar",
+      locationText: "Üsküdar, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000200,
+      updatedAt: 1742160000200,
+      viewCount: 0,
+      offerCount: 0,
+      favoriteCount: 0,
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertSucceeds(
+    updateDoc(doc(ownerCtx.firestore(), "marketStore/1742160000004"), {
+      title: "Yeni Baslik",
+      updatedAt: 1742160000300,
     }),
   );
 });

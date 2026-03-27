@@ -48,14 +48,6 @@ extension MarketRepositoryActionPart on MarketRepository {
     required String docId,
     required String userId,
   }) async {
-    await _itemsRef.doc(docId).set({
-      'viewCount': FieldValue.increment(1),
-      'updatedAt': DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
-    await _invalidateUserScopedCaches(userId: userId, docId: docId);
-    await TypesenseMarketSearchService.instance.invalidateForMutation(
-      docId: docId,
-      userId: userId,
-    );
+    if (docId.isEmpty || userId.isEmpty) return;
   }
 }

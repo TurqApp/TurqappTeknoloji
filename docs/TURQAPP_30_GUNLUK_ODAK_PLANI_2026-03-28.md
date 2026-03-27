@@ -564,6 +564,7 @@ Her tamamlanan is en az bir kanit kaydi uretir.
 | ART-002 | T-003 | import graph + locator raporu | `docs/architecture/T-003_IMPORT_GRAPH_GETX_GOD_OBJECT_ENVANTERI_2026-03-28.md` | `rg/find/wc/awk` bazli import + locator + buyuk kume envanteri | Codex local review | Hazir |
 | ART-011 | T-004 | review auth fallback regression testi | `functions/tests/unit/reportsAuth.test.js` | `npm run build` + `node --test tests/unit/reportsAuth.test.js` | Codex local review | Hazir |
 | ART-012 | T-005 | users root read-surface daraltma notu ve rules regression'i | `docs/architecture/T-005_USERS_READ_SURFACE_DARALTMA_2026-03-28.md` + `functions/tests/rules/firestore.rules.test.js` | `npm run build` + `npm run test:rules` | Codex local review | Hazir |
+| ART-013 | T-006 | market client counter path kapatma notu ve rules regression'i | `docs/architecture/T-006_MARKET_COUNTER_CLIENT_PATH_KAPATMA_2026-03-28.md` + `functions/tests/rules/firestore.rules.test.js` | `npm run test:rules` + `dart analyze --no-fatal-warnings --no-fatal-infos ...` | Codex local review | Hazir |
 | ART-003 | T-009 | architecture guard ciktilari | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-004 | T-021 | backend/rules regression test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-005 | T-022 | startup/session/feed davranis test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
@@ -677,6 +678,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-003 | Risk | Orta | T-009 | Acik | Architecture guard false-positive uretip CI'yi gereksiz kilitleyebilir |
 | RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
 | RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
+| RISK-006 | Risk | Orta | T-006, T-021 | Acik | Market root sayaçlari icin server-side aggregation olmadigindan, client yolu kapaninca `viewCount/favoriteCount/offerCount/reviewCount` stale kalabilir |
 | DEBT-001 | Debt | Orta | T-030 | Acik | Mikro `facade/fields/class part` dagilimi okuma maliyeti ve sahte modulerlik uretiyor; secici sadeleştirme gerekiyor |
 | DEBT-002 | Debt | Orta | T-031 | Acik | Repo genelinde dosya yuzeyi cok buyuk; kritik akislar fazla dosyaya dagiliyor ve takip maliyeti yukseliyor |
 | GAP-001 | Gap | Orta | T-001 | Kapandi | Rollback/checkpoint standardi plan icine eklendi; T-001'de canli kayit doldurulacak |

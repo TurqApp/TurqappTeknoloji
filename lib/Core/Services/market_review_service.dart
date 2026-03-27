@@ -51,7 +51,6 @@ class MarketReviewService {
       'comment': comment.trim(),
       'timeStamp': now,
     });
-    await _refreshAverageRating(itemId);
   }
 
   Future<void> deleteReview({
@@ -63,24 +62,5 @@ class MarketReviewService {
       throw Exception('forbidden');
     }
     await _reviewsRef(itemId).doc(reviewId).delete();
-    await _refreshAverageRating(itemId);
-  }
-
-  Future<void> _refreshAverageRating(String itemId) async {
-    final reviews = await fetchReviews(itemId);
-    final itemRef = _firestore.collection('marketStore').doc(itemId);
-    if (reviews.isEmpty) {
-      await itemRef.update({'averageRating': null, 'reviewCount': 0});
-      return;
-    }
-    double total = 0;
-    for (final review in reviews) {
-      total += review.rating.toDouble();
-    }
-    final avg = total / reviews.length;
-    await itemRef.update({
-      'averageRating': double.parse(avg.toStringAsFixed(1)),
-      'reviewCount': reviews.length,
-    });
   }
 }
