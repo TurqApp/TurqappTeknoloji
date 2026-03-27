@@ -54,6 +54,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   AdCreativeType _creativeType = AdCreativeType.image;
   final Set<AdPlacementType> _placements = {AdPlacementType.feed};
   String _advertiserId = '';
+  bool _showAdvanced = false;
   bool _isTestCampaign = true;
   bool _deliveryEnabled = false;
   DateTime _startAt = DateTime.now();
@@ -147,8 +148,9 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
           padding: const EdgeInsets.all(14),
           children: [
             _buildCampaignSection(),
-            _buildTargetingSection(),
             _buildCreativeSection(),
+            _buildBudgetSection(),
+            _buildAdvancedSection(),
             _buildSubmitActions(),
             const SizedBox(height: 28),
           ],

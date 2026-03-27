@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
@@ -75,6 +76,8 @@ class _HighlightCoverImageState extends State<_HighlightCoverImage> {
   String _resolvedUrl = '';
   Uint8List? _thumbnailBytes;
   bool _isResolving = false;
+  bool _needsResolveRetry = false;
+  int _resolveGeneration = 0;
 
   @override
   void initState() {
@@ -82,7 +85,7 @@ class _HighlightCoverImageState extends State<_HighlightCoverImage> {
     final initialCover = widget.highlight.coverUrl.trim();
     _resolvedUrl = looksLikeImageUrl(initialCover) ? initialCover : '';
     if (_resolvedUrl.isEmpty) {
-      _resolveFallbackThumbnail();
+      _scheduleFallbackThumbnailResolution();
     }
   }
 
@@ -91,30 +94,54 @@ class _HighlightCoverImageState extends State<_HighlightCoverImage> {
     super.didUpdateWidget(oldWidget);
     final rawLatest = widget.highlight.coverUrl.trim();
     final latest = looksLikeImageUrl(rawLatest) ? rawLatest : '';
-    if (latest != _resolvedUrl && latest.isNotEmpty) {
-      _resolvedUrl = latest;
+    final storyIdsChanged =
+        !listEquals(oldWidget.highlight.storyIds, widget.highlight.storyIds);
+    final coverChanged = oldWidget.highlight.coverUrl.trim() != rawLatest;
+
+    if (coverChanged || storyIdsChanged) {
+      _resolveGeneration++;
+    }
+
+    if (latest.isNotEmpty) {
+      if (latest != _resolvedUrl || _thumbnailBytes != null) {
+        _resolvedUrl = latest;
+        _thumbnailBytes = null;
+      }
+      _needsResolveRetry = false;
+      return;
+    }
+
+    if (!coverChanged && !storyIdsChanged) return;
+
+    if (_resolvedUrl.isNotEmpty || _thumbnailBytes != null) {
+      _resolvedUrl = '';
       _thumbnailBytes = null;
     }
-    if (latest.isEmpty && _resolvedUrl.isNotEmpty && !looksLikeImageUrl(_resolvedUrl)) {
-      _resolvedUrl = '';
+    _scheduleFallbackThumbnailResolution();
+  }
+
+  void _scheduleFallbackThumbnailResolution() {
+    if (_isResolving) {
+      _needsResolveRetry = true;
+      return;
     }
-    if (_resolvedUrl.isEmpty &&
-        oldWidget.highlight.storyIds != widget.highlight.storyIds) {
-      _resolveFallbackThumbnail();
-    }
+    _needsResolveRetry = false;
+    _resolveFallbackThumbnail();
   }
 
   Future<void> _resolveFallbackThumbnail() async {
     if (_isResolving || widget.highlight.storyIds.isEmpty) return;
+    final generation = _resolveGeneration;
+    final storyId = widget.highlight.storyIds.first;
     _isResolving = true;
     try {
       final raw = await StoryRepository.ensure().getStoryRaw(
-        widget.highlight.storyIds.first,
+        storyId,
         preferCache: true,
       );
-      if (!mounted || raw == null) return;
+      if (!mounted || raw == null || generation != _resolveGeneration) return;
       final preview = _extractPreviewUrl(raw);
-      if (!mounted) return;
+      if (!mounted || generation != _resolveGeneration) return;
       if (preview.isNotEmpty) {
         setState(() {
           _resolvedUrl = preview;
@@ -130,12 +157,21 @@ class _HighlightCoverImageState extends State<_HighlightCoverImage> {
         maxWidth: 240,
         quality: 70,
       );
-      if (!mounted || thumb == null || thumb.isEmpty) return;
+      if (!mounted ||
+          thumb == null ||
+          thumb.isEmpty ||
+          generation != _resolveGeneration) {
+        return;
+      }
       setState(() {
         _thumbnailBytes = thumb;
       });
     } finally {
       _isResolving = false;
+      if (_needsResolveRetry && mounted) {
+        _needsResolveRetry = false;
+        await _resolveFallbackThumbnail();
+      }
     }
   }
 

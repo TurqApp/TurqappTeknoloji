@@ -425,6 +425,8 @@ class AppTranslations extends Translations {
         'ads_center.feature_flags': 'Özellik Bayrakları',
         'ads_center.status': 'Durum',
         'ads_center.campaign_info': 'Kampanya Bilgisi',
+        'ads_center.campaign_info_simple':
+            'Sadece adı, yerleşimi ve reklamvereni seç.',
         'ads_center.campaign_name': 'Kampanya Adı',
         'ads_center.advertiser': 'Reklamveren',
         'ads_center.budget_type': 'Bütçe Türü',
@@ -444,6 +446,8 @@ class AppTranslations extends Translations {
         'ads_center.device_platform_ios':
             'Cihaz Platformu: iOS (ilk faz sabit)',
         'ads_center.creative_attachment': 'Kreatif Eki',
+        'ads_center.creative_simple':
+            'Medya, başlık, açıklama ve hedef bağlantıyı gir.',
         'ads_center.creative_type': 'Kreatif Türü',
         'ads_center.start_date': 'Başlangıç Tarihi',
         'ads_center.end_date': 'Bitiş Tarihi',
@@ -487,6 +491,13 @@ class AppTranslations extends Translations {
         'ads_center.no_campaigns': 'Kampanya bulunamadı.',
         'ads_center.untitled_campaign': '(isimsiz kampanya)',
         'ads_center.budget': 'Bütçe',
+        'ads_center.budget_simple':
+            'Yayın tarihini ve temel bütçe alanlarını belirle.',
+        'ads_center.advanced_settings': 'Gelişmiş Ayarlar',
+        'ads_center.advanced_settings_simple':
+            'Detay hedefleme ve teknik alanlar burada kalsın.',
+        'ads_center.show_advanced': 'Gelişmiş alanları göster',
+        'ads_center.hide_advanced': 'Gelişmiş alanları gizle',
         'ads_center.activate': 'Aktif Et',
         'ads_center.pause': 'Duraklat',
         'ads_center.no_delivery_logs': 'Delivery log bulunamadı.',
@@ -4258,6 +4269,8 @@ class AppTranslations extends Translations {
         'ads_center.feature_flags': 'Feature Flags',
         'ads_center.status': 'Status',
         'ads_center.campaign_info': 'Campaign Info',
+        'ads_center.campaign_info_simple':
+            'Pick the name, placement, and advertiser only.',
         'ads_center.campaign_name': 'Campaign Name',
         'ads_center.advertiser': 'Advertiser',
         'ads_center.budget_type': 'Budget Type',
@@ -4277,6 +4290,8 @@ class AppTranslations extends Translations {
         'ads_center.device_platform_ios':
             'Device Platform: iOS (first phase fixed)',
         'ads_center.creative_attachment': 'Creative Attachment',
+        'ads_center.creative_simple':
+            'Fill the media, headline, body, and destination.',
         'ads_center.creative_type': 'Creative Type',
         'ads_center.start_date': 'Start Date',
         'ads_center.end_date': 'End Date',
@@ -4320,6 +4335,13 @@ class AppTranslations extends Translations {
         'ads_center.no_campaigns': 'No campaigns found.',
         'ads_center.untitled_campaign': '(untitled campaign)',
         'ads_center.budget': 'Budget',
+        'ads_center.budget_simple':
+            'Set the schedule and the core budget fields.',
+        'ads_center.advanced_settings': 'Advanced Settings',
+        'ads_center.advanced_settings_simple':
+            'Keep targeting and technical fields here.',
+        'ads_center.show_advanced': 'Show advanced fields',
+        'ads_center.hide_advanced': 'Hide advanced fields',
         'ads_center.activate': 'Activate',
         'ads_center.pause': 'Pause',
         'ads_center.no_delivery_logs': 'No delivery logs found.',
@@ -8175,6 +8197,8 @@ class AppTranslations extends Translations {
         'ads_center.feature_flags': 'Feature Flags',
         'ads_center.status': 'Status',
         'ads_center.campaign_info': 'Kampagneninfo',
+        'ads_center.campaign_info_simple':
+            'Wähle nur Name, Platzierung und Werbetreibenden aus.',
         'ads_center.campaign_name': 'Kampagnenname',
         'ads_center.advertiser': 'Werbetreibender',
         'ads_center.budget_type': 'Budgettyp',
@@ -8194,6 +8218,8 @@ class AppTranslations extends Translations {
         'ads_center.device_platform_ios':
             'Geräteplattform: iOS (erste Phase fest)',
         'ads_center.creative_attachment': 'Kreativ-Anhang',
+        'ads_center.creative_simple':
+            'Gib Medium, Titel, Text und Ziel-URL ein.',
         'ads_center.creative_type': 'Kreativtyp',
         'ads_center.start_date': 'Startdatum',
         'ads_center.end_date': 'Enddatum',
@@ -8237,6 +8263,13 @@ class AppTranslations extends Translations {
         'ads_center.no_campaigns': 'Keine Kampagne gefunden.',
         'ads_center.untitled_campaign': '(unbenannte Kampagne)',
         'ads_center.budget': 'Budget',
+        'ads_center.budget_simple':
+            'Lege Zeitraum und die wichtigsten Budgetfelder fest.',
+        'ads_center.advanced_settings': 'Erweiterte Einstellungen',
+        'ads_center.advanced_settings_simple':
+            'Targeting- und Technikfelder bleiben hier.',
+        'ads_center.show_advanced': 'Erweiterte Felder anzeigen',
+        'ads_center.hide_advanced': 'Erweiterte Felder ausblenden',
         'ads_center.activate': 'Aktivieren',
         'ads_center.pause': 'Pausieren',
         'ads_center.no_delivery_logs': 'Keine Delivery-Logs gefunden.',

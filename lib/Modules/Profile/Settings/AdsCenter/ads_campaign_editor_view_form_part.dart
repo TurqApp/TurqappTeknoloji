@@ -1,6 +1,54 @@
 part of 'ads_campaign_editor_view.dart';
 
 extension _AdsCampaignEditorViewFormPart on _AdsCampaignEditorViewState {
+  Widget _sectionCard({
+    required String title,
+    String? subtitle,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'MontserratBold',
+              fontSize: 15,
+            ),
+          ),
+          if (subtitle != null && subtitle.trim().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontFamily: 'MontserratMedium',
+                fontSize: 12,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
   Widget _section(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -26,6 +74,17 @@ extension _AdsCampaignEditorViewFormPart on _AdsCampaignEditorViewState {
       ),
       value: value,
       onChanged: onChanged,
+    );
+  }
+
+  Widget _compactInfo(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontFamily: 'MontserratMedium',
+        fontSize: 12,
+        color: Colors.black54,
+      ),
     );
   }
 
