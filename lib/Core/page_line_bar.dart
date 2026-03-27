@@ -9,7 +9,6 @@ import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart
 import 'package:turqappv2/Modules/SocialProfile/SocialProfileFollowers/social_profile_followers_controller.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
-part 'page_line_bar_controller_part.dart';
 part 'page_line_bar_controller_fields_part.dart';
 part 'page_line_bar_controller_support_part.dart';
 
