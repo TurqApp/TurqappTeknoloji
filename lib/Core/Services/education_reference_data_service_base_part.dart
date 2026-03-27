@@ -10,3 +10,6 @@ abstract class _EducationReferenceDataServiceBase extends GetxService {
   Future<List<Map<String, dynamic>>>? _higherEducationEntriesFuture,
       _dormitoryEntriesFuture;
 }
+
+class EducationReferenceDataService
+    extends _EducationReferenceDataServiceBase {}

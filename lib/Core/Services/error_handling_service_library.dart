@@ -12,7 +12,6 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 part 'error_handling_service_base_part.dart';
-part 'error_handling_service_class_part.dart';
 part 'error_handling_service_facade_part.dart';
 part 'error_handling_service_fields_part.dart';
 part 'error_handling_service_history_part.dart';

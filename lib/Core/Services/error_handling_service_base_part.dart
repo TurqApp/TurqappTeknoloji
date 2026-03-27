@@ -10,3 +10,5 @@ abstract class _ErrorHandlingServiceBase extends GetxController {
     (this as ErrorHandlingService)._monitorConnectivity();
   }
 }
+
+class ErrorHandlingService extends _ErrorHandlingServiceBase {}

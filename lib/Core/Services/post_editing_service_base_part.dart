@@ -9,3 +9,5 @@ abstract class _PostEditingServiceBase extends GetxController {
     (this as PostEditingService)._startSuggestionGeneration();
   }
 }
+
+class PostEditingService extends _PostEditingServiceBase {}
