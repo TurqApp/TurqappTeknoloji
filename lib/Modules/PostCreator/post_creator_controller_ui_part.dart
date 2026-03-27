@@ -74,6 +74,12 @@ extension _PostCreatorControllerUiX on PostCreatorController {
           agendaController.scrollController.jumpTo(0);
         }
         await persistUploadedPostsToHomeFeed(nowPosts);
+        unawaited(
+          _hydrateUploadedPostShortLinks(
+            nowPosts,
+            agendaController: agendaController,
+          ),
+        );
         ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
         progressController.complete('post_creator.upload_success'.tr);
       } else {
