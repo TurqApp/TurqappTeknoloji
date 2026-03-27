@@ -1,5 +1,13 @@
 part of 'biography_maker_controller.dart';
 
+BiographyMakerController ensureBiographyMakerController({
+  bool permanent = false,
+}) =>
+    _ensureBiographyMakerController(permanent: permanent);
+
+BiographyMakerController? maybeFindBiographyMakerController() =>
+    _maybeFindBiographyMakerController();
+
 BiographyMakerController _ensureBiographyMakerController({
   bool permanent = false,
 }) {

@@ -25,3 +25,7 @@ Future<void> _saveBiographyData(BiographyMakerController controller) async {
     controller.isSaving.value = false;
   }
 }
+
+extension BiographyMakerControllerFacadePart on BiographyMakerController {
+  Future<void> setData() => _saveBiographyData(this);
+}

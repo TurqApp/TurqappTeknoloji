@@ -18,3 +18,7 @@ abstract class _PostSharersControllerBase extends GetxController {
     super.onClose();
   }
 }
+
+class PostSharersController extends _PostSharersControllerBase {
+  PostSharersController({required super.postID});
+}
