@@ -192,7 +192,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         log("play url=\(currentUrl ?? "-")")
         playbackHealthMonitor.onPlaybackRequested()
         player?.play()
-        scheduleVisualLayerStabilization(forceReattach: true)
+        scheduleVisualLayerStabilization(forceReattach: false)
         sendEvent(["event": "play"])
     }
 
@@ -353,7 +353,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 switch item.status {
                 case .readyToPlay:
                     self?.log("readyToPlay url=\(self?.currentUrl ?? "-") duration=\(item.duration.seconds)")
-                    self?.refreshPlayerLayer(forceReattach: true)
+                    self?.refreshPlayerLayer(forceReattach: false)
                     self?.requestAutoplayIfNeeded(force: true)
                     self?.sendEvent([
                         "event": "ready",
@@ -421,7 +421,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             let totalDuration = duration.seconds
 
             if currentTime >= 0.0 && currentTime < 1.2 && !self.didStabilizeVisualLayer {
-                self.scheduleVisualLayerStabilization(forceReattach: true)
+                self.scheduleVisualLayerStabilization(forceReattach: false)
             }
 
             if currentTime.isFinite && totalDuration.isFinite {
@@ -530,13 +530,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 playerLayer.player = self.player
                 playerLayer.isHidden = false
                 playerLayer.frame = self._view.bounds
-                let shouldForceReattach = forceReattach && !self.didRenderFirstFrame
                 let needsAttach = playerLayer.superlayer == nil || playerLayer.superlayer !== self._view.layer
-                if shouldForceReattach {
-                    playerLayer.removeFromSuperlayer()
-                    self._view.layer.addSublayer(playerLayer)
-                    self.playbackHealthMonitor.onPlayerLayerAttached()
-                } else if needsAttach {
+                if needsAttach {
+                    if playerLayer.superlayer != nil {
+                        playerLayer.removeFromSuperlayer()
+                    }
                     self._view.layer.addSublayer(playerLayer)
                     self.playbackHealthMonitor.onPlayerLayerAttached()
                 }
