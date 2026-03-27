@@ -5,8 +5,12 @@ SocialProfileController ensureSocialProfileController({
   String? tag,
   bool permanent = false,
 }) =>
+    maybeFindSocialProfileController(tag: tag) ??
     _ensureSocialProfileController(
-        userID: userID, tag: tag, permanent: permanent);
+      userID: userID,
+      tag: tag,
+      permanent: permanent,
+    );
 
 SocialProfileController? maybeFindSocialProfileController({String? tag}) =>
     _maybeFindSocialProfileController(tag: tag);

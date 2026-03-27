@@ -5,8 +5,4 @@ extension EmptyPadding on num {
   SizedBox get pw => SizedBox(width: toDouble());
 }
 
-Widget appDivider() {
-  return Divider(
-    color: Colors.grey.shade200,
-  );
-}
+Widget appDivider() => Divider(color: Colors.grey.shade200);
