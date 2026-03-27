@@ -59,7 +59,7 @@ class OpticalPreviewController extends _OpticalPreviewControllerBase {
 
   @override
   void onClose() {
-    _handleOpticalPreviewClose(this);
+    _disposeOpticalPreviewController(this);
     super.onClose();
   }
 }
@@ -135,4 +135,47 @@ void _showOpticalPreviewAlert(String title, String desc) {
     title: title,
     message: desc,
   );
+}
+
+OpticalPreviewController ensureOpticalPreviewController(
+  OpticalFormModel model,
+  Function? onUpdate, {
+  String? tag,
+  bool permanent = false,
+}) {
+  final existing = maybeFindOpticalPreviewController(tag: tag);
+  if (existing != null) return existing;
+  return Get.put(
+    OpticalPreviewController(model, onUpdate),
+    tag: tag,
+    permanent: permanent,
+  );
+}
+
+OpticalPreviewController? maybeFindOpticalPreviewController({String? tag}) {
+  final isRegistered = Get.isRegistered<OpticalPreviewController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<OpticalPreviewController>(tag: tag);
+}
+
+extension OpticalPreviewControllerFacadePart on OpticalPreviewController {
+  void checkInternetConnection() => _checkOpticalPreviewInternet(this);
+
+  void setData() => _saveOpticalPreviewData(this);
+
+  void kullaniciyiSinavGirdiKaydet() => _initializeOpticalPreviewAnswers(this);
+
+  void toggleAnswer(int index, String item) =>
+      _toggleOpticalPreviewAnswer(this, index, item);
+
+  void handleFinishTest(BuildContext context) =>
+      _handleOpticalPreviewFinish(this);
+
+  void startTest() => selection.value = 1;
+
+  bool canStartTest() =>
+      fullName.text.trim().length >= 6 && ogrenciNo.text.trim().isNotEmpty;
+
+  void showAlertDialog(String title, String desc) =>
+      _showOpticalPreviewAlert(title, desc);
 }

@@ -21,3 +21,5 @@ abstract class _SearchDenemeControllerBase extends GetxController {
     super.onClose();
   }
 }
+
+class SearchDenemeController extends _SearchDenemeControllerBase {}

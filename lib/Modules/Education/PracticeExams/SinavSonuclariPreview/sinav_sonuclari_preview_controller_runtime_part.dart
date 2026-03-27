@@ -79,3 +79,14 @@ extension SinavSonuclariPreviewControllerRuntimePart
     expandedCategories[ders] = !(expandedCategories[ders] ?? false);
   }
 }
+
+extension SinavSonuclariPreviewControllerFacadePart
+    on SinavSonuclariPreviewController {
+  Future<void> getYanitlar() => _loadAnswers();
+
+  Future<void> getSorular() => _loadQuestions();
+
+  Future<void> getDersVeSonuclar(String docID) => _loadLessonResults(docID);
+
+  void toggleCategory(String ders) => _toggleCategory(ders);
+}

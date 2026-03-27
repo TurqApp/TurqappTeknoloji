@@ -22,3 +22,19 @@ SinavSonuclariPreviewController? _maybeFindSinavSonuclariPreviewController({
   if (!isRegistered) return null;
   return Get.find<SinavSonuclariPreviewController>(tag: tag);
 }
+
+SinavSonuclariPreviewController ensureSinavSonuclariPreviewController({
+  required String tag,
+  required SinavModel model,
+  bool permanent = false,
+}) =>
+    _ensureSinavSonuclariPreviewController(
+      tag: tag,
+      model: model,
+      permanent: permanent,
+    );
+
+SinavSonuclariPreviewController? maybeFindSinavSonuclariPreviewController({
+  required String tag,
+}) =>
+    _maybeFindSinavSonuclariPreviewController(tag: tag);
