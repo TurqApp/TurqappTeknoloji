@@ -1,5 +1,8 @@
 part of 'application_review_controller_library.dart';
 
+const Duration _applicationReviewSilentRefreshInterval = Duration(minutes: 3);
+const int _applicationReviewMaxCacheSize = 50;
+
 extension ApplicationReviewControllerRuntimeX on ApplicationReviewController {
   Future<void> _handleOnInit() async {
     final cached = await _jobRepository.fetchApplications(

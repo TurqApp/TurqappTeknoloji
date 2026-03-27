@@ -11,5 +11,4 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'optics_and_books_published_controller_fields_part.dart';
 part 'optics_and_books_published_controller_runtime_part.dart';
-part 'optics_and_books_published_controller_data_part.dart';
 part 'optics_and_books_published_controller_facade_part.dart';

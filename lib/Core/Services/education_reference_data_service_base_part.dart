@@ -1,6 +1,6 @@
 part of 'education_reference_data_service.dart';
 
-abstract class _EducationReferenceDataServiceBase extends GetxService {
+abstract class _EducationReferenceDataBase extends GetxService {
   List<String>? _countries;
   Future<List<String>>? _countriesFuture;
   List<Map<String, dynamic>>? _middleSchoolEntries, _highSchoolEntries;
@@ -11,5 +11,4 @@ abstract class _EducationReferenceDataServiceBase extends GetxService {
       _dormitoryEntriesFuture;
 }
 
-class EducationReferenceDataService
-    extends _EducationReferenceDataServiceBase {}
+class EducationReferenceDataService extends _EducationReferenceDataBase {}

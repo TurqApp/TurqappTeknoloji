@@ -1,5 +1,7 @@
 part of 'my_practice_exams_controller_library.dart';
 
+const Duration _myPracticeExamsSilentRefreshInterval = Duration(minutes: 5);
+
 extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
   bool _sameExamEntries(
     List<SinavModel> current,
@@ -102,6 +104,14 @@ extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
         isLoading.value = false;
       }
     }
+  }
+}
+
+class MyPracticeExamsController extends GetxController {
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_bootstrapExamsImpl());
   }
 }
 

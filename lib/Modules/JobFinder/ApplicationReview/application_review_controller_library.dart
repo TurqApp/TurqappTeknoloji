@@ -12,4 +12,3 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'application_review_controller_runtime_part.dart';
 part 'application_review_controller_fields_part.dart';
 part 'application_review_controller_facade_part.dart';
-part 'application_review_controller_constants_part.dart';
