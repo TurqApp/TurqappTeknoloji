@@ -9,6 +9,17 @@ class _SearchUserContentControllerState {
   final RxBool isNavigated = false.obs;
 }
 
+class SearchUserContentController extends GetxController {
+  final _SearchUserContentControllerState _state;
+
+  SearchUserContentController({required String userID})
+      : _state = _SearchUserContentControllerState(userID: userID);
+
+  Future<void> goToProfile() => _goToSearchUserProfile(this);
+
+  Future<void> removeFromLastSearch() => _removeFromSearchUserLastSearch(this);
+}
+
 extension SearchUserContentControllerFieldsPart on SearchUserContentController {
   UserSubcollectionRepository get _userSubcollectionRepository =>
       _state.userSubcollectionRepository;

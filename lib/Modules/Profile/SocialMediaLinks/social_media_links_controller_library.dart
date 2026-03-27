@@ -13,7 +13,6 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
-part 'social_media_links_controller_class_part.dart';
 part 'social_media_links_controller_fields_part.dart';
 part 'social_media_links_controller_facade_part.dart';
 part 'social_media_links_controller_runtime_part.dart';
