@@ -17,3 +17,10 @@ abstract class _StoryCommentsControllerBase extends GetxController {
     super.onClose();
   }
 }
+
+class StoryCommentsController extends _StoryCommentsControllerBase {
+  StoryCommentsController({
+    required super.nickname,
+    required super.storyID,
+  });
+}
