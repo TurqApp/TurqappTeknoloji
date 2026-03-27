@@ -9,5 +9,4 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'optical_preview_controller_facade_part.dart';
-part 'optical_preview_controller_fields_part.dart';
 part 'optical_preview_controller_runtime_part.dart';
