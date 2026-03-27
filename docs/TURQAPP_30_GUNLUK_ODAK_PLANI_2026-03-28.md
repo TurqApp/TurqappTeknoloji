@@ -418,7 +418,7 @@ Kritik islerden once ve sonra bu tablo doldurulur.
 
 | Checkpoint | Ilgili is | Onceki commit/branch | Dogrulama notu | Geri donus yontemi | Durum |
 | --- | --- | --- | --- | --- | --- |
-| CP-001 | T-001 oncesi | doldurulacak | baseline dogrulamasi | branch veya commit reset/cherry-pick plani | Acik |
+| CP-001 | T-001 oncesi | `codex/final-perf-firebase-baseline @ 35f3b0a9` | worktree temiz; kanonik plan commit'i alinmis durumda | bu commit'ten gecici branch ac veya gerekirse sonraki asamada revert/cherry-pick ile don | Kaydedildi |
 | CP-002 | T-004 oncesi | doldurulacak | callable/rules fallback davranisi | functions/rules rollback plani | Acik |
 | CP-003 | T-008 oncesi | doldurulacak | account/session davranisi | sign-in/session rollback plani | Acik |
 | CP-004 | T-010 oncesi | doldurulacak | startup route ve splash davranisi | startup rollback plani | Acik |
@@ -490,7 +490,7 @@ Her tamamlanan is en az bir kanit kaydi uretir.
 
 | Artifact ID | Is No | Kanit tipi | Dosya / cikti | Uretim komutu | Reviewed by | Durum |
 | --- | --- | --- | --- | --- | --- | --- |
-| ART-001 | T-001 | baseline envanteri | doldurulacak | doldurulacak | doldurulacak | Acik |
+| ART-001 | T-001 | baseline envanteri | `docs/architecture/T-001_BASELINE_ENVANTERI_2026-03-28.md` | `git status` + `git rev-parse` + `find/rg` bazli envanter komutlari | Codex local review | Hazir |
 | ART-002 | T-003 | import graph + locator raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-003 | T-009 | architecture guard ciktilari | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-004 | T-021 | backend/rules regression test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
