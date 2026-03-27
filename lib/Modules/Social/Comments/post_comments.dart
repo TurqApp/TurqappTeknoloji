@@ -21,9 +21,13 @@ Widget buildPostCommentsSheet({
 }) {
   final media = MediaQuery.of(context);
   final preferredHeight = media.size.height * preferredHeightFactor;
+  const topSheetGap = 20.0;
   final maxVisibleHeight = math.max(
     0.0,
-    media.size.height - media.viewInsets.bottom - media.padding.top - 12,
+    media.size.height -
+        media.viewInsets.bottom -
+        media.padding.top -
+        topSheetGap,
   );
   final resolvedHeight = maxVisibleHeight <= 240
       ? maxVisibleHeight
@@ -116,128 +120,121 @@ class _PostCommentsState extends State<PostComments> {
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenComments),
       backgroundColor: Colors.transparent,
-      // <<< Prevent the layout from resizing when keyboard opens
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         bottom: false,
         child: Obx(() {
-          return Stack(
-            children: [
-              // Main sheet
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  children: [
-                    header(),
-                    // Comment list or placeholder
-                    Expanded(
-                      child: controller.list.isNotEmpty
-                          ? ListView.builder(
-                              physics: const ClampingScrollPhysics(),
-                              padding: const EdgeInsets.only(top: 6, bottom: 4),
-                              itemCount: controller.list.length,
-                              itemBuilder: (ctx, i) => Column(
-                                children: [
-                                  PostCommentContent(
-                                    key: ValueKey(
-                                      'post_comment_${controller.list[i].docID}',
-                                    ),
-                                    model: controller.list[i],
-                                    postID: widget.postID,
-                                    postOwnerUserId: widget.userID,
-                                    commentControllerTag: _controllerTag,
-                                    isPending: controller.isPendingComment(
-                                        controller.list[i].docID),
-                                    onReplyTap: (commentId, nickname) {
-                                      controller.setReplyTarget(
-                                        commentId: commentId,
-                                        nickname: nickname,
-                                      );
-                                      final mention = '@$nickname ';
-                                      if (textEditingController.text !=
-                                          mention) {
-                                        textEditingController.text = mention;
-                                        textEditingController.selection =
-                                            TextSelection.fromPosition(
-                                          TextPosition(
-                                            offset: textEditingController
-                                                .text.length,
-                                          ),
-                                        );
-                                      }
-                                      focusNode.requestFocus();
-                                      setState(() {});
-                                    },
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                header(),
+                Expanded(
+                  child: controller.list.isNotEmpty
+                      ? ListView.builder(
+                          reverse: true,
+                          physics: const ClampingScrollPhysics(),
+                          padding: const EdgeInsets.only(top: 6, bottom: 4),
+                          itemCount: controller.list.length,
+                          itemBuilder: (ctx, i) {
+                            final model = controller.list[i];
+                            return Column(
+                              children: [
+                                PostCommentContent(
+                                  key: ValueKey(
+                                    'post_comment_${model.docID}',
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 58, top: 6, bottom: 6),
-                                    child: SizedBox(
-                                      height: 1,
-                                      child: Divider(
-                                        color: Colors.grey.withAlpha(20),
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            )
-                          : Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.lightbulb_outline,
-                                      color: Colors.black54,
-                                      size: 30,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'comments.empty'.tr,
-                                      style: TextStyle(
-                                        color: Colors.black54,
-                                        fontSize: 16,
-                                        fontFamily: "Montserrat",
-                                      ),
-                                    ),
-                                  ],
+                                  model: model,
+                                  postID: widget.postID,
+                                  postOwnerUserId: widget.userID,
+                                  commentControllerTag: _controllerTag,
+                                  isPending: controller.isPendingComment(
+                                    model.docID,
+                                  ),
+                                  onReplyTap: (commentId, nickname) {
+                                    controller.setReplyTarget(
+                                      commentId: commentId,
+                                      nickname: nickname,
+                                    );
+                                    final mention = '@$nickname ';
+                                    if (textEditingController.text != mention) {
+                                      textEditingController.text = mention;
+                                      textEditingController.selection =
+                                          TextSelection.fromPosition(
+                                        TextPosition(
+                                          offset:
+                                              textEditingController.text.length,
+                                        ),
+                                      );
+                                    }
+                                    focusNode.requestFocus();
+                                    setState(() {});
+                                  },
                                 ),
-                              ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 58,
+                                    top: 6,
+                                    bottom: 6,
+                                  ),
+                                  child: SizedBox(
+                                    height: 1,
+                                    child: Divider(
+                                      color: Colors.grey.withAlpha(20),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lightbulb_outline,
+                                  color: Colors.black54,
+                                  size: 30,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'comments.empty'.tr,
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 16,
+                                    fontFamily: "Montserrat",
+                                  ),
+                                ),
+                              ],
                             ),
-                    ),
-
-                    // Emoji row
-                    Container(
-                      color: Colors.grey.withAlpha(0),
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: emojis.map((e) {
-                          return GestureDetector(
-                            onTap: () {
-                              textEditingController.text += e;
-                              setState(() {});
-                            },
-                            child:
-                                Text(e, style: const TextStyle(fontSize: 24)),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-
-                    // Placeholder for space under the input row
-                    const SizedBox(height: 72),
-                  ],
+                          ),
+                        ),
                 ),
-              ),
-
-              inputRow()
-            ],
+                Container(
+                  color: Colors.grey.withAlpha(0),
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: emojis.map((e) {
+                      return GestureDetector(
+                        onTap: () {
+                          textEditingController.text += e;
+                          setState(() {});
+                        },
+                        child: Text(e, style: const TextStyle(fontSize: 24)),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                inputRow(),
+              ],
+            ),
           );
         }),
       ),
@@ -280,10 +277,8 @@ class _PostCommentsState extends State<PostComments> {
   }
 
   Widget inputRow() {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 14,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
       child: Obx(
         () => CommentComposerBar(
           avatarUrl: user.avatarUrl,
