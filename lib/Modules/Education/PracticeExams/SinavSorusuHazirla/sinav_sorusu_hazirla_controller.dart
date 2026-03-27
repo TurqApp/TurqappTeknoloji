@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
-
 part 'sinav_sorusu_hazirla_controller_base_part.dart';
 part 'sinav_sorusu_hazirla_controller_class_part.dart';
 part 'sinav_sorusu_hazirla_controller_fields_part.dart';
