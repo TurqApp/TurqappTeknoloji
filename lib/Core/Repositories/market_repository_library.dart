@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 
 part 'market_repository_action_part.dart';
-part 'market_repository_base_part.dart';
 part 'market_repository_cache_part.dart';
 part 'market_repository_class_part.dart';
 part 'market_repository_facade_part.dart';

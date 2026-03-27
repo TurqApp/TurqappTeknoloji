@@ -14,3 +14,14 @@ part of 'cache_manager.dart';
 abstract class _SegmentCacheManagerBase extends GetxController {
   final _state = _SegmentCacheManagerState();
 }
+
+class SegmentCacheManager extends _SegmentCacheManagerBase {
+  static SegmentCacheManager? maybeFind() => maybeFindSegmentCacheManager();
+  static SegmentCacheManager ensure() => ensureSegmentCacheManager();
+
+  @override
+  Future<void> onClose() async {
+    await _handleSegmentCacheManagerOnClose();
+    super.onClose();
+  }
+}

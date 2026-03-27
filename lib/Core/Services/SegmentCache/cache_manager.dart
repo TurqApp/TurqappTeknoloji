@@ -20,4 +20,3 @@ part 'cache_manager_fields_part.dart';
 part 'cache_manager_runtime_part.dart';
 part 'cache_manager_storage_part.dart';
 part 'cache_manager_write_part.dart';
-part 'cache_manager_class_part.dart';

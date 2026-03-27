@@ -20,3 +20,5 @@ abstract class _AdsFeatureFlagsServiceBase extends GetxService {
     super.onClose();
   }
 }
+
+class AdsFeatureFlagsService extends _AdsFeatureFlagsServiceBase {}
