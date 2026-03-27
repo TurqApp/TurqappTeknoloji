@@ -1,6 +1,22 @@
 part of 'story_maker_controller.dart';
 
 extension StoryMakerControllerMediaPart on StoryMakerController {
+  Future<void> _resumeSelectedMusicPreview() async {
+    try {
+      if (_audioPlayer.state == PlayerState.disposed ||
+          selectedMusic.value == null ||
+          music.value.trim().isEmpty) {
+        return;
+      }
+      await AudioFocusCoordinator.instance.requestAudioPlayerPlay(_audioPlayer);
+      await _audioPlayer.resume();
+      isMusicPlaying.value = true;
+    } catch (e) {
+      debugPrint("resumeSelectedMusicPreview error: $e");
+      isMusicPlaying.value = false;
+    }
+  }
+
   void applySharedPostSeedIfNeeded({
     required String mediaUrl,
     required bool isVideo,
@@ -252,62 +268,68 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
   }
 
   void selectMusic() async {
+    final hadPreviewPlaying = isMusicPlaying.value;
+    pauseMusic();
     final track = await Get.to<MusicModel>(() => SpotifySelector());
-
-    if (track != null && track.audioUrl.isNotEmpty) {
-      final hasAnyUnmutedVideo =
-          elements.any((e) => e.type == StoryElementType.video && !e.isMuted);
-      bool muteVideosDecision = false;
-      if (hasAnyUnmutedVideo) {
-        await noYesAlert(
-          title: 'story.video_audio_title'.tr,
-          message: 'story.music_mute_videos_message'.tr,
-          yesText: 'story.music_mute_videos_yes'.tr,
-          cancelText: 'common.no'.tr,
-          onYesPressed: () {
-            muteVideosDecision = true;
-          },
-        );
+    if (track == null || track.audioUrl.isEmpty) {
+      if (hadPreviewPlaying) {
+        await _resumeSelectedMusicPreview();
       }
-      if (muteVideosDecision) {
-        for (var e in elements) {
-          if (e.type == StoryElementType.video) {
-            e.isMuted = true;
-          }
+      return;
+    }
+
+    final hasAnyUnmutedVideo =
+        elements.any((e) => e.type == StoryElementType.video && !e.isMuted);
+    bool muteVideosDecision = false;
+    if (hasAnyUnmutedVideo) {
+      await noYesAlert(
+        title: 'story.video_audio_title'.tr,
+        message: 'story.music_mute_videos_message'.tr,
+        yesText: 'story.music_mute_videos_yes'.tr,
+        cancelText: 'common.no'.tr,
+        onYesPressed: () {
+          muteVideosDecision = true;
+        },
+      );
+    }
+    if (muteVideosDecision) {
+      for (var e in elements) {
+        if (e.type == StoryElementType.video) {
+          e.isMuted = true;
         }
+      }
+      elements.refresh();
+    }
+
+    try {
+      if (_audioPlayer.state != PlayerState.disposed) {
+        await _audioPlayer.stop();
+      }
+    } catch (e) {
+      print("selectMusic stop error (ignored): $e");
+    }
+
+    try {
+      if (_audioPlayer.state != PlayerState.disposed) {
+        await AudioFocusCoordinator.instance.requestAudioPlayerPlay(
+          _audioPlayer,
+        );
+        final playablePath = await StoryMusicLibraryService.instance
+            .resolvePlayablePath(track.audioUrl);
+        if (playablePath.isNotEmpty) {
+          await _audioPlayer.play(DeviceFileSource(playablePath));
+        } else {
+          await _audioPlayer.play(UrlSource(track.audioUrl));
+        }
+        isMusicPlaying.value = true;
+        unawaited(StoryMusicLibraryService.instance.warmTrack(track));
+        selectedMusic.value = track;
+        music.value = track.audioUrl;
         elements.refresh();
       }
-
-      try {
-        if (_audioPlayer.state != PlayerState.disposed) {
-          await _audioPlayer.stop();
-        }
-      } catch (e) {
-        print("selectMusic stop error (ignored): $e");
-      }
-
-      try {
-        if (_audioPlayer.state != PlayerState.disposed) {
-          await AudioFocusCoordinator.instance.requestAudioPlayerPlay(
-            _audioPlayer,
-          );
-          final playablePath = await StoryMusicLibraryService.instance
-              .resolvePlayablePath(track.audioUrl);
-          if (playablePath.isNotEmpty) {
-            await _audioPlayer.play(DeviceFileSource(playablePath));
-          } else {
-            await _audioPlayer.play(UrlSource(track.audioUrl));
-          }
-          isMusicPlaying.value = true;
-          unawaited(StoryMusicLibraryService.instance.warmTrack(track));
-          selectedMusic.value = track;
-          music.value = track.audioUrl;
-          elements.refresh();
-        }
-      } catch (e) {
-        debugPrint("selectMusic play error: $e");
-        isMusicPlaying.value = false;
-      }
+    } catch (e) {
+      debugPrint("selectMusic play error: $e");
+      isMusicPlaying.value = false;
     }
   }
 
