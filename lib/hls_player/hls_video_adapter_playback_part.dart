@@ -108,6 +108,23 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performSeekTo(Duration pos) {
     if (_disposed) return Future.value();
+    final shouldClearCompleted =
+        _value.isCompleted && (_value.duration == Duration.zero || pos < _value.duration);
+    if (shouldClearCompleted) {
+      _value = HLSVideoValue(
+        isInitialized: _value.isInitialized,
+        isPlaying: false,
+        isBuffering: _value.isBuffering,
+        isCompleted: false,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
+        position: pos,
+        duration: _value.duration,
+        size: _value.size,
+        aspectRatio: _value.aspectRatio,
+        buffered: _value.buffered,
+      );
+      _notifyAdapterListeners();
+    }
     if (_viewReady) return _hls.seekTo(pos.inMilliseconds / 1000.0);
     _pendingSeek = pos;
     return Future.value();
