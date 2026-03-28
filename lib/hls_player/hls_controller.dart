@@ -118,8 +118,11 @@ class HLSController {
       final previousPosition =
           _currentPosition.isFinite ? _currentPosition : 0.0;
       final shouldRestorePosition = previousPosition > 0.05;
+      final hadStablePlaybackFrame =
+          _hasRenderedFirstFrame || previousPosition > 0.05;
       final shouldResumePlay =
-          _state == PlayerState.playing || _state == PlayerState.buffering;
+          hadStablePlaybackFrame &&
+          (_state == PlayerState.playing || _state == PlayerState.buffering);
       if (shouldRestorePosition || shouldResumePlay) {
         _pendingReattachSeekSeconds = previousPosition;
         _pendingReattachShouldPlay = shouldResumePlay;
