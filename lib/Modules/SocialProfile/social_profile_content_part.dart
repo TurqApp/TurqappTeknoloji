@@ -217,15 +217,8 @@ extension _SocialProfileContentPart on _SocialProfileState {
                   child: Divider(color: Colors.grey.withAlpha(50)),
                 ),
                 if ((actualIndex + 1) % 4 == 0)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(5, 8, 5, 8),
-                    child: AdmobKare(
-                      key: ValueKey(
-                        'socialprof-ad-slot-${(actualIndex + 1) ~/ 4}',
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                      suggestionPlacementId: 'profile',
-                    ),
+                  _buildFeedMirroredPromoSlot(
+                    slotNumber: (actualIndex + 1) ~/ 4,
                   ),
                 const SizedBox(height: 12),
               ],
@@ -233,6 +226,43 @@ extension _SocialProfileContentPart on _SocialProfileState {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildFeedMirroredPromoSlot({
+    required int slotNumber,
+  }) {
+    final isModernView =
+        CurrentUserService.instance.effectiveViewSelection == 1;
+    final liveAdOffsetX = isModernView ? 5.0 : 5.0;
+    final edgeInsets = isModernView
+        ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
+        : const EdgeInsets.fromLTRB(5, 8, 5, 0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: edgeInsets,
+          child: AdmobKare(
+            key: ValueKey('socialprof-feed-ad-$slotNumber'),
+            contentPadding: EdgeInsets.zero,
+            liveAdOffsetX: liveAdOffsetX,
+            promoFallbackOffsetX: 0,
+            promoFallbackExtraWidth: 0,
+            forceSingleLinePromoChips: true,
+            suggestionPlacementId: 'feed',
+          ),
+        ),
+        if (!isModernView) ...[
+          const SizedBox(height: 7),
+          Divider(
+            color: Colors.grey.withAlpha(20),
+            height: 3,
+          ),
+          const SizedBox(height: 13),
+        ],
+      ],
     );
   }
 
