@@ -698,7 +698,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Kapandi | `F2-004` ile market root sayaçlari icin server-owned pipeline kuruldu; favorites/offers/reviews event kaynaklari trigger'lara, views ise callable + shard + reducer hattina tasindi; owner update denylist ve rules testleri yesil |
 | RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Kapandi | `F2-010` ile integration smoke'taki `permission-denied`, `remote gate watch` ve erken blank-surface gurultusu sweep seviyesinde daraltildi; resmi rules/runtime report'u `blockingScenarioCount = 0` ile yesil dondu |
 | RISK-008 | Risk | Orta | F2-001, F3-001 | Kapandi | `F3-001` ile `scripts/check_task_isolation.sh` eklendi; beklenen `HEAD` drifti ve allowlist disi kirli dosyalar artik tekrar uretilebilir sekilde fail ettiriliyor ve artifact uretimiyle raporlaniyor |
-| DEBT-001 | Debt | Orta | T-030, F2-011, F3-003, F3-004 | Acik | `F2-011`, `F3-003` ve `F3-004` ile secili sicak kumelerde toplam `34` mikro part kaldirildi; Startup/Auth/Session, Profile/Social ve Feed/Playback giris yuzeyi daraldi, ancak repo genelinde part-sprawl debt'i suruyor |
+| DEBT-001 | Debt | Orta | T-030, F2-011, F3-003, F3-004, M1-001 | Acik | `M1-001` ile aktif cache/snapshot calismasi icin `22` dosyalik resmi mini-faz kapsami ve `11` dosyalik freeze/dis-kapsam listesi sabitlendi; buna ragmen repo genelinde part-sprawl debt'i suruyor ve kapanis icin `M1-002` - `M1-004` dalgasi gerekiyor |
 | DEBT-002 | Debt | Orta | T-031, F2-011, F3-003, F3-004, F3-005 | Kapandi | `F3-005` ile tracked `.dart` yuzeyi icin repo toplam butcesi ve secili sicak kume guard'lari CI'ya baglandi; repo kucuk degil ama artik `repo_total`, `startup_auth_session_hot`, `profile_social_hot` ve `feed_playback_hot` yuzeyi tekrar buyurse guard fail veriyor ve watch cluster hedefleri artifact ile raporlaniyor |
 | DEBT-003 | Debt | Orta | T-024 | Kapandi | `LikedPostControllers.isSeriesPost` uyumluluk yardimcisi geri eklendi; `flutter test --coverage test/unit/modules/profile/liked_posts_controller_test.dart` tekrar geciyor ve full coverage lane bu noktayi artik asiyor |
 | DEBT-004 | Debt | Orta | T-024 | Kapandi | `test/unit/services/runtime_health_exporter_test.dart` guncel `ensureHlsDataUsageProbe()` facade API'sine tasindi; hedefli test ve coverage kosusu tekrar geciyor, full lane bu noktayi artik asiyor |
@@ -791,6 +791,30 @@ Faz 3 artifact kayitlari:
 | F3-ART-003 | `docs/testing/faz3_profile_social_hot_cluster_cleanup_2026-03-28.md` | Dolu | `F3-003` ile `Profile/MyProfile` ve `SocialProfile` sicak kumesinde `class/base/facade` mikro parcalari ana dosyalara tasindi; toplam dosya yuzeyi `66 -> 57`, `*part.dart` sayisi `55 -> 46` indi |
 | F3-ART-004 | `docs/testing/faz3_feed_playback_hot_cluster_cleanup_2026-03-28.md` | Dolu | `F3-004` ile `Agenda`, `Short`, `FloodListing`, `TopTags` ve `StoryHighlights` giris dosyalarinda `class/base/facade` mikro parcalari ana dosyalara tasindi; secilen mekanik giris yuzeyi `18 -> 5` indi ve `13` mikro part kaldirildi |
 | F3-ART-005 | `docs/testing/faz3_surface_budget_guard_2026-03-29.md` | Dolu | `F3-005` ile tracked `.dart` dosyalari icin `repo_total`, `startup_auth_session_hot`, `profile_social_hot` ve `feed_playback_hot` butceleri guard altina alindi; `Education`, `Core Services` ve `Market/Job/Creator` cluster'lari da watch hedefi olarak raporlanmaya baslandi |
+
+## Mini Faz 1 Resmi Plan
+
+Bu mini faz, yalnizca acik `DEBT-001` kaydini cache/snapshot sicak kumesinde
+kontrollu ve dar kapsamli bir dalga ile ele almak icin tanimlandi.
+
+Toplam:
+
+- is sayisi: `4`
+- puan: `14`
+- plan sagligi gozden gecirme tetigi: `4`
+
+| Is No | Baslik | Kaynak | Bagimlilik | Efor/Puan | Durum |
+| --- | --- | --- | --- | --- | --- |
+| M1-001 | Cache/Snapshot hot-cluster envanteri ve freeze siniri | `DEBT-001` | - | M/2 | Tamamlandi |
+| M1-002 | CacheFirst mekanik part sadeleştirmesi | `DEBT-001` | M1-001 | XL/5 | Acik |
+| M1-003 | Feed/Profile/Short snapshot repository mekanik cleanup | `DEBT-001` | M1-001 | XL/5 | Acik |
+| M1-004 | Part-sprawl debt kapanis guard'i ve final olcum | `DEBT-001` | M1-002, M1-003 | M/2 | Acik |
+
+Mini Faz 1 artifact kayitlari:
+
+| Kayit | Yol | Durum | Not |
+| --- | --- | --- | --- |
+| M1-ART-001 | `docs/testing/mini_faz_cache_snapshot_inventory_2026-03-29.md` | Dolu | `M1-001` ile cache/snapshot calismasi icin resmi scope, freeze/dis-kapsam listesi ve sonraki islerin yazma siniri sabitlendi |
 
 
 ## Feature Sahiplik Matrisi
