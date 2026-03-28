@@ -55,12 +55,16 @@ extension AgendaControllerPlaybackPart on AgendaController {
     );
 
     if (targetIndex >= 0 && targetIndex < agendaList.length) {
-      if (centeredIndex.value != targetIndex) {
+      final centeredChanged = centeredIndex.value != targetIndex;
+      if (centeredChanged) {
         centeredIndex.value = targetIndex;
       }
       lastCenteredIndex = targetIndex;
-      if (centeredIndex.value != targetIndex ||
-          !_isPlaybackTargetCurrent(targetIndex)) {
+      // When centeredIndex changes, the bound listener is the single owner of
+      // the autoplay dispatch. Issuing a second command here creates duplicate
+      // playOnlyThis bursts for the same card and destabilizes Android feed
+      // playback after scroll settle.
+      if (!centeredChanged && !_isPlaybackTargetCurrent(targetIndex)) {
         _ensureFeedPlaybackForIndex(targetIndex);
       }
     } else {
