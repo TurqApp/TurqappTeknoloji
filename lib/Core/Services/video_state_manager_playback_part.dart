@@ -1,5 +1,7 @@
 part of 'video_state_manager.dart';
 
+const int _videoStateManagerMaxPendingPlayRetries = 6;
+
 extension VideoStateManagerPlaybackPart on VideoStateManager {
   void _saveVideoState(String docID, PlaybackHandle handle) {
     if (!handle.isInitialized) return;
@@ -141,6 +143,33 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
   }
 
+  void _schedulePendingPlayResume(
+    String docID,
+    int requestSeq, {
+    int attempt = 0,
+  }) {
+    _pendingPlayTimer?.cancel();
+    _pendingPlayTimer = Timer(_videoStateManagerPlayResumeDelay, () {
+      if (requestSeq != _playRequestSeq) return;
+      if (_currentPlayingDocID != docID) return;
+      final handle = _allVideoControllers[docID];
+      if (handle == null) return;
+      if (!handle.isInitialized) {
+        if (attempt >= _videoStateManagerMaxPendingPlayRetries) return;
+        _schedulePendingPlayResume(
+          docID,
+          requestSeq,
+          attempt: attempt + 1,
+        );
+        return;
+      }
+      if (!handle.isPlaying) {
+        handle.play();
+        _stopDormantAndroidHandlesExcept(docID);
+      }
+    });
+  }
+
   void _playOnlyThis(String docID) {
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
@@ -158,17 +187,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
 
     _pauseAllExcept(docID);
-
-    _pendingPlayTimer?.cancel();
-    _pendingPlayTimer = Timer(_videoStateManagerPlayResumeDelay, () {
-      if (requestSeq != _playRequestSeq) return;
-      if (_currentPlayingDocID != docID) return;
-      final handle = _allVideoControllers[docID];
-      if (handle != null && handle.isInitialized && !handle.isPlaying) {
-        handle.play();
-        _stopDormantAndroidHandlesExcept(docID);
-      }
-    });
+    _schedulePendingPlayResume(docID, requestSeq);
   }
 
   void _reassertOnlyThis(String docID) {
@@ -182,16 +201,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
     _pauseAllExcept(docID);
-    _pendingPlayTimer?.cancel();
-    _pendingPlayTimer = Timer(_videoStateManagerPlayResumeDelay, () {
-      if (requestSeq != _playRequestSeq) return;
-      if (_currentPlayingDocID != docID) return;
-      final currentHandle = _allVideoControllers[docID];
-      if (currentHandle != null && currentHandle.isInitialized) {
-        currentHandle.play();
-        _stopDormantAndroidHandlesExcept(docID);
-      }
-    });
+    _schedulePendingPlayResume(docID, requestSeq);
   }
 
   void _requestPlayVideo(String docID, PlaybackHandle handle) {
