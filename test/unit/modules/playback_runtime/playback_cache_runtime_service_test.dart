@@ -175,6 +175,34 @@ void main() {
       expect(source, contains('activatePlaybackTargetIfReady'));
     }
   });
+
+  test('feed surfaces share shouldPlay policy and settled reassert hooks',
+      () async {
+    final viewFiles = <String>[
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/agenda_view_feed_part.dart',
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Profile/MyProfile/profile_view_shell_content_part.dart',
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/SocialProfile/social_profile_content_part.dart',
+    ];
+    final lifecycleFiles = <String>[
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Profile/MyProfile/profile_view_lifecycle_part.dart',
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/SocialProfile/social_profile_lifecycle_part.dart',
+    ];
+
+    for (final path in viewFiles) {
+      final source = await File(path).readAsString();
+      expect(source,
+          contains('FeedPlaybackSelectionPolicy.shouldPlayCenteredItem('));
+    }
+
+    for (final path in lifecycleFiles) {
+      final source = await File(path).readAsString();
+      expect(
+        source,
+        contains('FeedPlaybackSelectionPolicy.scrollSettleReassertDuration'),
+      );
+      expect(source, contains('ensureCenteredPlaybackForCurrentSelection()'));
+    }
+  });
 }
 
 class _FakePlaybackHandle implements PlaybackHandle {

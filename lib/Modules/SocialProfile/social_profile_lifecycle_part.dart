@@ -39,6 +39,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
   }
 
   void _disposeSocialProfile() {
+    _scrollSettleDebounce?.cancel();
     _linksHighlightsScrollController.dispose();
     for (final scrollController in _scrollControllers.values) {
       scrollController.dispose();
@@ -114,6 +115,22 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       } else {
         controller.lastCenteredIndex = 0;
       }
+      if (controller.postSelection.value == 0) {
+        _scrollSettleDebounce?.cancel();
+        _scrollSettleDebounce = Timer(
+          FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+          () {
+            if (!mounted || controller.postSelection.value != 0) return;
+            final centered = controller.centeredIndex.value;
+            if (centered >= 0 &&
+                centered < controller.combinedFeedEntries.length) {
+              controller.ensureCenteredPlaybackForCurrentSelection();
+            } else {
+              controller.resumeCenteredPost();
+            }
+          },
+        );
+      }
       return;
     }
 
@@ -123,6 +140,23 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
         controller.centeredIndex.value = safeLastIndex;
         controller.lastCenteredIndex = safeLastIndex;
       });
+    }
+
+    if (controller.postSelection.value == 0) {
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          if (!mounted || controller.postSelection.value != 0) return;
+          final centered = controller.centeredIndex.value;
+          if (centered >= 0 &&
+              centered < controller.combinedFeedEntries.length) {
+            controller.ensureCenteredPlaybackForCurrentSelection();
+          } else {
+            controller.resumeCenteredPost();
+          }
+        },
+      );
     }
   }
 

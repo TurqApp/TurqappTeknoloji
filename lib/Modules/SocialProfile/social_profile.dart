@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -22,6 +23,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -79,6 +81,7 @@ class _SocialProfileState extends State<SocialProfile> {
   final Map<int, ScrollController> _scrollControllers =
       <int, ScrollController>{};
   bool _scrollProbeScheduled = false;
+  Timer? _scrollSettleDebounce;
   bool _ownsController = false;
   bool _ownsHighlightsController = false;
   bool _ownsChatListingController = false;

@@ -46,6 +46,9 @@ extension SocialProfileControllerSupportPart on SocialProfileController {
 
   void resumeCenteredPost() => _performResumeCenteredPost();
 
+  void ensureCenteredPlaybackForCurrentSelection() =>
+      _performEnsureCenteredPlaybackForIndex(centeredIndex.value);
+
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
       _performOnPostVisibilityChanged(modelIndex, visibleFraction);
 

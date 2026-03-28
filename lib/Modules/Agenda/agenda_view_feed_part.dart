@@ -241,6 +241,9 @@ extension _AgendaViewFeedPart on AgendaView {
       id: controller.feedPlaybackRowUpdateId(agendaIndex),
       builder: (agendaController) {
         final isCentered = agendaController.centeredIndex.value == agendaIndex;
+        final shouldPlay = FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+          isCentered: isCentered,
+        );
         return Obx(() {
           final viewSelection =
               CurrentUserService.instance.effectiveViewSelection;
@@ -249,7 +252,7 @@ extension _AgendaViewFeedPart on AgendaView {
               key: ValueKey(stableKeyString),
               model: model,
               isPreview: false,
-              shouldPlay: isCentered,
+              shouldPlay: shouldPlay,
               isYenidenPaylasilanPost: isReshare,
               reshareUserID: reshareUserID,
             );
@@ -258,7 +261,7 @@ extension _AgendaViewFeedPart on AgendaView {
             key: ValueKey(stableKeyString),
             model: model,
             isPreview: false,
-            shouldPlay: isCentered,
+            shouldPlay: shouldPlay,
             isYenidenPaylasilanPost: isReshare,
             reshareUserID: reshareUserID,
           );

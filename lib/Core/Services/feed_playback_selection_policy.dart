@@ -24,6 +24,19 @@ class FeedPlaybackSelectionPolicy {
 
   static double get hysteresis => GetPlatform.isAndroid ? 0.10 : 0.06;
 
+  static Duration get scrollSettleReassertDuration =>
+      const Duration(milliseconds: 220);
+
+  static bool shouldPlayCenteredItem({
+    required bool isCentered,
+    bool isSurfacePlaybackSuspended = false,
+    bool isOverlayBlockingPlayback = false,
+  }) {
+    return isCentered &&
+        !isSurfacePlaybackSuspended &&
+        !isOverlayBlockingPlayback;
+  }
+
   static double lingerThreshold({
     required double stopThreshold,
   }) {

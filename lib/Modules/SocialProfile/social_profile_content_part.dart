@@ -169,6 +169,10 @@ extension _SocialProfileContentPart on _SocialProfileState {
             isReshare: isReshare,
           );
           final isCentered = controller.centeredIndex.value == actualIndex;
+          final shouldPlay = FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+            isCentered: isCentered,
+            isOverlayBlockingPlayback: controller.showPfImage.value,
+          );
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 5),
@@ -189,7 +193,7 @@ extension _SocialProfileContentPart on _SocialProfileState {
                     key: itemKey,
                     model: model,
                     isPreview: false,
-                    shouldPlay: !controller.showPfImage.value && isCentered,
+                    shouldPlay: shouldPlay,
                     instanceTag: controller.agendaInstanceTag(
                       docId: model.docID,
                       isReshare: isReshare,

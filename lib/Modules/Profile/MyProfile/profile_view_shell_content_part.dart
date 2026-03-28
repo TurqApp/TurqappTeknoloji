@@ -127,15 +127,19 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                   child: Obx(() {
                     final isCentered =
                         controller.centeredIndex.value == actualIndex;
+                    final shouldPlay =
+                        FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+                      isCentered: isCentered,
+                      isSurfacePlaybackSuspended: controller.pausetheall.value,
+                      isOverlayBlockingPlayback: controller.showPfImage.value,
+                    );
                     return Padding(
                       padding: EdgeInsets.only(top: actualIndex == 0 ? 12 : 0),
                       child: AgendaContent(
                         key: itemKey,
                         model: model,
                         isPreview: false,
-                        shouldPlay: !controller.pausetheall.value &&
-                            !controller.showPfImage.value &&
-                            isCentered,
+                        shouldPlay: shouldPlay,
                         instanceTag: controller.agendaInstanceTag(
                           docId: model.docID,
                           isReshare: isReshare,

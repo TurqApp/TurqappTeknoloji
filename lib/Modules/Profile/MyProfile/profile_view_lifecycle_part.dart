@@ -60,6 +60,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
   void _disposeProfileView() {
     _marketUserWorker?.dispose();
     _profileTabWorker?.dispose();
+    _scrollSettleDebounce?.cancel();
     _linksHighlightsScrollController.dispose();
     if (_ownsHighlightsController) {
       final uid = _myUserId;
@@ -155,6 +156,19 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       controller.fetchVideos();
     }
     if (controller.postSelection.value == 0) {
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          if (!mounted || controller.postSelection.value != 0) return;
+          final centered = controller.centeredIndex.value;
+          if (centered >= 0 && centered < controller.mergedPosts.length) {
+            controller.ensureCenteredPlaybackForCurrentSelection();
+          } else {
+            controller.resumeCenteredPost();
+          }
+        },
+      );
       return;
     }
     final merged = controller.mergedPosts;

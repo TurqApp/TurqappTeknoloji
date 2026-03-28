@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
+import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -104,6 +105,7 @@ class _ProfileViewState extends State<ProfileView> {
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
   bool _scrollProbeScheduled = false;
+  Timer? _scrollSettleDebounce;
   bool _ownsController = false;
   bool _ownsSocialMediaController = false;
   bool _ownsHighlightsController = false;
