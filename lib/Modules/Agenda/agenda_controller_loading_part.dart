@@ -17,10 +17,6 @@ extension AgendaControllerLoadingPart on AgendaController {
           primeInitialCenteredPost();
         }
       });
-    } else {
-      _scheduleInitialFeedPlaybackBootstrap(
-        source: playbackBootstrapSource,
-      );
     }
 
     unawaited(syncFeedHeadAfterSurfaceOpen());
@@ -29,7 +25,6 @@ extension AgendaControllerLoadingPart on AgendaController {
   void _performResetSurfaceForTabTransition() {
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
-    _cancelInitialFeedPlaybackBootstrap();
     _pendingCenteredDocId = null;
     lastCenteredIndex = agendaList.isEmpty ? null : 0;
     centeredIndex.value = -1;
