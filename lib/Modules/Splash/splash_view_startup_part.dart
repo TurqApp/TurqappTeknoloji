@@ -406,11 +406,19 @@ extension _SplashViewStartupPart on _SplashViewState {
     int minItemCount = 1,
     bool requirePositiveItems = true,
   }) {
-    final record = _startupSurfaceRecord(surface);
-    if (record == null) return false;
-    if (!record.hasLocalSnapshot) return false;
-    if (!requirePositiveItems) return true;
-    return record.itemCount >= minItemCount;
+    switch (surface.trim()) {
+      case 'feed':
+        if (_feedStartupShardHydrated) return true;
+        break;
+      case 'short':
+        if (_shortStartupShardHydrated) return true;
+        break;
+    }
+    return _surfaceRecordIsWarm(
+      _startupSurfaceRecord(surface),
+      minItemCount: minItemCount,
+      allowHeaderOnly: !requirePositiveItems,
+    );
   }
 
   String _resolvedLoggedInStartupRouteHint() {
