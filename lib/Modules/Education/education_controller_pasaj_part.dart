@@ -19,10 +19,15 @@ extension EducationControllerPasajPart on EducationController {
       settingsController.pasajVisibility,
       (_) => _recomputeVisibleTabs(),
     );
-    ever<int>(selectedTab, (_) => _suppressBackgroundFeedMedia());
+    ever<int>(selectedTab, (_) {
+      _suppressBackgroundFeedMedia();
+      unawaited(_persistStartupEducationTabHint());
+    });
     _bindPasajConfig();
+    unawaited(_loadStartupPreferredTabHint());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _suppressBackgroundFeedMedia();
+      unawaited(_persistStartupEducationTabHint());
     });
   }
 
@@ -74,8 +79,28 @@ extension EducationControllerPasajPart on EducationController {
     visibleTabIndexes.assignAll(nextVisible);
     if (nextVisible.isEmpty) return;
 
+    final preferredActual = _resolveStartupPreferredActualIndex(nextVisible);
+
+    if (!_didApplyStartupPreferredTab &&
+        preferredActual != null &&
+        preferredActual != selectedTab.value) {
+      _didApplyStartupPreferredTab = true;
+      selectedTab.value = preferredActual;
+      final visibleIndex = visibleIndexForActual(preferredActual);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (pageController.hasClients) {
+          pageController.jumpToPage(visibleIndex);
+        }
+      });
+      _restoreSearchForTab(preferredActual);
+      return;
+    }
+
     if (!nextVisible.contains(selectedTab.value)) {
-      final firstActual = nextVisible.first;
+      final firstActual = preferredActual ?? nextVisible.first;
+      if (preferredActual != null) {
+        _didApplyStartupPreferredTab = true;
+      }
       selectedTab.value = firstActual;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (pageController.hasClients) {
@@ -337,5 +362,48 @@ extension EducationControllerPasajPart on EducationController {
       return;
     }
     onTabTap(0);
+  }
+
+  Future<void> _loadStartupPreferredTabHint() async {
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
+    if (uid.isEmpty) return;
+    try {
+      final manifest = await ensureStartupSnapshotManifestStore().load(
+        userId: uid,
+      );
+      final tabId = (manifest?.extra['educationTabId'] ?? '').toString().trim();
+      if (!pasajTabs.contains(tabId)) return;
+      _startupPreferredTabId = tabId;
+      _didApplyStartupPreferredTab = false;
+      _recomputeVisibleTabs();
+    } catch (_) {}
+  }
+
+  int? _resolveStartupPreferredActualIndex(List<int> nextVisible) {
+    final tabId = (_startupPreferredTabId ?? '').trim();
+    if (tabId.isEmpty) return null;
+    final actualIndex = titles.indexOf(tabId);
+    if (actualIndex < 0) return null;
+    if (!nextVisible.contains(actualIndex)) return null;
+    return actualIndex;
+  }
+
+  Future<void> _persistStartupEducationTabHint() async {
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
+    if (uid.isEmpty || !hasVisibleTabs) return;
+    final currentIndex = selectedTab.value;
+    if (currentIndex < 0 || currentIndex >= titles.length) return;
+    final tabId = titles[currentIndex];
+    if (tabId.trim().isEmpty) return;
+    try {
+      await ensureStartupSnapshotManifestStore().updateRouteHint(
+        userId: uid,
+        routeHint: 'nav_education',
+        loggedIn: true,
+        extra: <String, dynamic>{
+          'educationTabId': tabId,
+        },
+      );
+    } catch (_) {}
   }
 }

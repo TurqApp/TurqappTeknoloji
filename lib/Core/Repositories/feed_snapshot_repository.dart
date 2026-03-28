@@ -32,7 +32,8 @@ abstract class _FeedSnapshotRepositoryBase extends GetxService {
 class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const String _homeSurfaceKey = 'feed_home_snapshot';
   static const int _defaultPersistLimit = 40;
-  static const FeedHomeContract _homeContract = FeedHomeContract.primaryHybridV1;
+  static const FeedHomeContract _homeContract =
+      FeedHomeContract.primaryHybridV1;
   static final Set<String> _hybridBackfillRequested = <String>{};
 }
 
@@ -156,6 +157,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
     required List<PostsModel> posts,
     int limit = FeedSnapshotRepository._defaultPersistLimit,
     CachedResourceSource source = CachedResourceSource.server,
+    DateTime? snapshotAt,
   }) =>
       persistFeedHomeSnapshot(
         this,
@@ -163,6 +165,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         posts: posts,
         limit: limit,
         source: source,
+        snapshotAt: snapshotAt,
       );
 
   Future<void> clearUserSnapshots({

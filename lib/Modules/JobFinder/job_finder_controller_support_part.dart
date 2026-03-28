@@ -6,6 +6,11 @@ const String _jobFinderListingSelectionPrefKeyPrefix =
 const String _jobFinderAllTurkeyRaw = 'Tüm Türkiye';
 
 extension JobFinderControllerSupportPart on JobFinderController {
+  Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
+      _performPrepareStartupSurface(
+        allowBackgroundRefresh: allowBackgroundRefresh,
+      );
+
   List<String> get innerTabTitles => [
         'pasaj.job_finder.tab.explore'.tr,
         'pasaj.job_finder.tab.create'.tr,

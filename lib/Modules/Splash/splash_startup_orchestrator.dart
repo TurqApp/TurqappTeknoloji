@@ -14,6 +14,9 @@ typedef SplashStartupRunner = Future<void> Function({
 });
 
 typedef SplashNavigationRunner = Future<void> Function();
+typedef StartupManifestHydrator = Future<void> Function({
+  required bool loggedIn,
+});
 
 class SplashStartupOrchestrator {
   SplashStartupOrchestrator({
@@ -25,6 +28,7 @@ class SplashStartupOrchestrator {
     required this.runWarmStartLoads,
     required this.markMinimumStartupPrepared,
     required this.isMinimumStartupPrepared,
+    required this.hydrateStartupManifestContext,
     StartupBootstrap? startupBootstrap,
     SessionBootstrap? sessionBootstrap,
     DependencyRegistrar? dependencyRegistrar,
@@ -56,6 +60,7 @@ class SplashStartupOrchestrator {
   final SplashStartupRunner runWarmStartLoads;
   final void Function(bool value) markMinimumStartupPrepared;
   final bool Function() isMinimumStartupPrepared;
+  final StartupManifestHydrator hydrateStartupManifestContext;
   final StartupBootstrap _startupBootstrap;
   final SessionBootstrap _sessionBootstrap;
   final DependencyRegistrar _dependencyRegistrar;
@@ -68,6 +73,9 @@ class SplashStartupOrchestrator {
       final sessionResult = await _bootstrapSession(prefs: prefs);
 
       _dependencyRegistrar.register();
+      await hydrateStartupManifestContext(
+        loggedIn: sessionResult.loggedIn,
+      );
       _postLoginWarmup.startNonBlockingStartupWork(
         isFirstLaunch: sessionResult.isFirstLaunch,
         effectiveUserId: CurrentUserService.instance.effectiveUserId,

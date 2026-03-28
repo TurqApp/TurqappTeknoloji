@@ -213,6 +213,234 @@ extension ExploreControllerFeedPart on ExploreController {
     }
   }
 
+  Future<void> _performPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) {
+    final active = _startupPrepareFuture;
+    if (active != null) {
+      return active;
+    }
+
+    final future = _performRunPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+    _startupPrepareFuture = future;
+    future.whenComplete(() {
+      if (identical(_startupPrepareFuture, future)) {
+        _startupPrepareFuture = null;
+      }
+    });
+    return future;
+  }
+
+  Future<void> _performRunPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) async {
+    try {
+      final allowRefresh = allowBackgroundRefresh ??
+          ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore);
+
+      await _performHydrateExploreStartupShard();
+      await _performWarmTrendingTagsForStartup();
+      await _tryQuickFillExploreFromPool();
+      _scheduleExplorePrefetchFromPosts(explorePosts);
+
+      final hasLocalContent =
+          trendingTags.isNotEmpty || explorePosts.isNotEmpty;
+
+      if (trendingTags.isEmpty &&
+          ContentPolicy.shouldBootstrapNetwork(
+            ContentScreenKind.explore,
+            hasLocalContent: hasLocalContent,
+          )) {
+        await fetchTrendingTags();
+      }
+
+      if (explorePosts.isEmpty) {
+        if (ContentPolicy.shouldBootstrapNetwork(
+          ContentScreenKind.explore,
+          hasLocalContent: trendingTags.isNotEmpty || explorePosts.isNotEmpty,
+        )) {
+          if (trendingTags.isNotEmpty && !allowRefresh) {
+            return;
+          }
+          await fetchExplorePosts();
+        }
+        return;
+      }
+
+      if (allowRefresh) {
+        unawaited(fetchExplorePosts());
+      }
+    } finally {
+      unawaited(_persistExploreStartupShard());
+      unawaited(_recordExploreStartupSurface());
+    }
+  }
+
+  Future<void> _performHydrateExploreStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    try {
+      final shard = await ensureStartupSnapshotShardStore().load(
+        surface: 'explore',
+        userId: userId,
+        maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+      );
+      if (shard == null) return;
+      if (trendingTags.isEmpty) {
+        final decodedTags =
+            _decodeExploreStartupTags(shard.payload['trendingTags']);
+        if (decodedTags.isNotEmpty) {
+          trendingTags.assignAll(decodedTags);
+        }
+      }
+      if (explorePosts.isEmpty) {
+        final decodedPosts =
+            _decodeExploreStartupPosts(shard.payload['explorePosts']);
+        if (decodedPosts.isNotEmpty) {
+          explorePosts.assignAll(decodedPosts);
+          _scheduleExplorePrefetchFromPosts(explorePosts);
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _performWarmTrendingTagsForStartup() async {
+    if (trendingTags.isNotEmpty) return;
+    try {
+      final cached = await _topTagsRepository.readTrendingTagsCache(
+        resultLimit: 30,
+      );
+      if (cached == null || cached.isEmpty) return;
+      trendingTags.assignAll(cached);
+    } catch (_) {}
+  }
+
+  Future<void> _persistExploreStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final payload = <String, dynamic>{
+      'trendingTags': _encodeExploreStartupTags(trendingTags.take(18).toList()),
+      'explorePosts': _encodeExploreStartupPosts(explorePosts.take(8).toList()),
+    };
+    final itemCount = trendingTags.length + explorePosts.length;
+    final hasData = (payload['trendingTags'] as List).isNotEmpty ||
+        (payload['explorePosts'] as Map<String, dynamic>)['items'] is List &&
+            ((payload['explorePosts'] as Map<String, dynamic>)['items'] as List)
+                .isNotEmpty;
+    try {
+      final store = ensureStartupSnapshotShardStore();
+      if (!hasData) {
+        await store.clear(
+          surface: 'explore',
+          userId: userId,
+        );
+        return;
+      }
+      await store.save(
+        surface: 'explore',
+        userId: userId,
+        itemCount: itemCount,
+        limit: 26,
+        source: trendingTags.isNotEmpty ? 'top_tags_cache' : 'index_pool',
+        payload: payload,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _recordExploreStartupSurface() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final hasLocalSnapshot = trendingTags.isNotEmpty || explorePosts.isNotEmpty;
+    final source = trendingTags.isNotEmpty
+        ? 'top_tags_cache'
+        : explorePosts.isNotEmpty
+            ? 'index_pool'
+            : 'none';
+    final itemCount =
+        trendingTags.isNotEmpty ? trendingTags.length : explorePosts.length;
+    try {
+      await ensureStartupSnapshotManifestStore().recordSurfaceState(
+        surface: 'explore',
+        userId: userId,
+        itemCount: itemCount,
+        hasLocalSnapshot: hasLocalSnapshot,
+        source: source,
+      );
+    } catch (_) {}
+  }
+
+  List<Map<String, dynamic>> _encodeExploreStartupTags(
+      List<HashtagModel> tags) {
+    return tags
+        .map(
+          (tag) => <String, dynamic>{
+            'hashtag': tag.hashtag,
+            'count': tag.count,
+            'hasHashtag': tag.hasHashtag,
+            'lastSeenTs': tag.lastSeenTs,
+          },
+        )
+        .toList(growable: false);
+  }
+
+  List<HashtagModel> _decodeExploreStartupTags(dynamic raw) {
+    if (raw is! List) return const <HashtagModel>[];
+    return raw
+        .whereType<Map>()
+        .map((entry) {
+          final map = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
+          final hashtag = (map['hashtag'] ?? '').toString().trim();
+          if (hashtag.isEmpty) return null;
+          return HashtagModel(
+            hashtag,
+            (map['count'] as num?) ?? 0,
+            hasHashtag: map['hasHashtag'] == true,
+            lastSeenTs: (map['lastSeenTs'] as num?)?.toInt(),
+          );
+        })
+        .whereType<HashtagModel>()
+        .toList(growable: false);
+  }
+
+  Map<String, dynamic> _encodeExploreStartupPosts(List<PostsModel> posts) {
+    return <String, dynamic>{
+      'items': posts
+          .map(
+            (post) => <String, dynamic>{
+              'docID': post.docID,
+              'data': post.toMap(),
+            },
+          )
+          .toList(growable: false),
+    };
+  }
+
+  List<PostsModel> _decodeExploreStartupPosts(dynamic raw) {
+    if (raw is! Map) return const <PostsModel>[];
+    final items = raw['items'];
+    if (items is! List) return const <PostsModel>[];
+    return items
+        .whereType<Map>()
+        .map((entry) {
+          final map = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
+          final docId = (map['docID'] ?? '').toString().trim();
+          final data = map['data'];
+          if (docId.isEmpty || data is! Map) return null;
+          try {
+            return PostsModel.fromMap(
+              Map<String, dynamic>.from(data.cast<dynamic, dynamic>()),
+              docId,
+            );
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<PostsModel>()
+        .toList(growable: false);
+  }
+
   Future<void> _performTryQuickFillExploreFromPool() async {
     final pool = IndexPoolStore.maybeFind();
     if (pool == null) return;

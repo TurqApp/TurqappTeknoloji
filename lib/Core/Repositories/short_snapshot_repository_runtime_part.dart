@@ -40,6 +40,7 @@ extension ShortSnapshotRepositoryRuntimeX on ShortSnapshotRepository {
     required List<PostsModel> posts,
     int limit = ShortSnapshotRepository._defaultPersistLimit,
     CachedResourceSource source = CachedResourceSource.server,
+    DateTime? snapshotAt,
   }) =>
       _persistHomeSnapshot(
         this,
@@ -47,7 +48,60 @@ extension ShortSnapshotRepositoryRuntimeX on ShortSnapshotRepository {
         posts: posts,
         limit: limit,
         source: source,
+        snapshotAt: snapshotAt,
       );
+
+  Map<String, dynamic> encodeHomeStartupPayload(
+    List<PostsModel> posts, {
+    int limit = ShortSnapshotRepository._defaultPersistLimit,
+  }) {
+    final normalized =
+        _normalizePosts(posts).take(limit).toList(growable: false);
+    return _performEncodePosts(normalized);
+  }
+
+  Future<bool> primeHomeFromStartupPayload({
+    required String userId,
+    required Map<String, dynamic> payload,
+    int limit = ShortSnapshotRepository._defaultPersistLimit,
+    Iterable<int> additionalLimits = const <int>[],
+    DateTime? snapshotAt,
+    CachedResourceSource source = CachedResourceSource.scopedDisk,
+  }) async {
+    final decoded = _performDecodePosts(payload);
+    final normalized =
+        _normalizePosts(decoded).take(limit).toList(growable: false);
+    if (normalized.isEmpty) return false;
+    final scopeLimits = <int>{
+      limit,
+      ...additionalLimits.where((value) => value > 0),
+    };
+    final record = ScopedSnapshotRecord<List<PostsModel>>(
+      data: normalized,
+      snapshotAt: snapshotAt ?? DateTime.now(),
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        ShortSnapshotRepository._homeSurfaceKey,
+      ),
+      generationId: 'startup_shard:${DateTime.now().millisecondsSinceEpoch}',
+      source: source,
+    );
+    await Future.wait(
+      scopeLimits.map(
+        (scopeLimit) => _memoryStore.write(
+          ScopedSnapshotKey(
+            surfaceKey: ShortSnapshotRepository._homeSurfaceKey,
+            userId: userId.trim(),
+            scopeId: ShortSnapshotQuery(
+              userId: userId,
+              limit: scopeLimit,
+            ).scopeId,
+          ),
+          record,
+        ),
+      ),
+    );
+    return true;
+  }
 
   Future<Set<String>> _loadFollowingIds(String userId) =>
       _performLoadFollowingIds(

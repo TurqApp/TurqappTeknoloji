@@ -1,20 +1,30 @@
 part of 'top_tags_repository_parts.dart';
 
 extension TopTagsRepositoryRuntimePart on TopTagsRepository {
+  Future<List<HashtagModel>?> readTrendingTagsCache({
+    int resultLimit = 30,
+  }) async {
+    final memory = _readMemory(limit: resultLimit);
+    if (memory != null) return memory;
+    final disk = await _readPrefs(limit: resultLimit);
+    if (disk != null) {
+      _memory = disk;
+      _memoryAt = DateTime.now();
+      return disk;
+    }
+    return null;
+  }
+
   Future<List<HashtagModel>> fetchTrendingTags({
     int resultLimit = 30,
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
     if (!forceRefresh && preferCache) {
-      final memory = _readMemory(limit: resultLimit);
-      if (memory != null) return memory;
-      final disk = await _readPrefs(limit: resultLimit);
-      if (disk != null) {
-        _memory = disk;
-        _memoryAt = DateTime.now();
-        return disk;
-      }
+      final cached = await readTrendingTagsCache(
+        resultLimit: resultLimit,
+      );
+      if (cached != null) return cached;
     }
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;

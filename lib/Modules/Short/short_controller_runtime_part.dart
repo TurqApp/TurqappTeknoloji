@@ -62,3 +62,35 @@ extension _ShortControllerRuntimeX on ShortController {
     _state.followingSub?.cancel();
   }
 }
+
+extension ShortControllerPublicApiPart on ShortController {
+  Future<void> persistStartupArtifacts() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty || shorts.isEmpty) return;
+    final snapshotAt = DateTime.now();
+    final ordered = shorts.toList(growable: false);
+    final snapshotLimit =
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
+    await _shortSnapshotRepository.persistHomeSnapshot(
+      userId: userId,
+      posts: ordered,
+      limit: snapshotLimit,
+      source: CachedResourceSource.memory,
+      snapshotAt: snapshotAt,
+    );
+    final shardLimit = ordered.length >= 6 ? 6 : ordered.length;
+    if (shardLimit <= 0) return;
+    await ensureStartupSnapshotShardStore().save(
+      surface: 'short',
+      userId: userId,
+      itemCount: ordered.length,
+      limit: shardLimit,
+      source: 'short_runtime',
+      snapshotAt: snapshotAt,
+      payload: _shortSnapshotRepository.encodeHomeStartupPayload(
+        ordered,
+        limit: shardLimit,
+      ),
+    );
+  }
+}

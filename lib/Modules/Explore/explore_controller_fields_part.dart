@@ -50,6 +50,7 @@ class _ExploreControllerState {
   Timer? searchDebounce;
   int searchRequestId = 0;
   String recentSearchReloadKey = '';
+  Future<void>? startupPrepareFuture;
 }
 
 extension ExploreControllerFieldsPart on ExploreController {
@@ -117,4 +118,7 @@ extension ExploreControllerFieldsPart on ExploreController {
   String get _recentSearchReloadKey => _state.recentSearchReloadKey;
   set _recentSearchReloadKey(String value) =>
       _state.recentSearchReloadKey = value;
+  Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _state.startupPrepareFuture = value;
 }

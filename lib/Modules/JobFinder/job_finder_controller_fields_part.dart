@@ -30,6 +30,7 @@ class _JobFinderControllerState {
   Position? lastResolvedPosition;
   StreamSubscription<CachedResource<List<JobModel>>>? homeSnapshotSub;
   Timer? deferredLocationTimer;
+  Future<void>? startupPrepareFuture;
 }
 
 extension JobFinderControllerFieldsPart on JobFinderController {
@@ -70,4 +71,7 @@ extension JobFinderControllerFieldsPart on JobFinderController {
   Timer? get _deferredLocationTimer => _state.deferredLocationTimer;
   set _deferredLocationTimer(Timer? value) =>
       _state.deferredLocationTimer = value;
+  Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _state.startupPrepareFuture = value;
 }

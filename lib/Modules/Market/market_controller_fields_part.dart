@@ -32,6 +32,7 @@ class _MarketControllerState {
   StreamSubscription<CachedResource<List<MarketItemModel>>>? homeSnapshotSub;
   Timer? searchDebounce;
   int searchRequestId = 0;
+  Future<void>? startupPrepareFuture;
 }
 
 extension MarketControllerFieldsPart on MarketController {
@@ -73,4 +74,7 @@ extension MarketControllerFieldsPart on MarketController {
   set _searchDebounce(Timer? value) => _state.searchDebounce = value;
   int get _searchRequestId => _state.searchRequestId;
   set _searchRequestId(int value) => _state.searchRequestId = value;
+  Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _state.startupPrepareFuture = value;
 }

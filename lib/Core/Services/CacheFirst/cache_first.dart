@@ -9,4 +9,6 @@ export 'cache_scope_namespace.dart';
 export 'cached_resource.dart';
 export 'cache_first_stores.dart';
 export 'cache_first_typesense.dart';
+export 'startup_snapshot_manifest_store.dart';
+export 'startup_snapshot_shard_store.dart';
 export 'warm_launch_pool.dart';

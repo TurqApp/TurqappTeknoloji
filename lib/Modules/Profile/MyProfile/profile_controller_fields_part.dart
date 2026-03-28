@@ -5,6 +5,7 @@ class _ProfileLifecycleState {
   StreamSubscription<User?>? authSub;
   StreamSubscription<Map<String, dynamic>?>? counterSub;
   Timer? persistCacheTimer;
+  Future<void>? startupPrepareFuture;
   Worker? allPostsWorker;
   Worker? photosWorker;
   Worker? videosWorker;
@@ -85,6 +86,10 @@ extension ProfileControllerFieldsPart on ProfileController {
   Timer? get _persistCacheTimer => _lifecycleState.persistCacheTimer;
   set _persistCacheTimer(Timer? value) =>
       _lifecycleState.persistCacheTimer = value;
+  Future<void>? get _startupPrepareFuture =>
+      _lifecycleState.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _lifecycleState.startupPrepareFuture = value;
   Worker? get _allPostsWorker => _lifecycleState.allPostsWorker;
   set _allPostsWorker(Worker? value) => _lifecycleState.allPostsWorker = value;
   Worker? get _photosWorker => _lifecycleState.photosWorker;

@@ -58,6 +58,7 @@ Future<void> _persistHomeSnapshot(
   required List<PostsModel> posts,
   required int limit,
   required CachedResourceSource source,
+  DateTime? snapshotAt,
 }) async {
   final normalized =
       repository._normalizePosts(posts).take(limit).toList(growable: false);
@@ -72,7 +73,7 @@ Future<void> _persistHomeSnapshot(
   );
   final record = ScopedSnapshotRecord<List<PostsModel>>(
     data: normalized,
-    snapshotAt: DateTime.now(),
+    snapshotAt: snapshotAt ?? DateTime.now(),
     schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
       ShortSnapshotRepository._homeSurfaceKey,
     ),

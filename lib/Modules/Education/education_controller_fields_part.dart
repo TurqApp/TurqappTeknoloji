@@ -17,6 +17,8 @@ class _EducationControllerState {
   final settingsController = ensureSettingsController();
   StreamSubscription<Map<String, dynamic>>? pasajConfigSub;
   final adminPasajVisibility = <String, bool>{};
+  String? startupPreferredTabId;
+  bool didApplyStartupPreferredTab = false;
 }
 
 extension EducationControllerFieldsPart on EducationController {
@@ -42,5 +44,11 @@ extension EducationControllerFieldsPart on EducationController {
   set _pasajConfigSub(StreamSubscription<Map<String, dynamic>>? value) =>
       _state.pasajConfigSub = value;
   Map<String, bool> get _adminPasajVisibility => _state.adminPasajVisibility;
+  String? get _startupPreferredTabId => _state.startupPreferredTabId;
+  set _startupPreferredTabId(String? value) =>
+      _state.startupPreferredTabId = value;
+  bool get _didApplyStartupPreferredTab => _state.didApplyStartupPreferredTab;
+  set _didApplyStartupPreferredTab(bool value) =>
+      _state.didApplyStartupPreferredTab = value;
   List<String> get titles => pasajTabs;
 }

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';

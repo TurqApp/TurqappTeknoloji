@@ -10,6 +10,13 @@ extension ExploreControllerApiX on ExploreController {
   Future<void> _quickFillExploreFromPoolAndBootstrap() =>
       _performQuickFillExploreFromPoolAndBootstrap();
 
+  Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
+      _performPrepareStartupSurface(
+        allowBackgroundRefresh: allowBackgroundRefresh,
+      );
+
+  Future<void> persistStartupShard() => _persistExploreStartupShard();
+
   Future<void> _tryQuickFillExploreFromPool() =>
       _performTryQuickFillExploreFromPool();
 

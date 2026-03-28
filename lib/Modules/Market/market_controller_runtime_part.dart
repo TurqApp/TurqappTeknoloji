@@ -3,6 +3,11 @@ part of 'market_controller.dart';
 extension MarketControllerRuntimePart on MarketController {
   Future<void> _bootstrapHomeData() => _performBootstrapHomeData();
 
+  Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
+      _performPrepareStartupSurface(
+        allowBackgroundRefresh: allowBackgroundRefresh,
+      );
+
   Future<void> loadHomeData({
     bool forceRefresh = false,
     bool silent = false,

@@ -3,6 +3,9 @@ part of 'nav_bar_controller.dart';
 extension _NavBarControllerSupportFacadePart on NavBarController {
   Future<void> _persistSelectedIndex(int index) =>
       _NavBarControllerSupportPart(this).persistSelectedIndex(index);
+
+  Future<void> _persistStartupRouteHint(int index) =>
+      _NavBarControllerSupportPart(this).persistStartupRouteHint(index);
 }
 
 class _NavBarControllerSupportPart {
@@ -28,6 +31,7 @@ class _NavBarControllerSupportPart {
       final stored = prefs.getInt(selectedIndexKeyFor(uid));
       if (stored == null) return;
       _controller.selectedIndex.value = normalizeSelectedIndex(stored);
+      await persistStartupRouteHint(_controller.selectedIndex.value);
     } catch (_) {}
   }
 
@@ -42,6 +46,36 @@ class _NavBarControllerSupportPart {
         normalizeSelectedIndex(index),
       );
     } catch (_) {}
+  }
+
+  Future<void> persistStartupRouteHint(int index) async {
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
+    if (uid.isEmpty) return;
+    try {
+      await ensureStartupSnapshotManifestStore().updateRouteHint(
+        userId: uid,
+        routeHint: routeHintForIndex(index),
+        loggedIn: true,
+        extra: <String, dynamic>{
+          'navSelectedIndex': normalizeSelectedIndex(index),
+        },
+      );
+    } catch (_) {}
+  }
+
+  String routeHintForIndex(int index) {
+    final normalizedIndex = normalizeSelectedIndex(index);
+    final hasEducation =
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+    final educationIndex = hasEducation ? 3 : -1;
+    final profileIndex = hasEducation ? 4 : 3;
+
+    if (normalizedIndex == 1) return 'nav_explore';
+    if (educationIndex >= 0 && normalizedIndex == educationIndex) {
+      return 'nav_education';
+    }
+    if (normalizedIndex == profileIndex) return 'nav_profile';
+    return 'nav_feed';
   }
 
   void handleOnInit() {
@@ -74,7 +108,9 @@ class _NavBarControllerSupportPart {
               .floor();
     });
 
-    unawaited(restorePersistedIndex());
+    unawaited(restorePersistedIndex().then((_) async {
+      await persistStartupRouteHint(_controller.selectedIndex.value);
+    }));
     _controller._runAcilisAnimationImpl();
     Future.delayed(const Duration(seconds: 2), () {
       if (!_controller._isDisposed &&

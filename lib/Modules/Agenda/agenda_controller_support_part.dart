@@ -151,6 +151,33 @@ extension AgendaControllerSupportPart on AgendaController {
 extension AgendaControllerPublicApiPart on AgendaController {
   Future<void> onPrimarySurfaceVisible() => ensureFeedSurfaceReady();
 
+  Future<void> persistStartupArtifacts() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty || agendaList.isEmpty) return;
+    final snapshotAt = DateTime.now();
+    final ordered = _buildOrderedAgendaSnapshot(limit: 40);
+    if (ordered.isEmpty) return;
+    await _feedSnapshotRepository.persistHomeSnapshot(
+      userId: userId,
+      posts: ordered,
+      limit: 40,
+      source: CachedResourceSource.memory,
+      snapshotAt: snapshotAt,
+    );
+    await ensureStartupSnapshotShardStore().save(
+      surface: 'feed',
+      userId: userId,
+      itemCount: ordered.length,
+      limit: 10,
+      source: 'feed_runtime',
+      snapshotAt: snapshotAt,
+      payload: _feedSnapshotRepository.encodeHomeStartupPayload(
+        ordered,
+        limit: 10,
+      ),
+    );
+  }
+
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
       _performOnPostVisibilityChanged(modelIndex, visibleFraction);
 

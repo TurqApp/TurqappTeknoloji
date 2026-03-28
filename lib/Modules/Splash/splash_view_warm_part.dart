@@ -1,98 +1,179 @@
 part of 'splash_view.dart';
 
 extension _SplashViewWarmPart on _SplashViewState {
+  bool _shouldPrioritizeEducationWarmups() {
+    return _effectiveStartupRouteHint() == 'nav_education';
+  }
+
   Future<void> _performRunCriticalWarmStartLoads({
     required bool isFirstLaunch,
   }) async {
     try {
       final onWiFi = _isOnWiFiNow();
       final storyController = maybeFindStoryRowController();
-      if (storyController == null) return;
       final agendaController = ensureAgendaController();
       final recommendedController = ensureRecommendedUserListController();
+      final prioritizeHomeWarmups = _shouldRequireFeedReadiness();
+      final prioritizeExploreWarmups = _shouldPrioritizeExploreWarmups();
+      final prioritizeProfileWarmups = _shouldPrioritizeProfileWarmups();
+      final prioritizeEducationWarmups = _shouldPrioritizeEducationWarmups();
+      final prioritizeEducationMarketWarmups =
+          _shouldPrioritizeEducationMarketWarmups();
+      final prioritizeEducationJobWarmups =
+          _shouldPrioritizeEducationJobWarmups();
 
       await Future.wait([
-        (() async {
-          try {
-            final shorts = maybeFindShortController();
-            if (shorts == null) return;
-            await _warmShortSnapshotForStartup(
-              onWiFi: onWiFi,
-              isFirstLaunch: isFirstLaunch,
-            );
-            await shorts.backgroundPreload().timeout(
-                  Duration(seconds: onWiFi ? 4 : 2),
-                  onTimeout: () {},
-                );
-            shorts.warmStart(
-              targetCount:
-                  onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4),
-              maxPages: onWiFi ? 2 : 1,
-            );
-            _primeShortVideoSegments(shorts);
-          } catch (_) {}
-        })(),
-        _forceLoadStoriesSync(
-          storyController,
-          limit: onWiFi ? (isFirstLaunch ? 20 : 30) : (isFirstLaunch ? 10 : 16),
-        ),
-        (() async {
-          try {
-            await _warmFeedSnapshotForStartup(
-              onWiFi: onWiFi,
-              isFirstLaunch: isFirstLaunch,
-            );
-            await agendaController
-                .hydrateInitialFeedFromCache(
-                  targetCount: _feedWarmPoolLimit(),
-                )
-                .timeout(const Duration(seconds: 3));
-            _primeFeedVideoSegments(agendaController);
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await _warmMarketListings(onWiFi: onWiFi).timeout(
-              Duration(milliseconds: onWiFi ? 1400 : 900),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await _warmJobListings(onWiFi: onWiFi).timeout(
-              Duration(milliseconds: onWiFi ? 1400 : 900),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await recommendedController
-                .ensureLoaded(limit: recommendedController.usersWarmCount)
-                .timeout(
-                  Duration(milliseconds: onWiFi ? 1600 : 1100),
-                  onTimeout: () {},
-                );
-          } catch (_) {}
-        })(),
+        if (prioritizeHomeWarmups)
+          (() async {
+            try {
+              final shorts = maybeFindShortController();
+              if (shorts == null) return;
+              await _warmShortSnapshotForStartup(
+                onWiFi: onWiFi,
+                isFirstLaunch: isFirstLaunch,
+              );
+              await shorts.backgroundPreload().timeout(
+                    Duration(seconds: onWiFi ? 4 : 2),
+                    onTimeout: () {},
+                  );
+              shorts.warmStart(
+                targetCount:
+                    onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4),
+                maxPages: onWiFi ? 2 : 1,
+              );
+              _primeShortVideoSegments(shorts);
+            } catch (_) {}
+          })(),
+        if (prioritizeHomeWarmups && storyController != null)
+          _forceLoadStoriesSync(
+            storyController,
+            limit:
+                onWiFi ? (isFirstLaunch ? 20 : 30) : (isFirstLaunch ? 10 : 16),
+          ),
+        if (prioritizeHomeWarmups)
+          (() async {
+            try {
+              await _warmFeedSnapshotForStartup(
+                onWiFi: onWiFi,
+                isFirstLaunch: isFirstLaunch,
+              );
+              await agendaController
+                  .hydrateInitialFeedFromCache(
+                    targetCount: _feedWarmPoolLimit(),
+                  )
+                  .timeout(const Duration(seconds: 3));
+              _primeFeedVideoSegments(agendaController);
+            } catch (_) {}
+          })(),
+        if (prioritizeHomeWarmups)
+          (() async {
+            try {
+              await recommendedController
+                  .ensureLoaded(limit: recommendedController.usersWarmCount)
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1600 : 1100),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
+        if (prioritizeProfileWarmups)
+          (() async {
+            try {
+              final profileController =
+                  ProfileController.maybeFind() ?? ProfileController.ensure();
+              await profileController
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh:
+                        ContentPolicy.allowBackgroundRefresh(
+                      ContentScreenKind.profile,
+                    ),
+                  )
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1000 : 650),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
+        if (prioritizeProfileWarmups)
+          (() async {
+            try {
+              await _warmProfileCacheSurfaces(
+                onWiFi: onWiFi,
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 900 : 500),
+                onTimeout: () {},
+              );
+            } catch (_) {}
+          })(),
+        if (prioritizeExploreWarmups)
+          (() async {
+            try {
+              final exploreController =
+                  maybeFindExploreController() ?? ensureExploreController();
+              await exploreController
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh:
+                        ContentPolicy.allowBackgroundRefresh(
+                      ContentScreenKind.explore,
+                    ),
+                  )
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1100 : 650),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
+        if (prioritizeEducationWarmups)
+          (() async {
+            try {
+              if (!prioritizeEducationMarketWarmups) return;
+              await (maybeFindMarketController() ?? ensureMarketController())
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh: onWiFi,
+                  )
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1200 : 800),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
+        if (prioritizeEducationWarmups)
+          (() async {
+            try {
+              if (!prioritizeEducationJobWarmups) return;
+              await (maybeFindJobFinderController() ??
+                      ensureJobFinderController())
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh: onWiFi,
+                  )
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1200 : 800),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
       ]);
 
-      final warmUserMetaFuture = _warmUserMetaAndAvatars(
-        agendaController: agendaController,
-        storyController: storyController,
-        recommendedController: recommendedController,
-        onWiFi: onWiFi,
-      ).timeout(
-        Duration(milliseconds: onWiFi ? 900 : 500),
-        onTimeout: () {},
-      );
-      final warmProfileSurfacesFuture = _warmProfileCacheSurfaces(
-        onWiFi: onWiFi,
-      ).timeout(
-        Duration(milliseconds: onWiFi ? 900 : 500),
-        onTimeout: () {},
-      );
+      final warmUserMetaFuture =
+          !prioritizeHomeWarmups || storyController == null
+              ? Future<void>.value()
+              : _warmUserMetaAndAvatars(
+                  agendaController: agendaController,
+                  storyController: storyController,
+                  recommendedController: recommendedController,
+                  onWiFi: onWiFi,
+                ).timeout(
+                  Duration(milliseconds: onWiFi ? 900 : 500),
+                  onTimeout: () {},
+                );
+      final warmProfileSurfacesFuture = prioritizeProfileWarmups
+          ? Future<void>.value()
+          : _warmProfileCacheSurfaces(
+              onWiFi: onWiFi,
+            ).timeout(
+              Duration(milliseconds: onWiFi ? 900 : 500),
+              onTimeout: () {},
+            );
       final warmSliderFuture = _warmSliderCaches(onWiFi: onWiFi).timeout(
         Duration(milliseconds: onWiFi ? 1200 : 650),
         onTimeout: () {},
@@ -151,7 +232,6 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final onWiFi = _isOnWiFiNow();
       final storyController = maybeFindStoryRowController();
-      if (storyController == null) return;
       final shortTarget =
           onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 4 : 6);
       final storyTarget = onWiFi ? 30 : 18;
@@ -166,8 +246,30 @@ extension _SplashViewWarmPart on _SplashViewState {
         }
       } catch (_) {}
 
-      if (storyController.users.length < storyTarget) {
+      if (storyController != null &&
+          storyController.users.length < storyTarget) {
         await _forceLoadStoriesSync(storyController, limit: storyTarget);
+      }
+
+      if (onWiFi || _shouldPrioritizeEducationWarmups()) {
+        await Future.wait([
+          (() async {
+            try {
+              await _warmMarketListings(onWiFi: onWiFi).timeout(
+                const Duration(milliseconds: 1400),
+                onTimeout: () {},
+              );
+            } catch (_) {}
+          })(),
+          (() async {
+            try {
+              await _warmJobListings(onWiFi: onWiFi).timeout(
+                const Duration(milliseconds: 1400),
+                onTimeout: () {},
+              );
+            } catch (_) {}
+          })(),
+        ]);
       }
     } catch (_) {}
   }
@@ -363,6 +465,7 @@ extension _SplashViewWarmPart on _SplashViewState {
         resource: snapshot,
         itemCount: (snapshot.data ?? const <dynamic>[]).length,
       );
+      unawaited(_persistFeedStartupShard(snapshot));
     } catch (_) {}
   }
 
@@ -389,6 +492,12 @@ extension _SplashViewWarmPart on _SplashViewState {
         resource: snapshot,
         itemCount: (snapshot.data ?? const <dynamic>[]).length,
       );
+      unawaited(
+        _persistShortStartupShard(
+          snapshot,
+          onWiFi: onWiFi,
+        ),
+      );
     } catch (_) {}
   }
 
@@ -411,6 +520,14 @@ extension _SplashViewWarmPart on _SplashViewState {
             : DateTime.now().difference(resource.snapshotAt!).inMilliseconds,
         'itemCount': itemCount,
       },
+    );
+    unawaited(
+      ensureStartupSnapshotManifestStore().recordSurface(
+        surface: surface,
+        userId: CurrentUserService.instance.effectiveUserId,
+        resource: resource,
+        itemCount: itemCount,
+      ),
     );
   }
 

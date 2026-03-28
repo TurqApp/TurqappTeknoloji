@@ -6,7 +6,7 @@ extension ExploreControllerRuntime on ExploreController {
     unawaited(_loadRecentSearchUsersCache());
     UserAnalyticsService.instance.trackFeatureUsage('explore_open');
     fetchTrendingTags();
-    unawaited(_quickFillExploreFromPoolAndBootstrap());
+    unawaited(prepareStartupSurface());
     _bindRecentSearchUsers();
     _bindFollowingListener();
     exploreScroll.addListener(() {

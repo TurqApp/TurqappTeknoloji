@@ -1,6 +1,169 @@
 part of 'market_controller.dart';
 
 extension _MarketControllerHomePart on MarketController {
+  Future<void> _performPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) {
+    final active = _startupPrepareFuture;
+    if (active != null) {
+      return active;
+    }
+
+    final future = _performRunPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+    _startupPrepareFuture = future;
+    future.whenComplete(() {
+      if (identical(_startupPrepareFuture, future)) {
+        _startupPrepareFuture = null;
+      }
+    });
+    return future;
+  }
+
+  Future<void> _performRunPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) async {
+    try {
+      final allowRefresh = allowBackgroundRefresh ?? false;
+      await _performHydrateMarketStartupShard();
+      await _performRestoreListingSelection();
+
+      try {
+        await _schemaService.loadSchema();
+        final loadedCategories = _schemaService
+            .categories()
+            .where(_isVisibleCategory)
+            .toList(growable: true)
+          ..sort(
+            (a, b) => _compareCategoryPriority(
+              (a['label'] ?? '').toString(),
+              (b['label'] ?? '').toString(),
+            ),
+          );
+        final roundMenu = _schemaService.roundMenuItems();
+        if (!_sameMapList(categories, loadedCategories)) {
+          categories.assignAll(loadedCategories);
+        }
+        if (!_sameMapList(roundMenuItems, roundMenu)) {
+          roundMenuItems.assignAll(roundMenu);
+        }
+      } catch (_) {}
+
+      await _loadSavedItems();
+      final userId = CurrentUserService.instance.effectiveUserId;
+      _homeSnapshotSub ??= _marketSnapshotRepository
+          .openHome(
+        userId: userId,
+        limit: ReadBudgetRegistry.marketHomeInitialLimit,
+      )
+          .listen((resource) {
+        unawaited(_applyHomeSnapshotResource(resource));
+      });
+
+      if (items.isEmpty && visibleItems.isEmpty) {
+        await _loadListingFromSnapshot(forceRefresh: false);
+        _applyFilters();
+      }
+
+      if (allowRefresh) {
+        unawaited(loadHomeData(silent: true));
+      } else if (visibleItems.isEmpty && items.isNotEmpty) {
+        _applyFilters();
+      }
+    } finally {
+      unawaited(_persistMarketStartupShard());
+      unawaited(_recordMarketStartupSurface());
+    }
+  }
+
+  Future<void> _performHydrateMarketStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    try {
+      final shard = await ensureStartupSnapshotShardStore().load(
+        surface: 'market',
+        userId: userId,
+        maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+      );
+      if (shard == null) return;
+      final rawSelection = (shard.payload['listingSelection'] as num?)?.toInt();
+      if (rawSelection != null) {
+        listingSelection.value = rawSelection == 1 ? 1 : 0;
+        listingSelectionReady.value = true;
+      }
+      final decoded = _decodeMarketStartupItems(shard.payload['items']);
+      if (decoded.isEmpty) return;
+      if (items.isEmpty) {
+        items.assignAll(decoded);
+      }
+      if (visibleItems.isEmpty) {
+        visibleItems.assignAll(decoded);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistMarketStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final sourceItems = visibleItems.isNotEmpty ? visibleItems : items;
+    final startupItems = sourceItems.take(8).toList(growable: false);
+    final store = ensureStartupSnapshotShardStore();
+    if (startupItems.isEmpty) {
+      await store.clear(
+        surface: 'market',
+        userId: userId,
+      );
+      return;
+    }
+    await store.save(
+      surface: 'market',
+      userId: userId,
+      itemCount: sourceItems.length,
+      limit: 8,
+      source: 'market_snapshot',
+      payload: <String, dynamic>{
+        'listingSelection': listingSelection.value == 1 ? 1 : 0,
+        'items':
+            startupItems.map((item) => item.toJson()).toList(growable: false),
+      },
+    );
+  }
+
+  Future<void> _recordMarketStartupSurface() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final visibleCount = visibleItems.length;
+    final itemCount = visibleCount > 0 ? visibleCount : items.length;
+    final hasLocalSnapshot = itemCount > 0;
+    try {
+      await ensureStartupSnapshotManifestStore().recordSurfaceState(
+        surface: 'market',
+        userId: userId,
+        itemCount: itemCount,
+        hasLocalSnapshot: hasLocalSnapshot,
+        source: hasLocalSnapshot ? 'market_snapshot' : 'none',
+      );
+    } catch (_) {}
+  }
+
+  List<MarketItemModel> _decodeMarketStartupItems(dynamic raw) {
+    if (raw is! List) return const <MarketItemModel>[];
+    return raw
+        .whereType<Map>()
+        .map((entry) {
+          try {
+            return MarketItemModel.fromJson(
+              Map<String, dynamic>.from(entry.cast<dynamic, dynamic>()),
+            );
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<MarketItemModel>()
+        .toList(growable: false);
+  }
+
   Future<void> _performRestoreListingSelection() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {

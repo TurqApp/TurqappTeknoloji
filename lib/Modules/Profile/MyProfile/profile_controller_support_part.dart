@@ -23,6 +23,13 @@ extension ProfileControllerSupportPart on ProfileController {
   int get postLimitPhotos => _profilePageLimit;
   int get postLimitVideos => _profilePageLimit;
 
+  Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
+      _performPrepareStartupSurface(
+        allowBackgroundRefresh: allowBackgroundRefresh,
+      );
+
+  Future<void> persistStartupShard() => _persistProfileStartupShard();
+
   String? get _resolvedActiveUid => _performResolvedActiveUid();
 
   ScrollController scrollControllerForSelection(int selection) =>

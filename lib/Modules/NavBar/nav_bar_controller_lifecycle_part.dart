@@ -76,6 +76,11 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       pauseGlobalTabMedia();
+      unawaited(
+        _persistCurrentStartupSurfacesImpl(
+          includeHomeSurfaces: true,
+        ),
+      );
       return;
     }
 
@@ -106,12 +111,19 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       try {
         FocusManager.instance.primaryFocus?.unfocus();
       } catch (_) {}
+      unawaited(
+        _persistStartupSurfacesForIndexImpl(
+          previous,
+          includeHomeSurfaces: previous == 0,
+        ),
+      );
       _suspendFeedForTabExitImpl();
       _pauseGlobalTabMediaImpl();
     }
 
     selectedIndex.value = index;
     unawaited(_persistSelectedIndex(index));
+    unawaited(_persistStartupRouteHint(index));
 
     if (index != previous) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -136,10 +148,8 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       maybeFindExploreController()?.resetSurfaceForTabTransition();
     } catch (_) {}
     final profile = ProfileController.maybeFind();
-    final preserveIntegrationProfileShell =
-        IntegrationTestMode.enabled &&
-            profile?.postSelection.value ==
-                kProfileIntegrationSmokeShellSelection;
+    final preserveIntegrationProfileShell = IntegrationTestMode.enabled &&
+        profile?.postSelection.value == kProfileIntegrationSmokeShellSelection;
     if (!preserveIntegrationProfileShell) {
       try {
         profile?.resetSurfaceForTabTransition();
@@ -174,5 +184,61 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     try {
       maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     } catch (_) {}
+  }
+
+  Future<void> _persistCurrentStartupSurfacesImpl({
+    required bool includeHomeSurfaces,
+  }) {
+    return _persistStartupSurfacesForIndexImpl(
+      selectedIndex.value,
+      includeHomeSurfaces: includeHomeSurfaces,
+    );
+  }
+
+  Future<void> _persistStartupSurfacesForIndexImpl(
+    int index, {
+    required bool includeHomeSurfaces,
+  }) async {
+    final normalizedIndex = index < 0 ? 0 : index;
+    final hasEducation =
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+    final educationIndex = hasEducation ? 3 : -1;
+    final profileIndex = hasEducation ? 4 : 3;
+
+    final tasks = <Future<void>>[];
+    if (includeHomeSurfaces || normalizedIndex == 0) {
+      final agenda = maybeFindAgendaController();
+      if (agenda != null) {
+        tasks.add(agenda.persistStartupArtifacts());
+      }
+      final shorts = maybeFindShortController();
+      if (shorts != null) {
+        tasks.add(shorts.persistStartupArtifacts());
+      }
+    }
+
+    if (normalizedIndex == 1) {
+      final explore = maybeFindExploreController();
+      if (explore != null) {
+        tasks.add(explore.persistStartupShard());
+      }
+    } else if (educationIndex >= 0 && normalizedIndex == educationIndex) {
+      final market = maybeFindMarketController();
+      if (market != null) {
+        tasks.add(market.persistStartupShard());
+      }
+      final jobs = maybeFindJobFinderController();
+      if (jobs != null) {
+        tasks.add(jobs.persistStartupShard());
+      }
+    } else if (normalizedIndex == profileIndex) {
+      final profile = ProfileController.maybeFind();
+      if (profile != null) {
+        tasks.add(profile.persistStartupShard());
+      }
+    }
+
+    if (tasks.isEmpty) return;
+    await Future.wait(tasks, eagerError: false);
   }
 }
