@@ -85,7 +85,7 @@ extension PostContentControllerDataPart on PostContentController {
       if (data['poll'] != null) {
         try {
           model.poll = Map<String, dynamic>.from(data['poll']);
-          currentModel.value = model;
+          currentModel.refresh();
         } catch (_) {}
       }
 
@@ -146,7 +146,7 @@ extension PostContentControllerDataPart on PostContentController {
     if (optimisticPoll == null) return;
     try {
       model.poll = optimisticPoll;
-      currentModel.value = model;
+      currentModel.refresh();
       final confirmedPoll = await _postRepository.commitPollVote(
         postId: model.docID,
         optionIndex: optionIndex,
@@ -158,10 +158,10 @@ extension PostContentControllerDataPart on PostContentController {
       } else {
         model.poll = confirmedPoll;
       }
-      currentModel.value = model;
+      currentModel.refresh();
     } catch (_) {
       model.poll = originalPoll;
-      currentModel.value = model;
+      currentModel.refresh();
     }
   }
 
