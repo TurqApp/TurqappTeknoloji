@@ -2,7 +2,6 @@ part of 'job_finder_controller.dart';
 
 extension JobFinderControllerLifecyclePart on JobFinderController {
   void _handleOnInit() {
-    unawaited(_restoreListingSelection());
     unawaited(_performPrepareStartupSurface());
     search.addListener(_searchListener);
   }
