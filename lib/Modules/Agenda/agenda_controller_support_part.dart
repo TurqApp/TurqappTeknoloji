@@ -178,6 +178,13 @@ extension AgendaControllerPublicApiPart on AgendaController {
         limit: 10,
       ),
     );
+    await ensureStartupSnapshotManifestStore().recordSurfaceState(
+      surface: 'feed',
+      userId: userId,
+      itemCount: ordered.length,
+      hasLocalSnapshot: true,
+      source: 'feed_runtime',
+    );
   }
 
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>

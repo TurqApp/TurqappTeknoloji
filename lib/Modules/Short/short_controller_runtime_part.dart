@@ -94,5 +94,12 @@ extension ShortControllerPublicApiPart on ShortController {
         limit: shardLimit,
       ),
     );
+    await ensureStartupSnapshotManifestStore().recordSurfaceState(
+      surface: 'short',
+      userId: userId,
+      itemCount: ordered.length,
+      hasLocalSnapshot: true,
+      source: 'short_runtime',
+    );
   }
 }
