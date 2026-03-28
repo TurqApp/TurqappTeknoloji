@@ -15,6 +15,7 @@ import '../Short/short_controller.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Explore/explore_controller.dart';
 import '../Education/education_controller.dart';
+import '../Education/pasaj_tabs.dart';
 import '../JobFinder/job_finder_controller.dart';
 import '../Market/market_controller.dart';
 import '../Profile/MyProfile/profile_controller.dart';
