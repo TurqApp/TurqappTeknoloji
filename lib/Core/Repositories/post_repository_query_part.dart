@@ -94,6 +94,7 @@ extension PostRepositoryQueryPart on PostRepository {
       typesenseDocs = const <String, Map<String, dynamic>>{};
     }
     final fallbackIds = <String>[];
+    final pollBackfillIds = <String>[];
 
     for (final id in missing) {
       final doc = typesenseDocs[id];
@@ -107,6 +108,9 @@ extension PostRepositoryQueryPart on PostRepository {
         PostsModel.fromMap(raw, id),
       );
       result[id] = model;
+      if (model.poll.isEmpty) {
+        pollBackfillIds.add(id);
+      }
       final state = _states.putIfAbsent(id, () => PostRepositoryState(id));
       state.latestPostData.value = model.toMap();
       _countManager.initializeCounts(
@@ -117,6 +121,23 @@ extension PostRepositoryQueryPart on PostRepository {
         retryCount: model.stats.retryCount.toInt(),
         statsCount: model.stats.statsCount.toInt(),
       );
+    }
+
+    if (pollBackfillIds.isNotEmpty) {
+      final firestorePollModels = await fetchPostsByIds(
+        pollBackfillIds,
+        preferCache: false,
+        cacheOnly: false,
+      );
+      for (final entry in firestorePollModels.entries) {
+        final firestoreModel = entry.value;
+        if (firestoreModel.poll.isEmpty) continue;
+        result[entry.key] = firestoreModel;
+        final state =
+            _states.putIfAbsent(entry.key, () => PostRepositoryState(entry.key));
+        state.latestPostData.value = firestoreModel.toMap();
+        _seedCounts(state, firestoreModel);
+      }
     }
 
     if (fallbackIds.isNotEmpty) {
