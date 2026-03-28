@@ -64,6 +64,8 @@ extension _ShortControllerRuntimeX on ShortController {
 }
 
 extension ShortControllerPublicApiPart on ShortController {
+  Future<void> persistStartupShard() => persistStartupArtifacts();
+
   Future<void> persistStartupArtifacts() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty || shorts.isEmpty) return;

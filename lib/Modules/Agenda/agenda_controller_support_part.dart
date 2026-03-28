@@ -151,6 +151,8 @@ extension AgendaControllerSupportPart on AgendaController {
 extension AgendaControllerPublicApiPart on AgendaController {
   Future<void> onPrimarySurfaceVisible() => ensureFeedSurfaceReady();
 
+  Future<void> persistStartupShard() => persistStartupArtifacts();
+
   Future<void> persistStartupArtifacts() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty || agendaList.isEmpty) return;

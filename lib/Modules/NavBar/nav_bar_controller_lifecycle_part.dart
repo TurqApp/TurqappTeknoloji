@@ -209,11 +209,11 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     if (includeHomeSurfaces || normalizedIndex == 0) {
       final agenda = maybeFindAgendaController();
       if (agenda != null) {
-        tasks.add(agenda.persistStartupArtifacts());
+        tasks.add(agenda.persistStartupShard());
       }
       final shorts = maybeFindShortController();
       if (shorts != null) {
-        tasks.add(shorts.persistStartupArtifacts());
+        tasks.add(shorts.persistStartupShard());
       }
     }
 
