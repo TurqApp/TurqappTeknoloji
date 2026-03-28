@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';

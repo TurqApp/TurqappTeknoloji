@@ -136,7 +136,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _wantPlay = false;
     _wantPause = false;
     _hls.cancelPendingResume();
-    if (_viewReady) {
+    if (_viewReady || _hls.currentUrl != null) {
       return _hls.stopPlayback();
     }
     return Future.value();

@@ -1,6 +1,14 @@
 part of 'global_video_adapter_pool.dart';
 
 extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
+  Future<void> _parkAdapter(HLSVideoAdapter adapter) async {
+    if (Platform.isAndroid) {
+      await adapter.stopPlayback();
+      return;
+    }
+    await adapter.pause();
+  }
+
   HLSVideoAdapter acquire({
     required String cacheKey,
     required String url,
@@ -52,7 +60,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     if (cacheKey == null) {
       if (!adapter.isDisposed) {
         if (keepWarm) {
-          await adapter.pause();
+          await _parkAdapter(adapter);
         } else {
           adapter.dispose();
         }
@@ -75,12 +83,12 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
       if (!keepWarm) {
         adapter.dispose();
       } else {
-        await adapter.pause();
+        await _parkAdapter(adapter);
       }
       return;
     }
 
-    await adapter.pause();
+    await _parkAdapter(adapter);
 
     final existing = _warmAdapters[cacheKey];
     if (existing != null && !identical(existing.adapter, adapter)) {
