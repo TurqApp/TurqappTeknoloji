@@ -77,6 +77,7 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     _pendingPlayTimer = null;
     if (!handle.isPlaying) {
       handle.play();
+      _stopDormantAndroidHandlesExcept(docID);
     }
     return true;
   }

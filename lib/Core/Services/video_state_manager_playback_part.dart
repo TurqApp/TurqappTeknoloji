@@ -126,6 +126,21 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _currentPlayingDocID = allowedDocID;
   }
 
+  void _stopDormantAndroidHandlesExcept(String allowedDocID) {
+    if (!GetPlatform.isAndroid) return;
+    for (final entry in _allVideoControllers.entries) {
+      if (entry.key == allowedDocID) continue;
+      final handle = entry.value;
+      if (handle is! HLSAdapterPlaybackHandle) continue;
+      if (!handle.isInitialized) continue;
+      if (handle.isPlaying) continue;
+      if (handle.position < const Duration(milliseconds: 320)) continue;
+      _saveVideoState(entry.key, handle);
+      unawaited(handle.setVolume(0.0));
+      unawaited(handle.adapter.stopPlayback());
+    }
+  }
+
   void _playOnlyThis(String docID) {
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
@@ -151,6 +166,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       final handle = _allVideoControllers[docID];
       if (handle != null && handle.isInitialized && !handle.isPlaying) {
         handle.play();
+        _stopDormantAndroidHandlesExcept(docID);
       }
     });
   }
@@ -173,6 +189,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       final currentHandle = _allVideoControllers[docID];
       if (currentHandle != null && currentHandle.isInitialized) {
         currentHandle.play();
+        _stopDormantAndroidHandlesExcept(docID);
       }
     });
   }
