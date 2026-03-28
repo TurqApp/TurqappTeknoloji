@@ -10,10 +10,5 @@ JobFinderController? maybeFindJobFinderController() =>
         : null;
 
 extension JobFinderControllerFacadeApiPart on JobFinderController {
-  Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
-      _performPrepareStartupSurface(
-        allowBackgroundRefresh: allowBackgroundRefresh,
-      );
-
   Future<void> persistStartupShard() => _persistJobFinderStartupShard();
 }
