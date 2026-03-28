@@ -158,6 +158,9 @@ extension AgendaControllerPublicApiPart on AgendaController {
     bool? allowBackgroundRefresh,
   }) async {
     await ensureFeedSurfaceReady();
+    await _recordFeedStartupSurface(
+      source: 'feed_surface_ready',
+    );
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed);
     if (!allowRefresh || agendaList.isEmpty) return;
@@ -191,12 +194,9 @@ extension AgendaControllerPublicApiPart on AgendaController {
         limit: 10,
       ),
     );
-    await ensureStartupSnapshotManifestStore().recordSurfaceState(
-      surface: 'feed',
-      userId: userId,
-      itemCount: ordered.length,
-      hasLocalSnapshot: true,
+    await _recordFeedStartupSurface(
       source: 'feed_runtime',
+      itemCount: ordered.length,
     );
   }
 
@@ -242,4 +242,20 @@ extension AgendaControllerPublicApiPart on AgendaController {
   void _rebuildFilteredFeedEntries() => _performRebuildFilteredFeedEntries();
 
   void _rebuildRenderFeedEntries() => _performRebuildRenderFeedEntries();
+
+  Future<void> _recordFeedStartupSurface({
+    required String source,
+    int? itemCount,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final count = itemCount ?? agendaList.length;
+    await ensureStartupSnapshotManifestStore().recordSurfaceState(
+      surface: 'feed',
+      userId: userId,
+      itemCount: count,
+      hasLocalSnapshot: count > 0,
+      source: count > 0 ? source : 'none',
+    );
+  }
 }

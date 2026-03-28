@@ -84,6 +84,9 @@ extension ShortControllerPublicApiPart on ShortController {
     if (shorts.isNotEmpty) {
       await preloadRange(0, range: 0);
     }
+    await _recordShortStartupSurface(
+      source: 'short_surface_ready',
+    );
     if (!allowRefresh || shorts.isEmpty) return;
     unawaited(backgroundPreload());
   }
@@ -118,12 +121,25 @@ extension ShortControllerPublicApiPart on ShortController {
         limit: shardLimit,
       ),
     );
+    await _recordShortStartupSurface(
+      source: 'short_runtime',
+      itemCount: ordered.length,
+    );
+  }
+
+  Future<void> _recordShortStartupSurface({
+    required String source,
+    int? itemCount,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final count = itemCount ?? shorts.length;
     await ensureStartupSnapshotManifestStore().recordSurfaceState(
       surface: 'short',
       userId: userId,
-      itemCount: ordered.length,
-      hasLocalSnapshot: true,
-      source: 'short_runtime',
+      itemCount: count,
+      hasLocalSnapshot: count > 0,
+      source: count > 0 ? source : 'none',
     );
   }
 }
