@@ -1,6 +1,12 @@
 part of 'post_content_controller.dart';
 
 extension PostContentControllerDataPart on PostContentController {
+  int _pollExpiresAtMs(Map<String, dynamic> poll) {
+    final createdAt = (poll['createdDate'] ?? model.timeStamp) as num;
+    final durationHours = (poll['durationHours'] ?? 24) as num;
+    return createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
+  }
+
   int? get _cachedPollSelection =>
       _postState?.localPollSelection.value ?? _localPollSelection.value;
 
@@ -26,6 +32,57 @@ extension PostContentControllerDataPart on PostContentController {
     final selection = _extractUserVoteFromPoll(poll);
     _localPollSelection.value = selection;
     _postState?.localPollSelection.value = selection;
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
+    if (selection == null) {
+      if (DateTime.now().millisecondsSinceEpoch >= _pollExpiresAtMs(poll)) {
+        unawaited(_postRepository.clearLocalPollSelection(
+          postId: model.docID,
+          currentUid: uid,
+        ));
+      }
+      return;
+    }
+    unawaited(_postRepository.persistLocalPollSelection(
+      postId: model.docID,
+      currentUid: uid,
+      optionIndex: selection,
+      expiresAtMs: _pollExpiresAtMs(poll),
+    ));
+  }
+
+  Future<void> _restorePersistedPollSelectionIfNeeded() async {
+    final uid = _currentUid;
+    if (uid.isEmpty || model.poll.isEmpty) return;
+    final currentPoll = Map<String, dynamic>.from(model.poll);
+    final remoteSelection = _extractUserVoteFromPoll(currentPoll);
+    if (remoteSelection != null) {
+      await _postRepository.persistLocalPollSelection(
+        postId: model.docID,
+        currentUid: uid,
+        optionIndex: remoteSelection,
+        expiresAtMs: _pollExpiresAtMs(currentPoll),
+      );
+      return;
+    }
+    final cachedSelection = await _postRepository.readLocalPollSelection(
+      postId: model.docID,
+      currentUid: uid,
+    );
+    if (cachedSelection == null) return;
+    final optimisticPoll = _postRepository.buildVotedPoll(
+      poll: currentPoll,
+      optionIndex: cachedSelection,
+      fallbackTimestampMs: model.timeStamp.toInt(),
+      currentUid: uid,
+    );
+    _localPollSelection.value = cachedSelection;
+    _postState?.localPollSelection.value = cachedSelection;
+    if (optimisticPoll != null) {
+      model.poll = optimisticPoll;
+      _cachePollLocally(optimisticPoll);
+    }
+    currentModel.refresh();
   }
 
   bool _shouldIgnoreStaleIncomingPoll(Map<String, dynamic> incomingPoll) {
@@ -62,6 +119,7 @@ extension PostContentControllerDataPart on PostContentController {
         _postState?.localPollSelection.value ?? _extractUserVoteFromPoll(model.poll);
     _localPollSelection.value = initialSelection;
     _postState?.localPollSelection.value = initialSelection;
+    unawaited(_restorePersistedPollSelectionIfNeeded());
     _syncSharedInteractionState();
     _interactionWorker?.dispose();
     _myResharesWorker?.dispose();
@@ -196,6 +254,12 @@ extension PostContentControllerDataPart on PostContentController {
       _postState?.localPollSelection.value = optionIndex;
       model.poll = optimisticPoll;
       _cachePollLocally(optimisticPoll);
+      unawaited(_postRepository.persistLocalPollSelection(
+        postId: model.docID,
+        currentUid: uid,
+        optionIndex: optionIndex,
+        expiresAtMs: _pollExpiresAtMs(optimisticPoll),
+      ));
       currentModel.refresh();
       final confirmedPoll = await _postRepository.commitPollVote(
         postId: model.docID,

@@ -177,6 +177,37 @@ extension PostRepositoryFacadePart on PostRepository {
   void mergeCachedPostData(String postId, Map<String, dynamic> patch) =>
       _performMergeCachedPostData(postId, patch);
 
+  Future<void> persistLocalPollSelection({
+    required String postId,
+    required String currentUid,
+    required int optionIndex,
+    required int expiresAtMs,
+  }) =>
+      _performPersistLocalPollSelection(
+        postId: postId,
+        currentUid: currentUid,
+        optionIndex: optionIndex,
+        expiresAtMs: expiresAtMs,
+      );
+
+  Future<int?> readLocalPollSelection({
+    required String postId,
+    required String currentUid,
+  }) =>
+      _performReadLocalPollSelection(
+        postId: postId,
+        currentUid: currentUid,
+      );
+
+  Future<void> clearLocalPollSelection({
+    required String postId,
+    required String currentUid,
+  }) =>
+      _performClearLocalPollSelection(
+        postId: postId,
+        currentUid: currentUid,
+      );
+
   Future<Map<String, dynamic>?> fetchPostRawById(
     String postId, {
     bool preferCache = true,

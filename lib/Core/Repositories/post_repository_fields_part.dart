@@ -9,6 +9,7 @@ class _PostRepositoryFieldsState {
       <String, List<PostSharersModel>>{};
   final UserSubcollectionRepository userSubcollectionRepository =
       ensureUserSubcollectionRepository();
+  SharedPreferences? prefs;
 }
 
 extension PostRepositoryFieldsPart on PostRepository {
@@ -18,4 +19,6 @@ extension PostRepositoryFieldsPart on PostRepository {
       _state.postSharersMemory;
   UserSubcollectionRepository get _userSubcollectionRepository =>
       _state.userSubcollectionRepository;
+  SharedPreferences? get _prefs => _state.prefs;
+  set _prefs(SharedPreferences? value) => _state.prefs = value;
 }

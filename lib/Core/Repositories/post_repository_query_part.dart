@@ -1,6 +1,16 @@
 part of 'post_repository.dart';
 
 extension PostRepositoryQueryPart on PostRepository {
+  static const String _pollSelectionPrefKeyPrefix =
+      'post_repository_poll_selection_v1';
+
+  String _pollSelectionKey(String currentUid, String postId) =>
+      '${_pollSelectionPrefKeyPrefix}_${currentUid.trim()}_${postId.trim()}';
+
+  Future<SharedPreferences> _ensurePrefsInstance() async {
+    return _prefs ??= await SharedPreferences.getInstance();
+  }
+
   Future<Map<String, PostsModel>> _performFetchPostsByIds(
     List<String> postIds, {
     required bool preferCache,
@@ -453,6 +463,87 @@ extension PostRepositoryQueryPart on PostRepository {
     final current = Map<String, dynamic>.from(state.latestPostData.value ?? {});
     current.addAll(patch);
     state.latestPostData.value = current;
+  }
+
+  Future<void> _performPersistLocalPollSelection({
+    required String postId,
+    required String currentUid,
+    required int optionIndex,
+    required int expiresAtMs,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedPostId.isEmpty || normalizedUid.isEmpty) return;
+    if (expiresAtMs > 0 &&
+        DateTime.now().millisecondsSinceEpoch >= expiresAtMs) {
+      await _performClearLocalPollSelection(
+        postId: normalizedPostId,
+        currentUid: normalizedUid,
+      );
+      return;
+    }
+    final prefs = await _ensurePrefsInstance();
+    final payload = jsonEncode(<String, dynamic>{
+      'optionIndex': optionIndex,
+      'expiresAtMs': expiresAtMs,
+      'updatedAtMs': DateTime.now().millisecondsSinceEpoch,
+    });
+    await prefs.setString(
+      _pollSelectionKey(normalizedUid, normalizedPostId),
+      payload,
+    );
+  }
+
+  Future<int?> _performReadLocalPollSelection({
+    required String postId,
+    required String currentUid,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedPostId.isEmpty || normalizedUid.isEmpty) return null;
+    final prefs = await _ensurePrefsInstance();
+    final key = _pollSelectionKey(normalizedUid, normalizedPostId);
+    final raw = prefs.getString(key);
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      final data = jsonDecode(raw);
+      if (data is! Map) {
+        await prefs.remove(key);
+        return null;
+      }
+      final expiresAtRaw = data['expiresAtMs'];
+      final expiresAtMs = expiresAtRaw is num
+          ? expiresAtRaw.toInt()
+          : int.tryParse('${expiresAtRaw ?? ''}') ?? 0;
+      if (expiresAtMs > 0 &&
+          DateTime.now().millisecondsSinceEpoch >= expiresAtMs) {
+        await prefs.remove(key);
+        return null;
+      }
+      final optionRaw = data['optionIndex'];
+      final optionIndex = optionRaw is num
+          ? optionRaw.toInt()
+          : int.tryParse('${optionRaw ?? ''}');
+      if (optionIndex == null || optionIndex < 0) {
+        await prefs.remove(key);
+        return null;
+      }
+      return optionIndex;
+    } catch (_) {
+      await prefs.remove(key);
+      return null;
+    }
+  }
+
+  Future<void> _performClearLocalPollSelection({
+    required String postId,
+    required String currentUid,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedPostId.isEmpty || normalizedUid.isEmpty) return;
+    final prefs = await _ensurePrefsInstance();
+    await prefs.remove(_pollSelectionKey(normalizedUid, normalizedPostId));
   }
 
   Future<Map<String, dynamic>?> _performFetchPostRawById(
