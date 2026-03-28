@@ -29,7 +29,10 @@ extension _ChatControllerConversationX on ChatController {
     if (uid.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
-      "chat_last_opened_${uid}_$chatID",
+      conversationApplicationService.buildOpenedStorageKey(
+        uid: uid,
+        chatId: chatID,
+      ),
       DateTime.now().millisecondsSinceEpoch,
     );
   }
@@ -38,9 +41,15 @@ extension _ChatControllerConversationX on ChatController {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
-    final key = "chat_last_opened_${uid}_$chatID";
+    final key = conversationApplicationService.buildOpenedStorageKey(
+      uid: uid,
+      chatId: chatID,
+    );
     final old = prefs.getInt(key) ?? 0;
-    if (timestampMs > old) {
+    if (conversationApplicationService.shouldPersistOpenedAt(
+      previousOpenedAtMs: old,
+      candidateTimestampMs: timestampMs,
+    )) {
       await prefs.setInt(key, timestampMs);
     }
   }

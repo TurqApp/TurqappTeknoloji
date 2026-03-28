@@ -37,9 +37,7 @@ extension ChatControllerActionsPart on ChatController {
   }) {
     final currentUID = CurrentUserService.instance.effectiveUserId;
     if (replace) _conversationMessages.clear();
-    final List<String> unseenRawDocIds = [];
-    final List<String> undeliveredRawDocIds = [];
-    int latestSeenTs = 0;
+    final receiptSnapshots = <ChatReadReceiptSnapshot>[];
 
     for (final doc in docs) {
       final data = doc.data();
@@ -53,33 +51,36 @@ extension ChatControllerActionsPart on ChatController {
       final seenBy = List<String>.from(data["seenBy"] ?? []);
       final model = MessageModel.fromConversationSnapshot(doc);
       _conversationMessages[model.docID] = model;
-      final ts = model.timeStamp.toInt();
-      if (ts > latestSeenTs) latestSeenTs = ts;
-
-      if (senderId != currentUID && !seenBy.contains(currentUID)) {
-        unseenRawDocIds.add(doc.id);
-      }
-
-      // Mark other user's "sent" messages as "delivered" when we see them
-      if (senderId != currentUID && status == "sent") {
-        undeliveredRawDocIds.add(doc.id);
-      }
+      receiptSnapshots.add(
+        ChatReadReceiptSnapshot(
+          rawDocId: doc.id,
+          senderId: senderId.toString(),
+          status: status.toString(),
+          seenBy: seenBy,
+          timestampMs: model.timeStamp.toInt(),
+        ),
+      );
     }
 
-    if (unseenRawDocIds.isNotEmpty || undeliveredRawDocIds.isNotEmpty) {
+    final readPolicyPlan = conversationApplicationService.buildReadPolicyPlan(
+      currentUid: currentUID,
+      snapshots: receiptSnapshots,
+    );
+
+    if (readPolicyPlan.hasPendingRepositoryUpdates) {
       _conversationRepository
           .markMessagesSeenAndDelivered(
             chatId: chatID,
             currentUid: currentUID,
-            seenMessageIds: unseenRawDocIds,
-            deliveredMessageIds: undeliveredRawDocIds,
+            seenMessageIds: readPolicyPlan.unseenRawDocIds,
+            deliveredMessageIds: readPolicyPlan.undeliveredRawDocIds,
           )
           .catchError((_) => null);
     }
 
-    if (latestSeenTs > 0) {
+    if (readPolicyPlan.latestSeenTs > 0) {
       unawaited(ChatControllerSupportPart(this)._markConversationOpenedAt(
-        latestSeenTs,
+        readPolicyPlan.latestSeenTs,
       ));
     }
   }

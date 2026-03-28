@@ -24,6 +24,7 @@ import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Chat/chat_realtime_sync_policy.dart';
+import 'package:turqappv2/Modules/Chat/chat_conversation_application_service.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';

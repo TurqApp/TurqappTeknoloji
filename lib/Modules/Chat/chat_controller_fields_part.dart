@@ -1,6 +1,12 @@
 part of 'chat_controller.dart';
 
 class _ChatControllerState {
+  _ChatControllerState({
+    ChatConversationApplicationService? conversationApplicationService,
+  }) : conversationApplicationService = conversationApplicationService ??
+            ChatConversationApplicationService();
+
+  final ChatConversationApplicationService conversationApplicationService;
   final nickname = ''.obs;
   final avatarUrl = ''.obs;
   final token = ''.obs;
@@ -67,6 +73,8 @@ class _ChatControllerState {
 }
 
 extension ChatControllerFieldsPart on ChatController {
+  ChatConversationApplicationService get conversationApplicationService =>
+      _state.conversationApplicationService;
   RxString get nickname => _state.nickname;
   RxString get avatarUrl => _state.avatarUrl;
   RxString get token => _state.token;

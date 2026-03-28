@@ -1,63 +1,6 @@
 part of 'chat_controller.dart';
 
 extension ChatControllerSendPart on ChatController {
-  Future<String?> _resolveCounterpartUserId() async {
-    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
-    if (currentUid.isEmpty) return null;
-
-    final candidates = <String>{};
-    final fromParam = userID.trim();
-    if (fromParam.isNotEmpty) candidates.add(fromParam);
-
-    final parts = chatID.split("_");
-    for (final part in parts) {
-      final trimmed = part.trim();
-      if (trimmed.isNotEmpty) candidates.add(trimmed);
-    }
-
-    try {
-      final data = await _conversationRepository.getConversation(
-        chatID,
-        preferCache: true,
-        cacheOnly: false,
-      );
-      if (data != null) {
-        final participants = data["participants"];
-        if (participants is List) {
-          for (final p in participants) {
-            final uid = p.toString().trim();
-            if (uid.isNotEmpty) candidates.add(uid);
-          }
-        }
-        final uid1 = (data["userID1"] ?? "").toString().trim();
-        final uid2 = (data["userID2"] ?? "").toString().trim();
-        if (uid1.isNotEmpty) candidates.add(uid1);
-        if (uid2.isNotEmpty) candidates.add(uid2);
-      }
-    } catch (_) {}
-
-    for (final uid in candidates) {
-      if (uid != currentUid) return uid;
-    }
-    return null;
-  }
-
-  Future<void> _ensureConversationReady({
-    required String targetUserId,
-    required String previewText,
-    required int nowMs,
-  }) async {
-    final currentUid = CurrentUserService.instance.effectiveUserId;
-    if (currentUid.isEmpty) return;
-    await _conversationRepository.upsertConversationEnvelope(
-      chatId: chatID,
-      currentUid: currentUid,
-      otherUid: targetUserId,
-      lastMessage: previewText,
-      nowMs: nowMs,
-    );
-  }
-
   Future<void> sendMessage({
     List<String>? imageUrls,
     LatLng? latLng,
@@ -100,174 +43,48 @@ extension ChatControllerSendPart on ChatController {
       return;
     }
 
-    if (text.isEmpty &&
-        !(imageUrls?.isNotEmpty ?? false) &&
-        latLng == null &&
-        !(kisiAdSoyad?.isNotEmpty ?? false) &&
-        !(postID?.isNotEmpty ?? false) &&
-        !(gif?.isNotEmpty ?? false) &&
-        !(videoUrl?.isNotEmpty ?? false) &&
-        !(audioUrl?.isNotEmpty ?? false)) {
-      return;
-    }
-
-    String notifBody;
-    if (videoUrl != null && videoUrl.isNotEmpty) {
-      notifBody = 'chat.notif_video'.tr;
-    } else if (audioUrl != null && audioUrl.isNotEmpty) {
-      notifBody = 'chat.notif_audio'.tr;
-    } else if (imageUrls != null && imageUrls.isNotEmpty) {
-      notifBody = 'chat.notif_images'.trParams({
-        'count': imageUrls.length.toString(),
-      });
-    } else if (postID != null && postID.isNotEmpty) {
-      notifBody = 'chat.notif_post'.tr;
-    } else if (latLng != null) {
-      notifBody = 'chat.notif_location'.tr;
-    } else if (kisiAdSoyad != null && kisiAdSoyad.isNotEmpty) {
-      notifBody = 'chat.notif_contact'.tr;
-    } else if (gif != null && gif.isNotEmpty) {
-      notifBody = 'chat.notif_gif'.tr;
-    } else {
-      notifBody = text;
-    }
-
     final now = DateTime.now();
-    final hasExternalReply = (replyTextOverride ?? "").trim().isNotEmpty;
-    final replyTextFinal = (replyTextOverride ?? "").trim();
-    final replyTypeFinal = (replyTypeOverride ?? "text").trim();
-    final replySenderFinal =
-        (replySenderIdOverride ?? CurrentUserService.instance.effectiveUserId)
-            .trim();
-    final replyMessageFinal =
-        (replyMessageIdOverride ?? "preview_${now.microsecondsSinceEpoch}")
-            .trim();
-
-    String inferredReplyText = "";
-    String inferredReplyType = "text";
-    String inferredReplyTarget = "";
-    final repliedModel = replyingTo.value;
-    if (!hasExternalReply && repliedModel != null) {
-      inferredReplyTarget = repliedModel.rawDocID;
-      if (repliedModel.video.isNotEmpty) {
-        inferredReplyType = "video";
-        inferredReplyText = "🎥 ${'chat.video'.tr}";
-        inferredReplyTarget = repliedModel.video;
-      } else if (repliedModel.imgs.isNotEmpty) {
-        inferredReplyType = "media";
-        inferredReplyText = "📷 ${'chat.photo'.tr}";
-        inferredReplyTarget = repliedModel.imgs.first;
-      } else if (repliedModel.sesliMesaj.isNotEmpty) {
-        inferredReplyType = "audio";
-        inferredReplyText = "🎤 ${'chat.audio'.tr}";
-      } else if (repliedModel.lat != 0 || repliedModel.long != 0) {
-        inferredReplyType = "location";
-        inferredReplyText = "📍 ${'chat.location'.tr}";
-      } else if (repliedModel.postID.trim().isNotEmpty) {
-        inferredReplyType = "post";
-        inferredReplyText = "🔗 ${'chat.post'.tr}";
-        inferredReplyTarget = repliedModel.postID.trim();
-      } else if (repliedModel.kisiAdSoyad.trim().isNotEmpty) {
-        inferredReplyType = "contact";
-        inferredReplyText = "👤 ${'chat.person'.tr}";
-      } else {
-        inferredReplyType = "text";
-        inferredReplyText = repliedModel.metin.trim().isNotEmpty
-            ? repliedModel.metin
-            : 'chat.message_hint'.tr;
-      }
-    }
-
-    final messageType = _resolveMessageType(
+    final sendPlan = await conversationApplicationService.prepareSendPlan(
+      currentUid: CurrentUserService.instance.effectiveUserId,
+      routeUserId: userID,
+      chatId: chatID,
+      now: now,
       text: text,
       imageUrls: imageUrls,
       latLng: latLng,
       kisiAdSoyad: kisiAdSoyad,
-      postID: postID,
+      kisiTelefon: kisiTelefon,
       gif: gif,
-      videoUrl: videoUrl,
-      audioUrl: audioUrl,
-    );
-
-    final conversationMessageData = {
-      "senderId": CurrentUserService.instance.effectiveUserId,
-      "text": text,
-      "createdDate": now.millisecondsSinceEpoch,
-      "seenBy": [CurrentUserService.instance.effectiveUserId],
-      "type": messageType,
-      "mediaUrls": gif != null ? [gif] : (imageUrls ?? []),
-      "likes": <String>[],
-      "isDeleted": false,
-      "isEdited": false,
-      "forwarded": false,
-      "unsent": false,
-      "audioUrl": audioUrl ?? "",
-      "audioDurationMs": audioDurationMs ?? 0,
-      "videoUrl": videoUrl ?? "",
-      "videoThumbnail": videoThumbnail ?? "",
-      "status": "sent",
-      "reactions": <String, List<String>>{},
-      if (latLng != null)
-        "location": {
-          "lat": latLng.latitude.toDouble(),
-          "lng": latLng.longitude.toDouble(),
-          "name": text,
-        },
-      if (kisiAdSoyad != null && kisiAdSoyad.isNotEmpty)
-        "contact": {
-          "name": kisiAdSoyad,
-          "phone": kisiTelefon ?? "",
-        },
-      if (postID != null && postID.isNotEmpty)
-        "postRef": {
-          "postId": postID,
-          "postType": postType ?? "",
-          "previewText": "",
-          "previewImageUrl": "",
-        },
-      if (hasExternalReply)
-        "replyTo": {
-          "messageId": replyMessageFinal,
-          "senderId": replySenderFinal,
-          "text": replyTextFinal,
-          "type": replyTypeFinal.isEmpty ? "text" : replyTypeFinal,
-        },
-      if (!hasExternalReply && replyingTo.value != null)
-        "replyTo": {
-          "messageId": inferredReplyTarget,
-          "senderId": replyingTo.value!.userID,
-          "text": inferredReplyText,
-          "type": inferredReplyType,
-        },
-    };
-
-    final previewText = _buildLastMessageText(
-      text: text,
-      imageUrls: imageUrls,
-      latLng: latLng,
-      kisiAdSoyad: kisiAdSoyad,
       postID: postID,
-      gif: gif,
+      postType: postType,
       videoUrl: videoUrl,
+      videoThumbnail: videoThumbnail,
       audioUrl: audioUrl,
+      audioDurationMs: audioDurationMs,
+      replyTextOverride: replyTextOverride,
+      replyTypeOverride: replyTypeOverride,
+      replySenderIdOverride: replySenderIdOverride,
+      replyMessageIdOverride: replyMessageIdOverride,
+      replyingTo: replyingTo.value,
     );
+    if (sendPlan == null) return;
 
     try {
-      final currentUid = CurrentUserService.instance.effectiveUserId;
-      final resolvedTargetUid = await _resolveCounterpartUserId();
-      final targetUidForConversation = resolvedTargetUid ?? userID;
-      await _ensureConversationReady(
-        targetUserId: targetUidForConversation,
-        previewText: previewText,
+      final currentUid = sendPlan.currentUid;
+      await conversationApplicationService.ensureConversationReady(
+        chatId: chatID,
+        currentUid: currentUid,
+        targetUserId: sendPlan.targetUidForConversation,
+        previewText: sendPlan.previewText,
         nowMs: now.millisecondsSinceEpoch,
       );
       final addedRef = await _conversationRepository.addMessage(
         chatId: chatID,
-        payload: Map<String, dynamic>.from(conversationMessageData),
+        payload: Map<String, dynamic>.from(sendPlan.payload),
       );
       lastSentMessageId.value = addedRef.id;
-      lastSentText.value = text;
-      lastSentType.value = messageType;
+      lastSentText.value = sendPlan.text;
+      lastSentType.value = sendPlan.messageType;
       lastSentMediaCount.value = imageUrls?.length ?? 0;
       lastSentPrimaryMediaUrl.value = imageUrls?.isNotEmpty == true
           ? imageUrls!.first
@@ -277,7 +94,7 @@ extension ChatControllerSendPart on ChatController {
 
       try {
         final optimistic = MessageModel.fromConversationData(
-          conversationMessageData,
+          sendPlan.payload,
           addedRef.id,
         );
         _conversationMessages[optimistic.docID] = optimistic;
@@ -287,9 +104,9 @@ extension ChatControllerSendPart on ChatController {
       }
 
       if (!_recipientMuted &&
-          resolvedTargetUid != null &&
-          resolvedTargetUid.isNotEmpty &&
-          resolvedTargetUid != currentUid) {
+          sendPlan.resolvedTargetUid != null &&
+          sendPlan.resolvedTargetUid!.isNotEmpty &&
+          sendPlan.resolvedTargetUid != currentUid) {
         try {
           final convMeta = await _conversationRepository.getConversation(
             chatID,
@@ -307,7 +124,7 @@ extension ChatControllerSendPart on ChatController {
           })();
           final marketNotified =
               await MarketNotificationService.notifyConversationMessageIfNeeded(
-            targetUserId: resolvedTargetUid,
+            targetUserId: sendPlan.resolvedTargetUid!,
             chatId: chatID,
             conversationData: convMeta,
           );
@@ -315,10 +132,10 @@ extension ChatControllerSendPart on ChatController {
             NotificationService.instance.sendNotification(
               token: "",
               title: senderLabel,
-              body: notifBody,
+              body: sendPlan.notificationBody,
               docID: chatID,
               type: kNotificationPostTypeChat,
-              targetUserID: resolvedTargetUid,
+              targetUserID: sendPlan.resolvedTargetUid!,
             );
           }
         } catch (_) {}
