@@ -6,15 +6,24 @@ class _AdsCenterControllerState {
     AdsDeliveryService? deliveryService,
     AdsTargetingService? targetingService,
     AdsAnalyticsService? analyticsService,
+    AdsCenterApplicationService? applicationService,
   })  : repository = repository ?? const AdsRepositoryService(),
         deliveryService = deliveryService ?? AdsDeliveryService(),
         targetingService = targetingService ?? const AdsTargetingService(),
-        analyticsService = analyticsService ?? const AdsAnalyticsService();
+        analyticsService = analyticsService ?? const AdsAnalyticsService(),
+        applicationService = applicationService ??
+            AdsCenterApplicationService(
+              repository: repository ?? const AdsRepositoryService(),
+              deliveryService: deliveryService ?? AdsDeliveryService(),
+              targetingService: targetingService ?? const AdsTargetingService(),
+              analyticsService: analyticsService ?? const AdsAnalyticsService(),
+            );
 
   final AdsRepositoryService repository;
   final AdsDeliveryService deliveryService;
   final AdsTargetingService targetingService;
   final AdsAnalyticsService analyticsService;
+  final AdsCenterApplicationService applicationService;
   final RxBool canAccess = false.obs;
   final RxBool loading = false.obs;
   final RxnString errorText = RxnString();
@@ -45,6 +54,8 @@ extension AdsCenterControllerFieldsPart on AdsCenterController {
   AdsDeliveryService get deliveryService => _state.deliveryService;
   AdsTargetingService get targetingService => _state.targetingService;
   AdsAnalyticsService get analyticsService => _state.analyticsService;
+  AdsCenterApplicationService get applicationService =>
+      _state.applicationService;
   RxBool get canAccess => _state.canAccess;
   RxBool get loading => _state.loading;
   RxnString get errorText => _state.errorText;

@@ -6,9 +6,10 @@ class AdsCenterControllerActionsPart {
   final AdsCenterController controller;
 
   Future<String> saveCampaign(AdCampaign campaign) async {
-    final id = await controller.repository.upsertCampaign(campaign);
-    await controller.refreshDashboard();
-    return id;
+    final result = await controller.applicationService.saveCampaign(campaign);
+    controller.dashboard.assignAll(result.dashboardMetrics);
+    controller.errorText.value = null;
+    return result.campaignId;
   }
 
   Future<String> saveCreative(AdCreative creative) async {
@@ -32,8 +33,10 @@ class AdsCenterControllerActionsPart {
     String campaignId,
     AdCampaignStatus status,
   ) async {
-    await controller.repository.updateCampaignStatus(campaignId, status);
-    await controller.refreshDashboard();
+    final dashboardMetrics = await controller.applicationService
+        .updateCampaignStatus(campaignId, status);
+    controller.dashboard.assignAll(dashboardMetrics);
+    controller.errorText.value = null;
   }
 
   Future<void> saveFlags(AdFeatureFlags flags) async {
@@ -49,32 +52,21 @@ class AdsCenterControllerActionsPart {
   }) async {
     controller.previewLoading.value = true;
     try {
-      final ctx = await controller.targetingService.buildContext(
-        userId: userId,
+      controller.previewResult.value =
+          await controller.applicationService.runPreview(
         placement: placement,
-        isPreview: true,
         country: country,
         city: city,
         age: age,
+        userId: userId,
       );
-
-      final res = await controller.deliveryService.simulateForAdmin(ctx);
-      controller.previewResult.value = res;
     } finally {
       controller.previewLoading.value = false;
     }
   }
 
   Future<void> trackPreviewImpression() async {
-    final result = controller.previewResult.value;
-    if (!result.hasAd || result.campaign == null || result.creative == null) {
-      return;
-    }
-    await controller.analyticsService.logImpression(
-      campaignId: result.campaign!.id,
-      creativeId: result.creative!.id,
-      placement: result.campaign!.placementTypes.first,
-      isPreview: true,
-    );
+    await controller.applicationService
+        .trackPreviewImpression(controller.previewResult.value);
   }
 }

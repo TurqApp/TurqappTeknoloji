@@ -6,5 +6,6 @@ class AdsCenterController extends _AdsCenterControllerBase {
     super.deliveryService,
     super.targetingService,
     super.analyticsService,
+    super.applicationService,
   });
 }

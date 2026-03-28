@@ -30,13 +30,7 @@ extension AdsCenterControllerStreamPart on AdsCenterController {
   Future<void> refreshDashboard() async {
     if (!canAccess.value) return;
     try {
-      final metrics = await repository.getDashboardMetrics();
-      try {
-        metrics.addAll(
-          await TurqAppSuggestionConfigService.instance
-              .getManagedDashboardMetrics(),
-        );
-      } catch (_) {}
+      final metrics = await applicationService.loadDashboard();
       dashboard.assignAll(metrics);
       errorText.value = null;
     } catch (e) {

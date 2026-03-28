@@ -6,11 +6,13 @@ abstract class _AdsCenterControllerBase extends GetxController {
     AdsDeliveryService? deliveryService,
     AdsTargetingService? targetingService,
     AdsAnalyticsService? analyticsService,
+    AdsCenterApplicationService? applicationService,
   }) : _state = _AdsCenterControllerState(
           repository: repository,
           deliveryService: deliveryService,
           targetingService: targetingService,
           analyticsService: analyticsService,
+          applicationService: applicationService,
         );
 
   final _AdsCenterControllerState _state;

@@ -7,8 +7,8 @@ import 'package:turqappv2/Core/Services/Ads/ads_delivery_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_feature_flags_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_repository_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_targeting_service.dart';
-import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
+import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_application_service.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_utils.dart';
 
 part 'ads_center_controller_actions_part.dart';
