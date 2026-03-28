@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
+import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 typedef WarmupRunner = Future<void> Function({required bool isFirstLaunch});
@@ -28,8 +29,10 @@ class PostLoginWarmup {
     Future<void> Function()? enforceMandatoryFollow,
     Future<void> Function()? initializeNotifications,
     bool Function()? isOnWiFiNow,
+    String Function()? currentSignedInUserId,
     bool Function()? skipBackgroundStartupWork,
     bool Function()? isIOS,
+    StartupSessionFailureReporter? failureReporter,
   })  : _initializeAdMob = initializeAdMob ?? _defaultInitializeAdMob,
         _fetchTrendingTags = fetchTrendingTags ?? _defaultFetchTrendingTags,
         _enforceMandatoryFollow =
@@ -37,10 +40,14 @@ class PostLoginWarmup {
         _initializeNotifications =
             initializeNotifications ?? _defaultInitializeNotifications,
         _isOnWiFiNow = isOnWiFiNow ?? _defaultIsOnWiFiNow,
+        _currentSignedInUserIdProvider =
+            currentSignedInUserId ?? _defaultCurrentSignedInUserId,
         _skipBackgroundStartupWork =
             skipBackgroundStartupWork ??
                 (() => IntegrationTestMode.skipBackgroundStartupWork),
-        _isIOS = isIOS ?? (() => Platform.isIOS);
+        _isIOS = isIOS ?? (() => Platform.isIOS),
+        _failureReporter =
+            failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final WarmupRunner runCriticalWarmStartLoads;
   final WarmupRunner runWarmStartLoads;
@@ -50,8 +57,10 @@ class PostLoginWarmup {
   final Future<void> Function() _enforceMandatoryFollow;
   final Future<void> Function() _initializeNotifications;
   final bool Function() _isOnWiFiNow;
+  final String Function() _currentSignedInUserIdProvider;
   final bool Function() _skipBackgroundStartupWork;
   final bool Function() _isIOS;
+  final StartupSessionFailureReporter _failureReporter;
 
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
@@ -120,7 +129,14 @@ class PostLoginWarmup {
       Future.delayed(const Duration(milliseconds: 900), () {
         unawaited(_initializeNotifications());
       });
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.backgroundWarmup,
+        operation: 'PostLoginWarmup.runBackgroundInit',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> _initCacheProxy() async {
@@ -151,7 +167,13 @@ class PostLoginWarmup {
 
       ensurePrefetchScheduler(permanent: true);
       _globalCacheProxyReady = true;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.cacheProxyInitialization,
+        operation: 'PostLoginWarmup.initCacheProxy',
+        error: error,
+        stackTrace: stackTrace,
+      );
       _globalCacheProxyReady = false;
     } finally {
       _globalCacheProxyInitFuture = null;
@@ -167,19 +189,32 @@ class PostLoginWarmup {
       final cache = SegmentCacheManager.maybeFind();
       if (cache == null) return;
       await cache.setUserLimitGB(quotaGb);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.mediaCacheQuota,
+        operation: 'PostLoginWarmup.applyGlobalMediaCacheQuota',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   bool _hasSignedInUser() {
     try {
       return _currentSignedInUserId().isNotEmpty;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.authStateRestore,
+        operation: 'PostLoginWarmup.hasSignedInUser',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
 
   String _currentSignedInUserId() {
-    return CurrentUserService.instance.effectiveUserId;
+    return _currentSignedInUserIdProvider();
   }
 
   static Future<void> _defaultInitializeAdMob({
@@ -207,10 +242,20 @@ class PostLoginWarmup {
     await NotificationService.instance.initialize();
   }
 
+  static String _defaultCurrentSignedInUserId() {
+    return CurrentUserService.instance.effectiveUserId;
+  }
+
   static bool _defaultIsOnWiFiNow() {
     try {
       return NetworkAwarenessService.ensure().isOnWiFi;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      StartupSessionFailureReporter.defaultReporter.record(
+        kind: StartupSessionFailureKind.backgroundWarmup,
+        operation: 'PostLoginWarmup.isOnWiFiNow',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }

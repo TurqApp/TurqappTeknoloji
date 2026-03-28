@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -41,6 +42,7 @@ class SessionBootstrap {
     void Function(bool value)? markMinimumStartupPrepared,
     bool Function()? deterministicStartup,
     bool Function()? isIOS,
+    StartupSessionFailureReporter? failureReporter,
   })  : _initializeAccountCenter =
             initializeAccountCenter ?? _defaultInitializeAccountCenter,
         _initializeCurrentUser =
@@ -58,7 +60,9 @@ class SessionBootstrap {
         _markMinimumStartupPrepared = markMinimumStartupPrepared,
         _deterministicStartup = deterministicStartup ??
             (() => IntegrationTestMode.deterministicStartup),
-        _isIOS = isIOS ?? (() => Platform.isIOS);
+        _isIOS = isIOS ?? (() => Platform.isIOS),
+        _failureReporter =
+            failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final Future<void> Function() _initializeAccountCenter;
   final Future<void> Function() _initializeCurrentUser;
@@ -70,6 +74,7 @@ class SessionBootstrap {
   final void Function(bool value)? _markMinimumStartupPrepared;
   final bool Function() _deterministicStartup;
   final bool Function() _isIOS;
+  final StartupSessionFailureReporter _failureReporter;
 
   Future<SessionBootstrapResult> run({
     required SharedPreferences prefs,
@@ -78,23 +83,20 @@ class SessionBootstrap {
 
     late final bool isFirstLaunch;
     if (_isIOS()) {
-      isFirstLaunch = await _handleFirstLaunchCleanup(prefs)
+      isFirstLaunch = await _runFirstLaunchCleanupSafely(prefs)
           .timeout(const Duration(milliseconds: 350), onTimeout: () => false);
       unawaited(_initializeCurrentUser());
     } else {
       await Future.wait([
-        _handleFirstLaunchCleanup(prefs).then((value) => isFirstLaunch = value),
+        _runFirstLaunchCleanupSafely(prefs)
+            .then((value) => isFirstLaunch = value),
         _initializeCurrentUser(),
       ]);
     }
 
     var loggedIn = _readEffectiveUserId().isNotEmpty;
     if (!loggedIn) {
-      final restoredUid = (await _ensureAuthReady(
-            timeout: _authRestoreWait,
-          ))
-              ?.trim() ??
-          '';
+      final restoredUid = await _attemptAuthRestoreUid();
       if (restoredUid.isNotEmpty) {
         await _initializeCurrentUser();
         loggedIn = _readEffectiveUserId().isNotEmpty || restoredUid.isNotEmpty;
@@ -123,6 +125,46 @@ class SessionBootstrap {
           ? const Duration(milliseconds: 450)
           : const Duration(milliseconds: 900);
 
+  Future<bool> _runFirstLaunchCleanupSafely(SharedPreferences prefs) async {
+    try {
+      return await _handleFirstLaunchCleanup(prefs);
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.firstLaunchCleanup,
+        operation: 'SessionBootstrap.handleFirstLaunchCleanup',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      try {
+        await FirebaseAuth.instance.signOut();
+        await CurrentUserService.instance.logout();
+        await ensureAccountCenterService().signOutAllLocal();
+      } catch (recoveryError, recoveryStackTrace) {
+        _failureReporter.record(
+          kind: StartupSessionFailureKind.firstLaunchCleanup,
+          operation: 'SessionBootstrap.recoverFromCleanupFailure',
+          error: recoveryError,
+          stackTrace: recoveryStackTrace,
+        );
+      }
+      return true;
+    }
+  }
+
+  Future<String> _attemptAuthRestoreUid() async {
+    try {
+      return (await _ensureAuthReady(timeout: _authRestoreWait))?.trim() ?? '';
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.authStateRestore,
+        operation: 'SessionBootstrap.ensureAuthReady',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return '';
+    }
+  }
+
   static Future<void> _defaultInitializeAccountCenter() async {
     await ensureAccountCenterService().init();
   }
@@ -134,30 +176,21 @@ class SessionBootstrap {
   static Future<bool> _defaultHandleFirstLaunchCleanup(
     SharedPreferences prefs,
   ) async {
-    try {
-      const firstLaunchKey = 'app_has_launched_before';
-      final hasLaunchedBefore = prefs.getBool(firstLaunchKey) ?? false;
-      final isFirstLaunch = !hasLaunchedBefore;
-      final firebaseUser = FirebaseAuth.instance.currentUser;
+    const firstLaunchKey = 'app_has_launched_before';
+    final hasLaunchedBefore = prefs.getBool(firstLaunchKey) ?? false;
+    final isFirstLaunch = !hasLaunchedBefore;
+    final firebaseUser = FirebaseAuth.instance.currentUser;
 
-      if (!hasLaunchedBefore && firebaseUser != null) {
-        await FirebaseAuth.instance.signOut();
-        await CurrentUserService.instance.logout();
-        await ensureAccountCenterService().signOutAllLocal();
-      }
-
-      if (!hasLaunchedBefore) {
-        await prefs.setBool(firstLaunchKey, true);
-      }
-      return isFirstLaunch;
-    } catch (_) {
-      try {
-        await FirebaseAuth.instance.signOut();
-        await CurrentUserService.instance.logout();
-        await ensureAccountCenterService().signOutAllLocal();
-      } catch (_) {}
-      return true;
+    if (!hasLaunchedBefore && firebaseUser != null) {
+      await FirebaseAuth.instance.signOut();
+      await CurrentUserService.instance.logout();
+      await ensureAccountCenterService().signOutAllLocal();
     }
+
+    if (!hasLaunchedBefore) {
+      await prefs.setBool(firstLaunchKey, true);
+    }
+    return isFirstLaunch;
   }
 
   static String _defaultReadEffectiveUserId() {

@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Modules/Splash/splash_post_login_warmup.dart';
 import 'package:turqappv2/Modules/Splash/splash_session_bootstrap.dart';
+import 'package:turqappv2/Modules/Splash/splash_startup_orchestrator.dart';
 import 'package:turqappv2/Modules/Splash/splash_startup_bootstrap.dart';
+import 'package:turqappv2/Runtime/startup_session_failure.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -134,6 +136,44 @@ void main() {
     },
   );
 
+  test('SplashStartupOrchestrator records startup failures and still navigates',
+      () async {
+    final failures = <StartupSessionFailure>[];
+    var navigated = 0;
+
+    final orchestrator = SplashStartupOrchestrator(
+      firebaseStartupWait: Duration.zero,
+      isMounted: () => true,
+      navigateToPrimaryRoute: () async {
+        navigated++;
+      },
+      prepareSynchronizedStartupBeforeNav: ({required isFirstLaunch}) async {},
+      runCriticalWarmStartLoads: ({required isFirstLaunch}) async {},
+      runWarmStartLoads: ({required isFirstLaunch}) async {},
+      markMinimumStartupPrepared: (_) {},
+      isMinimumStartupPrepared: () => false,
+      startupBootstrap: StartupBootstrap(
+        firebaseStartupWait: Duration.zero,
+        waitForFirebaseBootstrap: () async {
+          throw StateError('firebase-bootstrap-failed');
+        },
+        initializeFirestoreConfig: () async {},
+        readPreferences: SharedPreferences.getInstance,
+        initializeAudioContext: () async {},
+      ),
+      failureReporter: StartupSessionFailureReporter(onFailure: failures.add),
+    );
+
+    await orchestrator.initializeApp();
+
+    expect(navigated, 1);
+    expect(failures, hasLength(1));
+    expect(
+      failures.single.kind,
+      StartupSessionFailureKind.startupOrchestration,
+    );
+  });
+
   test('PostLoginWarmup only enforces follow when a signed-in user exists',
       () async {
     final events = <String>[];
@@ -175,5 +215,34 @@ void main() {
     expect(events, contains('admob:false'));
     expect(events, contains('tags'));
     expect(events, contains('follow'));
+  });
+
+  test('PostLoginWarmup records classified background warmup failures',
+      () async {
+    final failures = <StartupSessionFailure>[];
+    final warmup = PostLoginWarmup(
+      runCriticalWarmStartLoads: ({required isFirstLaunch}) async {},
+      runWarmStartLoads: ({required isFirstLaunch}) async {},
+      isMinimumStartupPrepared: () => false,
+      initializeAdMob: ({required isFirstLaunch}) async {},
+      fetchTrendingTags: () async {},
+      enforceMandatoryFollow: () async {},
+      initializeNotifications: () async {},
+      isOnWiFiNow: () => throw StateError('wifi-state-failed'),
+      currentSignedInUserId: () => 'uid-1',
+      skipBackgroundStartupWork: () => false,
+      isIOS: () => false,
+      failureReporter: StartupSessionFailureReporter(onFailure: failures.add),
+    );
+
+    await warmup.runBackgroundInit(isFirstLaunch: false);
+
+    expect(
+      failures.any(
+        (failure) =>
+            failure.kind == StartupSessionFailureKind.backgroundWarmup,
+      ),
+      isTrue,
+    );
   });
 }

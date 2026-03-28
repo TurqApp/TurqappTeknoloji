@@ -42,7 +42,13 @@ extension _SplashViewStartupPart on _SplashViewState {
     var loggedIn = false;
     try {
       loggedIn = CurrentUserService.instance.effectiveUserId.isNotEmpty;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      StartupSessionFailureReporter.defaultReporter.record(
+        kind: StartupSessionFailureKind.primaryRouteReadiness,
+        operation: 'SplashView.readEffectiveUserId',
+        error: error,
+        stackTrace: stackTrace,
+      );
       loggedIn = false;
     }
     if (loggedIn) {
@@ -149,7 +155,14 @@ extension _SplashViewStartupPart on _SplashViewState {
         const Duration(milliseconds: 900),
         onTimeout: () {},
       );
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      StartupSessionFailureReporter.defaultReporter.record(
+        kind: StartupSessionFailureKind.primaryRouteReadiness,
+        operation: 'SplashView.ensureAuthenticatedPrimaryRouteReady',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
 }

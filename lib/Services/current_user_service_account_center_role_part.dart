@@ -1,9 +1,14 @@
 part of 'current_user_service.dart';
 
 class CurrentUserAccountCenterRole {
-  const CurrentUserAccountCenterRole(this.service);
+  CurrentUserAccountCenterRole(
+    this.service, {
+    StartupSessionFailureReporter? failureReporter,
+  }) : _failureReporter =
+           failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final CurrentUserService service;
+  final StartupSessionFailureReporter _failureReporter;
 
   Future<void> adoptFreshSessionKeyIfNeeded() async {
     final uid = service.authUserId;
@@ -12,7 +17,14 @@ class CurrentUserAccountCenterRole {
     try {
       await ensureAccountCenterService()
           .registerCurrentDeviceSessionIfEnabled();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.accountCenterRegistration,
+        operation: 'CurrentUserAccountCenterRole.adoptFreshSessionKeyIfNeeded',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<bool> handleExclusiveSessionIfNeeded(
@@ -32,14 +44,30 @@ class CurrentUserAccountCenterRole {
         await ensureAccountCenterService()
             .registerCurrentDeviceSessionIfEnabled();
         return false;
-      } catch (_) {}
+      } catch (error, stackTrace) {
+        _failureReporter.record(
+          kind: StartupSessionFailureKind.accountCenterRegistration,
+          operation:
+              'CurrentUserAccountCenterRole.handleExclusiveSessionIfNeeded.freshKey',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
     if (DeviceSessionService.instance.hasPendingSessionClaim(uid)) {
       try {
         await ensureAccountCenterService()
             .registerCurrentDeviceSessionIfEnabled();
         return false;
-      } catch (_) {}
+      } catch (error, stackTrace) {
+        _failureReporter.record(
+          kind: StartupSessionFailureKind.accountCenterRegistration,
+          operation:
+              'CurrentUserAccountCenterRole.handleExclusiveSessionIfNeeded.pendingClaim',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
     final legacyDeviceKey =
         (await DeviceSessionService.instance.getLegacyDeviceKey() ?? '').trim();
@@ -48,7 +76,15 @@ class CurrentUserAccountCenterRole {
         await ensureAccountCenterService()
             .registerCurrentDeviceSessionIfEnabled();
         return false;
-      } catch (_) {}
+      } catch (error, stackTrace) {
+        _failureReporter.record(
+          kind: StartupSessionFailureKind.accountCenterRegistration,
+          operation:
+              'CurrentUserAccountCenterRole.handleExclusiveSessionIfNeeded.legacyKey',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
 
     _handlingSessionDisplacement = true;
@@ -67,7 +103,13 @@ class CurrentUserAccountCenterRole {
         initialIdentifier: (data['email'] ?? '').toString().trim(),
       );
       return true;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.exclusiveSessionHandling,
+        operation: 'CurrentUserAccountCenterRole.handleExclusiveSessionIfNeeded',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return true;
     } finally {
       _handlingSessionDisplacement = false;

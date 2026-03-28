@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'package:turqappv2/Modules/Splash/splash_dependency_registrar.dart';
@@ -28,6 +29,7 @@ class SplashStartupOrchestrator {
     SessionBootstrap? sessionBootstrap,
     DependencyRegistrar? dependencyRegistrar,
     PostLoginWarmup? postLoginWarmup,
+    StartupSessionFailureReporter? failureReporter,
   })  : _startupBootstrap = startupBootstrap ??
             StartupBootstrap(firebaseStartupWait: firebaseStartupWait),
         _sessionBootstrap = sessionBootstrap ??
@@ -42,7 +44,9 @@ class SplashStartupOrchestrator {
               runCriticalWarmStartLoads: runCriticalWarmStartLoads,
               runWarmStartLoads: runWarmStartLoads,
               isMinimumStartupPrepared: isMinimumStartupPrepared,
-            );
+            ),
+        _failureReporter =
+            failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final Duration firebaseStartupWait;
   final bool Function() isMounted;
@@ -56,6 +60,7 @@ class SplashStartupOrchestrator {
   final SessionBootstrap _sessionBootstrap;
   final DependencyRegistrar _dependencyRegistrar;
   final PostLoginWarmup _postLoginWarmup;
+  final StartupSessionFailureReporter _failureReporter;
 
   Future<void> initializeApp() async {
     try {
@@ -70,7 +75,14 @@ class SplashStartupOrchestrator {
       _postLoginWarmup.scheduleBackgroundInit(
         isFirstLaunch: sessionResult.isFirstLaunch,
       );
-    } catch (_, __) {}
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.startupOrchestration,
+        operation: 'SplashStartupOrchestrator.initializeApp',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
 
     if (!isMounted()) return;
     await navigateToPrimaryRoute();

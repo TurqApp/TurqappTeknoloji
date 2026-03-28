@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 void main() {
@@ -56,5 +57,29 @@ void main() {
 
     expect(syncRole, isA<CurrentUserSyncRole>());
     expect(accountCenterRole, isA<CurrentUserAccountCenterRole>());
+  });
+
+  test('auth role records classified auth-state restore failures', () async {
+    final failures = <StartupSessionFailure>[];
+    final service = CurrentUserService.instance;
+    final authRole = CurrentUserAuthRole(
+      service,
+      currentAuthUserProvider: () => null,
+      authStateChangesProvider: () =>
+          Stream<User?>.error(StateError('auth-stream-failed')),
+      failureReporter: StartupSessionFailureReporter(onFailure: failures.add),
+    );
+
+    final resolved = await authRole.resolveAuthUser(
+      waitForAuthState: true,
+      timeout: const Duration(milliseconds: 10),
+    );
+
+    expect(resolved, isNull);
+    expect(failures, isNotEmpty);
+    expect(
+      failures.first.kind,
+      StartupSessionFailureKind.authStateRestore,
+    );
   });
 }

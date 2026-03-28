@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Runtime/startup_session_failure.dart';
 
 class AccountSessionCredential {
   const AccountSessionCredential({
@@ -83,7 +84,13 @@ class AccountSessionVault {
         await _storage.write(key: _keyFor(normalizedUid), value: sanitizedPayload);
       }
       return credential;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      StartupSessionFailureReporter.defaultReporter.record(
+        kind: StartupSessionFailureKind.vaultRead,
+        operation: 'AccountSessionVault.read',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -133,7 +140,13 @@ class AccountSessionVault {
         if (raw != sanitizedPayload) {
           await _storage.write(key: entry.key, value: sanitizedPayload);
         }
-      } catch (_) {
+      } catch (error, stackTrace) {
+        StartupSessionFailureReporter.defaultReporter.record(
+          kind: StartupSessionFailureKind.vaultScrub,
+          operation: 'AccountSessionVault.removeStoredPasswords',
+          error: error,
+          stackTrace: stackTrace,
+        );
         await _storage.delete(key: entry.key);
       }
     }

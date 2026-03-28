@@ -1,9 +1,14 @@
 part of 'current_user_service.dart';
 
 class CurrentUserSyncRole {
-  const CurrentUserSyncRole(this.service);
+  CurrentUserSyncRole(
+    this.service, {
+    StartupSessionFailureReporter? failureReporter,
+  }) : _failureReporter =
+           failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final CurrentUserService service;
+  final StartupSessionFailureReporter _failureReporter;
 
   Future<bool> initialize() async {
     try {
@@ -50,7 +55,13 @@ class CurrentUserSyncRole {
 
       _isInitialized = true;
       return cacheLoaded || service.isLoggedIn;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.sessionInitialize,
+        operation: 'CurrentUserSyncRole.initialize',
+        error: error,
+        stackTrace: stackTrace,
+      );
       _isInitialized = true;
       return false;
     }
@@ -76,7 +87,14 @@ class CurrentUserSyncRole {
         await service._updateUser(CurrentUserModel.fromJson(merged));
       }
       await service.refreshEmailVerificationStatus(reloadAuthUser: true);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.sessionForceRefresh,
+        operation: 'CurrentUserSyncRole.forceRefresh',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> startFirebaseSync() async {
@@ -114,12 +132,25 @@ class CurrentUserSyncRole {
           final user = CurrentUserModel.fromJson(merged);
           await service._updateUser(user);
         },
-        onError: (_) {},
+        onError: (error, stackTrace) {
+          _failureReporter.record(
+            kind: StartupSessionFailureKind.sessionSyncStream,
+            operation: 'CurrentUserSyncRole.startFirebaseSync.listen',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        },
       );
       startExclusiveSessionHeartbeat(firebaseUser.uid);
       unawaited(CurrentUserAccountCenterRole(service).adoptFreshSessionKeyIfNeeded());
       unawaited(validateExclusiveSessionFromServer(firebaseUser.uid));
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.sessionSyncStart,
+        operation: 'CurrentUserSyncRole.startFirebaseSync',
+        error: error,
+        stackTrace: stackTrace,
+      );
       _isSyncing = false;
     }
   }
@@ -143,7 +174,14 @@ class CurrentUserSyncRole {
       if (raw == null || raw.isEmpty) return;
       await CurrentUserAccountCenterRole(service)
           .handleExclusiveSessionIfNeeded(uid, raw);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.sessionServerValidation,
+        operation: 'CurrentUserSyncRole.validateExclusiveSessionFromServer',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<Map<String, dynamic>> buildMergedUserData({

@@ -5,14 +5,18 @@ class CurrentUserAuthRole {
     this.service, {
     User? Function()? currentAuthUserProvider,
     Stream<User?> Function()? authStateChangesProvider,
+    StartupSessionFailureReporter? failureReporter,
   })  : _currentAuthUserProvider =
             currentAuthUserProvider ?? (() => FirebaseAuth.instance.currentUser),
-        _authStateChangesProvider =
-            authStateChangesProvider ?? (() => FirebaseAuth.instance.authStateChanges());
+        _authStateChangesProvider = authStateChangesProvider ??
+            (() => FirebaseAuth.instance.authStateChanges()),
+        _failureReporter =
+            failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final CurrentUserService service;
   final User? Function() _currentAuthUserProvider;
   final Stream<User?> Function() _authStateChangesProvider;
+  final StartupSessionFailureReporter _failureReporter;
 
   String effectiveUserId() {
     final cachedUid = (service._currentUser?.userID ?? '').trim();
@@ -63,7 +67,13 @@ class CurrentUserAuthRole {
       return await authStateChanges()
           .firstWhere((candidate) => candidate != null)
           .timeout(timeout);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.authStateRestore,
+        operation: 'CurrentUserAuthRole.resolveAuthUser',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return currentAuthUser();
     }
   }
@@ -88,8 +98,13 @@ class CurrentUserAuthRole {
     if (forceTokenRefresh) {
       try {
         await user.getIdToken(true);
-      } catch (_) {
-        // Best effort refresh only.
+      } catch (error, stackTrace) {
+        _failureReporter.record(
+          kind: StartupSessionFailureKind.authTokenRefresh,
+          operation: 'CurrentUserAuthRole.ensureAuthReady.forceTokenRefresh',
+          error: error,
+          stackTrace: stackTrace,
+        );
       }
     }
     final uid = user.uid.trim();
@@ -104,8 +119,13 @@ class CurrentUserAuthRole {
         waitForAuthState: waitForAuthState,
         forceTokenRefresh: true,
       );
-    } catch (_) {
-      // Best effort only.
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.authTokenRefresh,
+        operation: 'CurrentUserAuthRole.refreshAuthTokenIfNeeded',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -118,7 +138,13 @@ class CurrentUserAuthRole {
     if (user == null) return;
     try {
       await user.delete();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.authStateRestore,
+        operation: 'CurrentUserAuthRole.deleteAuthUserIfPresent',
+        error: error,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
