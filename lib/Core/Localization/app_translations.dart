@@ -704,7 +704,7 @@ class AppTranslations extends Translations {
         'common.load_failed_try_again':
             '@title yüklenemedi. Lütfen tekrar deneyin.',
         'login.selected_account_password':
-            '@username seçildi. Giriş bilgilerini tamamlayıp devam edebilirsin.',
+            'Giriş bilgilerini tamamlayıp devam edebilirsin.',
         'login.selected_account_phone':
             '@username telefon ile kayıtlı görünüyor. Bu hesap için manuel yeniden giriş yapman gerekiyor.',
         'login.selected_account_manual':
