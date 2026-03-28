@@ -62,14 +62,17 @@ jobs:
       - name: Unit + Widget tests
         run: flutter test --coverage
 
-      - name: Enforce Coverage Floor
+      - name: Enforce Coverage Policy
         run: bash scripts/check_flutter_coverage.sh
 
       - name: Upload Coverage Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: flutter-lcov
-          path: coverage/lcov.info
+          name: flutter-coverage-artifacts
+          path: |
+            coverage/lcov.info
+            coverage/coverage_gate_report.txt
 
   android-integration-smoke:
     name: Android Integration Smoke
