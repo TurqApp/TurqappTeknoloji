@@ -1,6 +1,8 @@
 part of 'post_content_controller.dart';
 
 extension PostContentControllerDataPart on PostContentController {
+  static const int _pollRestoreRetryLimit = 8;
+
   int _pollExpiresAtMs(Map<String, dynamic> poll) {
     final createdAt = (poll['createdDate'] ?? model.timeStamp) as num;
     final durationHours = (poll['durationHours'] ?? 24) as num;
@@ -51,9 +53,23 @@ extension PostContentControllerDataPart on PostContentController {
     ));
   }
 
-  Future<void> _restorePersistedPollSelectionIfNeeded() async {
+  void _schedulePersistedPollSelectionRestore([int attempt = 0]) {
+    unawaited(_restorePersistedPollSelectionIfNeeded(attempt: attempt));
+  }
+
+  Future<void> _restorePersistedPollSelectionIfNeeded({
+    int attempt = 0,
+  }) async {
     final uid = _currentUid;
-    if (uid.isEmpty || model.poll.isEmpty) return;
+    if (uid.isEmpty) {
+      if (attempt >= _pollRestoreRetryLimit) return;
+      Future<void>.delayed(
+        const Duration(milliseconds: 300),
+        () => _schedulePersistedPollSelectionRestore(attempt + 1),
+      );
+      return;
+    }
+    if (model.poll.isEmpty) return;
     final currentPoll = Map<String, dynamic>.from(model.poll);
     final remoteSelection = _extractUserVoteFromPoll(currentPoll);
     if (remoteSelection != null) {
@@ -119,7 +135,7 @@ extension PostContentControllerDataPart on PostContentController {
         _postState?.localPollSelection.value ?? _extractUserVoteFromPoll(model.poll);
     _localPollSelection.value = initialSelection;
     _postState?.localPollSelection.value = initialSelection;
-    unawaited(_restorePersistedPollSelectionIfNeeded());
+    _schedulePersistedPollSelectionRestore();
     _syncSharedInteractionState();
     _interactionWorker?.dispose();
     _myResharesWorker?.dispose();
@@ -190,6 +206,10 @@ extension PostContentControllerDataPart on PostContentController {
           }
           model.poll = incomingPoll;
           _syncLocalPollSelectionFromPoll(incomingPoll);
+          if (_extractUserVoteFromPoll(incomingPoll) == null &&
+              _cachedPollSelection == null) {
+            _schedulePersistedPollSelectionRestore();
+          }
           currentModel.refresh();
         } catch (_) {}
       }
