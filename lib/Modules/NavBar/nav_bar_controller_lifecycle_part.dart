@@ -223,13 +223,18 @@ extension _NavBarControllerLifecyclePart on NavBarController {
         tasks.add(explore.persistStartupShard());
       }
     } else if (educationIndex >= 0 && normalizedIndex == educationIndex) {
-      final market = maybeFindMarketController();
-      if (market != null) {
-        tasks.add(market.persistStartupShard());
-      }
-      final jobs = maybeFindJobFinderController();
-      if (jobs != null) {
-        tasks.add(jobs.persistStartupShard());
+      final activeEducationTabId =
+          maybeFindEducationController()?.currentPasajTabId();
+      if (activeEducationTabId == PasajTabIds.market) {
+        final market = maybeFindMarketController();
+        if (market != null) {
+          tasks.add(market.persistStartupShard());
+        }
+      } else if (activeEducationTabId == PasajTabIds.jobFinder) {
+        final jobs = maybeFindJobFinderController();
+        if (jobs != null) {
+          tasks.add(jobs.persistStartupShard());
+        }
       }
     } else if (normalizedIndex == profileIndex) {
       final profile = ProfileController.maybeFind();

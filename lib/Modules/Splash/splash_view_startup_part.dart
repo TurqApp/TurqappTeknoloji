@@ -328,6 +328,9 @@ extension _SplashViewStartupPart on _SplashViewState {
             _startupSurfaceRecord('jobs'),
           );
         }
+        if (tabId.isNotEmpty && pasajTabs.contains(tabId)) {
+          return false;
+        }
         return _surfaceRecordIsWarm(_startupSurfaceRecord('market')) ||
             _surfaceRecordIsWarm(_startupSurfaceRecord('jobs'));
       case 'nav_feed':
