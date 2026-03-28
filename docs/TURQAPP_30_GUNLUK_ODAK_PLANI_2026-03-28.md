@@ -565,6 +565,7 @@ Her tamamlanan is en az bir kanit kaydi uretir.
 | ART-011 | T-004 | review auth fallback regression testi | `functions/tests/unit/reportsAuth.test.js` | `npm run build` + `node --test tests/unit/reportsAuth.test.js` | Codex local review | Hazir |
 | ART-012 | T-005 | users root read-surface daraltma notu ve rules regression'i | `docs/architecture/T-005_USERS_READ_SURFACE_DARALTMA_2026-03-28.md` + `functions/tests/rules/firestore.rules.test.js` | `npm run build` + `npm run test:rules` | Codex local review | Hazir |
 | ART-013 | T-006 | market client counter path kapatma notu ve rules regression'i | `docs/architecture/T-006_MARKET_COUNTER_CLIENT_PATH_KAPATMA_2026-03-28.md` + `functions/tests/rules/firestore.rules.test.js` | `npm run test:rules` + `dart analyze --no-fatal-warnings --no-fatal-infos ...` | Codex local review | Hazir |
+| ART-014 | T-007 | storage bypass kapatma notu ve storage rules regression'i | `docs/architecture/T-007_STORAGE_BYPASS_KAPATMA_2026-03-28.md` + `functions/tests/rules/storage.rules.test.js` | `npm run test:rules` | Codex local review | Hazir |
 | ART-003 | T-009 | architecture guard ciktilari | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-004 | T-021 | backend/rules regression test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |
 | ART-005 | T-022 | startup/session/feed davranis test raporu | doldurulacak | doldurulacak | doldurulacak | Acik |

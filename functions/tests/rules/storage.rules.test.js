@@ -8,14 +8,17 @@ let testEnv;
 let assertFails;
 let assertSucceeds;
 let initializeTestEnvironment;
+let doc;
 let getBytes;
 let ref;
+let setDoc;
 let uploadString;
 
 test.before(async () => {
   ({ initializeTestEnvironment, assertFails, assertSucceeds } = await import(
     "@firebase/rules-unit-testing"
   ));
+  ({ doc, setDoc } = await import("firebase/firestore"));
   ({ getBytes, ref, uploadString } = await import("firebase/storage"));
 
   testEnv = await initializeTestEnvironment({
@@ -89,4 +92,90 @@ test("market storage path allows owner write and blocks other users", async () =
 
   await assertSucceeds(uploadString(ref(ownerCtx.storage(), objectPath), "ok"));
   await assertFails(uploadString(ref(otherCtx.storage(), objectPath), "nope"));
+});
+
+test("post media allows matching uploader metadata without existing post", async () => {
+  const uid = "post-uploader";
+  const ctx = testEnv.authenticatedContext(uid);
+  const objectPath = "Posts/new-post/video.mp4";
+
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      customMetadata: { uploaderUid: uid },
+      contentType: "video/mp4",
+    }),
+  );
+});
+
+test("post media allows owner write when post document already belongs to user", async () => {
+  const uid = "post-owner";
+  const objectPath = "Posts/existing-post/video.mp4";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "Posts/existing-post"), {
+      userID: uid,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      contentType: "video/mp4",
+    }),
+  );
+});
+
+test("post media blocks former bypass uid without matching metadata", async () => {
+  const formerBypassUid = "gszJ4gBsCRd03fijoldmtfsAXks2";
+  const ctx = testEnv.authenticatedContext(formerBypassUid);
+  const objectPath = "Posts/new-post/no-metadata.mp4";
+
+  await assertFails(
+    uploadString(ref(ctx.storage(), objectPath), "blocked", "raw", {
+      contentType: "video/mp4",
+    }),
+  );
+});
+
+test("job media allows matching uploader metadata without existing job document", async () => {
+  const uid = "job-uploader";
+  const ctx = testEnv.authenticatedContext(uid);
+  const objectPath = "isBul/job-123/logo.webp";
+
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      customMetadata: { uploaderUid: uid },
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("job media allows owner write when job document already belongs to user", async () => {
+  const uid = "job-owner";
+  const objectPath = "isBul/job-owned/logo.webp";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "isBul/job-owned"), {
+      userID: uid,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("job media blocks former bypass uid without matching metadata", async () => {
+  const formerBypassUid = "gszJ4gBsCRd03fijoldmtfsAXks2";
+  const ctx = testEnv.authenticatedContext(formerBypassUid);
+  const objectPath = "isBul/job-legacy/logo.webp";
+
+  await assertFails(
+    uploadString(ref(ctx.storage(), objectPath), "blocked", "raw", {
+      contentType: "image/webp",
+    }),
+  );
 });
