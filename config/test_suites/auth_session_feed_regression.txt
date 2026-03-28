@@ -2,3 +2,5 @@ integration_test/auth/auth_startup_session_restore_test.dart
 integration_test/auth/auth_signout_state_test.dart
 integration_test/auth/auth_reauth_restore_test.dart
 integration_test/feed/feed_primary_bootstrap_contract_test.dart
+integration_test/feed/feed_resume_test.dart
+integration_test/shorts/short_refresh_preserve_test.dart

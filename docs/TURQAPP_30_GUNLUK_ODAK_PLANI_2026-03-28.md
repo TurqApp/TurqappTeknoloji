@@ -720,7 +720,7 @@ Kurallar:
 | Tavsiye No | Kaynak | Durum | Neden simdi degil | Plan bitince onerilen ilk adim |
 | --- | --- | --- | --- | --- |
 | ADV-001 | `RISK-006`, `T-006` | Kapandi | `F2-003` tasarimi ve `F2-004` implementasyonu ile server-side aggregation / backfill hatti teslim edildi | tamamlandi |
-| ADV-002 | `T-022` | Acik | `F2-005` ve `F2-006` ile profile replay ve short refresh preserve smoke'lari stabilize edildi; resmi manifest'e geri alma adimi hala acik | `F2-007` ile her iki smoke akisinin resmi manifest'e donusunu tamamla |
+| ADV-002 | `T-022` | Kapandi | `F2-005` ve `F2-006` ile stabilize edilen `feed_resume_test` ve `short_refresh_preserve_test`, `F2-007` ile resmi auth/session/feed regression manifest'ine geri alindi | tamamlandi |
 
 ## Faz 2 Resmi Plan
 
@@ -740,7 +740,7 @@ Toplam:
 | F2-004 | Market counter server pipeline implementasyonu | `ADV-001`, `RISK-006` | F2-003 | XL/5 | Tamamlandi |
 | F2-005 | Profile route replay smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Tamamlandi |
 | F2-006 | Short refresh preserve smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Tamamlandi |
-| F2-007 | Cikarilan smoke akislarini resmi manifest'e geri al | `ADV-002` | F2-005, F2-006 | M/2 | Acik |
+| F2-007 | Cikarilan smoke akislarini resmi manifest'e geri al | `ADV-002` | F2-005, F2-006 | M/2 | Tamamlandi |
 | F2-008 | Guard false-positive audit ve kalibrasyon | `RISK-003` | F2-001 | M/2 | Acik |
 | F2-009 | Feed legacy fallback audit ve regresyon paketi | `RISK-004`, `RISK-007` | F2-001 | M/2 | Acik |
 | F2-010 | Rules/upload/playback/runtime gizli regresyon supurmesi | `RISK-001`, `RISK-005`, `RISK-007` | F2-004, F2-007, F2-009 | L/3 | Acik |
@@ -756,6 +756,7 @@ Faz 2 artifact kayitlari:
 | F2-ART-004 | `docs/testing/faz2_market_counter_server_pipeline_2026-03-28.md` | Dolu | `F2-004` market sayaçlari icin server pipeline, rules denylist ve backfill callable kaydi |
 | F2-ART-005 | `docs/testing/faz2_profile_route_replay_smoke_stabilization_2026-03-28.md` | Dolu | `F2-005` profile route replay smoke kok neden, hafif shell ve Android emulator smoke dogrulamasi |
 | F2-ART-006 | `docs/testing/faz2_short_refresh_preserve_smoke_stabilization_2026-03-28.md` | Dolu | `F2-006` short route return, offstage tab hafifletmesi ve Android emulator smoke dogrulamasi |
+| F2-ART-007 | `docs/testing/faz2_auth_session_feed_manifest_reentry_2026-03-28.md` | Dolu | `F2-007` ile `feed_resume_test` ve `short_refresh_preserve_test` resmi auth/session/feed regression manifest'ine geri alindi |
 
 
 ## Feature Sahiplik Matrisi
