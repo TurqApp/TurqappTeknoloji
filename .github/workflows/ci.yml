@@ -31,12 +31,17 @@ jobs:
       - name: Run Architecture Guards
         run: bash scripts/check_architecture_guards.sh
 
+      - name: Run Docs Single-Source Guard
+        run: bash scripts/check_docs_single_source.sh
+
       - name: Upload Architecture Guard Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: architecture-guard-artifacts
-          path: artifacts/architecture
+          path: |
+            artifacts/architecture
+            artifacts/docs_guard
 
   flutter-quality:
     name: Flutter Analyze + Test

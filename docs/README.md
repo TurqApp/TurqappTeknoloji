@@ -15,3 +15,12 @@ Kurallar:
 - Kod gercegi ile uyusmayan hedef mimari belgeleri yeniden eklenmez.
 - Yeni plan gerekiyorsa mevcut kod tabani baz alinip mevcut kanonik plan guncellenir.
 - Dokumanlar yardimci kaynaktir; asil referans kod tabanidir.
+
+Izinli dokuman yuzeyi:
+
+- `docs/README.md`
+- `docs/TURQAPP_30_GUNLUK_ODAK_PLANI_2026-03-28.md`
+- `docs/architecture/T-*.md`
+- `docs/policies/*`
+- `docs/observability/*`
+- `docs/testing/*`
