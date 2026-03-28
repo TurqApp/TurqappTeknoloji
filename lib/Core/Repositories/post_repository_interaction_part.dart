@@ -300,6 +300,11 @@ extension PostRepositoryInteractionPart on PostRepository {
           ((stats['statsCount'] ?? data['statsCount'] ?? 0) as num).toInt();
       state.latestPostData.value = Map<String, dynamic>.from(data);
     }, onError: (error) {
+      if (IntegrationTestMode.enabled &&
+          error is FirebaseException &&
+          error.code == 'permission-denied') {
+        return;
+      }
       debugPrint('PostRepository post stream error (${state.postId}): $error');
     });
   }
@@ -323,6 +328,11 @@ extension PostRepositoryInteractionPart on PostRepository {
       state.commented.value = snap.docs.isNotEmpty;
     }, onError: (error) {
       state.commented.value = false;
+      if (IntegrationTestMode.enabled &&
+          error is FirebaseException &&
+          error.code == 'permission-denied') {
+        return;
+      }
       debugPrint(
         'PostRepository comments membership stream error (${state.postId}): $error',
       );

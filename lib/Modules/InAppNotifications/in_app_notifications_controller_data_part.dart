@@ -1,6 +1,12 @@
 part of 'in_app_notifications_controller.dart';
 
 extension InAppNotificationsControllerDataPart on InAppNotificationsController {
+  bool _isIgnorablePermissionDenied(Object error) {
+    return IntegrationTestMode.enabled &&
+        error is FirebaseException &&
+        error.code == 'permission-denied';
+  }
+
   void _bindPreferences() {
     final uid = _currentUid;
     if (uid.isEmpty) return;
@@ -11,6 +17,9 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
           NotificationPreferencesService.mergeWithDefaults(snapshot.data());
       _applyFilters();
     }, onError: (error) {
+      if (_isIgnorablePermissionDenied(error)) {
+        return;
+      }
       debugPrint('🔔 InApp notification settings listener error: $error');
     });
   }
@@ -58,6 +67,9 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
       _applyNotificationDocs(snapshot.docs, replace: true);
     }, onError: (error) {
       complatedDataFetch.value = true;
+      if (_isIgnorablePermissionDenied(error)) {
+        return;
+      }
       debugPrint('🔔 InApp notifications listener error: $error');
     });
   }

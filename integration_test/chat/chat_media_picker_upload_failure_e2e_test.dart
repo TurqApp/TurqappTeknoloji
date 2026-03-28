@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_media_test_harness.dart';
@@ -12,6 +13,21 @@ File _tempMediaFile(String name, List<int> bytes) {
   final file = File('${Directory.systemTemp.path}/$name');
   file.writeAsBytesSync(bytes, flush: true);
   return file;
+}
+
+Future<File> _tempPngImageFile(String name) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  final paint = ui.Paint()..color = const ui.Color(0xFF4CAF50);
+  canvas.drawRect(const ui.Rect.fromLTWH(0, 0, 12, 12), paint);
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(12, 12);
+  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  if (byteData == null) {
+    throw StateError('Failed to encode integration chat image fixture.');
+  }
+  return _tempMediaFile(name, byteData.buffer.asUint8List());
 }
 
 Future<void> _openFirstConversation(WidgetTester tester) async {
@@ -64,9 +80,8 @@ void main() {
           await expectFeedScreen(tester);
           await _openFirstConversation(tester);
 
-          final imageFile = _tempMediaFile(
-            'turqapp_media_failure_image.jpg',
-            const <int>[7, 8, 9, 10],
+          final imageFile = await _tempPngImageFile(
+            'turqapp_media_failure_image.png',
           );
           final videoFile = _tempMediaFile(
             'turqapp_media_failure_video.mp4',

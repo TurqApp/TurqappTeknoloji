@@ -58,7 +58,14 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
     if ((surface == 'feed' || surface == 'short') &&
         _hasAuthenticatedUser(authProbe)) {
       final count = _asInt(latestProbe['count']);
-      if (count == 0 && latestProbe['registered'] == true) {
+      if (count == 0 &&
+          latestProbe['registered'] == true &&
+          !_isTransientBlankSurfaceWarmup(
+            surface: surface,
+            surfaceCheckpoints: surfaceCheckpoints,
+            referenceTime: referenceTime,
+            route: route,
+          )) {
         findings.add(
           QALabPinpointFinding(
             severity: QALabIssueSeverity.blocking,

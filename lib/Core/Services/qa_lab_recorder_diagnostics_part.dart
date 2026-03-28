@@ -57,4 +57,41 @@ extension QALabRecorderDiagnosticsPart on QALabRecorder {
         normalizedRoute.contains('navbar') ||
         normalizedRoute.contains('feed');
   }
+
+  bool _isTransientBlankSurfaceWarmup({
+    required String surface,
+    required List<QALabCheckpoint> surfaceCheckpoints,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    if (surface != 'feed' && surface != 'short') {
+      return false;
+    }
+    if (_isQALabAutostartWarmup(
+      surface: surface,
+      route: route,
+      referenceTime: referenceTime,
+    )) {
+      return true;
+    }
+    if (surfaceCheckpoints.isEmpty) {
+      return false;
+    }
+
+    var observedSince = surfaceCheckpoints.last.timestamp;
+    for (final checkpoint in surfaceCheckpoints.reversed) {
+      if (checkpoint.route != route) {
+        break;
+      }
+      final probe = checkpoint.probe[surface] as Map<String, dynamic>? ??
+          const <String, dynamic>{};
+      if (probe['registered'] != true) {
+        break;
+      }
+      observedSince = checkpoint.timestamp;
+    }
+
+    final ageMs = referenceTime.difference(observedSince).inMilliseconds;
+    return ageMs >= 0 && ageMs < QALabMode.autoplayDetectionGraceMs;
+  }
 }

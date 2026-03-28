@@ -3,6 +3,9 @@ part of 'qa_lab_remote_uploader.dart';
 Future<bool> _qaLabRemoteUploaderIsRemoteGateEnabled(
   QALabRemoteUploader uploader,
 ) async {
+  if (IntegrationTestMode.enabled) {
+    return false;
+  }
   uploader._ensureAdminConfigSubscription();
   final now = DateTime.now();
   if (uploader._permissionDeniedSessionId.isNotEmpty &&
@@ -45,6 +48,9 @@ Future<bool> _qaLabRemoteUploaderIsRemoteGateEnabled(
 void _qaLabRemoteUploaderEnsureAdminConfigSubscription(
   QALabRemoteUploader uploader,
 ) {
+  if (IntegrationTestMode.enabled) {
+    return;
+  }
   if (Firebase.apps.isEmpty) {
     return;
   }

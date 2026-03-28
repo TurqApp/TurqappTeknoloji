@@ -43,7 +43,7 @@ class IntegrationMediaTestHarness {
 
   static void queueGalleryImageSelection(List<File> files) {
     _queuedGalleryImageSelections.add(
-      files.toList(growable: false),
+      files.toList(growable: true),
     );
   }
 

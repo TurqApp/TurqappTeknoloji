@@ -1,5 +1,6 @@
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/telemetry_threshold_policy.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 
 class _TelemetrySurfaceConfig {
   const _TelemetrySurfaceConfig({
@@ -87,7 +88,7 @@ class TelemetryThresholdPolicyAdapter {
   }
 
   static List<String> configuredSurfaces() {
-    return _surfaceConfigs
+    return _effectiveSurfaceConfigs
         .map((config) => config.surface)
         .toList(growable: false);
   }
@@ -95,7 +96,7 @@ class TelemetryThresholdPolicyAdapter {
   static List<SurfaceTelemetrySnapshot> buildSnapshots(
     PlaybackKpiService service,
   ) {
-    return _surfaceConfigs
+    return _effectiveSurfaceConfigs
         .map(
           (config) => SurfaceTelemetrySnapshot(
             surface: config.surface,
@@ -109,6 +110,17 @@ class TelemetryThresholdPolicyAdapter {
                 ? service.summarizePlaybackWindow(surface: config.surface)
                 : null,
           ),
+        )
+        .toList(growable: false);
+  }
+
+  static List<_TelemetrySurfaceConfig> get _effectiveSurfaceConfigs {
+    if (!IntegrationTestMode.enabled) {
+      return _surfaceConfigs;
+    }
+    return _surfaceConfigs
+        .where(
+          (config) => config.surface == 'feed' || config.surface == 'short',
         )
         .toList(growable: false);
   }

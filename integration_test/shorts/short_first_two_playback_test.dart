@@ -19,7 +19,7 @@ void main() {
           await tapItKey(tester, IntegrationTestKeys.navShort, settlePumps: 12);
           expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
 
-          final controller = ShortController.ensure();
+          final controller = ensureShortController();
           for (var cycle = 0; cycle < 3; cycle++) {
             await _assertPlayableForDuration(
               tester,

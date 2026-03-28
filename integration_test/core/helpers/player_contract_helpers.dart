@@ -82,7 +82,7 @@ Future<HLSVideoAdapter> waitForPoolAdapterExists(
     final candidates = _resolvePlaybackCacheKeyCandidates(cacheKey);
     for (final candidate in candidates) {
       final adapter =
-          GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+          ensureGlobalVideoAdapterPool().adapterForTesting(candidate);
       if (adapter != null && !adapter.isDisposed) {
         return adapter;
       }
@@ -110,7 +110,7 @@ Future<HLSVideoAdapter> waitForPlayerInitialized(
     final candidates = _resolvePlaybackCacheKeyCandidates(cacheKey);
     for (final candidate in candidates) {
       final adapter =
-          GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+          ensureGlobalVideoAdapterPool().adapterForTesting(candidate);
       final value = adapter?.value;
       if (adapter != null &&
           !adapter.isDisposed &&
@@ -146,7 +146,7 @@ Future<HLSVideoAdapter> waitForPlayerFirstFrame(
     final candidates = _resolvePlaybackCacheKeyCandidates(cacheKey);
     for (final candidate in candidates) {
       final adapter =
-          GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+          ensureGlobalVideoAdapterPool().adapterForTesting(candidate);
       final value = adapter?.value;
       if (adapter != null &&
           !adapter.isDisposed &&
@@ -261,7 +261,8 @@ bool _matchesPlaybackKey(String cacheKey, String candidate) {
 
 HLSVideoAdapter? _adapterForCandidates(List<String> candidates) {
   for (final candidate in candidates) {
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(candidate);
+    final adapter =
+        ensureGlobalVideoAdapterPool().adapterForTesting(candidate);
     if (adapter != null) {
       return adapter;
     }

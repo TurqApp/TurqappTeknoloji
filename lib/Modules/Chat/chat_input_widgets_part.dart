@@ -293,17 +293,21 @@ class _PendingVideoPreview extends StatefulWidget {
 class _PendingVideoPreviewState extends State<_PendingVideoPreview> {
   late final VideoPlayerController _controller;
   bool _initialized = false;
+  bool _failed = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(widget.file)
-      ..setLooping(true)
-      ..initialize().then((_) {
-        if (!mounted) return;
-        _controller.play();
-        setState(() => _initialized = true);
-      });
+    _controller = VideoPlayerController.file(widget.file);
+    _controller.setLooping(true);
+    _controller.initialize().then((_) {
+      if (!mounted) return;
+      _controller.play();
+      setState(() => _initialized = true);
+    }).catchError((_) {
+      if (!mounted) return;
+      setState(() => _failed = true);
+    });
   }
 
   @override
@@ -314,6 +318,36 @@ class _PendingVideoPreviewState extends State<_PendingVideoPreview> {
 
   @override
   Widget build(BuildContext context) {
+    if (_failed) {
+      return Container(
+        height: (MediaQuery.of(context).size.height * 0.26).clamp(160.0, 200.0),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.video_camera_solid,
+              color: Colors.black.withValues(alpha: 0.7),
+              size: 28,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Video preview unavailable',
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (!_initialized) {
       return SizedBox(
         height: (MediaQuery.of(context).size.height * 0.26).clamp(160.0, 200.0),
