@@ -40,6 +40,7 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
         _fetchPrimaryBuckets(initial: true, force: true),
         getReshares(),
       ]);
+      bootstrapFeedPlaybackAfterDataChange();
     } catch (e) {
       print('SocialProfile.refreshAll error: $e');
     }
@@ -114,6 +115,7 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
           scheduled: scheduledPosts,
         ),
       );
+      bootstrapFeedPlaybackAfterDataChange();
     } catch (e) {
       print('_fetchPrimaryBuckets(SocialProfile) error: $e');
     } finally {

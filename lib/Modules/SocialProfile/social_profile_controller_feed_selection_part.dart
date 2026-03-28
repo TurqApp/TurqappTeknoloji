@@ -1,6 +1,31 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
+  void _performBootstrapFeedPlaybackAfterDataChange() {
+    if (postSelection.value != 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (postSelection.value != 0) return;
+      final activeEntries = combinedFeedEntries;
+      if (activeEntries.isEmpty) {
+        centeredIndex.value = -1;
+        currentVisibleIndex.value = -1;
+        lastCenteredIndex = null;
+        return;
+      }
+      final target = resolveResumeCenteredIndex();
+      if (target < 0 || target >= activeEntries.length) return;
+      centeredIndex.value = target;
+      currentVisibleIndex.value = target;
+      lastCenteredIndex = target;
+      capturePendingCenteredEntry(preferredIndex: target);
+      if (_performCanAutoplayCombinedEntry(activeEntries[target])) {
+        _performEnsureCenteredPlaybackForIndex(target);
+      } else {
+        _performScheduleVisibilityEvaluation();
+      }
+    });
+  }
+
   int _performResolveResumeCenteredIndex() {
     final activeLength =
         postSelection.value == 0 ? combinedFeedEntries.length : allPosts.length;

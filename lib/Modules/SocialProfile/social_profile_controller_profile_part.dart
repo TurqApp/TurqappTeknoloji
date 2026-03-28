@@ -88,6 +88,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     try {
       final posts = await _linkService.fetchResharedPosts(userID, refs);
       reshares.value = posts;
+      bootstrapFeedPlaybackAfterDataChange();
     } catch (e) {
       print('SocialProfileController hydrate reshares error: $e');
     }
