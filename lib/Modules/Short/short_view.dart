@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
@@ -242,39 +241,19 @@ class _ShortViewState extends State<ShortView> {
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     pageController = PageController(initialPage: initialIndex);
 
-    // Sadece gerçekten boşsa yükle
-    if (controller.shorts.isEmpty) {
-      controller
-          .prepareStartupSurface(
-        allowBackgroundRefresh:
-            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts),
-      )
-          .then((_) {
-        if (mounted) {
-          _cachedShorts = List<PostsModel>.from(controller.shorts);
-          currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
-          if (pageController.hasClients) {
-            pageController.jumpToPage(currentPage);
-          }
-          setState(() {});
-          if (_cachedShorts.isNotEmpty) {
-            unawaited(controller.updateCacheTiers(currentPage));
-          }
-          _primeInitialPlayback();
-        }
-      });
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
-          if (pageController.hasClients) {
-            pageController.jumpToPage(currentPage);
-          }
-          unawaited(controller.updateCacheTiers(currentPage));
-          _primeInitialPlayback();
-        }
-      });
-    }
+    controller.onPrimarySurfaceVisible().then((_) {
+      if (!mounted) return;
+      _cachedShorts = List<PostsModel>.from(controller.shorts);
+      currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+      if (pageController.hasClients) {
+        pageController.jumpToPage(currentPage);
+      }
+      setState(() {});
+      if (_cachedShorts.isNotEmpty) {
+        unawaited(controller.updateCacheTiers(currentPage));
+      }
+      _primeInitialPlayback();
+    });
 
     // Hedefli reaktivite: RxList değişimlerini debounced setState ile takip et
     _shortsWorker = ever(controller.shorts, (_) {

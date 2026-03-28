@@ -64,6 +64,11 @@ extension _ShortControllerRuntimeX on ShortController {
 }
 
 extension ShortControllerPublicApiPart on ShortController {
+  Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
+        allowBackgroundRefresh:
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts),
+      );
+
   Future<void> prepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
