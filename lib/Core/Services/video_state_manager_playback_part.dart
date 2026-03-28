@@ -134,8 +134,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (handle is! HLSAdapterPlaybackHandle) continue;
       if (!handle.isInitialized) continue;
       if (handle.isPlaying) continue;
-      if (handle.position < const Duration(milliseconds: 320)) continue;
-      _saveVideoState(entry.key, handle);
+      if (handle.position > Duration.zero) {
+        _saveVideoState(entry.key, handle);
+      }
       unawaited(handle.adapter.silenceAndStopPlayback());
     }
   }
