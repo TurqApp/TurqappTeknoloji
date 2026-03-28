@@ -9,9 +9,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
   bool _hasReadyShortSegment(int page) {
     if (page < 0 || page >= _cachedShorts.length) return true;
     try {
-      final entry =
-          SegmentCacheManager.maybeFind()?.getEntry(_cachedShorts[page].docID);
-      return (entry?.cachedSegmentCount ?? 0) >= 1;
+      return _segmentCacheRuntimeService.hasReadySegment(
+        _cachedShorts[page].docID,
+      );
     } catch (_) {
       return true;
     }
@@ -121,8 +121,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _resetShortAutoplaySegmentGate();
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       try {
-        VideoStateManager.instance
-            .updateExclusiveModeDoc(_cachedShorts[currentPage].docID);
+        _playbackRuntimeService.updateExclusiveModeDoc(
+          _cachedShorts[currentPage].docID,
+        );
       } catch (_) {}
     }
     isManuallyPaused = false;
@@ -152,7 +153,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _persistShortPlaybackState(int page, HLSVideoAdapter adapter) {
     if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) return;
     try {
-      VideoStateManager.instance.saveVideoState(
+      _playbackRuntimeService.savePlaybackState(
         _cachedShorts[page].docID,
         HLSAdapterPlaybackHandle(adapter),
       );
@@ -194,10 +195,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       final docId = _cachedShorts[currentPage].docID;
       try {
-        VideoStateManager.instance.updateExclusiveModeDoc(docId);
+        _playbackRuntimeService.updateExclusiveModeDoc(docId);
       } catch (_) {}
       try {
-        VideoStateManager.instance.enterExclusiveMode(docId);
+        _playbackRuntimeService.enterExclusiveMode(docId);
       } catch (_) {}
     }
 
@@ -289,7 +290,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (page < _cachedShorts.length) {
           final post = _cachedShorts[page];
           try {
-            VideoStateManager.instance.enterExclusiveMode(post.docID);
+            _playbackRuntimeService.enterExclusiveMode(post.docID);
           } catch (_) {}
           VideoTelemetryService.instance
               .startSession(post.docID, post.playbackUrl);
@@ -307,17 +308,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
         if (page < _cachedShorts.length) {
           try {
-            final cm = SegmentCacheManager.maybeFind();
-            if (cm != null) {
-              cm.markPlaying(_cachedShorts[page].docID);
-              for (var i = 1; i <= 5; i++) {
-                final behindIdx = page - i;
-                if (behindIdx < 0) break;
-                if (behindIdx < _cachedShorts.length) {
-                  cm.touchEntry(_cachedShorts[behindIdx].docID);
-                }
-              }
-            }
+            _segmentCacheRuntimeService.markPlayingAndTouchRecent(
+              _cachedShorts.map((short) => short.docID).toList(growable: false),
+              page,
+            );
           } catch (_) {}
         }
       },
@@ -504,15 +498,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
             shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
 
         if (shouldPersist) {
-          final cache = SegmentCacheManager.maybeFind();
-          if (cache != null) {
-            cache.updateWatchProgress(
-              _cachedShorts[currentPage].docID,
-              progress,
-            );
-            _lastProgressPersistAt = now;
-            _lastPersistedProgress = progress;
-          }
+          _segmentCacheRuntimeService.updateWatchProgress(
+            _cachedShorts[currentPage].docID,
+            progress,
+          );
+          _lastProgressPersistAt = now;
+          _lastPersistedProgress = progress;
         }
       } catch (_) {}
 

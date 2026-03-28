@@ -284,19 +284,20 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final controllerOwnedListPlayback = !isStandalonePostInstance &&
         (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
     if (controllerOwnedListPlayback) {
-      if (videoStateManager.currentPlayingDocID != playbackHandleKey) {
-        videoStateManager.playOnlyThis(playbackHandleKey);
+      if (_playbackRuntimeService.currentPlayingDocId != playbackHandleKey) {
+        _playbackRuntimeService.playOnlyThis(playbackHandleKey);
       }
-      final resumedByManager =
-          videoStateManager.resumeCurrentPlaybackIfReady(playbackHandleKey);
+      final resumedByManager = _playbackRuntimeService
+          .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
         _recordPlaybackDispatch(
           'feed_card_start_skipped',
           source: source,
           dispatchIssued: false,
-          skipReason: videoStateManager.currentPlayingDocID == playbackHandleKey
-              ? 'manager_not_ready'
-              : 'manager_not_current',
+          skipReason:
+              _playbackRuntimeService.currentPlayingDocId == playbackHandleKey
+                  ? 'manager_not_ready'
+                  : 'manager_not_current',
         );
         return;
       }
@@ -317,12 +318,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       });
       _trackPlaybackIntent();
       try {
-        SegmentCacheManager.maybeFind()?.markPlaying(widget.model.docID);
+        _segmentCacheRuntimeService.markPlaying(widget.model.docID);
       } catch (_) {}
       return;
     }
     _hasAutoPlayed = true;
-    final managerPendingPlay = videoStateManager.hasPendingPlayFor(
+    final managerPendingPlay = _playbackRuntimeService.hasPendingPlayFor(
       playbackHandleKey,
     );
     if (!adapter.value.isPlaying) {
@@ -353,13 +354,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         'feed_card_exclusive_play_only_this',
         source: source,
       );
-      videoStateManager.playOnlyThis(playbackHandleKey);
-    } else if (videoStateManager.currentPlayingDocID != playbackHandleKey) {
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+    } else if (_playbackRuntimeService.currentPlayingDocId !=
+        playbackHandleKey) {
       _recordPlaybackDispatch(
         'feed_card_video_state_request',
         source: source,
       );
-      videoStateManager.requestPlayVideo(
+      _playbackRuntimeService.requestPlay(
         playbackHandleKey,
         HLSAdapterPlaybackHandle(adapter),
       );
@@ -382,7 +384,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     });
     _trackPlaybackIntent();
     try {
-      SegmentCacheManager.maybeFind()?.markPlaying(widget.model.docID);
+      _segmentCacheRuntimeService.markPlaying(widget.model.docID);
     } catch (_) {}
   }
 

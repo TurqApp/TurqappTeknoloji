@@ -22,7 +22,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
         (index >= 0 && index < shorts.length) ? shorts[index].docID : null;
     if (docId != null) {
       try {
-        videoStateManager.unregisterVideoController(docId);
+        _playbackRuntimeService.unregisterPlaybackHandle(docId);
       } catch (_) {}
     }
 
@@ -46,7 +46,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
         widget.injectedController!.value.isInitialized) {
       _videoControllers[initial] = widget.injectedController!;
       _externallyOwned.add(initial);
-      videoStateManager.registerPlaybackHandle(
+      _playbackRuntimeService.registerPlaybackHandle(
         list[initial].docID,
         HLSAdapterPlaybackHandle(widget.injectedController!),
       );
@@ -66,7 +66,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     }
     if (list.isNotEmpty && initial >= 0 && initial < list.length) {
       try {
-        VideoStateManager.instance.enterExclusiveMode(list[initial].docID);
+        _playbackRuntimeService.enterExclusiveMode(list[initial].docID);
       } catch (_) {}
       _primePlaybackForIndex(initial);
     }
@@ -90,7 +90,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
         !_videoControllers.containsKey(index)) {
       if (index >= 0 && index < shorts.length) {
         try {
-          videoStateManager.registerPlaybackHandle(
+          _playbackRuntimeService.registerPlaybackHandle(
             shorts[index].docID,
             HLSAdapterPlaybackHandle(widget.injectedController!),
           );
@@ -111,7 +111,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     );
     _videoControllers[index] = ctrl;
     try {
-      videoStateManager.registerPlaybackHandle(
+      _playbackRuntimeService.registerPlaybackHandle(
         shorts[index].docID,
         HLSAdapterPlaybackHandle(ctrl),
       );

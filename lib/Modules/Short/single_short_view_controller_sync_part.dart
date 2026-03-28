@@ -82,7 +82,7 @@ extension SingleShortViewControllerSyncPart on _SingleShortViewState {
 
     if (list.isNotEmpty && currentPage >= 0 && currentPage < list.length) {
       try {
-        VideoStateManager.instance.enterExclusiveMode(list[currentPage].docID);
+        _playbackRuntimeService.enterExclusiveMode(list[currentPage].docID);
       } catch (_) {}
     }
 

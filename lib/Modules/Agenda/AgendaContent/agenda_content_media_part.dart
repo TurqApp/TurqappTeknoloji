@@ -51,7 +51,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       videoController?.pause();
     } catch (_) {}
     try {
-      videoStateManager.pauseAllVideos();
+      playbackRuntimeService.pauseAll();
     } catch (_) {}
   }
 
@@ -75,7 +75,8 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       } catch (_) {}
     }
 
-    final savedState = videoStateManager.getVideoState(widget.model.docID);
+    final savedState =
+        playbackRuntimeService.getSavedPlaybackState(widget.model.docID);
     return savedState?.position ?? Duration.zero;
   }
 

@@ -71,9 +71,9 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _replayAdHideTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
     if (isStandalonePostInstance) {
-      videoStateManager.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     }
-    videoStateManager.unregisterVideoController(playbackHandleKey);
+    _playbackRuntimeService.unregisterPlaybackHandle(playbackHandleKey);
     final adapter = _videoAdapter;
     if (adapter != null) {
       unawaited(adapterPool.release(adapter));
@@ -91,7 +91,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
         if (isStandalonePostInstance) {
-          videoStateManager.enterExclusiveMode(playbackHandleKey);
+          _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
         }
         _resumePlaybackIfEligible(source: 'widget_should_play_changed');
       } else {
@@ -121,7 +121,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   void _handleDidPopNext() {
     if (widget.shouldPlay && _videoAdapter != null) {
       if (isStandalonePostInstance) {
-        videoStateManager.enterExclusiveMode(playbackHandleKey);
+        _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
       }
       _resumePlaybackIfEligible(source: 'route_did_pop_next');
     }
@@ -220,8 +220,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
       if (progress > 0) {
         try {
-          SegmentCacheManager.maybeFind()
-              ?.updateWatchProgress(widget.model.docID, progress);
+          _segmentCacheRuntimeService.updateWatchProgress(
+            widget.model.docID,
+            progress,
+          );
         } catch (_) {}
       }
     }

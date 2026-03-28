@@ -453,7 +453,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
 
       _suspendAgendaFeedForRoute();
       try {
-        videoStateManager.pauseAllVideos(force: true);
+        playbackRuntimeService.pauseAll(force: true);
       } catch (_) {}
       try {
         agendaController.pauseAll.value = false;

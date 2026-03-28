@@ -16,13 +16,12 @@ import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/short_render_coordinator.dart';
-import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
-import '../../Core/Services/SegmentCache/cache_manager.dart';
 import '../../Themes/app_tokens.dart';
 import 'short_content.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
+import '../PlaybackRuntime/playback_cache_runtime_service.dart';
 
 part 'single_short_view_helpers_part.dart';
 part 'single_short_view_controller_part.dart';
@@ -157,7 +156,10 @@ class SingleShortView extends StatefulWidget {
 class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   /// Videoları tutan reaktif liste
   final shorts = <PostsModel>[].obs;
-  final videoStateManager = VideoStateManager.instance;
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
+  final SegmentCacheRuntimeService _segmentCacheRuntimeService =
+      const SegmentCacheRuntimeService();
   final GlobalVideoAdapterPool _videoPool = ensureGlobalVideoAdapterPool();
   final ShortRenderCoordinator _shortRenderCoordinator =
       ensureShortRenderCoordinator();

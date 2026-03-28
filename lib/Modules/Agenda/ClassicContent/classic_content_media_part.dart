@@ -51,7 +51,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       videoController?.pause();
     } catch (_) {}
     try {
-      VideoStateManager.instance.pauseAllVideos();
+      playbackRuntimeService.pauseAll();
     } catch (_) {}
   }
 
@@ -124,7 +124,8 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       } catch (_) {}
     }
 
-    final savedState = videoStateManager.getVideoState(widget.model.docID);
+    final savedState =
+        playbackRuntimeService.getSavedPlaybackState(widget.model.docID);
     return savedState?.position ?? Duration.zero;
   }
 

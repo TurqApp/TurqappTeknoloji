@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
@@ -15,13 +14,13 @@ import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
-import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
+import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
@@ -147,6 +146,10 @@ class _ShortViewState extends State<ShortView> {
   ShortController get controller => ensureShortController();
   final ShortRenderCoordinator _shortRenderCoordinator =
       ensureShortRenderCoordinator();
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
+  final SegmentCacheRuntimeService _segmentCacheRuntimeService =
+      const SegmentCacheRuntimeService();
 
   late PageController pageController;
   int currentPage = 0;
@@ -225,7 +228,7 @@ class _ShortViewState extends State<ShortView> {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
     try {
-      VideoStateManager.instance.pauseAllVideos(force: true);
+      _playbackRuntimeService.pauseAll(force: true);
     } catch (_) {}
 
     final initialIndex = controller.shorts.isEmpty
@@ -300,7 +303,7 @@ class _ShortViewState extends State<ShortView> {
           .endSession(_cachedShorts[currentPage].docID);
     }
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
 
     super.dispose();

@@ -13,9 +13,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   bool _hasReadySingleShortSegment(int index) {
     if (index < 0 || index >= shorts.length) return true;
     try {
-      final entry =
-          SegmentCacheManager.maybeFind()?.getEntry(shorts[index].docID);
-      return (entry?.cachedSegmentCount ?? 0) >= 1;
+      return _segmentCacheRuntimeService.hasReadySegment(shorts[index].docID);
     } catch (_) {
       return true;
     }
@@ -86,7 +84,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
         widget.injectedController!.value.isInitialized;
     if (!hasInjectedPlayingController) {
       try {
-        VideoStateManager.instance.pauseAllVideos(force: true);
+        _playbackRuntimeService.pauseAll(force: true);
       } catch (_) {}
     }
 
@@ -130,7 +128,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     _pageActivatedAt = DateTime.now();
     if (currentPage >= 0 && currentPage < shorts.length) {
       try {
-        VideoStateManager.instance
+        _playbackRuntimeService
             .updateExclusiveModeDoc(shorts[currentPage].docID);
       } catch (_) {}
     }
@@ -164,17 +162,10 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
       if (currentPage < shorts.length) {
         try {
-          final cm = SegmentCacheManager.maybeFind();
-          if (cm != null) {
-            cm.markPlaying(shorts[currentPage].docID);
-            for (var i = 1; i <= 5; i++) {
-              final behindIdx = currentPage - i;
-              if (behindIdx < 0) break;
-              if (behindIdx < shorts.length) {
-                cm.touchEntry(shorts[behindIdx].docID);
-              }
-            }
-          }
+          _segmentCacheRuntimeService.markPlayingAndTouchRecent(
+            shorts.map((short) => short.docID).toList(growable: false),
+            currentPage,
+          );
         } catch (_) {}
       }
     }
@@ -241,7 +232,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     _fullscreenPlaybackGuardTimer = null;
     _clearAllControllers();
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
   }
 
@@ -252,13 +243,10 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
         final ctrl = _videoControllers[currentPage];
 
         if (ctrl != null && ctrl.value.isInitialized) {
-          final videoStateManager = maybeFindVideoStateManager();
-          if (videoStateManager != null) {
-            videoStateManager.saveVideoState(
-              currentModel.docID,
-              HLSAdapterPlaybackHandle(ctrl),
-            );
-          }
+          _playbackRuntimeService.savePlaybackState(
+            currentModel.docID,
+            HLSAdapterPlaybackHandle(ctrl),
+          );
         }
       }
     } catch (_) {}
@@ -266,7 +254,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     unawaited(_endActiveTelemetrySession());
     _pauseAllControllers();
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
   }
 
@@ -284,7 +272,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     if (vp == null || vp.isDisposed) return;
 
     try {
-      VideoStateManager.instance.enterExclusiveMode(shorts[currentPage].docID);
+      _playbackRuntimeService.enterExclusiveMode(shorts[currentPage].docID);
     } catch (_) {}
     _primePlaybackForIndex(currentPage);
   }

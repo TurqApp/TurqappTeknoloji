@@ -6,11 +6,9 @@ import 'package:get/get.dart';
 import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
-import '../../../Core/Services/SegmentCache/cache_manager.dart';
 import '../../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
-import '../../../Core/Services/video_state_manager.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
@@ -26,6 +24,7 @@ import '../../SocialProfile/social_profile_controller.dart';
 import '../../Agenda/TopTags/top_tags_contoller.dart';
 import '../../Agenda/TagPosts/tag_posts_controller.dart';
 import '../../Agenda/FloodListing/flood_listing_controller.dart';
+import '../../PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'post_content_controller.dart';
 
 part 'post_content_base_lifecycle_part.dart';
@@ -65,7 +64,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   late final AgendaController agendaController = _resolveAgendaController();
   late final GlobalVideoAdapterPool adapterPool =
       ensureGlobalVideoAdapterPool();
-  final videoStateManager = VideoStateManager.instance;
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
+  final SegmentCacheRuntimeService _segmentCacheRuntimeService =
+      const SegmentCacheRuntimeService();
+  PlaybackRuntimeService get playbackRuntimeService => _playbackRuntimeService;
+  SegmentCacheRuntimeService get segmentCacheRuntimeService =>
+      _segmentCacheRuntimeService;
 
   late final PostContentController controller;
   HLSVideoAdapter? _videoAdapter;
@@ -120,9 +125,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   int get cachedSegmentCountForCurrentVideo {
     if (!widget.model.hasPlayableVideo) return 0;
     try {
-      final entry =
-          SegmentCacheManager.maybeFind()?.getEntry(widget.model.docID);
-      return entry?.cachedSegmentCount ?? 0;
+      return _segmentCacheRuntimeService.cachedSegmentCount(widget.model.docID);
     } catch (_) {
       return 0;
     }
@@ -216,7 +219,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         'callerSignature': source,
         'skipReason': skipReason,
         'scrollToken': _qaScrollToken,
-        'currentPlayingDocId': videoStateManager.currentPlayingDocID ?? '',
+        'currentPlayingDocId':
+            _playbackRuntimeService.currentPlayingDocId ?? '',
         ...metadata,
       },
     );
@@ -240,12 +244,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     );
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
 
-    videoStateManager.registerPlaybackHandle(
+    _playbackRuntimeService.registerPlaybackHandle(
       playbackHandleKey,
       HLSAdapterPlaybackHandle(_videoAdapter!),
     );
     if (isStandalonePostInstance) {
-      videoStateManager.enterExclusiveMode(playbackHandleKey);
+      _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
     }
 
     _videoAdapter!.addListener(_onVideoUpdate);

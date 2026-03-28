@@ -91,7 +91,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     _lastExclusivePlayDocId = trimmed;
     _lastExclusivePlayAt = now;
     try {
-      VideoStateManager.instance.playOnlyThis(trimmed);
+      _playbackRuntimeService.playOnlyThis(trimmed);
     } catch (_) {}
   }
 
@@ -231,12 +231,9 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
       if (shouldPersist) {
         try {
-          final cache = SegmentCacheManager.maybeFind();
-          if (cache != null) {
-            cache.updateWatchProgress(docId, progress);
-            _lastProgressPersistAt = now;
-            _lastPersistedProgress = progress;
-          }
+          _segmentCacheRuntimeService.updateWatchProgress(docId, progress);
+          _lastProgressPersistAt = now;
+          _lastPersistedProgress = progress;
         } catch (_) {}
       }
     }
@@ -311,10 +308,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       } catch (_) {}
     }
     try {
-      VideoStateManager.instance.pauseAllVideos(force: true);
+      _playbackRuntimeService.pauseAll(force: true);
     } catch (_) {}
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
   }
 

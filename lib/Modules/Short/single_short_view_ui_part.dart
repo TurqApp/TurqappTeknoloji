@@ -393,7 +393,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
     HLSVideoAdapter? preferredController,
   }) async {
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
     await _pauseAllControllers();
     if (!mounted) return;

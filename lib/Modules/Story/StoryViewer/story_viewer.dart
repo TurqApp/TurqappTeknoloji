@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
-import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import '../StoryRow/story_user_model.dart';
 import 'user_story_content.dart';
 import '../StoryMaker/story_maker_controller.dart';
@@ -36,6 +36,8 @@ class StoryViewer extends StatefulWidget {
 
 class _StoryViewerState extends State<StoryViewer>
     with TickerProviderStateMixin {
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
   late PageController pageController;
   int currentPageIndex = 0;
   final Map<int, GlobalKey> _pageKeys = {};
@@ -68,7 +70,7 @@ class _StoryViewerState extends State<StoryViewer>
   void initState() {
     super.initState();
     maybeFindAgendaController()?.suspendPlaybackForOverlay();
-    VideoStateManager.instance.pauseAllVideos(force: true);
+    _playbackRuntimeService.pauseAll(force: true);
     currentPageIndex = widget.storyOwnerUsers
         .indexWhere((u) => u.userID == widget.startedUser.userID);
     if (currentPageIndex < 0) currentPageIndex = 0;
