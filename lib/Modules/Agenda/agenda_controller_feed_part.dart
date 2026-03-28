@@ -15,24 +15,36 @@ extension AgendaControllerFeedPart on AgendaController {
                 now.difference(_lastPlaybackCommandAt!) >
                     const Duration(milliseconds: 180));
     if (shouldIssueImmediateCommand) {
+      final readyForImmediateHandoff = manager.canResumePlaybackFor(post.docID);
       recordQALabPlaybackDispatch(
         surface: 'feed',
         stage: manager.currentPlayingDocID == post.docID
             ? 'feed_reassert_only_this'
-            : 'feed_play_only_this',
+            : (readyForImmediateHandoff
+                ? 'feed_play_only_this'
+                : 'feed_defer_play_only_this'),
         metadata: <String, dynamic>{
           'docId': post.docID,
           'index': index,
           'currentPlayingDocID': manager.currentPlayingDocID ?? '',
+          'readyForImmediateHandoff': readyForImmediateHandoff,
         },
       );
       if (manager.currentPlayingDocID == post.docID) {
         manager.reassertOnlyThis(post.docID);
-      } else {
-        manager.playOnlyThis(post.docID);
+        _lastPlaybackCommandDocId = post.docID;
+        _lastPlaybackCommandAt = now;
+      } else if (readyForImmediateHandoff) {
+        final issuedAt = manager.claimPlaybackTargetIfReady(
+          post.docID,
+          lastCommandDocId: _lastPlaybackCommandDocId,
+          lastCommandAt: _lastPlaybackCommandAt,
+        );
+        if (issuedAt != null) {
+          _lastPlaybackCommandDocId = post.docID;
+          _lastPlaybackCommandAt = issuedAt;
+        }
       }
-      _lastPlaybackCommandDocId = post.docID;
-      _lastPlaybackCommandAt = now;
     }
     _schedulePlaybackReassert(
       index: index,

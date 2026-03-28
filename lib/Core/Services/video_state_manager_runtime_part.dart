@@ -16,6 +16,23 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     return handle != null && handle.isInitialized;
   }
 
+  DateTime? claimPlaybackTargetIfReady(
+    String docID, {
+    required String? lastCommandDocId,
+    required DateTime? lastCommandAt,
+    Duration minInterval = const Duration(milliseconds: 180),
+  }) {
+    if (_currentPlayingDocID == docID) return null;
+    final now = DateTime.now();
+    final shouldIssueCommand = lastCommandDocId != docID ||
+        lastCommandAt == null ||
+        now.difference(lastCommandAt) > minInterval;
+    if (!shouldIssueCommand) return null;
+    if (!canResumePlaybackFor(docID)) return null;
+    playOnlyThis(docID);
+    return now;
+  }
+
   bool hasPendingPlayFor(String docID) {
     final timer = _pendingPlayTimer;
     return timer != null && timer.isActive && _currentPlayingDocID == docID;

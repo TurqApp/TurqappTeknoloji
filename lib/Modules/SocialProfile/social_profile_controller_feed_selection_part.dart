@@ -293,17 +293,13 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     );
     final manager = VideoStateManager.instance;
     if (manager.currentPlayingDocID == playbackKey) return;
-    final now = DateTime.now();
-    final shouldIssueCommand =
-        _lastPlaybackCommandDocId != playbackKey ||
-            _lastPlaybackCommandAt == null ||
-            now.difference(_lastPlaybackCommandAt!) >
-                const Duration(milliseconds: 180);
-    if (!shouldIssueCommand) return;
-    final readyForImmediateHandoff = manager.canResumePlaybackFor(playbackKey);
-    if (!readyForImmediateHandoff) return;
-    manager.playOnlyThis(playbackKey);
+    final issuedAt = manager.claimPlaybackTargetIfReady(
+      playbackKey,
+      lastCommandDocId: _lastPlaybackCommandDocId,
+      lastCommandAt: _lastPlaybackCommandAt,
+    );
+    if (issuedAt == null) return;
     _lastPlaybackCommandDocId = playbackKey;
-    _lastPlaybackCommandAt = now;
+    _lastPlaybackCommandAt = issuedAt;
   }
 }
