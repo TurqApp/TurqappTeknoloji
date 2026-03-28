@@ -225,13 +225,25 @@ extension _SplashViewStartupPart on _SplashViewState {
     );
   }
 
-  String _effectiveStartupRouteHint() {
+  String _requestedStartupRouteHint() {
     final ageMs = _previousStartupManifestAgeMs;
     if (ageMs == null || ageMs < 0) return 'unknown';
     if (ageMs > _SplashViewState._startupManifestFreshWindow.inMilliseconds) {
       return 'unknown';
     }
     return _previousStartupRouteHint;
+  }
+
+  String _effectiveStartupRouteHint() {
+    final requested = _requestedStartupRouteHint();
+    switch (requested) {
+      case 'nav_explore':
+      case 'nav_profile':
+      case 'nav_education':
+        return _isStartupRouteWarm(requested) ? requested : 'nav_feed';
+      default:
+        return requested;
+    }
   }
 
   bool _shouldRequireFeedReadiness() {
@@ -280,6 +292,52 @@ extension _SplashViewStartupPart on _SplashViewState {
     return _previousStartupSurfaces[normalized];
   }
 
+  bool _surfaceRecordIsWarm(
+    StartupSnapshotSurfaceRecord? record, {
+    int minItemCount = 1,
+    bool allowHeaderOnly = false,
+  }) {
+    if (record == null) return false;
+    if (record.startupShardHydrated == true) return true;
+    if (!record.hasLocalSnapshot) return false;
+    if (allowHeaderOnly) return true;
+    return record.itemCount >= minItemCount;
+  }
+
+  bool _isStartupRouteWarm(String routeHint) {
+    switch (routeHint) {
+      case 'nav_explore':
+        return _surfaceRecordIsWarm(
+          _startupSurfaceRecord('explore'),
+        );
+      case 'nav_profile':
+        return _surfaceRecordIsWarm(
+          _startupSurfaceRecord('profile'),
+          minItemCount: 0,
+          allowHeaderOnly: true,
+        );
+      case 'nav_education':
+        final tabId = (_previousEducationTabId ?? '').trim();
+        if (tabId == PasajTabIds.market) {
+          return _surfaceRecordIsWarm(
+            _startupSurfaceRecord('market'),
+          );
+        }
+        if (tabId == PasajTabIds.jobFinder) {
+          return _surfaceRecordIsWarm(
+            _startupSurfaceRecord('jobs'),
+          );
+        }
+        return _surfaceRecordIsWarm(_startupSurfaceRecord('market')) ||
+            _surfaceRecordIsWarm(_startupSurfaceRecord('jobs'));
+      case 'nav_feed':
+      case 'nav_home':
+        return true;
+      default:
+        return false;
+    }
+  }
+
   String _resolvedStartupRouteHintForTelemetry({
     required bool loggedIn,
   }) {
@@ -324,6 +382,10 @@ extension _SplashViewStartupPart on _SplashViewState {
       'resolvedStartupRouteHint': _resolvedStartupRouteHintForTelemetry(
         loggedIn: loggedIn,
       ),
+      'effectiveStartupRouteHint': _effectiveStartupRouteHint(),
+      'requestedStartupRouteHint': _requestedStartupRouteHint(),
+      'startupRouteFallbackApplied':
+          _requestedStartupRouteHint() != _effectiveStartupRouteHint(),
       'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
       'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
       'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
@@ -399,6 +461,8 @@ extension _SplashViewStartupPart on _SplashViewState {
     }
     final launchToRouteMs =
         DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
+    final requestedStartupRouteHint = _requestedStartupRouteHint();
+    final effectiveStartupRouteHint = _effectiveStartupRouteHint();
     final resolvedStartupRouteHint = _resolvedStartupRouteHintForTelemetry(
       loggedIn: loggedIn,
     );
@@ -409,7 +473,11 @@ extension _SplashViewStartupPart on _SplashViewState {
         {
           'launchToRouteMs': launchToRouteMs,
           'loggedIn': loggedIn,
+          'requestedStartupRouteHint': requestedStartupRouteHint,
+          'effectiveStartupRouteHint': effectiveStartupRouteHint,
           'resolvedStartupRouteHint': resolvedStartupRouteHint,
+          'startupRouteFallbackApplied':
+              requestedStartupRouteHint != effectiveStartupRouteHint,
           'minimumStartupPrepared': _minimumStartupPrepared,
           'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
           'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
@@ -559,7 +627,11 @@ extension _SplashViewStartupPart on _SplashViewState {
         minimumStartupPrepared: _minimumStartupPrepared,
         launchToRouteMs: launchToRouteMs,
         extra: <String, dynamic>{
+          'requestedStartupRouteHint': requestedStartupRouteHint,
+          'effectiveStartupRouteHint': effectiveStartupRouteHint,
           'resolvedStartupRouteHint': resolvedStartupRouteHint,
+          'startupRouteFallbackApplied':
+              requestedStartupRouteHint != effectiveStartupRouteHint,
           'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
           'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
           'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
@@ -611,11 +683,17 @@ extension _SplashViewStartupPart on _SplashViewState {
 
   int? _preferredStartupNavIndex() {
     final storedIndex = _previousStartupNavIndex;
-    if (storedIndex != null && storedIndex >= 0 && storedIndex <= 4) {
-      return storedIndex == 2 ? 0 : storedIndex;
-    }
     final hasEducation =
         maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+    if (storedIndex != null && storedIndex >= 0 && storedIndex <= 4) {
+      final normalizedIndex = storedIndex == 2 ? 0 : storedIndex;
+      if (_isStartupNavIndexWarm(
+        normalizedIndex,
+        hasEducation: hasEducation,
+      )) {
+        return normalizedIndex;
+      }
+    }
     final profileIndex = hasEducation ? 4 : 3;
     switch (_effectiveStartupRouteHint()) {
       case 'nav_feed':
@@ -629,6 +707,26 @@ extension _SplashViewStartupPart on _SplashViewState {
         return profileIndex;
       default:
         return null;
+    }
+  }
+
+  bool _isStartupNavIndexWarm(
+    int navIndex, {
+    required bool hasEducation,
+  }) {
+    switch (navIndex) {
+      case 0:
+        return true;
+      case 1:
+        return _isStartupRouteWarm('nav_explore');
+      case 3:
+        return hasEducation
+            ? _isStartupRouteWarm('nav_education')
+            : _isStartupRouteWarm('nav_profile');
+      case 4:
+        return _isStartupRouteWarm('nav_profile');
+      default:
+        return false;
     }
   }
 
