@@ -190,6 +190,30 @@ extension ProfileControllerSelectionPart on ProfileController {
 
   void _performEvaluateCenteredPlayback() {
     if (mergedPosts.isEmpty) return;
+    final current = centeredIndex.value;
+    if (current >= 0 && current < mergedPosts.length) {
+      final currentEntry = mergedPosts[current];
+      final currentDocId = ((currentEntry['docID'] as String?) ?? '').trim();
+      if (currentDocId.isNotEmpty) {
+        final currentPlaybackKey = agendaInstanceTag(
+          docId: currentDocId,
+          isReshare: currentEntry['isReshare'] == true,
+        );
+        final currentFraction = _visibleFractions[current] ?? 0.0;
+        if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+          lastCommandAt: _lastPlaybackCommandAt,
+          lastCommandDocId: _lastPlaybackCommandDocId,
+          currentDocId: currentPlaybackKey,
+          isCurrentTargetActive: _performIsPlaybackTargetCurrent(current),
+          currentFraction: currentFraction,
+          stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+        )) {
+          lastCenteredIndex = current;
+          currentVisibleIndex.value = current;
+          return;
+        }
+      }
+    }
     final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
       visibleFractions: _visibleFractions,
       currentIndex: centeredIndex.value,

@@ -45,6 +45,22 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double stopThreshold,
   }) {
     final current = centeredIndex.value;
+    if (current >= 0 && current < agendaList.length) {
+      final currentDocId = agendaList[current].docID;
+      final currentFraction = _visibleFractions[current] ?? 0.0;
+      if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+        lastCommandAt: _lastPlaybackCommandAt,
+        lastCommandDocId: _lastPlaybackCommandDocId,
+        currentDocId: currentDocId,
+        isCurrentTargetActive: _isPlaybackTargetCurrent(current),
+        currentFraction: currentFraction,
+        stopThreshold: stopThreshold,
+      )) {
+        lastCenteredIndex = current;
+        _trackPlaybackWindow();
+        return;
+      }
+    }
     final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
       visibleFractions: _visibleFractions,
       currentIndex: current,

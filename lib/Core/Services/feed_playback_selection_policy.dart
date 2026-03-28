@@ -1,37 +1,44 @@
 import 'dart:core';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 class FeedPlaybackSelectionPolicy {
+  static bool get _isAndroidPlatform =>
+      GetPlatform.isAndroid || defaultTargetPlatform == TargetPlatform.android;
+
   static bool shouldIgnoreVisibilityUpdate({
     required double? previousFraction,
     required double visibleFraction,
   }) {
-    return GetPlatform.isAndroid &&
+    return _isAndroidPlatform &&
         previousFraction != null &&
         (previousFraction - visibleFraction).abs() < 0.12;
   }
 
-  static Duration get evaluationDebounceDuration => GetPlatform.isAndroid
-      ? const Duration(milliseconds: 72)
+  static Duration get evaluationDebounceDuration => _isAndroidPlatform
+      ? const Duration(milliseconds: 96)
       : const Duration(milliseconds: 40);
 
   static double get playThreshold => 0.80;
 
-  static double get stopThreshold => GetPlatform.isAndroid ? 0.25 : 0.40;
+  static double get stopThreshold => _isAndroidPlatform ? 0.25 : 0.40;
 
-  static double get secondaryThreshold => GetPlatform.isAndroid ? 0.55 : 0.62;
+  static double get secondaryThreshold => _isAndroidPlatform ? 0.55 : 0.62;
 
-  static double get hysteresis => GetPlatform.isAndroid ? 0.10 : 0.06;
+  static double get hysteresis => _isAndroidPlatform ? 0.10 : 0.06;
 
   static double get switchRetentionThreshold =>
-      GetPlatform.isAndroid ? 0.58 : 0.62;
+      _isAndroidPlatform ? 0.58 : 0.62;
 
-  static double get switchDominanceMargin =>
-      GetPlatform.isAndroid ? 0.18 : 0.10;
+  static double get switchDominanceMargin => _isAndroidPlatform ? 0.18 : 0.10;
 
   static Duration get scrollSettleReassertDuration =>
       const Duration(milliseconds: 220);
+
+  static Duration get playbackTargetStickinessDuration => _isAndroidPlatform
+      ? const Duration(milliseconds: 420)
+      : const Duration(milliseconds: 180);
 
   static bool shouldPlayCenteredItem({
     required bool isCentered,
@@ -46,7 +53,26 @@ class FeedPlaybackSelectionPolicy {
   static double lingerThreshold({
     required double stopThreshold,
   }) {
-    return GetPlatform.isAndroid ? 0.14 : stopThreshold;
+    return _isAndroidPlatform ? 0.14 : stopThreshold;
+  }
+
+  static bool shouldRetainRecentlyActivatedTarget({
+    required DateTime? lastCommandAt,
+    required String? lastCommandDocId,
+    required String currentDocId,
+    required bool isCurrentTargetActive,
+    required double currentFraction,
+    required double stopThreshold,
+  }) {
+    if (!_isAndroidPlatform) return false;
+    if (lastCommandAt == null) return false;
+    if (lastCommandDocId == null || lastCommandDocId != currentDocId) {
+      return false;
+    }
+    if (!isCurrentTargetActive) return false;
+    if (currentFraction < stopThreshold) return false;
+    return DateTime.now().difference(lastCommandAt) <
+        playbackTargetStickinessDuration;
   }
 
   static int resolveCenteredIndex({

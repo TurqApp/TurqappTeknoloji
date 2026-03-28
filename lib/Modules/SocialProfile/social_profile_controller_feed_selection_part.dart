@@ -208,6 +208,30 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     if (postSelection.value != 0) return;
     final activeEntries = combinedFeedEntries;
     if (activeEntries.isEmpty) return;
+    final current = centeredIndex.value;
+    if (current >= 0 && current < activeEntries.length) {
+      final currentEntry = activeEntries[current];
+      final currentDocId = ((currentEntry['docID'] as String?) ?? '').trim();
+      if (currentDocId.isNotEmpty) {
+        final currentPlaybackKey = _performAgendaInstanceTag(
+          docId: currentDocId,
+          isReshare: currentEntry['isReshare'] == true,
+        );
+        final currentFraction = _visibleFractions[current] ?? 0.0;
+        if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+          lastCommandAt: _lastPlaybackCommandAt,
+          lastCommandDocId: _lastPlaybackCommandDocId,
+          currentDocId: currentPlaybackKey,
+          isCurrentTargetActive: _performIsPlaybackTargetCurrent(current),
+          currentFraction: currentFraction,
+          stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+        )) {
+          lastCenteredIndex = current;
+          currentVisibleIndex.value = current;
+          return;
+        }
+      }
+    }
 
     final targetIndex = _performShouldPinTopFeedTarget()
         ? 0
