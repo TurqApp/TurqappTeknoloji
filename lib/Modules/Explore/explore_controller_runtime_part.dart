@@ -5,7 +5,6 @@ extension ExploreControllerRuntime on ExploreController {
     _applyUserCacheQuota();
     unawaited(_loadRecentSearchUsersCache());
     UserAnalyticsService.instance.trackFeatureUsage('explore_open');
-    fetchTrendingTags();
     unawaited(prepareStartupSurface());
     _bindRecentSearchUsers();
     _bindFollowingListener();

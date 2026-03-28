@@ -607,9 +607,7 @@ extension ExploreControllerFeedPart on ExploreController {
         forceRefresh: forceRefresh,
       );
       trendingTags.assignAll(tags);
-    } catch (_) {
-      trendingTags.clear();
-    }
+    } catch (_) {}
   }
 
   Future<void> _performFetchVideo() async {
