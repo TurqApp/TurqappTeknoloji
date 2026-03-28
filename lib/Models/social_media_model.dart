@@ -42,6 +42,7 @@ class SocialMediaModel {
 
   bool get hasLogo => logo.trim().isNotEmpty;
   bool get isAssetLogo => logo.startsWith('assets/');
+  int get createdAtMillis => int.tryParse(docID) ?? 0;
 
   static String _embeddedLogoByTitle(String title) {
     final key = normalizeSocialMediaEmbeddedKey(title);

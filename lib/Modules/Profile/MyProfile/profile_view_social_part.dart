@@ -19,6 +19,7 @@ extension _ProfileViewSocialPart on _ProfileViewState {
         mixedItems.add({
           'type': 'link',
           'id': model.docID,
+          'createdAt': model.createdAtMillis,
           'data': model,
         });
       }
@@ -27,11 +28,15 @@ extension _ProfileViewSocialPart on _ProfileViewState {
           mixedItems.add({
             'type': 'highlight',
             'id': hl.id,
+            'createdAt': hl.createdAt.millisecondsSinceEpoch,
             'data': hl,
           });
         }
       }
       if (mixedItems.isEmpty) return const SizedBox.shrink();
+      mixedItems.sort(
+        (a, b) => (b['createdAt'] as int).compareTo(a['createdAt'] as int),
+      );
 
       return Padding(
         padding: const EdgeInsets.only(top: 0, bottom: 2),

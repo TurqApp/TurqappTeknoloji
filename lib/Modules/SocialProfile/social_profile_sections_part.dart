@@ -13,7 +13,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
       for (final social in controller.socialMediaList) {
         mixedItems.add({
           'type': 'link',
-          'createdAt': int.tryParse(social.docID) ?? 0,
+          'createdAt': social.createdAtMillis,
           'data': social,
         });
       }
