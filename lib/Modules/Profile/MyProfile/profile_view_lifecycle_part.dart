@@ -21,6 +21,11 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     unawaited(_refreshProfileSurfaceMeta(force: force));
   }
 
+  void _refreshProfileSupplementalMetaIfActive({bool force = false}) {
+    if (!_isProfileSurfaceActive()) return;
+    unawaited(_refreshProfileSupplementalMeta(force: force));
+  }
+
   void _initializeProfileView() {
     final existingController = ProfileController.maybeFind();
     if (existingController != null) {
@@ -44,7 +49,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshProfileSurfaceMetaIfActive(force: false);
+      _refreshProfileSupplementalMetaIfActive(force: false);
     });
     _marketUserWorker = ever(userService.currentUserRx, (_) {
       _refreshProfileSurfaceMetaIfActive(force: false);

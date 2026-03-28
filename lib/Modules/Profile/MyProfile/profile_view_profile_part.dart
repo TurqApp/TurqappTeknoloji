@@ -117,6 +117,13 @@ extension _ProfileViewProfilePart on _ProfileViewState {
     final uid = _myUserId.trim();
     if (uid.isEmpty) return;
     await controller.refreshAll(forceSync: force);
+    await _refreshProfileSupplementalMeta(force: force);
+  }
+
+  Future<void> _refreshProfileSupplementalMeta({bool force = false}) async {
+    if (!_isProfileSurfaceActive()) return;
+    final uid = _myUserId.trim();
+    if (uid.isEmpty) return;
     await socialMediaController.getData(
       silent: !force,
       forceRefresh: force,
