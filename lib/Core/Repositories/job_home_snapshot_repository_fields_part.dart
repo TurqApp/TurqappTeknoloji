@@ -7,6 +7,13 @@ class _JobHomeSnapshotRepositoryState {
   late final EducationTypesenseCacheFirstAdapter<List<JobModel>> searchAdapter;
 
   void initialize(JobHomeSnapshotRepository repository) {
+    final homeSchemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      JobHomeSnapshotRepository._homeSurfaceKey,
+    );
+    final searchSchemaVersion =
+        CacheFirstPolicyRegistry.schemaVersionForSurface(
+      JobHomeSnapshotRepository._searchSurfaceKey,
+    );
     coordinator = CacheFirstCoordinator<List<JobModel>>(
       memoryStore: MemoryScopedSnapshotStore<List<JobModel>>(),
       snapshotStore: SharedPrefsScopedSnapshotStore<List<JobModel>>(
@@ -15,14 +22,8 @@ class _JobHomeSnapshotRepositoryState {
         decode: repository._decodeJobs,
       ),
       telemetry: const CacheFirstKpiTelemetry<List<JobModel>>(),
-      policy: const CacheFirstPolicy(
-        snapshotTtl: Duration(minutes: 20),
-        minLiveSyncInterval: Duration(seconds: 30),
-        syncOnOpen: true,
-        allowWarmLaunchFallback: true,
-        persistWarmLaunchSnapshot: true,
-        treatWarmLaunchAsStale: true,
-        preservePreviousOnEmptyLive: true,
+      policy: CacheFirstPolicyRegistry.policyForSurface(
+        JobHomeSnapshotRepository._homeSurfaceKey,
       ),
     );
     homeAdapter = EducationTypesenseCacheFirstAdapter<List<JobModel>>(
@@ -31,6 +32,7 @@ class _JobHomeSnapshotRepositoryState {
       resolve: (raw) => repository._resolveHits(raw.hits),
       loadWarmSnapshot: repository._loadWarmEducationSnapshot,
       isEmpty: (jobs) => jobs.isEmpty,
+      schemaVersion: homeSchemaVersion,
     );
     searchAdapter = EducationTypesenseCacheFirstAdapter<List<JobModel>>(
       surfaceKey: JobHomeSnapshotRepository._searchSurfaceKey,
@@ -38,6 +40,7 @@ class _JobHomeSnapshotRepositoryState {
       resolve: (raw) => repository._resolveHits(raw.hits),
       loadWarmSnapshot: repository._loadWarmEducationSnapshot,
       isEmpty: (jobs) => jobs.isEmpty,
+      schemaVersion: searchSchemaVersion,
     );
   }
 }

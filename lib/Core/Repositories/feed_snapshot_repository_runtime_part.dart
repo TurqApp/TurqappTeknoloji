@@ -12,6 +12,9 @@ Future<CachedResource<List<PostsModel>>> bootstrapFeedHome(
   return repository._coordinator.bootstrap(
     repository._homeKey(query),
     loadWarmSnapshot: () => repository._loadWarmHomeSnapshot(query),
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      FeedSnapshotRepository._homeSurfaceKey,
+    ),
   );
 }
 
@@ -32,7 +35,9 @@ Future<void> persistFeedHomeSnapshot(
   final record = ScopedSnapshotRecord<List<PostsModel>>(
     data: normalized,
     snapshotAt: DateTime.now(),
-    schemaVersion: 1,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      FeedSnapshotRepository._homeSurfaceKey,
+    ),
     generationId: 'manual:${DateTime.now().millisecondsSinceEpoch}',
     source: source,
   );

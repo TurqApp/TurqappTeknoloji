@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 
+import 'cache_first_policy_registry.dart';
+import 'cache_scope_namespace.dart';
 import 'cache_first_coordinator.dart';
 import 'cache_first_query_pipeline.dart';
 import 'cached_resource.dart';
@@ -28,16 +30,22 @@ class EducationTypesenseQuery {
   final String userId;
   final String scopeTag;
 
-  String get scopeId {
-    return <String>[
-      _educationEntityApiLabel(entity),
-      query.trim(),
-      'limit=$limit',
-      'page=$page',
-      'filter=${(filterBy ?? '').trim()}',
-      'sort=${(sortBy ?? '').trim()}',
-      'scope=${scopeTag.trim()}',
-    ].join('|');
+  String buildScopeId({
+    required int schemaVersion,
+  }) {
+    return CacheScopeNamespace.buildQueryScope(
+      userId: userId,
+      limit: limit,
+      scopeTag: scopeTag,
+      schemaVersion: schemaVersion,
+      qualifiers: <String, Object?>{
+        'entity': _educationEntityApiLabel(entity),
+        'q': query.trim(),
+        'page': page,
+        'filter': (filterBy ?? '').trim(),
+        'sort': (sortBy ?? '').trim(),
+      },
+    );
   }
 }
 
@@ -83,18 +91,23 @@ class MarketTypesenseQuery {
   final String? district;
   final String scopeTag;
 
-  String get scopeId {
-    return <String>[
-      query.trim(),
-      'limit=$limit',
-      'page=$page',
-      'docId=${(docId ?? '').trim()}',
-      'userId=${(userId ?? '').trim()}',
-      'category=${(categoryKey ?? '').trim()}',
-      'city=${(city ?? '').trim()}',
-      'district=${(district ?? '').trim()}',
-      'scope=${scopeTag.trim()}',
-    ].join('|');
+  String buildScopeId({
+    required int schemaVersion,
+  }) {
+    return CacheScopeNamespace.buildQueryScope(
+      userId: userId ?? '',
+      limit: limit,
+      scopeTag: scopeTag,
+      schemaVersion: schemaVersion,
+      qualifiers: <String, Object?>{
+        'q': query.trim(),
+        'page': page,
+        'docId': (docId ?? '').trim(),
+        'category': (categoryKey ?? '').trim(),
+        'city': (city ?? '').trim(),
+        'district': (district ?? '').trim(),
+      },
+    );
   }
 }
 
@@ -104,15 +117,19 @@ class EducationTypesenseCacheFirstAdapter<TResolved> {
     required CacheFirstCoordinator<TResolved> coordinator,
     required FutureOr<TResolved> Function(EducationTypesenseSearchResult raw)
         resolve,
-    Future<TResolved?> Function(EducationTypesenseQuery query)? loadWarmSnapshot,
+    Future<TResolved?> Function(EducationTypesenseQuery query)?
+        loadWarmSnapshot,
     bool Function(TResolved value)? isEmpty,
-  }) : _pipeline =
-            CacheFirstQueryPipeline<EducationTypesenseQuery,
-                EducationTypesenseSearchResult, TResolved>(
+    int? schemaVersion,
+  }) : _pipeline = CacheFirstQueryPipeline<EducationTypesenseQuery,
+            EducationTypesenseSearchResult, TResolved>(
           surfaceKey: surfaceKey,
           coordinator: coordinator,
           userIdResolver: (query) => query.userId.trim(),
-          scopeIdBuilder: (query) => query.scopeId,
+          scopeIdBuilder: (query) => query.buildScopeId(
+            schemaVersion: schemaVersion ??
+                CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
+          ),
           fetchRaw: (query) {
             return TypesenseEducationSearchService.instance.searchHits(
               entity: query.entity,
@@ -127,6 +144,8 @@ class EducationTypesenseCacheFirstAdapter<TResolved> {
           loadWarmSnapshot: loadWarmSnapshot,
           isEmpty: isEmpty,
           liveSource: CachedResourceSource.server,
+          schemaVersion: schemaVersion ??
+              CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
         );
 
   final String surfaceKey;
@@ -148,14 +167,19 @@ class MarketTypesenseCacheFirstAdapter<TResolved> {
     required FutureOr<TResolved> Function(List<dynamic> raw) resolve,
     Future<TResolved?> Function(MarketTypesenseQuery query)? loadWarmSnapshot,
     bool Function(TResolved value)? isEmpty,
-  }) : _pipeline =
-            CacheFirstQueryPipeline<MarketTypesenseQuery, List<dynamic>, TResolved>(
+    int? schemaVersion,
+  }) : _pipeline = CacheFirstQueryPipeline<MarketTypesenseQuery, List<dynamic>,
+            TResolved>(
           surfaceKey: surfaceKey,
           coordinator: coordinator,
           userIdResolver: (query) => (query.userId ?? '').trim(),
-          scopeIdBuilder: (query) => query.scopeId,
+          scopeIdBuilder: (query) => query.buildScopeId(
+            schemaVersion: schemaVersion ??
+                CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
+          ),
           fetchRaw: (query) async {
-            final items = await TypesenseMarketSearchService.instance.searchItems(
+            final items =
+                await TypesenseMarketSearchService.instance.searchItems(
               query: query.query,
               limit: query.limit,
               page: query.page,
@@ -171,6 +195,8 @@ class MarketTypesenseCacheFirstAdapter<TResolved> {
           loadWarmSnapshot: loadWarmSnapshot,
           isEmpty: isEmpty,
           liveSource: CachedResourceSource.server,
+          schemaVersion: schemaVersion ??
+              CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
         );
 
   final String surfaceKey;

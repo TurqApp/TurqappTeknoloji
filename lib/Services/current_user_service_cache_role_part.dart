@@ -101,6 +101,12 @@ class CurrentUserCacheStore {
     } catch (_) {}
   }
 
+  Future<void> clearActiveCachePointer() async {
+    try {
+      await _prefs?.remove(_activeCacheUidKey);
+    } catch (_) {}
+  }
+
   String cacheKey(String uid) => '${_cacheKeyPrefix}_$uid';
 
   String cacheTimestampKey(String uid) => '${_cacheTimestampKeyPrefix}_$uid';
@@ -126,6 +132,22 @@ class CurrentUserCacheStore {
     _rootDocCache.removeWhere((key, _) => key == uid);
     _subdocCache.removeWhere((key, _) => key.startsWith('$uid::'));
     _listCache.removeWhere((key, _) => key.startsWith('$uid::'));
+    unawaited(_purgeCacheFirstSnapshotSurfaces(userId: uid));
+  }
+
+  Future<void> _purgeCacheFirstSnapshotSurfaces({
+    String? userId,
+  }) async {
+    await Future.wait(<Future<void>>[
+      maybeFindFeedSnapshotRepository()?.clearUserSnapshots(userId: userId) ??
+          Future<void>.value(),
+      maybeFindShortSnapshotRepository()?.clearUserSnapshots(userId: userId) ??
+          Future<void>.value(),
+      ProfilePostsSnapshotRepository.maybeFind()?.clearUserSnapshots(
+            userId: userId,
+          ) ??
+          Future<void>.value(),
+    ]);
   }
 
   void storeRootUserData(String uid, Map<String, dynamic> data) {

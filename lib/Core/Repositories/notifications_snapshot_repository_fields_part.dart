@@ -7,6 +7,9 @@ class _NotificationsSnapshotRepositoryState {
   _NotificationsSnapshotRepositoryState(NotificationsSnapshotRepository owner)
       : notificationsRepository = NotificationsRepository.ensure(),
         invariantGuard = ensureRuntimeInvariantGuard() {
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _notificationsInboxSnapshotSurfaceKey,
+    );
     coordinator = CacheFirstCoordinator<List<NotificationModel>>(
       memoryStore: MemoryScopedSnapshotStore<List<NotificationModel>>(),
       snapshotStore: SharedPrefsScopedSnapshotStore<List<NotificationModel>>(
@@ -15,14 +18,8 @@ class _NotificationsSnapshotRepositoryState {
         decode: owner._decodeItems,
       ),
       telemetry: const CacheFirstKpiTelemetry<List<NotificationModel>>(),
-      policy: const CacheFirstPolicy(
-        snapshotTtl: Duration(minutes: 10),
-        minLiveSyncInterval: Duration(seconds: 20),
-        syncOnOpen: true,
-        allowWarmLaunchFallback: true,
-        persistWarmLaunchSnapshot: true,
-        treatWarmLaunchAsStale: true,
-        preservePreviousOnEmptyLive: true,
+      policy: CacheFirstPolicyRegistry.policyForSurface(
+        _notificationsInboxSnapshotSurfaceKey,
       ),
     );
 
@@ -37,6 +34,7 @@ class _NotificationsSnapshotRepositoryState {
       loadWarmSnapshot: owner._loadWarmSnapshot,
       isEmpty: (items) => items.isEmpty,
       liveSource: CachedResourceSource.server,
+      schemaVersion: schemaVersion,
     );
   }
 

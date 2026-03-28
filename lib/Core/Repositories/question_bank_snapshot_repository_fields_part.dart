@@ -12,14 +12,8 @@ class _QuestionBankSnapshotRepositoryState {
       decode: _decodeQuestionBankItems,
     ),
     telemetry: const CacheFirstKpiTelemetry<List<QuestionBankModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
+    policy: CacheFirstPolicyRegistry.policyForSurface(
+      _questionBankSearchSurfaceKey,
     ),
   );
 
@@ -34,6 +28,9 @@ class _QuestionBankSnapshotRepositoryState {
         .toList(growable: false),
     loadWarmSnapshot: _loadWarmQuestionBankSnapshot,
     isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _questionBankSearchSurfaceKey,
+    ),
   );
 }
 

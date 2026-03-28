@@ -5,7 +5,7 @@ class CurrentUserSyncRole {
     this.service, {
     StartupSessionFailureReporter? failureReporter,
   }) : _failureReporter =
-           failureReporter ?? StartupSessionFailureReporter.defaultReporter;
+            failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final CurrentUserService service;
   final StartupSessionFailureReporter _failureReporter;
@@ -16,13 +16,21 @@ class CurrentUserSyncRole {
 
       final firebaseUser = service.currentAuthUser;
       if (firebaseUser == null) {
-        CurrentUserCacheStore(service).purgeUserScopedCaches(service._currentUser?.userID);
+        await service._clearActiveCachePointer();
+        service._currentUser = null;
+        service.currentUserRx.value = null;
+        if (!service._userStreamController.isClosed) {
+          service._userStreamController.add(null);
+        }
+        _lastReactiveSignature = null;
+        _lastRootSyncSignature = null;
         _isInitialized = true;
         emailVerifiedRx.value = true;
         return false;
       }
       emailVerifiedRx.value = firebaseUser.emailVerified;
-      unawaited(CurrentUserAccountCenterRole(service).adoptFreshSessionKeyIfNeeded());
+      unawaited(
+          CurrentUserAccountCenterRole(service).adoptFreshSessionKeyIfNeeded());
       _lastKnownViewSelection =
           _prefs?.getInt(service._viewSelectionKey(firebaseUser.uid));
       service.viewSelectionRx.value = _lastKnownViewSelection ?? 1;
@@ -33,20 +41,27 @@ class CurrentUserSyncRole {
         if (!_isSyncing) {
           unawaited(startFirebaseSync());
         }
-        unawaited(service.refreshEmailVerificationStatus(reloadAuthUser: false));
+        unawaited(
+            service.refreshEmailVerificationStatus(reloadAuthUser: false));
         unawaited(service._loadEmailVerifyConfig());
         return true;
       }
 
       if (service._currentUser != null &&
           service._currentUser!.userID != firebaseUser.uid) {
-        CurrentUserCacheStore(service)
-            .purgeUserScopedCaches(service._currentUser!.userID);
+        service._currentUser = null;
+        service.currentUserRx.value = null;
+        if (!service._userStreamController.isClosed) {
+          service._userStreamController.add(null);
+        }
+        _lastReactiveSignature = null;
+        _lastRootSyncSignature = null;
       }
       final cacheLoaded = await CurrentUserCacheStore(service)
           .loadFromCache(expectedUid: firebaseUser.uid);
 
-      await service._primeViewSelectionFromFirestore(firebaseUser.uid)
+      await service
+          ._primeViewSelectionFromFirestore(firebaseUser.uid)
           .timeout(const Duration(milliseconds: 350), onTimeout: () {});
 
       unawaited(service.refreshEmailVerificationStatus(reloadAuthUser: false));
@@ -122,7 +137,8 @@ class CurrentUserSyncRole {
               _lastRootSyncSignature == rootSignature) {
             return;
           }
-          CurrentUserCacheStore(service).storeRootUserData(firebaseUser.uid, data);
+          CurrentUserCacheStore(service)
+              .storeRootUserData(firebaseUser.uid, data);
           _lastRootSyncSignature = rootSignature;
 
           final merged = await buildMergedUserData(
@@ -142,7 +158,8 @@ class CurrentUserSyncRole {
         },
       );
       startExclusiveSessionHeartbeat(firebaseUser.uid);
-      unawaited(CurrentUserAccountCenterRole(service).adoptFreshSessionKeyIfNeeded());
+      unawaited(
+          CurrentUserAccountCenterRole(service).adoptFreshSessionKeyIfNeeded());
       unawaited(validateExclusiveSessionFromServer(firebaseUser.uid));
     } catch (error, stackTrace) {
       _failureReporter.record(
@@ -239,7 +256,8 @@ class CurrentUserSyncRole {
       final cacheKey = CurrentUserCacheStore(service).listCacheKey(uid, key);
       final cached = _listCache[cacheKey];
       if (cached != null &&
-          CurrentUserCacheStore(service).isFresh(cached.fetchedAt, _listCacheTtl)) {
+          CurrentUserCacheStore(service)
+              .isFresh(cached.fetchedAt, _listCacheTtl)) {
         return Map<String, dynamic>.from(cached.value);
       }
       try {

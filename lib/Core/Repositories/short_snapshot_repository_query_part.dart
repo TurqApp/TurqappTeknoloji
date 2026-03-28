@@ -31,6 +31,9 @@ Future<CachedResource<List<PostsModel>>> _bootstrapHome(
       scopeId: query.scopeId,
     ),
     loadWarmSnapshot: () => _performLoadWarmSnapshot(repository, query),
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      ShortSnapshotRepository._homeSurfaceKey,
+    ),
   );
 }
 
@@ -70,7 +73,9 @@ Future<void> _persistHomeSnapshot(
   final record = ScopedSnapshotRecord<List<PostsModel>>(
     data: normalized,
     snapshotAt: DateTime.now(),
-    schemaVersion: 1,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      ShortSnapshotRepository._homeSurfaceKey,
+    ),
     generationId: 'manual:${DateTime.now().millisecondsSinceEpoch}',
     source: source,
   );

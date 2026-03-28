@@ -15,10 +15,16 @@ class MarketListingQuery {
   final int page;
   final String scopeTag;
 
-  String get scopeId => <String>[
-        query.trim(),
-        'limit=$limit',
-        'page=$page',
-        'scope=${scopeTag.trim()}',
-      ].join('|');
+  String buildScopeId(String surfaceKey) => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: limit,
+        scopeTag: scopeTag,
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          surfaceKey,
+        ),
+        qualifiers: <String, Object?>{
+          'q': query.trim(),
+          'page': page,
+        },
+      );
 }

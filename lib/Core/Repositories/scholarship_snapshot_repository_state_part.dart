@@ -36,14 +36,8 @@ CacheFirstCoordinator<ScholarshipListingSnapshot>
       decode: controller._decodeSnapshot,
     ),
     telemetry: const CacheFirstKpiTelemetry<ScholarshipListingSnapshot>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
+    policy: CacheFirstPolicyRegistry.policyForSurface(
+      ScholarshipSnapshotRepository._homeSurfaceKey,
     ),
   );
 }
@@ -58,6 +52,9 @@ EducationTypesenseCacheFirstAdapter<ScholarshipListingSnapshot>
     resolve: controller._resolveHits,
     loadWarmSnapshot: controller._loadWarmSnapshot,
     isEmpty: (snapshot) => snapshot.items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      ScholarshipSnapshotRepository._homeSurfaceKey,
+    ),
   );
 }
 
@@ -71,5 +68,8 @@ EducationTypesenseCacheFirstAdapter<ScholarshipListingSnapshot>
     resolve: controller._resolveHits,
     loadWarmSnapshot: controller._loadWarmSnapshot,
     isEmpty: (snapshot) => snapshot.items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      ScholarshipSnapshotRepository._searchSurfaceKey,
+    ),
   );
 }

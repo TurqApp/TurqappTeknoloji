@@ -11,14 +11,8 @@ CacheFirstCoordinator<List<Map<String, dynamic>>> _buildPastQuestionCoordinator(
       decode: repository._decodeDocs,
     ),
     telemetry: const CacheFirstKpiTelemetry<List<Map<String, dynamic>>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
+    policy: CacheFirstPolicyRegistry.policyForSurface(
+      _pastQuestionHomeSnapshotSurfaceKey,
     ),
   );
 }
@@ -32,7 +26,17 @@ CacheFirstQueryPipeline<String, List<Map<String, dynamic>>,
     surfaceKey: _pastQuestionHomeSnapshotSurfaceKey,
     coordinator: repository._coordinator,
     userIdResolver: (userId) => userId,
-    scopeIdBuilder: (_) => 'home',
+    scopeIdBuilder: (userId) => CacheScopeNamespace.buildQueryScope(
+      userId: userId,
+      limit: 0,
+      scopeTag: 'home',
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        _pastQuestionHomeSnapshotSurfaceKey,
+      ),
+      qualifiers: const <String, Object?>{
+        'entity': 'past_question_root',
+      },
+    ),
     fetchRaw: (_) => repository._repository.fetchRootDocs(preferCache: false),
     resolve: (docs) => docs,
     loadWarmSnapshot: (_) => repository._repository.fetchRootDocs(
@@ -40,5 +44,8 @@ CacheFirstQueryPipeline<String, List<Map<String, dynamic>>,
     ),
     isEmpty: (docs) => docs.isEmpty,
     liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _pastQuestionHomeSnapshotSurfaceKey,
+    ),
   );
 }

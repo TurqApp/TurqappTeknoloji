@@ -83,10 +83,8 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
 
   Future<void> _performLogout() async {
     try {
-      final oldUid = _currentUser?.userID;
       await _stopFirebaseSync();
-      await _clearCache(oldUid);
-      _purgeUserScopedCaches(oldUid);
+      await _clearActiveCachePointer();
       await maybeFindFollowRepository()?.clearAll();
       _silentLogAt.clear();
 

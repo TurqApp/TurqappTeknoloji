@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 
+import 'cache_first_policy_registry.dart';
+import 'cache_scope_namespace.dart';
 import 'cache_first_coordinator.dart';
 import 'cache_first_query_pipeline.dart';
 import 'cached_resource.dart';
@@ -27,16 +29,22 @@ class EducationTypesenseDocIdQuery {
   final String userId;
   final String scopeTag;
 
-  String get scopeId {
-    return <String>[
-      _entityApiLabel(entity),
-      query.trim(),
-      'limit=$limit',
-      'page=$page',
-      'filter=${(filterBy ?? '').trim()}',
-      'sort=${(sortBy ?? '').trim()}',
-      'scope=${scopeTag.trim()}',
-    ].join('|');
+  String buildScopeId({
+    required int schemaVersion,
+  }) {
+    return CacheScopeNamespace.buildQueryScope(
+      userId: userId,
+      limit: limit,
+      scopeTag: scopeTag,
+      schemaVersion: schemaVersion,
+      qualifiers: <String, Object?>{
+        'entity': _entityApiLabel(entity),
+        'q': query.trim(),
+        'page': page,
+        'filter': (filterBy ?? '').trim(),
+        'sort': (sortBy ?? '').trim(),
+      },
+    );
   }
 }
 
@@ -50,17 +58,23 @@ class EducationTypesenseDocIdHydrationAdapter<TResolved> {
     Future<TResolved?> Function(EducationTypesenseDocIdQuery query)?
         loadWarmSnapshot,
     bool Function(TResolved value)? isEmpty,
+    int? schemaVersion,
   }) : _pipeline = CacheFirstQueryPipeline<EducationTypesenseDocIdQuery,
             List<String>, TResolved>(
           surfaceKey: surfaceKey,
           coordinator: coordinator,
           userIdResolver: (query) => query.userId.trim(),
-          scopeIdBuilder: (query) => query.scopeId,
+          scopeIdBuilder: (query) => query.buildScopeId(
+            schemaVersion: schemaVersion ??
+                CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
+          ),
           fetchRaw: fetchDocIds,
           resolve: hydrate,
           loadWarmSnapshot: loadWarmSnapshot,
           isEmpty: isEmpty,
           liveSource: CachedResourceSource.server,
+          schemaVersion: schemaVersion ??
+              CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
         );
 
   final String surfaceKey;
@@ -106,4 +120,3 @@ String _entityApiLabel(EducationTypesenseEntity entity) {
       return 'past_question';
   }
 }
-

@@ -37,6 +37,7 @@ class CacheFirstCoordinator<T> {
     final initial = await bootstrap(
       key,
       loadWarmSnapshot: loadWarmSnapshot,
+      schemaVersion: schemaVersion,
     );
     final shouldSync = _shouldSync(
       key: key,
@@ -77,12 +78,15 @@ class CacheFirstCoordinator<T> {
   Future<CachedResource<T>> bootstrap(
     ScopedSnapshotKey key, {
     CacheFirstWarmSnapshotReader<T>? loadWarmSnapshot,
+    int schemaVersion = 1,
   }) async {
     final memory = await memoryStore.read(key, allowStale: true);
-    if (memory != null) {
-      final resource = memory.toCachedResource(
-        isStale: policy.isSnapshotStale(memory.snapshotAt),
-      ).copyWith(source: CachedResourceSource.memory);
+    if (memory != null && _isCompatibleSchema(memory, schemaVersion)) {
+      final resource = memory
+          .toCachedResource(
+            isStale: policy.isSnapshotStale(memory.snapshotAt),
+          )
+          .copyWith(source: CachedResourceSource.memory);
       _telemetry.onEvent(
         CacheFirstTelemetryEvent<T>(
           type: CacheFirstEventType.memoryHit,
@@ -92,9 +96,12 @@ class CacheFirstCoordinator<T> {
       );
       return resource;
     }
+    if (memory != null) {
+      await memoryStore.clearScope(key);
+    }
 
     final disk = await snapshotStore.read(key, allowStale: true);
-    if (disk != null) {
+    if (disk != null && _isCompatibleSchema(disk, schemaVersion)) {
       final resource = disk.toCachedResource(
         isStale: policy.isSnapshotStale(disk.snapshotAt),
       );
@@ -108,6 +115,9 @@ class CacheFirstCoordinator<T> {
       );
       return resource;
     }
+    if (disk != null) {
+      await snapshotStore.clearScope(key);
+    }
 
     if (policy.allowWarmLaunchFallback && loadWarmSnapshot != null) {
       final warmData = await loadWarmSnapshot();
@@ -115,7 +125,7 @@ class CacheFirstCoordinator<T> {
         final record = ScopedSnapshotRecord<T>(
           data: warmData,
           snapshotAt: DateTime.now(),
-          schemaVersion: 1,
+          schemaVersion: schemaVersion < 1 ? 1 : schemaVersion,
           generationId: 'warm:${DateTime.now().millisecondsSinceEpoch}',
           source: CachedResourceSource.warmLaunchPool,
         );
@@ -159,7 +169,9 @@ class CacheFirstCoordinator<T> {
     try {
       final liveData = await fetchLive();
       final liveIsEmpty = isEmpty?.call(liveData) ?? false;
-      if (liveIsEmpty && current.hasData && policy.preservePreviousOnEmptyLive) {
+      if (liveIsEmpty &&
+          current.hasData &&
+          policy.preservePreviousOnEmptyLive) {
         final preserved = current.copyWith(
           isRefreshing: false,
           isStale: true,
@@ -181,7 +193,8 @@ class CacheFirstCoordinator<T> {
         data: liveData,
         snapshotAt: DateTime.now(),
         schemaVersion: schemaVersion,
-        generationId: generationId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        generationId:
+            generationId ?? DateTime.now().millisecondsSinceEpoch.toString(),
         source: liveSource,
       );
       await Future.wait(<Future<void>>[
@@ -253,5 +266,14 @@ class CacheFirstCoordinator<T> {
     if (!current.hasData) return true;
     if (current.isStale) return true;
     return policy.canSyncAt(_lastLiveSyncAtByKey[key.storageKey]);
+  }
+
+  bool _isCompatibleSchema(
+    ScopedSnapshotRecord<T> record,
+    int expectedSchemaVersion,
+  ) {
+    final normalizedExpected =
+        expectedSchemaVersion < 1 ? 1 : expectedSchemaVersion;
+    return record.schemaVersion == normalizedExpected;
   }
 }

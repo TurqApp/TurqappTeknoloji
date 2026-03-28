@@ -6,13 +6,18 @@ const bool _suppressCurrentUserSmokeLogs =
 extension CurrentUserServiceCachePart on CurrentUserService {
   CurrentUserCacheStore get _cacheStore => CurrentUserCacheStore(this);
 
-  Future<void> _saveToCache(CurrentUserModel user) => _cacheStore.saveToCache(user);
+  Future<void> _saveToCache(CurrentUserModel user) =>
+      _cacheStore.saveToCache(user);
 
   Future<void> _clearCache([String? uid]) => _cacheStore.clearCache(uid);
 
+  Future<void> _clearActiveCachePointer() =>
+      _cacheStore.clearActiveCachePointer();
+
   String _cacheKey(String uid) => _cacheStore.cacheKey(uid);
 
-  void _purgeUserScopedCaches(String? uid) => _cacheStore.purgeUserScopedCaches(uid);
+  void _purgeUserScopedCaches(String? uid) =>
+      _cacheStore.purgeUserScopedCaches(uid);
 
   Future<Map<String, dynamic>> _readCachedRootUserDataSilently(
     String uid, {

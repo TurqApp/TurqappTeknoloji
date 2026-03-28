@@ -33,14 +33,8 @@ CacheFirstCoordinator<List<TutoringModel>> _buildTutoringSnapshotCoordinator() {
       decode: _decodeTutoringSnapshots,
     ),
     telemetry: const CacheFirstKpiTelemetry<List<TutoringModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
+    policy: CacheFirstPolicyRegistry.policyForSurface(
+      TutoringSnapshotRepository._homeSurfaceKey,
     ),
   );
 }
@@ -56,5 +50,6 @@ EducationTypesenseCacheFirstAdapter<List<TutoringModel>>
     resolve: (raw) => _resolveTutoringHits(repository, raw.hits),
     loadWarmSnapshot: _loadWarmTutoringSnapshot,
     isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
   );
 }

@@ -37,14 +37,8 @@ CacheFirstCoordinator<List<SinavModel>>
       decode: _decodePracticeExamSnapshotItems,
     ),
     telemetry: const CacheFirstKpiTelemetry<List<SinavModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
+    policy: CacheFirstPolicyRegistry.policyForSurface(
+      _practiceExamHomeSurfaceKey,
     ),
   );
 }
@@ -65,6 +59,7 @@ EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>
       query,
     ),
     isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(surfaceKey),
   );
 }
 

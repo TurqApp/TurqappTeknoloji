@@ -26,14 +26,8 @@ CacheFirstCoordinator<List<BookletModel>> _createAnswerKeySnapshotCoordinator(
       decode: repository._decodeItems,
     ),
     telemetry: const CacheFirstKpiTelemetry<List<BookletModel>>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 20),
-      minLiveSyncInterval: Duration(seconds: 30),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
+    policy: CacheFirstPolicyRegistry.policyForSurface(
+      _answerKeyHomeSurfaceKey,
     ),
   );
 }
@@ -47,6 +41,9 @@ EducationTypesenseDocIdHydrationAdapter<List<BookletModel>>
     hydrate: (docIds) => repository._bookletRepository.fetchByIds(docIds),
     loadWarmSnapshot: repository._loadWarmSnapshot,
     isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _answerKeyHomeSurfaceKey,
+    ),
   );
 }
 
@@ -59,5 +56,8 @@ EducationTypesenseDocIdHydrationAdapter<List<BookletModel>>
     hydrate: (docIds) => repository._bookletRepository.fetchByIds(docIds),
     loadWarmSnapshot: repository._loadWarmSnapshot,
     isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _answerKeySearchSurfaceKey,
+    ),
   );
 }

@@ -1,9 +1,11 @@
 export 'cache_first_coordinator.dart';
 export 'cache_first_kpi_telemetry.dart';
 export 'cache_first_policy.dart';
+export 'cache_first_policy_registry.dart';
 export 'cache_first_query_pipeline.dart';
 export 'cache_first_serialization.dart';
 export 'cache_first_telemetry.dart';
+export 'cache_scope_namespace.dart';
 export 'cached_resource.dart';
 export 'cache_first_stores.dart';
 export 'cache_first_typesense.dart';

@@ -25,8 +25,12 @@ class NotificationsSnapshotQuery {
   final int limit;
   final String scopeTag;
 
-  String get scopeId => <String>[
-        'limit=$limit',
-        'scope=${scopeTag.trim()}',
-      ].join('|');
+  String get scopeId => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: limit,
+        scopeTag: scopeTag,
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          _notificationsInboxSnapshotSurfaceKey,
+        ),
+      );
 }
