@@ -275,7 +275,7 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       docId: docId,
       isReshare: entry['isReshare'] == true,
     );
-    return VideoStateManager.instance.currentPlayingDocID == playbackKey;
+    return VideoStateManager.instance.isPlaybackTargetActive(playbackKey);
   }
 
   void _performEnsureCenteredPlaybackForIndex(int index) {
@@ -292,8 +292,7 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       isReshare: entry['isReshare'] == true,
     );
     final manager = VideoStateManager.instance;
-    if (manager.currentPlayingDocID == playbackKey) return;
-    final issuedAt = manager.claimPlaybackTargetIfReady(
+    final issuedAt = manager.activatePlaybackTargetIfReady(
       playbackKey,
       lastCommandDocId: _lastPlaybackCommandDocId,
       lastCommandAt: _lastPlaybackCommandAt,

@@ -33,6 +33,34 @@ void main() {
     expect(service.currentPlayingDocId, isNull);
   });
 
+  test('video state manager reasserts current target when ownership is stale',
+      () async {
+    final manager = VideoStateManager();
+    final handle = _FakePlaybackHandle();
+
+    manager.registerPlaybackHandle('doc-a', handle);
+
+    manager.playOnlyThis('doc-a');
+    await Future<void>.delayed(const Duration(milliseconds: 170));
+    expect(handle.playCount, 1);
+    expect(manager.isPlaybackTargetActive('doc-a'), isTrue);
+
+    await handle.pause();
+    expect(manager.currentPlayingDocID, 'doc-a');
+    expect(manager.isPlaybackTargetActive('doc-a'), isFalse);
+
+    final issuedAt = manager.activatePlaybackTargetIfReady(
+      'doc-a',
+      lastCommandDocId: null,
+      lastCommandAt: null,
+    );
+
+    expect(issuedAt, isNotNull);
+    await Future<void>.delayed(const Duration(milliseconds: 170));
+    expect(handle.playCount, 2);
+    expect(manager.isPlaybackTargetActive('doc-a'), isTrue);
+  });
+
   test('segment cache runtime service centralizes hot lifecycle helpers', () {
     final entries = <String, VideoCacheEntry>{
       'doc-a': VideoCacheEntry(
