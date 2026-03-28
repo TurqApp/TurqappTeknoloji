@@ -688,6 +688,21 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | GAP-001 | Gap | Orta | T-001 | Kapandi | Rollback/checkpoint standardi plan icine eklendi; T-001'de canli kayit doldurulacak |
 | GAP-002 | Gap | Orta | T-021, T-022 | Kapandi | Fixture/seed checklist planda tanimlandi; uygulamada test bazli doldurulacak |
 
+## Plan Sonrasi Tavsiye Backlogu
+
+Bu bolum, aktif resmi sirayi bozmadan kayda alinacak ama 30 gunluk ana plan bittikten sonra ele alinacak tavsiyeleri tutar.
+
+Kurallar:
+
+- burada tutulan maddeler aktif resmi isi bozmaz
+- resmi sira disina alinmaz
+- plan boyunca cikan benzer tavsiyeler bu backlog'a eklenir
+- ana plan bitince etki/efor sirasina gore ayrica ele alinir
+
+| Tavsiye No | Kaynak | Durum | Neden simdi degil | Plan bitince onerilen ilk adim |
+| --- | --- | --- | --- | --- |
+| ADV-001 | `RISK-006`, `T-006` | Acik | `T-006` guvenlik yolunu kapatti; ama server-side aggregation ayri tasarim ve uygulama isi gerektiriyor, bu yuzden resmi sirayi bozmuyoruz | market root sayaclari icin server-side aggregation / backfill tasarimi cikar; `viewCount`, `favoriteCount`, `offerCount`, `reviewCount` alanlarini server ownership modeline tasi |
+
 
 ## Feature Sahiplik Matrisi
 
