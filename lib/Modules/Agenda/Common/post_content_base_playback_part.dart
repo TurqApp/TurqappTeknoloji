@@ -282,7 +282,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
     final controllerOwnedListPlayback = !isStandalonePostInstance &&
-        (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
+        (_qaSurfaceName == 'feed' ||
+            _qaSurfaceName == 'profile' ||
+            _qaSurfaceName == 'social_profile');
     if (controllerOwnedListPlayback) {
       if (_playbackRuntimeService.currentPlayingDocId != playbackHandleKey) {
         _playbackRuntimeService.playOnlyThis(playbackHandleKey);

@@ -171,6 +171,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isSurfacePlaybackAllowed {
     if (isStandalonePostInstance) return true;
+    if (_surfaceInstanceTag.startsWith('social_')) {
+      final route = Get.currentRoute.trim();
+      if (route == '/SocialProfile' || route == 'SocialProfile') {
+        return true;
+      }
+    }
     if (!_isProfileFamilySurfaceInstance) {
       return agendaController.canClaimPlaybackNow;
     }
