@@ -82,9 +82,8 @@ extension SignInControllerSignupPart on SignInController {
         await _clearSessionCachesAfterAccountSwitch();
         await CurrentUserService.instance.forceRefresh();
         await _trackCurrentAccountForDevice();
-        await _persistStoredSessionCredential(
+        await _persistStoredSessionHint(
           email: email.value,
-          password: password.value,
         );
       } catch (_) {}
 

@@ -12,7 +12,7 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
     final normalizedAccount = markSuccessfulSignIn
         ? account.copyWith(
             isSessionValid: true,
-            requiresReauth: false,
+            requiresReauth: requiresManualStoredAccountReauth(account),
             lastUsedAt: now,
             lastSuccessfulSignInAt: now,
           )
@@ -173,7 +173,7 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
     await addOrUpdateAccount(
       existing.copyWith(
         isSessionValid: true,
-        requiresReauth: false,
+        requiresReauth: requiresManualStoredAccountReauth(existing),
         lastUsedAt: now,
         lastSuccessfulSignInAt: now,
       ),

@@ -67,22 +67,20 @@ extension SignInControllerAccountPart on SignInController {
     return normalizeEmailAddress(signInEmail.value);
   }
 
-  Future<void> _persistStoredSessionCredential({
+  Future<void> _persistStoredSessionHint({
     String? email,
-    String? password,
   }) async {
     final userService = CurrentUserService.instance;
     final authUser = userService.currentAuthUser;
     final resolvedEmail =
         normalizeEmailAddress(email ?? userService.effectiveEmail);
-    final resolvedPassword = (password ?? '').trim();
-    if (authUser == null || resolvedEmail.isEmpty || resolvedPassword.isEmpty) {
+    if (authUser == null || resolvedEmail.isEmpty) {
       return;
     }
-    await AccountSessionVault.instance.saveEmailPassword(
+    await AccountSessionVault.instance.saveEmailHint(
       uid: authUser.uid,
       email: resolvedEmail,
-      password: resolvedPassword,
+      password: '',
     );
   }
 
@@ -128,10 +126,6 @@ extension SignInControllerAccountPart on SignInController {
   }
 
   Future<void> continueWithStoredAccount(StoredAccount account) async {
-    if (account.hasPasswordProvider) {
-      final switched = await signInWithStoredAccount(account);
-      if (switched) return;
-    }
     prepareSignInPrefill(await preferredIdentifierForStoredAccount(account));
     selectedStoredAccount.value = account;
   }

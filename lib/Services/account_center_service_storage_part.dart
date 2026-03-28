@@ -37,6 +37,7 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
 
   Future<void> _performInit() async {
     await _ensurePrefs();
+    await AccountSessionVault.instance.removeStoredPasswords();
     final raw = _prefs?.getString(_accountCenterAccountsStorageKey) ?? '';
     final restored = _dedupeAccounts(
       StoredAccount.decodeList(raw).toList(growable: true),

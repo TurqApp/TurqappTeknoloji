@@ -102,7 +102,7 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
     if (credentials == null) {
       throw TestFailure(
         'Integration smoke requires an authenticated session. '
-        'Provide INTEGRATION_LOGIN_EMAIL/INTEGRATION_LOGIN_PASSWORD or keep a stored account session on device.',
+        'Provide INTEGRATION_LOGIN_EMAIL/INTEGRATION_LOGIN_PASSWORD.',
       );
     }
 
@@ -503,22 +503,6 @@ Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {
   final envPassword = kIntegrationLoginPassword;
   if (envEmail.isNotEmpty && envPassword.isNotEmpty) {
     return AccountSessionCredential(email: envEmail, password: envPassword);
-  }
-
-  final accountCenter = ensureAccountCenterService();
-  await accountCenter.init();
-  final candidates = <String>{
-    if (accountCenter.lastUsedUid.value.trim().isNotEmpty)
-      accountCenter.lastUsedUid.value.trim(),
-    ...accountCenter.accounts
-        .map((account) => account.uid.trim())
-        .where((uid) => uid.isNotEmpty),
-  };
-  for (final uid in candidates) {
-    final credential = await AccountSessionVault.instance.read(uid);
-    if (credential != null) {
-      return credential;
-    }
   }
   return null;
 }

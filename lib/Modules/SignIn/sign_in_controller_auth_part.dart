@@ -9,7 +9,6 @@ extension SignInControllerAuthPart on SignInController {
 
   void _startPostAuthTasks({
     required String email,
-    required String password,
   }) {
     unawaited(() async {
       Future<void> runStep(
@@ -42,10 +41,9 @@ extension SignInControllerAuthPart on SignInController {
             .registerCurrentDeviceSessionIfEnabled(),
       );
       await runStep(
-        '_persistStoredSessionCredential',
-        () => _persistStoredSessionCredential(
+        '_persistStoredSessionHint',
+        () => _persistStoredSessionHint(
           email: email,
-          password: password,
         ),
         timeout: const Duration(seconds: 3),
       );
@@ -62,54 +60,12 @@ extension SignInControllerAuthPart on SignInController {
 
   Future<bool> signInWithStoredAccount(StoredAccount account) async {
     if (!account.hasPasswordProvider) return false;
-    if (account.requiresReauth) return false;
-    final credential = await AccountSessionVault.instance.read(account.uid);
-    if (credential == null) return false;
-
-    wait.value = true;
-    try {
-      final userService = CurrentUserService.instance;
-      final currentUid = userService.authUserId;
-      if (currentUid.isNotEmpty && currentUid != account.uid) {
-        try {
-          await _userRepository.updateUserFields(currentUid, {'token': ''});
-        } catch (_) {}
-        try {
-          await userService.logout();
-          await userService.signOutAuth();
-        } catch (_) {}
-      }
-
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: credential.email,
-        password: credential.password,
-      );
-      final signedUid = CurrentUserService.instance.authUserId;
-      if (signedUid.isNotEmpty) {
-        DeviceSessionService.instance.beginSessionClaim(signedUid);
-      }
-      try {
-        TextInput.finishAutofillContext(shouldSave: true);
-      } catch (_) {}
-      _startPostAuthTasks(
-        email: credential.email,
-        password: credential.password,
-      );
-      _finalizeSuccessfulSignInNavigation();
-      return true;
-    } on FirebaseAuthException catch (_) {
-      wait.value = false;
-      await AccountSessionVault.instance.delete(account.uid);
-      await ensureAccountCenterService().markSessionState(
-        uid: account.uid,
-        isSessionValid: false,
-        requiresReauth: true,
-      );
-      return false;
-    } catch (_) {
-      wait.value = false;
-      return false;
-    }
+    await ensureAccountCenterService().markSessionState(
+      uid: account.uid,
+      isSessionValid: false,
+      requiresReauth: requiresManualStoredAccountReauth(account),
+    );
+    return false;
   }
 
   Future<void> sendOtpCodeForReset() async {
@@ -297,9 +253,8 @@ extension SignInControllerAuthPart on SignInController {
       await _trackCurrentAccountForDevice();
       await ensureAccountCenterService()
           .registerCurrentDeviceSessionIfEnabled();
-      await _persistStoredSessionCredential(
+      await _persistStoredSessionHint(
         email: resetMail.value,
-        password: newPassword,
       );
 
       try {
@@ -376,7 +331,6 @@ extension SignInControllerAuthPart on SignInController {
       } catch (_) {}
       _startPostAuthTasks(
         email: _resolvedSignInEmail(),
-        password: password.value,
       );
       _finalizeSuccessfulSignInNavigation();
       return true;
