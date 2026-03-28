@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -13,7 +12,6 @@ import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
-import 'package:turqappv2/Core/Utils/stored_account_reauth_policy.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -24,12 +22,12 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
-import 'package:turqappv2/Services/account_session_vault.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/device_session_service.dart';
 import 'package:turqappv2/Services/phone_account_limiter.dart';
 
+import 'sign_in_application_service.dart';
 import 'sign_in_remote_service.dart';
 
 part 'sign_in_controller_auth_part.dart';

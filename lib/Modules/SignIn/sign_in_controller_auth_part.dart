@@ -7,65 +7,8 @@ extension SignInControllerAuthPart on SignInController {
     Get.offAll(() => NavBarView());
   }
 
-  void _startPostAuthTasks({
-    required String email,
-  }) {
-    unawaited(() async {
-      Future<void> runStep(
-        String label,
-        Future<void> Function() action, {
-        Duration timeout = const Duration(seconds: 6),
-      }) async {
-        try {
-          await action().timeout(timeout);
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('[SignIn] post-auth step skipped ($label): $e');
-          }
-        }
-      }
-
-      await runStep(
-        'refreshEmailVerificationStatus',
-        () => CurrentUserService.instance.refreshEmailVerificationStatus(
-          reloadAuthUser: true,
-        ),
-      );
-      unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
-      unawaited(_postLoginWarmup());
-      await runStep(
-          '_trackCurrentAccountForDevice', _trackCurrentAccountForDevice);
-      await runStep(
-        'registerCurrentDeviceSessionIfEnabled',
-        () => ensureAccountCenterService()
-            .registerCurrentDeviceSessionIfEnabled(),
-      );
-      await runStep(
-        '_persistStoredSessionHint',
-        () => _persistStoredSessionHint(
-          email: email,
-        ),
-        timeout: const Duration(seconds: 3),
-      );
-
-      try {
-        maybeFindUnreadMessagesController()?.startListeners();
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('[SignIn] unread listener skipped: $e');
-        }
-      }
-    }());
-  }
-
   Future<bool> signInWithStoredAccount(StoredAccount account) async {
-    if (!account.hasPasswordProvider) return false;
-    await ensureAccountCenterService().markSessionState(
-      uid: account.uid,
-      isSessionValid: false,
-      requiresReauth: requiresManualStoredAccountReauth(account),
-    );
-    return false;
+    return _signInApplicationService.signInWithStoredAccount(account);
   }
 
   Future<void> sendOtpCodeForReset() async {
@@ -311,108 +254,56 @@ extension SignInControllerAuthPart on SignInController {
   }
 
   Future<bool> signIn() async {
-    bool authSucceeded = false;
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _resolvedSignInEmail(),
-        password: password.value,
-      );
-      final signedUid = CurrentUserService.instance.authUserId;
-      if (signedUid.isNotEmpty) {
-        DeviceSessionService.instance.beginSessionClaim(signedUid);
-        try {
-          await ensureAccountCenterService()
-              .registerCurrentDeviceSessionIfEnabled();
-        } catch (_) {}
-      }
-      authSucceeded = true;
+    final result = await _signInApplicationService.signInWithPassword(
+      email: _resolvedSignInEmail(),
+      password: password.value,
+    );
+    if (result.isSuccess) {
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
-      _startPostAuthTasks(
-        email: _resolvedSignInEmail(),
-      );
       _finalizeSuccessfulSignInNavigation();
       return true;
-    } on FirebaseAuthException catch (e) {
-      wait.value = false;
+    }
+
+    wait.value = false;
+    final failureCode = result.failureCode;
+    if (failureCode != null) {
       String message;
-      switch (e.code) {
+      switch (failureCode) {
         case 'invalid-credential':
         case 'wrong-password':
         case 'user-not-found':
-          message = "${'sign_in.auth_invalid_credential'.tr} (${e.code})";
+          message =
+              "${'sign_in.auth_invalid_credential'.tr} ($failureCode)";
           break;
         case 'invalid-email':
-          message = "${'sign_in.auth_invalid_email'.tr} (${e.code})";
+          message = "${'sign_in.auth_invalid_email'.tr} ($failureCode)";
           break;
         case 'too-many-requests':
-          message = "${'sign_in.auth_too_many_requests'.tr} (${e.code})";
+          message =
+              "${'sign_in.auth_too_many_requests'.tr} ($failureCode)";
           break;
         case 'network-request-failed':
-          message = "${'sign_in.auth_network_failed'.tr} (${e.code})";
+          message =
+              "${'sign_in.auth_network_failed'.tr} ($failureCode)";
           break;
         case 'user-disabled':
-          message = "${'sign_in.auth_user_disabled'.tr} (${e.code})";
+          message = "${'sign_in.auth_user_disabled'.tr} ($failureCode)";
           break;
         default:
-          message =
-              "${e.message ?? 'sign_in.auth_generic_error'.tr} (${e.code})";
+          message = "${result.failureMessage ?? 'sign_in.auth_generic_error'.tr} "
+              "($failureCode)";
       }
       AppSnackbar('sign_in.sign_in_failed_title'.tr, message);
       return false;
-    } catch (_) {
-      wait.value = false;
-      if (authSucceeded || CurrentUserService.instance.hasAuthUser) {
-        try {
-          TextInput.finishAutofillContext(shouldSave: true);
-        } catch (_) {}
-        _ensureFeedTabSelected();
-        Get.offAll(() => NavBarView());
-        return true;
-      }
-      AppSnackbar(
-        'sign_in.sign_in_failed_title'.tr,
-        'sign_in.sign_in_failed_body'.tr,
-      );
-      return false;
     }
-  }
 
-  Future<void> _postLoginWarmup() async {
-    try {
-      await Future.any([
-        CurrentUserService.instance.initialize(),
-        Future.delayed(const Duration(seconds: 3)),
-      ]);
-      unawaited(NotificationService.instance.initialize());
-      unawaited(_clearSessionCachesAfterAccountSwitch());
-      unawaited(CurrentUserService.instance.forceRefresh());
-
-      try {
-        final storyController = maybeFindStoryRowController();
-        if (storyController == null) return;
-        await Future.any([
-          storyController.loadStories(limit: 100, cacheFirst: false),
-          Future.delayed(const Duration(seconds: 3)),
-        ]);
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-      } catch (_) {}
-
-      try {
-        final agendaController =
-            maybeFindAgendaController() ?? ensureAgendaController();
-        await Future.any([
-          agendaController.refreshAgenda(),
-          Future.delayed(const Duration(seconds: 3)),
-        ]);
-        if (agendaController.agendaList.isEmpty) {
-          unawaited(agendaController.fetchAgendaBigData(initial: true));
-        }
-      } catch (_) {}
-    } catch (_) {}
+    AppSnackbar(
+      'sign_in.sign_in_failed_title'.tr,
+      'sign_in.sign_in_failed_body'.tr,
+    );
+    return false;
   }
 
   Future<void> nicknameFinder() async {

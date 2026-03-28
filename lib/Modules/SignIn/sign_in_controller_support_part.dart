@@ -2,6 +2,8 @@ part of 'sign_in_controller.dart';
 
 final UserRepository _userRepository = UserRepository.ensure();
 final UserSubdocRepository _userSubdocRepository = ensureUserSubdocRepository();
+final SignInApplicationService _signInApplicationService =
+    SignInApplicationService();
 SignInRemoteService get _remoteService => SignInRemoteService.ensure();
 const String _loginWord = 'TurqApp';
 
