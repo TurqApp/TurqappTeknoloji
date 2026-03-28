@@ -238,6 +238,14 @@ class PlaybackHealthMonitor(
     }
 
     fun onPositionUpdate(positionMs: Long) {
+        if (!isPlaybackExpected &&
+            !isPlaying &&
+            !hasRenderedFirstFrame &&
+            !playerReadyObserved &&
+            positionMs <= 0L
+        ) {
+            return
+        }
         if (positionMs > lastKnownPlaybackPosition + 40L) {
             lastKnownPlaybackAdvanceAt = now()
         }
