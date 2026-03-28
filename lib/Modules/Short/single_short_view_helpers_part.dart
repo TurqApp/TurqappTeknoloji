@@ -250,6 +250,9 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.cover,
+      fadeInDuration: Duration.zero,
+      fadeOutDuration: Duration.zero,
+      placeholderFadeInDuration: Duration.zero,
       placeholder: (_, __) => const SizedBox.shrink(),
       errorWidget: (_, __, ___) => const SizedBox.shrink(),
     );

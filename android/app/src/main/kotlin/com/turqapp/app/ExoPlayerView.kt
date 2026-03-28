@@ -165,12 +165,14 @@ class ExoPlayerView(
             override fun onViewDetachedFromWindow(v: View) {
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
+                val preserveVisibleFrame =
+                    forceFullscreen && (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
                 didRenderFirstFrame = false
                 handler.post {
                     pendingRevealRunnable?.let(handler::removeCallbacks)
                     pendingRevealRunnable = null
                     playerView.animate().cancel()
-                    playerView.alpha = 0f
+                    playerView.alpha = if (preserveVisibleFrame) 1f else 0f
                 }
                 sendEvent(mapOf("event" to "surfaceDetached"))
                 smokeProbe?.onSurfaceDetached()
@@ -257,6 +259,8 @@ class ExoPlayerView(
 
         activePlayer.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         activePlayer.playWhenReady = autoPlay
+        val preserveVisibleFrameOnReset =
+            forceFullscreen && (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
         isSoftHeld = false
         didRenderFirstFrame = false
         isPlayerReady = false
@@ -277,7 +281,7 @@ class ExoPlayerView(
         selectedVideoBitrateKbps = 0L
         selectedVideoHeight = 0
         selectedVideoWidth = 0
-        resetSurfaceVisibility()
+        resetSurfaceVisibility(preserveLastFrame = preserveVisibleFrameOnReset)
         if (autoPlay) {
             startStartupRecoveryWatchdog()
         } else {
@@ -797,7 +801,7 @@ class ExoPlayerView(
         }
     }
 
-    private fun resetSurfaceVisibility() {
+    private fun resetSurfaceVisibility(preserveLastFrame: Boolean = false) {
         if (!forceFullscreen) {
             // Feed kartlarında poster zaten ilk frame gelene kadar üstte tutuluyor.
             // Native view'i her load'ta tekrar alpha=0'a çekmek ikinci siyah dalga
@@ -814,7 +818,7 @@ class ExoPlayerView(
             pendingRevealRunnable?.let(handler::removeCallbacks)
             pendingRevealRunnable = null
             playerView.animate().cancel()
-            playerView.alpha = 0f
+            playerView.alpha = if (preserveLastFrame) 1f else 0f
         }
     }
 
