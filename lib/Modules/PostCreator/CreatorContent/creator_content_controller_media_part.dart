@@ -85,8 +85,8 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
     reusedImageUrls.clear();
 
     try {
-      final network = NetworkAwarenessService.ensure();
-      final optimalQuality = network.getOptimalCompressionQuality();
+      final optimalQuality =
+          const NetworkRuntimeService().getOptimalCompressionQuality();
       final compressionResults = await MediaCompressionService.compressImages(
         imageFiles: files,
         quality: optimalQuality,
@@ -240,10 +240,10 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
       croppedImages.clear();
       _enforceImageCap();
 
-      final network = NetworkAwarenessService.ensure();
       final compressionResult = await MediaCompressionService.compressImage(
         imageFile: file,
-        targetQuality: network.getOptimalCompressionQuality(),
+        targetQuality:
+            const NetworkRuntimeService().getOptimalCompressionQuality(),
       );
 
       if (kDebugMode) {

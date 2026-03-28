@@ -4,9 +4,8 @@ part of 'package:turqappv2/Modules/Profile/Settings/settings.dart';
 
 extension _SettingsViewDiagnosticsUsagePart on _SettingsViewState {
   void _showDataUsageDialog() {
-    final networkService = NetworkAwarenessService.ensure();
-    final stats = networkService.getNetworkStats();
-    final usage = networkService.dataUsage;
+    final stats = _settingsNetworkRuntimeService.getNetworkStats();
+    final usage = _settingsNetworkRuntimeService.dataUsage;
     final now = DateTime.now();
     final resetStart = usage.lastReset;
     final resetHours =

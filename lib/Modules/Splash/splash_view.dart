@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
@@ -28,7 +29,6 @@ import '../../Modules/Short/short_controller.dart';
 import '../../Modules/Story/StoryRow/story_row_controller.dart';
 import '../../Services/user_analytics_service.dart';
 import '../../Services/current_user_service.dart';
-import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/turq_image_cache_manager.dart';
 import '../../Core/Repositories/market_snapshot_repository.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
@@ -54,6 +54,8 @@ class _SplashViewState extends State<SplashView> {
   static const int _minFeedPostsForNav = 3;
   static const int _minStoryUsersForNav = 1;
   static const int _minShortsForNav = 1;
+  static const NetworkRuntimeService _networkRuntimeService =
+      NetworkRuntimeService();
 
   bool _minimumStartupPrepared = false;
   bool _feedWarmSnapshotHit = false;

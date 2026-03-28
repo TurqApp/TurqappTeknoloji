@@ -277,7 +277,7 @@ extension _SplashViewWarmPart on _SplashViewState {
 
   bool _isOnWiFiNow() {
     try {
-      return NetworkAwarenessService.ensure().isOnWiFi;
+      return _SplashViewState._networkRuntimeService.isOnWiFi;
     } catch (_) {
       return false;
     }

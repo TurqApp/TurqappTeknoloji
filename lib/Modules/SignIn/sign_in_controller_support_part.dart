@@ -4,6 +4,8 @@ final UserRepository _userRepository = UserRepository.ensure();
 final UserSubdocRepository _userSubdocRepository = ensureUserSubdocRepository();
 final SignInApplicationService _signInApplicationService =
     SignInApplicationService();
+const DeviceSessionRuntimeService _deviceSessionRuntimeService =
+    DeviceSessionRuntimeService();
 SignInRemoteService get _remoteService => SignInRemoteService.ensure();
 const String _loginWord = 'TurqApp';
 

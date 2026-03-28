@@ -41,6 +41,7 @@ import 'package:turqappv2/Modules/Profile/Settings/support_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/support_contact_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/language_settings_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
+import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -48,10 +49,8 @@ import 'package:turqappv2/Core/Widgets/app_health_dashboard.dart';
 import 'package:turqappv2/Core/Widgets/error_report_widget.dart';
 import 'package:turqappv2/Core/Services/error_handling_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
-import 'package:turqappv2/Core/Services/upload_queue_service.dart';
 import 'package:turqappv2/Core/Services/draft_service.dart';
 import 'package:turqappv2/Core/Services/post_editing_service.dart';
 import 'package:turqappv2/Core/Services/media_enhancement_service.dart';
@@ -73,6 +72,11 @@ part 'settings_diagnostics_detail_part.dart';
 part 'settings_diagnostics_menu_part.dart';
 part 'settings_diagnostics_usage_part.dart';
 part 'settings_shell_helpers_part.dart';
+
+const NetworkRuntimeService _settingsNetworkRuntimeService =
+    NetworkRuntimeService();
+const UploadQueueRuntimeService _settingsUploadQueueRuntimeService =
+    UploadQueueRuntimeService();
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -165,8 +169,8 @@ class _SettingsViewState extends State<SettingsView> {
 
   void _ensureDiagnosticsServices() {
     ensureErrorHandlingService();
-    NetworkAwarenessService.ensure();
-    UploadQueueService.ensure();
+    _settingsNetworkRuntimeService.ensureReady();
+    _settingsUploadQueueRuntimeService.ensureReady();
     ensureDraftService();
     ensurePostEditingService();
     ensureMediaEnhancementService();

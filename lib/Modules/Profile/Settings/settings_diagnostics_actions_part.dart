@@ -25,7 +25,7 @@ extension _SettingsViewDiagnosticsActionsPart on _SettingsViewState {
                 title: Text("settings.diagnostics.reset_data_counters".tr),
                 onTap: () async {
                   Get.back();
-                  await NetworkAwarenessService.ensure().resetDataUsage();
+                  await _settingsNetworkRuntimeService.resetDataUsage();
                   AppSnackbar("common.success".tr,
                       "settings.diagnostics.data_counters_reset".tr);
                 },

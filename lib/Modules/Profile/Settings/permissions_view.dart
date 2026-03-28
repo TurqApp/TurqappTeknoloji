@@ -12,12 +12,16 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_mana
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 
 part 'permissions_view_catalog_part.dart';
 part 'permissions_view_playback_part.dart';
 part 'permissions_view_quota_part.dart';
 part 'permissions_view_detail_actions_part.dart';
 part 'permissions_view_detail_content_part.dart';
+
+const NetworkRuntimeService _permissionsNetworkRuntimeService =
+    NetworkRuntimeService();
 
 class PermissionsView extends StatefulWidget {
   const PermissionsView({super.key});

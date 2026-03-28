@@ -11,9 +11,9 @@ import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
-import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
+import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -42,9 +42,8 @@ class PostLoginWarmup {
         _isOnWiFiNow = isOnWiFiNow ?? _defaultIsOnWiFiNow,
         _currentSignedInUserIdProvider =
             currentSignedInUserId ?? _defaultCurrentSignedInUserId,
-        _skipBackgroundStartupWork =
-            skipBackgroundStartupWork ??
-                (() => IntegrationTestMode.skipBackgroundStartupWork),
+        _skipBackgroundStartupWork = skipBackgroundStartupWork ??
+            (() => IntegrationTestMode.skipBackgroundStartupWork),
         _isIOS = isIOS ?? (() => Platform.isIOS),
         _failureReporter =
             failureReporter ?? StartupSessionFailureReporter.defaultReporter;
@@ -248,7 +247,7 @@ class PostLoginWarmup {
 
   static bool _defaultIsOnWiFiNow() {
     try {
-      return NetworkAwarenessService.ensure().isOnWiFi;
+      return const NetworkRuntimeService().isOnWiFi;
     } catch (error, stackTrace) {
       StartupSessionFailureReporter.defaultReporter.record(
         kind: StartupSessionFailureKind.backgroundWarmup,

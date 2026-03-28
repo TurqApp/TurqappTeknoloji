@@ -2,9 +2,8 @@ part of 'permissions_view.dart';
 
 extension _PermissionsViewPlaybackPart on _PermissionsViewState {
   Future<void> _loadNetworkSettings() async {
-    final networkService = NetworkAwarenessService.maybeFind();
-    if (networkService == null) return;
-    final settings = networkService.settings;
+    _permissionsNetworkRuntimeService.ensureReady();
+    final settings = _permissionsNetworkRuntimeService.settings;
     _updatePermissionsViewState(() {
       _networkSettings = NetworkSettings(
         autoUploadOnWiFi: settings.autoUploadOnWiFi,
@@ -33,10 +32,7 @@ extension _PermissionsViewPlaybackPart on _PermissionsViewState {
       mobileTargetMbps: _networkSettings.mobileTargetMbps,
     );
 
-    final networkService = NetworkAwarenessService.maybeFind();
-    if (networkService != null) {
-      await networkService.updateSettings(next);
-    }
+    await _permissionsNetworkRuntimeService.updateSettings(next);
 
     _updatePermissionsViewState(() => _networkSettings = next);
   }

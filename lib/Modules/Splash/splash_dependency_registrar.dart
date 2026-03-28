@@ -9,7 +9,6 @@ import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_engine.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
-import 'package:turqappv2/Core/Services/upload_queue_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
@@ -21,6 +20,7 @@ import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart
 import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Services/offline_mode_service.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import 'package:turqappv2/Core/Services/deep_link_service.dart';
@@ -57,7 +57,7 @@ class DependencyRegistrar {
     Get.lazyPut(() => SavedPostsController());
     Get.lazyPut(() => JobFinderController());
     Get.lazyPut(() => StoryRowController(), fenix: true);
-    UploadQueueService.ensure(permanent: true);
+    const UploadQueueRuntimeService().ensureReady(permanent: true);
     if (!Platform.isIOS) {
       ensureDeepLinkService();
     }

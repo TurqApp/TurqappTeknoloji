@@ -177,7 +177,7 @@ extension SignInControllerAuthPart on SignInController {
       );
       final signedUid = userCredential.user?.uid ?? '';
       if (signedUid.isNotEmpty) {
-        DeviceSessionService.instance.beginSessionClaim(signedUid);
+        _deviceSessionRuntimeService.beginSessionClaim(signedUid);
       }
       try {
         TextInput.finishAutofillContext(shouldSave: true);
@@ -274,25 +274,23 @@ extension SignInControllerAuthPart on SignInController {
         case 'invalid-credential':
         case 'wrong-password':
         case 'user-not-found':
-          message =
-              "${'sign_in.auth_invalid_credential'.tr} ($failureCode)";
+          message = "${'sign_in.auth_invalid_credential'.tr} ($failureCode)";
           break;
         case 'invalid-email':
           message = "${'sign_in.auth_invalid_email'.tr} ($failureCode)";
           break;
         case 'too-many-requests':
-          message =
-              "${'sign_in.auth_too_many_requests'.tr} ($failureCode)";
+          message = "${'sign_in.auth_too_many_requests'.tr} ($failureCode)";
           break;
         case 'network-request-failed':
-          message =
-              "${'sign_in.auth_network_failed'.tr} ($failureCode)";
+          message = "${'sign_in.auth_network_failed'.tr} ($failureCode)";
           break;
         case 'user-disabled':
           message = "${'sign_in.auth_user_disabled'.tr} ($failureCode)";
           break;
         default:
-          message = "${result.failureMessage ?? 'sign_in.auth_generic_error'.tr} "
+          message =
+              "${result.failureMessage ?? 'sign_in.auth_generic_error'.tr} "
               "($failureCode)";
       }
       AppSnackbar('sign_in.sign_in_failed_title'.tr, message);

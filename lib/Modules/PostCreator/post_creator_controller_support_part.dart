@@ -8,9 +8,9 @@ int _lastModerationSnackbarAtMs = 0;
 final PostRepository _postRepository = PostRepository.ensure();
 final agendaController = ensureAgendaController();
 final ErrorHandlingService _errorService = ensureErrorHandlingService();
-final NetworkAwarenessService _networkService =
-    NetworkAwarenessService.ensure();
-final UploadQueueService _uploadQueueService = UploadQueueService.ensure();
+const NetworkRuntimeService _networkRuntimeService = NetworkRuntimeService();
+const UploadQueueRuntimeService _uploadQueueRuntimeService =
+    UploadQueueRuntimeService();
 final DraftService _draftService = ensureDraftService();
 
 String get _currentUid => CurrentUserService.instance.effectiveUserId;

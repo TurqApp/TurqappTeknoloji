@@ -259,7 +259,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         return;
       }
 
-      if (!_networkService.isConnected) {
+      if (!_networkRuntimeService.isConnected) {
         await _errorService.handleError(
           'No internet connection',
           category: ErrorCategory.network,
@@ -310,9 +310,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final fileSize = await image.length();
         final fileSizeMB = (fileSize / (1024 * 1024)).round();
 
-        if (!_networkService.shouldAllowUpload(fileSizeMB: fileSizeMB)) {
-          final recommendation =
-              _networkService.getUploadRecommendation(fileSizeMB: fileSizeMB);
+        if (!_networkRuntimeService.shouldAllowUpload(fileSizeMB: fileSizeMB)) {
+          final recommendation = _networkRuntimeService.getUploadRecommendation(
+            fileSizeMB: fileSizeMB,
+          );
           await _errorService.handleError(
             'Upload not recommended',
             category: ErrorCategory.network,
@@ -354,8 +355,8 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         initialStatus: 'post_creator.uploading_media'.tr,
       );
 
-      if (_networkService.isOnCellular &&
-          !_networkService.settings.autoUploadOnWiFi) {
+      if (_networkRuntimeService.isOnCellular &&
+          !_networkRuntimeService.settings.autoUploadOnWiFi) {
         await _addToUploadQueue(progressController);
       } else {
         await _uploadDirectly(progressController);
@@ -492,7 +493,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           createdAt: DateTime.now(),
         );
 
-        final added = await _uploadQueueService.addToQueue(
+        final added = await _uploadQueueRuntimeService.addToQueue(
           queuedUpload,
           startProcessing: false,
         );
@@ -506,7 +507,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         return;
       }
 
-      _uploadQueueService.processPendingQueue();
+      _uploadQueueRuntimeService.processPendingQueue();
 
       progressController.complete('post_creator.queue_added_complete'.tr);
       AppSnackbar(
@@ -530,7 +531,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
     nav?.uploadingPosts.value = true;
     _queueRingTimer?.cancel();
     _queueRingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final stats = _uploadQueueService.getQueueStats();
+      final stats = _uploadQueueRuntimeService.getQueueStats();
       final pending = (stats['pending'] as int?) ?? 0;
       final processing = (stats['processing'] as bool?) ?? false;
       if (!processing && pending == 0) {

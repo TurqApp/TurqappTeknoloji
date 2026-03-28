@@ -11,10 +11,10 @@ import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Services/device_session_service.dart';
 
 typedef _PasswordSignIn = Future<void> Function({
   required String email,
@@ -85,25 +85,27 @@ class SignInApplicationService {
     void Function(String uid)? beginSessionClaim,
     Future<void> Function()? registerCurrentDeviceSession,
     Future<void> Function(String email)? schedulePostAuthTasks,
-    Future<AccountSessionCredential?> Function(String uid)? readStoredCredential,
+    Future<AccountSessionCredential?> Function(String uid)?
+        readStoredCredential,
     _MarkSessionState? markSessionState,
   })  : _userRepository = userRepository,
         _currentUserService = currentUserService,
         _accountCenterService = accountCenterService,
         _accountSessionVault = accountSessionVault,
         _passwordSignIn = passwordSignIn ?? _defaultPasswordSignIn,
-        _authUserIdProvider =
-            authUserIdProvider ?? (() => CurrentUserService.instance.authUserId),
-        _hasAuthUserProvider =
-            hasAuthUserProvider ?? (() => CurrentUserService.instance.hasAuthUser),
-        _beginSessionClaim =
-            beginSessionClaim ?? DeviceSessionService.instance.beginSessionClaim {
+        _authUserIdProvider = authUserIdProvider ??
+            (() => CurrentUserService.instance.authUserId),
+        _hasAuthUserProvider = hasAuthUserProvider ??
+            (() => CurrentUserService.instance.hasAuthUser),
+        _beginSessionClaim = beginSessionClaim ??
+            const DeviceSessionRuntimeService().beginSessionClaim {
     _registerCurrentDeviceSession = registerCurrentDeviceSession ??
-        (() => _ensureAccountCenterService().registerCurrentDeviceSessionIfEnabled());
+        (() => _ensureAccountCenterService()
+            .registerCurrentDeviceSessionIfEnabled());
     _schedulePostAuthTasks =
         schedulePostAuthTasks ?? _defaultSchedulePostAuthTasks;
-    _readStoredCredential =
-        readStoredCredential ?? ((uid) => _ensureAccountSessionVault().read(uid));
+    _readStoredCredential = readStoredCredential ??
+        ((uid) => _ensureAccountSessionVault().read(uid));
     _markSessionState = markSessionState ??
         ({
           required String uid,
@@ -192,7 +194,8 @@ class SignInApplicationService {
     return false;
   }
 
-  Future<String> preferredIdentifierForStoredAccount(StoredAccount account) async {
+  Future<String> preferredIdentifierForStoredAccount(
+      StoredAccount account) async {
     final emailFromAccount = normalizeEmailAddress(account.email);
     if (emailFromAccount.isNotEmpty) return emailFromAccount;
     if (account.hasPasswordProvider) {

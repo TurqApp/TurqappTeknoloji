@@ -43,7 +43,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             }
           }
 
-          await _networkService.trackDataUsage(uploadMB: totalUploadMB);
+          await _networkRuntimeService.trackDataUsage(uploadMB: totalUploadMB);
 
           final agendaController = maybeFindAgendaController();
           await Future.delayed(const Duration(milliseconds: 150));
