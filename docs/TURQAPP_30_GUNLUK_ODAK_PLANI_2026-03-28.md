@@ -698,8 +698,8 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Kapandi | `F2-004` ile market root sayaçlari icin server-owned pipeline kuruldu; favorites/offers/reviews event kaynaklari trigger'lara, views ise callable + shard + reducer hattina tasindi; owner update denylist ve rules testleri yesil |
 | RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Kapandi | `F2-010` ile integration smoke'taki `permission-denied`, `remote gate watch` ve erken blank-surface gurultusu sweep seviyesinde daraltildi; resmi rules/runtime report'u `blockingScenarioCount = 0` ile yesil dondu |
 | RISK-008 | Risk | Orta | F2-001, F3-001 | Kapandi | `F3-001` ile `scripts/check_task_isolation.sh` eklendi; beklenen `HEAD` drifti ve allowlist disi kirli dosyalar artik tekrar uretilebilir sekilde fail ettiriliyor ve artifact uretimiyle raporlaniyor |
-| DEBT-001 | Debt | Orta | T-030, F2-011 | Acik | `F2-011` ile Startup/Auth/Session sicak kumesinde `12` mikro part kaldirildi ve secilen kume `33 -> 21` dosyaya indi; buna ragmen repo genelinde part-sprawl debt'i suruyor |
-| DEBT-002 | Debt | Orta | T-031, F2-011 | Acik | `F2-011` ile Startup/Auth/Session sicak kumesi daraltildi ancak repo genelinde dosya yuzeyi hala buyuk; kritik akislar `2768` adet `.dart` dosyasina dagiliyor ve takip maliyeti yuksek kalmaya devam ediyor |
+| DEBT-001 | Debt | Orta | T-030, F2-011, F3-003, F3-004 | Acik | `F2-011`, `F3-003` ve `F3-004` ile secili sicak kumelerde toplam `34` mikro part kaldirildi; Startup/Auth/Session, Profile/Social ve Feed/Playback giris yuzeyi daraldi, ancak repo genelinde part-sprawl debt'i suruyor |
+| DEBT-002 | Debt | Orta | T-031, F2-011, F3-003, F3-004 | Acik | `F2-011`, `F3-003` ve `F3-004` ile secili sicak kumelerde dosya yuzeyi kontrollu sekilde azaltildi; buna ragmen repo genelinde `2768` adet `.dart` dosyasi ve genis cluster dagilimi nedeniyle takip maliyeti yuksek kalmaya devam ediyor |
 | DEBT-003 | Debt | Orta | T-024 | Kapandi | `LikedPostControllers.isSeriesPost` uyumluluk yardimcisi geri eklendi; `flutter test --coverage test/unit/modules/profile/liked_posts_controller_test.dart` tekrar geciyor ve full coverage lane bu noktayi artik asiyor |
 | DEBT-004 | Debt | Orta | T-024 | Kapandi | `test/unit/services/runtime_health_exporter_test.dart` guncel `ensureHlsDataUsageProbe()` facade API'sine tasindi; hedefli test ve coverage kosusu tekrar geciyor, full lane bu noktayi artik asiyor |
 | DEBT-005 | Debt | Orta | QA Catalog | Kapandi | `qa_lab_catalog_test` yeni eklenen integration/unit/backend/suite dosyalarini katalogda bulamiyordu; `qa_lab_catalog_entries_part.dart` senkronize edilerek katalog testi tekrar yesile dondu |
@@ -779,7 +779,7 @@ Toplam:
 | F3-001 | Task isolation ve worktree drift guard | `RISK-008` | - | M/2 | Tamamlandi |
 | F3-002 | Android smoke artifact export zincirini sertlestir | `DEBT-006` | F3-001 | L/3 | Tamamlandi |
 | F3-003 | Profile/Social hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Tamamlandi |
-| F3-004 | Feed/Playback hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Acik |
+| F3-004 | Feed/Playback hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Tamamlandi |
 | F3-005 | Surface budget guard ve cluster hedef listesi | `DEBT-002` | F3-003, F3-004 | M/2 | Acik |
 
 Faz 3 artifact kayitlari:
@@ -789,6 +789,7 @@ Faz 3 artifact kayitlari:
 | F3-ART-001 | `docs/testing/faz3_task_isolation_guard_2026-03-28.md` | Dolu | `F3-001` ile task isolation guard, expected-head drift kontrolu ve allowlist disi kir tespiti eklendi |
 | F3-ART-002 | `docs/testing/faz3_android_smoke_artifact_export_2026-03-28.md` | Dolu | `F3-002` ile Android smoke sirasinda arka plan artifact mirror watcher eklendi; device-side JSON/PNG artifact'lari paket kalkmadan host'a cekilip `android_device_export` olarak isaretleniyor |
 | F3-ART-003 | `docs/testing/faz3_profile_social_hot_cluster_cleanup_2026-03-28.md` | Dolu | `F3-003` ile `Profile/MyProfile` ve `SocialProfile` sicak kumesinde `class/base/facade` mikro parcalari ana dosyalara tasindi; toplam dosya yuzeyi `66 -> 57`, `*part.dart` sayisi `55 -> 46` indi |
+| F3-ART-004 | `docs/testing/faz3_feed_playback_hot_cluster_cleanup_2026-03-28.md` | Dolu | `F3-004` ile `Agenda`, `Short`, `FloodListing`, `TopTags` ve `StoryHighlights` giris dosyalarinda `class/base/facade` mikro parcalari ana dosyalara tasindi; secilen mekanik giris yuzeyi `18 -> 5` indi ve `13` mikro part kaldirildi |
 
 
 ## Feature Sahiplik Matrisi

@@ -34,17 +34,64 @@ import 'AgendaContent/agenda_content_controller.dart';
 import 'agenda_feed_application_service.dart';
 
 part 'agenda_controller_feed_part.dart';
-part 'agenda_controller_base_part.dart';
 part 'agenda_controller_lifecycle_part.dart';
 part 'agenda_controller_loading_part.dart';
 part 'agenda_controller_loading_cache_part.dart';
 part 'agenda_controller_loading_shuffle_part.dart';
-part 'agenda_controller_facade_part.dart';
 part 'agenda_controller_constants_part.dart';
 part 'agenda_controller_fields_part.dart';
 part 'agenda_controller_models_part.dart';
 part 'agenda_controller_playback_part.dart';
 part 'agenda_controller_render_part.dart';
 part 'agenda_controller_reshare_part.dart';
-part 'agenda_controller_class_part.dart';
 part 'agenda_controller_support_part.dart';
+
+abstract class _AgendaControllerBase extends GetxController {
+  final _state = _AgendaControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    (this as AgendaController)._handleLifecycleInit();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    (this as AgendaController)._handleLifecycleReady();
+  }
+
+  @override
+  void onClose() {
+    (this as AgendaController)._handleLifecycleClose();
+    super.onClose();
+  }
+}
+
+class AgendaController extends _AgendaControllerBase {
+  RxList<PostsModel> get agendaList => _state.agendaList;
+  RxInt get centeredIndex => _state.centeredIndex;
+  int? get lastCenteredIndex => _state.lastCenteredIndex;
+  set lastCenteredIndex(int? value) => _state.lastCenteredIndex = value;
+  RxBool get isMuted => _state.isMuted;
+  RxBool get pauseAll => _state.pauseAll;
+}
+
+AgendaController? maybeFindAgendaController() {
+  final isRegistered = Get.isRegistered<AgendaController>();
+  if (!isRegistered) return null;
+  return Get.find<AgendaController>();
+}
+
+AgendaController ensureAgendaController({bool permanent = false}) {
+  final existing = maybeFindAgendaController();
+  if (existing != null) return existing;
+  return Get.put(AgendaController(), permanent: permanent);
+}
+
+extension AgendaControllerFacadePart on AgendaController {
+  int get fetchLimit => 50;
+
+  AgendaShuffleCacheService get _shuffleCache =>
+      ensureAgendaShuffleCacheService();
+}

@@ -25,10 +25,37 @@ import '../../Models/posts_model.dart';
 import 'short_feed_application_service.dart';
 
 part 'short_controller_loading_part.dart';
-part 'short_controller_base_part.dart';
 part 'short_controller_cache_part.dart';
-part 'short_controller_facade_part.dart';
 part 'short_controller_fields_part.dart';
 part 'short_controller_runtime_part.dart';
 part 'short_controller_models_part.dart';
-part 'short_controller_class_part.dart';
+
+abstract class _ShortControllerBase extends GetxController {
+  final _state = _ShortControllerState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _ShortControllerRuntimeX(this as ShortController).handleOnInit();
+  }
+
+  @override
+  void onClose() {
+    _ShortControllerRuntimeX(this as ShortController).handleOnClose();
+    super.onClose();
+  }
+}
+
+/// Kısa videoları Firestore'dan çekip saklayan ve
+/// range bazlı (±7 etrafında) preload & prune desteği sunan controller
+/// + AKILLI DİNAMİK KARIŞTIRMA SİSTEMİ
+class ShortController extends _ShortControllerBase {
+  void _log(String message) => _ShortControllerRuntimeX(this).log(message);
+
+  bool _isEligibleShortPost(PostsModel post) =>
+      _ShortControllerRuntimeX(this).isEligibleShortPost(post);
+}
+
+ShortController ensureShortController() => _ensureShortController();
+
+ShortController? maybeFindShortController() => _maybeFindShortController();
