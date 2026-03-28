@@ -698,8 +698,8 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Kapandi | `F2-004` ile market root sayaçlari icin server-owned pipeline kuruldu; favorites/offers/reviews event kaynaklari trigger'lara, views ise callable + shard + reducer hattina tasindi; owner update denylist ve rules testleri yesil |
 | RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Kapandi | `F2-010` ile integration smoke'taki `permission-denied`, `remote gate watch` ve erken blank-surface gurultusu sweep seviyesinde daraltildi; resmi rules/runtime report'u `blockingScenarioCount = 0` ile yesil dondu |
 | RISK-008 | Risk | Orta | F2-001 | Acik | Baseline kosusu sirasinda repo HEAD `648fe0c1` -> `c4fb4171` kaydi ve worktree'de plan disi 4 dosya kirlenmesi goruldu; task isolation zorlaniyor |
-| DEBT-001 | Debt | Orta | T-030 | Acik | Mikro `facade/fields/class part` dagilimi okuma maliyeti ve sahte modulerlik uretiyor; secici sadeleştirme gerekiyor |
-| DEBT-002 | Debt | Orta | T-031 | Acik | Repo genelinde dosya yuzeyi cok buyuk; kritik akislar `2768` adet `.dart` dosyasina dagiliyor ve takip maliyeti yukseliyor |
+| DEBT-001 | Debt | Orta | T-030, F2-011 | Acik | `F2-011` ile Startup/Auth/Session sicak kumesinde `12` mikro part kaldirildi ve secilen kume `33 -> 21` dosyaya indi; buna ragmen repo genelinde part-sprawl debt'i suruyor |
+| DEBT-002 | Debt | Orta | T-031, F2-011 | Acik | `F2-011` ile Startup/Auth/Session sicak kumesi daraltildi ancak repo genelinde dosya yuzeyi hala buyuk; kritik akislar `2768` adet `.dart` dosyasina dagiliyor ve takip maliyeti yuksek kalmaya devam ediyor |
 | DEBT-003 | Debt | Orta | T-024 | Kapandi | `LikedPostControllers.isSeriesPost` uyumluluk yardimcisi geri eklendi; `flutter test --coverage test/unit/modules/profile/liked_posts_controller_test.dart` tekrar geciyor ve full coverage lane bu noktayi artik asiyor |
 | DEBT-004 | Debt | Orta | T-024 | Kapandi | `test/unit/services/runtime_health_exporter_test.dart` guncel `ensureHlsDataUsageProbe()` facade API'sine tasindi; hedefli test ve coverage kosusu tekrar geciyor, full lane bu noktayi artik asiyor |
 | DEBT-005 | Debt | Orta | QA Catalog | Kapandi | `qa_lab_catalog_test` yeni eklenen integration/unit/backend/suite dosyalarini katalogda bulamiyordu; `qa_lab_catalog_entries_part.dart` senkronize edilerek katalog testi tekrar yesile dondu |
@@ -745,7 +745,7 @@ Toplam:
 | F2-008 | Guard false-positive audit ve kalibrasyon | `RISK-003` | F2-001 | M/2 | Tamamlandi |
 | F2-009 | Feed legacy fallback audit ve regresyon paketi | `RISK-004`, `RISK-007` | F2-001 | M/2 | Tamamlandi |
 | F2-010 | Rules/upload/playback/runtime gizli regresyon supurmesi | `RISK-001`, `RISK-005`, `RISK-007` | F2-004, F2-007, F2-009 | L/3 | Tamamlandi |
-| F2-011 | Startup/Auth/Session secici sadeleştirme butcesi | `DEBT-001`, `DEBT-002` | F2-002, F2-008, F2-010 | XL/5 | Acik |
+| F2-011 | Startup/Auth/Session secici sadeleştirme butcesi | `DEBT-001`, `DEBT-002` | F2-002, F2-008, F2-010 | XL/5 | Tamamlandi |
 
 Faz 2 artifact kayitlari:
 
@@ -761,6 +761,7 @@ Faz 2 artifact kayitlari:
 | F2-ART-008 | `docs/testing/faz2_guard_false_positive_audit_2026-03-28.md` | Dolu | `F2-008` architecture guard yorum/string noise ve absolute path kalibrasyon audit'i |
 | F2-ART-009 | `docs/testing/faz2_feed_legacy_fallback_audit_2026-03-28.md` | Dolu | `F2-009` legacy fallback giris noktalari, primary contract probe alanlari ve startup/bootstrap/replay regression guclendirmesi |
 | F2-ART-010 | `docs/testing/faz2_rules_upload_playback_runtime_sweep_2026-03-28.md` | Dolu | `F2-010` rules/security regressions + Android emulator rules/runtime smoke sweep sonucu; resmi paket `6/6` yesil ve `blockingScenarioCount = 0` |
+| F2-ART-011 | `docs/testing/faz2_startup_auth_session_simplification_budget_2026-03-28.md` | Dolu | `F2-011` ile Startup/Auth/Session sicak kumesinde secilen dosya yuzeyi `33 -> 21` indirildi ve `12` mikro part kaldirildi |
 
 
 ## Feature Sahiplik Matrisi

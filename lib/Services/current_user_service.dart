@@ -34,13 +34,220 @@ part 'current_user_service_sync_role_part.dart';
 part 'current_user_service_account_center_role_part.dart';
 part 'current_user_service_cache_part.dart';
 part 'current_user_service_access_part.dart';
-part 'current_user_service_facade_part.dart';
 part 'current_user_service_account_part.dart';
-part 'current_user_service_base_part.dart';
 part 'current_user_service_auth_part.dart';
-part 'current_user_service_class_part.dart';
-part 'current_user_service_fields_part.dart';
-part 'current_user_service_instance_part.dart';
 part 'current_user_service_lifecycle_part.dart';
-part 'current_user_service_story_part.dart';
 part 'current_user_service_sync_part.dart';
+
+class _CurrentUserServiceState {
+  CurrentUserModel? currentUser;
+  final Rx<CurrentUserModel?> currentUserRx = Rx<CurrentUserModel?>(null);
+  final StreamController<CurrentUserModel?> userStreamController =
+      StreamController<CurrentUserModel?>.broadcast();
+  final RxInt viewSelectionRx = 1.obs;
+}
+
+abstract class _CurrentUserServiceBase extends GetxService
+    with WidgetsBindingObserver {
+  final _state = _CurrentUserServiceState();
+
+  @override
+  void onClose() {
+    _handleCurrentUserServiceClose(this as CurrentUserService);
+    super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _handleCurrentUserLifecycleState(this as CurrentUserService, state);
+  }
+}
+
+class CurrentUserService extends _CurrentUserServiceBase {
+  static CurrentUserService? _instance;
+
+  static CurrentUserService get instance => _currentUserServiceInstance();
+
+  CurrentUserService._internal() {
+    WidgetsBinding.instance.addObserver(this);
+  }
+}
+
+CurrentUserService _currentUserServiceInstance() {
+  CurrentUserService._instance ??= CurrentUserService._internal();
+  return CurrentUserService._instance!;
+}
+
+CurrentUserService? maybeFindCurrentUserService() {
+  final isRegistered = Get.isRegistered<CurrentUserService>();
+  if (!isRegistered) return null;
+  return Get.find<CurrentUserService>();
+}
+
+CurrentUserService ensureCurrentUserService({bool permanent = false}) {
+  final existing = maybeFindCurrentUserService();
+  if (existing != null) return existing;
+  return Get.put(CurrentUserService.instance, permanent: permanent);
+}
+
+void _handleCurrentUserServiceClose(CurrentUserService controller) {
+  controller._disposeLifecycleResources();
+}
+
+void _handleCurrentUserLifecycleState(
+  CurrentUserService controller,
+  AppLifecycleState state,
+) {
+  controller._handleLifecycleStateChange(state);
+}
+
+extension CurrentUserServiceFieldsPart on CurrentUserService {
+  CurrentUserModel? get _currentUser => _state.currentUser;
+  set _currentUser(CurrentUserModel? value) => _state.currentUser = value;
+
+  Rx<CurrentUserModel?> get currentUserRx => _state.currentUserRx;
+
+  StreamController<CurrentUserModel?> get _userStreamController =>
+      _state.userStreamController;
+
+  Stream<CurrentUserModel?> get userStream => _userStreamController.stream;
+
+  RxInt get viewSelectionRx => _state.viewSelectionRx;
+}
+
+extension CurrentUserServiceFacadePart on CurrentUserService {
+  String get effectiveUserId => _performEffectiveUserId();
+
+  CurrentUserModel? get currentUser => _currentUser;
+
+  bool get isLoggedIn => _currentUser != null;
+
+  String get userId {
+    final cached = (_currentUser?.userID ?? '').trim();
+    if (cached.isNotEmpty) return cached;
+    return effectiveUserId;
+  }
+
+  User? get currentAuthUser => _performCurrentAuthUser();
+
+  bool get hasAuthUser => _performHasAuthUser();
+
+  String get authUserId => _performAuthUserId();
+
+  String get authEmail => _performAuthEmail();
+
+  String get authDisplayName => _performAuthDisplayName();
+
+  String get effectiveEmail => _performEffectiveEmail();
+
+  String get effectivePhoneNumber => _performEffectivePhoneNumber();
+
+  String get effectiveDisplayName => _performEffectiveDisplayName();
+
+  Stream<User?> authStateChanges() => _performAuthStateChanges();
+
+  Future<User?> resolveAuthUser({
+    bool waitForAuthState = false,
+    Duration timeout = const Duration(seconds: 3),
+  }) =>
+      _performResolveAuthUser(
+        waitForAuthState: waitForAuthState,
+        timeout: timeout,
+      );
+
+  Future<User?> reloadCurrentAuthUser() => _performReloadCurrentAuthUser();
+
+  Future<String?> ensureAuthReady({
+    bool waitForAuthState = false,
+    bool forceTokenRefresh = false,
+    Duration timeout = const Duration(seconds: 3),
+  }) =>
+      _performEnsureAuthReady(
+        waitForAuthState: waitForAuthState,
+        forceTokenRefresh: forceTokenRefresh,
+        timeout: timeout,
+      );
+
+  Future<void> refreshAuthTokenIfNeeded({
+    bool waitForAuthState = true,
+  }) =>
+      _performRefreshAuthTokenIfNeeded(
+        waitForAuthState: waitForAuthState,
+      );
+
+  Future<void> signOutAuth() => _performSignOutAuth();
+
+  Future<void> deleteAuthUserIfPresent() => _performDeleteAuthUserIfPresent();
+
+  String get nickname => _currentUser?.nickname ?? '';
+
+  String get firstName => _currentUser?.firstName ?? '';
+
+  String get lastName => _currentUser?.lastName ?? '';
+
+  String get rozet => _currentUser?.rozet ?? '';
+
+  String get email => _currentUser?.email ?? '';
+
+  String get phoneNumber => _currentUser?.phoneNumber ?? '';
+
+  String get bio => _currentUser?.bio ?? '';
+
+  String get meslekKategori => _currentUser?.meslekKategori ?? '';
+
+  String get adres => _currentUser?.adres ?? '';
+
+  int get counterOfPosts => _currentUser?.counterOfPosts ?? 0;
+
+  int get counterOfLikes => _currentUser?.counterOfLikes ?? 0;
+
+  String get avatarUrl {
+    final raw = (_currentUser?.avatarUrl ?? '').trim();
+    return isDefaultAvatarUrl(raw) ? '' : raw;
+  }
+
+  String get fullName => _currentUser?.fullName ?? '';
+
+  int get effectiveViewSelection => viewSelectionRx.value;
+
+  Future<bool> initialize() => _performInitialize();
+
+  Future<void> forceRefresh() => _performForceRefresh();
+
+  Future<void> _validateExclusiveSessionFromServer(String uid) =>
+      _performValidateExclusiveSessionFromServer(uid);
+
+  Future<void> _stopFirebaseSync() => _performStopFirebaseSync();
+
+  Future<void> _updateUser(CurrentUserModel user) async {
+    await _performUpdateUser(user);
+  }
+
+  Future<bool> _handlePermanentBanIfNeeded(CurrentUserModel user) async {
+    return _performHandlePermanentBanIfNeeded(user);
+  }
+
+  bool _publishResolvedUser(CurrentUserModel user) {
+    return _performPublishResolvedUser(user);
+  }
+
+  Future<void> _warmAvatar(CurrentUserModel? user) async {
+    await _performWarmAvatar(user);
+  }
+
+  Future<void> _signOutToSignIn({
+    String initialIdentifier = '',
+  }) async {
+    await _performSignOutToSignIn(initialIdentifier: initialIdentifier);
+  }
+
+  bool isUserBlocked(String userId) {
+    return _currentUser?.blockedUsers.contains(userId) ?? false;
+  }
+
+  bool get isEmailVerified => emailVerifiedRx.value;
+
+  Future<void> logout() async {
+    await _performLogout();
+  }
+}
