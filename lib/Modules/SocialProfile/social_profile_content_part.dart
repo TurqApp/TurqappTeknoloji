@@ -185,6 +185,7 @@ extension _SocialProfileContentPart on _SocialProfileState {
                     );
                   },
                   child: GetBuilder<SocialProfileController>(
+                    tag: controller.userID,
                     id: controller.feedPlaybackRowUpdateId(actualIndex),
                     builder: (socialController) {
                       final isCentered =
