@@ -698,7 +698,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Kapandi | `F2-004` ile market root sayaçlari icin server-owned pipeline kuruldu; favorites/offers/reviews event kaynaklari trigger'lara, views ise callable + shard + reducer hattina tasindi; owner update denylist ve rules testleri yesil |
 | RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Kapandi | `F2-010` ile integration smoke'taki `permission-denied`, `remote gate watch` ve erken blank-surface gurultusu sweep seviyesinde daraltildi; resmi rules/runtime report'u `blockingScenarioCount = 0` ile yesil dondu |
 | RISK-008 | Risk | Orta | F2-001, F3-001 | Kapandi | `F3-001` ile `scripts/check_task_isolation.sh` eklendi; beklenen `HEAD` drifti ve allowlist disi kirli dosyalar artik tekrar uretilebilir sekilde fail ettiriliyor ve artifact uretimiyle raporlaniyor |
-| DEBT-001 | Debt | Orta | T-030, F2-011, F3-003, F3-004, M1-001, M1-002, M1-003 | Acik | `M1-003` ile feed/profile/short snapshot repository giris yuzeyinde `11` mikro part daha kaldirildi; toplam kayitli sadeleştirme etkisi `47` mikro part'e ulasti. Buna ragmen repo genelinde part-sprawl debt'i suruyor ve kapanis icin `M1-004` final olcum/guard dalgasi gerekiyor |
+| DEBT-001 | Debt | Orta | T-030, F2-011, F3-003, F3-004, M1-001, M1-002, M1-003, M1-004 | Kapandi | `M1-004` ile tracked mikro part dosyalari icin repo toplam butcesi ve secili sicak kume guard'lari CI'ya baglandi; `micro_part_total=613`, `cache_snapshot_hot=0`, `startup_auth_session_hot=0`, `profile_social_hot=4` ve `feed_playback_hot=37` degerleri tekrar buyurse guard fail veriyor, buyuk kalan kumeler de watch hedefi olarak raporlaniyor |
 | DEBT-002 | Debt | Orta | T-031, F2-011, F3-003, F3-004, F3-005 | Kapandi | `F3-005` ile tracked `.dart` yuzeyi icin repo toplam butcesi ve secili sicak kume guard'lari CI'ya baglandi; repo kucuk degil ama artik `repo_total`, `startup_auth_session_hot`, `profile_social_hot` ve `feed_playback_hot` yuzeyi tekrar buyurse guard fail veriyor ve watch cluster hedefleri artifact ile raporlaniyor |
 | DEBT-003 | Debt | Orta | T-024 | Kapandi | `LikedPostControllers.isSeriesPost` uyumluluk yardimcisi geri eklendi; `flutter test --coverage test/unit/modules/profile/liked_posts_controller_test.dart` tekrar geciyor ve full coverage lane bu noktayi artik asiyor |
 | DEBT-004 | Debt | Orta | T-024 | Kapandi | `test/unit/services/runtime_health_exporter_test.dart` guncel `ensureHlsDataUsageProbe()` facade API'sine tasindi; hedefli test ve coverage kosusu tekrar geciyor, full lane bu noktayi artik asiyor |
@@ -808,7 +808,7 @@ Toplam:
 | M1-001 | Cache/Snapshot hot-cluster envanteri ve freeze siniri | `DEBT-001` | - | M/2 | Tamamlandi |
 | M1-002 | CacheFirst mekanik part sadeleştirmesi | `DEBT-001` | M1-001 | XL/5 | Tamamlandi |
 | M1-003 | Feed/Profile/Short snapshot repository mekanik cleanup | `DEBT-001` | M1-001 | XL/5 | Tamamlandi |
-| M1-004 | Part-sprawl debt kapanis guard'i ve final olcum | `DEBT-001` | M1-002, M1-003 | M/2 | Acik |
+| M1-004 | Part-sprawl debt kapanis guard'i ve final olcum | `DEBT-001` | M1-002, M1-003 | M/2 | Tamamlandi |
 
 Mini Faz 1 artifact kayitlari:
 
@@ -817,6 +817,7 @@ Mini Faz 1 artifact kayitlari:
 | M1-ART-001 | `docs/testing/mini_faz_cache_snapshot_inventory_2026-03-29.md` | Dolu | `M1-001` ile cache/snapshot calismasi icin resmi scope, freeze/dis-kapsam listesi ve sonraki islerin yazma siniri sabitlendi |
 | M1-ART-002 | `docs/testing/mini_faz_cachefirst_cleanup_2026-03-29.md` | Dolu | `M1-002` ile `CacheFirst/warm_launch_pool` gecis yuzeyindeki `base/facade` mikro parcalari ana dosyaya tasindi; mekanik giris seti `3 -> 1` indi |
 | M1-ART-003 | `docs/testing/mini_faz_snapshot_repository_cleanup_2026-03-29.md` | Dolu | `M1-003` ile `feed/profile/short` snapshot repository mekanik `class/base/facade/fields/models` parcalari ana dosyalara tasindi; secilen mekanik set `14 -> 3` indi ve `11` mikro part kaldirildi |
+| M1-ART-004 | `docs/testing/mini_faz_part_sprawl_closure_2026-03-29.md` | Dolu | `M1-004` ile tracked mikro part dosyalari icin `micro_part_total`, `cache_snapshot_hot`, `startup_auth_session_hot`, `profile_social_hot` ve `feed_playback_hot` budget guard'i eklendi; `Education`, `Core Services` ve `Profile Settings/Admin` da watch hedefi olarak raporlaniyor |
 
 
 ## Feature Sahiplik Matrisi

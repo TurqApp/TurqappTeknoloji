@@ -37,6 +37,9 @@ jobs:
       - name: Run Repo Surface Budget Guard
         run: bash scripts/check_repo_surface_budget.sh
 
+      - name: Run Part-Sprawl Budget Guard
+        run: bash scripts/check_part_sprawl_budget.sh
+
       - name: Upload Architecture Guard Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,6 +49,7 @@ jobs:
             artifacts/architecture
             artifacts/docs_guard
             artifacts/repo_surface_budget
+            artifacts/part_sprawl_budget
 
   flutter-quality:
     name: Flutter Analyze + Test
