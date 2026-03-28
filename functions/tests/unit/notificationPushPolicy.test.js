@@ -7,6 +7,7 @@ const {
   notificationBodyFromType,
   isNotificationTypeEnabled,
   isUserNotificationTypeEnabled,
+  shouldDispatchNotificationPush,
   mergeNotificationPreferences,
   defaultPushTypes,
 } = require("../../lib/notificationPushPolicy.js");
@@ -47,4 +48,19 @@ test("notification push policy honors messages only and admin type switches", ()
   const types = { ...defaultPushTypes, like: false };
   assert.equal(isNotificationTypeEnabled("like", types), false);
   assert.equal(isNotificationTypeEnabled("Posts", types), true);
+});
+
+test("notification push policy dispatches only milestone-worthy push payloads", () => {
+  assert.equal(shouldDispatchNotificationPush("like", { likeCount: 9 }), false);
+  assert.equal(shouldDispatchNotificationPush("like", { likeCount: 10 }), true);
+  assert.equal(
+    shouldDispatchNotificationPush("posts", { followedPostSubscriber: false }),
+    false,
+  );
+  assert.equal(
+    shouldDispatchNotificationPush("posts", { followedPostSubscriber: true }),
+    true,
+  );
+  assert.equal(shouldDispatchNotificationPush("reshared_posts", {}), false);
+  assert.equal(shouldDispatchNotificationPush("shared_as_posts", {}), false);
 });

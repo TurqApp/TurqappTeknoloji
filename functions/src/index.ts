@@ -9,6 +9,7 @@ import {
   interactionQuietWindowMs,
   interactionThrottleType,
   isNotificationTypeEnabled,
+  shouldDispatchNotificationPush,
   isUserNotificationTypeEnabled,
   notificationBodyFromType,
   type PushTypeMap,
@@ -142,6 +143,47 @@ async function _resolveNotificationImageUrl(
   }
 
   return "";
+}
+
+async function _resolveNotificationPushPayload(
+  raw: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const data = { ...raw };
+  const rawType = String(data.type || "").trim().toLowerCase();
+  const postId = String(data.postID || "").trim();
+
+  if (rawType !== "like" || !postId) {
+    return data;
+  }
+
+  if (toNonNegativeInt(data.likeCount) > 0) {
+    return data;
+  }
+
+  try {
+    const postSnap = await db.collection("Posts").doc(postId).get();
+    if (!postSnap.exists) return data;
+
+    const postData = postSnap.data() as Record<string, unknown> | undefined;
+    const stats =
+      postData?.stats &&
+      typeof postData.stats === "object" &&
+      !Array.isArray(postData.stats)
+        ? (postData.stats as Record<string, unknown>)
+        : undefined;
+    const likeCount = toNonNegativeInt(stats?.likeCount);
+    if (likeCount > 0) {
+      data.likeCount = likeCount;
+    }
+  } catch (e) {
+    console.error("_resolveNotificationPushPayload error", {
+      type: rawType,
+      postId,
+      message: String(e),
+    });
+  }
+
+  return data;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -583,7 +625,9 @@ export const onUserNotificationCreate = functions.firestore
   .onCreate(async (snap, context) => {
     try {
       const uid = context.params.uid as string;
-      const data = (snap.data() || {}) as any;
+      const data = await _resolveNotificationPushPayload(
+        (snap.data() || {}) as Record<string, unknown>,
+      );
       const type = String(data.type || "Posts");
       const fromUserID = String(data.fromUserID || "");
       const targetDocID = String(
@@ -601,6 +645,14 @@ export const onUserNotificationCreate = functions.firestore
         console.log("onUserNotificationCreate skip:user_pref_disabled", {
           uid,
           type,
+        });
+        return;
+      }
+      if (!isAdminPush && !shouldDispatchNotificationPush(type, data)) {
+        console.log("onUserNotificationCreate skip:milestone_gate", {
+          uid,
+          type,
+          targetPresent: targetDocID.length > 0,
         });
         return;
       }

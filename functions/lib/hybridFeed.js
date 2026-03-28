@@ -116,6 +116,7 @@ async function notifyFollowedPostSubscribers(args) {
                 fromUserID: authorId,
                 postID: postId,
                 type: "posts",
+                followedPostSubscriber: true,
                 title,
                 body,
                 desc: body,

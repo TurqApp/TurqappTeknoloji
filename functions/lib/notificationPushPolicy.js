@@ -5,6 +5,7 @@ exports.interactionThrottleType = interactionThrottleType;
 exports.interactionQuietWindowMs = interactionQuietWindowMs;
 exports.isNotificationTypeEnabled = isNotificationTypeEnabled;
 exports.notificationBodyFromType = notificationBodyFromType;
+exports.shouldDispatchNotificationPush = shouldDispatchNotificationPush;
 exports.mergeNotificationPreferences = mergeNotificationPreferences;
 exports.isUserNotificationTypeEnabled = isUserNotificationTypeEnabled;
 exports.defaultPushTypes = {
@@ -12,7 +13,7 @@ exports.defaultPushTypes = {
     comment: true,
     message: true,
     like: true,
-    reshared_posts: true,
+    reshared_posts: false,
     shared_as_posts: true,
     posts: true,
 };
@@ -93,6 +94,24 @@ function deepMerge(base, override) {
     }
     return result;
 }
+function normalizeLegacyPreferences(raw) {
+    const normalized = { ...raw };
+    const posts = normalized.posts;
+    if (posts && typeof posts === "object" && !Array.isArray(posts)) {
+        const mappedPosts = { ...posts };
+        const legacyPostActivity = mappedPosts.postActivity;
+        if (typeof legacyPostActivity === "boolean") {
+            if (mappedPosts.posts === undefined) {
+                mappedPosts.posts = legacyPostActivity;
+            }
+            if (mappedPosts.likes === undefined) {
+                mappedPosts.likes = legacyPostActivity;
+            }
+        }
+        normalized.posts = mappedPosts;
+    }
+    return normalized;
+}
 function interactionThrottleType(type) {
     return normalizeNotificationType(type);
 }
@@ -138,8 +157,43 @@ function notificationBodyFromType(type) {
             return "gönderinle etkileşime geçti";
     }
 }
+function asPositiveInt(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return Math.max(0, Math.floor(value));
+    }
+    if (typeof value === "string") {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+            return Math.max(0, Math.floor(parsed));
+        }
+    }
+    return 0;
+}
+function isMilestoneCount(count, milestones, repeatEvery) {
+    if (count <= 0)
+        return false;
+    if (milestones.includes(count))
+        return true;
+    const lastMilestone = milestones[milestones.length - 1] || 0;
+    return count > lastMilestone && repeatEvery > 0 && count % repeatEvery === 0;
+}
+function shouldDispatchNotificationPush(type, payload) {
+    switch (normalizeNotificationType(type)) {
+        case "like":
+            return isMilestoneCount(asPositiveInt(payload.likeCount), [10, 25, 50, 100, 250, 500, 1000], 1000);
+        case "reshared_posts":
+            return false;
+        case "shared_as_posts":
+        case "comment_like":
+            return false;
+        case "posts":
+            return payload.followedPostSubscriber === true;
+        default:
+            return true;
+    }
+}
 function mergeNotificationPreferences(raw) {
-    return deepMerge(notificationPreferenceDefaults, raw || {});
+    return deepMerge(notificationPreferenceDefaults, normalizeLegacyPreferences(raw || {}));
 }
 function isUserNotificationTypeEnabled(type, rawPrefs) {
     const prefs = mergeNotificationPreferences(rawPrefs);

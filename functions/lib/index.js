@@ -106,6 +106,40 @@ async function _resolveNotificationImageUrl(data) {
     }
     return "";
 }
+async function _resolveNotificationPushPayload(raw) {
+    const data = { ...raw };
+    const rawType = String(data.type || "").trim().toLowerCase();
+    const postId = String(data.postID || "").trim();
+    if (rawType !== "like" || !postId) {
+        return data;
+    }
+    if ((0, userSchemaUtils_1.toNonNegativeInt)(data.likeCount) > 0) {
+        return data;
+    }
+    try {
+        const postSnap = await db.collection("Posts").doc(postId).get();
+        if (!postSnap.exists)
+            return data;
+        const postData = postSnap.data();
+        const stats = postData?.stats &&
+            typeof postData.stats === "object" &&
+            !Array.isArray(postData.stats)
+            ? postData.stats
+            : undefined;
+        const likeCount = (0, userSchemaUtils_1.toNonNegativeInt)(stats?.likeCount);
+        if (likeCount > 0) {
+            data.likeCount = likeCount;
+        }
+    }
+    catch (e) {
+        console.error("_resolveNotificationPushPayload error", {
+            type: rawType,
+            postId,
+            message: String(e),
+        });
+    }
+    return data;
+}
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -542,7 +576,7 @@ exports.onUserNotificationCreate = functions.firestore
     .onCreate(async (snap, context) => {
     try {
         const uid = context.params.uid;
-        const data = (snap.data() || {});
+        const data = await _resolveNotificationPushPayload((snap.data() || {}));
         const type = String(data.type || "Posts");
         const fromUserID = String(data.fromUserID || "");
         const targetDocID = String(data.postID || data.chatID || data.userID || "");
@@ -559,6 +593,14 @@ exports.onUserNotificationCreate = functions.firestore
             console.log("onUserNotificationCreate skip:user_pref_disabled", {
                 uid,
                 type,
+            });
+            return;
+        }
+        if (!isAdminPush && !(0, notificationPushPolicy_1.shouldDispatchNotificationPush)(type, data)) {
+            console.log("onUserNotificationCreate skip:milestone_gate", {
+                uid,
+                type,
+                targetPresent: targetDocID.length > 0,
             });
             return;
         }
