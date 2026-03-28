@@ -99,9 +99,14 @@ extension _SplashViewWarmPart on _SplashViewState {
       );
 
       if (Platform.isAndroid && isFirstLaunch) {
-        await Future.wait([
-          warmUserMetaFuture,
-          warmProfileSurfacesFuture,
+        await Future.any([
+          Future.wait([
+            warmUserMetaFuture,
+            warmProfileSurfacesFuture,
+          ]),
+          Future.delayed(
+            Duration(milliseconds: onWiFi ? 280 : 180),
+          ),
         ]);
         unawaited(warmSliderFuture);
       } else {
