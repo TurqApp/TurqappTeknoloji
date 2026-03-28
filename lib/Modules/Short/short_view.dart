@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
@@ -243,7 +244,12 @@ class _ShortViewState extends State<ShortView> {
 
     // Sadece gerçekten boşsa yükle
     if (controller.shorts.isEmpty) {
-      controller.loadInitialShorts().then((_) {
+      controller
+          .prepareStartupSurface(
+        allowBackgroundRefresh:
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts),
+      )
+          .then((_) {
         if (mounted) {
           _cachedShorts = List<PostsModel>.from(controller.shorts);
           currentPage = _initialDisplayIndex(_cachedShorts, currentPage);

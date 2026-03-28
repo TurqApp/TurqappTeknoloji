@@ -149,7 +149,10 @@ extension AgendaControllerSupportPart on AgendaController {
 }
 
 extension AgendaControllerPublicApiPart on AgendaController {
-  Future<void> onPrimarySurfaceVisible() => ensureFeedSurfaceReady();
+  Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
+        allowBackgroundRefresh:
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed),
+      );
 
   Future<void> prepareStartupSurface({
     bool? allowBackgroundRefresh,

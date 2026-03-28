@@ -341,7 +341,11 @@ extension _NavBarViewShellContentPart on NavBarView {
 
     final shortController = ensureShortController();
     if (shortController.shorts.isEmpty) {
-      shortController.backgroundPreload().catchError((_) {});
+      shortController
+          .prepareStartupSurface(
+            allowBackgroundRefresh: false,
+          )
+          .catchError((_) {});
     }
 
     controller.suspendFeedForTabExit();
