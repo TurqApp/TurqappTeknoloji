@@ -2,6 +2,7 @@ part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerRuntimePart on SocialProfileController {
   void _handleLifecycleInit() {
+    _bindCenteredPlaybackRowUpdates();
     UserAnalyticsService.instance.trackFeatureUsage('social_profile_open');
     getUserData();
     getCounters();
@@ -19,6 +20,14 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
     _userDocSub?.cancel();
     _resharesSub?.cancel();
     _visibilityDebounce?.cancel();
+    _centeredPlaybackRowWorker?.dispose();
+  }
+
+  void _bindCenteredPlaybackRowUpdates() {
+    _centeredPlaybackRowWorker?.dispose();
+    _centeredPlaybackRowWorker = ever<int>(centeredIndex, (newIndex) {
+      _notifyPlaybackRowUpdates(newIndex);
+    });
   }
 
   bool _performIsPrivateContentBlockedFor(String? viewerUserId) {
@@ -163,6 +172,23 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
       _performTrimMap(map, cachedAt);
 
   Future<void> _restoreCachedBuckets() => _performRestoreCachedBuckets();
+
+  String feedPlaybackRowUpdateId(int index) =>
+      'social-feed-playback-row-$index';
+
+  void _notifyPlaybackRowUpdates(int newIndex) {
+    final ids = <String>{};
+    if (_lastPlaybackRowUpdateIndex >= 0) {
+      ids.add(feedPlaybackRowUpdateId(_lastPlaybackRowUpdateIndex));
+    }
+    if (newIndex >= 0) {
+      ids.add(feedPlaybackRowUpdateId(newIndex));
+    }
+    _lastPlaybackRowUpdateIndex = newIndex;
+    if (ids.isNotEmpty) {
+      update(ids.toList(growable: false));
+    }
+  }
 
   Future<void> _fetchPrimaryBuckets({
     required bool initial,

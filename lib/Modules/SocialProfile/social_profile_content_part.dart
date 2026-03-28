@@ -168,11 +168,6 @@ extension _SocialProfileContentPart on _SocialProfileState {
             docId: model.docID,
             isReshare: isReshare,
           );
-          final isCentered = controller.centeredIndex.value == actualIndex;
-          final shouldPlay = FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
-            isCentered: isCentered,
-            isOverlayBlockingPlayback: controller.showPfImage.value,
-          );
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 5),
@@ -189,17 +184,31 @@ extension _SocialProfileContentPart on _SocialProfileState {
                       info.visibleFraction,
                     );
                   },
-                  child: AgendaContent(
-                    key: itemKey,
-                    model: model,
-                    isPreview: false,
-                    shouldPlay: shouldPlay,
-                    instanceTag: controller.agendaInstanceTag(
-                      docId: model.docID,
-                      isReshare: isReshare,
-                    ),
-                    isYenidenPaylasilanPost: isReshare,
-                    reshareUserID: isReshare ? controller.userID : null,
+                  child: GetBuilder<SocialProfileController>(
+                    id: controller.feedPlaybackRowUpdateId(actualIndex),
+                    builder: (socialController) {
+                      final isCentered =
+                          socialController.centeredIndex.value == actualIndex;
+                      final shouldPlay =
+                          FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+                        isCentered: isCentered,
+                        isOverlayBlockingPlayback:
+                            socialController.showPfImage.value,
+                      );
+                      return AgendaContent(
+                        key: itemKey,
+                        model: model,
+                        isPreview: false,
+                        shouldPlay: shouldPlay,
+                        instanceTag: socialController.agendaInstanceTag(
+                          docId: model.docID,
+                          isReshare: isReshare,
+                        ),
+                        isYenidenPaylasilanPost: isReshare,
+                        reshareUserID:
+                            isReshare ? socialController.userID : null,
+                      );
+                    },
                   ),
                 ),
                 SizedBox(

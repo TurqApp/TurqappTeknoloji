@@ -14,11 +14,13 @@ class _SocialProfileScrollState {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  int lastPlaybackRowUpdateIndex = -1;
   String? lastPlaybackCommandDocId;
   DateTime? lastPlaybackCommandAt;
   String? pendingCenteredIdentity;
   final Map<int, double> visibleFractions = <int, double>{};
   Timer? visibilityDebounce;
+  Worker? centeredPlaybackRowWorker;
   final scrollController = ScrollController();
   final Map<String, GlobalKey> postKeys = <String, GlobalKey>{};
   final showScrollToTop = false.obs;
@@ -89,6 +91,10 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   RxInt get centeredIndex => _scrollState.centeredIndex;
   int? get lastCenteredIndex => _scrollState.lastCenteredIndex;
   set lastCenteredIndex(int? value) => _scrollState.lastCenteredIndex = value;
+  int get _lastPlaybackRowUpdateIndex =>
+      _scrollState.lastPlaybackRowUpdateIndex;
+  set _lastPlaybackRowUpdateIndex(int value) =>
+      _scrollState.lastPlaybackRowUpdateIndex = value;
   String? get _lastPlaybackCommandDocId =>
       _scrollState.lastPlaybackCommandDocId;
   set _lastPlaybackCommandDocId(String? value) =>
@@ -103,6 +109,10 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   Timer? get _visibilityDebounce => _scrollState.visibilityDebounce;
   set _visibilityDebounce(Timer? value) =>
       _scrollState.visibilityDebounce = value;
+  Worker? get _centeredPlaybackRowWorker =>
+      _scrollState.centeredPlaybackRowWorker;
+  set _centeredPlaybackRowWorker(Worker? value) =>
+      _scrollState.centeredPlaybackRowWorker = value;
   ScrollController get scrollController => _scrollState.scrollController;
   Map<String, GlobalKey> get _postKeys => _scrollState.postKeys;
   RxBool get showScrollToTop => _scrollState.showScrollToTop;
@@ -130,10 +140,8 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   RxBool get complatedCheck => _profileState.complatedCheck;
   RxBool get takipEdiyorum => _profileState.takipEdiyorum;
   RxBool get followLoading => _profileState.followLoading;
-  RxBool get postNotificationsEnabled =>
-      _profileState.postNotificationsEnabled;
-  RxBool get postNotificationsLoading =>
-      _profileState.postNotificationsLoading;
+  RxBool get postNotificationsEnabled => _profileState.postNotificationsEnabled;
+  RxBool get postNotificationsLoading => _profileState.postNotificationsLoading;
   StoryUserModel? get storyUserModel => _profileState.storyUserModel;
   set storyUserModel(StoryUserModel? value) =>
       _profileState.storyUserModel = value;
