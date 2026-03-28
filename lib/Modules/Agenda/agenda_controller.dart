@@ -30,6 +30,7 @@ import '../../Core/Services/agenda_shuffle_cache_service.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'AgendaContent/agenda_content_controller.dart';
+import 'agenda_feed_application_service.dart';
 
 part 'agenda_controller_feed_part.dart';
 part 'agenda_controller_base_part.dart';

@@ -2,6 +2,7 @@ part of 'agenda_controller.dart';
 
 class _AgendaControllerState {
   final scrollController = ScrollController();
+  final agendaFeedApplicationService = AgendaFeedApplicationService();
   final agendaList = <PostsModel>[].obs;
   final mergedFeedEntries = <Map<String, dynamic>>[].obs;
   final filteredFeedEntries = <Map<String, dynamic>>[].obs;
@@ -66,6 +67,8 @@ class _AgendaControllerState {
 
 extension AgendaControllerFieldsPart on AgendaController {
   ScrollController get scrollController => _state.scrollController;
+  AgendaFeedApplicationService get _agendaFeedApplicationService =>
+      _state.agendaFeedApplicationService;
   RxList<PostsModel> get agendaList => _state.agendaList;
   RxList<Map<String, dynamic>> get mergedFeedEntries =>
       _state.mergedFeedEntries;

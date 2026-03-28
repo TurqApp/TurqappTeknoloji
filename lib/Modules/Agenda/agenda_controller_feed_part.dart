@@ -129,55 +129,13 @@ extension AgendaControllerFeedPart on AgendaController {
     } catch (_) {}
   }
 
-  int _resolveResumeIndex() {
-    if (agendaList.isEmpty) return -1;
-
-    final pendingDocIndex = _resolvePendingCenteredDocIndex();
-    if (pendingDocIndex >= 0) return pendingDocIndex;
-
-    int bestIndex = -1;
-    double bestFraction = 0.0;
-    _visibleFractions.forEach((idx, fraction) {
-      if (idx < 0 || idx >= agendaList.length) return;
-      if (fraction > bestFraction) {
-        bestFraction = fraction;
-        bestIndex = idx;
-      }
-    });
-
-    if (bestIndex >= 0) return bestIndex;
-    if (lastCenteredIndex != null &&
-        lastCenteredIndex! >= 0 &&
-        lastCenteredIndex! < agendaList.length) {
-      return lastCenteredIndex!;
-    }
-    if (centeredIndex.value >= 0 && centeredIndex.value < agendaList.length) {
-      return centeredIndex.value;
-    }
-    return 0;
-  }
-
-  int _resolveInitialCenteredIndex() {
-    if (agendaList.isEmpty) return -1;
-    final pendingDocIndex = _resolvePendingCenteredDocIndex();
-    if (pendingDocIndex >= 0) {
-      return pendingDocIndex;
-    }
-    if (lastCenteredIndex != null &&
-        lastCenteredIndex! >= 0 &&
-        lastCenteredIndex! < agendaList.length) {
-      return lastCenteredIndex!;
-    }
-    final firstAutoplay =
-        agendaList.indexWhere((post) => _canAutoplayVideoPost(post));
-    if (firstAutoplay >= 0) {
-      return firstAutoplay;
-    }
-    return 0;
-  }
-
   void primeInitialCenteredPost() {
-    final target = _resolveInitialCenteredIndex();
+    final target = _agendaFeedApplicationService.resolveInitialCenteredIndex(
+      agendaList: agendaList.toList(growable: false),
+      pendingCenteredDocId: _pendingCenteredDocId,
+      lastCenteredIndex: lastCenteredIndex,
+      canAutoplayPost: _canAutoplayVideoPost,
+    );
     if (target < 0 || target >= agendaList.length) return;
     final expectedDocId = _pendingCenteredDocId;
     centeredIndex.value = target;
@@ -206,21 +164,14 @@ extension AgendaControllerFeedPart on AgendaController {
                 lastCenteredIndex! < agendaList.length)
             ? agendaList[lastCenteredIndex!].docID
             : null);
-    int target = _resolveResumeIndex();
-    if (target < 0 || target >= agendaList.length) {
-      target = 0;
-    }
-
-    if (!_canAutoplayVideoPost(agendaList[target])) {
-      final nextVideo =
-          agendaList.indexWhere((p) => _canAutoplayVideoPost(p), target);
-      if (nextVideo != -1) {
-        target = nextVideo;
-      } else {
-        final anyVideo = agendaList.indexWhere((p) => _canAutoplayVideoPost(p));
-        if (anyVideo != -1) target = anyVideo;
-      }
-    }
+    int target = _agendaFeedApplicationService.resolveResumeIndex(
+      agendaList: agendaList.toList(growable: false),
+      pendingCenteredDocId: _pendingCenteredDocId,
+      lastCenteredIndex: lastCenteredIndex,
+      centeredIndex: centeredIndex.value,
+      visibleFractions: Map<int, double>.from(_visibleFractions),
+      canAutoplayPost: _canAutoplayVideoPost,
+    );
 
     if (target < 0 || target >= agendaList.length) return;
     lastCenteredIndex = target;
@@ -240,12 +191,6 @@ extension AgendaControllerFeedPart on AgendaController {
     );
 
     _ensureFeedPlaybackForIndex(target);
-  }
-
-  int _resolvePendingCenteredDocIndex() {
-    final pendingDocId = _pendingCenteredDocId;
-    if (pendingDocId == null || pendingDocId.isEmpty) return -1;
-    return agendaList.indexWhere((post) => post.docID == pendingDocId);
   }
 
   void _prefetchUpcomingImages() {

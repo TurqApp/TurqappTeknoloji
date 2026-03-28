@@ -275,9 +275,17 @@ extension AgendaControllerLoadingPart on AgendaController {
         cacheOnly: !liveConnected,
       );
       final visibleItems = page.items;
+      final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
+        currentItems: agendaList.toList(growable: false),
+        pageItems: visibleItems,
+        nowMs: nowMs,
+        loadLimit: loadLimit,
+        lastDoc: page.lastDoc,
+        usesPrimaryFeed: page.usesPrimaryFeed,
+      );
 
-      _usePrimaryFeedPaging = page.usesPrimaryFeed;
-      lastDoc = page.lastDoc;
+      _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
+      lastDoc = pageApplyPlan.lastDoc;
 
       if (visibleItems.isNotEmpty) {
         unawaited(
@@ -286,34 +294,20 @@ extension AgendaControllerLoadingPart on AgendaController {
             const <String, Map<String, dynamic>>{},
           ),
         );
-        // Yeni eklenecekler içinde "zamanlıydı ve yeni görünür oldu" olanları vurgula
-        final existingIDs = agendaList.map((e) => e.docID).toSet();
-        final toAdd = <PostsModel>[];
-        final freshScheduled = <String>[];
-        final tenMinAgo = nowMs - const Duration(minutes: 15).inMilliseconds;
-        for (final p in visibleItems) {
-          final isNew = !existingIDs.contains(p.docID);
-          if (!isNew) continue;
-          toAdd.add(p);
-          final wasScheduled = p.timeStamp != 0;
-          final justBecameVisible = wasScheduled && p.timeStamp >= tenMinAgo;
-          if (justBecameVisible) {
-            freshScheduled.add(p.docID);
-          }
-        }
-        if (freshScheduled.isNotEmpty) {
-          markHighlighted(freshScheduled,
+        if (pageApplyPlan.freshScheduledIds.isNotEmpty) {
+          markHighlighted(pageApplyPlan.freshScheduledIds,
               keepFor: const Duration(milliseconds: 900));
         }
-        if (toAdd.isNotEmpty) {
-          _addUniqueToAgenda(toAdd);
-          _scheduleReshareFetchForPosts(toAdd, perPostLimit: 1);
+        if (pageApplyPlan.itemsToAdd.isNotEmpty) {
+          _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
+          _scheduleReshareFetchForPosts(
+            pageApplyPlan.itemsToAdd,
+            perPostLimit: 1,
+          );
         }
       }
 
-      if (page.lastDoc == null || visibleItems.length < loadLimit) {
-        hasMore.value = false;
-      }
+      hasMore.value = pageApplyPlan.hasMore;
       _clearAgendaRetry();
       recordQALabFeedFetchEvent(
         stage: 'completed',
@@ -529,14 +523,12 @@ extension AgendaControllerLoadingPart on AgendaController {
       _cancelDeferredInitialNetworkBootstrap();
       // Refresh başlarken tüm oynatımları kesin durdur.
       pauseAll.value = true;
-      final currentCentered = centeredIndex.value;
-      if (currentCentered >= 0 && currentCentered < agendaList.length) {
-        _pendingCenteredDocId = agendaList[currentCentered].docID;
-      } else if (lastCenteredIndex != null &&
-          lastCenteredIndex! >= 0 &&
-          lastCenteredIndex! < agendaList.length) {
-        _pendingCenteredDocId = agendaList[lastCenteredIndex!].docID;
-      }
+      _pendingCenteredDocId =
+          _agendaFeedApplicationService.capturePlaybackAnchor(
+        agendaList: agendaList.toList(growable: false),
+        centeredIndex: centeredIndex.value,
+        lastCenteredIndex: lastCenteredIndex,
+      );
       centeredIndex.value = -1;
       try {
         VideoStateManager.instance.pauseAllVideos(force: true);
