@@ -189,10 +189,31 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   Future<void> persistStartupArtifacts() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty || agendaList.isEmpty) return;
+    if (userId.isEmpty) return;
+    if (agendaList.isEmpty) {
+      await ensureStartupSnapshotShardStore().clear(
+        surface: 'feed',
+        userId: userId,
+      );
+      await _recordFeedStartupSurface(
+        source: 'none',
+        itemCount: 0,
+      );
+      return;
+    }
     final snapshotAt = DateTime.now();
     final ordered = _buildOrderedAgendaSnapshot(limit: 40);
-    if (ordered.isEmpty) return;
+    if (ordered.isEmpty) {
+      await ensureStartupSnapshotShardStore().clear(
+        surface: 'feed',
+        userId: userId,
+      );
+      await _recordFeedStartupSurface(
+        source: 'none',
+        itemCount: 0,
+      );
+      return;
+    }
     await _feedSnapshotRepository.persistHomeSnapshot(
       userId: userId,
       posts: ordered,

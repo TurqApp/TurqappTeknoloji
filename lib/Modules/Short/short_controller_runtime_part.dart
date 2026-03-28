@@ -113,7 +113,18 @@ extension ShortControllerPublicApiPart on ShortController {
 
   Future<void> persistStartupArtifacts() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty || shorts.isEmpty) return;
+    if (userId.isEmpty) return;
+    if (shorts.isEmpty) {
+      await ensureStartupSnapshotShardStore().clear(
+        surface: 'short',
+        userId: userId,
+      );
+      await _recordShortStartupSurface(
+        source: 'none',
+        itemCount: 0,
+      );
+      return;
+    }
     final snapshotAt = DateTime.now();
     final ordered = shorts.toList(growable: false);
     final snapshotLimit =
@@ -126,7 +137,17 @@ extension ShortControllerPublicApiPart on ShortController {
       snapshotAt: snapshotAt,
     );
     final shardLimit = ordered.length >= 6 ? 6 : ordered.length;
-    if (shardLimit <= 0) return;
+    if (shardLimit <= 0) {
+      await ensureStartupSnapshotShardStore().clear(
+        surface: 'short',
+        userId: userId,
+      );
+      await _recordShortStartupSurface(
+        source: 'none',
+        itemCount: 0,
+      );
+      return;
+    }
     await ensureStartupSnapshotShardStore().save(
       surface: 'short',
       userId: userId,
