@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import '../core/helpers/route_replay.dart';
 import '../core/helpers/smoke_artifact_collector.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
+import '../core/helpers/contract_waiters.dart';
 import '../core/helpers/test_state_probe.dart';
 import '../core/helpers/transient_error_policy.dart';
 
@@ -15,18 +17,33 @@ void main() {
     (tester) async {
       final originalOnError = installTransientFlutterErrorPolicy();
       try {
-        await SmokeArtifactCollector.runScenario('feed_resume', tester, () async {
+        await SmokeArtifactCollector.runScenario('feed_resume', tester,
+            () async {
           await launchTurqApp(tester);
           await expectFeedScreen(tester);
           expect(byItKey(IntegrationTestKeys.navBarRoot), findsOneWidget);
           expect(byItKey(IntegrationTestKeys.navFeed), findsOneWidget);
+          final beforeFeed = await waitForSurfaceProbeContract(
+            tester,
+            'feed',
+            (payload) =>
+                payload['registered'] == true &&
+                (payload['count'] as num?) != null &&
+                (payload['count'] as num).toInt() > 0 &&
+                payload['feedViewMode'] == 'forYou' &&
+                payload['usesPrimaryFeedPaging'] == true &&
+                payload['feedContractId'] ==
+                    FeedHomeContract.primaryHybridV1.contractId,
+            reason: 'Feed did not stabilize on the canonical primary contract.',
+            context: 'feed resume before replay',
+          );
           expectSurfaceRegistered('feed');
           expectCenteredIndexValid(
             'feed',
             indexField: 'centeredIndex',
             countField: 'count',
           );
-          final beforeFeed = readSurfaceProbe('feed');
+          expectFeedUsesPrimaryContract(beforeFeed);
           expectSurfaceMatchesFixture('feed', beforeFeed);
           await settleSmokeShell(
             tester,
@@ -39,13 +56,34 @@ void main() {
             context: 'feed post-profile replay settle',
           );
           print('[integration-smoke] feed_resume: after profile replay');
+          final afterFeed = await waitForSurfaceProbeContract(
+            tester,
+            'feed',
+            (payload) =>
+                payload['registered'] == true &&
+                (payload['count'] as num?) != null &&
+                (payload['count'] as num).toInt() > 0 &&
+                payload['feedViewMode'] == 'forYou' &&
+                payload['usesPrimaryFeedPaging'] == true &&
+                payload['feedContractId'] ==
+                    FeedHomeContract.primaryHybridV1.contractId,
+            reason:
+                'Feed lost the canonical primary contract after route replay.',
+            context: 'feed resume after replay',
+          );
           expectSurfaceRegistered('feed');
           expectCenteredIndexValid(
             'feed',
             indexField: 'centeredIndex',
             countField: 'count',
           );
-          expectSurfaceMatchesFixture('feed', readSurfaceProbe('feed'));
+          expectFeedUsesPrimaryContract(afterFeed);
+          expectCountNeverDropsToZeroAfterReplay(
+            'feed',
+            before: beforeFeed,
+            after: afterFeed,
+          );
+          expectSurfaceMatchesFixture('feed', afterFeed);
         });
       } finally {
         restoreTransientFlutterErrorPolicy(originalOnError);

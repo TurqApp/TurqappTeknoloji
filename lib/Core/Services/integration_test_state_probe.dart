@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
+import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
 import 'package:turqappv2/Core/Services/integration_media_test_harness.dart';
 import 'package:turqappv2/Core/Services/integration_permission_test_harness.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -107,6 +108,8 @@ class IntegrationTestStateProbe {
       'pauseAll': controller.pauseAll.value,
       'canClaimPlaybackNow': controller.canClaimPlaybackNow,
       'feedViewMode': controller.feedViewMode.value.name,
+      'usesPrimaryFeedPaging': controller.debugUsesPrimaryFeedPaging,
+      'feedContractId': FeedHomeContract.primaryHybridV1.contractId,
     };
   }
 

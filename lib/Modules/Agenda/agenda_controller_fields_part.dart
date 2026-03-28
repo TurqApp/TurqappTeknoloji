@@ -90,6 +90,7 @@ extension AgendaControllerFieldsPart on AgendaController {
   set lastDoc(DocumentSnapshot? value) => _state.lastDoc = value;
   bool get _usePrimaryFeedPaging => _state.usePrimaryFeedPaging;
   set _usePrimaryFeedPaging(bool value) => _state.usePrimaryFeedPaging = value;
+  bool get debugUsesPrimaryFeedPaging => _usePrimaryFeedPaging;
   RxBool get hasMore => _state.hasMore;
   RxBool get isLoading => _state.isLoading;
   RxBool get pauseAll => _state.pauseAll;

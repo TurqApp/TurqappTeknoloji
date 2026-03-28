@@ -86,5 +86,29 @@ void main() {
               'final personalFallback = await _loadPersonalFallbackPage('));
       expect(fetchSource, contains('return _loadLegacyPage('));
     });
+
+    test('legacy fallback stays scoped to explicit opt-out and exhausted paths',
+        () {
+      final fetchSource = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+      ).readAsStringSync();
+      final agendaSource = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/agenda_controller_loading_cache_part.dart',
+      ).readAsStringSync();
+
+      expect(
+        fetchSource,
+        contains('if (!usePrimaryFeedPaging || normalizedUserId.isEmpty) {'),
+      );
+      expect(
+        RegExp(r'return _loadLegacyPage\(').allMatches(fetchSource).length,
+        3,
+      );
+      expect(
+        agendaSource,
+        contains(
+            "if (uid.isEmpty) {\n      return _loadLegacyAgendaSourcePage("),
+      );
+    });
   });
 }

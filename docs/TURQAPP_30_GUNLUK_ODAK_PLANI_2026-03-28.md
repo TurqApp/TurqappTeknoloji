@@ -693,10 +693,10 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-001 | Risk | Yuksek | T-005, T-007 | Acik | Rules daraltilirken profil okuma ve upload akislarinin kirilma riski var |
 | RISK-002 | Risk | Yuksek | T-008, T-013, F2-002 | Kapandi | Stored-account reauth akisinda password-provider hesaplar artik username fallback ile dead-end'e dusmuyor; `storedAccountUid` ile acilan SignIn route'u login formunu dogrudan aciyor ve hedefli unit/widget testleri yesil |
 | RISK-003 | Risk | Orta | T-009, F2-008 | Kapandi | `F2-008` ile architecture guard yorum/string kaynakli sahte locator ve import sayimlarina karsi sanitize edildi; `--files` absolute/relative path davranisi normalize edildi ve sentetik audit ile dogrulandi |
-| RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
+| RISK-004 | Risk | Yuksek | T-015, T-016, F2-009 | Kapandi | `F2-009` ile legacy fallback giris noktalari audit edildi; startup/bootstrap/replay smoke testleri artik `usesPrimaryFeedPaging=true` ve `feed_home_primary_hybrid_v1` kontratini bekliyor, bu yuzden sessiz legacy drift riski testle gorunur hale geldi |
 | RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
 | RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Kapandi | `F2-004` ile market root sayaçlari icin server-owned pipeline kuruldu; favorites/offers/reviews event kaynaklari trigger'lara, views ise callable + shard + reducer hattina tasindi; owner update denylist ve rules testleri yesil |
-| RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Acik | Android emulator smoke yesil olsa da authenticated acilista `feed_blank_surface`, `permission-denied` ve `remote gate watch` loglari uretiyor; Phase 2 baslangic blokaji olarak izlencek |
+| RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Acik | `F2-009` ile authenticated startup/replay zincirinde `feed_blank_surface` riski primary contract smoke'lariyla daraltildi; kalan acik sinyaller `permission-denied` ve `remote gate watch` loglari olarak `F2-010`da izlenecek |
 | RISK-008 | Risk | Orta | F2-001 | Acik | Baseline kosusu sirasinda repo HEAD `648fe0c1` -> `c4fb4171` kaydi ve worktree'de plan disi 4 dosya kirlenmesi goruldu; task isolation zorlaniyor |
 | DEBT-001 | Debt | Orta | T-030 | Acik | Mikro `facade/fields/class part` dagilimi okuma maliyeti ve sahte modulerlik uretiyor; secici sadeleştirme gerekiyor |
 | DEBT-002 | Debt | Orta | T-031 | Acik | Repo genelinde dosya yuzeyi cok buyuk; kritik akislar `2768` adet `.dart` dosyasina dagiliyor ve takip maliyeti yukseliyor |
@@ -742,7 +742,7 @@ Toplam:
 | F2-006 | Short refresh preserve smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Tamamlandi |
 | F2-007 | Cikarilan smoke akislarini resmi manifest'e geri al | `ADV-002` | F2-005, F2-006 | M/2 | Tamamlandi |
 | F2-008 | Guard false-positive audit ve kalibrasyon | `RISK-003` | F2-001 | M/2 | Tamamlandi |
-| F2-009 | Feed legacy fallback audit ve regresyon paketi | `RISK-004`, `RISK-007` | F2-001 | M/2 | Acik |
+| F2-009 | Feed legacy fallback audit ve regresyon paketi | `RISK-004`, `RISK-007` | F2-001 | M/2 | Tamamlandi |
 | F2-010 | Rules/upload/playback/runtime gizli regresyon supurmesi | `RISK-001`, `RISK-005`, `RISK-007` | F2-004, F2-007, F2-009 | L/3 | Acik |
 | F2-011 | Startup/Auth/Session secici sadeleştirme butcesi | `DEBT-001`, `DEBT-002` | F2-002, F2-008, F2-010 | XL/5 | Acik |
 
@@ -758,6 +758,7 @@ Faz 2 artifact kayitlari:
 | F2-ART-006 | `docs/testing/faz2_short_refresh_preserve_smoke_stabilization_2026-03-28.md` | Dolu | `F2-006` short route return, offstage tab hafifletmesi ve Android emulator smoke dogrulamasi |
 | F2-ART-007 | `docs/testing/faz2_auth_session_feed_manifest_reentry_2026-03-28.md` | Dolu | `F2-007` ile `feed_resume_test` ve `short_refresh_preserve_test` resmi auth/session/feed regression manifest'ine geri alindi |
 | F2-ART-008 | `docs/testing/faz2_guard_false_positive_audit_2026-03-28.md` | Dolu | `F2-008` architecture guard yorum/string noise ve absolute path kalibrasyon audit'i |
+| F2-ART-009 | `docs/testing/faz2_feed_legacy_fallback_audit_2026-03-28.md` | Dolu | `F2-009` legacy fallback giris noktalari, primary contract probe alanlari ve startup/bootstrap/replay regression guclendirmesi |
 
 
 ## Feature Sahiplik Matrisi

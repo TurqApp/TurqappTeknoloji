@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 
@@ -70,6 +71,19 @@ void expectCountNeverDropsToZeroAfterReplay(
   if (beforeCount <= 0) return;
   expect(afterCount, greaterThan(0),
       reason: '$surface count dropped to zero after route replay');
+}
+
+void expectFeedUsesPrimaryContract(Map<String, dynamic> payload) {
+  expect(
+    payload['usesPrimaryFeedPaging'],
+    isTrue,
+    reason: 'feed unexpectedly fell back to legacy paging',
+  );
+  expect(
+    payload['feedContractId'],
+    FeedHomeContract.primaryHybridV1.contractId,
+    reason: 'feed contract id drifted from the canonical primary contract',
+  );
 }
 
 void expectDocPreservedIfStillPresent(

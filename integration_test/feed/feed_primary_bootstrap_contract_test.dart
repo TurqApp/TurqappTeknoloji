@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import '../core/bootstrap/test_app_bootstrap.dart';
@@ -29,7 +30,10 @@ void main() {
                 payload['registered'] == true &&
                 (payload['count'] as num?) != null &&
                 (payload['count'] as num).toInt() > 0 &&
-                payload['feedViewMode'] == 'forYou',
+                payload['feedViewMode'] == 'forYou' &&
+                payload['usesPrimaryFeedPaging'] == true &&
+                payload['feedContractId'] ==
+                    FeedHomeContract.primaryHybridV1.contractId,
             reason:
                 'Feed did not stabilize on the expected primary shell contract.',
             context: 'feed primary bootstrap',
@@ -37,6 +41,7 @@ void main() {
 
           expect(feed['playbackSuspended'], isFalse);
           expect(feed['pauseAll'], isFalse);
+          expectFeedUsesPrimaryContract(feed);
           expectCenteredIndexValid(
             'feed',
             indexField: 'centeredIndex',

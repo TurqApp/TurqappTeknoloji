@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import '../core/bootstrap/test_app_bootstrap.dart';
@@ -61,7 +62,10 @@ void main() {
                 payload['registered'] == true &&
                 (payload['count'] as num?) != null &&
                 (payload['count'] as num).toInt() > 0 &&
-                payload['feedViewMode'] == 'forYou',
+                payload['feedViewMode'] == 'forYou' &&
+                payload['usesPrimaryFeedPaging'] == true &&
+                payload['feedContractId'] ==
+                    FeedHomeContract.primaryHybridV1.contractId,
             reason:
                 'Startup did not land on a populated feed surface in forYou mode.',
             context: 'feed startup contract',
@@ -71,6 +75,7 @@ void main() {
             indexField: 'centeredIndex',
             countField: 'count',
           );
+          expectFeedUsesPrimaryContract(feed);
           expectSurfaceMatchesFixture('feed', feed);
         },
       );
