@@ -5,94 +5,26 @@ extension _SplashViewStartupPart on _SplashViewState {
       ? const Duration(seconds: 18)
       : const Duration(seconds: 3);
 
-  Future<void> _performInitApp() async {
-    final startupStopwatch = Stopwatch()..start();
-    try {
-      late final SharedPreferences prefs;
-      await Future.wait([
-        (() async {
-          await firebaseBootstrapFuture.timeout(
-            _firebaseStartupWait,
-            onTimeout: () {},
-          );
-          await FirestoreConfig.initialize().timeout(
-            const Duration(seconds: 2),
-            onTimeout: () {},
-          );
-        })(),
-        SharedPreferences.getInstance().then((v) => prefs = v),
-        _initAudioContext().catchError((_) {}),
-      ]);
+  SplashStartupOrchestrator get _startupOrchestrator =>
+      SplashStartupOrchestrator(
+        firebaseStartupWait: _firebaseStartupWait,
+        isMounted: () => mounted,
+        navigateToPrimaryRoute: _navigateToPrimaryRoute,
+        prepareSynchronizedStartupBeforeNav:
+            ({required isFirstLaunch}) => _prepareSynchronizedStartupBeforeNav(
+                  isFirstLaunch: isFirstLaunch,
+                ),
+        runCriticalWarmStartLoads: ({required isFirstLaunch}) =>
+            _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch),
+        runWarmStartLoads: ({required isFirstLaunch}) =>
+            _runWarmStartLoads(isFirstLaunch: isFirstLaunch),
+        markMinimumStartupPrepared: (value) {
+          _minimumStartupPrepared = value;
+        },
+        isMinimumStartupPrepared: () => _minimumStartupPrepared,
+      );
 
-      late final bool isFirstLaunch;
-      final userService = ensureCurrentUserService();
-      final accountCenter = ensureAccountCenterService();
-      await accountCenter.init();
-
-      if (Platform.isIOS) {
-        isFirstLaunch = await _handleFirstLaunchAuthCleanup(prefs: prefs)
-            .timeout(const Duration(milliseconds: 350), onTimeout: () => false);
-        unawaited(userService.initialize());
-      } else {
-        await Future.wait([
-          _handleFirstLaunchAuthCleanup(prefs: prefs)
-              .then((v) => isFirstLaunch = v),
-          userService.initialize(),
-        ]);
-      }
-
-      _registerDependencies();
-      if (!IntegrationTestMode.skipBackgroundStartupWork) {
-        unawaited(_requestTrackingPermission());
-        unawaited(_initAdMob(isFirstLaunch: isFirstLaunch));
-        unawaited(
-          ensureTopTagsRepository().fetchTrendingTags(
-            resultLimit: 30,
-            preferCache: false,
-            forceRefresh: true,
-          ),
-        );
-
-        if (userService.effectiveUserId.isNotEmpty) {
-          unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
-        }
-      }
-
-      final loggedIn = userService.effectiveUserId.isNotEmpty;
-      if (loggedIn) {
-        final firebaseUser = FirebaseAuth.instance.currentUser;
-        final currentUser = userService.currentUser;
-        if (firebaseUser != null && currentUser != null) {
-          unawaited(accountCenter.addCurrentAccount(
-            currentUser: currentUser,
-            firebaseUser: firebaseUser,
-          ));
-        }
-        if (IntegrationTestMode.deterministicStartup) {
-          _minimumStartupPrepared = true;
-        } else {
-          await _prepareSynchronizedStartupBeforeNav(
-            isFirstLaunch: isFirstLaunch,
-          );
-        }
-      }
-
-      if (IntegrationTestMode.skipBackgroundStartupWork) {
-        return;
-      }
-      if (Platform.isIOS) {
-        Future.delayed(const Duration(seconds: 3), () {
-          unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
-        });
-      } else {
-        unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
-      }
-    } catch (_, __) {}
-
-    if (!mounted) return;
-    startupStopwatch.stop();
-    _navigateToPrimaryRoute();
-  }
+  Future<void> _performInitApp() async => _startupOrchestrator.initializeApp();
 
   Future<void> _performNavigateToPrimaryRoute() async {
     if (!mounted || _didNavigate || _navigationScheduled) return;
@@ -204,180 +136,4 @@ extension _SplashViewStartupPart on _SplashViewState {
     Get.offAll(() => SignIn());
   }
 
-  Future<void> _performBackgroundInit({required bool isFirstLaunch}) async {
-    try {
-      unawaited(_initCacheProxy());
-
-      final loggedIn = CurrentUserService.instance.effectiveUserId.isNotEmpty;
-      if (loggedIn) {
-        if (!_minimumStartupPrepared) {
-          final criticalDelay = Platform.isIOS
-              ? Duration.zero
-              : Duration(milliseconds: isFirstLaunch ? 250 : 600);
-          if (criticalDelay == Duration.zero) {
-            unawaited(_runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch));
-          } else {
-            Future.delayed(criticalDelay, () {
-              unawaited(
-                _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch),
-              );
-            });
-          }
-        }
-
-        final onWiFi = _isOnWiFiNow();
-        Future.delayed(Duration(seconds: isFirstLaunch ? 5 : 8), () {
-          if (onWiFi) {
-            unawaited(_runWarmStartLoads(isFirstLaunch: isFirstLaunch));
-          }
-        });
-      }
-
-      Future.delayed(const Duration(milliseconds: 900), () {
-        unawaited(NotificationService.instance.initialize());
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _initCacheProxy() async {
-    if (_SplashViewState._globalCacheProxyReady) return;
-    final inFlight = _SplashViewState._globalCacheProxyInitFuture;
-    if (inFlight != null) return inFlight;
-
-    final future = _initCacheProxyInternal();
-    _SplashViewState._globalCacheProxyInitFuture = future;
-    return future;
-  }
-
-  Future<void> _initCacheProxyInternal() async {
-    try {
-      final remote = ensureVideoRemoteConfigService();
-      if (!remote.isReady) {
-        await remote.initialize();
-      }
-
-      final server = ensureHlsProxyServer(permanent: true);
-      if (!server.isStarted) {
-        await server.start();
-      }
-
-      final cache = SegmentCacheManager.ensure();
-      await cache.init();
-      await _applyGlobalMediaCacheQuota();
-
-      ensurePrefetchScheduler(permanent: true);
-      _SplashViewState._globalCacheProxyReady = true;
-    } catch (_) {
-      _SplashViewState._globalCacheProxyReady = false;
-    } finally {
-      _SplashViewState._globalCacheProxyInitFuture = null;
-    }
-  }
-
-  Future<void> _applyGlobalMediaCacheQuota() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
-      final quotaGb = (savedGb + 1).clamp(4, 7);
-      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
-      final cache = SegmentCacheManager.maybeFind();
-      if (cache == null) return;
-      await cache.setUserLimitGB(quotaGb);
-    } catch (_) {}
-  }
-
-  Future<void> _initAudioContext() async {
-    try {
-      await AudioPlayer.global.setAudioContext(
-        AudioContext(
-          android: const AudioContextAndroid(
-            isSpeakerphoneOn: false,
-            stayAwake: false,
-            contentType: AndroidContentType.music,
-            usageType: AndroidUsageType.media,
-            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-          ),
-          iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.playback,
-            options: {AVAudioSessionOptions.mixWithOthers},
-          ),
-        ),
-      );
-    } catch (_) {}
-  }
-
-  Future<void> _initAdMob({required bool isFirstLaunch}) async {
-    try {
-      await ensureAdmobUnitConfigService().init();
-      await ensureAdmobBannerWarmupService().warmFromSplash(
-        isFirstLaunch: isFirstLaunch,
-      );
-    } catch (_) {}
-  }
-
-  void _registerDependencies() {
-    Get.lazyPut(() => NetworkAwarenessService());
-    Get.lazyPut(() => OfflineModeService.instance);
-
-    GlobalLoaderController.ensure();
-    ensureAdmobBannerWarmupService();
-    ensureAdmobUnitConfigService(permanent: true);
-    ensureStoryInteractionOptimizer();
-    Get.lazyPut(() => UnreadMessagesController());
-    Get.lazyPut(() => NavBarController());
-    Get.lazyPut(() => ProfileController());
-    if (maybeFindAgendaController() == null) {
-      Get.put(AgendaController(), permanent: true);
-    }
-    Get.lazyPut(() => RecommendedUserListController(), fenix: true);
-    Get.lazyPut(() => ExploreController());
-    Get.lazyPut(() => ShortController());
-    Get.lazyPut(() => EducationController());
-    Get.lazyPut(() => SavedPostsController());
-    Get.lazyPut(() => JobFinderController());
-    Get.lazyPut(() => StoryRowController(), fenix: true);
-    UploadQueueService.ensure(permanent: true);
-    if (!Platform.isIOS) {
-      ensureDeepLinkService();
-    }
-    IndexPoolStore.ensure(permanent: true);
-    ensureUserProfileCacheService();
-    StorageBudgetManager.ensure();
-    ensurePlaybackPolicyEngine();
-    ensurePlaybackKpiService();
-  }
-
-  Future<void> _requestTrackingPermission() async {
-    return;
-  }
-
-  Future<bool> _handleFirstLaunchAuthCleanup({
-    required SharedPreferences prefs,
-  }) async {
-    try {
-      const firstLaunchKey = 'app_has_launched_before';
-
-      final hasLaunchedBefore = prefs.getBool(firstLaunchKey) ?? false;
-      final isFirstLaunch = !hasLaunchedBefore;
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-
-      if (!hasLaunchedBefore && firebaseUser != null) {
-        await FirebaseAuth.instance.signOut();
-        await CurrentUserService.instance.logout();
-        await ensureAccountCenterService().signOutAllLocal();
-      }
-
-      if (!hasLaunchedBefore) {
-        await prefs.setBool(firstLaunchKey, true);
-      }
-      return isFirstLaunch;
-    } catch (_) {
-      try {
-        await FirebaseAuth.instance.signOut();
-        await CurrentUserService.instance.logout();
-        await ensureAccountCenterService().signOutAllLocal();
-      } catch (_) {}
-      return true;
-    }
-  }
 }
