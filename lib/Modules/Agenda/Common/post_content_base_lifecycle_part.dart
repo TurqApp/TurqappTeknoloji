@@ -13,9 +13,12 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
 
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
+      final prefersImmediateVideoInit = isStandalonePostInstance ||
+          _isPrimaryFeedSurfaceInstance ||
+          _isProfileFamilySurfaceInstance;
       final delay = isStandalonePostInstance
           ? Duration.zero
-          : (_isPrimaryFeedSurfaceInstance
+          : (prefersImmediateVideoInit
               ? Duration.zero
               : const Duration(milliseconds: 150));
       _lazyInitTimer = Timer(delay, () {
