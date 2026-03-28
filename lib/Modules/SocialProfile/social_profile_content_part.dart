@@ -227,17 +227,6 @@ extension _SocialProfileContentPart on _SocialProfileState {
                       suggestionPlacementId: 'profile',
                     ),
                   ),
-                if (combinedPosts.isNotEmpty &&
-                    combinedPosts.length < 4 &&
-                    actualIndex == combinedPosts.length - 1)
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(5, 8, 5, 8),
-                    child: AdmobKare(
-                      key: ValueKey('socialprof-ad-end'),
-                      contentPadding: EdgeInsets.zero,
-                      suggestionPlacementId: 'profile',
-                    ),
-                  ),
                 const SizedBox(height: 12),
               ],
             ),
