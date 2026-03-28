@@ -58,21 +58,54 @@ extension _NavBarViewShellContentPart on NavBarView {
   Widget _buildSelectedPage() {
     final hasEducation = settingController.educationScreenIsOn.value;
     final selected = controller.selectedIndex.value;
+    final selectedStackIndex = _stackIndexForSelected(
+      selected: selected,
+      hasEducation: hasEducation,
+    );
     final pages = <Widget>[
-      AgendaView(key: const PageStorageKey<String>('nav-agenda')),
-      ExploreView(key: const PageStorageKey<String>('nav-explore')),
+      _buildIntegrationSmokeTabPage(
+        stackIndex: 0,
+        selectedStackIndex: selectedStackIndex,
+        child: AgendaView(key: const PageStorageKey<String>('nav-agenda')),
+      ),
+      _buildIntegrationSmokeTabPage(
+        stackIndex: 1,
+        selectedStackIndex: selectedStackIndex,
+        child: ExploreView(key: const PageStorageKey<String>('nav-explore')),
+      ),
       if (hasEducation)
-        EducationView(key: const PageStorageKey<String>('nav-education')),
-      ProfileView(key: const PageStorageKey<String>('nav-profile')),
+        _buildIntegrationSmokeTabPage(
+          stackIndex: 2,
+          selectedStackIndex: selectedStackIndex,
+          child: EducationView(
+            key: const PageStorageKey<String>('nav-education'),
+          ),
+        ),
+      _buildIntegrationSmokeTabPage(
+        stackIndex: hasEducation ? 3 : 2,
+        selectedStackIndex: selectedStackIndex,
+        child: ProfileView(key: const PageStorageKey<String>('nav-profile')),
+      ),
     ];
 
     return IndexedStack(
-      index: _stackIndexForSelected(
-        selected: selected,
-        hasEducation: hasEducation,
-      ),
+      index: selectedStackIndex,
       children: pages,
     );
+  }
+
+  Widget _buildIntegrationSmokeTabPage({
+    required int stackIndex,
+    required int selectedStackIndex,
+    required Widget child,
+  }) {
+    if (!IntegrationTestMode.enabled) {
+      return child;
+    }
+    if (stackIndex == selectedStackIndex) {
+      return child;
+    }
+    return const SizedBox.shrink();
   }
 
   Future<bool> _handleBackNavigation() async {

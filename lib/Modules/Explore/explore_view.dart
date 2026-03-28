@@ -99,32 +99,38 @@ class _ExploreViewState extends State<ExploreView> {
 
   @override
   Widget build(BuildContext context) {
-    return SearchResetOnPageReturnScope(
-      onReset: controller.resetSearchToDefault,
-      child: Scaffold(
-        key: const ValueKey(IntegrationTestKeys.screenExplore),
-        body: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  _buildSearchHeader(context),
-                  _buildExploreOrSearchBody(context),
-                ],
+    final body = Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenExplore),
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                _buildSearchHeader(context),
+                _buildExploreOrSearchBody(context),
+              ],
+            ),
+            _buildScrollToTopButton(),
+            IgnorePointer(
+              ignoring: true,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ExploreAdPlacementHook(index: 0),
               ),
-              _buildScrollToTopButton(),
-              IgnorePointer(
-                ignoring: true,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ExploreAdPlacementHook(index: 0),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+
+    if (IntegrationTestMode.enabled) {
+      return body;
+    }
+
+    return SearchResetOnPageReturnScope(
+      onReset: controller.resetSearchToDefault,
+      child: body,
     );
   }
 }

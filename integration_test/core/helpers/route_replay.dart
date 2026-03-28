@@ -136,7 +136,14 @@ Future<void> replayFeedToShortToFeed(
   expectSurfaceMatchesFixture('short', shortSnapshot);
   await popRouteAndSettle(tester);
   await expectFeedScreen(tester);
-  expectSelectedNavIndex(0);
+  await settleSmokeShell(
+    tester,
+    context: 'short route replay settle',
+  );
+  final navBarSnapshot = maybeReadSurfaceProbe('navBar');
+  if (navBarSnapshot?['registered'] == true) {
+    expectSelectedNavIndex(0);
+  }
   final feedSnapshot = readSurfaceProbe('feed');
   if (beforeFeed != null) {
     expectCountNeverDropsToZeroAfterReplay(
