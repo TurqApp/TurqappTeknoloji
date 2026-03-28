@@ -5,7 +5,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_poli
 import 'package:turqappv2/Models/posts_model.dart';
 
 class ProfilePostsCacheService {
-  static const String _keyPrefix = 'profile_posts_cache_v1';
+  static const String _keyPrefix = 'profile_posts_cache_v2';
   static const int _maxItemsPerBucket = 250;
 
   Duration get _ttl =>

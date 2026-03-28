@@ -11,7 +11,7 @@ class _ProfilePostsSnapshotRepositoryState {
 
   void initialize(ProfilePostsSnapshotRepository repository) {
     snapshotStore = SharedPrefsScopedSnapshotStore<ProfileBuckets>(
-      prefsPrefix: 'profile_posts_snapshot_v1',
+      prefsPrefix: 'profile_posts_snapshot_v2',
       encode: repository._encodeBuckets,
       decode: repository._decodeBuckets,
     );

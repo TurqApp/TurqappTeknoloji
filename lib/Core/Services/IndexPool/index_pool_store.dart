@@ -71,7 +71,7 @@ class IndexPoolStore {
     return Get.put(IndexPoolStore(), permanent: permanent);
   }
 
-  static const int _schemaVersion = 4;
+  static const int _schemaVersion = 5;
   static const int _maxEntriesPerKind = 250;
   static const Duration _poolFileTtl = Duration(hours: 24);
   static const Duration _fallbackTtl = Duration(minutes: 5);

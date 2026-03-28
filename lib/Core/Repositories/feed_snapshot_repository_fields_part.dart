@@ -17,7 +17,7 @@ class _FeedSnapshotRepositoryState {
       MemoryScopedSnapshotStore<List<PostsModel>>();
   late final SharedPrefsScopedSnapshotStore<List<PostsModel>> snapshotStore =
       SharedPrefsScopedSnapshotStore<List<PostsModel>>(
-    prefsPrefix: 'feed_snapshot_v1',
+    prefsPrefix: 'feed_snapshot_v2',
     encode: repository._encodePosts,
     decode: repository._decodePosts,
   );
