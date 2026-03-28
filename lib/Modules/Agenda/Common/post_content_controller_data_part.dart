@@ -1,6 +1,9 @@
 part of 'post_content_controller.dart';
 
 extension PostContentControllerDataPart on PostContentController {
+  int? get _cachedPollSelection =>
+      _postState?.localPollSelection.value ?? _localPollSelection.value;
+
   int? _extractUserVoteFromPoll(Map<String, dynamic> poll) {
     final uid = _currentUid;
     if (uid.isEmpty) return null;
@@ -12,22 +15,20 @@ extension PostContentControllerDataPart on PostContentController {
   }
 
   void _syncLocalPollSelectionFromPoll(Map<String, dynamic> poll) {
-    _localPollSelection.value = _extractUserVoteFromPoll(poll);
+    final selection = _extractUserVoteFromPoll(poll);
+    _localPollSelection.value = selection;
+    _postState?.localPollSelection.value = selection;
   }
 
   bool _shouldIgnoreStaleIncomingPoll(Map<String, dynamic> incomingPoll) {
     final uid = _currentUid;
     if (uid.isEmpty) return false;
 
-    final currentPoll = Map<String, dynamic>.from(model.poll);
-    final currentUserVotes = currentPoll['userVotes'] is Map
-        ? Map<String, dynamic>.from(currentPoll['userVotes'])
-        : <String, dynamic>{};
     final incomingUserVotes = incomingPoll['userVotes'] is Map
         ? Map<String, dynamic>.from(incomingPoll['userVotes'])
         : <String, dynamic>{};
 
-    return currentUserVotes.containsKey(uid) && !incomingUserVotes.containsKey(uid);
+    return _cachedPollSelection != null && !incomingUserVotes.containsKey(uid);
   }
 
   void _bindFollowingState() {
@@ -49,6 +50,10 @@ extension PostContentControllerDataPart on PostContentController {
 
   void _bindMembershipListeners() {
     _postState = _postRepository.attachPost(model);
+    final initialSelection =
+        _postState?.localPollSelection.value ?? _extractUserVoteFromPoll(model.poll);
+    _localPollSelection.value = initialSelection;
+    _postState?.localPollSelection.value = initialSelection;
     _syncSharedInteractionState();
     _interactionWorker?.dispose();
     _myResharesWorker?.dispose();
@@ -171,7 +176,7 @@ extension PostContentControllerDataPart on PostContentController {
     final uid = _currentUid;
     if (uid.isEmpty) return;
     final originalPoll = Map<String, dynamic>.from(model.poll);
-    final originalSelection = _extractUserVoteFromPoll(originalPoll);
+    final originalSelection = _cachedPollSelection;
     final optimisticPoll = _postRepository.buildVotedPoll(
       poll: originalPoll,
       optionIndex: optionIndex,
@@ -181,6 +186,7 @@ extension PostContentControllerDataPart on PostContentController {
     if (optimisticPoll == null) return;
     try {
       _localPollSelection.value = optionIndex;
+      _postState?.localPollSelection.value = optionIndex;
       model.poll = optimisticPoll;
       currentModel.refresh();
       final confirmedPoll = await _postRepository.commitPollVote(
@@ -191,6 +197,7 @@ extension PostContentControllerDataPart on PostContentController {
       );
       if (confirmedPoll == null) {
         _localPollSelection.value = originalSelection;
+        _postState?.localPollSelection.value = originalSelection;
         model.poll = originalPoll;
       } else {
         _syncLocalPollSelectionFromPoll(confirmedPoll);
@@ -199,6 +206,7 @@ extension PostContentControllerDataPart on PostContentController {
       currentModel.refresh();
     } catch (_) {
       _localPollSelection.value = originalSelection;
+      _postState?.localPollSelection.value = originalSelection;
       model.poll = originalPoll;
       currentModel.refresh();
     }

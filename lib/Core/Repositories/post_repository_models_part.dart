@@ -9,6 +9,7 @@ class PostRepositoryState {
   final RxBool reshared = false.obs;
   final RxBool reported = false.obs;
   final RxBool commented = false.obs;
+  final RxnInt localPollSelection = RxnInt();
   final Rxn<Map<String, dynamic>> latestPostData = Rxn<Map<String, dynamic>>();
 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? postSub;
