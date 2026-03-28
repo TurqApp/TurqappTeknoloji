@@ -499,12 +499,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                                       unawaited(replayVideoFromStart()),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
+                                      horizontal: 24,
+                                      vertical: 14,
                                     ),
                                     decoration: BoxDecoration(
                                       color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(22),
+                                      borderRadius: BorderRadius.circular(28),
                                     ),
                                     child: const Text(
                                       'Tekrar izle',
@@ -512,7 +512,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 13,
+                                        fontSize: 15,
                                         fontFamily: 'MontserratSemiBold',
                                         height: 1.0,
                                       ),
@@ -532,12 +532,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                               onTap: () => unawaited(replayVideoFromStart()),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
+                                  horizontal: 24,
+                                  vertical: 14,
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(22),
+                                  borderRadius: BorderRadius.circular(28),
                                 ),
                                 child: const Text(
                                   'Tekrar izle',
@@ -545,7 +545,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 13,
+                                    fontSize: 15,
                                     fontFamily: 'MontserratSemiBold',
                                     height: 1.0,
                                   ),
