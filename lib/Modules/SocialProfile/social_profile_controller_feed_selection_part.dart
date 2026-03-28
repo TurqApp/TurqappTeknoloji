@@ -298,8 +298,10 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
         _lastPlaybackCommandDocId != playbackKey ||
             _lastPlaybackCommandAt == null ||
             now.difference(_lastPlaybackCommandAt!) >
-                const Duration(milliseconds: 220);
+                const Duration(milliseconds: 180);
     if (!shouldIssueCommand) return;
+    final readyForImmediateHandoff = manager.canResumePlaybackFor(playbackKey);
+    if (!readyForImmediateHandoff) return;
     manager.playOnlyThis(playbackKey);
     _lastPlaybackCommandDocId = playbackKey;
     _lastPlaybackCommandAt = now;

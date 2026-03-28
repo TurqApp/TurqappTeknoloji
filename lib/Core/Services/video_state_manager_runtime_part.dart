@@ -8,6 +8,14 @@ void _handleVideoStateManagerClose(VideoStateManager manager) {
 extension VideoStateManagerRuntimePart on VideoStateManager {
   String? get currentPlayingDocID => _currentPlayingDocID;
 
+  bool canResumePlaybackFor(String docID) {
+    if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
+      return false;
+    }
+    final handle = _allVideoControllers[docID];
+    return handle != null && handle.isInitialized;
+  }
+
   bool hasPendingPlayFor(String docID) {
     final timer = _pendingPlayTimer;
     return timer != null && timer.isActive && _currentPlayingDocID == docID;

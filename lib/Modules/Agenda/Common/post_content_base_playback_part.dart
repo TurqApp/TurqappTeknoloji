@@ -23,7 +23,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   bool _shouldDelayAutoplayForSegments(HLSVideoAdapter adapter) {
     if (!widget.model.hasPlayableVideo) return false;
     if (!widget.shouldPlay) return false;
-    if (_isPrimaryFeedSurfaceInstance) {
+    if (_isPrimaryFeedSurfaceInstance && _qaScrollToken.isEmpty) {
       return false;
     }
     if (_autoplaySegmentGateTimedOut) return false;
@@ -284,6 +284,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final controllerOwnedListPlayback = !isStandalonePostInstance &&
         (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
     if (controllerOwnedListPlayback) {
+      if (videoStateManager.currentPlayingDocID != playbackHandleKey) {
+        videoStateManager.playOnlyThis(playbackHandleKey);
+      }
       final resumedByManager =
           videoStateManager.resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
