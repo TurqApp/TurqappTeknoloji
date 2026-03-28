@@ -171,6 +171,8 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
   }
 
   Widget imageAndFollowButtons() {
+    final storyUser = controller.storyUserModel;
+    final hasStories = storyUser?.stories.isNotEmpty ?? false;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Row(
@@ -185,8 +187,7 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
                 return;
               }
 
-              if (controller.storyUserModel != null &&
-                  controller.storyUserModel!.stories.isNotEmpty) {
+              if (hasStories && storyUser != null) {
                 try {
                   _setCenteredIndex(-1);
                   controller.lastCenteredIndex =
@@ -194,9 +195,8 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
                           ? controller.currentVisibleIndex.value
                           : controller.lastCenteredIndex;
                   Get.to(() => StoryViewer(
-                          startedUser: controller.storyUserModel!,
-                          storyOwnerUsers: [controller.storyUserModel!]))
-                      ?.then((_) {
+                      startedUser: storyUser,
+                      storyOwnerUsers: [storyUser]))?.then((_) {
                     controller.resumeCenteredPost();
                   });
                 } catch (_) {}
@@ -288,8 +288,7 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
   }
 
   Widget _buildProfileImageWithBorder() {
-    final hasStories = controller.storyUserModel != null &&
-        controller.storyUserModel!.stories.isNotEmpty;
+    final hasStories = controller.storyUserModel?.stories.isNotEmpty ?? false;
 
     if (hasStories) {
       return Container(
