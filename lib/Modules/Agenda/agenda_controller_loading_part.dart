@@ -3,9 +3,33 @@ part of 'agenda_controller.dart';
 extension AgendaControllerLoadingPart on AgendaController {
   static const int _initialHeadSyncLimit = 24;
 
+  void _prepareFeedSurfaceAfterDataReady({
+    required String playbackBootstrapSource,
+  }) {
+    if (agendaList.isEmpty) return;
+
+    _prefetchThumbnailBatches();
+    _prefetchUpcomingImages();
+
+    if (centeredIndex.value == -1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          primeInitialCenteredPost();
+        }
+      });
+    } else {
+      _scheduleInitialFeedPlaybackBootstrap(
+        source: playbackBootstrapSource,
+      );
+    }
+
+    unawaited(syncFeedHeadAfterSurfaceOpen());
+  }
+
   void _performResetSurfaceForTabTransition() {
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
+    _cancelInitialFeedPlaybackBootstrap();
     _pendingCenteredDocId = null;
     lastCenteredIndex = agendaList.isEmpty ? null : 0;
     centeredIndex.value = -1;
@@ -246,11 +270,13 @@ extension AgendaControllerLoadingPart on AgendaController {
       final cutoffMs = _agendaCutoffMs(nowMs);
       final loadLimit = initial ? 30 : (pageLimit ?? fetchLimit);
       final liveConnected = ContentPolicy.isConnected;
+      final shouldPreferCacheOnOpen =
+          !liveConnected || (initial && agendaList.isEmpty);
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         limit: loadLimit,
-        preferCache: !liveConnected,
+        preferCache: shouldPreferCacheOnOpen,
         cacheOnly: !liveConnected,
       );
       final visibleItems = page.items;
@@ -408,19 +434,17 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     if (agendaList.isNotEmpty) {
-      if (centeredIndex.value == -1) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-            primeInitialCenteredPost();
-          }
-        });
-      }
-      unawaited(syncFeedHeadAfterSurfaceOpen());
+      _prepareFeedSurfaceAfterDataReady(
+        playbackBootstrapSource: 'ensure_feed_surface_ready',
+      );
       return;
     }
 
     if (!isLoading.value) {
       await ensureInitialFeedLoaded();
+      _prepareFeedSurfaceAfterDataReady(
+        playbackBootstrapSource: 'ensure_feed_surface_ready_after_load',
+      );
     }
   }
 

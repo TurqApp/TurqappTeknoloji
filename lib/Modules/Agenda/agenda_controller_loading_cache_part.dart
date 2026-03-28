@@ -1,22 +1,46 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingCachePart on AgendaController {
+  Future<Set<String>> _loadStartupFollowingIds(
+    String uid, {
+    Duration timeout = const Duration(milliseconds: 180),
+  }) async {
+    var effectiveFollowingIds = followingIDs.toSet();
+    if (effectiveFollowingIds.isNotEmpty || uid.isEmpty) {
+      return effectiveFollowingIds;
+    }
+    try {
+      final cachedFollowingIds = await _visibilityPolicy
+          .loadViewerFollowingIds(
+            viewerUserId: uid,
+            preferCache: true,
+          )
+          .timeout(
+            timeout,
+            onTimeout: () => effectiveFollowingIds,
+          );
+      if (cachedFollowingIds.isNotEmpty) {
+        effectiveFollowingIds = cachedFollowingIds;
+        followingIDs.assignAll(cachedFollowingIds);
+      }
+    } catch (_) {}
+    return effectiveFollowingIds;
+  }
+
   Future<void> _tryQuickFillFromCache({int? limit}) async {
     final effectiveLimit =
         limit ?? ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
-    final hadWarmSnapshot = await _tryQuickFillFromPool(limit: effectiveLimit);
+    await _tryQuickFillFromPool(limit: effectiveLimit);
     if (agendaList.isNotEmpty) return;
 
     if (ContentPolicy.isConnected) {
-      if (!hadWarmSnapshot) {
-        return;
-      }
       final me = CurrentUserService.instance.effectiveUserId;
       if (me.isEmpty) return;
+      final effectiveFollowingIds = await _loadStartupFollowingIds(me);
       final quickFallback =
           await _feedSnapshotRepository.loadQuickCachedPersonalFallback(
         userId: me,
-        followingIds: followingIDs.toSet(),
+        followingIds: effectiveFollowingIds,
         hiddenPostIds: hiddenPosts.toSet(),
         limit: effectiveLimit,
       );
@@ -315,9 +339,14 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       );
     }
 
+    var effectiveFollowingIds = followingIDs.toSet();
+    if (effectiveFollowingIds.isEmpty && !cacheOnly && startAfter == null) {
+      effectiveFollowingIds = await _loadStartupFollowingIds(uid);
+    }
+
     final page = await _feedSnapshotRepository.fetchHomePage(
       userId: uid,
-      followingIds: followingIDs.toSet(),
+      followingIds: effectiveFollowingIds,
       hiddenPostIds: hiddenPosts.toSet(),
       nowMs: nowMs,
       cutoffMs: cutoffMs,
