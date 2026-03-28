@@ -34,6 +34,9 @@ jobs:
       - name: Run Docs Single-Source Guard
         run: bash scripts/check_docs_single_source.sh
 
+      - name: Run Repo Surface Budget Guard
+        run: bash scripts/check_repo_surface_budget.sh
+
       - name: Upload Architecture Guard Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -42,6 +45,7 @@ jobs:
           path: |
             artifacts/architecture
             artifacts/docs_guard
+            artifacts/repo_surface_budget
 
   flutter-quality:
     name: Flutter Analyze + Test
