@@ -49,5 +49,18 @@ extension MarketRepositoryActionPart on MarketRepository {
     required String userId,
   }) async {
     if (docId.isEmpty || userId.isEmpty) return;
+    try {
+      await FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('recordMarketViewBatch')
+          .call({
+            'items': [
+              {'itemId': docId, 'count': 1},
+            ],
+          });
+    } on FirebaseFunctionsException {
+      return;
+    } catch (_) {
+      return;
+    }
   }
 }

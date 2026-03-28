@@ -174,6 +174,36 @@ test("marketStore blocks creating item for another user", async () => {
   );
 });
 
+test("marketStore blocks create with non-default server owned counters", async () => {
+  const uid = "market-owner-forged";
+  const ownerCtx = testEnv.authenticatedContext(uid);
+  const itemRef = doc(ownerCtx.firestore(), "marketStore/17421600000025");
+
+  await assertFails(
+    setDoc(itemRef, {
+      id: "17421600000025",
+      userId: uid,
+      title: "Sayaç enjeksiyonlu ilan",
+      description: "",
+      price: 10,
+      currency: "TRY",
+      categoryKey: "antika/aydinlatma",
+      categoryPath: ["Antika", "Aydınlatma"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Kadıköy",
+      locationText: "Kadıköy, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000025,
+      updatedAt: 1742160000025,
+      viewCount: 99,
+    }),
+  );
+});
+
 test("marketStore blocks authenticated viewer counter increments", async () => {
   const ownerUid = "market-owner-view";
   const viewerUid = "market-viewer";
@@ -247,6 +277,47 @@ test("marketStore allows owner item updates", async () => {
     updateDoc(doc(ownerCtx.firestore(), "marketStore/1742160000004"), {
       title: "Yeni Baslik",
       updatedAt: 1742160000300,
+    }),
+  );
+});
+
+test("marketStore blocks owner from updating server owned counter fields", async () => {
+  const ownerUid = "market-owner-counter-locked";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "marketStore/1742160000005"), {
+      id: "1742160000005",
+      userId: ownerUid,
+      title: "Counter Locked",
+      description: "Aciklama",
+      price: 100,
+      currency: "TRY",
+      categoryKey: "elektronik/bilgisayar",
+      categoryPath: ["Elektronik", "Bilgisayar"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Üsküdar",
+      locationText: "Üsküdar, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000500,
+      updatedAt: 1742160000500,
+      viewCount: 1,
+      favoriteCount: 2,
+      offerCount: 3,
+      reviewCount: 4,
+      averageRating: 4.5,
+      lastOfferAt: 1742160000400,
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertFails(
+    updateDoc(doc(ownerCtx.firestore(), "marketStore/1742160000005"), {
+      favoriteCount: 7,
+      updatedAt: 1742160000600,
     }),
   );
 });

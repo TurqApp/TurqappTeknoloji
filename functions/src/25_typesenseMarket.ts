@@ -4,6 +4,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore, Query } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
 import { RateLimits } from "./rateLimiter";
+export * from "./marketCounters";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const COLLECTION = "market_search_v3";

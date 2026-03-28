@@ -715,7 +715,28 @@ service cloud.firestore {
         && request.resource.data.coverImageUrl is string
         && request.resource.data.createdAt is int
         && request.resource.data.updatedAt is int
-        && request.resource.data.attributes is map;
+        && request.resource.data.attributes is map
+        && hasValidMarketServerOwnedDefaults(request.resource.data);
+    }
+    function marketServerOwnedKeys() {
+      return [
+        'viewCount',
+        'favoriteCount',
+        'offerCount',
+        'reviewCount',
+        'averageRating',
+        'lastOfferAt',
+        '_serverCounters'
+      ];
+    }
+    function hasValidMarketServerOwnedDefaults(data) {
+      return (!data.keys().hasAny(['favoriteCount']) || (data.favoriteCount is int && data.favoriteCount == 0))
+        && (!data.keys().hasAny(['offerCount']) || (data.offerCount is int && data.offerCount == 0))
+        && (!data.keys().hasAny(['viewCount']) || (data.viewCount is int && data.viewCount == 0))
+        && (!data.keys().hasAny(['reviewCount']) || (data.reviewCount is int && data.reviewCount == 0))
+        && (!data.keys().hasAny(['averageRating']) || data.averageRating == null)
+        && (!data.keys().hasAny(['lastOfferAt']) || (data.lastOfferAt is int && data.lastOfferAt == 0))
+        && !data.keys().hasAny(['_serverCounters']);
     }
     function canSellerRespondToMarketOffer(itemId) {
       return isAuth()
@@ -1171,7 +1192,9 @@ service cloud.firestore {
       allow create: if isAuth()
         && request.resource.data.userId == request.auth.uid
         && isValidMarketItemPayload();
-      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow update: if isAuth()
+        && resource.data.userId == request.auth.uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(marketServerOwnedKeys());
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
 
       match /favorites/{favoriteId} {

@@ -695,7 +695,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-003 | Risk | Orta | T-009 | Acik | Architecture guard false-positive uretip CI'yi gereksiz kilitleyebilir |
 | RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
 | RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
-| RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Acik | Market root sayaçlari icin server ownership tasarimi `F2-003` ile netlesti; implementasyon tamamlanana kadar `viewCount/favoriteCount/offerCount/reviewCount` stale kalabilir |
+| RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Kapandi | `F2-004` ile market root sayaçlari icin server-owned pipeline kuruldu; favorites/offers/reviews event kaynaklari trigger'lara, views ise callable + shard + reducer hattina tasindi; owner update denylist ve rules testleri yesil |
 | RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Acik | Android emulator smoke yesil olsa da authenticated acilista `feed_blank_surface`, `permission-denied` ve `remote gate watch` loglari uretiyor; Phase 2 baslangic blokaji olarak izlencek |
 | RISK-008 | Risk | Orta | F2-001 | Acik | Baseline kosusu sirasinda repo HEAD `648fe0c1` -> `c4fb4171` kaydi ve worktree'de plan disi 4 dosya kirlenmesi goruldu; task isolation zorlaniyor |
 | DEBT-001 | Debt | Orta | T-030 | Acik | Mikro `facade/fields/class part` dagilimi okuma maliyeti ve sahte modulerlik uretiyor; secici sadeleştirme gerekiyor |
@@ -719,7 +719,7 @@ Kurallar:
 
 | Tavsiye No | Kaynak | Durum | Neden simdi degil | Plan bitince onerilen ilk adim |
 | --- | --- | --- | --- | --- |
-| ADV-001 | `RISK-006`, `T-006` | Acik | `T-006` guvenlik yolunu kapatti; ama server-side aggregation ayri tasarim ve uygulama isi gerektiriyor, bu yuzden resmi sirayi bozmuyoruz | market root sayaclari icin server-side aggregation / backfill tasarimi cikar; `viewCount`, `favoriteCount`, `offerCount`, `reviewCount` alanlarini server ownership modeline tasi |
+| ADV-001 | `RISK-006`, `T-006` | Kapandi | `F2-003` tasarimi ve `F2-004` implementasyonu ile server-side aggregation / backfill hatti teslim edildi | tamamlandi |
 | ADV-002 | `T-022` | Acik | `feed_resume_test` ve `short_refresh_preserve_test` profile replay / route-return sirasinda framework assert'leri ve probe stabilitesi nedeniyle resmi T-022 manifestinden cikarildi | profile route replay ve short refresh preserve akislarini ayri smoke paketi olarak stabilize et; Focus/InheritedScope assert kok nedenini kapatip sonra manifest'e geri al |
 
 ## Faz 2 Resmi Plan
@@ -737,7 +737,7 @@ Toplam:
 | F2-001 | Post-plan truth-run ve baseline | `ADV-001`, `ADV-002`, acik `RISK/DEBT` kayitlari | - | M/2 | Tamamlandi |
 | F2-002 | Stored-account / reauth hardening | `RISK-002` | F2-001 | L/3 | Tamamlandi |
 | F2-003 | Market counter server-ownership tasarimi | `ADV-001`, `RISK-006` | F2-001 | M/2 | Tamamlandi |
-| F2-004 | Market counter server pipeline implementasyonu | `ADV-001`, `RISK-006` | F2-003 | XL/5 | Acik |
+| F2-004 | Market counter server pipeline implementasyonu | `ADV-001`, `RISK-006` | F2-003 | XL/5 | Tamamlandi |
 | F2-005 | Profile route replay smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Acik |
 | F2-006 | Short refresh preserve smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Acik |
 | F2-007 | Cikarilan smoke akislarini resmi manifest'e geri al | `ADV-002` | F2-005, F2-006 | M/2 | Acik |
@@ -753,6 +753,7 @@ Faz 2 artifact kayitlari:
 | F2-ART-001 | `docs/testing/faz2_truth_run_baseline_2026-03-28.md` | Dolu | `F2-001` baseline, coverage ve Android emulator smoke sonucu |
 | F2-ART-002 | `docs/testing/faz2_reauth_hardening_2026-03-28.md` | Dolu | `F2-002` stored-account reauth sertlestirmesi ve test kaydi |
 | F2-ART-003 | `docs/testing/faz2_market_counter_server_ownership_design_2026-03-28.md` | Dolu | `F2-003` market sayaçlari icin server ownership, backfill ve rollout tasarimi |
+| F2-ART-004 | `docs/testing/faz2_market_counter_server_pipeline_2026-03-28.md` | Dolu | `F2-004` market sayaçlari icin server pipeline, rules denylist ve backfill callable kaydi |
 
 
 ## Feature Sahiplik Matrisi
