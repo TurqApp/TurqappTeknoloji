@@ -30,6 +30,19 @@ void main() {
         ],
       );
       expect(contract.usesPrimaryFeedPaging, isTrue);
+      expect(contract.primaryCollection, 'userFeeds');
+      expect(contract.primaryItemsSubcollection, 'items');
+      expect(contract.celebrityCollection, 'celebAccounts');
+      expect(
+        contract.requiredReferenceFields,
+        const <String>[
+          'postId',
+          'authorId',
+          'timeStamp',
+          'isCelebrity',
+          'expiresAt',
+        ],
+      );
     });
 
     test('repository is bound to the canonical home feed contract', () {

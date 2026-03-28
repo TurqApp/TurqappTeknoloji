@@ -21,6 +21,10 @@ class FeedHomeContract {
     required this.supplementalSources,
     required this.fallbackOrder,
     required this.usesPrimaryFeedPaging,
+    required this.primaryCollection,
+    required this.primaryItemsSubcollection,
+    required this.celebrityCollection,
+    required this.requiredReferenceFields,
   });
 
   static const FeedHomeContract primaryHybridV1 = FeedHomeContract(
@@ -37,6 +41,16 @@ class FeedHomeContract {
       FeedHomeFallbackPath.legacyPage,
     ],
     usesPrimaryFeedPaging: true,
+    primaryCollection: 'userFeeds',
+    primaryItemsSubcollection: 'items',
+    celebrityCollection: 'celebAccounts',
+    requiredReferenceFields: <String>[
+      'postId',
+      'authorId',
+      'timeStamp',
+      'isCelebrity',
+      'expiresAt',
+    ],
   );
 
   final String contractId;
@@ -44,4 +58,8 @@ class FeedHomeContract {
   final List<FeedHomeSupplementalSource> supplementalSources;
   final List<FeedHomeFallbackPath> fallbackOrder;
   final bool usesPrimaryFeedPaging;
+  final String primaryCollection;
+  final String primaryItemsSubcollection;
+  final String celebrityCollection;
+  final List<String> requiredReferenceFields;
 }

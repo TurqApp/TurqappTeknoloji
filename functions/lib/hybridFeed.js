@@ -28,6 +28,7 @@ exports.rebuildHybridFeedForUser = rebuildHybridFeedForUser;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const notificationInbox_1 = require("./notificationInbox");
+const hybridFeedContract_1 = require("./hybridFeedContract");
 const db = () => admin.firestore();
 /// Takipçi eşiği: üzerindeyse celebrity (fan-in), altındaysa fan-out
 const FAN_OUT_THRESHOLD = 10000;
@@ -177,19 +178,19 @@ async function upsertPostIntoHybridFeed(args) {
         Number(authorDoc.data()?.counterOfFollowers) ||
         0;
     if (followerCount > FAN_OUT_THRESHOLD) {
-        await db().collection("celebAccounts").doc(authorId).set({ uid: authorId, followerCount, updatedAt: Date.now() }, { merge: true });
+        await db().collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.celebrityCollection).doc(authorId).set({ uid: authorId, followerCount, updatedAt: Date.now() }, { merge: true });
         await db()
-            .collection("userFeeds")
+            .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryCollection)
             .doc(authorId)
-            .collection("items")
+            .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
             .doc(postId)
             .set({
-            postId,
-            authorId,
-            timeStamp,
-            isVideo,
-            expiresAt: timeStamp + FEED_TTL_MS,
-            isCelebrity: true,
+            [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+            [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+            [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+            [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+            [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+            [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: true,
         }, { merge: true });
         return;
     }
@@ -210,17 +211,17 @@ async function upsertPostIntoHybridFeed(args) {
         for (const followerDoc of followersSnap.docs) {
             const followerUid = followerDoc.id;
             const feedRef = db()
-                .collection("userFeeds")
+                .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryCollection)
                 .doc(followerUid)
-                .collection("items")
+                .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
                 .doc(postId);
             wb.set(feedRef, {
-                postId,
-                authorId,
-                timeStamp,
-                isVideo,
-                expiresAt: timeStamp + FEED_TTL_MS,
-                isCelebrity: false,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
             }, { merge: true });
         }
         await wb.commit();
@@ -229,17 +230,17 @@ async function upsertPostIntoHybridFeed(args) {
             break;
     }
     await db()
-        .collection("userFeeds")
+        .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryCollection)
         .doc(authorId)
-        .collection("items")
+        .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
         .doc(postId)
         .set({
-        postId,
-        authorId,
-        timeStamp,
-        isVideo,
-        expiresAt: timeStamp + FEED_TTL_MS,
-        isCelebrity: false,
+        [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+        [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+        [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+        [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+        [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+        [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
     }, { merge: true });
 }
 async function collectRelationIds(uid, relation) {
@@ -301,7 +302,7 @@ async function rebuildHybridFeedForUser(args) {
     }, [])
         .map(async (chunk) => {
         const snap = await db()
-            .collection("celebAccounts")
+            .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.celebrityCollection)
             .where(admin.firestore.FieldPath.documentId(), "in", chunk)
             .get();
         return snap.docs.map((doc) => doc.id);
@@ -344,16 +345,16 @@ async function rebuildHybridFeedForUser(args) {
         const wb = db().batch();
         for (const entry of chunk) {
             wb.set(db()
-                .collection("userFeeds")
+                .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryCollection)
                 .doc(normalizedUid)
-                .collection("items")
+                .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
                 .doc(entry.postId), {
-                postId: entry.postId,
-                authorId: entry.authorId,
-                timeStamp: entry.timeStamp,
-                isVideo: entry.isVideo,
-                expiresAt: entry.timeStamp + FEED_TTL_MS,
-                isCelebrity: entry.isCelebrity,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.postId]: entry.postId,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.authorId]: entry.authorId,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: entry.timeStamp,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isVideo]: entry.isVideo,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: entry.timeStamp + FEED_TTL_MS,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: entry.isCelebrity,
             }, { merge: true });
             writeCount += 1;
         }
@@ -511,17 +512,17 @@ exports.onPostDelete = functions
     try {
         // Author'ın kendi feed'inden sil
         await db()
-            .collection("userFeeds")
+            .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryCollection)
             .doc(authorId)
-            .collection("items")
+            .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
             .doc(postId)
             .delete();
         // Takipçilerin feed'inden temizle (collectionGroup sorgusu)
         let lastDocRef = null;
         while (true) {
             let q = db()
-                .collectionGroup("items")
-                .where("postId", "==", postId)
+                .collectionGroup(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
+                .where(hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.postId, "==", postId)
                 .limit(400);
             if (lastDocRef)
                 q = q.startAfter(lastDocRef);
@@ -580,17 +581,17 @@ exports.onNewFollower = functions
         for (const postDoc of postsSnap.docs) {
             const d = postDoc.data();
             const feedRef = db()
-                .collection("userFeeds")
+                .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryCollection)
                 .doc(followerId)
-                .collection("items")
+                .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
                 .doc(postDoc.id);
             wb.set(feedRef, {
-                postId: postDoc.id,
-                authorId,
-                timeStamp: d.timeStamp || now,
-                isVideo: !!(d.videoHLSMasterUrl || d.video),
-                expiresAt: (d.timeStamp || now) + FEED_TTL_MS,
-                isCelebrity: false,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.postId]: postDoc.id,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: d.timeStamp || now,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isVideo]: !!(d.videoHLSMasterUrl || d.video),
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: (d.timeStamp || now) + FEED_TTL_MS,
+                [hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
             });
         }
         await wb.commit();
@@ -612,8 +613,8 @@ exports.cleanupExpiredFeedItems = functions
     let lastDocRef = null;
     while (true) {
         let q = db()
-            .collectionGroup("items")
-            .where("expiresAt", "<", now)
+            .collectionGroup(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
+            .where(hybridFeedContract_1.HYBRID_FEED_CONTRACT.referenceFields.expiresAt, "<", now)
             .limit(400);
         if (lastDocRef)
             q = q.startAfter(lastDocRef);

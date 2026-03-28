@@ -23,6 +23,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { buildInboxPayload } from "./notificationInbox";
+import { HYBRID_FEED_CONTRACT } from "./hybridFeedContract";
 
 const db = () => admin.firestore();
 
@@ -241,23 +242,23 @@ export async function upsertPostIntoHybridFeed(args: {
     0;
 
   if (followerCount > FAN_OUT_THRESHOLD) {
-    await db().collection("celebAccounts").doc(authorId).set(
+    await db().collection(HYBRID_FEED_CONTRACT.celebrityCollection).doc(authorId).set(
       { uid: authorId, followerCount, updatedAt: Date.now() },
       { merge: true }
     );
     await db()
-      .collection("userFeeds")
+      .collection(HYBRID_FEED_CONTRACT.primaryCollection)
       .doc(authorId)
-      .collection("items")
+      .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
       .doc(postId)
       .set(
         {
-          postId,
-          authorId,
-          timeStamp,
-          isVideo,
-          expiresAt: timeStamp + FEED_TTL_MS,
-          isCelebrity: true,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: true,
         },
         { merge: true }
       );
@@ -283,20 +284,20 @@ export async function upsertPostIntoHybridFeed(args: {
     for (const followerDoc of followersSnap.docs) {
       const followerUid = followerDoc.id;
       const feedRef = db()
-        .collection("userFeeds")
+        .collection(HYBRID_FEED_CONTRACT.primaryCollection)
         .doc(followerUid)
-        .collection("items")
+        .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
         .doc(postId);
 
       wb.set(
         feedRef,
         {
-          postId,
-          authorId,
-          timeStamp,
-          isVideo,
-          expiresAt: timeStamp + FEED_TTL_MS,
-          isCelebrity: false,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
         },
         { merge: true }
       );
@@ -308,18 +309,18 @@ export async function upsertPostIntoHybridFeed(args: {
   }
 
   await db()
-    .collection("userFeeds")
+    .collection(HYBRID_FEED_CONTRACT.primaryCollection)
     .doc(authorId)
-    .collection("items")
+    .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
     .doc(postId)
     .set(
       {
-        postId,
-        authorId,
-        timeStamp,
-        isVideo,
-        expiresAt: timeStamp + FEED_TTL_MS,
-        isCelebrity: false,
+        [HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+        [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+        [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+        [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+        [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+        [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
       },
       { merge: true }
     );
@@ -403,7 +404,7 @@ export async function rebuildHybridFeedForUser(args: {
           }, [])
           .map(async (chunk) => {
             const snap = await db()
-              .collection("celebAccounts")
+              .collection(HYBRID_FEED_CONTRACT.celebrityCollection)
               .where(admin.firestore.FieldPath.documentId(), "in", chunk)
               .get();
             return snap.docs.map((doc) => doc.id);
@@ -464,17 +465,18 @@ export async function rebuildHybridFeedForUser(args: {
     for (const entry of chunk) {
       wb.set(
         db()
-          .collection("userFeeds")
+          .collection(HYBRID_FEED_CONTRACT.primaryCollection)
           .doc(normalizedUid)
-          .collection("items")
+          .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
           .doc(entry.postId),
         {
-          postId: entry.postId,
-          authorId: entry.authorId,
-          timeStamp: entry.timeStamp,
-          isVideo: entry.isVideo,
-          expiresAt: entry.timeStamp + FEED_TTL_MS,
-          isCelebrity: entry.isCelebrity,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: entry.postId,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: entry.authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: entry.timeStamp,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: entry.isVideo,
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]:
+            entry.timeStamp + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: entry.isCelebrity,
         },
         { merge: true }
       );
@@ -649,9 +651,9 @@ export const onPostDelete = functions
     try {
       // Author'ın kendi feed'inden sil
       await db()
-        .collection("userFeeds")
+        .collection(HYBRID_FEED_CONTRACT.primaryCollection)
         .doc(authorId)
-        .collection("items")
+        .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
         .doc(postId)
         .delete();
 
@@ -659,8 +661,8 @@ export const onPostDelete = functions
       let lastDocRef: admin.firestore.QueryDocumentSnapshot | null = null;
       while (true) {
         let q: admin.firestore.Query = db()
-          .collectionGroup("items")
-          .where("postId", "==", postId)
+          .collectionGroup(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
+          .where(HYBRID_FEED_CONTRACT.referenceFields.postId, "==", postId)
           .limit(400);
         if (lastDocRef) q = q.startAfter(lastDocRef);
 
@@ -722,18 +724,20 @@ export const onNewFollower = functions
       for (const postDoc of postsSnap.docs) {
         const d = postDoc.data();
         const feedRef = db()
-          .collection("userFeeds")
+          .collection(HYBRID_FEED_CONTRACT.primaryCollection)
           .doc(followerId)
-          .collection("items")
+          .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
           .doc(postDoc.id);
 
         wb.set(feedRef, {
-          postId: postDoc.id,
-          authorId,
-          timeStamp: d.timeStamp || now,
-          isVideo: !!(d.videoHLSMasterUrl || d.video),
-          expiresAt: (d.timeStamp || now) + FEED_TTL_MS,
-          isCelebrity: false,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: postDoc.id,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: d.timeStamp || now,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]:
+            !!(d.videoHLSMasterUrl || d.video),
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]:
+            (d.timeStamp || now) + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
         });
       }
       await wb.commit();
@@ -758,8 +762,8 @@ export const cleanupExpiredFeedItems = functions
     let lastDocRef: admin.firestore.QueryDocumentSnapshot | null = null;
     while (true) {
       let q: admin.firestore.Query = db()
-        .collectionGroup("items")
-        .where("expiresAt", "<", now)
+        .collectionGroup(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
+        .where(HYBRID_FEED_CONTRACT.referenceFields.expiresAt, "<", now)
         .limit(400);
       if (lastDocRef) q = q.startAfter(lastDocRef);
 
