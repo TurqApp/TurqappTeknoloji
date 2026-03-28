@@ -4,6 +4,14 @@ extension PostContentControllerDataPart on PostContentController {
   int? get _cachedPollSelection =>
       _postState?.localPollSelection.value ?? _localPollSelection.value;
 
+  void _cachePollLocally(Map<String, dynamic> poll) {
+    final state = _postState;
+    if (state == null) return;
+    final latest = Map<String, dynamic>.from(state.latestPostData.value ?? {});
+    latest['poll'] = Map<String, dynamic>.from(poll);
+    state.latestPostData.value = latest;
+  }
+
   int? _extractUserVoteFromPoll(Map<String, dynamic> poll) {
     final uid = _currentUid;
     if (uid.isEmpty) return null;
@@ -176,7 +184,6 @@ extension PostContentControllerDataPart on PostContentController {
     final uid = _currentUid;
     if (uid.isEmpty) return;
     final originalPoll = Map<String, dynamic>.from(model.poll);
-    final originalSelection = _cachedPollSelection;
     final optimisticPoll = _postRepository.buildVotedPoll(
       poll: originalPoll,
       optionIndex: optionIndex,
@@ -188,6 +195,7 @@ extension PostContentControllerDataPart on PostContentController {
       _localPollSelection.value = optionIndex;
       _postState?.localPollSelection.value = optionIndex;
       model.poll = optimisticPoll;
+      _cachePollLocally(optimisticPoll);
       currentModel.refresh();
       final confirmedPoll = await _postRepository.commitPollVote(
         postId: model.docID,
@@ -195,19 +203,13 @@ extension PostContentControllerDataPart on PostContentController {
         fallbackTimestampMs: model.timeStamp.toInt(),
         currentUid: uid,
       );
-      if (confirmedPoll == null) {
-        _localPollSelection.value = originalSelection;
-        _postState?.localPollSelection.value = originalSelection;
-        model.poll = originalPoll;
-      } else {
+      if (confirmedPoll != null) {
         _syncLocalPollSelectionFromPoll(confirmedPoll);
         model.poll = confirmedPoll;
+        _cachePollLocally(confirmedPoll);
       }
       currentModel.refresh();
     } catch (_) {
-      _localPollSelection.value = originalSelection;
-      _postState?.localPollSelection.value = originalSelection;
-      model.poll = originalPoll;
       currentModel.refresh();
     }
   }
