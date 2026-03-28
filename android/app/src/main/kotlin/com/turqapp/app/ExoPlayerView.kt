@@ -236,6 +236,7 @@ class ExoPlayerView(
                     setVideoFrameMetadataListener(
                         VideoFrameMetadataListener { _, _, _, _ ->
                             lastVideoFrameAtMs = System.currentTimeMillis()
+                            smokeMonitor.onFrameRenderedSample()
                         }
                     )
                 }

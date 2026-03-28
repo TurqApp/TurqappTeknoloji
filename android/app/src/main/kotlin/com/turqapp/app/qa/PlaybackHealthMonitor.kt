@@ -219,6 +219,24 @@ class PlaybackHealthMonitor(
         publish("frameRendered")
     }
 
+    fun onFrameRenderedSample() {
+        lastFrameRenderedAt = now()
+        if (!hasRenderedFirstFrame) {
+            hasRenderedFirstFrame = true
+            if (firstFrameRenderedAt == 0L) {
+                firstFrameRenderedAt = lastFrameRenderedAt
+            }
+        }
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        clearErrors(
+            "VIDEO_FREEZE",
+            "AUDIO_NOT_STARTED",
+            "FULLSCREEN_INTERRUPTION",
+            "BACKGROUND_RESUME_FAILURE",
+        )
+    }
+
     fun onPositionUpdate(positionMs: Long) {
         if (positionMs > lastKnownPlaybackPosition + 40L) {
             lastKnownPlaybackAdvanceAt = now()
