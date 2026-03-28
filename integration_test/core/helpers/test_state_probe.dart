@@ -13,6 +13,13 @@ Map<String, dynamic> readSurfaceProbe(String surface) {
   return Map<String, dynamic>.from(payload as Map<String, dynamic>);
 }
 
+Map<String, dynamic>? maybeReadSurfaceProbe(String surface) {
+  final snapshot = readIntegrationProbe();
+  final payload = snapshot[surface];
+  if (payload is! Map<String, dynamic>) return null;
+  return Map<String, dynamic>.from(payload);
+}
+
 List<String> _readDocIds(Map<String, dynamic> payload) {
   final raw = payload['docIds'];
   if (raw is! List) return const <String>[];

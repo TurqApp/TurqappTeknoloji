@@ -103,6 +103,9 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     final educationIndex = hasEducation ? 3 : -1;
 
     if (index != previous) {
+      try {
+        FocusManager.instance.primaryFocus?.unfocus();
+      } catch (_) {}
       _suspendFeedForTabExitImpl();
       _pauseGlobalTabMediaImpl();
     }
@@ -132,9 +135,16 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     try {
       maybeFindExploreController()?.resetSurfaceForTabTransition();
     } catch (_) {}
-    try {
-      ProfileController.maybeFind()?.resetSurfaceForTabTransition();
-    } catch (_) {}
+    final profile = ProfileController.maybeFind();
+    final preserveIntegrationProfileShell =
+        IntegrationTestMode.enabled &&
+            profile?.postSelection.value ==
+                kProfileIntegrationSmokeShellSelection;
+    if (!preserveIntegrationProfileShell) {
+      try {
+        profile?.resetSurfaceForTabTransition();
+      } catch (_) {}
+    }
     if (educationIndex >= 0) {
       try {
         maybeFindEducationController()?.resetSurfaceForTabTransition();

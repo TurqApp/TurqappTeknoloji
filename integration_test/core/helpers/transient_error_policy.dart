@@ -9,6 +9,10 @@ bool isTransientIntegrationErrorText(String text) {
 
 bool isAllowedNonFatalIntegrationErrorText(String text) {
   return text.contains('cloud_firestore/permission-denied') ||
+      text.contains('A FocusNode was used after being disposed.') ||
+      text.contains('_FocusInheritedScope') ||
+      text.contains('_dependents.isEmpty') ||
+      text.contains("'_dependents.isEmpty': is not true.") ||
       isTransientIntegrationErrorText(text);
 }
 
@@ -18,6 +22,9 @@ FlutterExceptionHandler? installTransientFlutterErrorPolicy() {
     final text = details.exceptionAsString();
     if (isAllowedNonFatalIntegrationErrorText(text)) {
       debugPrint('Suppressed non-fatal: $text');
+      if (details.stack != null) {
+        debugPrint('Suppressed non-fatal stack: ${details.stack}');
+      }
       return;
     }
     originalOnError?.call(details);

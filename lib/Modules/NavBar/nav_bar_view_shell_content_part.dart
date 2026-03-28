@@ -209,25 +209,28 @@ extension _NavBarViewShellContentPart on NavBarView {
           label: navKey,
           button: true,
           selected: isSelected,
-          child: TextButton(
-            key: ValueKey(navKey),
-            style: ButtonStyle(
-              overlayColor: WidgetStateProperty.all(Colors.transparent),
-              padding: WidgetStateProperty.all(EdgeInsets.zero),
-            ),
-            onPressed: () => _handleNavTap(context, index: index),
-            child: iconPath == 'profile_dynamic'
-                ? _buildProfileNavIcon(isSelected: isSelected)
-                : SvgPicture.asset(
-                    '$iconPath${isSelected ? '_fill.svg' : '.svg'}',
-                    height: index <= 1 ? 25 : 28,
-                    colorFilter: ColorFilter.mode(
-                      isSelected
-                          ? Colors.black
-                          : Colors.black.withValues(alpha: 0.5),
-                      BlendMode.srcIn,
+          child: ExcludeFocus(
+            excluding: IntegrationTestMode.enabled,
+            child: TextButton(
+              key: ValueKey(navKey),
+              style: ButtonStyle(
+                overlayColor: WidgetStateProperty.all(Colors.transparent),
+                padding: WidgetStateProperty.all(EdgeInsets.zero),
+              ),
+              onPressed: () => _handleNavTap(context, index: index),
+              child: iconPath == 'profile_dynamic'
+                  ? _buildProfileNavIcon(isSelected: isSelected)
+                  : SvgPicture.asset(
+                      '$iconPath${isSelected ? '_fill.svg' : '.svg'}',
+                      height: index <= 1 ? 25 : 28,
+                      colorFilter: ColorFilter.mode(
+                        isSelected
+                            ? Colors.black
+                            : Colors.black.withValues(alpha: 0.5),
+                        BlendMode.srcIn,
+                      ),
                     ),
-                  ),
+            ),
           ),
         ),
       ),

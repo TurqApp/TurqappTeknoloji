@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
@@ -72,6 +73,9 @@ class _ExploreViewState extends State<ExploreView> {
   @override
   void initState() {
     super.initState();
+    if (IntegrationTestMode.enabled) {
+      debugPrint('[integration-smoke] ExploreView.initState');
+    }
     final existingController = maybeFindExploreController();
     if (existingController != null) {
       controller = existingController;
@@ -83,6 +87,9 @@ class _ExploreViewState extends State<ExploreView> {
 
   @override
   void dispose() {
+    if (IntegrationTestMode.enabled) {
+      debugPrint('[integration-smoke] ExploreView.dispose owns=$_ownsController');
+    }
     if (_ownsController &&
         identical(maybeFindExploreController(), controller)) {
       Get.delete<ExploreController>();

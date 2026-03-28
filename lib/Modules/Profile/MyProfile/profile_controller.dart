@@ -36,3 +36,5 @@ part 'profile_controller_selection_part.dart';
 part 'profile_controller_runtime_part.dart';
 part 'profile_controller_support_part.dart';
 part 'profile_controller_fields_part.dart';
+
+const int kProfileIntegrationSmokeShellSelection = 99;

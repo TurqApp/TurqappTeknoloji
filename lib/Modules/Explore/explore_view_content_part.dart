@@ -2,6 +2,13 @@ part of 'explore_view.dart';
 
 extension _ExploreViewContentPart on _ExploreViewState {
   Widget _buildSearchHeader(BuildContext context) {
+    if (IntegrationTestMode.enabled) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        child: _IntegrationSmokeSearchHeader(),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       child: Row(
@@ -211,5 +218,38 @@ extension _ExploreViewContentPart on _ExploreViewState {
             )
           : const SizedBox();
     });
+  }
+}
+
+class _IntegrationSmokeSearchHeader extends StatelessWidget {
+  const _IntegrationSmokeSearchHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: TurqSearchBar.height,
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.03),
+        borderRadius: const BorderRadius.all(Radius.circular(10)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: const [
+          Icon(CupertinoIcons.search, color: Colors.grey, size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Search',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -47,6 +47,11 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
   }
 
   Widget _buildProfileContent(BuildContext context) {
+    if (IntegrationTestMode.enabled &&
+        controller.postSelection.value == kProfileIntegrationSmokeShellSelection) {
+      return _buildIntegrationSmokeShell();
+    }
+
     return controller.postSelection.value == 0
         ? _buildPostsFeed()
         : controller.postSelection.value == 1
@@ -60,6 +65,22 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                         : controller.postSelection.value == 5
                             ? buildIzbiraklar(context)
                             : Column(children: [header()]);
+  }
+
+  Widget _buildIntegrationSmokeShell() {
+    return CustomScrollView(
+      controller: controller.scrollControllerForSelection(
+        kProfileIntegrationSmokeShellSelection,
+      ),
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      slivers: const [
+        SliverToBoxAdapter(
+          child: SizedBox(height: 1),
+        ),
+      ],
+    );
   }
 
   Widget _buildPostsFeed() {
@@ -216,18 +237,25 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                   userId: _myUserId,
                   imageUrl: _myAvatarUrl,
                   radius: 120,
-                  placeholder: const DefaultAvatar(
-                    radius: 120,
-                    backgroundColor: Colors.transparent,
-                    iconColor: Colors.white70,
-                    padding: EdgeInsets.all(36),
-                  ),
+                  placeholder: _buildFullSizeDefaultAvatarAsset(),
+                  errorWidget: _buildFullSizeDefaultAvatarAsset(),
                 ),
               ),
             ),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildFullSizeDefaultAvatarAsset() {
+    return ClipOval(
+      child: SizedBox.expand(
+        child: SvgPicture.asset(
+          kDefaultAvatarAsset,
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 

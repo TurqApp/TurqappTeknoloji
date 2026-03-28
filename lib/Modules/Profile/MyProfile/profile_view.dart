@@ -16,6 +16,8 @@ import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -115,11 +117,17 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void initState() {
     super.initState();
+    if (IntegrationTestMode.enabled) {
+      debugPrint('[integration-smoke] ProfileView.initState');
+    }
     _initializeProfileView();
   }
 
   @override
   void dispose() {
+    if (IntegrationTestMode.enabled) {
+      debugPrint('[integration-smoke] ProfileView.dispose owns=$_ownsController');
+    }
     _disposeProfileView();
     super.dispose();
   }

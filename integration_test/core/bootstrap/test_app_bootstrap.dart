@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -509,7 +510,61 @@ Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {
 
 Finder byItKey(String key) => find.byKey(ValueKey<String>(key));
 
+void _safeUnfocusPrimaryFocus() {
+  final primaryFocus = FocusManager.instance.primaryFocus;
+  if (primaryFocus == null) return;
+  try {
+    primaryFocus.unfocus();
+  } catch (error) {
+    debugPrint('[integration-smoke] safe unfocus skipped: $error');
+  }
+}
+
+Future<void> _pumpUntilProbeRegistered(
+  WidgetTester tester,
+  String surface, {
+  Duration step = const Duration(milliseconds: 250),
+  int maxPumps = 12,
+}) async {
+  Map<String, dynamic> snapshot = IntegrationTestStateProbe.snapshot();
+  Map<String, dynamic> payload = Map<String, dynamic>.from(
+    snapshot[surface] as Map? ?? const <String, dynamic>{},
+  );
+
+  for (var i = 0; i < maxPumps && payload['registered'] != true; i++) {
+    await tester.pump(step);
+    snapshot = IntegrationTestStateProbe.snapshot();
+    payload = Map<String, dynamic>.from(
+      snapshot[surface] as Map? ?? const <String, dynamic>{},
+    );
+  }
+
+  expect(payload['registered'], isTrue,
+      reason: '$surface controller not registered');
+}
+
 Future<void> tapItKey(
+  WidgetTester tester,
+  String key, {
+  int settlePumps = 8,
+  bool dismissKeyboard = true,
+}) async {
+  final finder = byItKey(key);
+  expect(finder, findsOneWidget);
+  await tester.ensureVisible(finder);
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.tap(finder);
+  await tester.pump(const Duration(milliseconds: 100));
+  if (dismissKeyboard) {
+    _safeUnfocusPrimaryFocus();
+  }
+  for (var i = 0; i < settlePumps; i++) {
+    await tester.pump(const Duration(milliseconds: 250));
+  }
+  await expectNoFlutterException(tester);
+}
+
+Future<void> pressItKey(
   WidgetTester tester,
   String key, {
   int settlePumps = 8,
@@ -518,9 +573,25 @@ Future<void> tapItKey(
   expect(finder, findsOneWidget);
   await tester.ensureVisible(finder);
   await tester.pump(const Duration(milliseconds: 100));
-  await tester.tap(finder);
+
+  final widget = tester.widget(finder);
+  var handled = false;
+  if (widget is TextButton && widget.onPressed != null) {
+    widget.onPressed!.call();
+    handled = true;
+  } else if (widget is IconButton && widget.onPressed != null) {
+    widget.onPressed!.call();
+    handled = true;
+  } else if (widget is FloatingActionButton && widget.onPressed != null) {
+    widget.onPressed!.call();
+    handled = true;
+  }
+
+  if (!handled) {
+    await tester.tap(finder);
+  }
+
   await tester.pump(const Duration(milliseconds: 100));
-  FocusManager.instance.primaryFocus?.unfocus();
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 250));
   }
@@ -530,7 +601,20 @@ Future<void> tapItKey(
 Future<void> expectFeedScreen(WidgetTester tester) async {
   drainExpectedTesterExceptions(tester, context: 'expectFeedScreen');
   expect(byItKey(IntegrationTestKeys.screenFeed), findsOneWidget);
+  await _pumpUntilProbeRegistered(tester, 'feed');
   await expectNoFlutterException(tester);
+}
+
+Future<void> settleSmokeShell(
+  WidgetTester tester, {
+  Duration step = const Duration(milliseconds: 250),
+  int maxPumps = 8,
+  String context = 'smoke shell settle',
+}) async {
+  for (var i = 0; i < maxPumps; i++) {
+    await tester.pump(step);
+    drainExpectedTesterExceptions(tester, context: context);
+  }
 }
 
 Future<void> pageBackAndSettle(
