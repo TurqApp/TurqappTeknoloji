@@ -67,6 +67,9 @@ class _HLSPlayerState extends State<HLSPlayer> {
     if (oldWidget.autoPlay != widget.autoPlay && _isInitialized) {
       if (widget.autoPlay) {
         unawaited(widget.controller.play());
+      } else {
+        widget.controller.cancelPendingResume();
+        unawaited(widget.controller.pause());
       }
     }
   }
