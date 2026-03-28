@@ -132,11 +132,17 @@ extension PostRepositoryQueryPart on PostRepository {
       for (final entry in firestorePollModels.entries) {
         final firestoreModel = entry.value;
         if (firestoreModel.poll.isEmpty) continue;
-        result[entry.key] = firestoreModel;
+        final currentModel = result[entry.key];
+        final mergedModel = currentModel == null
+            ? firestoreModel
+            : currentModel.copyWith(
+                poll: Map<String, dynamic>.from(firestoreModel.poll),
+              );
+        result[entry.key] = mergedModel;
         final state =
             _states.putIfAbsent(entry.key, () => PostRepositoryState(entry.key));
-        state.latestPostData.value = firestoreModel.toMap();
-        _seedCounts(state, firestoreModel);
+        state.latestPostData.value = mergedModel.toMap();
+        _seedCounts(state, mergedModel);
       }
     }
 
