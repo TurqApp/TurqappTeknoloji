@@ -586,6 +586,18 @@ extension PostRepositoryQueryPart on PostRepository {
 
     bool asBool(dynamic value) => value == true;
 
+    Map<String, dynamic> asMap(dynamic value) {
+      if (value is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(value);
+      }
+      if (value is Map) {
+        return value.map(
+          (key, val) => MapEntry(key.toString(), val),
+        );
+      }
+      return const <String, dynamic>{};
+    }
+
     final imageUrls = asStringList(doc['img']);
     final thumbnail = (doc['thumbnail'] ?? '').toString();
     final video = (doc['video'] ?? '').toString();
@@ -639,7 +651,7 @@ extension PostRepositoryQueryPart on PostRepository {
               if (ctaDocId.isNotEmpty) 'ctaDocId': ctaDocId,
             }
           : const <String, dynamic>{},
-      'poll': const <String, dynamic>{},
+      'poll': asMap(doc['poll']),
       'ad': false,
       'isAd': false,
       'debugMode': false,
