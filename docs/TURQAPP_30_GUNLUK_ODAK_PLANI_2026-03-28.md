@@ -696,6 +696,8 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
 | RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
 | RISK-006 | Risk | Orta | T-006, T-021 | Acik | Market root sayaçlari icin server-side aggregation olmadigindan, client yolu kapaninca `viewCount/favoriteCount/offerCount/reviewCount` stale kalabilir |
+| RISK-007 | Risk | Yuksek | F2-001, F2-009, F2-010 | Acik | Android emulator smoke yesil olsa da authenticated acilista `feed_blank_surface`, `permission-denied` ve `remote gate watch` loglari uretiyor; Phase 2 baslangic blokaji olarak izlencek |
+| RISK-008 | Risk | Orta | F2-001 | Acik | Baseline kosusu sirasinda repo HEAD `648fe0c1` -> `c4fb4171` kaydi ve worktree'de plan disi 4 dosya kirlenmesi goruldu; task isolation zorlaniyor |
 | DEBT-001 | Debt | Orta | T-030 | Acik | Mikro `facade/fields/class part` dagilimi okuma maliyeti ve sahte modulerlik uretiyor; secici sadeleştirme gerekiyor |
 | DEBT-002 | Debt | Orta | T-031 | Acik | Repo genelinde dosya yuzeyi cok buyuk; kritik akislar `2768` adet `.dart` dosyasina dagiliyor ve takip maliyeti yukseliyor |
 | DEBT-003 | Debt | Orta | T-024 | Kapandi | `LikedPostControllers.isSeriesPost` uyumluluk yardimcisi geri eklendi; `flutter test --coverage test/unit/modules/profile/liked_posts_controller_test.dart` tekrar geciyor ve full coverage lane bu noktayi artik asiyor |
@@ -719,6 +721,36 @@ Kurallar:
 | --- | --- | --- | --- | --- |
 | ADV-001 | `RISK-006`, `T-006` | Acik | `T-006` guvenlik yolunu kapatti; ama server-side aggregation ayri tasarim ve uygulama isi gerektiriyor, bu yuzden resmi sirayi bozmuyoruz | market root sayaclari icin server-side aggregation / backfill tasarimi cikar; `viewCount`, `favoriteCount`, `offerCount`, `reviewCount` alanlarini server ownership modeline tasi |
 | ADV-002 | `T-022` | Acik | `feed_resume_test` ve `short_refresh_preserve_test` profile replay / route-return sirasinda framework assert'leri ve probe stabilitesi nedeniyle resmi T-022 manifestinden cikarildi | profile route replay ve short refresh preserve akislarini ayri smoke paketi olarak stabilize et; Focus/InheritedScope assert kok nedenini kapatip sonra manifest'e geri al |
+
+## Faz 2 Resmi Plan
+
+Bu faz, yeni urun hedefi eklemeden yalnizca acik `ADV`, `RISK` ve `DEBT` kayitlarini kapatmak icin tanimlandi.
+
+Toplam:
+
+- is sayisi: `11`
+- puan: `32`
+- plan sagligi gozden gecirme tetikleri: `5`, `10`
+
+| Is No | Baslik | Kaynak | Bagimlilik | Efor/Puan | Durum |
+| --- | --- | --- | --- | --- | --- |
+| F2-001 | Post-plan truth-run ve baseline | `ADV-001`, `ADV-002`, acik `RISK/DEBT` kayitlari | - | M/2 | Tamamlandi |
+| F2-002 | Stored-account / reauth hardening | `RISK-002` | F2-001 | L/3 | Acik |
+| F2-003 | Market counter server-ownership tasarimi | `ADV-001`, `RISK-006` | F2-001 | M/2 | Acik |
+| F2-004 | Market counter server pipeline implementasyonu | `ADV-001`, `RISK-006` | F2-003 | XL/5 | Acik |
+| F2-005 | Profile route replay smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Acik |
+| F2-006 | Short refresh preserve smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Acik |
+| F2-007 | Cikarilan smoke akislarini resmi manifest'e geri al | `ADV-002` | F2-005, F2-006 | M/2 | Acik |
+| F2-008 | Guard false-positive audit ve kalibrasyon | `RISK-003` | F2-001 | M/2 | Acik |
+| F2-009 | Feed legacy fallback audit ve regresyon paketi | `RISK-004`, `RISK-007` | F2-001 | M/2 | Acik |
+| F2-010 | Rules/upload/playback/runtime gizli regresyon supurmesi | `RISK-001`, `RISK-005`, `RISK-007` | F2-004, F2-007, F2-009 | L/3 | Acik |
+| F2-011 | Startup/Auth/Session secici sadeleştirme butcesi | `DEBT-001`, `DEBT-002` | F2-002, F2-008, F2-010 | XL/5 | Acik |
+
+Faz 2 artifact kayitlari:
+
+| Kayit | Yol | Durum | Not |
+| --- | --- | --- | --- |
+| F2-ART-001 | `docs/testing/faz2_truth_run_baseline_2026-03-28.md` | Dolu | `F2-001` baseline, coverage ve Android emulator smoke sonucu |
 
 
 ## Feature Sahiplik Matrisi
