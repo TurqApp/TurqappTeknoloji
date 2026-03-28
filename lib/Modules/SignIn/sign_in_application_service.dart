@@ -201,7 +201,7 @@ class SignInApplicationService {
     if (account.hasPasswordProvider) {
       final credential = await _readStoredCredential(account.uid);
       final email = normalizeEmailAddress(credential?.email);
-      if (email.isNotEmpty) return email;
+      return email;
     }
     return account.username;
   }

@@ -39,6 +39,19 @@ void main() {
       expect(identifier, 'osman@example.com');
     });
 
+    test(
+        'preferredIdentifierForStoredAccount does not fall back to username for password provider without email hint',
+        () async {
+      final service = SignInApplicationService(
+        readStoredCredential: (_) async => null,
+      );
+
+      final identifier =
+          await service.preferredIdentifierForStoredAccount(passwordAccount);
+
+      expect(identifier, isEmpty);
+    });
+
     test('continueWithStoredAccount returns selected account context',
         () async {
       final account = passwordAccount.copyWith(email: 'dev@turq.app');

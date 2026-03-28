@@ -691,7 +691,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | Kayit | Tip | Siddet | Ilgili is | Durum | Aciklama |
 | --- | --- | --- | --- | --- | --- |
 | RISK-001 | Risk | Yuksek | T-005, T-007 | Acik | Rules daraltilirken profil okuma ve upload akislarinin kirilma riski var |
-| RISK-002 | Risk | Yuksek | T-008, T-013 | Acik | Parola saklama kalkarken mevcut hesap gecisi davranisi bozulabilir |
+| RISK-002 | Risk | Yuksek | T-008, T-013, F2-002 | Kapandi | Stored-account reauth akisinda password-provider hesaplar artik username fallback ile dead-end'e dusmuyor; `storedAccountUid` ile acilan SignIn route'u login formunu dogrudan aciyor ve hedefli unit/widget testleri yesil |
 | RISK-003 | Risk | Orta | T-009 | Acik | Architecture guard false-positive uretip CI'yi gereksiz kilitleyebilir |
 | RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
 | RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
@@ -735,7 +735,7 @@ Toplam:
 | Is No | Baslik | Kaynak | Bagimlilik | Efor/Puan | Durum |
 | --- | --- | --- | --- | --- | --- |
 | F2-001 | Post-plan truth-run ve baseline | `ADV-001`, `ADV-002`, acik `RISK/DEBT` kayitlari | - | M/2 | Tamamlandi |
-| F2-002 | Stored-account / reauth hardening | `RISK-002` | F2-001 | L/3 | Acik |
+| F2-002 | Stored-account / reauth hardening | `RISK-002` | F2-001 | L/3 | Tamamlandi |
 | F2-003 | Market counter server-ownership tasarimi | `ADV-001`, `RISK-006` | F2-001 | M/2 | Acik |
 | F2-004 | Market counter server pipeline implementasyonu | `ADV-001`, `RISK-006` | F2-003 | XL/5 | Acik |
 | F2-005 | Profile route replay smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Acik |
@@ -751,6 +751,7 @@ Faz 2 artifact kayitlari:
 | Kayit | Yol | Durum | Not |
 | --- | --- | --- | --- |
 | F2-ART-001 | `docs/testing/faz2_truth_run_baseline_2026-03-28.md` | Dolu | `F2-001` baseline, coverage ve Android emulator smoke sonucu |
+| F2-ART-002 | `docs/testing/faz2_reauth_hardening_2026-03-28.md` | Dolu | `F2-002` stored-account reauth sertlestirmesi ve test kaydi |
 
 
 ## Feature Sahiplik Matrisi

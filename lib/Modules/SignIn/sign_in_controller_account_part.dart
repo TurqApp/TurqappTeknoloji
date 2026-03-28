@@ -45,21 +45,55 @@ extension SignInControllerAccountPart on SignInController {
     selection.value = 1;
   }
 
-  void prepareStoredAccountContext(String uid) {
+  void _openStoredAccountSignInForm(String identifier) {
+    final normalized = identifier.trim();
+    if (normalized.isNotEmpty) {
+      prepareSignInPrefill(normalized);
+      return;
+    }
+    emailcontroller.clear();
+    passwordcontroller.clear();
+    email.value = '';
+    password.value = '';
+    signInEmail.value = '';
+    selection.value = 1;
+  }
+
+  Future<void> prepareStoredAccountContext(
+    String uid, {
+    String initialIdentifier = '',
+  }) async {
     final normalized = uid.trim();
     if (normalized.isEmpty) {
       selectedStoredAccount.value = null;
       return;
     }
-    selectedStoredAccount.value =
-        ensureAccountCenterService().accountByUid(normalized);
+    final normalizedInitialIdentifier = initialIdentifier.trim();
+    final accountCenterService = ensureAccountCenterService();
+    await accountCenterService.init();
+    final account = accountCenterService.accountByUid(normalized);
+    if (account == null) {
+      selectedStoredAccount.value = null;
+      if (normalizedInitialIdentifier.isEmpty) {
+        _openStoredAccountSignInForm('');
+      }
+      return;
+    }
+    final context =
+        await _signInApplicationService.continueWithStoredAccount(account);
+    selectedStoredAccount.value = context.account;
+    _openStoredAccountSignInForm(
+      normalizedInitialIdentifier.isNotEmpty
+          ? normalizedInitialIdentifier
+          : context.identifier,
+    );
   }
 
   Future<void> continueWithStoredAccount(StoredAccount account) async {
     final context =
         await _signInApplicationService.continueWithStoredAccount(account);
-    prepareSignInPrefill(context.identifier);
     selectedStoredAccount.value = context.account;
+    _openStoredAccountSignInForm(context.identifier);
   }
 
   void clearStoredAccountContext() {

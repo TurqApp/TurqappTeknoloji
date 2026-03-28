@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 
 import '../../helpers/pump_app.dart';
@@ -57,6 +58,45 @@ void main() {
     );
 
     expect(emailField.controller?.text, 'test@mail.com');
+    expect(find.byKey(const ValueKey('login_submit_button')), findsOneWidget);
+  });
+
+  testWidgets('stored account route opens login form after account center init',
+      (
+    tester,
+  ) async {
+    const account = StoredAccount(
+      uid: 'stored-1',
+      email: 'osman@example.com',
+      username: 'osman',
+      displayName: 'Osman',
+      rozet: '',
+      avatarUrl: '',
+      providers: <String>['password'],
+      lastUsedAt: 0,
+      isSessionValid: false,
+      requiresReauth: true,
+      accountState: 'reauth_required',
+      isPinned: false,
+      sortOrder: 1,
+      lastSuccessfulSignInAt: 0,
+    );
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'account_center.accounts': StoredAccount.encodeList(<StoredAccount>[
+        account,
+      ]),
+    });
+
+    await pumpApp(
+      tester,
+      const SignIn(storedAccountUid: 'stored-1'),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.byKey(const ValueKey('login_button')), findsNothing);
+    expect(find.byKey(const ValueKey('email')), findsOneWidget);
+    expect(find.byKey(const ValueKey('password')), findsOneWidget);
     expect(find.byKey(const ValueKey('login_submit_button')), findsOneWidget);
   });
 }

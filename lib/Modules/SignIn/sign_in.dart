@@ -46,7 +46,16 @@ class _SignInState extends State<SignIn> {
     _controllerTag = 'sign_in_${identityHashCode(this)}';
     controller = ensureSignInController(tag: _controllerTag);
     controller.prepareSignInPrefill(widget.initialIdentifier);
-    controller.prepareStoredAccountContext(widget.storedAccountUid);
+    if (widget.storedAccountUid.trim().isNotEmpty &&
+        widget.initialIdentifier.trim().isEmpty) {
+      controller.selection.value = 1;
+    }
+    unawaited(
+      controller.prepareStoredAccountContext(
+        widget.storedAccountUid,
+        initialIdentifier: widget.initialIdentifier,
+      ),
+    );
   }
 
   @override
