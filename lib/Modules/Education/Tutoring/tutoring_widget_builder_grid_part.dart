@@ -80,7 +80,7 @@ extension _TutoringWidgetBuilderGridPart on TutoringWidgetBuilder {
                     child: const Icon(
                       AppIcons.share,
                       color: Colors.black87,
-                      size: 14,
+                      size: 16,
                     ),
                   ),
                 ],

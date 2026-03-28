@@ -246,46 +246,56 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                           model.basvuruKosullari,
                           rich: true,
                         ),
-                      _buildWidgetInfoRow(
-                        'scholarship.application_how'.tr,
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text:
-                                    'scholarship.application_via_turqapp_prefix'
-                                        .tr,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 14,
-                                  fontFamily: 'MontserratMedium',
-                                  height: 1.45,
-                                ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'scholarship.application_how'.tr,
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 14,
+                                fontFamily: 'MontserratBold',
                               ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text.rich(
                               TextSpan(
-                                text: model.basvuruYapilacakYer ==
-                                        applicationPlaceTurqAppValue
-                                    ? 'scholarship.application_received_status'
-                                        .tr
-                                    : 'scholarship.application_not_received_status'
-                                        .tr,
-                                style: TextStyle(
-                                  color: model.basvuruYapilacakYer ==
-                                          applicationPlaceTurqAppValue
-                                      ? Colors.black
-                                      : Colors.red.shade700,
-                                  fontSize: 14,
-                                  fontFamily: 'MontserratBold',
-                                  height: 1.45,
-                                ),
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        'scholarship.application_via_turqapp_prefix'
+                                            .tr,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 14,
+                                      fontFamily: 'MontserratMedium',
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: model.basvuruYapilacakYer ==
+                                            applicationPlaceTurqAppValue
+                                        ? 'scholarship.application_received_status'
+                                            .tr
+                                        : 'scholarship.application_not_received_status'
+                                            .tr,
+                                    style: TextStyle(
+                                      color: model.basvuruYapilacakYer ==
+                                              applicationPlaceTurqAppValue
+                                          ? Colors.black
+                                          : Colors.red.shade700,
+                                      fontSize: 14,
+                                      fontFamily: 'MontserratBold',
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.visible,
-                          softWrap: false,
+                            ),
+                          ],
                         ),
-                        singleLine: true,
                       ),
                     ],
                   ),
