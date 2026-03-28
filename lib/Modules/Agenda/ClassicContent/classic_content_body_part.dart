@@ -342,14 +342,15 @@ extension ClassicContentBodyPart on _ClassicContentState {
       final int? userVote = userVoteRaw is num
           ? userVoteRaw.toInt()
           : int.tryParse('${userVoteRaw ?? ''}');
+      final effectiveUserVote = userVote ?? controller.localPollSelection.value;
 
       final createdAt = (poll['createdDate'] ?? model.timeStamp) as num;
       final durationHours = (poll['durationHours'] ?? 24) as num;
       final expiresAt =
           createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
       final expired = DateTime.now().millisecondsSinceEpoch > expiresAt;
-      final canVote = !expired && userVote == null;
-      final showResults = userVote != null || expired;
+      final canVote = !expired && effectiveUserVote == null;
+      final showResults = effectiveUserVote != null || expired;
 
       return Padding(
         padding: const EdgeInsets.only(top: 8),
@@ -369,7 +370,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                 final votes = (options[i]['votes'] ?? 0) as num;
                 final pct = totalVotes > 0 ? (votes / totalVotes) : 0.0;
                 final label = '${String.fromCharCode(65 + i)}) ';
-                final isSelected = userVote == i;
+                final isSelected = effectiveUserVote == i;
 
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,

@@ -23,7 +23,8 @@ class _PostContentControllerState {
   _PostContentControllerState(PostsModel model)
       : canSendAdminPush = AdminAccessService.isKnownAdminSync(),
         editTime = (model.editTime?.toInt() ?? 0).obs,
-        currentModel = Rx<PostsModel?>(model);
+        currentModel = Rx<PostsModel?>(model),
+        localPollSelection = RxnInt();
 
   bool canSendAdminPush;
   final likes = <String>[].obs;
@@ -43,6 +44,7 @@ class _PostContentControllerState {
   final silindiOpacity = 1.0.obs;
   final RxInt editTime;
   final Rx<PostsModel?> currentModel;
+  final RxnInt localPollSelection;
   final yenidenPaylasildiMi = false.obs;
   PostRepositoryState? postState;
   StreamSubscription<DocumentSnapshot>? userSub;
@@ -90,6 +92,8 @@ extension PostContentControllerFieldsPart on PostContentController {
   RxDouble get silindiOpacity => _controllerState.silindiOpacity;
   RxInt get editTime => _controllerState.editTime;
   Rx<PostsModel?> get currentModel => _controllerState.currentModel;
+  RxnInt get localPollSelection => _controllerState.localPollSelection;
+  RxnInt get _localPollSelection => _controllerState.localPollSelection;
   RxBool get yenidenPaylasildiMi => _controllerState.yenidenPaylasildiMi;
   PostRepositoryState? get _postState => _controllerState.postState;
   set _postState(PostRepositoryState? value) =>

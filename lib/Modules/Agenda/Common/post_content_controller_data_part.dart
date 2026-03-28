@@ -1,6 +1,20 @@
 part of 'post_content_controller.dart';
 
 extension PostContentControllerDataPart on PostContentController {
+  int? _extractUserVoteFromPoll(Map<String, dynamic> poll) {
+    final uid = _currentUid;
+    if (uid.isEmpty) return null;
+    final userVotes = poll['userVotes'] is Map
+        ? Map<String, dynamic>.from(poll['userVotes'])
+        : <String, dynamic>{};
+    final raw = userVotes[uid];
+    return raw is num ? raw.toInt() : int.tryParse('${raw ?? ''}');
+  }
+
+  void _syncLocalPollSelectionFromPoll(Map<String, dynamic> poll) {
+    _localPollSelection.value = _extractUserVoteFromPoll(poll);
+  }
+
   bool _shouldIgnoreStaleIncomingPoll(Map<String, dynamic> incomingPoll) {
     final uid = _currentUid;
     if (uid.isEmpty) return false;
@@ -104,6 +118,7 @@ extension PostContentControllerDataPart on PostContentController {
             return;
           }
           model.poll = incomingPoll;
+          _syncLocalPollSelectionFromPoll(incomingPoll);
           currentModel.refresh();
         } catch (_) {}
       }
@@ -156,6 +171,7 @@ extension PostContentControllerDataPart on PostContentController {
     final uid = _currentUid;
     if (uid.isEmpty) return;
     final originalPoll = Map<String, dynamic>.from(model.poll);
+    final originalSelection = _extractUserVoteFromPoll(originalPoll);
     final optimisticPoll = _postRepository.buildVotedPoll(
       poll: originalPoll,
       optionIndex: optionIndex,
@@ -164,6 +180,7 @@ extension PostContentControllerDataPart on PostContentController {
     );
     if (optimisticPoll == null) return;
     try {
+      _localPollSelection.value = optionIndex;
       model.poll = optimisticPoll;
       currentModel.refresh();
       final confirmedPoll = await _postRepository.commitPollVote(
@@ -173,12 +190,15 @@ extension PostContentControllerDataPart on PostContentController {
         currentUid: uid,
       );
       if (confirmedPoll == null) {
+        _localPollSelection.value = originalSelection;
         model.poll = originalPoll;
       } else {
+        _syncLocalPollSelectionFromPoll(confirmedPoll);
         model.poll = confirmedPoll;
       }
       currentModel.refresh();
     } catch (_) {
+      _localPollSelection.value = originalSelection;
       model.poll = originalPoll;
       currentModel.refresh();
     }
