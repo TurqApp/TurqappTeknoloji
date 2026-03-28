@@ -150,6 +150,8 @@ extension ProfileControllerHeaderPart on ProfileController {
   Future<void> _performHydrateProfileStartupShard() async {
     final userId = _resolvedActiveUid?.trim();
     if (userId == null || userId.isEmpty) return;
+    _startupShardHydrated = false;
+    _startupShardAgeMs = null;
     try {
       final shard = await ensureStartupSnapshotShardStore().load(
         surface: 'profile',
@@ -157,16 +159,23 @@ extension ProfileControllerHeaderPart on ProfileController {
         maxAge: StartupSnapshotShardStore.defaultFreshWindow,
       );
       if (shard == null) return;
+      var didHydrate = false;
       final header = _decodeProfileStartupHeader(shard.payload['header']);
       if (header.isNotEmpty) {
         _applyProfileStartupHeader(header);
+        didHydrate = true;
       }
       if (allPosts.isEmpty) {
         final posts = _decodeProfileStartupPosts(shard.payload['allPosts']);
         if (posts.isNotEmpty) {
           allPosts.assignAll(posts);
+          didHydrate = true;
         }
       }
+      if (!didHydrate) return;
+      _startupShardHydrated = true;
+      _startupShardAgeMs =
+          DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
     } catch (_) {}
   }
 
@@ -224,6 +233,8 @@ extension ProfileControllerHeaderPart on ProfileController {
         itemCount: itemCount,
         hasLocalSnapshot: hasLocalSnapshot,
         source: source,
+        startupShardHydrated: _startupShardHydrated,
+        startupShardAgeMs: _startupShardAgeMs,
       );
     } catch (_) {}
   }

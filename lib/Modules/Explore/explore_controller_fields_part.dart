@@ -51,6 +51,8 @@ class _ExploreControllerState {
   int searchRequestId = 0;
   String recentSearchReloadKey = '';
   Future<void>? startupPrepareFuture;
+  bool startupShardHydrated = false;
+  int? startupShardAgeMs;
 }
 
 extension ExploreControllerFieldsPart on ExploreController {
@@ -121,4 +123,8 @@ extension ExploreControllerFieldsPart on ExploreController {
   Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
   set _startupPrepareFuture(Future<void>? value) =>
       _state.startupPrepareFuture = value;
+  bool get _startupShardHydrated => _state.startupShardHydrated;
+  set _startupShardHydrated(bool value) => _state.startupShardHydrated = value;
+  int? get _startupShardAgeMs => _state.startupShardAgeMs;
+  set _startupShardAgeMs(int? value) => _state.startupShardAgeMs = value;
 }

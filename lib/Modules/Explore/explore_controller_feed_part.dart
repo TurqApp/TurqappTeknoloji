@@ -281,6 +281,8 @@ extension ExploreControllerFeedPart on ExploreController {
   Future<void> _performHydrateExploreStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
+    _startupShardHydrated = false;
+    _startupShardAgeMs = null;
     try {
       final shard = await ensureStartupSnapshotShardStore().load(
         surface: 'explore',
@@ -288,11 +290,13 @@ extension ExploreControllerFeedPart on ExploreController {
         maxAge: StartupSnapshotShardStore.defaultFreshWindow,
       );
       if (shard == null) return;
+      var didHydrate = false;
       if (trendingTags.isEmpty) {
         final decodedTags =
             _decodeExploreStartupTags(shard.payload['trendingTags']);
         if (decodedTags.isNotEmpty) {
           trendingTags.assignAll(decodedTags);
+          didHydrate = true;
         }
       }
       if (explorePosts.isEmpty) {
@@ -301,8 +305,13 @@ extension ExploreControllerFeedPart on ExploreController {
         if (decodedPosts.isNotEmpty) {
           explorePosts.assignAll(decodedPosts);
           _scheduleExplorePrefetchFromPosts(explorePosts);
+          didHydrate = true;
         }
       }
+      if (!didHydrate) return;
+      _startupShardHydrated = true;
+      _startupShardAgeMs =
+          DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
     } catch (_) {}
   }
 
@@ -367,6 +376,8 @@ extension ExploreControllerFeedPart on ExploreController {
         itemCount: itemCount,
         hasLocalSnapshot: hasLocalSnapshot,
         source: source,
+        startupShardHydrated: _startupShardHydrated,
+        startupShardAgeMs: _startupShardAgeMs,
       );
     } catch (_) {}
   }

@@ -130,11 +130,10 @@ extension _SplashViewWarmPart on _SplashViewState {
               await prepareMarketStartupSurface(
                 maybeFindMarketController() ?? ensureMarketController(),
                 allowBackgroundRefresh: onWiFi,
-              )
-                  .timeout(
-                    Duration(milliseconds: onWiFi ? 1200 : 800),
-                    onTimeout: () {},
-                  );
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 1200 : 800),
+                onTimeout: () {},
+              );
             } catch (_) {}
           })(),
         if (prioritizeEducationWarmups)
@@ -144,11 +143,10 @@ extension _SplashViewWarmPart on _SplashViewState {
               await prepareJobFinderStartupSurface(
                 maybeFindJobFinderController() ?? ensureJobFinderController(),
                 allowBackgroundRefresh: onWiFi,
-              )
-                  .timeout(
-                    Duration(milliseconds: onWiFi ? 1200 : 800),
-                    onTimeout: () {},
-                  );
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 1200 : 800),
+                onTimeout: () {},
+              );
             } catch (_) {}
           })(),
       ]);
@@ -463,6 +461,8 @@ extension _SplashViewWarmPart on _SplashViewState {
         surface: 'feed',
         resource: snapshot,
         itemCount: (snapshot.data ?? const <dynamic>[]).length,
+        startupShardHydrated: _feedStartupShardHydrated,
+        startupShardAgeMs: _feedStartupShardAgeMs,
       );
       unawaited(_persistFeedStartupShard(snapshot));
     } catch (_) {}
@@ -490,6 +490,8 @@ extension _SplashViewWarmPart on _SplashViewState {
         surface: 'short',
         resource: snapshot,
         itemCount: (snapshot.data ?? const <dynamic>[]).length,
+        startupShardHydrated: _shortStartupShardHydrated,
+        startupShardAgeMs: _shortStartupShardAgeMs,
       );
       unawaited(
         _persistShortStartupShard(
@@ -504,6 +506,8 @@ extension _SplashViewWarmPart on _SplashViewState {
     required String surface,
     required CachedResource<T> resource,
     required int itemCount,
+    bool startupShardHydrated = false,
+    int? startupShardAgeMs,
   }) {
     final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
@@ -526,6 +530,8 @@ extension _SplashViewWarmPart on _SplashViewState {
         userId: CurrentUserService.instance.effectiveUserId,
         resource: resource,
         itemCount: itemCount,
+        startupShardHydrated: startupShardHydrated,
+        startupShardAgeMs: startupShardAgeMs,
       ),
     );
   }

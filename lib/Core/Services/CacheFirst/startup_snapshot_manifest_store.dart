@@ -15,6 +15,8 @@ class StartupSnapshotSurfaceRecord {
     required this.isStale,
     required this.recordedAtMs,
     this.snapshotAgeMs,
+    this.startupShardHydrated = false,
+    this.startupShardAgeMs,
   });
 
   final String surface;
@@ -24,6 +26,8 @@ class StartupSnapshotSurfaceRecord {
   final bool isStale;
   final int recordedAtMs;
   final int? snapshotAgeMs;
+  final bool startupShardHydrated;
+  final int? startupShardAgeMs;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -34,6 +38,8 @@ class StartupSnapshotSurfaceRecord {
       'isStale': isStale,
       'recordedAtMs': recordedAtMs,
       'snapshotAgeMs': snapshotAgeMs,
+      'startupShardHydrated': startupShardHydrated,
+      'startupShardAgeMs': startupShardAgeMs,
     };
   }
 
@@ -47,6 +53,8 @@ class StartupSnapshotSurfaceRecord {
       isStale: json['isStale'] == true,
       recordedAtMs: (json['recordedAtMs'] as num?)?.toInt() ?? 0,
       snapshotAgeMs: (json['snapshotAgeMs'] as num?)?.toInt(),
+      startupShardHydrated: json['startupShardHydrated'] == true,
+      startupShardAgeMs: (json['startupShardAgeMs'] as num?)?.toInt(),
     );
   }
 }
@@ -182,6 +190,8 @@ class StartupSnapshotManifestStore extends GetxService {
     required String userId,
     required CachedResource<dynamic> resource,
     required int itemCount,
+    bool startupShardHydrated = false,
+    int? startupShardAgeMs,
   }) async {
     await recordSurfaceState(
       surface: surface,
@@ -193,6 +203,8 @@ class StartupSnapshotManifestStore extends GetxService {
       snapshotAgeMs: resource.snapshotAt == null
           ? null
           : DateTime.now().difference(resource.snapshotAt!).inMilliseconds,
+      startupShardHydrated: startupShardHydrated,
+      startupShardAgeMs: startupShardAgeMs,
     );
   }
 
@@ -204,6 +216,8 @@ class StartupSnapshotManifestStore extends GetxService {
     required String source,
     bool isStale = false,
     int? snapshotAgeMs,
+    bool startupShardHydrated = false,
+    int? startupShardAgeMs,
   }) async {
     final normalizedSurface = surface.trim();
     if (normalizedSurface.isEmpty) return;
@@ -222,6 +236,8 @@ class StartupSnapshotManifestStore extends GetxService {
         isStale: isStale,
         recordedAtMs: nowMs,
         snapshotAgeMs: snapshotAgeMs,
+        startupShardHydrated: startupShardHydrated,
+        startupShardAgeMs: startupShardAgeMs,
       );
 
       await _write(

@@ -307,6 +307,8 @@ extension _SplashViewStartupPart on _SplashViewState {
       '${prefix}Source': record.source,
       '${prefix}IsStale': record.isStale,
       '${prefix}SnapshotAgeMs': record.snapshotAgeMs,
+      '${prefix}StartupShardHydrated': record.startupShardHydrated,
+      '${prefix}StartupShardAgeMs': record.startupShardAgeMs,
       '${prefix}RecordedAgeMs': recordedAgeMs,
     };
   }

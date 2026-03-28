@@ -68,6 +68,8 @@ extension JobFinderControllerDataPart on JobFinderController {
   Future<void> _performHydrateJobFinderStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
+    _startupShardHydrated = false;
+    _startupShardAgeMs = null;
     try {
       final shard = await ensureStartupSnapshotShardStore().load(
         surface: 'jobs',
@@ -75,28 +77,38 @@ extension JobFinderControllerDataPart on JobFinderController {
         maxAge: StartupSnapshotShardStore.defaultFreshWindow,
       );
       if (shard == null) return;
+      var didHydrate = false;
       final rawSelection = (shard.payload['listingSelection'] as num?)?.toInt();
       if (rawSelection != null) {
         listingSelection.value = rawSelection == 1 ? 1 : 0;
         listingSelectionReady.value = true;
+        didHydrate = true;
       }
       final cityHint = (shard.payload['cityHint'] ?? '').toString().trim();
       if (cityHint.isNotEmpty) {
         sehir.value = cityHint;
+        didHydrate = true;
       }
       final userCityHint =
           (shard.payload['userCityHint'] ?? '').toString().trim();
       if (userCityHint.isNotEmpty) {
         kullaniciSehiri.value = userCityHint;
+        didHydrate = true;
       }
       final decoded = _decodeJobFinderStartupJobs(shard.payload['jobs']);
       if (decoded.isEmpty) return;
       if (list.isEmpty) {
         list.assignAll(decoded);
+        didHydrate = true;
       }
       if (allJobs.isEmpty) {
         allJobs.assignAll(decoded);
+        didHydrate = true;
       }
+      if (!didHydrate) return;
+      _startupShardHydrated = true;
+      _startupShardAgeMs =
+          DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
     } catch (_) {}
   }
 
@@ -146,6 +158,8 @@ extension JobFinderControllerDataPart on JobFinderController {
         itemCount: itemCount,
         hasLocalSnapshot: hasLocalSnapshot,
         source: hasLocalSnapshot ? 'job_snapshot' : 'none',
+        startupShardHydrated: _startupShardHydrated,
+        startupShardAgeMs: _startupShardAgeMs,
       );
     } catch (_) {}
   }

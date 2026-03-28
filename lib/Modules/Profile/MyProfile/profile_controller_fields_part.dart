@@ -14,6 +14,8 @@ class _ProfileLifecycleState {
   Worker? mergedPostsWorker;
   Worker? postSelectionWorker;
   final postSelection = 0.obs;
+  bool startupShardHydrated = false;
+  int? startupShardAgeMs;
 }
 
 class _ProfileScrollState {
@@ -90,6 +92,12 @@ extension ProfileControllerFieldsPart on ProfileController {
       _lifecycleState.startupPrepareFuture;
   set _startupPrepareFuture(Future<void>? value) =>
       _lifecycleState.startupPrepareFuture = value;
+  bool get _startupShardHydrated => _lifecycleState.startupShardHydrated;
+  set _startupShardHydrated(bool value) =>
+      _lifecycleState.startupShardHydrated = value;
+  int? get _startupShardAgeMs => _lifecycleState.startupShardAgeMs;
+  set _startupShardAgeMs(int? value) =>
+      _lifecycleState.startupShardAgeMs = value;
   Worker? get _allPostsWorker => _lifecycleState.allPostsWorker;
   set _allPostsWorker(Worker? value) => _lifecycleState.allPostsWorker = value;
   Worker? get _photosWorker => _lifecycleState.photosWorker;

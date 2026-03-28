@@ -80,6 +80,8 @@ extension _MarketControllerHomePart on MarketController {
   Future<void> _performHydrateMarketStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
+    _startupShardHydrated = false;
+    _startupShardAgeMs = null;
     try {
       final shard = await ensureStartupSnapshotShardStore().load(
         surface: 'market',
@@ -87,19 +89,27 @@ extension _MarketControllerHomePart on MarketController {
         maxAge: StartupSnapshotShardStore.defaultFreshWindow,
       );
       if (shard == null) return;
+      var didHydrate = false;
       final rawSelection = (shard.payload['listingSelection'] as num?)?.toInt();
       if (rawSelection != null) {
         listingSelection.value = rawSelection == 1 ? 1 : 0;
         listingSelectionReady.value = true;
+        didHydrate = true;
       }
       final decoded = _decodeMarketStartupItems(shard.payload['items']);
       if (decoded.isEmpty) return;
       if (items.isEmpty) {
         items.assignAll(decoded);
+        didHydrate = true;
       }
       if (visibleItems.isEmpty) {
         visibleItems.assignAll(decoded);
+        didHydrate = true;
       }
+      if (!didHydrate) return;
+      _startupShardHydrated = true;
+      _startupShardAgeMs =
+          DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
     } catch (_) {}
   }
 
@@ -143,6 +153,8 @@ extension _MarketControllerHomePart on MarketController {
         itemCount: itemCount,
         hasLocalSnapshot: hasLocalSnapshot,
         source: hasLocalSnapshot ? 'market_snapshot' : 'none',
+        startupShardHydrated: _startupShardHydrated,
+        startupShardAgeMs: _startupShardAgeMs,
       );
     } catch (_) {}
   }
