@@ -204,26 +204,39 @@ extension ShortControllerLoadingPart on ShortController {
         userId: _currentUserId,
         limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
       );
-      final applied = _applySnapshotResource(snapshot);
-      if (applied) {
+      final initialPlan = _shortFeedApplicationService.buildInitialLoadPlan(
+        currentShorts: shorts.toList(growable: false),
+        snapshotPosts: snapshot.data ?? const <PostsModel>[],
+        isEligiblePost: _isEligibleShortPost,
+      );
+      if (initialPlan.replacementItems != null) {
+        _replaceShorts(initialPlan.replacementItems!);
         await preloadRange(0, range: 0);
-        if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
+        if (initialPlan.shouldScheduleBackgroundRefresh &&
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
           unawaited(_loadNextPage(trigger: 'background_refresh'));
         }
         return;
       }
-      _log('[Shorts] Liste boş - sıfırlama yapılıyor');
-      isLoading.value = false;
-      hasMore.value = true;
-      _lastDoc = null;
-      clearCache();
-      _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
-      await _loadNextPage(trigger: 'initial_empty_bootstrap');
+      if (initialPlan.shouldResetPagination) {
+        _log('[Shorts] Liste boş - sıfırlama yapılıyor');
+        isLoading.value = false;
+        hasMore.value = true;
+        _lastDoc = null;
+        clearCache();
+      }
+      if (initialPlan.shouldBootstrapNextPage) {
+        _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
+        await _loadNextPage(trigger: 'initial_empty_bootstrap');
+      }
     } else {
-      final sanitized =
-          shorts.where(_isEligibleShortPost).toList(growable: false);
-      if (sanitized.length != shorts.length) {
-        _replaceShorts(sanitized, remapCache: true);
+      final initialPlan = _shortFeedApplicationService.buildInitialLoadPlan(
+        currentShorts: shorts.toList(growable: false),
+        snapshotPosts: const <PostsModel>[],
+        isEligiblePost: _isEligibleShortPost,
+      );
+      if (initialPlan.replacementItems != null) {
+        _replaceShorts(initialPlan.replacementItems!, remapCache: true);
       }
       _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
       await preloadRange(0, range: 0);
@@ -309,11 +322,12 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       final previousShorts = shorts.toList(growable: false);
-      final previousIndex = lastIndex.value
-          .clamp(0, previousShorts.isEmpty ? 0 : previousShorts.length - 1);
-      final previousDocId =
-          previousShorts.isEmpty ? '' : previousShorts[previousIndex].docID;
-      final newList = List<PostsModel>.from(result.posts);
+      final refreshPlan = _shortFeedApplicationService.buildRefreshPlan(
+        previousShorts: previousShorts,
+        fetchedPosts: result.posts,
+        previousIndex: lastIndex.value,
+      );
+      final newList = refreshPlan.replacementItems;
 
       _replaceShorts(newList, remapCache: false);
       await _remapCacheForNewList(
@@ -323,12 +337,7 @@ extension ShortControllerLoadingPart on ShortController {
 
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
-      final remappedIndex = previousDocId.isEmpty
-          ? 0
-          : newList.indexWhere((item) => item.docID == previousDocId);
-      lastIndex.value = remappedIndex >= 0
-          ? remappedIndex
-          : math.min(previousIndex, newList.length - 1);
+      lastIndex.value = refreshPlan.remappedIndex;
       if (newList.isNotEmpty && !cache.containsKey(lastIndex.value)) {
         await _preloadSingleVideoWithCache(
           lastIndex.value,
@@ -446,21 +455,21 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       _lastDoc = result.lastDoc;
-
-      final existingIds = shorts.map((post) => post.docID).toSet();
-      final incoming = result.posts
-          .where(_isEligibleShortPost)
-          .where((post) => !existingIds.contains(post.docID))
-          .toList(growable: false);
-      if (incoming.isNotEmpty) {
-        if (shorts.isEmpty && !_globalShuffleCompleted) {
-          final shuffled = List<PostsModel>.from(incoming);
+      final appendPlan = _shortFeedApplicationService.buildAppendPlan(
+        currentShorts: shorts.toList(growable: false),
+        fetchedPosts: result.posts,
+        globalShuffleCompleted: _globalShuffleCompleted,
+        isEligiblePost: _isEligibleShortPost,
+      );
+      if (appendPlan.itemsToAppend.isNotEmpty) {
+        if (appendPlan.shouldShuffleBeforeAppend) {
+          final shuffled = List<PostsModel>.from(appendPlan.itemsToAppend);
           shuffled.shuffle();
           shorts.addAll(shuffled);
           unawaited(_persistVisibleSnapshot());
           _globalShuffleCompleted = true;
         } else {
-          shorts.addAll(incoming);
+          shorts.addAll(appendPlan.itemsToAppend);
           unawaited(_persistVisibleSnapshot());
         }
       }
@@ -471,7 +480,7 @@ extension ShortControllerLoadingPart on ShortController {
         trigger: trigger,
         metadata: <String, dynamic>{
           'returnedCount': result.posts.length,
-          'addedCount': incoming.length,
+          'addedCount': appendPlan.itemsToAppend.length,
           'currentCount': shorts.length,
           'hasMore': result.hasMore,
         },
@@ -527,16 +536,6 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     return result;
-  }
-
-  bool _applySnapshotResource(CachedResource<List<PostsModel>> resource) {
-    final data = resource.data;
-    if (data == null || data.isEmpty) return false;
-    final filtered = data.where(_isEligibleShortPost).toList(growable: false);
-    if (filtered.isEmpty) return false;
-    _replaceShorts(filtered);
-    hasMore.value = true;
-    return true;
   }
 
   void _replaceShorts(

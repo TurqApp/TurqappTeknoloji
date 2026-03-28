@@ -22,6 +22,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import '../../Models/posts_model.dart';
+import 'short_feed_application_service.dart';
 
 part 'short_controller_loading_part.dart';
 part 'short_controller_base_part.dart';

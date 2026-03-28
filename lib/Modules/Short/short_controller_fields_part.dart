@@ -2,6 +2,7 @@ part of 'short_controller.dart';
 
 class _ShortControllerState {
   final shorts = <PostsModel>[].obs;
+  final shortFeedApplicationService = ShortFeedApplicationService();
   final videoPool = ensureGlobalVideoAdapterPool();
   final playbackCoordinator = ShortPlaybackCoordinator.forCurrentPlatform();
   final cache = <int, HLSVideoAdapter>{};
@@ -29,6 +30,8 @@ class _ShortControllerState {
 
 extension ShortControllerFieldsPart on ShortController {
   RxList<PostsModel> get shorts => _state.shorts;
+  ShortFeedApplicationService get _shortFeedApplicationService =>
+      _state.shortFeedApplicationService;
   GlobalVideoAdapterPool get _videoPool => _state.videoPool;
   ShortPlaybackCoordinator get _playbackCoordinator =>
       _state.playbackCoordinator;

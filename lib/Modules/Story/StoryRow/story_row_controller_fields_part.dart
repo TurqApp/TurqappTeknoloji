@@ -5,6 +5,8 @@ const Duration _storyRowExpireCleanupInterval = Duration(minutes: 15);
 
 class _StoryRowControllerState {
   final users = <StoryUserModel>[].obs;
+  final StoryRowApplicationService storyRowApplicationService =
+      StoryRowApplicationService();
   final CurrentUserService userService = CurrentUserService.instance;
   final UserProfileCacheService userCache = ensureUserProfileCacheService();
   final int initialLimit = 30;
@@ -19,6 +21,8 @@ class _StoryRowControllerState {
 extension StoryRowControllerFieldsPart on StoryRowController {
   bool get _shouldLogDebug => kDebugMode && !IntegrationTestMode.enabled;
   RxList<StoryUserModel> get users => _state.users;
+  StoryRowApplicationService get _storyRowApplicationService =>
+      _state.storyRowApplicationService;
   CurrentUserService get userService => _state.userService;
   UserProfileCacheService get _userCache => _state.userCache;
   int get initialLimit => _state.initialLimit;

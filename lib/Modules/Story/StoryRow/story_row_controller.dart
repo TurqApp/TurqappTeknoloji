@@ -12,6 +12,7 @@ import '../../../Core/Utils/nickname_utils.dart';
 import '../../../Services/current_user_service.dart';
 import '../../../Services/user_analytics_service.dart';
 import '../StoryMaker/story_model.dart';
+import 'story_row_application_service.dart';
 import 'story_user_model.dart';
 
 part 'story_row_controller_cache_part.dart';

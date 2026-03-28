@@ -4,11 +4,14 @@ extension StoryRowControllerLoadPart on StoryRowController {
   Future<void> _bootstrapStoryRow() async {
     await _loadStoriesFromMiniCache();
     final myUid = _currentUid;
-    if (users.isEmpty ||
-        SilentRefreshGate.shouldRefresh(
-          'story:row:$myUid',
-          minInterval: _storyRowSilentRefreshInterval,
-        )) {
+    final bootstrapPlan = _storyRowApplicationService.buildBootstrapPlan(
+      hasUsers: users.isNotEmpty,
+      shouldSilentRefresh: SilentRefreshGate.shouldRefresh(
+        'story:row:$myUid',
+        minInterval: _storyRowSilentRefreshInterval,
+      ),
+    );
+    if (bootstrapPlan.shouldSilentRefresh) {
       unawaited(loadStories(silentLoad: true, cacheFirst: true));
     }
   }
@@ -33,9 +36,12 @@ extension StoryRowControllerLoadPart on StoryRowController {
 
       if (myUid.isNotEmpty) {
         final now = DateTime.now();
-        final shouldCleanup = _lastExpireCleanupAt == null ||
-            now.difference(_lastExpireCleanupAt!) >=
-                _storyRowExpireCleanupInterval;
+        final shouldCleanup =
+            _storyRowApplicationService.shouldRunExpireCleanup(
+          lastCleanupAt: _lastExpireCleanupAt,
+          now: now,
+          interval: _storyRowExpireCleanupInterval,
+        );
         if (shouldCleanup) {
           _lastExpireCleanupAt = now;
           await _storyRepository.markExpiredStoriesDeleted(myUid);
@@ -90,18 +96,12 @@ extension StoryRowControllerLoadPart on StoryRowController {
         return true;
       }
 
-      final unseen = tempList.where((u) => !allSeen(u)).toList()
-        ..sort((a, b) =>
-            b.stories.first.createdAt.compareTo(a.stories.first.createdAt));
-      final seen = tempList.where((u) => allSeen(u)).toList()
-        ..sort((a, b) =>
-            b.stories.first.createdAt.compareTo(a.stories.first.createdAt));
-
-      users.value = [
-        if (myStoryUser != null) myStoryUser,
-        ...unseen,
-        ...seen,
-      ];
+      users.value = _storyRowApplicationService.buildOrderedUsers(
+        fetchedUsers: tempList,
+        currentUid: myUid,
+        currentUserStory: myStoryUser,
+        isAllSeen: allSeen,
+      );
       unawaited(_warmVisibleAvatarFiles(users));
       if (_shouldLogDebug && myUid.isNotEmpty) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
