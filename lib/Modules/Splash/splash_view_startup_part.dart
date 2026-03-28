@@ -857,7 +857,11 @@ extension _SplashViewStartupPart on _SplashViewState {
       if (agendaController.agendaList.isNotEmpty) {
         return;
       }
-      await agendaController.ensureFeedSurfaceReady().timeout(
+      await agendaController
+          .prepareStartupSurface(
+            allowBackgroundRefresh: false,
+          )
+          .timeout(
             const Duration(milliseconds: 900),
             onTimeout: () {},
           );
