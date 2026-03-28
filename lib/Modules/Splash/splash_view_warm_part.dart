@@ -32,7 +32,11 @@ extension _SplashViewWarmPart on _SplashViewState {
                 onWiFi: onWiFi,
                 isFirstLaunch: isFirstLaunch,
               );
-              await shorts.backgroundPreload().timeout(
+              await shorts
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh: false,
+                  )
+                  .timeout(
                     Duration(seconds: onWiFi ? 4 : 2),
                     onTimeout: () {},
                   );
@@ -58,8 +62,8 @@ extension _SplashViewWarmPart on _SplashViewState {
                 isFirstLaunch: isFirstLaunch,
               );
               await agendaController
-                  .hydrateInitialFeedFromCache(
-                    targetCount: _feedWarmPoolLimit(),
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh: false,
                   )
                   .timeout(const Duration(seconds: 3));
               _primeFeedVideoSegments(agendaController);

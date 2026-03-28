@@ -64,6 +64,25 @@ extension _ShortControllerRuntimeX on ShortController {
 }
 
 extension ShortControllerPublicApiPart on ShortController {
+  Future<void> prepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) async {
+    final allowRefresh = allowBackgroundRefresh ??
+        ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
+    if (shorts.isEmpty) {
+      if (_backgroundPreloadFuture != null) {
+        await _backgroundPreloadFuture;
+      } else {
+        await _runInitialLoadOnce();
+      }
+    }
+    if (shorts.isNotEmpty) {
+      await preloadRange(0, range: 0);
+    }
+    if (!allowRefresh || shorts.isEmpty) return;
+    unawaited(backgroundPreload());
+  }
+
   Future<void> persistStartupShard() => persistStartupArtifacts();
 
   Future<void> persistStartupArtifacts() async {
