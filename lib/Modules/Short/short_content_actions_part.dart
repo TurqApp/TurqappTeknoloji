@@ -210,12 +210,10 @@ extension ShortsContentActionsPart on _ShortsContentState {
         (reshareVisibility == 1 && isVerified) ||
         (reshareVisibility == 2 && isFollowing);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
           Flexible(
             flex: 2,
             child: TextButton(
@@ -397,8 +395,8 @@ extension ShortsContentActionsPart on _ShortsContentState {
             ),
           ),
           Flexible(
-            flex: 1,
-            child: IconButton(
+            flex: 2,
+            child: TextButton(
               onPressed: () async {
                 await ShareActionGuard.run(() async {
                   final url = await _resolveShortPublicUrl();
@@ -409,18 +407,23 @@ extension ShortsContentActionsPart on _ShortsContentState {
                   );
                 });
               },
-              icon: Transform.translate(
-                offset: const Offset(0, -2),
-                child: const Icon(
-                  CupertinoIcons.share_up,
-                  color: Colors.white,
-                  size: 20,
-                ),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Transform.translate(
+                    offset: Offset(0, -2),
+                    child: Icon(
+                      CupertinoIcons.share_up,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
