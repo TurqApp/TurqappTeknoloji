@@ -703,7 +703,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | DEBT-003 | Debt | Orta | T-024 | Kapandi | `LikedPostControllers.isSeriesPost` uyumluluk yardimcisi geri eklendi; `flutter test --coverage test/unit/modules/profile/liked_posts_controller_test.dart` tekrar geciyor ve full coverage lane bu noktayi artik asiyor |
 | DEBT-004 | Debt | Orta | T-024 | Kapandi | `test/unit/services/runtime_health_exporter_test.dart` guncel `ensureHlsDataUsageProbe()` facade API'sine tasindi; hedefli test ve coverage kosusu tekrar geciyor, full lane bu noktayi artik asiyor |
 | DEBT-005 | Debt | Orta | QA Catalog | Kapandi | `qa_lab_catalog_test` yeni eklenen integration/unit/backend/suite dosyalarini katalogda bulamiyordu; `qa_lab_catalog_entries_part.dart` senkronize edilerek katalog testi tekrar yesile dondu |
-| DEBT-006 | Debt | Orta | F2-010 | Acik | Android emulator smoke suite'i bitince uygulama paketi cihazdan kalktigi icin device-side QA artifact'lari her senaryo icin yerelde cekilemiyor; host-stub JSON fallback raporu ayakta tutuyor ama gercek artifact export zinciri ayri sertlestirme istiyor |
+| DEBT-006 | Debt | Orta | F2-010, F3-002 | Kapandi | `F3-002` ile Android smoke sirasinda arka plan artifact mirror watcher eklendi; JSON/PNG artifact'lari paket kalkmadan host tarafa cekiliyor, `artifactStatus.source = android_device_export` ile isaretleniyor ve `host-stub` fallback artik zorunlu temel yol olmaktan cikiyor |
 | GAP-001 | Gap | Orta | T-001 | Kapandi | Rollback/checkpoint standardi plan icine eklendi; T-001'de canli kayit doldurulacak |
 | GAP-002 | Gap | Orta | T-021, T-022 | Kapandi | Fixture/seed checklist planda tanimlandi; uygulamada test bazli doldurulacak |
 
@@ -777,7 +777,7 @@ Toplam:
 | Is No | Baslik | Kaynak | Bagimlilik | Efor/Puan | Durum |
 | --- | --- | --- | --- | --- | --- |
 | F3-001 | Task isolation ve worktree drift guard | `RISK-008` | - | M/2 | Tamamlandi |
-| F3-002 | Android smoke artifact export zincirini sertlestir | `DEBT-006` | F3-001 | L/3 | Acik |
+| F3-002 | Android smoke artifact export zincirini sertlestir | `DEBT-006` | F3-001 | L/3 | Tamamlandi |
 | F3-003 | Profile/Social hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Acik |
 | F3-004 | Feed/Playback hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Acik |
 | F3-005 | Surface budget guard ve cluster hedef listesi | `DEBT-002` | F3-003, F3-004 | M/2 | Acik |
@@ -787,6 +787,7 @@ Faz 3 artifact kayitlari:
 | Kayit | Yol | Durum | Not |
 | --- | --- | --- | --- |
 | F3-ART-001 | `docs/testing/faz3_task_isolation_guard_2026-03-28.md` | Dolu | `F3-001` ile task isolation guard, expected-head drift kontrolu ve allowlist disi kir tespiti eklendi |
+| F3-ART-002 | `docs/testing/faz3_android_smoke_artifact_export_2026-03-28.md` | Dolu | `F3-002` ile Android smoke sirasinda arka plan artifact mirror watcher eklendi; device-side JSON/PNG artifact'lari paket kalkmadan host'a cekilip `android_device_export` olarak isaretleniyor |
 
 
 ## Feature Sahiplik Matrisi

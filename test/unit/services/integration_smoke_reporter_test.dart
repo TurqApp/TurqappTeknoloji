@@ -19,6 +19,10 @@ void main() {
               ],
             },
           },
+          'artifactStatus': <String, dynamic>{
+            'exported': true,
+            'reason': '',
+          },
           'invariants': <String, dynamic>{'count': 1},
           'failure': <String, dynamic>{'screenshotPath': 'x.png'},
         },
@@ -50,6 +54,8 @@ void main() {
     expect(report.telemetryBlockingCount, 1);
     expect(report.blockingScenarioCount, 1);
     expect(report.hasBlockingSignals, isTrue);
+    expect(report.scenarios.first.artifactExported, isTrue);
+    expect(report.scenarios.first.artifactReason, isEmpty);
     expect(report.scenarios.last.artifactExported, isFalse);
     expect(report.scenarios.last.artifactReason, 'package_not_installed');
   });

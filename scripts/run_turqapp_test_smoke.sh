@@ -24,8 +24,10 @@ TARGET_PLATFORM="${INTEGRATION_TARGET_PLATFORM:-android}"
 DEVICE_ID="$(resolve_integration_device_id "${TARGET_PLATFORM}")"
 MANIFEST="${INTEGRATION_TEST_MANIFEST:-config/test_suites/release_gate_e2e.txt}"
 ARTIFACT_DIR="${INTEGRATION_SMOKE_ARTIFACT_DIR:-artifacts/integration_smoke}"
+ANDROID_ADB_BIN="${ANDROID_ADB_BIN:-/Users/turqapp/Library/Android/sdk/platform-tools/adb}"
 ANDROID_PACKAGE="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 ANDROID_REMOTE_ARTIFACT_DIR="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
+ANDROID_EXPORT_POLL_SECONDS="${INTEGRATION_SMOKE_ANDROID_EXPORT_POLL_SECONDS:-0.25}"
 default_fixture_file="integration_test/core/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
 fixture_json="${INTEGRATION_FIXTURE_JSON:-}"
@@ -53,6 +55,7 @@ mkdir -p "$ARTIFACT_DIR"
 write_host_stub_artifact() {
   local scenario="$1"
   local test_status="$2"
+  local export_reason="${3:-artifact_unavailable}"
   local output_file="$ARTIFACT_DIR/${scenario}.json"
 
   local failure_json='{}'
@@ -82,10 +85,32 @@ write_host_stub_artifact() {
   "artifactStatus": {
     "source": "host_stub",
     "exported": false,
-    "reason": "android_package_uninstalled_after_suite"
+    "reason": "$export_reason"
   }
 }
 EOF
+}
+
+annotate_device_export_artifact() {
+  local artifact_file="$1"
+  local screenshot_path="${2:-}"
+
+  node -e "
+const fs = require('fs');
+const artifactPath = process.argv[1];
+const screenshotPath = process.argv[2];
+const raw = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+raw.artifactStatus = {
+  source: 'android_device_export',
+  exported: true,
+  reason: '',
+};
+if (screenshotPath) {
+  raw.failure = raw.failure && typeof raw.failure === 'object' ? raw.failure : {};
+  raw.failure.screenshotPath = screenshotPath;
+}
+fs.writeFileSync(artifactPath, JSON.stringify(raw, null, 2));
+" "$artifact_file" "$screenshot_path"
 }
 
 suite_tests=()
@@ -102,6 +127,8 @@ fi
 
 seed_integration_fixture_if_enabled
 trap 'reset_integration_fixture_if_enabled' EXIT
+
+last_artifact_export_reason=""
 
 COMMON_ARGS=(
   test
@@ -128,11 +155,104 @@ if [[ -n "$fixture_file" ]]; then
   echo "[turqapp-test] fixture=${fixture_file}"
 fi
 
+is_android_package_installed() {
+  local target_device="$1"
+  "$ANDROID_ADB_BIN" -s "$target_device" \
+    shell pm path "$ANDROID_PACKAGE" >/dev/null 2>&1
+}
+
+sync_android_remote_artifacts() {
+  local target_device="$1"
+  last_artifact_export_reason=""
+
+  if [[ -z "$target_device" ]]; then
+    last_artifact_export_reason="no_device"
+    return 1
+  fi
+  if ! is_android_package_installed "$target_device"; then
+    last_artifact_export_reason="package_not_installed"
+    return 1
+  fi
+
+  local remote_names=()
+  while IFS= read -r remote_name; do
+    [[ -n "$remote_name" ]] || continue
+    remote_names+=("$remote_name")
+  done < <(
+    "$ANDROID_ADB_BIN" -s "$target_device" \
+      shell run-as "$ANDROID_PACKAGE" ls "$ANDROID_REMOTE_ARTIFACT_DIR" 2>/dev/null |
+      tr -d '\r' |
+      grep -E '\.(json|png)$' || true
+  )
+
+  if [[ "${#remote_names[@]}" -eq 0 ]]; then
+    last_artifact_export_reason="remote_artifact_missing"
+    return 1
+  fi
+
+  local pulled_any=0
+  local pulled_jsons=()
+  for remote_name in "${remote_names[@]}"; do
+    local local_artifact="$ARTIFACT_DIR/$remote_name"
+    local tmp_artifact="${local_artifact}.tmp"
+    if "$ANDROID_ADB_BIN" -s "$target_device" \
+      exec-out run-as "$ANDROID_PACKAGE" cat "$ANDROID_REMOTE_ARTIFACT_DIR/$remote_name" >"$tmp_artifact"; then
+      mv "$tmp_artifact" "$local_artifact"
+      pulled_any=1
+      if [[ "$local_artifact" == *.json ]]; then
+        pulled_jsons+=("$local_artifact")
+      fi
+    else
+      rm -f "$tmp_artifact"
+    fi
+  done
+
+  if [[ "$pulled_any" -ne 1 ]]; then
+    last_artifact_export_reason="remote_artifact_copy_failed"
+    return 1
+  fi
+
+  for json_artifact in "${pulled_jsons[@]}"; do
+    local screenshot_path=""
+    local local_screenshot="${json_artifact%.json}.png"
+    if [[ -f "$local_screenshot" ]]; then
+      screenshot_path="$local_screenshot"
+    fi
+    annotate_device_export_artifact "$json_artifact" "$screenshot_path"
+  done
+
+  return 0
+}
+
+start_android_artifact_mirror() {
+  local target_device="$1"
+  local scenario_name="$2"
+  local stop_file="$ARTIFACT_DIR/.${scenario_name}.mirror.stop"
+  rm -f "$stop_file"
+  (
+    while [[ ! -f "$stop_file" ]]; do
+      sync_android_remote_artifacts "$target_device" >/dev/null 2>&1 || true
+      sleep "$ANDROID_EXPORT_POLL_SECONDS"
+    done
+  ) >/dev/null 2>&1 &
+  printf '%s|%s\n' "$!" "$stop_file"
+}
+
+stop_android_artifact_mirror() {
+  local handle="$1"
+  [[ -n "$handle" ]] || return 0
+  local watcher_pid="${handle%%|*}"
+  local stop_file="${handle#*|}"
+  : >"$stop_file"
+  wait "$watcher_pid" 2>/dev/null || true
+  rm -f "$stop_file"
+}
+
 if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
-  if /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$DEVICE_ID" shell pm path "$ANDROID_PACKAGE" >/dev/null 2>&1; then
-    /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$DEVICE_ID" \
+  if is_android_package_installed "$DEVICE_ID"; then
+    "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
       shell run-as "$ANDROID_PACKAGE" rm -rf "$ANDROID_REMOTE_ARTIFACT_DIR" >/dev/null 2>&1 || true
-    /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$DEVICE_ID" \
+    "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
       shell run-as "$ANDROID_PACKAGE" mkdir -p "$ANDROID_REMOTE_ARTIFACT_DIR" >/dev/null 2>&1 || true
   fi
 fi
@@ -140,27 +260,25 @@ fi
 for test_file in "${suite_tests[@]}"; do
   echo "[turqapp-test] suite=$(basename "$test_file" .dart)"
   scenario_name="$(basename "$test_file" .dart)"
+  watcher_handle=""
+  if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+    watcher_handle="$(start_android_artifact_mirror "$DEVICE_ID" "$scenario_name")"
+  fi
   test_status=0
   if ! flutter "${COMMON_ARGS[@]}" "$test_file"; then
     test_status=1
   fi
+  if [[ -n "$watcher_handle" ]]; then
+    stop_android_artifact_mirror "$watcher_handle"
+  fi
   if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
-    if /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$DEVICE_ID" shell pm path "$ANDROID_PACKAGE" >/dev/null 2>&1; then
-      while IFS= read -r remote_name; do
-        [[ -n "$remote_name" ]] || continue
-        /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$DEVICE_ID" \
-          exec-out run-as "$ANDROID_PACKAGE" cat "$ANDROID_REMOTE_ARTIFACT_DIR/$remote_name" \
-          >"$ARTIFACT_DIR/$remote_name"
-      done < <(
-        /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$DEVICE_ID" \
-          shell run-as "$ANDROID_PACKAGE" ls "$ANDROID_REMOTE_ARTIFACT_DIR" 2>/dev/null |
-          tr -d '\r' |
-          grep -E '\.(json|png)$' || true
-      )
-    fi
+    sync_android_remote_artifacts "$DEVICE_ID" >/dev/null 2>&1 || true
   fi
   if [[ ! -f "$ARTIFACT_DIR/${scenario_name}.json" ]]; then
-    write_host_stub_artifact "$scenario_name" "$test_status"
+    write_host_stub_artifact \
+      "$scenario_name" \
+      "$test_status" \
+      "${last_artifact_export_reason:-scenario_artifact_missing}"
   fi
   if [[ "$test_status" -ne 0 ]]; then
     if [[ -d "$ARTIFACT_DIR" ]]; then
