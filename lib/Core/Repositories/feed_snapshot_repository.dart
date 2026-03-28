@@ -17,11 +17,192 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'feed_home_contract.dart';
 
 part 'feed_snapshot_repository_fetch_part.dart';
-part 'feed_snapshot_repository_base_part.dart';
-part 'feed_snapshot_repository_class_part.dart';
 part 'feed_snapshot_repository_codec_part.dart';
-part 'feed_snapshot_repository_facade_part.dart';
-part 'feed_snapshot_repository_fields_part.dart';
 part 'feed_snapshot_repository_visibility_part.dart';
-part 'feed_snapshot_repository_models_part.dart';
 part 'feed_snapshot_repository_runtime_part.dart';
+
+abstract class _FeedSnapshotRepositoryBase extends GetxService {
+  _FeedSnapshotRepositoryBase() {
+    _state = _FeedSnapshotRepositoryState(this as FeedSnapshotRepository);
+  }
+
+  late final _FeedSnapshotRepositoryState _state;
+}
+
+class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
+  static const String _homeSurfaceKey = 'feed_home_snapshot';
+  static const int _defaultPersistLimit = 40;
+  static const FeedHomeContract _homeContract = FeedHomeContract.primaryHybridV1;
+  static final Set<String> _hybridBackfillRequested = <String>{};
+}
+
+class _FeedSnapshotRepositoryState {
+  _FeedSnapshotRepositoryState(this.repository);
+
+  final FeedSnapshotRepository repository;
+
+  late final PostRepository postRepository = PostRepository.ensure();
+  late final RuntimeInvariantGuard invariantGuard =
+      ensureRuntimeInvariantGuard();
+  late final UserSummaryResolver userSummaryResolver =
+      UserSummaryResolver.ensure();
+  late final VisibilityPolicyService visibilityPolicy =
+      VisibilityPolicyService.ensure();
+  late final WarmLaunchPool warmLaunchPool = ensureWarmLaunchPool();
+  late final MemoryScopedSnapshotStore<List<PostsModel>> memoryStore =
+      MemoryScopedSnapshotStore<List<PostsModel>>();
+  late final SharedPrefsScopedSnapshotStore<List<PostsModel>> snapshotStore =
+      SharedPrefsScopedSnapshotStore<List<PostsModel>>(
+    prefsPrefix: 'feed_snapshot_v2',
+    encode: repository._encodePosts,
+    decode: repository._decodePosts,
+  );
+  late final CacheFirstCoordinator<List<PostsModel>> coordinator =
+      CacheFirstCoordinator<List<PostsModel>>(
+    memoryStore: memoryStore,
+    snapshotStore: snapshotStore,
+    telemetry: const CacheFirstKpiTelemetry<List<PostsModel>>(),
+    policy: CacheFirstPolicyRegistry.policyForSurface(
+      FeedSnapshotRepository._homeSurfaceKey,
+    ),
+  );
+  late final CacheFirstQueryPipeline<FeedSnapshotQuery, List<PostsModel>,
+          List<PostsModel>> homePipeline =
+      CacheFirstQueryPipeline<FeedSnapshotQuery, List<PostsModel>,
+          List<PostsModel>>(
+    surfaceKey: FeedSnapshotRepository._homeSurfaceKey,
+    coordinator: coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.scopeId,
+    fetchRaw: repository._fetchHomeSnapshot,
+    resolve: (items) => items,
+    loadWarmSnapshot: repository._loadWarmHomeSnapshot,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      FeedSnapshotRepository._homeSurfaceKey,
+    ),
+  );
+}
+
+FeedSnapshotRepository? maybeFindFeedSnapshotRepository() {
+  final isRegistered = Get.isRegistered<FeedSnapshotRepository>();
+  if (!isRegistered) return null;
+  return Get.find<FeedSnapshotRepository>();
+}
+
+FeedSnapshotRepository ensureFeedSnapshotRepository() {
+  final existing = maybeFindFeedSnapshotRepository();
+  if (existing != null) return existing;
+  return Get.put(FeedSnapshotRepository(), permanent: true);
+}
+
+extension FeedSnapshotRepositoryFieldsPart on FeedSnapshotRepository {
+  bool get _shouldLogDiagnostics => kDebugMode && !IntegrationTestMode.enabled;
+  PostRepository get _postRepository => _state.postRepository;
+  RuntimeInvariantGuard get _invariantGuard => _state.invariantGuard;
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
+  VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
+  WarmLaunchPool get _warmLaunchPool => _state.warmLaunchPool;
+  MemoryScopedSnapshotStore<List<PostsModel>> get _memoryStore =>
+      _state.memoryStore;
+  SharedPrefsScopedSnapshotStore<List<PostsModel>> get _snapshotStore =>
+      _state.snapshotStore;
+  CacheFirstCoordinator<List<PostsModel>> get _coordinator =>
+      _state.coordinator;
+  CacheFirstQueryPipeline<FeedSnapshotQuery, List<PostsModel>, List<PostsModel>>
+      get _homePipeline => _state.homePipeline;
+}
+
+extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
+  Stream<CachedResource<List<PostsModel>>> openHome({
+    required String userId,
+    int limit = 30,
+    bool forceSync = false,
+  }) {
+    return _homePipeline.open(
+      FeedSnapshotQuery(
+        userId: userId,
+        limit: limit,
+      ),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<PostsModel>>> loadHome({
+    required String userId,
+    int limit = 30,
+    bool forceSync = false,
+  }) {
+    return openHome(
+      userId: userId,
+      limit: limit,
+      forceSync: forceSync,
+    ).last;
+  }
+
+  Future<CachedResource<List<PostsModel>>> bootstrapHome({
+    required String userId,
+    int limit = 30,
+  }) =>
+      bootstrapFeedHome(
+        this,
+        userId: userId,
+        limit: limit,
+      );
+
+  Future<void> persistHomeSnapshot({
+    required String userId,
+    required List<PostsModel> posts,
+    int limit = FeedSnapshotRepository._defaultPersistLimit,
+    CachedResourceSource source = CachedResourceSource.server,
+  }) =>
+      persistFeedHomeSnapshot(
+        this,
+        userId: userId,
+        posts: posts,
+        limit: limit,
+        source: source,
+      );
+
+  Future<void> clearUserSnapshots({
+    String? userId,
+  }) =>
+      _coordinator.clearSurface(
+        FeedSnapshotRepository._homeSurfaceKey,
+        userId: userId?.trim().isEmpty ?? true ? null : userId!.trim(),
+      );
+}
+
+class FeedSnapshotQuery {
+  const FeedSnapshotQuery({
+    required this.userId,
+    this.limit = 30,
+    this.scopeTag = 'home',
+  });
+
+  final String userId;
+  final int limit;
+  final String scopeTag;
+
+  String get scopeId => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: limit,
+        scopeTag: scopeTag,
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          FeedSnapshotRepository._homeSurfaceKey,
+        ),
+      );
+}
+
+class FeedSourcePage {
+  const FeedSourcePage({
+    required this.items,
+    required this.lastDoc,
+    required this.usesPrimaryFeed,
+  });
+
+  final List<PostsModel> items;
+  final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
+  final bool usesPrimaryFeed;
+}
