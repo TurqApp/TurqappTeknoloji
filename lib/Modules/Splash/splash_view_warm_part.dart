@@ -78,29 +78,37 @@ extension _SplashViewWarmPart on _SplashViewState {
         })(),
       ]);
 
-      unawaited(
-        _warmUserMetaAndAvatars(
-          agendaController: agendaController,
-          storyController: storyController,
-          recommendedController: recommendedController,
-          onWiFi: onWiFi,
-        ).timeout(
-          Duration(milliseconds: onWiFi ? 900 : 500),
-          onTimeout: () {},
-        ),
+      final warmUserMetaFuture = _warmUserMetaAndAvatars(
+        agendaController: agendaController,
+        storyController: storyController,
+        recommendedController: recommendedController,
+        onWiFi: onWiFi,
+      ).timeout(
+        Duration(milliseconds: onWiFi ? 900 : 500),
+        onTimeout: () {},
       );
-      unawaited(
-        _warmProfileCacheSurfaces(onWiFi: onWiFi).timeout(
-          Duration(milliseconds: onWiFi ? 900 : 500),
-          onTimeout: () {},
-        ),
+      final warmProfileSurfacesFuture = _warmProfileCacheSurfaces(
+        onWiFi: onWiFi,
+      ).timeout(
+        Duration(milliseconds: onWiFi ? 900 : 500),
+        onTimeout: () {},
       );
-      unawaited(
-        _warmSliderCaches(onWiFi: onWiFi).timeout(
-          Duration(milliseconds: onWiFi ? 1200 : 650),
-          onTimeout: () {},
-        ),
+      final warmSliderFuture = _warmSliderCaches(onWiFi: onWiFi).timeout(
+        Duration(milliseconds: onWiFi ? 1200 : 650),
+        onTimeout: () {},
       );
+
+      if (Platform.isAndroid && isFirstLaunch) {
+        await Future.wait([
+          warmUserMetaFuture,
+          warmProfileSurfacesFuture,
+        ]);
+        unawaited(warmSliderFuture);
+      } else {
+        unawaited(warmUserMetaFuture);
+        unawaited(warmProfileSurfacesFuture);
+        unawaited(warmSliderFuture);
+      }
     } catch (_) {}
   }
 
