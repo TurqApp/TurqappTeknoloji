@@ -186,13 +186,15 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     );
 
     if (targetIndex >= 0 && targetIndex < activeEntries.length) {
-      if (centeredIndex.value != targetIndex) {
+      final centeredChanged = centeredIndex.value != targetIndex;
+      if (centeredChanged) {
         centeredIndex.value = targetIndex;
       }
       currentVisibleIndex.value = targetIndex;
       lastCenteredIndex = targetIndex;
-      if (centeredIndex.value != targetIndex ||
-          !_performIsPlaybackTargetCurrent(targetIndex)) {
+      // Social profile feed has no separate centered-index playback listener,
+      // so target changes must dispatch playback immediately here.
+      if (centeredChanged || !_performIsPlaybackTargetCurrent(targetIndex)) {
         _performEnsureCenteredPlaybackForIndex(targetIndex);
       }
     } else {

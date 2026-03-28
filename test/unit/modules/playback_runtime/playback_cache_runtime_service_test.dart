@@ -156,6 +156,25 @@ void main() {
       expect(source, isNot(contains('maybeFindVideoStateManager')));
     }
   });
+
+  test('profile feed surfaces claim playback when centered target changes',
+      () async {
+    final files = <String>[
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Profile/MyProfile/profile_controller_selection_part.dart',
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/SocialProfile/social_profile_controller_feed_selection_part.dart',
+    ];
+
+    for (final path in files) {
+      final source = await File(path).readAsString();
+      expect(
+        source,
+        contains(
+          'if (centeredChanged || !_performIsPlaybackTargetCurrent(targetIndex))',
+        ),
+      );
+      expect(source, contains('activatePlaybackTargetIfReady'));
+    }
+  });
 }
 
 class _FakePlaybackHandle implements PlaybackHandle {

@@ -105,11 +105,14 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
     if (activeFeedLength == 0) return;
 
     if (scrollController.offset <= 0) {
+      controller.currentVisibleIndex.value = 0;
       if (controller.centeredIndex.value != 0) {
         _updateSocialProfileState(() {
           controller.centeredIndex.value = 0;
           controller.lastCenteredIndex = 0;
         });
+      } else {
+        controller.lastCenteredIndex = 0;
       }
       return;
     }

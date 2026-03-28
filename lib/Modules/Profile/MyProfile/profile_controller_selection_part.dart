@@ -201,13 +201,15 @@ extension ProfileControllerSelectionPart on ProfileController {
     );
 
     if (targetIndex >= 0 && targetIndex < mergedPosts.length) {
-      if (centeredIndex.value != targetIndex) {
+      final centeredChanged = centeredIndex.value != targetIndex;
+      if (centeredChanged) {
         centeredIndex.value = targetIndex;
       }
       currentVisibleIndex.value = targetIndex;
       lastCenteredIndex = targetIndex;
-      if (centeredIndex.value != targetIndex ||
-          !_performIsPlaybackTargetCurrent(targetIndex)) {
+      // Profile surfaces do not have a dedicated centered-index listener like
+      // the main feed, so a newly centered target must claim playback here.
+      if (centeredChanged || !_performIsPlaybackTargetCurrent(targetIndex)) {
         _performEnsureCenteredPlaybackForIndex(targetIndex);
       }
     } else {
