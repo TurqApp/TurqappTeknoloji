@@ -142,6 +142,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     return Future.value();
   }
 
+  Future<void> _performSilenceAndStopPlayback() async {
+    if (_disposed) return;
+    await _performForceSilence();
+    await _performStopPlayback();
+  }
+
   Future<void> _performReloadVideo() async {
     if (_disposed) return;
     _refreshProxyUrlIfNeeded();

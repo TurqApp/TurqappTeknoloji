@@ -151,6 +151,10 @@ class HLSVideoAdapter extends ChangeNotifier {
   /// Tekrar play() çağrılırsa otomatik reload olur.
   Future<void> stopPlayback() => _performStopPlayback();
 
+  /// Audio çıkışını önce susturup ardından native playback'i durdur.
+  /// Android warm pool ve dormant handle cleanup için tek giriş noktasıdır.
+  Future<void> silenceAndStopPlayback() => _performSilenceAndStopPlayback();
+
   /// stopPlayback sonrası videoyu tekrar yükle.
   Future<void> reloadVideo() => _performReloadVideo();
 

@@ -556,8 +556,15 @@ class ExoPlayerView(
     fun stopPlayback() {
         stopPositionUpdates()
         stopStallWatchdog()
-        player?.stop()
-        player?.clearMediaItems()
+        isSoftHeld = false
+        heldVolume = 0f
+        player?.let { p ->
+            p.volume = 0f
+            p.playWhenReady = false
+            p.pause()
+            p.stop()
+            p.clearMediaItems()
+        }
         sendEvent(mapOf("event" to "stopped"))
     }
 

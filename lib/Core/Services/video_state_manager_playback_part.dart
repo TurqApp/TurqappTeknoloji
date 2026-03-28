@@ -136,8 +136,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (handle.isPlaying) continue;
       if (handle.position < const Duration(milliseconds: 320)) continue;
       _saveVideoState(entry.key, handle);
-      unawaited(handle.setVolume(0.0));
-      unawaited(handle.adapter.stopPlayback());
+      unawaited(handle.adapter.silenceAndStopPlayback());
     }
   }
 

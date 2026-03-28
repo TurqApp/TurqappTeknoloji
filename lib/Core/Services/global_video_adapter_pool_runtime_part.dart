@@ -3,7 +3,7 @@ part of 'global_video_adapter_pool.dart';
 extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   Future<void> _parkAdapter(HLSVideoAdapter adapter) async {
     if (Platform.isAndroid) {
-      await adapter.stopPlayback();
+      await adapter.silenceAndStopPlayback();
       return;
     }
     await adapter.pause();
