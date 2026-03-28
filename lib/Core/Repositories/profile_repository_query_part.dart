@@ -1,6 +1,36 @@
 part of 'profile_repository_library.dart';
 
 extension ProfileRepositoryQueryPart on ProfileRepository {
+  Map<String, dynamic> _coerceMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(value);
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return const <String, dynamic>{};
+  }
+
+  PostsModel? _mergeSnapshotCard({
+    required String postId,
+    required PostsModel? card,
+    required Map<String, dynamic>? snapshotData,
+  }) {
+    final base = card ??
+        (snapshotData == null ? null : PostsModel.fromMap(snapshotData, postId));
+    if (base == null || snapshotData == null) return base;
+
+    final poll = _coerceMap(snapshotData['poll']);
+    if (poll.isEmpty) return base;
+
+    _postRepository.mergeCachedPostData(postId, {'poll': poll});
+    if (base.poll.length == poll.length &&
+        base.poll.entries.every((entry) => poll[entry.key] == entry.value)) {
+      return base;
+    }
+    return base.copyWith(poll: poll);
+  }
+
   Future<ProfilePageResult> _fetchPrimaryPageImpl({
     required String uid,
     required DocumentSnapshot<Map<String, dynamic>>? startAfter,
@@ -21,13 +51,22 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     final snapshot =
         await query.get(const GetOptions(source: Source.serverAndCache));
     final postIds = snapshot.docs.map((doc) => doc.id).toList(growable: false);
+    final snapshotDataById = <String, Map<String, dynamic>>{
+      for (final doc in snapshot.docs) doc.id: doc.data(),
+    };
     final byId = await _postRepository.fetchPostCardsByIds(
       postIds,
       preferCache: true,
     );
     final buckets = buildBucketsFromPosts(
       postIds
-          .map((id) => byId[id])
+          .map(
+            (id) => _mergeSnapshotCard(
+              postId: id,
+              card: byId[id],
+              snapshotData: snapshotDataById[id],
+            ),
+          )
           .whereType<PostsModel>()
           .where((post) => post.deletedPost != true)
           .toList(growable: false),
@@ -62,10 +101,15 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       return null;
     }
 
-    final post = (await _postRepository.fetchPostCardsByIds(
-      [snapshot.docs.first.id],
-      preferCache: true,
-    ))[snapshot.docs.first.id];
+    final doc = snapshot.docs.first;
+    final post = _mergeSnapshotCard(
+      postId: doc.id,
+      card: (await _postRepository.fetchPostCardsByIds(
+        [doc.id],
+        preferCache: true,
+      ))[doc.id],
+      snapshotData: doc.data(),
+    );
     _latestPostMemory[uid] = post;
     return post;
   }
@@ -112,12 +156,21 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
         .orderBy('timeStamp', descending: true)
         .get(const GetOptions(source: Source.serverAndCache));
     final postIds = snapshot.docs.map((doc) => doc.id).toList(growable: false);
+    final snapshotDataById = <String, Map<String, dynamic>>{
+      for (final doc in snapshot.docs) doc.id: doc.data(),
+    };
     final byId = await _postRepository.fetchPostCardsByIds(
       postIds,
       preferCache: true,
     );
     final posts = postIds
-        .map((id) => byId[id])
+        .map(
+          (id) => _mergeSnapshotCard(
+            postId: id,
+            card: byId[id],
+            snapshotData: snapshotDataById[id],
+          ),
+        )
         .whereType<PostsModel>()
         .toList(growable: false);
     await writeArchive(uid, posts);
