@@ -32,10 +32,12 @@ extension QALabRecorderDiagnosticsScrollDispatchPart on QALabRecorder {
   List<Map<String, dynamic>> _duplicatePlaybackDispatchBursts({
     required List<QALabTimelineEvent> surfaceTimeline,
     String? docId,
+    DateTime? after,
   }) {
     final events = surfaceTimeline
         .where((event) => event.category == 'playback_dispatch')
         .where(_isIssuedPlaybackDispatch)
+        .where((event) => after == null || !event.timestamp.isBefore(after))
         .where(
           (event) =>
               docId == null ||

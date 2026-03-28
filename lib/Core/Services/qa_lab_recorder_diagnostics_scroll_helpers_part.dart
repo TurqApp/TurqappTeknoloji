@@ -10,6 +10,17 @@ extension QALabRecorderDiagnosticsScrollHelpersPart on QALabRecorder {
         .lastOrNull;
   }
 
+  QALabTimelineEvent? _firstScrollStartAfter({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required DateTime after,
+  }) {
+    return surfaceTimeline
+        .where((event) => event.category == 'scroll' && event.code == 'start')
+        .where((event) => event.timestamp.isAfter(after))
+        .toList(growable: false)
+        .firstOrNull;
+  }
+
   QALabTimelineEvent? _firstScrollPhaseAfter({
     required List<QALabTimelineEvent> surfaceTimeline,
     required DateTime after,

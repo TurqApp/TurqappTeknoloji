@@ -31,6 +31,10 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
       after: latestSettle.timestamp,
       docId: expectedDocId,
     );
+    final nextScrollStart = _firstScrollStartAfter(
+      surfaceTimeline: surfaceTimeline,
+      after: latestSettle.timestamp,
+    );
     final scrollToken = (latestSettle.metadata['scrollToken'] ?? '').toString();
     final stableFrameEvent = surface != 'short'
         ? null
@@ -44,7 +48,13 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     final dispatchLatencyMs = dispatch == null
         ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
         : dispatch.timestamp.difference(latestSettle.timestamp).inMilliseconds;
-    if (dispatch == null &&
+    final supersededByNextScroll = nextScrollStart != null &&
+        nextScrollStart.timestamp
+                .difference(latestSettle.timestamp)
+                .inMilliseconds <
+            QALabMode.scrollAutoplayDispatchBlockingMs;
+    if (!supersededByNextScroll &&
+        dispatch == null &&
         dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchBlockingMs) {
       findings.add(
         QALabPinpointFinding(
@@ -112,6 +122,15 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
             .difference(latestSettle.timestamp)
             .inMilliseconds;
     if (dispatch != null &&
+        (nextScrollStart == null ||
+            !nextScrollStart.timestamp.isBefore(
+              latestSettle.timestamp
+                  .add(
+                    Duration(
+                      milliseconds: QALabMode.scrollFirstFrameBlockingMs,
+                    ),
+                  ),
+            )) &&
         firstFrameIssue == null &&
         firstFrameLatencyMs >= QALabMode.scrollFirstFrameBlockingMs) {
       findings.add(
@@ -205,6 +224,7 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     final duplicateBursts = _duplicatePlaybackDispatchBursts(
       surfaceTimeline: surfaceTimeline,
       docId: expectedDocId,
+      after: latestSettle.timestamp,
     );
     if (duplicateBursts.isNotEmpty) {
       findings.add(
