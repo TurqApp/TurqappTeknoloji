@@ -187,6 +187,15 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     _performScheduleVisibilityEvaluation();
   }
 
+  bool _performShouldPinTopFeedTarget() {
+    if (postSelection.value != 0) return false;
+    if (!scrollController.hasClients) return false;
+    if (scrollController.offset > 24) return false;
+    final activeEntries = combinedFeedEntries;
+    if (activeEntries.isEmpty) return false;
+    return _performCanAutoplayCombinedEntry(activeEntries.first);
+  }
+
   void _performScheduleVisibilityEvaluation() {
     _visibilityDebounce?.cancel();
     _visibilityDebounce = Timer(
@@ -200,15 +209,17 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     final activeEntries = combinedFeedEntries;
     if (activeEntries.isEmpty) return;
 
-    final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
-      visibleFractions: _visibleFractions,
-      currentIndex: centeredIndex.value,
-      lastCenteredIndex: lastCenteredIndex,
-      itemCount: activeEntries.length,
-      canAutoplayIndex: (index) =>
-          _performCanAutoplayCombinedEntry(activeEntries[index]),
-      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
-    );
+    final targetIndex = _performShouldPinTopFeedTarget()
+        ? 0
+        : FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+            visibleFractions: _visibleFractions,
+            currentIndex: centeredIndex.value,
+            lastCenteredIndex: lastCenteredIndex,
+            itemCount: activeEntries.length,
+            canAutoplayIndex: (index) =>
+                _performCanAutoplayCombinedEntry(activeEntries[index]),
+            stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+          );
 
     if (targetIndex >= 0 && targetIndex < activeEntries.length) {
       final centeredChanged = centeredIndex.value != targetIndex;
