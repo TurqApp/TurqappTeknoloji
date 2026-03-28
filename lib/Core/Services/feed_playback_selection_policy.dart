@@ -24,6 +24,12 @@ class FeedPlaybackSelectionPolicy {
 
   static double get hysteresis => GetPlatform.isAndroid ? 0.10 : 0.06;
 
+  static double get switchRetentionThreshold =>
+      GetPlatform.isAndroid ? 0.58 : 0.62;
+
+  static double get switchDominanceMargin =>
+      GetPlatform.isAndroid ? 0.18 : 0.10;
+
   static Duration get scrollSettleReassertDuration =>
       const Duration(milliseconds: 220);
 
@@ -75,6 +81,14 @@ class FeedPlaybackSelectionPolicy {
     if (bestIndex >= 0) {
       final currentFraction =
           currentIndex >= 0 ? (visibleFractions[currentIndex] ?? 0.0) : 0.0;
+      final shouldRetainCurrentTarget = currentIndex >= 0 &&
+          currentIndex != bestIndex &&
+          canAutoplayIndex(currentIndex) &&
+          currentFraction >= switchRetentionThreshold &&
+          bestFraction < currentFraction + switchDominanceMargin;
+      if (shouldRetainCurrentTarget) {
+        return currentIndex;
+      }
       final shouldSwitch = currentIndex == -1 ||
           currentIndex == bestIndex ||
           currentFraction < playThreshold ||
