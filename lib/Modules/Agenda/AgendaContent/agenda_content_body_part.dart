@@ -229,6 +229,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       'agenda-$controllerTag'),
                                                   aspectRatio: displayAspect,
                                                   useAspectRatio: false,
+                                                  overrideAutoPlay:
+                                                      shouldAutoResumeInlinePlatformView,
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,

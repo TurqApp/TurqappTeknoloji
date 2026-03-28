@@ -63,6 +63,12 @@ class _HLSPlayerState extends State<HLSPlayer> {
     if (oldWidget.loop != widget.loop && _isInitialized) {
       widget.controller.setLoop(widget.loop);
     }
+
+    if (oldWidget.autoPlay != widget.autoPlay && _isInitialized) {
+      if (widget.autoPlay) {
+        unawaited(widget.controller.play());
+      }
+    }
   }
 
   @override

@@ -169,6 +169,22 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
 
+  bool get shouldAutoResumeInlinePlatformView {
+    if (isStandalonePostInstance) return widget.shouldPlay;
+    if (_useLegacyIosFeedBehavior) return widget.shouldPlay;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
+    if (_manualPauseRequested) return false;
+    final adapter = _videoAdapter;
+    if (adapter == null) return false;
+    if (_playbackRuntimeService.currentPlayingDocId == playbackHandleKey) {
+      return true;
+    }
+    final value = adapter.value;
+    return value.isPlaying ||
+        value.hasRenderedFirstFrame ||
+        value.position > Duration.zero;
+  }
+
   bool get _isSurfacePlaybackAllowed {
     if (isStandalonePostInstance) return true;
     if (_surfaceInstanceTag.startsWith('social_')) {

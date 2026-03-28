@@ -556,6 +556,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             key: ValueKey('classic-$controllerTag'),
                             aspectRatio: frameAspectRatio,
                             useAspectRatio: false,
+                            overrideAutoPlay:
+                                shouldAutoResumeInlinePlatformView,
                           ),
                   ),
                   // Thumbnail overlay - video hazır olana kadar göster

@@ -217,6 +217,20 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
 
+    final controllerOwnedListPlayback = !isStandalonePostInstance &&
+        (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
+    if (controllerOwnedListPlayback) {
+      _recordPlaybackDispatch(
+        'feed_card_wait_for_init_pending_play',
+        source: source,
+        dispatchIssued: false,
+        metadata: <String, dynamic>{
+          'currentPlayingDocId':
+              _playbackRuntimeService.currentPlayingDocId ?? '',
+        },
+      );
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+    }
     _recordPlaybackDispatch(
       'feed_card_wait_for_init',
       source: source,
