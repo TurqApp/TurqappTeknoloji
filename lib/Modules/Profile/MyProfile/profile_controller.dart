@@ -27,8 +27,6 @@ import '../../../Services/user_post_link_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'profile_controller_header_part.dart';
-part 'profile_controller_base_part.dart';
-part 'profile_controller_class_part.dart';
 part 'profile_controller_primary_part.dart';
 part 'profile_controller_cache_part.dart';
 part 'profile_controller_lifecycle_part.dart';
@@ -38,3 +36,31 @@ part 'profile_controller_support_part.dart';
 part 'profile_controller_fields_part.dart';
 
 const int kProfileIntegrationSmokeShellSelection = 99;
+
+abstract class _ProfileControllerBase extends GetxController {
+  final _lifecycleState = _ProfileLifecycleState();
+  final _scrollState = _ProfileScrollState();
+  final _headerState = _ProfileHeaderState();
+  final _feedState = _ProfileFeedState();
+
+  @override
+  void onInit() {
+    super.onInit();
+    (this as ProfileController)._performOnInit();
+  }
+
+  @override
+  void onClose() {
+    (this as ProfileController)._performOnClose();
+    super.onClose();
+  }
+}
+
+class ProfileController extends _ProfileControllerBase {
+  static ProfileController ensure() =>
+      maybeFind() ?? Get.put(ProfileController());
+
+  static ProfileController? maybeFind() => Get.isRegistered<ProfileController>()
+      ? Get.find<ProfileController>()
+      : null;
+}

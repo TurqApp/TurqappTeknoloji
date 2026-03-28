@@ -30,7 +30,6 @@ import '../Agenda/AgendaContent/agenda_content_controller.dart';
 import '../Profile/SocialMediaLinks/social_media_links_controller.dart';
 import '../Story/StoryRow/story_user_model.dart';
 
-part 'social_profile_controller_class_part.dart';
 part 'social_profile_controller_profile_part.dart';
 part 'social_profile_controller_actions_part.dart';
 part 'social_profile_controller_feed_part.dart';
@@ -39,7 +38,40 @@ part 'social_profile_controller_runtime_part.dart';
 part 'social_profile_controller_models_part.dart';
 part 'social_profile_controller_shell_part.dart';
 part 'social_profile_controller_shell_content_part.dart';
-part 'social_profile_controller_facade_part.dart';
 part 'social_profile_controller_support_part.dart';
-part 'social_profile_controller_base_part.dart';
 part 'social_profile_controller_fields_part.dart';
+
+abstract class _SocialProfileControllerBase extends GetxController {
+  _SocialProfileControllerBase({required String userID})
+      : _shellState = _SocialProfileShellState(userID: userID);
+
+  final _SocialProfileShellState _shellState;
+
+  @override
+  void onInit() {
+    super.onInit();
+    (this as SocialProfileController)._handleLifecycleInit();
+  }
+
+  @override
+  void onClose() {
+    (this as SocialProfileController)._handleLifecycleClose();
+    super.onClose();
+  }
+}
+
+class SocialProfileController extends _SocialProfileControllerBase {
+  SocialProfileController({required super.userID});
+}
+
+SocialProfileController ensureSocialProfileController({
+  required String userID,
+  String? tag,
+  bool permanent = false,
+}) =>
+    maybeFindSocialProfileController(tag: tag) ??
+    _ensureSocialProfileController(
+        userID: userID, tag: tag, permanent: permanent);
+
+SocialProfileController? maybeFindSocialProfileController({String? tag}) =>
+    _maybeFindSocialProfileController(tag: tag);

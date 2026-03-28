@@ -778,7 +778,7 @@ Toplam:
 | --- | --- | --- | --- | --- | --- |
 | F3-001 | Task isolation ve worktree drift guard | `RISK-008` | - | M/2 | Tamamlandi |
 | F3-002 | Android smoke artifact export zincirini sertlestir | `DEBT-006` | F3-001 | L/3 | Tamamlandi |
-| F3-003 | Profile/Social hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Acik |
+| F3-003 | Profile/Social hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Tamamlandi |
 | F3-004 | Feed/Playback hot-cluster secici sadeleştirme | `DEBT-001`, `DEBT-002` | F3-001 | XL/5 | Acik |
 | F3-005 | Surface budget guard ve cluster hedef listesi | `DEBT-002` | F3-003, F3-004 | M/2 | Acik |
 
@@ -788,6 +788,7 @@ Faz 3 artifact kayitlari:
 | --- | --- | --- | --- |
 | F3-ART-001 | `docs/testing/faz3_task_isolation_guard_2026-03-28.md` | Dolu | `F3-001` ile task isolation guard, expected-head drift kontrolu ve allowlist disi kir tespiti eklendi |
 | F3-ART-002 | `docs/testing/faz3_android_smoke_artifact_export_2026-03-28.md` | Dolu | `F3-002` ile Android smoke sirasinda arka plan artifact mirror watcher eklendi; device-side JSON/PNG artifact'lari paket kalkmadan host'a cekilip `android_device_export` olarak isaretleniyor |
+| F3-ART-003 | `docs/testing/faz3_profile_social_hot_cluster_cleanup_2026-03-28.md` | Dolu | `F3-003` ile `Profile/MyProfile` ve `SocialProfile` sicak kumesinde `class/base/facade` mikro parcalari ana dosyalara tasindi; toplam dosya yuzeyi `66 -> 57`, `*part.dart` sayisi `55 -> 46` indi |
 
 
 ## Feature Sahiplik Matrisi
