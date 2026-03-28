@@ -23,6 +23,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   bool _shouldDelayAutoplayForSegments(HLSVideoAdapter adapter) {
     if (!widget.model.hasPlayableVideo) return false;
     if (!widget.shouldPlay) return false;
+    if (_isPrimaryFeedSurfaceInstance) {
+      return false;
+    }
     if (_autoplaySegmentGateTimedOut) return false;
     final value = adapter.value;
     if (value.position > Duration.zero) return false;
