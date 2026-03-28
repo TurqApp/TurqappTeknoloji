@@ -77,9 +77,11 @@ class ExoPlayerView(
     private var firstVideoFrameAtMs = 0L
     private var lastWatchdogPositionMs = 0L
     private var stallRecoveries = 0
+    private var startupRecoveryAttempts = 0
     private var droppedVideoFrames = 0
     private var bufferingEvents = 0
     private var stallWatchdogRunnable: Runnable? = null
+    private var startupRecoveryRunnable: Runnable? = null
     private var lastBandwidthEstimateKbps = 0L
     private var selectedVideoBitrateKbps = 0L
     private var selectedVideoHeight = 0
@@ -195,6 +197,7 @@ class ExoPlayerView(
         if (existing != null && currentUrl == url) {
             existing.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             if (autoPlay) {
+                startupRecoveryAttempts = 0
                 play()
             } else {
                 softHold()
@@ -267,6 +270,7 @@ class ExoPlayerView(
         firstVideoFrameAtMs = 0L
         lastWatchdogPositionMs = 0L
         stallRecoveries = 0
+        startupRecoveryAttempts = 0
         droppedVideoFrames = 0
         bufferingEvents = 0
         lastBandwidthEstimateKbps = 0L
@@ -274,6 +278,11 @@ class ExoPlayerView(
         selectedVideoHeight = 0
         selectedVideoWidth = 0
         resetSurfaceVisibility()
+        if (autoPlay) {
+            startStartupRecoveryWatchdog()
+        } else {
+            stopStartupRecoveryWatchdog()
+        }
 
         if (existing == null) {
             activePlayer.addListener(object : Player.Listener {
@@ -302,6 +311,7 @@ class ExoPlayerView(
                         sendEvent(mapOf("event" to "completed"))
                         stopPositionUpdates()
                         stopStallWatchdog()
+                        stopStartupRecoveryWatchdog()
                     }
                     Player.STATE_BUFFERING -> {
                         bufferingEvents += 1
@@ -341,6 +351,7 @@ class ExoPlayerView(
                 ))
                 stopPositionUpdates()
                 stopStallWatchdog()
+                stopStartupRecoveryWatchdog()
             }
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
@@ -350,6 +361,7 @@ class ExoPlayerView(
 
             override fun onRenderedFirstFrame() {
                 didRenderFirstFrame = true
+                stopStartupRecoveryWatchdog()
                 lastVideoFrameAtMs = System.currentTimeMillis()
                 if (firstVideoFrameAtMs == 0L) {
                     firstVideoFrameAtMs = lastVideoFrameAtMs
@@ -432,17 +444,22 @@ class ExoPlayerView(
                 isSoftHeld = false
             }
             p.play()
+            if (!didRenderFirstFrame) {
+                startStartupRecoveryWatchdog()
+            }
             startStallWatchdog()
         }
     }
 
     fun pause() {
         isSoftHeld = false
+        stopStartupRecoveryWatchdog()
         player?.pause()
         stopStallWatchdog()
     }
 
     fun softHold() {
+        stopStartupRecoveryWatchdog()
         player?.let { p ->
             if (!isSoftHeld) {
                 heldVolume = p.volume
@@ -556,6 +573,7 @@ class ExoPlayerView(
     fun stopPlayback() {
         stopPositionUpdates()
         stopStallWatchdog()
+        stopStartupRecoveryWatchdog()
         isSoftHeld = false
         heldVolume = 0f
         player?.let { p ->
@@ -663,6 +681,39 @@ class ExoPlayerView(
         stallWatchdogRunnable = null
     }
 
+    private fun startStartupRecoveryWatchdog() {
+        stopStartupRecoveryWatchdog()
+        val runnable = object : Runnable {
+            override fun run() {
+                val p = player
+                if (p == null || isSoftHeld || didRenderFirstFrame || !container.isShown) {
+                    stopStartupRecoveryWatchdog()
+                    return
+                }
+                if (!p.playWhenReady || startupRecoveryAttempts >= 1) {
+                    stopStartupRecoveryWatchdog()
+                    return
+                }
+                val needsRecovery =
+                    !p.isPlaying &&
+                        (p.playbackState == Player.STATE_READY ||
+                            p.playbackState == Player.STATE_BUFFERING)
+                if (!needsRecovery) {
+                    stopStartupRecoveryWatchdog()
+                    return
+                }
+                recoverFromStartupTimeout()
+            }
+        }
+        startupRecoveryRunnable = runnable
+        handler.postDelayed(runnable, 1650)
+    }
+
+    private fun stopStartupRecoveryWatchdog() {
+        startupRecoveryRunnable?.let { handler.removeCallbacks(it) }
+        startupRecoveryRunnable = null
+    }
+
     private fun recoverFromRendererStall() {
         val p = player ?: return
         if (stallRecoveries >= 2) return
@@ -695,6 +746,47 @@ class ExoPlayerView(
                 lastVideoFrameAtMs = System.currentTimeMillis()
                 lastWatchdogPositionMs = p.currentPosition
             } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private fun recoverFromStartupTimeout() {
+        val p = player ?: return
+        if (startupRecoveryAttempts >= 1) return
+        startupRecoveryAttempts += 1
+        val currentPosition = p.currentPosition
+        handler.post {
+            try {
+                Log.w(
+                    "ExoPlayerView#$viewId",
+                    "startupSurfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$startupRecoveryAttempts"
+                )
+                didRenderFirstFrame = false
+                pendingRevealRunnable?.let(handler::removeCallbacks)
+                pendingRevealRunnable = null
+                playerView.animate().cancel()
+                playerView.alpha = 0f
+                sendEvent(
+                    mapOf(
+                        "event" to "surfaceRebind",
+                        "position" to (currentPosition / 1000.0),
+                        "recoveryAttempt" to startupRecoveryAttempts,
+                        "recoveryKind" to "startup_timeout",
+                    )
+                )
+                sendEvent(mapOf("event" to "surfaceDetached"))
+                playerView.player = null
+                playerView.player = p
+                if (currentPosition > 0L) {
+                    p.seekTo(currentPosition)
+                }
+                p.playWhenReady = true
+                p.play()
+                lastVideoFrameAtMs = System.currentTimeMillis()
+                lastWatchdogPositionMs = p.currentPosition
+            } catch (_: Throwable) {
+            } finally {
+                stopStartupRecoveryWatchdog()
             }
         }
     }
@@ -790,6 +882,7 @@ class ExoPlayerView(
     private fun releasePlayer(fully: Boolean) {
         stopPositionUpdates()
         stopStallWatchdog()
+        stopStartupRecoveryWatchdog()
         player?.pause()
         resetSurfaceVisibility()
         isSmokeRegistryActive = false
