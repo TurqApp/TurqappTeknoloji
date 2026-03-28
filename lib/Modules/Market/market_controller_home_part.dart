@@ -97,14 +97,15 @@ extension _MarketControllerHomePart on MarketController {
         didHydrate = true;
       }
       final decoded = _decodeMarketStartupItems(shard.payload['items']);
-      if (decoded.isEmpty) return;
-      if (items.isEmpty) {
-        items.assignAll(decoded);
-        didHydrate = true;
-      }
-      if (visibleItems.isEmpty) {
-        visibleItems.assignAll(decoded);
-        didHydrate = true;
+      if (decoded.isNotEmpty) {
+        if (items.isEmpty) {
+          items.assignAll(decoded);
+          didHydrate = true;
+        }
+        if (visibleItems.isEmpty) {
+          visibleItems.assignAll(decoded);
+          didHydrate = true;
+        }
       }
       if (!didHydrate) return;
       _startupShardHydrated = true;

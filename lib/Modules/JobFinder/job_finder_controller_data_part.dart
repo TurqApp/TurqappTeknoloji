@@ -96,14 +96,15 @@ extension JobFinderControllerDataPart on JobFinderController {
         didHydrate = true;
       }
       final decoded = _decodeJobFinderStartupJobs(shard.payload['jobs']);
-      if (decoded.isEmpty) return;
-      if (list.isEmpty) {
-        list.assignAll(decoded);
-        didHydrate = true;
-      }
-      if (allJobs.isEmpty) {
-        allJobs.assignAll(decoded);
-        didHydrate = true;
+      if (decoded.isNotEmpty) {
+        if (list.isEmpty) {
+          list.assignAll(decoded);
+          didHydrate = true;
+        }
+        if (allJobs.isEmpty) {
+          allJobs.assignAll(decoded);
+          didHydrate = true;
+        }
       }
       if (!didHydrate) return;
       _startupShardHydrated = true;
