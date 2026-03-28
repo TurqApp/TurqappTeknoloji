@@ -9,6 +9,14 @@ JobFinderController? maybeFindJobFinderController() =>
         ? Get.find<JobFinderController>()
         : null;
 
+Future<void> prepareJobFinderStartupSurface(
+  JobFinderController controller, {
+  bool? allowBackgroundRefresh,
+}) =>
+    controller._performPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+
 extension JobFinderControllerFacadeApiPart on JobFinderController {
   Future<void> persistStartupShard() => _persistJobFinderStartupShard();
 }

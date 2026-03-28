@@ -5,7 +5,7 @@ extension _MarketControllerLifecyclePart on MarketController {
     unawaited(_restoreListingSelection());
     scrollController.addListener(_onScroll);
     unawaited(_loadRecentSearches());
-    unawaited(prepareStartupSurface());
+    unawaited(_performPrepareStartupSurface());
   }
 
   void _handleLifecycleClose() {

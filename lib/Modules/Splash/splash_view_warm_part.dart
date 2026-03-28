@@ -127,10 +127,10 @@ extension _SplashViewWarmPart on _SplashViewState {
           (() async {
             try {
               if (!prioritizeEducationMarketWarmups) return;
-              await (maybeFindMarketController() ?? ensureMarketController())
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh: onWiFi,
-                  )
+              await prepareMarketStartupSurface(
+                maybeFindMarketController() ?? ensureMarketController(),
+                allowBackgroundRefresh: onWiFi,
+              )
                   .timeout(
                     Duration(milliseconds: onWiFi ? 1200 : 800),
                     onTimeout: () {},
@@ -141,11 +141,10 @@ extension _SplashViewWarmPart on _SplashViewState {
           (() async {
             try {
               if (!prioritizeEducationJobWarmups) return;
-              await (maybeFindJobFinderController() ??
-                      ensureJobFinderController())
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh: onWiFi,
-                  )
+              await prepareJobFinderStartupSurface(
+                maybeFindJobFinderController() ?? ensureJobFinderController(),
+                allowBackgroundRefresh: onWiFi,
+              )
                   .timeout(
                     Duration(milliseconds: onWiFi ? 1200 : 800),
                     onTimeout: () {},

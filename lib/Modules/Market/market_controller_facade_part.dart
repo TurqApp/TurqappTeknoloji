@@ -7,6 +7,14 @@ MarketController ensureMarketController({bool permanent = false}) =>
 MarketController? maybeFindMarketController() =>
     Get.isRegistered<MarketController>() ? Get.find<MarketController>() : null;
 
+Future<void> prepareMarketStartupSurface(
+  MarketController controller, {
+  bool? allowBackgroundRefresh,
+}) =>
+    controller._performPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+
 extension MarketControllerFacadeApiPart on MarketController {
   Future<void> persistStartupShard() => _persistMarketStartupShard();
 }
