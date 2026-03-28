@@ -14,6 +14,8 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
+import 'feed_home_contract.dart';
+
 part 'feed_snapshot_repository_fetch_part.dart';
 part 'feed_snapshot_repository_base_part.dart';
 part 'feed_snapshot_repository_class_part.dart';

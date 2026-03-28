@@ -34,6 +34,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     bool cacheOnly = false,
     bool usePrimaryFeedPaging = true,
   }) async {
+    const contract = FeedSnapshotRepository._homeContract;
     final normalizedUserId = userId.trim();
     if (!usePrimaryFeedPaging || normalizedUserId.isEmpty) {
       return _loadLegacyPage(
@@ -64,7 +65,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$normalizedUserId startAfter=${startAfter?.id ?? ''} '
-        'refs=${refsPage.items.length} eligible=${refs.length} limit=$limit',
+        'refs=${refsPage.items.length} eligible=${refs.length} limit=$limit '
+        'contract=${contract.contractId}',
       );
     }
 
@@ -279,6 +281,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         'uid': normalizedUserId,
         'refsCount': refs.length,
         'usesPrimaryFeed': true,
+        'feedContract': contract.contractId,
       },
     );
 
