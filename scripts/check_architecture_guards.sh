@@ -10,6 +10,33 @@ CHANGED_PATH="$ARTIFACT_DIR/architecture_changed_files.txt"
 BASE_REV=""
 FILES_CSV=""
 
+normalize_repo_path() {
+  local path="$1"
+  path="${path#./}"
+  if [[ "$path" == "$ROOT_DIR/"* ]]; then
+    path="${path#"$ROOT_DIR/"}"
+  fi
+  printf '%s\n' "$path"
+}
+
+strip_non_code_for_token_scan() {
+  local content="$1"
+  if [[ -z "$content" ]]; then
+    return
+  fi
+
+  CONTENT="$content" perl -0ne '
+    my $s = $ENV{CONTENT};
+    $s =~ s/""".*?"""//gs;
+    $s =~ s/'"'"''"'"''"'"'.*?'"'"''"'"''"'"'//gs;
+    $s =~ s/"(?:\\.|[^"\\])*"//gs;
+    $s =~ s/'"'"'(?:\\.|[^'"'"'\\])*'"'"'//gs;
+    $s =~ s{/\*.*?\*/}{}gs;
+    $s =~ s{//.*$}{}mg;
+    print $s;
+  '
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -103,7 +130,9 @@ count_direct_locator_tokens() {
     printf '0\n'
     return
   fi
-  { printf '%s' "$content" | rg -o "Get\\.(find|put|lazyPut|putAsync|create|delete|isRegistered)\\b" || true; } | wc -l | normalize_count
+  local sanitized=""
+  sanitized="$(strip_non_code_for_token_scan "$content")"
+  { printf '%s' "$sanitized" | rg -o "Get\\.(find|put|lazyPut|putAsync|create|delete|isRegistered)\\b" || true; } | wc -l | normalize_count
 }
 
 count_presentation_infra_imports() {
@@ -117,7 +146,9 @@ count_presentation_infra_imports() {
     printf '0\n'
     return
   fi
-  { printf '%s' "$content" | rg -n "^import 'package:(cloud_firestore|firebase_auth|firebase_storage|cloud_functions)/|^import 'package:turqappv2/Core/Repositories/" || true; } | wc -l | normalize_count
+  local sanitized=""
+  sanitized="$(strip_non_code_for_token_scan "$content")"
+  { printf '%s' "$sanitized" | rg -n "^import 'package:(cloud_firestore|firebase_auth|firebase_storage|cloud_functions)/|^import 'package:turqappv2/Core/Repositories/" || true; } | wc -l | normalize_count
 }
 
 count_cross_feature_internal_imports() {
@@ -130,6 +161,8 @@ count_cross_feature_internal_imports() {
   fi
   local own_feature="${BASH_REMATCH[1]}"
   local count=0
+  local sanitized=""
+  sanitized="$(strip_non_code_for_token_scan "$content")"
 
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
@@ -140,7 +173,7 @@ count_cross_feature_internal_imports() {
         count=$((count + 1))
       fi
     fi
-  done < <(printf '%s\n' "$content" | rg "^import 'package:turqappv2/Modules/" || true)
+  done < <(printf '%s\n' "$sanitized" | rg "^import 'package:turqappv2/Modules/" || true)
 
   printf '%s\n' "$count"
 }
@@ -181,14 +214,19 @@ write_inventory() {
 
 load_changed_files() {
   if [[ -n "$FILES_CSV" ]]; then
-    printf '%s\n' "$FILES_CSV" | tr ',' '\n' | sed '/^[[:space:]]*$/d' | sed 's#^\./##' | sort -u
+    while IFS= read -r path; do
+      [[ -z "$path" ]] && continue
+      normalize_repo_path "$path"
+    done < <(printf '%s\n' "$FILES_CSV" | tr ',' '\n' | sed '/^[[:space:]]*$/d')
     return
   fi
 
   {
     git -C "$ROOT_DIR" diff --name-only --diff-filter=ACMR "$BASE_REV" --
     git -C "$ROOT_DIR" ls-files --others --exclude-standard
-  } | sed '/^[[:space:]]*$/d' | sort -u
+  } | sed '/^[[:space:]]*$/d' | while IFS= read -r path; do
+    normalize_repo_path "$path"
+  done | sort -u
 }
 
 write_inventory

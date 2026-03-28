@@ -692,7 +692,7 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | --- | --- | --- | --- | --- | --- |
 | RISK-001 | Risk | Yuksek | T-005, T-007 | Acik | Rules daraltilirken profil okuma ve upload akislarinin kirilma riski var |
 | RISK-002 | Risk | Yuksek | T-008, T-013, F2-002 | Kapandi | Stored-account reauth akisinda password-provider hesaplar artik username fallback ile dead-end'e dusmuyor; `storedAccountUid` ile acilan SignIn route'u login formunu dogrudan aciyor ve hedefli unit/widget testleri yesil |
-| RISK-003 | Risk | Orta | T-009 | Acik | Architecture guard false-positive uretip CI'yi gereksiz kilitleyebilir |
+| RISK-003 | Risk | Orta | T-009, F2-008 | Kapandi | `F2-008` ile architecture guard yorum/string kaynakli sahte locator ve import sayimlarina karsi sanitize edildi; `--files` absolute/relative path davranisi normalize edildi ve sentetik audit ile dogrulandi |
 | RISK-004 | Risk | Yuksek | T-015, T-016 | Acik | Feed contract yanlis sabitlenirse legacy fallback'e bagimli akislar bozulabilir |
 | RISK-005 | Risk | Yuksek | T-028, T-029 | Acik | Upload/playback/cache boundary degisiklikleri arka plan akislarinda gorunmeyen regresyon uretebilir |
 | RISK-006 | Risk | Orta | T-006, T-021, F2-003, F2-004 | Kapandi | `F2-004` ile market root sayaçlari icin server-owned pipeline kuruldu; favorites/offers/reviews event kaynaklari trigger'lara, views ise callable + shard + reducer hattina tasindi; owner update denylist ve rules testleri yesil |
@@ -741,7 +741,7 @@ Toplam:
 | F2-005 | Profile route replay smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Tamamlandi |
 | F2-006 | Short refresh preserve smoke stabilizasyonu | `ADV-002` | F2-001 | L/3 | Tamamlandi |
 | F2-007 | Cikarilan smoke akislarini resmi manifest'e geri al | `ADV-002` | F2-005, F2-006 | M/2 | Tamamlandi |
-| F2-008 | Guard false-positive audit ve kalibrasyon | `RISK-003` | F2-001 | M/2 | Acik |
+| F2-008 | Guard false-positive audit ve kalibrasyon | `RISK-003` | F2-001 | M/2 | Tamamlandi |
 | F2-009 | Feed legacy fallback audit ve regresyon paketi | `RISK-004`, `RISK-007` | F2-001 | M/2 | Acik |
 | F2-010 | Rules/upload/playback/runtime gizli regresyon supurmesi | `RISK-001`, `RISK-005`, `RISK-007` | F2-004, F2-007, F2-009 | L/3 | Acik |
 | F2-011 | Startup/Auth/Session secici sadeleştirme butcesi | `DEBT-001`, `DEBT-002` | F2-002, F2-008, F2-010 | XL/5 | Acik |
@@ -757,6 +757,7 @@ Faz 2 artifact kayitlari:
 | F2-ART-005 | `docs/testing/faz2_profile_route_replay_smoke_stabilization_2026-03-28.md` | Dolu | `F2-005` profile route replay smoke kok neden, hafif shell ve Android emulator smoke dogrulamasi |
 | F2-ART-006 | `docs/testing/faz2_short_refresh_preserve_smoke_stabilization_2026-03-28.md` | Dolu | `F2-006` short route return, offstage tab hafifletmesi ve Android emulator smoke dogrulamasi |
 | F2-ART-007 | `docs/testing/faz2_auth_session_feed_manifest_reentry_2026-03-28.md` | Dolu | `F2-007` ile `feed_resume_test` ve `short_refresh_preserve_test` resmi auth/session/feed regression manifest'ine geri alindi |
+| F2-ART-008 | `docs/testing/faz2_guard_false_positive_audit_2026-03-28.md` | Dolu | `F2-008` architecture guard yorum/string noise ve absolute path kalibrasyon audit'i |
 
 
 ## Feature Sahiplik Matrisi
