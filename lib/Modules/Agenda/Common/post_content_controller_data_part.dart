@@ -1,6 +1,21 @@
 part of 'post_content_controller.dart';
 
 extension PostContentControllerDataPart on PostContentController {
+  bool _shouldIgnoreStaleIncomingPoll(Map<String, dynamic> incomingPoll) {
+    final uid = _currentUid;
+    if (uid.isEmpty) return false;
+
+    final currentPoll = Map<String, dynamic>.from(model.poll);
+    final currentUserVotes = currentPoll['userVotes'] is Map
+        ? Map<String, dynamic>.from(currentPoll['userVotes'])
+        : <String, dynamic>{};
+    final incomingUserVotes = incomingPoll['userVotes'] is Map
+        ? Map<String, dynamic>.from(incomingPoll['userVotes'])
+        : <String, dynamic>{};
+
+    return currentUserVotes.containsKey(uid) && !incomingUserVotes.containsKey(uid);
+  }
+
   void _bindFollowingState() {
     if (isCurrentUserId(model.userID)) {
       isFollowing.value = true;
@@ -84,7 +99,11 @@ extension PostContentControllerDataPart on PostContentController {
 
       if (data['poll'] != null) {
         try {
-          model.poll = Map<String, dynamic>.from(data['poll']);
+          final incomingPoll = Map<String, dynamic>.from(data['poll']);
+          if (_shouldIgnoreStaleIncomingPoll(incomingPoll)) {
+            return;
+          }
+          model.poll = incomingPoll;
           currentModel.refresh();
         } catch (_) {}
       }
