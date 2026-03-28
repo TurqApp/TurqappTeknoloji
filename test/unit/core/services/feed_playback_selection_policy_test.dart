@@ -75,4 +75,40 @@ void main() {
 
     expect(retain, isFalse);
   });
+
+  test(
+      'retains recently commanded Android target before it becomes active when it stays dominant',
+      () {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+    final retain =
+        FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+      lastCommandAt: DateTime.now().subtract(const Duration(milliseconds: 120)),
+      lastCommandDocId: 'doc-1',
+      currentDocId: 'doc-1',
+      isCurrentTargetActive: false,
+      currentFraction: 0.79,
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+    );
+
+    expect(retain, isTrue);
+  });
+
+  test(
+      'does not retain pending Android target once the pending retention window expires',
+      () {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+    final retain =
+        FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+      lastCommandAt: DateTime.now().subtract(const Duration(milliseconds: 320)),
+      lastCommandDocId: 'doc-1',
+      currentDocId: 'doc-1',
+      isCurrentTargetActive: false,
+      currentFraction: 0.79,
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+    );
+
+    expect(retain, isFalse);
+  });
 }

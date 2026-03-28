@@ -40,6 +40,11 @@ class FeedPlaybackSelectionPolicy {
       ? const Duration(milliseconds: 420)
       : const Duration(milliseconds: 180);
 
+  static Duration get pendingPlaybackTargetRetentionDuration =>
+      _isAndroidPlatform
+      ? const Duration(milliseconds: 260)
+      : Duration.zero;
+
   static bool shouldPlayCenteredItem({
     required bool isCentered,
     bool isSurfacePlaybackSuspended = false,
@@ -69,10 +74,13 @@ class FeedPlaybackSelectionPolicy {
     if (lastCommandDocId == null || lastCommandDocId != currentDocId) {
       return false;
     }
-    if (!isCurrentTargetActive) return false;
     if (currentFraction < stopThreshold) return false;
-    return DateTime.now().difference(lastCommandAt) <
-        playbackTargetStickinessDuration;
+    final elapsed = DateTime.now().difference(lastCommandAt);
+    if (isCurrentTargetActive) {
+      return elapsed < playbackTargetStickinessDuration;
+    }
+    if (currentFraction < switchRetentionThreshold) return false;
+    return elapsed < pendingPlaybackTargetRetentionDuration;
   }
 
   static int resolveCenteredIndex({
