@@ -699,7 +699,8 @@ Bu tablo canli tutulur; her is sonu guncellenir.
 | DEBT-001 | Debt | Orta | T-030 | Acik | Mikro `facade/fields/class part` dagilimi okuma maliyeti ve sahte modulerlik uretiyor; secici sadeleştirme gerekiyor |
 | DEBT-002 | Debt | Orta | T-031 | Acik | Repo genelinde dosya yuzeyi cok buyuk; kritik akislar `2768` adet `.dart` dosyasina dagiliyor ve takip maliyeti yukseliyor |
 | DEBT-003 | Debt | Orta | T-024 | Kapandi | `LikedPostControllers.isSeriesPost` uyumluluk yardimcisi geri eklendi; `flutter test --coverage test/unit/modules/profile/liked_posts_controller_test.dart` tekrar geciyor ve full coverage lane bu noktayi artik asiyor |
-| DEBT-004 | Debt | Orta | T-024 | Acik | full `flutter test --coverage` lane'i bu kez `test/unit/services/runtime_health_exporter_test.dart` icindeki `HlsDataUsageProbe.ensure` referansi nedeniyle derleme kirigina dusuyor |
+| DEBT-004 | Debt | Orta | T-024 | Kapandi | `test/unit/services/runtime_health_exporter_test.dart` guncel `ensureHlsDataUsageProbe()` facade API'sine tasindi; hedefli test ve coverage kosusu tekrar geciyor, full lane bu noktayi artik asiyor |
+| DEBT-005 | Debt | Orta | QA Catalog | Kapandi | `qa_lab_catalog_test` yeni eklenen integration/unit/backend/suite dosyalarini katalogda bulamiyordu; `qa_lab_catalog_entries_part.dart` senkronize edilerek katalog testi tekrar yesile dondu |
 | GAP-001 | Gap | Orta | T-001 | Kapandi | Rollback/checkpoint standardi plan icine eklendi; T-001'de canli kayit doldurulacak |
 | GAP-002 | Gap | Orta | T-021, T-022 | Kapandi | Fixture/seed checklist planda tanimlandi; uygulamada test bazli doldurulacak |
 

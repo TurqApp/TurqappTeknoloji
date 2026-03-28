@@ -6,7 +6,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/hls_data_usage_probe.dart';
 void main() {
   test('exports telemetry surfaces and threshold report', () async {
     final service = PlaybackKpiService();
-    HlsDataUsageProbe.ensure().resetSession(label: 'runtime_health_test');
+    ensureHlsDataUsageProbe().resetSession(label: 'runtime_health_test');
     for (var i = 0; i < 4; i++) {
       service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
         'surfaceKey': 'feed_home_snapshot',

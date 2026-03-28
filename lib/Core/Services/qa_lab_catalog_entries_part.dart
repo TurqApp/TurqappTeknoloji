@@ -646,4 +646,105 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     origin: QALabTestOrigin.backend,
     runnableInApp: false,
   ),
+  QALabCatalogEntry(
+    path: 'integration_test/auth/auth_startup_session_restore_test.dart',
+    origin: QALabTestOrigin.integration,
+    runnableInApp: true,
+  ),
+  QALabCatalogEntry(
+    path: 'integration_test/feed/feed_primary_bootstrap_contract_test.dart',
+    origin: QALabTestOrigin.integration,
+    runnableInApp: true,
+  ),
+  QALabCatalogEntry(
+    path: 'config/test_suites/auth_session_feed_regression.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/core/services/feed_playback_selection_policy_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/agenda/agenda_feed_application_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/chat_conversation_application_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path:
+        'test/unit/modules/playback_runtime/playback_cache_runtime_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/profile/ads_center_application_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/runtime_feature_services_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/short/short_feed_application_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/sign_in/sign_in_application_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/splash/splash_bootstrap_roles_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/story/story_row_application_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/repositories/feed_home_contract_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/services/account_session_vault_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/services/current_user_service_role_split_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/utils/stored_account_reauth_policy_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'functions/tests/unit/hybridFeedContract.test.js',
+    origin: QALabTestOrigin.backend,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'functions/tests/unit/moderationSecurityRegression.test.js',
+    origin: QALabTestOrigin.backend,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'functions/tests/unit/reportsAuth.test.js',
+    origin: QALabTestOrigin.backend,
+    runnableInApp: false,
+  ),
 ];
