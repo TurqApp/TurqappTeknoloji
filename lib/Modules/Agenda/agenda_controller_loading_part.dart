@@ -19,6 +19,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       });
     }
 
+    if (IntegrationTestMode.skipBackgroundStartupWork) {
+      return;
+    }
     unawaited(syncFeedHeadAfterSurfaceOpen());
   }
 

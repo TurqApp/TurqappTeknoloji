@@ -62,5 +62,29 @@ void main() {
         contains("feedContract': contract.contractId"),
       );
     });
+
+    test('repository fallback order preserves personal feed before legacy page',
+        () {
+      final fetchSource = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+      ).readAsStringSync();
+
+      final personalPrimaryEmpty =
+          fetchSource.indexOf('fallback=personal reason=primary_empty');
+      final legacyPersonalEmpty =
+          fetchSource.indexOf('fallback=legacy reason=personal_empty');
+      final personalVisibleEmpty = fetchSource.indexOf('fallback=personal \'');
+      final legacyVisibleEmpty = fetchSource.indexOf('fallback=legacy \'');
+
+      expect(personalPrimaryEmpty, greaterThanOrEqualTo(0));
+      expect(legacyPersonalEmpty, greaterThan(personalPrimaryEmpty));
+      expect(personalVisibleEmpty, greaterThanOrEqualTo(0));
+      expect(legacyVisibleEmpty, greaterThan(personalVisibleEmpty));
+      expect(
+          fetchSource,
+          contains(
+              'final personalFallback = await _loadPersonalFallbackPage('));
+      expect(fetchSource, contains('return _loadLegacyPage('));
+    });
   });
 }

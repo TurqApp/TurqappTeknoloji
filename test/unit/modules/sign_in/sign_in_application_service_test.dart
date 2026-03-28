@@ -24,7 +24,8 @@ void main() {
       lastSuccessfulSignInAt: 0,
     );
 
-    test('preferredIdentifierForStoredAccount uses stored email hint', () async {
+    test('preferredIdentifierForStoredAccount uses stored email hint',
+        () async {
       final service = SignInApplicationService(
         readStoredCredential: (_) async => const AccountSessionCredential(
           email: 'osman@example.com',
@@ -38,7 +39,8 @@ void main() {
       expect(identifier, 'osman@example.com');
     });
 
-    test('continueWithStoredAccount returns selected account context', () async {
+    test('continueWithStoredAccount returns selected account context',
+        () async {
       final account = passwordAccount.copyWith(email: 'dev@turq.app');
       final service = SignInApplicationService();
 
@@ -72,7 +74,8 @@ void main() {
       expect(capturedRequiresReauth, isTrue);
     });
 
-    test('signInWithPassword delegates orchestration to application service', () async {
+    test('signInWithPassword delegates orchestration to application service',
+        () async {
       final steps = <String>[];
       final service = SignInApplicationService(
         passwordSignIn: ({
@@ -108,7 +111,34 @@ void main() {
       );
     });
 
-    test('controller sign-in methods delegate to application service layer', () {
+    test(
+        'signInWithPassword reports recoveredAfterAuth when post-auth work fails after auth success',
+        () async {
+      final service = SignInApplicationService(
+        passwordSignIn: ({
+          required String email,
+          required String password,
+        }) async {},
+        authUserIdProvider: () => 'uid-123',
+        hasAuthUserProvider: () => true,
+        beginSessionClaim: (_) {},
+        registerCurrentDeviceSession: () async {},
+        schedulePostAuthTasks: (_) async {
+          throw StateError('post-auth failed');
+        },
+      );
+
+      final result = await service.signInWithPassword(
+        email: 'osman@example.com',
+        password: 'secret',
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.recoveredAfterAuth, isTrue);
+    });
+
+    test('controller sign-in methods delegate to application service layer',
+        () {
       final authSource = File(
         '/Users/turqapp/Desktop/TurqApp/lib/Modules/SignIn/sign_in_controller_auth_part.dart',
       ).readAsStringSync();
@@ -130,7 +160,8 @@ void main() {
       );
       expect(
         accountSource,
-        contains('_signInApplicationService.preferredIdentifierForStoredAccount'),
+        contains(
+            '_signInApplicationService.preferredIdentifierForStoredAccount'),
       );
     });
   });

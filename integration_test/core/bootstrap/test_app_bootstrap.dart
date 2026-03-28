@@ -425,7 +425,7 @@ Future<void> _primeNotificationsForSmoke(WidgetTester tester) async {
   final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
   if (uid.isEmpty) return;
 
-  final repository = NotificationsSnapshotRepository.ensure();
+  final repository = ensureNotificationsSnapshotRepository();
   try {
     await repository.loadInbox(
       userId: uid,
@@ -443,7 +443,7 @@ Future<void> _primeFeedSnapshotForSmoke(WidgetTester tester) async {
   final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
   if (uid.isEmpty) return;
 
-  final repository = FeedSnapshotRepository.ensure();
+  final repository = ensureFeedSnapshotRepository();
   try {
     await repository.loadHome(
       userId: uid,
@@ -478,7 +478,7 @@ Future<void> _routeToNavBarForSmoke(WidgetTester tester) async {
   try {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (Get.currentRoute == '/NavBarView') return;
-      NavBarController.maybeFind()?.selectedIndex.value = 0;
+      maybeFindNavBarController()?.selectedIndex.value = 0;
       Get.offAll(() => NavBarView());
     });
     await pumpForAppStartup(
@@ -519,6 +519,8 @@ Future<void> tapItKey(
   await tester.ensureVisible(finder);
   await tester.pump(const Duration(milliseconds: 100));
   await tester.tap(finder);
+  await tester.pump(const Duration(milliseconds: 100));
+  FocusManager.instance.primaryFocus?.unfocus();
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 250));
   }
@@ -526,6 +528,7 @@ Future<void> tapItKey(
 }
 
 Future<void> expectFeedScreen(WidgetTester tester) async {
+  drainExpectedTesterExceptions(tester, context: 'expectFeedScreen');
   expect(byItKey(IntegrationTestKeys.screenFeed), findsOneWidget);
   await expectNoFlutterException(tester);
 }

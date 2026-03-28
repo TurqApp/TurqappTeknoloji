@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';

@@ -13,6 +13,7 @@ Future<Map<String, dynamic>> waitForSurfaceProbeContract(
   String context = 'surface contract',
 }) async {
   for (var i = 0; i < maxPumps; i++) {
+    drainExpectedTesterExceptions(tester, context: context);
     final payload = readSurfaceProbe(surface);
     if (predicate(payload)) {
       return payload;
@@ -20,11 +21,13 @@ Future<Map<String, dynamic>> waitForSurfaceProbeContract(
     await tester.pump(step);
     drainExpectedTesterExceptions(tester, context: context);
   }
+  drainExpectedTesterExceptions(tester, context: context);
   final payload = readSurfaceProbe(surface);
   if (predicate(payload)) {
     return payload;
   }
   throw TestFailure(
-    reason ?? 'Surface probe did not reach expected state: $surface',
+    '${reason ?? 'Surface probe did not reach expected state: $surface'} '
+    'Last payload: $payload',
   );
 }

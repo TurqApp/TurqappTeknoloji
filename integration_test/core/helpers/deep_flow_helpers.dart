@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import '../bootstrap/test_app_bootstrap.dart';
 import 'test_state_probe.dart';
+import 'transient_error_policy.dart';
 
 Finder findItKeyPrefix(String prefix) {
   return find.byWidgetPredicate((widget) {
@@ -83,12 +84,15 @@ Future<Map<String, dynamic>> waitForSurfaceProbe(
   String? reason,
 }) async {
   for (var i = 0; i < maxPumps; i++) {
+    drainExpectedTesterExceptions(tester, context: reason ?? surface);
     final payload = readSurfaceProbe(surface);
     if (predicate(payload)) {
       return payload;
     }
     await tester.pump(step);
+    drainExpectedTesterExceptions(tester, context: reason ?? surface);
   }
+  drainExpectedTesterExceptions(tester, context: reason ?? surface);
   final payload = readSurfaceProbe(surface);
   if (predicate(payload)) {
     return payload;

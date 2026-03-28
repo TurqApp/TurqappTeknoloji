@@ -57,6 +57,10 @@ extension _ArchiveControllerLifecyclePart on ArchiveController {
         isLoading.value = false;
         return;
       }
+      if (IntegrationTestMode.skipBackgroundStartupWork) {
+        isLoading.value = false;
+        return;
+      }
       unawaited(_ArchiveControllerDataPart(this)._bootstrapArchive(nextUserId));
     });
   }
