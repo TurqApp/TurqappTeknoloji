@@ -50,6 +50,7 @@ extension PostContentControllerDataPart on PostContentController {
       currentUid: uid,
       optionIndex: selection,
       expiresAtMs: _pollExpiresAtMs(poll),
+      poll: poll,
     ));
   }
 
@@ -81,17 +82,26 @@ extension PostContentControllerDataPart on PostContentController {
       );
       return;
     }
-    final cachedSelection = await _postRepository.readLocalPollSelection(
+    final cachedState = await _postRepository.readLocalPollSelectionState(
       postId: model.docID,
       currentUid: uid,
     );
+    if (cachedState == null) return;
+    final cachedSelection = cachedState['optionIndex'] is num
+        ? (cachedState['optionIndex'] as num).toInt()
+        : int.tryParse('${cachedState['optionIndex'] ?? ''}');
     if (cachedSelection == null) return;
-    final optimisticPoll = _postRepository.buildVotedPoll(
-      poll: currentPoll,
-      optionIndex: cachedSelection,
-      fallbackTimestampMs: model.timeStamp.toInt(),
-      currentUid: uid,
-    );
+    final cachedPoll = cachedState['poll'] is Map
+        ? Map<String, dynamic>.from(cachedState['poll'])
+        : const <String, dynamic>{};
+    final optimisticPoll = cachedPoll.isNotEmpty
+        ? cachedPoll
+        : _postRepository.buildVotedPoll(
+            poll: currentPoll,
+            optionIndex: cachedSelection,
+            fallbackTimestampMs: model.timeStamp.toInt(),
+            currentUid: uid,
+          );
     _localPollSelection.value = cachedSelection;
     _postState?.localPollSelection.value = cachedSelection;
     if (optimisticPoll != null) {
@@ -274,12 +284,13 @@ extension PostContentControllerDataPart on PostContentController {
       _postState?.localPollSelection.value = optionIndex;
       model.poll = optimisticPoll;
       _cachePollLocally(optimisticPoll);
-      unawaited(_postRepository.persistLocalPollSelection(
+      await _postRepository.persistLocalPollSelection(
         postId: model.docID,
         currentUid: uid,
         optionIndex: optionIndex,
         expiresAtMs: _pollExpiresAtMs(optimisticPoll),
-      ));
+        poll: optimisticPoll,
+      );
       currentModel.refresh();
       final confirmedPoll = await _postRepository.commitPollVote(
         postId: model.docID,

@@ -470,6 +470,7 @@ extension PostRepositoryQueryPart on PostRepository {
     required String currentUid,
     required int optionIndex,
     required int expiresAtMs,
+    Map<String, dynamic>? poll,
   }) async {
     final normalizedPostId = postId.trim();
     final normalizedUid = currentUid.trim();
@@ -487,6 +488,8 @@ extension PostRepositoryQueryPart on PostRepository {
       'optionIndex': optionIndex,
       'expiresAtMs': expiresAtMs,
       'updatedAtMs': DateTime.now().millisecondsSinceEpoch,
+      if (poll != null && poll.isNotEmpty)
+        'poll': Map<String, dynamic>.from(poll),
     });
     await prefs.setString(
       _pollSelectionKey(normalizedUid, normalizedPostId),
@@ -495,6 +498,22 @@ extension PostRepositoryQueryPart on PostRepository {
   }
 
   Future<int?> _performReadLocalPollSelection({
+    required String postId,
+    required String currentUid,
+  }) async {
+    final data = await _performReadLocalPollSelectionState(
+      postId: postId,
+      currentUid: currentUid,
+    );
+    if (data == null) return null;
+    final optionRaw = data['optionIndex'];
+    final optionIndex = optionRaw is num
+        ? optionRaw.toInt()
+        : int.tryParse('${optionRaw ?? ''}');
+    return (optionIndex == null || optionIndex < 0) ? null : optionIndex;
+  }
+
+  Future<Map<String, dynamic>?> _performReadLocalPollSelectionState({
     required String postId,
     required String currentUid,
   }) async {
@@ -528,7 +547,7 @@ extension PostRepositoryQueryPart on PostRepository {
         await prefs.remove(key);
         return null;
       }
-      return optionIndex;
+      return Map<String, dynamic>.from(data.cast<String, dynamic>());
     } catch (_) {
       await prefs.remove(key);
       return null;

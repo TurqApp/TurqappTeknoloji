@@ -182,12 +182,23 @@ extension PostRepositoryFacadePart on PostRepository {
     required String currentUid,
     required int optionIndex,
     required int expiresAtMs,
+    Map<String, dynamic>? poll,
   }) =>
       _performPersistLocalPollSelection(
         postId: postId,
         currentUid: currentUid,
         optionIndex: optionIndex,
         expiresAtMs: expiresAtMs,
+        poll: poll,
+      );
+
+  Future<Map<String, dynamic>?> readLocalPollSelectionState({
+    required String postId,
+    required String currentUid,
+  }) =>
+      _performReadLocalPollSelectionState(
+        postId: postId,
+        currentUid: currentUid,
       );
 
   Future<int?> readLocalPollSelection({
