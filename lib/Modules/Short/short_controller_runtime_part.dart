@@ -71,6 +71,24 @@ extension ShortControllerPublicApiPart on ShortController {
 
   Future<void> prepareStartupSurface({
     bool? allowBackgroundRefresh,
+  }) {
+    final active = _startupPrepareFuture;
+    if (active != null) {
+      return active;
+    }
+    final future = _performPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+    _startupPrepareFuture = future;
+    return future.whenComplete(() {
+      if (identical(_startupPrepareFuture, future)) {
+        _startupPrepareFuture = null;
+      }
+    });
+  }
+
+  Future<void> _performPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
   }) async {
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);

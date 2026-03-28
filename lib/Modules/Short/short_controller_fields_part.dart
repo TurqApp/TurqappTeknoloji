@@ -10,6 +10,7 @@ class _ShortControllerState {
   final lastIndex = 0.obs;
   Future<void>? backgroundPreloadFuture;
   Future<void>? initialLoadFuture;
+  Future<void>? startupPrepareFuture;
   final pageSize = 20;
   final isLoading = false.obs;
   final hasMore = true.obs;
@@ -44,6 +45,9 @@ extension ShortControllerFieldsPart on ShortController {
   Future<void>? get _initialLoadFuture => _state.initialLoadFuture;
   set _initialLoadFuture(Future<void>? value) =>
       _state.initialLoadFuture = value;
+  Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _state.startupPrepareFuture = value;
   int get pageSize => _state.pageSize;
   RxBool get isLoading => _state.isLoading;
   RxBool get hasMore => _state.hasMore;

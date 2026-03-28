@@ -50,6 +50,7 @@ class _AgendaControllerState {
   bool ensureInitialLoadInFlight = false;
   Future<void>? ensureInitialLoadFuture;
   Future<void>? surfaceBootstrapFuture;
+  Future<void>? startupPrepareFuture;
   Future<void>? headSyncFuture;
   DateTime? lastEnsureInitialLoadAt;
   DateTime? lastHeadSyncAt;
@@ -161,6 +162,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   Future<void>? get _surfaceBootstrapFuture => _state.surfaceBootstrapFuture;
   set _surfaceBootstrapFuture(Future<void>? value) =>
       _state.surfaceBootstrapFuture = value;
+  Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _state.startupPrepareFuture = value;
   Future<void>? get _headSyncFuture => _state.headSyncFuture;
   set _headSyncFuture(Future<void>? value) => _state.headSyncFuture = value;
   DateTime? get _lastEnsureInitialLoadAt => _state.lastEnsureInitialLoadAt;
