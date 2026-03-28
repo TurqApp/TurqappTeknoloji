@@ -33,9 +33,30 @@ import 'sign_in_remote_service.dart';
 part 'sign_in_controller_auth_part.dart';
 part 'sign_in_controller_account_part.dart';
 part 'sign_in_controller_base_part.dart';
-part 'sign_in_controller_class_part.dart';
-part 'sign_in_controller_facade_part.dart';
 part 'sign_in_controller_fields_part.dart';
 part 'sign_in_controller_lifecycle_part.dart';
 part 'sign_in_controller_signup_part.dart';
 part 'sign_in_controller_support_part.dart';
+
+class SignInController extends GetxController
+    with GetSingleTickerProviderStateMixin, _SignInControllerBasePart {}
+
+SignInController ensureSignInController({
+  String? tag,
+  bool permanent = false,
+}) =>
+    maybeFindSignInController(tag: tag) ??
+    Get.put(SignInController(), tag: tag, permanent: permanent);
+
+SignInController? maybeFindSignInController({String? tag}) =>
+    Get.isRegistered<SignInController>(tag: tag)
+        ? Get.find<SignInController>(tag: tag)
+        : null;
+
+void _handleSignInControllerInit(SignInController controller) {
+  controller._handleLifecycleInit();
+}
+
+void _handleSignInControllerClose(SignInController controller) {
+  controller._handleLifecycleClose();
+}
