@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -29,6 +30,7 @@ import '../../Services/current_user_service.dart';
 import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/turq_image_cache_manager.dart';
 import '../../Core/Repositories/market_snapshot_repository.dart';
+import '../../Core/Services/user_profile_cache_service.dart';
 import '../../Models/market_item_model.dart';
 import '../../main.dart';
 
@@ -129,6 +131,8 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _prepareSynchronizedStartupBeforeNav(
           {required bool isFirstLaunch}) async =>
       _performPrepareSynchronizedStartupBeforeNav(isFirstLaunch: isFirstLaunch);
+
+  Future<void> _initCacheProxy() async => _startupOrchestrator.initCacheProxy();
 
   int _feedWarmPoolLimit() =>
       ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
