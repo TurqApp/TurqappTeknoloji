@@ -45,6 +45,9 @@ extension _SplashViewStartupPart on _SplashViewState {
     } catch (_) {
       loggedIn = false;
     }
+    if (loggedIn) {
+      await _ensureAuthenticatedPrimaryRouteReady();
+    }
     final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi != null) {
       playbackKpi.track(
@@ -134,6 +137,19 @@ extension _SplashViewStartupPart on _SplashViewState {
       return;
     }
     Get.offAll(() => SignIn());
+  }
+
+  Future<void> _ensureAuthenticatedPrimaryRouteReady() async {
+    try {
+      final agendaController = maybeFindAgendaController() ?? ensureAgendaController();
+      if (agendaController.agendaList.isNotEmpty) {
+        return;
+      }
+      await agendaController.ensureFeedSurfaceReady().timeout(
+        const Duration(milliseconds: 900),
+        onTimeout: () {},
+      );
+    } catch (_) {}
   }
 
 }

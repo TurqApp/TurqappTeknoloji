@@ -11,7 +11,8 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  test('StartupBootstrap runs core startup prerequisites and returns prefs', () async {
+  test('StartupBootstrap runs core startup prerequisites and returns prefs',
+      () async {
     final events = <String>[];
     SharedPreferences.setMockInitialValues(<String, Object>{'ready': true});
 
@@ -89,7 +90,52 @@ void main() {
     },
   );
 
-  test('PostLoginWarmup only enforces follow when a signed-in user exists', () async {
+  test(
+    'SessionBootstrap retries auth restore before declaring logged-out startup',
+    () async {
+      final events = <String>[];
+      final prefs = await SharedPreferences.getInstance();
+      var effectiveUserId = '';
+
+      final bootstrap = SessionBootstrap(
+        initializeAccountCenter: () async {
+          events.add('accountCenter.init');
+        },
+        initializeCurrentUser: () async {
+          events.add('currentUser.init');
+        },
+        handleFirstLaunchCleanup: (_) async {
+          events.add('cleanup');
+          return false;
+        },
+        readEffectiveUserId: () => effectiveUserId,
+        ensureAuthReady: ({required timeout}) async {
+          events.add('ensureAuthReady:${timeout.inMilliseconds}');
+          effectiveUserId = 'uid-restored';
+          return effectiveUserId;
+        },
+        syncCurrentAccountToAccountCenter: () async {
+          events.add('accountCenter.sync');
+        },
+        deterministicStartup: () => false,
+        isIOS: () => false,
+      );
+
+      final result = await bootstrap.run(prefs: prefs);
+
+      expect(result.isFirstLaunch, isFalse);
+      expect(result.loggedIn, isTrue);
+      expect(
+        events.where((event) => event == 'currentUser.init').length,
+        2,
+      );
+      expect(events, contains('ensureAuthReady:900'));
+      expect(events, contains('accountCenter.sync'));
+    },
+  );
+
+  test('PostLoginWarmup only enforces follow when a signed-in user exists',
+      () async {
     final events = <String>[];
     final warmup = PostLoginWarmup(
       runCriticalWarmStartLoads: ({required isFirstLaunch}) async {},

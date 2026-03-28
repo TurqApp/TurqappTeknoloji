@@ -13,6 +13,15 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
     if (_disposed) return;
     _viewReady = false;
     _isStopped = false;
+    // Warm pool'dan dönen adapter'da stale play/pause/volume/seek komutlarını
+    // bırakmazsak sonraki kart eski sessize alma veya pause isteğini devralıyor.
+    _wantPlay = false;
+    _wantPause = false;
+    _pendingVolume = 1.0;
+    _hasPendingVolume = false;
+    _pendingSeek = null;
+    _pendingPreferredBufferDurationSeconds = null;
+    _hls.cancelPendingResume();
     _value = HLSVideoValue(
       isInitialized: false,
       isPlaying: false,

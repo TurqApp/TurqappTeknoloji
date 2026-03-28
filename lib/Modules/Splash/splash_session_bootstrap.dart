@@ -15,6 +15,10 @@ typedef SplashStartupPreparationRunner = Future<void> Function({
   required bool isFirstLaunch,
 });
 
+typedef SessionAuthReadyRunner = Future<String?> Function({
+  required Duration timeout,
+});
+
 class SessionBootstrapResult {
   const SessionBootstrapResult({
     required this.isFirstLaunch,
@@ -31,6 +35,7 @@ class SessionBootstrap {
     Future<void> Function()? initializeCurrentUser,
     FirstLaunchCleanupRunner? handleFirstLaunchCleanup,
     String Function()? readEffectiveUserId,
+    SessionAuthReadyRunner? ensureAuthReady,
     Future<void> Function()? syncCurrentAccountToAccountCenter,
     SplashStartupPreparationRunner? prepareSynchronizedStartupBeforeNav,
     void Function(bool value)? markMinimumStartupPrepared,
@@ -42,21 +47,24 @@ class SessionBootstrap {
             initializeCurrentUser ?? _defaultInitializeCurrentUser,
         _handleFirstLaunchCleanup =
             handleFirstLaunchCleanup ?? _defaultHandleFirstLaunchCleanup,
-        _readEffectiveUserId = readEffectiveUserId ?? _defaultReadEffectiveUserId,
+        _readEffectiveUserId =
+            readEffectiveUserId ?? _defaultReadEffectiveUserId,
+        _ensureAuthReady = ensureAuthReady ?? _defaultEnsureAuthReady,
         _syncCurrentAccountToAccountCenter =
             syncCurrentAccountToAccountCenter ??
                 _defaultSyncCurrentAccountToAccountCenter,
         _prepareSynchronizedStartupBeforeNav =
             prepareSynchronizedStartupBeforeNav,
         _markMinimumStartupPrepared = markMinimumStartupPrepared,
-        _deterministicStartup =
-            deterministicStartup ?? (() => IntegrationTestMode.deterministicStartup),
+        _deterministicStartup = deterministicStartup ??
+            (() => IntegrationTestMode.deterministicStartup),
         _isIOS = isIOS ?? (() => Platform.isIOS);
 
   final Future<void> Function() _initializeAccountCenter;
   final Future<void> Function() _initializeCurrentUser;
   final FirstLaunchCleanupRunner _handleFirstLaunchCleanup;
   final String Function() _readEffectiveUserId;
+  final SessionAuthReadyRunner _ensureAuthReady;
   final Future<void> Function() _syncCurrentAccountToAccountCenter;
   final SplashStartupPreparationRunner? _prepareSynchronizedStartupBeforeNav;
   final void Function(bool value)? _markMinimumStartupPrepared;
@@ -80,7 +88,18 @@ class SessionBootstrap {
       ]);
     }
 
-    final loggedIn = _readEffectiveUserId().isNotEmpty;
+    var loggedIn = _readEffectiveUserId().isNotEmpty;
+    if (!loggedIn) {
+      final restoredUid = (await _ensureAuthReady(
+            timeout: _authRestoreWait,
+          ))
+              ?.trim() ??
+          '';
+      if (restoredUid.isNotEmpty) {
+        await _initializeCurrentUser();
+        loggedIn = _readEffectiveUserId().isNotEmpty || restoredUid.isNotEmpty;
+      }
+    }
     if (loggedIn) {
       unawaited(_syncCurrentAccountToAccountCenter());
       if (_deterministicStartup()) {
@@ -97,6 +116,12 @@ class SessionBootstrap {
       loggedIn: loggedIn,
     );
   }
+
+  Duration get _authRestoreWait => IntegrationTestMode.enabled
+      ? const Duration(seconds: 3)
+      : _isIOS()
+          ? const Duration(milliseconds: 450)
+          : const Duration(milliseconds: 900);
 
   static Future<void> _defaultInitializeAccountCenter() async {
     await ensureAccountCenterService().init();
@@ -137,6 +162,15 @@ class SessionBootstrap {
 
   static String _defaultReadEffectiveUserId() {
     return CurrentUserService.instance.effectiveUserId;
+  }
+
+  static Future<String?> _defaultEnsureAuthReady({
+    required Duration timeout,
+  }) {
+    return CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      timeout: timeout,
+    );
   }
 
   static Future<void> _defaultSyncCurrentAccountToAccountCenter() async {
