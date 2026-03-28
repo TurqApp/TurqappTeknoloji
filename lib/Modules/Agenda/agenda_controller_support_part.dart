@@ -185,32 +185,29 @@ extension AgendaControllerPublicApiPart on AgendaController {
     unawaited(syncFeedHeadAfterSurfaceOpen());
   }
 
-  Future<void> persistStartupShard() => persistStartupArtifacts();
+  Future<void> persistStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final ordered = _buildOrderedAgendaSnapshot(limit: 40);
+    await _persistFeedStartupShardOnly(
+      userId: userId,
+      ordered: ordered,
+      snapshotAt: DateTime.now(),
+      source: 'feed_runtime',
+    );
+  }
 
   Future<void> persistStartupArtifacts() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
-    if (agendaList.isEmpty) {
-      await ensureStartupSnapshotShardStore().clear(
-        surface: 'feed',
-        userId: userId,
-      );
-      await _recordFeedStartupSurface(
-        source: 'none',
-        itemCount: 0,
-      );
-      return;
-    }
     final snapshotAt = DateTime.now();
     final ordered = _buildOrderedAgendaSnapshot(limit: 40);
     if (ordered.isEmpty) {
-      await ensureStartupSnapshotShardStore().clear(
-        surface: 'feed',
+      await _persistFeedStartupShardOnly(
         userId: userId,
-      );
-      await _recordFeedStartupSurface(
+        ordered: ordered,
+        snapshotAt: snapshotAt,
         source: 'none',
-        itemCount: 0,
       );
       return;
     }
@@ -221,21 +218,11 @@ extension AgendaControllerPublicApiPart on AgendaController {
       source: CachedResourceSource.memory,
       snapshotAt: snapshotAt,
     );
-    await ensureStartupSnapshotShardStore().save(
-      surface: 'feed',
+    await _persistFeedStartupShardOnly(
       userId: userId,
-      itemCount: ordered.length,
-      limit: 10,
-      source: 'feed_runtime',
+      ordered: ordered,
       snapshotAt: snapshotAt,
-      payload: _feedSnapshotRepository.encodeHomeStartupPayload(
-        ordered,
-        limit: 10,
-      ),
-    );
-    await _recordFeedStartupSurface(
       source: 'feed_runtime',
-      itemCount: ordered.length,
     );
   }
 
@@ -295,6 +282,41 @@ extension AgendaControllerPublicApiPart on AgendaController {
       itemCount: count,
       hasLocalSnapshot: count > 0,
       source: count > 0 ? source : 'none',
+    );
+  }
+
+  Future<void> _persistFeedStartupShardOnly({
+    required String userId,
+    required List<PostsModel> ordered,
+    required DateTime snapshotAt,
+    required String source,
+  }) async {
+    if (ordered.isEmpty) {
+      await ensureStartupSnapshotShardStore().clear(
+        surface: 'feed',
+        userId: userId,
+      );
+      await _recordFeedStartupSurface(
+        source: 'none',
+        itemCount: 0,
+      );
+      return;
+    }
+    await ensureStartupSnapshotShardStore().save(
+      surface: 'feed',
+      userId: userId,
+      itemCount: ordered.length,
+      limit: 10,
+      source: source,
+      snapshotAt: snapshotAt,
+      payload: _feedSnapshotRepository.encodeHomeStartupPayload(
+        ordered,
+        limit: 10,
+      ),
+    );
+    await _recordFeedStartupSurface(
+      source: source,
+      itemCount: ordered.length,
     );
   }
 }
