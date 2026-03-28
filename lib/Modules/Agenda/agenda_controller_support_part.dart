@@ -276,12 +276,25 @@ extension AgendaControllerPublicApiPart on AgendaController {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
     final count = itemCount ?? agendaList.length;
+    bool startupShardHydrated = false;
+    int? startupShardAgeMs;
+    if (count > 0) {
+      try {
+        final existingManifest =
+            await ensureStartupSnapshotManifestStore().load(userId: userId);
+        final existingRecord = existingManifest?.surfaces['feed'];
+        startupShardHydrated = existingRecord?.startupShardHydrated == true;
+        startupShardAgeMs = existingRecord?.startupShardAgeMs;
+      } catch (_) {}
+    }
     await ensureStartupSnapshotManifestStore().recordSurfaceState(
       surface: 'feed',
       userId: userId,
       itemCount: count,
       hasLocalSnapshot: count > 0,
       source: count > 0 ? source : 'none',
+      startupShardHydrated: startupShardHydrated,
+      startupShardAgeMs: startupShardAgeMs,
     );
   }
 

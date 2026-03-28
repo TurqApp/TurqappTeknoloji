@@ -159,12 +159,25 @@ extension ShortControllerPublicApiPart on ShortController {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
     final count = itemCount ?? shorts.length;
+    bool startupShardHydrated = false;
+    int? startupShardAgeMs;
+    if (count > 0) {
+      try {
+        final existingManifest =
+            await ensureStartupSnapshotManifestStore().load(userId: userId);
+        final existingRecord = existingManifest?.surfaces['short'];
+        startupShardHydrated = existingRecord?.startupShardHydrated == true;
+        startupShardAgeMs = existingRecord?.startupShardAgeMs;
+      } catch (_) {}
+    }
     await ensureStartupSnapshotManifestStore().recordSurfaceState(
       surface: 'short',
       userId: userId,
       itemCount: count,
       hasLocalSnapshot: count > 0,
       source: count > 0 ? source : 'none',
+      startupShardHydrated: startupShardHydrated,
+      startupShardAgeMs: startupShardAgeMs,
     );
   }
 
