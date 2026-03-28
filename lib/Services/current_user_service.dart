@@ -27,6 +27,10 @@ import 'package:turqappv2/Services/device_session_service.dart';
 import '../Models/current_user_model.dart';
 
 part 'current_user_service_support_part.dart';
+part 'current_user_service_auth_role_part.dart';
+part 'current_user_service_cache_role_part.dart';
+part 'current_user_service_sync_role_part.dart';
+part 'current_user_service_account_center_role_part.dart';
 part 'current_user_service_cache_part.dart';
 part 'current_user_service_access_part.dart';
 part 'current_user_service_facade_part.dart';
