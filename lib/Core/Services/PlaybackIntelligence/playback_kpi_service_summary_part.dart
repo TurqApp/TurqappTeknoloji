@@ -124,13 +124,13 @@ extension _PlaybackKpiServiceSummaryX on PlaybackKpiService {
       if (event.type != PlaybackKpiEventType.playbackWindow) continue;
       if ((event.payload['surface'] ?? '').toString() != surface) continue;
       eventCount += 1;
-      final activeIndex = _asInt(event.payload['activeIndex']);
-      if (activeIndex < 0) {
-        activeLostCount += 1;
-      }
       final countValue = surface == 'feed'
           ? _asDouble(event.payload['visibleCount'])
           : _asDouble(event.payload['hotCount']);
+      final activeIndex = _asInt(event.payload['activeIndex']);
+      if (activeIndex < 0 && countValue > 0) {
+        activeLostCount += 1;
+      }
       visibleOrHotTotal += countValue;
       final attached = _asInt(event.payload['maxAttachedPlayers']);
       if (attached > maxAttachedPlayers) {

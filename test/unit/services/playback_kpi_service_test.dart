@@ -120,4 +120,41 @@ void main() {
     expect(summary.averageOperations, 3);
     expect(summary.maxOperations, 3);
   });
+
+  test('ignores off-surface feed playback loss in playback window summary',
+      () async {
+    final service = PlaybackKpiService();
+
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 0,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': 0,
+        'visibleCount': 1,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 1,
+      },
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    final summary = service.summarizePlaybackWindow(surface: 'feed');
+    expect(summary.eventCount, 3);
+    expect(summary.averageVisibleCount, closeTo(2 / 3, 0.0001));
+    expect(summary.activeLostCount, 1);
+  });
 }
