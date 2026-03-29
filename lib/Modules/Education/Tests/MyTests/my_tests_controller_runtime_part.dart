@@ -12,13 +12,14 @@ class MyTestsController extends GetxController {
 }
 
 class _MyTestsControllerState {
-  final testRepository = ensureTestRepository();
+  final testSnapshotRepository = ensureTestSnapshotRepository();
   final list = <TestsModel>[].obs;
   final isLoading = true.obs;
 }
 
 extension MyTestsControllerFieldsPart on MyTestsController {
-  TestRepository get _testRepository => _state.testRepository;
+  TestSnapshotRepository get _testSnapshotRepository =>
+      _state.testSnapshotRepository;
   RxList<TestsModel> get list => _state.list;
   RxBool get isLoading => _state.isLoading;
 }
@@ -30,10 +31,11 @@ extension MyTestsControllerRuntimePart on MyTestsController {
 
   Future<void> _bootstrapData() async {
     final uid = CurrentUserService.instance.effectiveUserId;
-    final cached = await _testRepository.fetchByOwner(
-      uid,
-      cacheOnly: true,
-    );
+    final cached = (await _testSnapshotRepository.loadCachedOwner(
+          userId: uid,
+        ))
+            .data ??
+        const <TestsModel>[];
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
@@ -57,11 +59,23 @@ extension MyTestsControllerRuntimePart on MyTestsController {
     }
     try {
       final uid = CurrentUserService.instance.effectiveUserId;
-      final items = await _testRepository.fetchByOwner(
-        uid,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final items = forceRefresh
+          ? ((await _testSnapshotRepository.loadOwner(
+                userId: uid,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[])
+          : ((await _testSnapshotRepository.loadCachedOwner(
+                userId: uid,
+              ))
+                  .data ??
+              (await _testSnapshotRepository.loadOwner(
+                userId: uid,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[]);
       list.assignAll(items);
       SilentRefreshGate.markRefreshed('tests:owner:$uid');
     } catch (_) {

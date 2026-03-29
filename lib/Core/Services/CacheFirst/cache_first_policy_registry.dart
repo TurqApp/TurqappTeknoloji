@@ -59,6 +59,7 @@ class CacheFirstPolicyRegistry {
       case 'answer_key_owner_snapshot':
       case 'answer_key_type_snapshot':
       case 'optical_form_owner_snapshot':
+      case 'test_owner_snapshot':
       case 'tutoring_home_snapshot':
       case 'tutoring_search_snapshot':
       case 'tutoring_owner_snapshot':
@@ -96,6 +97,7 @@ class CacheFirstPolicyRegistry {
       case 'answer_key_owner_snapshot':
       case 'answer_key_type_snapshot':
       case 'optical_form_owner_snapshot':
+      case 'test_owner_snapshot':
       case 'tutoring_home_snapshot':
       case 'tutoring_search_snapshot':
       case 'tutoring_owner_snapshot':
