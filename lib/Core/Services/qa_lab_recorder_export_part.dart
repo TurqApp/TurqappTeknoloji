@@ -1,5 +1,26 @@
 part of 'qa_lab_recorder.dart';
 
+Map<String, dynamic> _cloneQaLabExportMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneQaLabExportValue(value)),
+  );
+}
+
+dynamic _cloneQaLabExportValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneQaLabExportValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneQaLabExportValue).toList(growable: false);
+  }
+  return value;
+}
+
 extension QALabRecorderExportPart on QALabRecorder {
   List<QALabPinpointFinding> buildPinpointFindings() {
     final findings = <QALabPinpointFinding>[
@@ -101,7 +122,7 @@ extension QALabRecorderExportPart on QALabRecorder {
         'lastRoute': lastRoute.value,
         'lastSurface': lastSurface.value,
         'lastLifecycleState': lastLifecycleState.value,
-        'framePerformance': Map<String, dynamic>.from(appFramePerformance),
+        'framePerformance': _cloneQaLabExportMap(appFramePerformance),
         'healthScore': healthScore,
         'issueCounts': <String, dynamic>{
           'blocking': blockingIssueCount,
@@ -133,16 +154,18 @@ extension QALabRecorderExportPart on QALabRecorder {
       'device': _deviceInfoSnapshot(),
       'permissions': Map<String, String>.from(lastPermissionStatuses),
       'performance': <String, dynamic>{
-        'app': Map<String, dynamic>.from(appFramePerformance),
+        'app': _cloneQaLabExportMap(appFramePerformance),
         'surfaces': <String, dynamic>{
           for (final entry in framePerformanceBySurface.entries)
-            entry.key: Map<String, dynamic>.from(entry.value),
+            entry.key: _cloneQaLabExportMap(entry.value),
         },
       },
       'nativePlayback': <String, dynamic>{
-        'latestSnapshot': Map<String, dynamic>.from(lastNativePlaybackSnapshot),
+        'latestSnapshot': _cloneQaLabExportMap(lastNativePlaybackSnapshot),
         'sampleCount': nativePlaybackSamples.length,
-        'samples': nativePlaybackSamples.toList(growable: false),
+        'samples': nativePlaybackSamples
+            .map(_cloneQaLabExportValue)
+            .toList(growable: false),
       },
       'remoteSync': _remoteSyncSnapshot(),
       'currentSnapshot': currentSnapshot,
