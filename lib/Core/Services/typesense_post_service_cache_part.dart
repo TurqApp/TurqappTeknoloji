@@ -1,6 +1,17 @@
 part of 'typesense_post_service.dart';
 
 extension TypesensePostServiceCachePart on TypesensePostService {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<void> _performInvalidatePostId(String postId) async {
     final cleaned = postId.trim();
     if (cleaned.isEmpty) return;
@@ -59,7 +70,7 @@ extension TypesensePostServiceCachePart on TypesensePostService {
         await prefs?.remove(prefsKey);
         return null;
       }
-      final cachedAtMs = (data['cachedAt'] as num?)?.toInt() ?? 0;
+      final cachedAtMs = _asInt(data['cachedAt']);
       final cardsRaw = data['cards'];
       if (cachedAtMs <= 0 || cardsRaw is! Map) {
         await prefs?.remove(prefsKey);
