@@ -1,6 +1,17 @@
 part of 'story_highlights_repository.dart';
 
 extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   List<StoryHighlightModel>? _getFromMemory(
     String uid, {
     required bool allowStale,
@@ -34,7 +45,7 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       final rawItems = decoded['items'];
       if (rawItems is! List) {
         await prefs?.remove(prefsKey);
@@ -84,10 +95,12 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
             coverUrl: (item['coverUrl'] ?? '').toString(),
             storyIds: storyIds,
             createdAt: DateTime.fromMillisecondsSinceEpoch(
-              (item['createdDate'] as num?)?.toInt() ??
-                  DateTime.now().millisecondsSinceEpoch,
+              _asInt(
+                item['createdDate'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
             ),
-            order: (item['order'] as num?)?.toInt() ?? 0,
+            order: _asInt(item['order']),
           );
           if (highlight.id.trim().isEmpty) {
             shouldPersist = true;
