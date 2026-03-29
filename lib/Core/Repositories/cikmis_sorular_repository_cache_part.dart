@@ -9,20 +9,33 @@ extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
       return List<Map<String, dynamic>>.from(memory.items);
     }
     final prefs = _prefs ??= await SharedPreferences.getInstance();
-    final raw = prefs.getString('$_cikmisSorularRepositoryPrefsPrefix::$key');
+    final prefsKey = '$_cikmisSorularRepositoryPrefsPrefix::$key';
+    final raw = prefs.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    final cachedAt = DateTime.tryParse(decoded['cachedAt'] as String? ?? '');
-    if (cachedAt == null ||
-        DateTime.now().difference(cachedAt) > _cikmisSorularRepositoryTtl) {
-      await prefs.remove('$_cikmisSorularRepositoryPrefsPrefix::$key');
+    try {
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
+      final cachedAt = DateTime.tryParse(decoded['cachedAt'] as String? ?? '');
+      if (cachedAt == null ||
+          DateTime.now().difference(cachedAt) > _cikmisSorularRepositoryTtl) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList(growable: false);
+      _memory[key] = _TimedJsonList(items: items, cachedAt: DateTime.now());
+      return items;
+    } catch (_) {
+      await prefs.remove(prefsKey);
       return null;
     }
-    final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList(growable: false);
-    _memory[key] = _TimedJsonList(items: items, cachedAt: DateTime.now());
-    return items;
   }
 
   Future<void> _writeList(String key, List<Map<String, dynamic>> items) async {
