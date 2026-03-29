@@ -1,6 +1,26 @@
 part of 'test_repository_parts.dart';
 
 extension _TestRepositoryCacheX on TestRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
+  num _asNum(dynamic value, {num fallback = 0}) {
+    if (value is num) return value;
+    if (value is String) {
+      final parsed = num.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
   TestsModel _fromDoc(String id, Map<String, dynamic> data) {
     return TestsModel(
       userID: (data['userID'] ?? '').toString(),
@@ -85,7 +105,7 @@ extension _TestRepositoryCacheX on TestRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -126,7 +146,7 @@ extension _TestRepositoryCacheX on TestRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -176,7 +196,7 @@ extension _TestRepositoryCacheX on TestRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -227,7 +247,7 @@ extension _TestRepositoryCacheX on TestRepository {
     return TestReadinessModel(
       id: id,
       img: (raw['img'] ?? '').toString(),
-      max: (raw['max'] ?? 0) as num,
+      max: _asNum(raw['max']),
       dogruCevap: (raw['dogruCevap'] ?? '').toString(),
       docID: docId,
     );
