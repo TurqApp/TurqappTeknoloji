@@ -460,8 +460,8 @@ extension PostRepositoryQueryPart on PostRepository {
     if (normalized.isEmpty || patch.isEmpty) return;
     final state =
         _states.putIfAbsent(normalized, () => PostRepositoryState(normalized));
-    final current = Map<String, dynamic>.from(state.latestPostData.value ?? {});
-    current.addAll(patch);
+    final current = _clonePostMap(state.latestPostData.value ?? const {});
+    current.addAll(_clonePostMap(patch));
     state.latestPostData.value = current;
   }
 
@@ -547,7 +547,7 @@ extension PostRepositoryQueryPart on PostRepository {
         await prefs.remove(key);
         return null;
       }
-      return Map<String, dynamic>.from(data.cast<String, dynamic>());
+      return _clonePostMap(Map<String, dynamic>.from(data.cast<String, dynamic>()));
     } catch (_) {
       await prefs.remove(key);
       return null;
@@ -574,7 +574,7 @@ extension PostRepositoryQueryPart on PostRepository {
     final state = _states[normalized];
     final cached = preferCache ? state?.latestPostData.value : null;
     if (cached != null) {
-      return Map<String, dynamic>.from(cached);
+      return _clonePostMap(cached);
     }
 
     final doc = await _firestore.collection('Posts').doc(normalized).get();
@@ -583,8 +583,8 @@ extension PostRepositoryQueryPart on PostRepository {
     if (data == null) return null;
     final nextState =
         _states.putIfAbsent(normalized, () => PostRepositoryState(normalized));
-    nextState.latestPostData.value = Map<String, dynamic>.from(data);
-    return Map<String, dynamic>.from(data);
+    nextState.latestPostData.value = _clonePostMap(data);
+    return _clonePostMap(data);
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _performGetQueryWithSource(
@@ -635,7 +635,7 @@ extension PostRepositoryQueryPart on PostRepository {
     final doc = snap.docs.first;
     final state =
         _states.putIfAbsent(doc.id, () => PostRepositoryState(doc.id));
-    state.latestPostData.value = Map<String, dynamic>.from(doc.data());
+    state.latestPostData.value = _clonePostMap(doc.data());
     return doc.id;
   }
 
@@ -813,5 +813,21 @@ extension PostRepositoryQueryPart on PostRepository {
       },
       'docID': docId,
     };
+  }
+
+  Map<String, dynamic> _clonePostMap(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _clonePostValue(value)));
+  }
+
+  dynamic _clonePostValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _clonePostValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_clonePostValue).toList(growable: false);
+    }
+    return value;
   }
 }
