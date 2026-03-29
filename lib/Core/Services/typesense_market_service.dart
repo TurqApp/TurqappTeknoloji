@@ -6,11 +6,14 @@ import 'package:turqappv2/Models/market_item_model.dart';
 part 'typesense_market_service_cache_part.dart';
 part 'typesense_market_service_search_part.dart';
 
+MarketItemModel _cloneCachedMarketItem(MarketItemModel item) =>
+    MarketItemModel.fromJson(item.toJson());
+
 class _CachedMarketSearchResult {
-  const _CachedMarketSearchResult({
-    required this.items,
+  _CachedMarketSearchResult({
+    required List<MarketItemModel> items,
     required this.cachedAt,
-  });
+  }) : items = items.map(_cloneCachedMarketItem).toList(growable: false);
 
   final List<MarketItemModel> items;
   final DateTime cachedAt;
