@@ -25,18 +25,18 @@ class IndexPoolEntry {
   IndexPoolEntry({
     required this.docID,
     required this.kind,
-    required this.cardData,
+    required Map<String, dynamic> cardData,
     required this.userID,
     required this.nickname,
     required this.avatarUrl,
     required this.caption,
     required this.updatedAt,
-  });
+  }) : cardData = _cloneIndexPoolMap(cardData);
 
   Map<String, dynamic> toJson() => {
         'docID': docID,
         'kind': kind,
-        'cardData': cardData,
+        'cardData': _cloneIndexPoolMap(cardData),
         'userID': userID,
         'nickname': nickname,
         'avatarUrl': avatarUrl,
@@ -48,7 +48,10 @@ class IndexPoolEntry {
     return IndexPoolEntry(
       docID: (json['docID'] ?? '').toString(),
       kind: (json['kind'] ?? '').toString(),
-      cardData: (json['cardData'] as Map?)?.cast<String, dynamic>() ?? {},
+      cardData: _cloneIndexPoolMap(
+        (json['cardData'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ),
       userID: (json['userID'] ?? '').toString(),
       nickname: (json['nickname'] ?? '').toString(),
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
@@ -56,6 +59,27 @@ class IndexPoolEntry {
       updatedAt: (json['updatedDate'] as num?)?.toInt() ?? 0,
     );
   }
+}
+
+Map<String, dynamic> _cloneIndexPoolMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneIndexPoolValue(value)),
+  );
+}
+
+dynamic _cloneIndexPoolValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneIndexPoolValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneIndexPoolValue).toList(growable: false);
+  }
+  return value;
 }
 
 class IndexPoolStore {
