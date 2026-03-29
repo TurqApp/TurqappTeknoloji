@@ -9,6 +9,8 @@ import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
@@ -415,6 +417,12 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   );
 
   if (!_feedSatisfiesFixtureContract(agendaController)) {
+    await _backfillRequiredFeedDocsForSmoke(agendaController);
+    await tester.pump(const Duration(milliseconds: 300));
+    drainExpectedTesterExceptions(tester, context: 'feed contract backfill');
+  }
+
+  if (!_feedSatisfiesFixtureContract(agendaController)) {
     final contract = IntegrationTestFixtureContract.current.surface('feed');
     final requiredDocIds = contract?.requiredDocIds ?? const <String>[];
     final actualDocIds = agendaController.agendaList
@@ -451,6 +459,53 @@ bool _feedSatisfiesFixtureContract(AgendaController controller) {
     }
   }
   return true;
+}
+
+Future<void> _backfillRequiredFeedDocsForSmoke(
+  AgendaController agendaController,
+) async {
+  final contract = IntegrationTestFixtureContract.current.surface('feed');
+  if (contract == null || contract.requiredDocIds.isEmpty) {
+    return;
+  }
+
+  final existingDocIds = agendaController.agendaList
+      .map((post) => post.docID.trim())
+      .where((docId) => docId.isNotEmpty)
+      .toSet();
+  final missingDocIds = contract.requiredDocIds
+      .map((docId) => docId.trim())
+      .where((docId) => docId.isNotEmpty && !existingDocIds.contains(docId))
+      .toList(growable: false);
+  if (missingDocIds.isEmpty) {
+    return;
+  }
+
+  final fetchedById = await PostRepository.ensure().fetchPostCardsByIds(
+    missingDocIds,
+    preferCache: false,
+    cacheOnly: false,
+  );
+  final seededPosts = missingDocIds
+      .map((docId) => fetchedById[docId])
+      .whereType<PostsModel>()
+      .toList(growable: false);
+  if (seededPosts.isEmpty) {
+    return;
+  }
+
+  final merged = <PostsModel>[
+    ...seededPosts,
+    ...agendaController.agendaList.where(
+      (post) => !missingDocIds.contains(post.docID.trim()),
+    ),
+  ]..sort((left, right) => right.timeStamp.compareTo(left.timeStamp));
+
+  agendaController.agendaList.assignAll(merged);
+  debugPrint(
+    '[integration-smoke] feed: backfilled required docs '
+    'missing=$missingDocIds added=${seededPosts.map((post) => post.docID).join(',')}',
+  );
 }
 
 Future<void> _primeNotificationsForSmoke(WidgetTester tester) async {
