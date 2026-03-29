@@ -52,6 +52,17 @@ class JobSavedStore {
     };
   }
 
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   static Future<bool> isSaved(String uid, String jobId) async {
     DocumentSnapshot<Map<String, dynamic>> currentSnap;
     try {
@@ -76,8 +87,10 @@ class JobSavedStore {
     if (!legacySnap.exists) return false;
 
     final legacyData = legacySnap.data() ?? const <String, dynamic>{};
-    final timeStamp = (legacyData['timeStamp'] as num?)?.toInt() ??
-        DateTime.now().millisecondsSinceEpoch;
+    final timeStamp = _asInt(
+      legacyData['timeStamp'],
+      fallback: DateTime.now().millisecondsSinceEpoch,
+    );
     await _migrateLegacyDoc(uid, jobId, timeStamp);
     return true;
   }
@@ -137,7 +150,7 @@ class JobSavedStore {
       if (jobId.isEmpty) continue;
       byJobId[jobId] = SavedJobRecord(
         jobId: jobId,
-        timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
+        timeStamp: _asInt(data['timeStamp']),
       );
     }
 
@@ -147,8 +160,10 @@ class JobSavedStore {
         final data = doc.data();
         final jobId = (data['jobID'] ?? '').toString().trim();
         if (jobId.isEmpty) continue;
-        final timeStamp = (data['timeStamp'] as num?)?.toInt() ??
-            DateTime.now().millisecondsSinceEpoch;
+        final timeStamp = _asInt(
+          data['timeStamp'],
+          fallback: DateTime.now().millisecondsSinceEpoch,
+        );
         final existing = byJobId[jobId];
         if (existing == null || timeStamp > existing.timeStamp) {
           byJobId[jobId] = SavedJobRecord(jobId: jobId, timeStamp: timeStamp);
@@ -206,7 +221,7 @@ class JobSavedStore {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      final savedAt = _asInt(decoded['savedAt']);
       if (savedAt <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -226,7 +241,7 @@ class JobSavedStore {
         }
         final item = SavedJobRecord(
           jobId: (rawItem['jobId'] ?? '').toString(),
-          timeStamp: (rawItem['timeStamp'] as num?)?.toInt() ?? 0,
+          timeStamp: _asInt(rawItem['timeStamp']),
         );
         if (item.jobId.isEmpty) {
           shouldPrune = true;
