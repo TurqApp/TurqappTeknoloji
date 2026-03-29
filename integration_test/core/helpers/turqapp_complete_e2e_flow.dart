@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
@@ -11,6 +13,7 @@ import 'smoke_artifact_collector.dart';
 import '../bootstrap/test_app_bootstrap.dart';
 
 const String kTurqAppMasterE2EScenario = 'turqapp_master_e2e';
+const Duration _kE2EStepTimeout = Duration(seconds: 45);
 
 Future<void> runTurqAppMasterE2EScenario(
   WidgetTester tester, {
@@ -465,7 +468,14 @@ Future<void> _step(
     scenario: scenario,
     step: label,
   );
-  await body();
+  try {
+    await body().timeout(_kE2EStepTimeout);
+  } on TimeoutException {
+    throw TestFailure(
+      'TurqApp complete E2E step timed out: $label '
+      'after ${_kE2EStepTimeout.inSeconds}s.',
+    );
+  }
   if (!allowNoOp) {
     await expectNoFlutterException(tester);
   }
@@ -482,7 +492,15 @@ Future<T> _stepWithResult<T>(
     scenario: scenario,
     step: label,
   );
-  final result = await body();
+  final T result;
+  try {
+    result = await body().timeout(_kE2EStepTimeout);
+  } on TimeoutException {
+    throw TestFailure(
+      'TurqApp complete E2E step timed out: $label '
+      'after ${_kE2EStepTimeout.inSeconds}s.',
+    );
+  }
   await expectNoFlutterException(tester);
   return result;
 }
