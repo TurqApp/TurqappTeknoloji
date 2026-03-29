@@ -1,6 +1,12 @@
 part of 'splash_view.dart';
 
 extension _SplashViewStartupPart on _SplashViewState {
+  int? _asNullableManifestInt(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
   Duration get _firebaseStartupWait => IntegrationTestMode.enabled
       ? const Duration(seconds: 18)
       : const Duration(seconds: 3);
@@ -49,7 +55,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       _previousStartupMinimumPrepared =
           manifest?.minimumStartupPrepared ?? false;
       _previousStartupNavIndex =
-          (manifest?.extra['navSelectedIndex'] as num?)?.toInt();
+          _asNullableManifestInt(manifest?.extra['navSelectedIndex']);
       final educationTabId =
           (manifest?.extra['educationTabId'] ?? '').toString().trim();
       _previousEducationTabId =
