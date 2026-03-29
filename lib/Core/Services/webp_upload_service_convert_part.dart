@@ -5,11 +5,12 @@ Future<Uint8List?> _performToWebpFromFile(
   required int quality,
 }) async {
   try {
-    return await FlutterImageCompress.compressWithFile(
+    final compressed = await FlutterImageCompress.compressWithFile(
       file.path,
       format: CompressFormat.webp,
       quality: quality,
     );
+    return compressed == null ? null : Uint8List.fromList(compressed);
   } catch (e) {
     debugPrint('[WebP] file compress failed: $e');
     return null;
@@ -23,8 +24,8 @@ Future<Uint8List?> _performToWebpFromBytes(
   required int maxHeight,
 }) async {
   try {
-    Uint8List sourceBytes = bytes;
-    final decoded = img.decodeImage(bytes);
+    Uint8List sourceBytes = Uint8List.fromList(bytes);
+    final decoded = img.decodeImage(sourceBytes);
     if (decoded != null &&
         (decoded.width > maxWidth || decoded.height > maxHeight)) {
       final scale = math.min(
@@ -39,11 +40,12 @@ Future<Uint8List?> _performToWebpFromBytes(
       );
       sourceBytes = Uint8List.fromList(img.encodeJpg(resized, quality: 92));
     }
-    return await FlutterImageCompress.compressWithList(
+    final compressed = await FlutterImageCompress.compressWithList(
       sourceBytes,
       format: CompressFormat.webp,
       quality: quality,
     );
+    return Uint8List.fromList(compressed);
   } catch (e) {
     debugPrint('[WebP] bytes compress failed: $e');
     return null;
