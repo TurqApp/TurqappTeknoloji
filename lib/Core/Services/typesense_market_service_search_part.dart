@@ -14,6 +14,13 @@ extension TypesenseMarketSearchServiceSearchPart
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
+  bool _asBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   Future<List<MarketItemModel>> _performSearchItems({
     required String query,
     required int limit,
@@ -85,7 +92,7 @@ extension TypesenseMarketSearchServiceSearchPart
           (hitMap['sellerPhoneNumber'] ?? '').toString().trim();
       final contactPreference =
           (hitMap['contactPreference'] ?? 'message_only').toString();
-      final showPhone = hitMap['showPhone'] == true ||
+      final showPhone = _asBool(hitMap['showPhone']) ||
           sellerPhoneNumber.isNotEmpty ||
           contactPreference == 'phone';
       items.add(
