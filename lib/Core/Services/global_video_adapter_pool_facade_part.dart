@@ -11,8 +11,6 @@ GlobalVideoAdapterPool ensureGlobalVideoAdapterPool() =>
 
 Future<void> resetPlaybackForSurfaceRefresh() async {
   VideoStateManager.instance.pauseAllVideos(force: true);
-  VideoStateManager.instance.clearAllStates();
-  await _GlobalVideoAdapterPoolRuntimeX(ensureGlobalVideoAdapterPool()).clear();
 }
 
 Future<void> runSurfaceRefresh({

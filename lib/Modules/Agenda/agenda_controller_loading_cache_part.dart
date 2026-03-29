@@ -98,6 +98,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       return;
     }
     try {
+      if (ContentPolicy.isConnected && agendaList.isNotEmpty) {
+        try {
+          await syncFeedHeadAfterSurfaceOpen();
+        } catch (_) {}
+      }
       final valid = await _validatePoolPostsAndPrune(shown);
       final validIds = valid.map((p) => p.docID).toSet();
       if (validIds.length == shown.length) return;
