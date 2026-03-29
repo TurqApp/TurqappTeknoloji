@@ -8,16 +8,19 @@ class OpticalFormModel {
   num bitis;
   bool kisitlama;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   OpticalFormModel({
     required this.docID,
     required this.name,
-    required this.cevaplar,
+    required List<String> cevaplar,
     required this.max,
     required this.userID,
     required this.baslangic,
     required this.bitis,
     required this.kisitlama,
-  });
+  }) : cevaplar = _cloneStringList(cevaplar);
 
   factory OpticalFormModel.fromMap(Map<String, dynamic> data, String docID) {
     return OpticalFormModel(
