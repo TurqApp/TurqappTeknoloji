@@ -39,19 +39,32 @@ Future<bool?> _getVerifiedAccountFromPrefs(
   String key,
 ) async {
   repository._prefs ??= await SharedPreferences.getInstance();
-  final raw =
-      repository._prefs?.getString(_verifiedAccountPrefsKey(repository, key));
+  final prefs = repository._prefs;
+  final prefsKey = _verifiedAccountPrefsKey(repository, key);
+  final raw = prefs?.getString(prefsKey);
   if (raw == null || raw.isEmpty) return null;
   try {
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    final decodedRaw = jsonDecode(raw);
+    if (decodedRaw is! Map) {
+      await prefs?.remove(prefsKey);
+      return null;
+    }
+    final decoded = Map<String, dynamic>.from(
+      decodedRaw.cast<dynamic, dynamic>(),
+    );
     final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-    if (ts <= 0) return null;
+    if (ts <= 0) {
+      await prefs?.remove(prefsKey);
+      return null;
+    }
     final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
     if (DateTime.now().difference(cachedAt) > VerifiedAccountRepository._ttl) {
+      await prefs?.remove(prefsKey);
       return null;
     }
     return decoded['e'] == true;
   } catch (_) {
+    await prefs?.remove(prefsKey);
     return null;
   }
 }

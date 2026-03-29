@@ -104,20 +104,34 @@ extension NotificationPreferencesRepositoryCachePart
 
   Future<Map<String, dynamic>?> _getFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_prefsKey(key));
+    final prefs = _prefs;
+    final prefsKey = _prefsKey(key);
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       final data = (decoded['d'] as Map?)?.cast<String, dynamic>();
-      if (ts <= 0 || data == null) return null;
+      if (ts <= 0 || data == null) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       if (DateTime.now().difference(cachedAt) >
           NotificationPreferencesRepository._ttl) {
+        await prefs?.remove(prefsKey);
         return null;
       }
       return data;
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
