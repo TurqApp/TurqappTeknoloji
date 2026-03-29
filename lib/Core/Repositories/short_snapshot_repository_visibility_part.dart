@@ -1,5 +1,8 @@
 part of 'short_snapshot_repository.dart';
 
+String _performTrimmedSnapshotDocId(Object? value) =>
+    (value ?? '').toString().trim();
+
 Future<Set<String>> _performLoadFollowingIds(
   ShortSnapshotRepository repository,
   String userId,
@@ -21,8 +24,8 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
   final normalized = repository
       ._normalizePosts(posts)
       .where((post) => post.timeStamp <= nowMs)
-      .where((post) => post.deletedPost != true)
-      .where((post) => post.arsiv == false)
+      .where((post) => !post.deletedPost)
+      .where((post) => !post.arsiv)
       .where((post) => post.hasPlayableVideo)
       .toList(growable: false);
   if (normalized.isEmpty) return const <PostsModel>[];
@@ -107,7 +110,7 @@ List<PostsModel> _performDecodePosts(Map<String, dynamic> json) {
       .whereType<Map>()
       .map((raw) {
         final item = Map<String, dynamic>.from(raw.cast<dynamic, dynamic>());
-        final docId = (item.remove('docID') ?? '').toString();
+        final docId = _performTrimmedSnapshotDocId(item.remove('docID'));
         return PostsModel.fromMap(item, docId);
       })
       .where((post) => post.docID.isNotEmpty)
