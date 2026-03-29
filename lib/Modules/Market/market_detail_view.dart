@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/Services/market_review_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
+import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
@@ -61,6 +62,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   bool _isRefreshing = false;
   bool _isLoadingReviews = false;
   bool _isSubmittingReport = false;
+  bool _isUpdatingStatus = false;
   List<MarketReviewModel> _reviews = const <MarketReviewModel>[];
   Map<String, Map<String, dynamic>> _reviewUsers =
       const <String, Map<String, dynamic>>{};
@@ -169,6 +171,12 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   }) =>
       _performSecondaryButton(label: label, onTap: onTap);
 
+  Widget _dangerButton({
+    required String label,
+    required VoidCallback onTap,
+  }) =>
+      _performDangerButton(label: label, onTap: onTap);
+
   String _statusLabel(String status) => _performStatusLabel(status);
 
   InputDecoration _inputDecoration(String hint) =>
@@ -182,6 +190,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     MarketItemModel local,
   ) =>
       _performPreserveProtectedFields(remote, local);
+
+  Future<void> _archiveItem() => _performArchiveItem();
 
   Future<void> _incrementViewCount() => _performIncrementViewCount();
 

@@ -283,6 +283,33 @@ extension _MarketDetailViewUiPart on _MarketDetailViewState {
     );
   }
 
+  Widget _performDangerButton({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      height: 46,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: const Color(0xFFDC2626),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+      ),
+    );
+  }
+
   String _performStatusLabel(String status) {
     switch (status) {
       case 'sold':

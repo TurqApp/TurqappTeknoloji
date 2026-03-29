@@ -1,6 +1,38 @@
 part of 'market_detail_view.dart';
 
 extension _MarketDetailViewActionsPart on _MarketDetailViewState {
+  Future<void> _performArchiveItem() async {
+    if (_isUpdatingStatus || item.id.trim().isEmpty || item.userId.trim().isEmpty) {
+      return;
+    }
+    _updateViewState(() {
+      _isUpdatingStatus = true;
+    });
+    try {
+      await _MarketDetailViewState._repository.updateItemStatus(
+        docId: item.id,
+        userId: item.userId,
+        status: 'archived',
+      );
+      if (!mounted) return;
+      AppSnackbar(
+        'common.success'.tr,
+        'pasaj.job_finder.unpublished'.tr,
+      );
+      Get.back(result: true);
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.market.status_update_failed'.tr,
+      );
+    } finally {
+      _updateViewState(() {
+        _isUpdatingStatus = false;
+      });
+    }
+  }
+
   Future<void> _performShowReportSheet() async {
     if (_isSubmittingReport) return;
     final selections =
