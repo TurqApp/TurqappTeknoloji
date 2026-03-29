@@ -241,6 +241,17 @@ class TypesenseEducationSearchService {
     return _cloneResult(entry.result);
   }
 
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<_CachedEducationSearchResult?> _getCachedFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
     final prefs = _prefs;
@@ -256,7 +267,7 @@ class TypesenseEducationSearchService {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       final data = Map<String, dynamic>.from(
         decoded['d'] as Map? ?? const <String, dynamic>{},
       );
@@ -295,9 +306,9 @@ class TypesenseEducationSearchService {
             't': ts,
             'd': <String, dynamic>{
               'hits': hits,
-              'found': (data['found'] as num?)?.toInt() ?? hits.length,
-              'page': (data['page'] as num?)?.toInt() ?? 1,
-              'limit': (data['limit'] as num?)?.toInt() ?? hits.length,
+              'found': _asInt(data['found'], fallback: hits.length),
+              'page': _asInt(data['page'], fallback: 1),
+              'limit': _asInt(data['limit'], fallback: hits.length),
             },
           }),
         );
@@ -305,9 +316,9 @@ class TypesenseEducationSearchService {
       return _CachedEducationSearchResult(
         result: EducationTypesenseSearchResult(
           hits: hits,
-          found: (data['found'] as num?)?.toInt() ?? hits.length,
-          page: (data['page'] as num?)?.toInt() ?? 1,
-          limit: (data['limit'] as num?)?.toInt() ?? hits.length,
+          found: _asInt(data['found'], fallback: hits.length),
+          page: _asInt(data['page'], fallback: 1),
+          limit: _asInt(data['limit'], fallback: hits.length),
         ),
         cachedAt: cachedAt,
       );
