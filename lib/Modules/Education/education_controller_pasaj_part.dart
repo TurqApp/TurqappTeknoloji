@@ -326,6 +326,7 @@ extension EducationControllerPasajPart on EducationController {
     _restoreSearchForTab(actualIndex);
     resetActivePasajSurfaceToTop();
     _suppressBackgroundFeedMedia();
+    _primeVisiblePasajSurface(actualIndex);
   }
 
   void onPageChanged(int visibleIndex) {
@@ -335,6 +336,22 @@ extension EducationControllerPasajPart on EducationController {
     _restoreSearchForTab(actualIndex);
     resetActivePasajSurfaceToTop();
     _suppressBackgroundFeedMedia();
+    _primeVisiblePasajSurface(actualIndex);
+  }
+
+  void _primeVisiblePasajSurface(int actualIndex) {
+    if (actualIndex < 0 || actualIndex >= titles.length) return;
+    final tabId = titles[actualIndex];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      switch (tabId) {
+        case PasajTabIds.market:
+          unawaited(maybeFindMarketController()?.onPrimarySurfaceVisible());
+          break;
+        case PasajTabIds.jobFinder:
+          unawaited(maybeFindJobFinderController()?.onPrimarySurfaceVisible());
+          break;
+      }
+    });
   }
 
   void _suppressBackgroundFeedMedia() {
