@@ -61,14 +61,29 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
 
     if (queueString != null) {
       try {
-        final queueJson = jsonDecode(queueString);
-        if (queueJson is! List) {
+        final decoded = jsonDecode(queueString);
+        if (decoded is! List) {
           await prefs.remove(_queueKey);
           return;
         }
-        _queue.assignAll(
-          queueJson.map((item) => QueuedUpload.fromJson(item)).toList(),
-        );
+        var shouldPrune = false;
+        final restored = <QueuedUpload>[];
+        for (final item in decoded) {
+          if (item is! Map) {
+            shouldPrune = true;
+            continue;
+          }
+          try {
+            restored.add(
+              QueuedUpload.fromJson(
+                Map<String, dynamic>.from(item.cast<dynamic, dynamic>()),
+              ),
+            );
+          } catch (_) {
+            shouldPrune = true;
+          }
+        }
+        _queue.assignAll(restored);
 
         for (final upload
             in _queue.where((item) => item.status == UploadStatus.uploading)) {
@@ -76,12 +91,15 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
           upload.progress = 0.0;
         }
 
-        _completedCount.value =
-            _queue.where((item) => item.status == UploadStatus.completed).length;
+        _completedCount.value = _queue
+            .where((item) => item.status == UploadStatus.completed)
+            .length;
         _failedCount.value =
             _queue.where((item) => item.status == UploadStatus.failed).length;
 
-        await _saveQueueToStorage();
+        if (shouldPrune || restored.length != decoded.length) {
+          await _saveQueueToStorage();
+        }
         _notifyQueueUpdated();
       } catch (_) {
         await prefs.remove(_queueKey);
