@@ -89,7 +89,7 @@ class StoredAccount {
       'displayName': displayName,
       'rozet': rozet,
       'avatarUrl': avatarUrl,
-      'providers': providers,
+      'providers': List<String>.from(providers, growable: false),
       'lastUsedAt': lastUsedAt,
       'isSessionValid': isSessionValid,
       'requiresReauth': requiresReauth,

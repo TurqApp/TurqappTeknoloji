@@ -15,7 +15,7 @@ class PostDraft {
   PostDraft({
     required this.id,
     required this.text,
-    required this.imagePaths,
+    required List<String> imagePaths,
     this.videoPath,
     required this.location,
     required this.gif,
@@ -23,12 +23,12 @@ class PostDraft {
     required this.sharePrivacy,
     required this.lastModified,
     this.scheduledDate,
-  });
+  }) : imagePaths = List<String>.from(imagePaths, growable: false);
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'text': text,
-        'imagePaths': imagePaths,
+        'imagePaths': List<String>.from(imagePaths, growable: false),
         'videoPath': videoPath,
         'location': location,
         'gif': gif,
