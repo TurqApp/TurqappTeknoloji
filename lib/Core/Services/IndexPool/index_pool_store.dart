@@ -12,6 +12,12 @@ enum IndexPoolKind {
   story,
 }
 
+int _indexPoolAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
 class IndexPoolEntry {
   final String docID;
   final String kind;
@@ -59,7 +65,7 @@ class IndexPoolEntry {
       nickname: (json['nickname'] ?? '').toString(),
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
       caption: (json['caption'] ?? '').toString(),
-      updatedAt: (json['updatedDate'] as num?)?.toInt() ?? 0,
+      updatedAt: _indexPoolAsInt(json['updatedDate']),
     );
   }
 }
@@ -161,13 +167,13 @@ class IndexPoolStore {
         // Legacy format (v1): plain entries list.
         entriesRaw = raw;
       } else if (raw is Map<String, dynamic>) {
-        final version = (raw['schemaVersion'] as num?)?.toInt() ?? 0;
+        final version = _indexPoolAsInt(raw['schemaVersion']);
         if (version != _schemaVersion) {
           await _deletePoolFile();
           return const [];
         }
         entriesRaw = (raw['entries'] as List?) ?? const [];
-        updatedAtMs = (raw['updatedDate'] as num?)?.toInt() ?? 0;
+        updatedAtMs = _indexPoolAsInt(raw['updatedDate']);
       } else {
         await _deletePoolFile();
         return const [];
