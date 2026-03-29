@@ -131,7 +131,7 @@ void main() {
       );
 
       await service
-          .trackPreviewImpression(const AdDeliveryResult(hasAd: false));
+          .trackPreviewImpression(AdDeliveryResult(hasAd: false));
       await service.trackPreviewImpression(
         AdDeliveryResult(
           hasAd: true,

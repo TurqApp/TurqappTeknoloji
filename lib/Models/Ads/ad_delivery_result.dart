@@ -7,11 +7,14 @@ class AdEligibilityDecision {
   final bool eligible;
   final List<AdDeliveryRejectReason> reasons;
 
-  const AdEligibilityDecision({
+  AdEligibilityDecision({
     required this.campaignId,
     required this.eligible,
-    required this.reasons,
-  });
+    required List<AdDeliveryRejectReason> reasons,
+  }) : reasons = List<AdDeliveryRejectReason>.from(
+         reasons,
+         growable: false,
+       );
 
   Map<String, dynamic> toMap() {
     return {
@@ -29,15 +32,18 @@ class AdDeliveryResult {
   final List<AdEligibilityDecision> decisions;
   final String message;
 
-  const AdDeliveryResult({
+  AdDeliveryResult({
     required this.hasAd,
     this.campaign,
     this.creative,
-    this.decisions = const <AdEligibilityDecision>[],
+    List<AdEligibilityDecision> decisions = const <AdEligibilityDecision>[],
     this.message = '',
-  });
+  }) : decisions = List<AdEligibilityDecision>.from(
+         decisions,
+         growable: false,
+       );
 
-  static const empty = AdDeliveryResult(hasAd: false);
+  static final empty = AdDeliveryResult(hasAd: false);
 
   Map<String, dynamic> toLogMap({
     required String userId,
