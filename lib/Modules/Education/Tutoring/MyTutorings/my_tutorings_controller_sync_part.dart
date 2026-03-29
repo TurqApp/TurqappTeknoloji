@@ -5,7 +5,8 @@ extension MyTutoringsControllerSyncPart on MyTutoringsController {
     final cached = (await _tutoringSnapshotRepository.loadCachedOwner(
       userId: currentUserId,
     ))
-        .data;
+        .data ??
+        const <TutoringModel>[];
     if (cached.isNotEmpty) {
       if (!_sameTutoringEntries(myTutorings, cached)) {
         myTutorings.assignAll(cached);
@@ -44,13 +45,15 @@ extension MyTutoringsControllerSyncPart on MyTutoringsController {
         userId: currentUserId,
         forceSync: forceRefresh,
       ))
-          .data;
+          .data ??
+          const <TutoringModel>[];
       await _archiveExpiredTutorings(tutorings);
       final refreshed = (await _tutoringSnapshotRepository.loadOwner(
         userId: currentUserId,
         forceSync: true,
       ))
-          .data;
+          .data ??
+          const <TutoringModel>[];
       if (!_sameTutoringEntries(myTutorings, refreshed)) {
         myTutorings.assignAll(refreshed);
       }

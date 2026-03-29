@@ -55,7 +55,8 @@ extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
       final cached = (await _practiceExamSnapshotRepository.loadOwner(
         userId: uid,
       ))
-          .data;
+          .data ??
+          const <SinavModel>[];
       if (cached.isNotEmpty) {
         if (!_sameExamEntries(exams, cached)) {
           exams.assignAll(cached);
@@ -94,7 +95,8 @@ extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
         userId: uid,
         forceSync: forceRefresh,
       ))
-          .data;
+          .data ??
+          const <SinavModel>[];
       if (!_sameExamEntries(exams, items)) {
         exams.assignAll(items);
       }
