@@ -1,4 +1,10 @@
 class JobApplicationModel {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   final String jobDocID;
   final String userID;
   final String jobTitle;
@@ -38,12 +44,8 @@ class JobApplicationModel {
       applicantNickname: (map['applicantNickname'] ?? '').toString(),
       applicantPfImage: (map['applicantPfImage'] ?? '').toString(),
       status: (map['status'] ?? 'pending').toString(),
-      timeStamp: (map['timeStamp'] as num?)?.toInt() ??
-          int.tryParse((map['timeStamp'] ?? '').toString()) ??
-          0,
-      statusUpdatedAt: (map['statusUpdatedAt'] as num?)?.toInt() ??
-          int.tryParse((map['statusUpdatedAt'] ?? '').toString()) ??
-          0,
+      timeStamp: _asInt(map['timeStamp']),
+      statusUpdatedAt: _asInt(map['statusUpdatedAt']),
       note: (map['note'] ?? '').toString(),
     );
   }

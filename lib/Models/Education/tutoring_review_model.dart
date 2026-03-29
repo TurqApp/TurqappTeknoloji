@@ -1,4 +1,10 @@
 class TutoringReviewModel {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   final String reviewID;
   final String userID;
   final String tutoringDocID;
@@ -20,13 +26,9 @@ class TutoringReviewModel {
       reviewID: docID,
       userID: (map['userID'] ?? '').toString(),
       tutoringDocID: (map['tutoringDocID'] ?? '').toString(),
-      rating: (map['rating'] as num?)?.toInt() ??
-          int.tryParse((map['rating'] ?? '').toString()) ??
-          0,
+      rating: _asInt(map['rating']),
       comment: (map['comment'] ?? '').toString(),
-      timeStamp: (map['timeStamp'] as num?)?.toInt() ??
-          int.tryParse((map['timeStamp'] ?? '').toString()) ??
-          0,
+      timeStamp: _asInt(map['timeStamp']),
     );
   }
 
