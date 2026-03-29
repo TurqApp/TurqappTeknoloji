@@ -1,6 +1,14 @@
 part of 'test_repository_parts.dart';
 
 extension TestRepositoryActionPart on TestRepository {
+  List<String> _sanitizeStringList(dynamic raw) {
+    if (raw is! List) return const <String>[];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Future<void> submitAnswers(
     String testId, {
     required String userId,
@@ -27,9 +35,7 @@ extension TestRepositoryActionPart on TestRepository {
     final docSnapshot = await docRef.get();
     if (!docSnapshot.exists) return false;
 
-    final favorites = List<String>.from(
-      (docSnapshot.data()?['favoriler'] ?? const <String>[]),
-    );
+    final favorites = _sanitizeStringList(docSnapshot.data()?['favoriler']);
     final isFavorite = favorites.contains(userId);
     await docRef.update({
       'favoriler': isFavorite

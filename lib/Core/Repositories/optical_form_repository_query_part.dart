@@ -1,6 +1,14 @@
 part of 'optical_form_repository.dart';
 
 extension OpticalFormRepositoryQueryPart on OpticalFormRepository {
+  List<String> _sanitizeStringList(dynamic raw) {
+    if (raw is! List) return const <String>[];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Future<OpticalFormModel?> fetchById(
     String docId, {
     bool preferCache = true,
@@ -197,8 +205,7 @@ extension OpticalFormRepositoryQueryPart on OpticalFormRepository {
         .collection('Yanitlar')
         .doc(userId)
         .get();
-    final answers =
-        List<String>.from((doc.data()?['cevaplar'] as List?) ?? const []);
+    final answers = _sanitizeStringList(doc.data()?['cevaplar']);
     await _storePrimitive(key, answers);
     return answers;
   }
