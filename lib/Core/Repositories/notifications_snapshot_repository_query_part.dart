@@ -106,9 +106,15 @@ extension NotificationsSnapshotRepositoryQueryPart
   }
 
   int _asInt(dynamic value) {
-    if (value is int) return value;
     if (value is num) return value.toInt();
-    return int.tryParse('$value') ?? 0;
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return 0;
   }
 
   Map<String, dynamic> _encodeItems(List<NotificationModel> items) {
@@ -128,7 +134,7 @@ extension NotificationsSnapshotRepositoryQueryPart
         .whereType<Map>()
         .map((raw) {
           final item = Map<String, dynamic>.from(raw.cast<dynamic, dynamic>());
-          final docId = (item.remove('docID') ?? '').toString();
+          final docId = (item.remove('docID') ?? '').toString().trim();
           return NotificationModel.fromJson(item, docId);
         })
         .where((item) => item.docID.isNotEmpty)
