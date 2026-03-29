@@ -1,10 +1,14 @@
 part of 'admob_unit_config_service.dart';
 
 class _AdmobPlatformUnitConfig {
-  const _AdmobPlatformUnitConfig({
-    required this.squareIds,
-    required this.interstitialIds,
-  });
+  _AdmobPlatformUnitConfig({
+    required List<String> squareIds,
+    required List<String> interstitialIds,
+  }) : squareIds = List<String>.from(squareIds, growable: false),
+       interstitialIds = List<String>.from(
+         interstitialIds,
+         growable: false,
+       );
 
   final List<String> squareIds;
   final List<String> interstitialIds;
@@ -56,11 +60,11 @@ class _AdmobUnitConfig {
   ];
 
   static final _AdmobUnitConfig defaults = _AdmobUnitConfig(
-    ios: const _AdmobPlatformUnitConfig(
+    ios: _AdmobPlatformUnitConfig(
       squareIds: defaultIosSquareIds,
       interstitialIds: defaultIosInterstitialIds,
     ),
-    android: const _AdmobPlatformUnitConfig(
+    android: _AdmobPlatformUnitConfig(
       squareIds: defaultAndroidSquareIds,
       interstitialIds: defaultAndroidInterstitialIds,
     ),
