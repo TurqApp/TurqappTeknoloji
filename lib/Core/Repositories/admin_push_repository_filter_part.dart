@@ -7,6 +7,30 @@ extension AdminPushRepositoryFilterPart on AdminPushRepository {
     return raw.length >= 13 ? asInt : asInt * 1000;
   }
 
+  bool _asBoolFlag(dynamic raw, {bool fallback = false}) {
+    if (raw is bool) return raw;
+    if (raw is num) return raw != 0;
+    if (raw is String) {
+      final normalized = raw.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   bool _hasPushTokenImpl(Map<String, dynamic> data) {
     final candidates = <Object?>[
       data['fcmToken'],
@@ -24,13 +48,13 @@ extension AdminPushRepositoryFilterPart on AdminPushRepository {
   bool _isDeletedOrInactiveImpl(Map<String, dynamic> data) {
     final accountStatus = (data['accountStatus'] ?? '').toString().trim();
     final statusLc = accountStatus.toLowerCase();
-    return data['isDeleted'] == true ||
+    return _asBoolFlag(data['isDeleted']) ||
         statusLc == 'deleted' ||
         statusLc == 'pending_deletion';
   }
 
   bool _isBannedImpl(Map<String, dynamic> data) {
-    return data['isBanned'] == true || data['ban'] == true;
+    return _asBoolFlag(data['isBanned']) || _asBoolFlag(data['ban']);
   }
 
   List<String> _collectLocationValuesImpl(Map<String, dynamic> data) {
