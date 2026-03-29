@@ -9,7 +9,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       _memory.remove(docId);
       return null;
     }
-    return cached.data;
+    return Map<String, dynamic>.from(cached.data);
   }
 
   Future<Map<String, dynamic>?> _readPrefs(String docId) async {
@@ -42,7 +42,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return data;
+      return Map<String, dynamic>.from(data);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -72,7 +72,9 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       _queryMemory.remove(key);
       return null;
     }
-    return cached.items;
+    return cached.items
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
   }
 
   Future<List<Map<String, dynamic>>?> _readQueryPrefs(String key) async {

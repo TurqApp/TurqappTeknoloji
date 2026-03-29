@@ -58,7 +58,7 @@ extension NotificationPreferencesRepositoryCachePart
         snap.data() ?? const <String, dynamic>{},
       );
       await putPreferences(uid, data);
-      return data;
+      return Map<String, dynamic>.from(data);
     });
   }
 

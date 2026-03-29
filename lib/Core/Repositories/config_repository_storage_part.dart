@@ -92,7 +92,7 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return data;
+      return Map<String, dynamic>.from(data);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;

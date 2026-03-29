@@ -82,7 +82,7 @@ extension MarketRepositoryCachePart on MarketRepository {
       _memory.remove(key);
       return null;
     }
-    return cached.items;
+    return List<MarketItemModel>.from(cached.items);
   }
 
   Future<List<MarketItemModel>?> _getFromPrefs(String key) async {

@@ -68,7 +68,7 @@ Future<Map<String, dynamic>?> _getUserSubdocFromPrefs(
       await prefs?.remove(prefsKey);
       return null;
     }
-    return data;
+    return Map<String, dynamic>.from(data);
   } catch (_) {
     await prefs?.remove(prefsKey);
     return null;
