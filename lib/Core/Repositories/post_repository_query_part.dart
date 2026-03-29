@@ -4,6 +4,12 @@ extension PostRepositoryQueryPart on PostRepository {
   static const String _pollSelectionPrefKeyPrefix =
       'post_repository_poll_selection_v1';
 
+  int _feedRefAsInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   String _pollSelectionKey(String currentUid, String postId) =>
       '${_pollSelectionPrefKeyPrefix}_${currentUid.trim()}_${postId.trim()}';
 
@@ -149,8 +155,8 @@ extension PostRepositoryQueryPart on PostRepository {
                 poll: Map<String, dynamic>.from(firestoreModel.poll),
               );
         result[entry.key] = mergedModel;
-        final state =
-            _states.putIfAbsent(entry.key, () => PostRepositoryState(entry.key));
+        final state = _states.putIfAbsent(
+            entry.key, () => PostRepositoryState(entry.key));
         state.latestPostData.value = mergedModel.toMap();
         _seedCounts(state, mergedModel);
       }
@@ -245,9 +251,9 @@ extension PostRepositoryQueryPart on PostRepository {
           return UserFeedReference(
             postId: (data['postId'] ?? doc.id).toString().trim(),
             authorId: (data['authorId'] ?? '').toString().trim(),
-            timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
+            timeStamp: _feedRefAsInt(data['timeStamp']),
             isCelebrity: data['isCelebrity'] == true,
-            expiresAt: (data['expiresAt'] as num?)?.toInt() ?? 0,
+            expiresAt: _feedRefAsInt(data['expiresAt']),
           );
         })
         .where((item) => item.postId.isNotEmpty)
@@ -547,7 +553,8 @@ extension PostRepositoryQueryPart on PostRepository {
         await prefs.remove(key);
         return null;
       }
-      return _clonePostMap(Map<String, dynamic>.from(data.cast<String, dynamic>()));
+      return _clonePostMap(
+          Map<String, dynamic>.from(data.cast<String, dynamic>()));
     } catch (_) {
       await prefs.remove(key);
       return null;
