@@ -123,6 +123,6 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     if (response.statusCode != 200) {
       throw HttpException('CDN returned ${response.statusCode}');
     }
-    return response.bodyBytes;
+    return Uint8List.fromList(response.bodyBytes);
   }
 }
