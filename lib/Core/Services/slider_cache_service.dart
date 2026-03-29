@@ -102,7 +102,8 @@ class SliderCacheService {
     }
     try {
       final prefs = await _prefsInstance();
-      final raw = prefs.getString(_key(sliderId));
+      final key = _key(sliderId);
+      final raw = prefs.getString(key);
       if (raw == null || raw.trim().isEmpty) {
         return const SliderCacheSnapshot(
           resolvedItems: <SliderResolvedItem>[],
@@ -111,6 +112,7 @@ class SliderCacheService {
       }
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
+        await prefs.remove(key);
         return const SliderCacheSnapshot(
           resolvedItems: <SliderResolvedItem>[],
           savedAtMs: 0,
@@ -134,6 +136,7 @@ class SliderCacheService {
 
       final legacyItems = decoded['items'];
       if (legacyItems is! List) {
+        await prefs.remove(key);
         return SliderCacheSnapshot(
           resolvedItems: const <SliderResolvedItem>[],
           savedAtMs: savedAt,
@@ -164,6 +167,10 @@ class SliderCacheService {
             .toList(growable: false),
       );
     } catch (_) {
+      try {
+        final prefs = await _prefsInstance();
+        await prefs.remove(_key(sliderId));
+      } catch (_) {}
       return const SliderCacheSnapshot(
         resolvedItems: <SliderResolvedItem>[],
         savedAtMs: 0,

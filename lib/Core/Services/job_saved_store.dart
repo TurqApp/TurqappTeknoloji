@@ -193,14 +193,27 @@ class JobSavedStore {
 
   static Future<List<SavedJobRecord>?> _readCache(String uid) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('$_prefsPrefix$uid');
+    final prefs = _prefs;
+    final prefsKey = '$_prefsPrefix$uid';
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
-      if (savedAt <= 0) return null;
+      if (savedAt <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
       if (DateTime.now().difference(cachedAt) > const Duration(hours: 12)) {
+        await prefs?.remove(prefsKey);
         return null;
       }
       final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
@@ -215,6 +228,7 @@ class JobSavedStore {
           .toList(growable: false);
       return items;
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
