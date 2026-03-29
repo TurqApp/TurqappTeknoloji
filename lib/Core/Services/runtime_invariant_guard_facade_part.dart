@@ -27,7 +27,7 @@ extension RuntimeInvariantGuardFacadePart on RuntimeInvariantGuard {
       surface: surface,
       invariantKey: invariantKey,
       message: message,
-      payload: Map<String, dynamic>.from(payload),
+      payload: _cloneRuntimeInvariantPayload(payload),
       recordedAt: DateTime.now(),
     );
     _recent.add(violation);

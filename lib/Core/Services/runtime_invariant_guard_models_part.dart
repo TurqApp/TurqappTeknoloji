@@ -1,13 +1,13 @@
 part of 'runtime_invariant_guard.dart';
 
 class RuntimeInvariantViolation {
-  const RuntimeInvariantViolation({
+  RuntimeInvariantViolation({
     required this.surface,
     required this.invariantKey,
     required this.message,
-    required this.payload,
+    required Map<String, dynamic> payload,
     required this.recordedAt,
-  });
+  }) : payload = _cloneRuntimeInvariantPayload(payload);
 
   final String surface;
   final String invariantKey;
@@ -20,8 +20,31 @@ class RuntimeInvariantViolation {
       'surface': surface,
       'invariantKey': invariantKey,
       'message': message,
-      'payload': payload,
+      'payload': _cloneRuntimeInvariantPayload(payload),
       'recordedAt': recordedAt.toUtc().toIso8601String(),
     };
   }
+}
+
+Map<String, dynamic> _cloneRuntimeInvariantPayload(
+  Map<String, dynamic> source,
+) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneRuntimeInvariantValue(value)),
+  );
+}
+
+dynamic _cloneRuntimeInvariantValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneRuntimeInvariantValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneRuntimeInvariantValue).toList(growable: false);
+  }
+  return value;
 }
