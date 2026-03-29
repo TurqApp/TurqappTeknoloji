@@ -1,6 +1,12 @@
 part of 'offline_mode_service.dart';
 
 extension PendingActionExecutionPart on PendingAction {
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<void> execute() async {
     switch (type) {
       case 'update_profile':
@@ -72,7 +78,7 @@ extension PendingActionExecutionPart on PendingAction {
       final postData = postSnap.data() ?? <String, dynamic>{};
       final stats = (postData['stats'] as Map?)?.cast<String, dynamic>() ??
           const <String, dynamic>{};
-      final currentLikeCount = (stats['likeCount'] as num?)?.toInt() ?? 0;
+      final currentLikeCount = _asInt(stats['likeCount']);
       final ownerId = (postData['userID'] ?? '').toString().trim();
       DocumentReference<Map<String, dynamic>>? ownerRef;
       DocumentSnapshot<Map<String, dynamic>>? ownerSnap;
@@ -87,21 +93,26 @@ extension PendingActionExecutionPart on PendingAction {
         tx.set(userLikeRef, {'postDocID': postId, 'timeStamp': nowMs});
         tx.update(postRef, {'stats.likeCount': currentLikeCount + 1});
         if (ownerRef != null) {
-          tx.set(ownerRef, {
-            'counterOfLikes': FieldValue.increment(1),
-          }, SetOptions(merge: true));
+          tx.set(
+              ownerRef,
+              {
+                'counterOfLikes': FieldValue.increment(1),
+              },
+              SetOptions(merge: true));
         }
       } else if (!shouldLike && likeSnap.exists) {
         tx.delete(likeRef);
         tx.delete(userLikeRef);
         final next = currentLikeCount > 0 ? currentLikeCount - 1 : 0;
         tx.update(postRef, {'stats.likeCount': next});
-        final currentOwnerLikes =
-            (ownerSnap?.data()?['counterOfLikes'] as num?)?.toInt() ?? 0;
+        final currentOwnerLikes = _asInt(ownerSnap?.data()?['counterOfLikes']);
         if (ownerRef != null && currentOwnerLikes > 0) {
-          tx.set(ownerRef, {
-            'counterOfLikes': FieldValue.increment(-1),
-          }, SetOptions(merge: true));
+          tx.set(
+              ownerRef,
+              {
+                'counterOfLikes': FieldValue.increment(-1),
+              },
+              SetOptions(merge: true));
         }
       }
     });
@@ -130,7 +141,7 @@ extension PendingActionExecutionPart on PendingAction {
       final postData = postSnap.data() ?? <String, dynamic>{};
       final stats = (postData['stats'] as Map?)?.cast<String, dynamic>() ??
           const <String, dynamic>{};
-      final currentSavedCount = (stats['savedCount'] as num?)?.toInt() ?? 0;
+      final currentSavedCount = _asInt(stats['savedCount']);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
 
       if (shouldSave && !saveSnap.exists) {
@@ -179,7 +190,7 @@ extension PendingActionExecutionPart on PendingAction {
       final postData = postSnap.data() ?? <String, dynamic>{};
       final stats = (postData['stats'] as Map?)?.cast<String, dynamic>() ??
           const <String, dynamic>{};
-      final currentCommentCount = (stats['commentCount'] as num?)?.toInt() ?? 0;
+      final currentCommentCount = _asInt(stats['commentCount']);
 
       tx.set(commentRef, {
         'likes': <String>[],
