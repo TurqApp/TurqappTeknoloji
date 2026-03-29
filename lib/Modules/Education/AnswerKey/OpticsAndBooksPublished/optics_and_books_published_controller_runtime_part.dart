@@ -81,17 +81,17 @@ extension _OpticsAndBooksPublishedControllerRuntimeX
       return;
     }
     try {
-      final cachedBooks =
-          (await _answerKeySnapshotRepository.loadCachedOwner(
+      final cachedBooks = (await _answerKeySnapshotRepository.loadCachedOwner(
+            userId: uid,
+          ))
+              .data ??
+          const <BookletModel>[];
+      final cachedOptikler =
+          (await _opticalFormSnapshotRepository.loadCachedOwner(
                 userId: uid,
               ))
                   .data ??
-              const <BookletModel>[];
-      final cachedOptikler = await _opticalFormRepository.fetchByOwner(
-        uid,
-        preferCache: true,
-        cacheOnly: true,
-      );
+              const <OpticalFormModel>[];
       if (cachedBooks.isNotEmpty || cachedOptikler.isNotEmpty) {
         cachedBooks.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
         cachedOptikler.sort((a, b) => b.docID.compareTo(a.docID));
@@ -136,13 +136,12 @@ extension _OpticsAndBooksPublishedControllerRuntimeX
   }
 
   Future<void> getData({bool forceRefresh = false}) async {
-    final tempList =
-        (await _answerKeySnapshotRepository.loadOwner(
-              userId: CurrentUserService.instance.effectiveUserId,
-              forceSync: forceRefresh,
-            ))
-                .data ??
-            <BookletModel>[];
+    final tempList = (await _answerKeySnapshotRepository.loadOwner(
+          userId: CurrentUserService.instance.effectiveUserId,
+          forceSync: forceRefresh,
+        ))
+            .data ??
+        <BookletModel>[];
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     if (!_sameBookletEntries(list, tempList)) {
       list.assignAll(tempList);
@@ -150,11 +149,24 @@ extension _OpticsAndBooksPublishedControllerRuntimeX
   }
 
   Future<void> getOptikler({bool forceRefresh = false}) async {
-    final tempList = await _opticalFormRepository.fetchByOwner(
-      CurrentUserService.instance.effectiveUserId,
-      preferCache: true,
-      forceRefresh: forceRefresh,
-    );
+    final uid = CurrentUserService.instance.effectiveUserId;
+    final tempList = forceRefresh
+        ? ((await _opticalFormSnapshotRepository.loadOwner(
+              userId: uid,
+              forceSync: true,
+            ))
+                .data ??
+            const <OpticalFormModel>[])
+        : ((await _opticalFormSnapshotRepository.loadCachedOwner(
+              userId: uid,
+            ))
+                .data ??
+            (await _opticalFormSnapshotRepository.loadOwner(
+              userId: uid,
+              forceSync: true,
+            ))
+                .data ??
+            const <OpticalFormModel>[]);
     tempList.sort((a, b) => b.docID.compareTo(a.docID));
     if (!_sameOpticalEntries(optikler, tempList)) {
       optikler.assignAll(tempList);

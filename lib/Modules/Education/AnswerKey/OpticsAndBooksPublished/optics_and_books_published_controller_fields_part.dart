@@ -3,9 +3,9 @@ part of 'optics_and_books_published_controller_library.dart';
 class _OpticsAndBooksPublishedControllerState {
   final AnswerKeySnapshotRepository answerKeySnapshotRepository =
       ensureAnswerKeySnapshotRepository();
+  final OpticalFormSnapshotRepository opticalFormSnapshotRepository =
+      ensureOpticalFormSnapshotRepository();
   final BookletRepository bookletRepository = ensureBookletRepository();
-  final OpticalFormRepository opticalFormRepository =
-      ensureOpticalFormRepository();
   final RxList<BookletModel> list = <BookletModel>[].obs;
   final RxList<OpticalFormModel> optikler = <OpticalFormModel>[].obs;
   final RxInt selection = 0.obs;
@@ -18,9 +18,9 @@ extension OpticsAndBooksPublishedControllerFieldsPart
     on OpticsAndBooksPublishedController {
   AnswerKeySnapshotRepository get _answerKeySnapshotRepository =>
       _state.answerKeySnapshotRepository;
+  OpticalFormSnapshotRepository get _opticalFormSnapshotRepository =>
+      _state.opticalFormSnapshotRepository;
   BookletRepository get _bookletRepository => _state.bookletRepository;
-  OpticalFormRepository get _opticalFormRepository =>
-      _state.opticalFormRepository;
   RxList<BookletModel> get list => _state.list;
   RxList<OpticalFormModel> get optikler => _state.optikler;
   RxInt get selection => _state.selection;
