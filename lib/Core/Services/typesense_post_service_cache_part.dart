@@ -66,14 +66,22 @@ extension TypesensePostServiceCachePart on TypesensePostService {
         return null;
       }
       final cards = <String, Map<String, dynamic>>{};
+      var shouldPrune = false;
       cardsRaw.forEach((key, value) {
         if (value is Map) {
-          cards[key.toString()] = _cloneTypesensePostCard(
+          final card = _cloneTypesensePostCard(
             Map<String, dynamic>.from(
               value.cast<dynamic, dynamic>(),
             ),
           );
+          if (card.isEmpty) {
+            shouldPrune = true;
+            return;
+          }
+          cards[key.toString()] = card;
+          return;
         }
+        shouldPrune = true;
       });
       final cached = _CachedPostCardsResult(
         cards: _cloneTypesensePostCards(cards),
@@ -82,6 +90,19 @@ extension TypesensePostServiceCachePart on TypesensePostService {
       if (!cached.isFresh) {
         await prefs?.remove(prefsKey);
         return null;
+      }
+      if (shouldPrune) {
+        if (cards.isEmpty) {
+          await prefs?.remove(prefsKey);
+          return null;
+        }
+        await prefs?.setString(
+          prefsKey,
+          jsonEncode(<String, dynamic>{
+            'cachedAt': cachedAtMs,
+            'cards': _cloneTypesensePostCards(cards),
+          }),
+        );
       }
       _memory[cacheKey] = cached;
       return cached;
@@ -136,9 +157,7 @@ extension TypesensePostServiceCachePart on TypesensePostService {
       );
     }
     if (value is List) {
-      return value
-          .map(_cloneTypesensePostCardValue)
-          .toList(growable: false);
+      return value.map(_cloneTypesensePostCardValue).toList(growable: false);
     }
     return value;
   }
