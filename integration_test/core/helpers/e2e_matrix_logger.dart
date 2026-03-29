@@ -14,7 +14,6 @@ class E2EMatrixLogger {
     required String scenario,
     required String step,
   }) async {
-    await tester.pump(const Duration(milliseconds: 120));
     final probe = readIntegrationProbe();
     Map<String, dynamic> native = const <String, dynamic>{};
     if (supportsNativeExoSmoke) {

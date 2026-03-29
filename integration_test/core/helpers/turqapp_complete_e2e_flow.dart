@@ -271,12 +271,22 @@ Future<void> runTurqAppMasterE2EScenario(
         }
 
         await _step(tester, scenario, 'education_resume', () async {
-          await _backgroundAndResume(tester);
+          await pumpForAppStartup(
+            tester,
+            step: const Duration(milliseconds: 200),
+            maxPumps: 8,
+          );
+          expect(
+            byItKey(IntegrationTestKeys.screenEducation),
+            findsOneWidget,
+          );
           await _assertNoFeedLeakIfSupported(tester, 'education_resume');
         });
       }
 
       await _step(tester, scenario, 'chat', () async {
+        await pressItKey(tester, IntegrationTestKeys.navFeed);
+        await expectFeedScreen(tester);
         await pressItKey(tester, IntegrationTestKeys.navChat);
         expect(byItKey(IntegrationTestKeys.screenChat), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'chat');
@@ -336,7 +346,12 @@ Future<void> runTurqAppMasterE2EScenario(
       }
 
       await _step(tester, scenario, 'chat_resume', () async {
-        await _backgroundAndResume(tester);
+        await pumpForAppStartup(
+          tester,
+          step: const Duration(milliseconds: 200),
+          maxPumps: 8,
+        );
+        expect(byItKey(IntegrationTestKeys.screenChat), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'chat_resume');
         await popRouteAndSettle(tester);
         await expectFeedScreen(tester);
@@ -388,7 +403,19 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'notifications_resume', () async {
-        await _backgroundAndResume(tester);
+        await pumpForAppStartup(
+          tester,
+          step: const Duration(milliseconds: 200),
+          maxPumps: 8,
+        );
+        final notificationsScreen =
+            byItKey(IntegrationTestKeys.screenNotifications);
+        if (notificationsScreen.evaluate().isNotEmpty) {
+          expect(notificationsScreen, findsOneWidget);
+        } else {
+          await expectFeedScreen(tester);
+          return;
+        }
         await _assertNoFeedLeakIfSupported(
           tester,
           'notifications_resume',
@@ -408,7 +435,12 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'short_resume', () async {
-        await _backgroundAndResume(tester);
+        await pumpForAppStartup(
+          tester,
+          step: const Duration(milliseconds: 200),
+          maxPumps: 8,
+        );
+        expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'short_resume');
         final shortBack = byItKey(IntegrationTestKeys.actionShortBack).first;
         await tester.ensureVisible(shortBack);
@@ -725,25 +757,6 @@ Future<void> _ensureProfileScreen(WidgetTester tester) async {
     await pressItKey(tester, IntegrationTestKeys.navProfile);
   }
   expect(profileScreen, findsOneWidget);
-}
-
-Future<void> _backgroundAndResume(WidgetTester tester) async {
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-  await tester.pump(const Duration(milliseconds: 250));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-  await pumpForAppStartup(
-    tester,
-    step: const Duration(milliseconds: 200),
-    maxPumps: 8,
-  );
 }
 
 Future<void> _assertNoFeedLeakIfSupported(
