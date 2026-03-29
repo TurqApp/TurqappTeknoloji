@@ -8,8 +8,6 @@ part 'feed_render_coordinator_build_part.dart';
 part 'feed_render_coordinator_patch_part.dart';
 
 class FeedRenderCoordinator extends GetxService {
-  static const int _mediaReadyWindow = 10;
-
   static FeedRenderCoordinator? maybeFind() {
     final isRegistered = Get.isRegistered<FeedRenderCoordinator>();
     if (!isRegistered) return null;

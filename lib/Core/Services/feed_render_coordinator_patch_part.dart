@@ -1,6 +1,13 @@
 part of 'feed_render_coordinator.dart';
 
 extension FeedRenderCoordinatorPatchPart on FeedRenderCoordinator {
+  bool _asFeedEntryBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   RenderListPatch<Map<String, dynamic>> buildPatch({
     required List<Map<String, dynamic>> previous,
     required List<Map<String, dynamic>> next,
@@ -144,7 +151,8 @@ extension FeedRenderCoordinatorPatchPart on FeedRenderCoordinator {
     final rightModel = right['model'] as PostsModel;
     return left['timestamp'] == right['timestamp'] &&
         left['agendaIndex'] == right['agendaIndex'] &&
-        left['reshare'] == right['reshare'] &&
+        _asFeedEntryBool(left['reshare']) ==
+            _asFeedEntryBool(right['reshare']) &&
         left['reshareUserID'] == right['reshareUserID'] &&
         leftModel.docID == rightModel.docID &&
         leftModel.playbackUrl == rightModel.playbackUrl &&
@@ -162,7 +170,7 @@ extension FeedRenderCoordinatorPatchPart on FeedRenderCoordinator {
       ].join('::');
     }
     final model = entry['model'] as PostsModel;
-    final isReshare = entry['reshare'] == true;
+    final isReshare = _asFeedEntryBool(entry['reshare']);
     final reshareUserId = (entry['reshareUserID'] ?? '').toString();
     return <String>[
       model.docID,
