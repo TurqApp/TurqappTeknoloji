@@ -1,6 +1,8 @@
 part of 'optics_and_books_published_controller_library.dart';
 
 class _OpticsAndBooksPublishedControllerState {
+  final AnswerKeySnapshotRepository answerKeySnapshotRepository =
+      ensureAnswerKeySnapshotRepository();
   final BookletRepository bookletRepository = ensureBookletRepository();
   final OpticalFormRepository opticalFormRepository =
       ensureOpticalFormRepository();
@@ -14,6 +16,8 @@ class _OpticsAndBooksPublishedControllerState {
 
 extension OpticsAndBooksPublishedControllerFieldsPart
     on OpticsAndBooksPublishedController {
+  AnswerKeySnapshotRepository get _answerKeySnapshotRepository =>
+      _state.answerKeySnapshotRepository;
   BookletRepository get _bookletRepository => _state.bookletRepository;
   OpticalFormRepository get _opticalFormRepository =>
       _state.opticalFormRepository;

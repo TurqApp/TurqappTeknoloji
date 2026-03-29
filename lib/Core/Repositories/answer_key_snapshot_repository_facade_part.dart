@@ -7,6 +7,44 @@ AnswerKeySnapshotRepository ensureAnswerKeySnapshotRepository() =>
     _ensureAnswerKeySnapshotRepository();
 
 extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
+  Future<CachedResource<List<BookletModel>>> loadCachedOwner({
+    required String userId,
+  }) {
+    final query = AnswerKeyOwnerQuery(userId: userId);
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _answerKeyOwnerSurfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: _answerKeyOwnerSurfaceKey,
+      userId: userId.trim(),
+      scopeId: query.buildScopeId(schemaVersion: schemaVersion),
+    );
+    return _coordinator.bootstrap(
+      key,
+      schemaVersion: schemaVersion,
+    );
+  }
+
+  Stream<CachedResource<List<BookletModel>>> openOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _ownerPipeline.open(
+      AnswerKeyOwnerQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<BookletModel>>> loadOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openOwner(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Stream<CachedResource<List<BookletModel>>> openHome({
     required String userId,
     int limit = 30,
