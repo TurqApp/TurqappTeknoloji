@@ -42,6 +42,17 @@ class TutoringModel {
     return _cloneStringList(source);
   }
 
+  static num _asNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse('$value') ?? 0;
+  }
+
+  static double? _asDoubleOrNull(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value');
+  }
+
   static Map<String, List<String>>? _cloneAvailability(
     Map<String, List<String>>? source,
   ) {
@@ -86,11 +97,11 @@ class TutoringModel {
     this.shortId = '',
     this.shortUrl = '',
     this.rozet = '',
-  }) : dersYeri = _cloneStringList(dersYeri),
-       favorites = _cloneStringList(favorites),
-       imgs = _cloneNullableStringList(imgs),
-       availability = _cloneAvailability(availability),
-       verificationDocs = _cloneNullableStringList(verificationDocs);
+  })  : dersYeri = _cloneStringList(dersYeri),
+        favorites = _cloneStringList(favorites),
+        imgs = _cloneNullableStringList(imgs),
+        availability = _cloneAvailability(availability),
+        verificationDocs = _cloneNullableStringList(verificationDocs);
 
   factory TutoringModel.fromJson(Map<String, dynamic> json, String documentId) {
     Map<String, List<String>>? parsedAvailability;
@@ -110,26 +121,32 @@ class TutoringModel {
       brans: json['brans'] as String? ?? '',
       cinsiyet: json['cinsiyet'] as String? ?? '',
       dersYeri: (json['dersYeri'] as List<dynamic>?)?.cast<String>() ?? [],
-      end: json['end'] as num? ?? 0,
+      end: _asNum(json['end']),
       favorites: (json['favorites'] as List<dynamic>?)?.cast<String>() ?? [],
-      fiyat: json['fiyat'] as num? ?? 0,
+      fiyat: _asNum(json['fiyat']),
       imgs: (json['imgs'] as List<dynamic>?)?.cast<String>(),
       ilce: json['ilce'] as String? ?? '',
       onayVerildi: json['onayVerildi'] as bool? ?? false,
       sehir: json['sehir'] as String? ?? '',
       telefon: json['telefon'] as bool? ?? false,
-      timeStamp: json['timeStamp'] as num? ?? 0,
+      timeStamp: _asNum(json['timeStamp']),
       userID: json['userID'] as String? ?? '',
       whatsapp: json['whatsapp'] as bool? ?? false,
       ended: json['ended'] as bool?,
-      endedAt: json['endedAt'] as num?,
-      viewCount: json['viewCount'] as num?,
-      applicationCount: json['applicationCount'] as num?,
-      averageRating: json['averageRating'] as num?,
-      reviewCount: json['reviewCount'] as num?,
+      endedAt: json.containsKey('endedAt') ? _asNum(json['endedAt']) : null,
+      viewCount:
+          json.containsKey('viewCount') ? _asNum(json['viewCount']) : null,
+      applicationCount: json.containsKey('applicationCount')
+          ? _asNum(json['applicationCount'])
+          : null,
+      averageRating: json.containsKey('averageRating')
+          ? _asNum(json['averageRating'])
+          : null,
+      reviewCount:
+          json.containsKey('reviewCount') ? _asNum(json['reviewCount']) : null,
       availability: parsedAvailability,
-      lat: (json['lat'] as num?)?.toDouble(),
-      long: (json['long'] as num?)?.toDouble(),
+      lat: _asDoubleOrNull(json['lat']),
+      long: _asDoubleOrNull(json['long']),
       verified: json['verified'] as bool?,
       verificationDocs:
           (json['verificationDocs'] as List<dynamic>?)?.cast<String>(),
@@ -231,7 +248,8 @@ class TutoringModel {
       if (applicationCount != null) 'applicationCount': applicationCount,
       if (averageRating != null) 'averageRating': averageRating,
       if (reviewCount != null) 'reviewCount': reviewCount,
-      if (availability != null) 'availability': _cloneAvailability(availability),
+      if (availability != null)
+        'availability': _cloneAvailability(availability),
       if (lat != null) 'lat': lat,
       if (long != null) 'long': long,
       if (verified != null) 'verified': verified,
