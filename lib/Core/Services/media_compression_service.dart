@@ -31,14 +31,14 @@ class CompressionResult {
   final String format;
 
   CompressionResult({
-    required this.compressedData,
+    required Uint8List compressedData,
     required this.originalSize,
     required this.compressedSize,
     required this.compressionRatio,
     required this.width,
     required this.height,
     required this.format,
-  });
+  }) : compressedData = Uint8List.fromList(compressedData);
 
   double get spaceSavedPercent => (1 - compressionRatio) * 100;
   String get spaceSavedText =>
