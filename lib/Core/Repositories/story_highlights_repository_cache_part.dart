@@ -12,6 +12,17 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
     return fallback;
   }
 
+  List<String> _asStringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    final out = <String>[];
+    for (final item in value) {
+      final normalized = item?.toString().trim() ?? '';
+      if (normalized.isEmpty) continue;
+      out.add(normalized);
+    }
+    return out;
+  }
+
   List<StoryHighlightModel>? _getFromMemory(
     String uid, {
     required bool allowStale,
@@ -75,15 +86,10 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
           final item =
               Map<String, dynamic>.from(rawItem.cast<dynamic, dynamic>());
           final storyIdsRaw = item['storyIds'];
-          final storyIds = <String>[];
+          final storyIds = _asStringList(storyIdsRaw);
           if (storyIdsRaw is List) {
-            for (final rawStoryId in storyIdsRaw) {
-              final storyId = rawStoryId?.toString().trim() ?? '';
-              if (storyId.isEmpty) {
-                shouldPersist = true;
-                continue;
-              }
-              storyIds.add(storyId);
+            if (storyIds.length != storyIdsRaw.length) {
+              shouldPersist = true;
             }
           } else if (storyIdsRaw != null) {
             shouldPersist = true;
@@ -127,7 +133,7 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
                     'userId': item.userId,
                     'title': item.title,
                     'coverUrl': item.coverUrl,
-                    'storyIds': List<String>.from(item.storyIds),
+                    'storyIds': _asStringList(item.storyIds),
                     'createdDate': item.createdAt.millisecondsSinceEpoch,
                     'order': item.order,
                   },
@@ -151,7 +157,7 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
         userId: item.userId,
         title: item.title,
         coverUrl: item.coverUrl,
-        storyIds: List<String>.from(item.storyIds),
+        storyIds: _asStringList(item.storyIds),
         createdAt: item.createdAt,
         order: item.order,
       );
