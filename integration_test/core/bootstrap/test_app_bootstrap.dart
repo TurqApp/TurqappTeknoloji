@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -481,15 +482,7 @@ Future<void> _backfillRequiredFeedDocsForSmoke(
     return;
   }
 
-  final fetchedById = await PostRepository.ensure().fetchPostCardsByIds(
-    missingDocIds,
-    preferCache: false,
-    cacheOnly: false,
-  );
-  final seededPosts = missingDocIds
-      .map((docId) => fetchedById[docId])
-      .whereType<PostsModel>()
-      .toList(growable: false);
+  final seededPosts = await _fetchRequiredFeedPostsForSmoke(missingDocIds);
   if (seededPosts.isEmpty) {
     return;
   }
@@ -506,6 +499,61 @@ Future<void> _backfillRequiredFeedDocsForSmoke(
     '[integration-smoke] feed: backfilled required docs '
     'missing=$missingDocIds added=${seededPosts.map((post) => post.docID).join(',')}',
   );
+}
+
+Future<List<PostsModel>> _fetchRequiredFeedPostsForSmoke(
+  List<String> docIds,
+) async {
+  final normalized = docIds
+      .map((docId) => docId.trim())
+      .where((docId) => docId.isNotEmpty)
+      .toList(growable: false);
+  if (normalized.isEmpty) {
+    return const <PostsModel>[];
+  }
+
+  final fetchedById = await PostRepository.ensure().fetchPostCardsByIds(
+    normalized,
+    preferCache: false,
+    cacheOnly: false,
+  );
+  final seededPosts = <PostsModel>[];
+  final unresolved = <String>[];
+
+  for (final docId in normalized) {
+    final post = fetchedById[docId];
+    if (post != null) {
+      seededPosts.add(post);
+    } else {
+      unresolved.add(docId);
+    }
+  }
+
+  if (unresolved.isNotEmpty) {
+    final posts = FirebaseFirestore.instance.collection('Posts');
+    for (final docId in unresolved) {
+      try {
+        final snap = await posts.doc(docId).get();
+        if (!snap.exists) continue;
+        final data = snap.data();
+        if (data == null) continue;
+        seededPosts.add(PostsModel.fromMap(data, snap.id));
+      } catch (error) {
+        debugPrint(
+          '[integration-smoke] feed: direct post fetch failed '
+          'docId=$docId error=$error',
+        );
+      }
+    }
+  }
+
+  final uniqueById = <String, PostsModel>{};
+  for (final post in seededPosts) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) continue;
+    uniqueById[docId] = post;
+  }
+  return uniqueById.values.toList(growable: false);
 }
 
 Future<void> _primeNotificationsForSmoke(WidgetTester tester) async {
