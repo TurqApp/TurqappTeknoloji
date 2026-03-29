@@ -24,22 +24,25 @@ class QueuedUpload {
   String? errorMessage;
   double progress;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   QueuedUpload({
     required this.id,
     required this.postData,
-    required this.imagePaths,
+    required List<String> imagePaths,
     this.videoPath,
     required this.createdAt,
     this.status = UploadStatus.pending,
     this.retryCount = 0,
     this.errorMessage,
     this.progress = 0.0,
-  });
+  }) : imagePaths = _cloneStringList(imagePaths);
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'postData': postData,
-        'imagePaths': imagePaths,
+        'imagePaths': _cloneStringList(imagePaths),
         'videoPath': videoPath,
         'createdDate': createdAt.millisecondsSinceEpoch,
         'status': status.name,
