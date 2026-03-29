@@ -1,6 +1,20 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderDiagnosticsPart on QALabRecorder {
+  bool _diagnosticsProbeAsBool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+    return fallback;
+  }
+
   List<QALabPinpointFinding> _buildPrioritySurfaceFindings() {
     return _observedSurfaces()
         .expand(
@@ -85,7 +99,7 @@ extension QALabRecorderDiagnosticsPart on QALabRecorder {
       }
       final probe = checkpoint.probe[surface] as Map<String, dynamic>? ??
           const <String, dynamic>{};
-      if (probe['registered'] != true) {
+      if (!_diagnosticsProbeAsBool(probe['registered'], fallback: false)) {
         break;
       }
       observedSince = checkpoint.timestamp;
