@@ -75,12 +75,12 @@ extension _TutoringWidgetBuilderGridPart on TutoringWidgetBuilder {
                   const SizedBox(width: 6),
                   AppHeaderActionButton(
                     onTap: () => _shareExternally(tutoring),
-                    size: 24,
-                    radius: 8,
-                    child: const Icon(
+                    size: PasajListCardMetrics.regular.actionButtonSize,
+                    radius: 6,
+                    child: Icon(
                       AppIcons.share,
                       color: Colors.black87,
-                      size: 14,
+                      size: PasajListCardMetrics.regular.actionIconSize,
                     ),
                   ),
                 ],

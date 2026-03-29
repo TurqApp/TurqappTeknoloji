@@ -30,14 +30,15 @@ extension _MarketViewCardsPart on MarketView {
   Widget _buildGridInlineShareButton({
     required VoidCallback onTap,
   }) {
+    const metrics = PasajListCardMetrics.regular;
     return AppHeaderActionButton(
       onTap: onTap,
-      size: 24,
-      radius: 8,
-      child: const Icon(
+      size: metrics.actionButtonSize,
+      radius: 6,
+      child: Icon(
         AppIcons.share,
         color: Colors.black87,
-        size: 14,
+        size: metrics.actionIconSize,
       ),
     );
   }
