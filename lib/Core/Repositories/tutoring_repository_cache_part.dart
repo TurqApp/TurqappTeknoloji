@@ -26,14 +26,27 @@ extension TutoringRepositoryCachePart on TutoringRepository {
       return memory.value;
     }
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('${TutoringRepository._prefsPrefix}:$key');
+    final prefs = _prefs;
+    final prefsKey = '${TutoringRepository._prefsPrefix}:$key';
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       if (DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) >
           TutoringRepository._ttl) {
+        await prefs?.remove(prefsKey);
         return null;
       }
       final value = decoded['v'];
@@ -41,6 +54,7 @@ extension TutoringRepositoryCachePart on TutoringRepository {
           _TimedValue<dynamic>(value: value, cachedAt: DateTime.now());
       return value;
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }

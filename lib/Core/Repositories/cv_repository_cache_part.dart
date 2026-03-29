@@ -72,15 +72,30 @@ extension CvRepositoryCachePart on CvRepository {
 
   Future<Map<String, dynamic>?> _getFromPrefs(String uid) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_prefsKey(uid));
+    final prefs = _prefs;
+    final prefsKey = _prefsKey(uid);
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       final fresh = DateTime.now().difference(cachedAt) <= CvRepository._ttl;
-      if (!fresh) return null;
+      if (!fresh) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final data = decoded['data'];
       Map<String, dynamic>? mapped;
       if (data is Map<String, dynamic>) {
@@ -88,10 +103,14 @@ extension CvRepositoryCachePart on CvRepository {
       } else if (data is Map) {
         mapped = data.map((key, value) => MapEntry(key.toString(), value));
       }
-      if (mapped == null) return null;
+      if (mapped == null) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       _memory[uid] = _CachedCv(data: mapped, cachedAt: cachedAt);
       return Map<String, dynamic>.from(mapped);
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }

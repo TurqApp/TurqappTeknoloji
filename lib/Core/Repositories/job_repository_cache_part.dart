@@ -26,24 +26,37 @@ extension JobRepositoryCacheX on JobRepository {
 
   Future<_TimedJobs?> _getFromPrefsEntry(String key) async {
     final prefs = _prefs ??= await SharedPreferences.getInstance();
-    final raw = prefs.getString('${JobRepository._prefsPrefix}::$key');
+    final prefsKey = '${JobRepository._prefsPrefix}::$key';
+    final raw = prefs.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    final cachedAt = DateTime.tryParse(decoded['cachedAt'] as String? ?? '');
-    if (cachedAt == null ||
-        DateTime.now().difference(cachedAt) > JobRepository._ttl) {
-      await prefs.remove('${JobRepository._prefsPrefix}::$key');
+    try {
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
+      final cachedAt = DateTime.tryParse(decoded['cachedAt'] as String? ?? '');
+      if (cachedAt == null ||
+          DateTime.now().difference(cachedAt) > JobRepository._ttl) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final items =
+          (decoded['items'] as List<dynamic>? ?? const <dynamic>[]).map((item) {
+        final map = Map<String, dynamic>.from(item as Map);
+        return JobModel.fromMap(
+          Map<String, dynamic>.from(map['data'] as Map),
+          map['docID'] as String? ?? '',
+        );
+      }).toList(growable: false);
+      return _TimedJobs(items: items, cachedAt: cachedAt);
+    } catch (_) {
+      await prefs.remove(prefsKey);
       return null;
     }
-    final items =
-        (decoded['items'] as List<dynamic>? ?? const <dynamic>[]).map((item) {
-      final map = Map<String, dynamic>.from(item as Map);
-      return JobModel.fromMap(
-        Map<String, dynamic>.from(map['data'] as Map),
-        map['docID'] as String? ?? '',
-      );
-    }).toList(growable: false);
-    return _TimedJobs(items: items, cachedAt: cachedAt);
   }
 
   Future<void> _store(String key, List<JobModel> items) async {
@@ -64,18 +77,31 @@ extension JobRepositoryCacheX on JobRepository {
 
   Future<List<Map<String, dynamic>>?> _readList(String key) async {
     final prefs = _prefs ??= await SharedPreferences.getInstance();
-    final raw = prefs.getString('${JobRepository._prefsPrefix}::$key');
+    final prefsKey = '${JobRepository._prefsPrefix}::$key';
+    final raw = prefs.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    final cachedAt = DateTime.tryParse(decoded['cachedAt'] as String? ?? '');
-    if (cachedAt == null ||
-        DateTime.now().difference(cachedAt) > JobRepository._ttl) {
-      await prefs.remove('${JobRepository._prefsPrefix}::$key');
+    try {
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
+      final cachedAt = DateTime.tryParse(decoded['cachedAt'] as String? ?? '');
+      if (cachedAt == null ||
+          DateTime.now().difference(cachedAt) > JobRepository._ttl) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      return (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList(growable: false);
+    } catch (_) {
+      await prefs.remove(prefsKey);
       return null;
     }
-    return (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList(growable: false);
   }
 
   Future<void> _writeList(String key, List<Map<String, dynamic>> items) async {
