@@ -6,7 +6,7 @@ extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
     if (memory != null &&
         DateTime.now().difference(memory.cachedAt) <=
             _cikmisSorularRepositoryTtl) {
-      return List<Map<String, dynamic>>.from(memory.items);
+      return _cloneItems(memory.items);
     }
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     final prefsKey = '$_cikmisSorularRepositoryPrefsPrefix::$key';
@@ -30,8 +30,9 @@ extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
       final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
           .map((item) => Map<String, dynamic>.from(item as Map))
           .toList(growable: false);
-      _memory[key] = _TimedJsonList(items: items, cachedAt: DateTime.now());
-      return items;
+      final cloned = _cloneItems(items);
+      _memory[key] = _TimedJsonList(items: cloned, cachedAt: DateTime.now());
+      return _cloneItems(cloned);
     } catch (_) {
       await prefs.remove(prefsKey);
       return null;
@@ -40,7 +41,7 @@ extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
 
   Future<void> _writeList(String key, List<Map<String, dynamic>> items) async {
     _memory[key] = _TimedJsonList(
-      items: List<Map<String, dynamic>>.from(items),
+      items: _cloneItems(items),
       cachedAt: DateTime.now(),
     );
     final prefs = _prefs ??= await SharedPreferences.getInstance();
@@ -48,9 +49,29 @@ extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
       '$_cikmisSorularRepositoryPrefsPrefix::$key',
       jsonEncode(<String, dynamic>{
         'cachedAt': DateTime.now().toIso8601String(),
-        'items': items,
+        'items': _cloneItems(items),
       }),
     );
+  }
+
+  List<Map<String, dynamic>> _cloneItems(List<Map<String, dynamic>> items) {
+    return items.map(_cloneItem).toList(growable: false);
+  }
+
+  Map<String, dynamic> _cloneItem(Map<String, dynamic> item) {
+    return item.map((key, value) => MapEntry(key, _cloneValue(value)));
+  }
+
+  dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 }
 
