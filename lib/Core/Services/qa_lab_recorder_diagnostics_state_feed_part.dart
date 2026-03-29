@@ -1,6 +1,20 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
+  bool _feedProbeAsBool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+    return fallback;
+  }
+
   List<QALabPinpointFinding> _buildFeedShortStateSpecificFindings({
     required String surface,
     required Map<String, dynamic> latestProbe,
@@ -37,10 +51,14 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
         );
       }
       final centeredDocId = (latestProbe['centeredDocId'] ?? '').toString();
-      final centeredHasPlayableVideo =
-          latestProbe['centeredHasPlayableVideo'] == true;
-      final centeredHasRenderableVideoCard =
-          latestProbe['centeredHasRenderableVideoCard'] == true;
+      final centeredHasPlayableVideo = _feedProbeAsBool(
+        latestProbe['centeredHasPlayableVideo'],
+        fallback: false,
+      );
+      final centeredHasRenderableVideoCard = _feedProbeAsBool(
+        latestProbe['centeredHasRenderableVideoCard'],
+        fallback: false,
+      );
       if (count > 0 &&
           centeredDocId.isNotEmpty &&
           centeredHasRenderableVideoCard &&
@@ -73,9 +91,18 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
           );
         }
       }
-      final playbackSuspended = latestProbe['playbackSuspended'] == true;
-      final pauseAll = latestProbe['pauseAll'] == true;
-      final canClaimPlaybackNow = latestProbe['canClaimPlaybackNow'] == true;
+      final playbackSuspended = _feedProbeAsBool(
+        latestProbe['playbackSuspended'],
+        fallback: false,
+      );
+      final pauseAll = _feedProbeAsBool(
+        latestProbe['pauseAll'],
+        fallback: false,
+      );
+      final canClaimPlaybackNow = _feedProbeAsBool(
+        latestProbe['canClaimPlaybackNow'],
+        fallback: false,
+      );
       if (isFeedForeground &&
           count > 0 &&
           !_isQALabAutostartWarmup(
