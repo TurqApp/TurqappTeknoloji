@@ -6,13 +6,13 @@ class CurrentUserCacheStore {
   final CurrentUserService service;
 
   Future<bool> loadFromCache({String? expectedUid}) async {
+    final resolvedUid = resolveCacheUid(expectedUid);
     try {
       final readDecision = MetadataReadPolicy.currentUserSummary(
         preferCache: true,
         cacheOnly: false,
         forceServer: false,
       );
-      final resolvedUid = resolveCacheUid(expectedUid);
       if (resolvedUid.isEmpty) {
         return false;
       }
@@ -53,6 +53,11 @@ class CurrentUserCacheStore {
       unawaited(service._warmAvatar(user));
       return true;
     } catch (_) {
+      if (resolvedUid.isNotEmpty) {
+        await clearCache(resolvedUid);
+      } else {
+        await clearActiveCachePointer();
+      }
       return false;
     }
   }
