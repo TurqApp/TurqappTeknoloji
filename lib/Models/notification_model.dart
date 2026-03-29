@@ -10,6 +10,19 @@ class NotificationModel {
   String title;
   String userID;
 
+  static String _asString(Object? value) => (value ?? '').toString();
+
+  static int _asInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(_asString(value)) ?? 0;
+  }
+
+  static bool _asBool(Object? value) {
+    if (value is bool) return value;
+    final raw = _asString(value).trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   NotificationModel({
     required this.docID,
     required this.desc,
@@ -27,19 +40,17 @@ class NotificationModel {
   factory NotificationModel.fromJson(Map<String, dynamic> json, String docID) {
     return NotificationModel(
       docID: docID,
-      isRead: (json['isRead'] ?? json['read'] ?? false) == true,
-      type: (json['type'] ?? '').toString(),
-      postID: (json['postID'] ?? '').toString(),
-      postType: (json['postType'] ?? '').toString(),
-      thumbnail:
-          (json['thumbnail'] ?? json['imageUrl'] ?? json['imageURL'] ?? '')
-              .toString(),
-      timeStamp: (json['timeStamp'] as num?)?.toInt() ??
-          int.tryParse((json['timeStamp'] ?? '').toString()) ??
-          0,
-      title: (json['title'] ?? '').toString(),
-      userID: (json['userID'] ?? '').toString(),
-      desc: (json['desc'] ?? '').toString(),
+      isRead: _asBool(json['isRead'] ?? json['read']),
+      type: _asString(json['type']),
+      postID: _asString(json['postID']),
+      postType: _asString(json['postType']),
+      thumbnail: _asString(
+        json['thumbnail'] ?? json['imageUrl'] ?? json['imageURL'],
+      ),
+      timeStamp: _asInt(json['timeStamp']),
+      title: _asString(json['title']),
+      userID: _asString(json['userID']),
+      desc: _asString(json['desc']),
     );
   }
 
