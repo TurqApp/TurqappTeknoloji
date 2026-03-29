@@ -76,7 +76,7 @@ extension TypesenseMarketSearchServiceCachePart
       _memory.remove(key);
       return null;
     }
-    return List<MarketItemModel>.from(entry.items);
+    return _cloneMarketItems(entry.items);
   }
 
   Future<_CachedMarketSearchResult?> _getCachedFromPrefs(String key) async {
@@ -112,7 +112,7 @@ extension TypesenseMarketSearchServiceCachePart
               (raw) => MarketItemModel.fromJson(Map<String, dynamic>.from(raw)))
           .toList(growable: false);
       return _CachedMarketSearchResult(
-        items: items,
+        items: _cloneMarketItems(items),
         cachedAt: cachedAt,
       );
     } catch (_) {
@@ -123,7 +123,7 @@ extension TypesenseMarketSearchServiceCachePart
 
   Future<void> _store(String key, List<MarketItemModel> items) async {
     final cachedAt = DateTime.now();
-    final cloned = List<MarketItemModel>.from(items);
+    final cloned = _cloneMarketItems(items);
     _memory[key] = _CachedMarketSearchResult(
       items: cloned,
       cachedAt: cachedAt,
@@ -145,9 +145,15 @@ extension TypesenseMarketSearchServiceCachePart
     final effectiveCachedAt = cachedAt ?? DateTime.now();
     for (final item in items) {
       _memory['doc:${item.id}'] = _CachedMarketSearchResult(
-        items: <MarketItemModel>[item],
+        items: _cloneMarketItems(<MarketItemModel>[item]),
         cachedAt: effectiveCachedAt,
       );
     }
+  }
+
+  List<MarketItemModel> _cloneMarketItems(List<MarketItemModel> items) {
+    return items
+        .map((item) => MarketItemModel.fromJson(item.toJson()))
+        .toList(growable: false);
   }
 }
