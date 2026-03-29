@@ -221,10 +221,26 @@ class IndexPoolStore {
       return (now - entry.updatedAt) <= ttlMs;
     }).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return filtered
-        .take(limit)
-        .map((e) => PostsModel.fromMap(e.cardData, e.docID))
-        .toList();
+    final malformedIds = <String>{};
+    final output = <PostsModel>[];
+    for (final entry in filtered) {
+      try {
+        output.add(PostsModel.fromMap(entry.cardData, entry.docID));
+      } catch (_) {
+        malformedIds.add(entry.docID);
+      }
+      if (output.length >= limit) {
+        break;
+      }
+    }
+    if (malformedIds.isNotEmpty) {
+      final repaired = all
+          .where((entry) =>
+              !(entry.kind == k && malformedIds.contains(entry.docID)))
+          .toList(growable: false);
+      await _persistAll(repaired);
+    }
+    return output;
   }
 
   Future<void> savePosts(
