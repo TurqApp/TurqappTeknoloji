@@ -1,5 +1,26 @@
 part of 'qa_lab_recorder.dart';
 
+dynamic _cloneQaLabModelValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneQaLabModelValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneQaLabModelValue).toList(growable: false);
+  }
+  return value;
+}
+
+Map<String, dynamic> _cloneQaLabModelMap(Map source) {
+  return source.map(
+    (key, value) => MapEntry(key.toString(), _cloneQaLabModelValue(value)),
+  );
+}
+
 enum QALabIssueSeverity {
   info,
   warning,
@@ -56,7 +77,7 @@ class QALabIssue {
       'route': route,
       'surface': surface,
       'stackTrace': stackTrace,
-      'metadata': metadata,
+      'metadata': _cloneQaLabModelMap(metadata),
     };
   }
 }
@@ -110,8 +131,8 @@ class QALabCheckpoint {
       'surface': surface,
       'route': route,
       'timestamp': timestamp.toUtc().toIso8601String(),
-      'probe': probe,
-      'extra': extra,
+      'probe': _cloneQaLabModelMap(probe),
+      'extra': _cloneQaLabModelMap(extra),
     };
   }
 }
@@ -143,7 +164,7 @@ class QALabTimelineEvent {
       'route': route,
       'surface': surface,
       'timestamp': timestamp.toUtc().toIso8601String(),
-      'metadata': metadata,
+      'metadata': _cloneQaLabModelMap(metadata),
     };
   }
 }
