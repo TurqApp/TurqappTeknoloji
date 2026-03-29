@@ -41,7 +41,10 @@ class _ModerationConfigSnapshot {
 }
 
 class _InteractionCacheEntry {
-  _InteractionCacheEntry({required this.status, required this.fetchedAt});
+  _InteractionCacheEntry({
+    required Map<String, bool> status,
+    required this.fetchedAt,
+  }) : status = Map<String, bool>.from(status);
 
   final Map<String, bool> status;
   final DateTime fetchedAt;
