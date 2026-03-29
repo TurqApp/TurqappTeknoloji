@@ -63,7 +63,10 @@ extension MarketRepositoryCachePart on MarketRepository {
   }
 
   Future<void> _store(String key, List<MarketItemModel> items) async {
-    _memory[key] = _TimedMarketItems(items: items, cachedAt: DateTime.now());
+    _memory[key] = _TimedMarketItems(
+      items: _cloneItems(items),
+      cachedAt: DateTime.now(),
+    );
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
       '${MarketRepository._prefsPrefix}::$key',
@@ -82,7 +85,7 @@ extension MarketRepositoryCachePart on MarketRepository {
       _memory.remove(key);
       return null;
     }
-    return List<MarketItemModel>.from(cached.items);
+    return _cloneItems(cached.items);
   }
 
   Future<List<MarketItemModel>?> _getFromPrefs(String key) async {
@@ -159,5 +162,43 @@ extension MarketRepositoryCachePart on MarketRepository {
     for (final key in keys.toList(growable: false)) {
       await prefs.remove(key);
     }
+  }
+
+  List<MarketItemModel> _cloneItems(List<MarketItemModel> items) {
+    return items.map(_cloneItem).toList(growable: false);
+  }
+
+  MarketItemModel _cloneItem(MarketItemModel item) {
+    return MarketItemModel(
+      id: item.id,
+      userId: item.userId,
+      title: item.title,
+      description: item.description,
+      price: item.price,
+      currency: item.currency,
+      categoryKey: item.categoryKey,
+      categoryPath: List<String>.from(item.categoryPath),
+      locationText: item.locationText,
+      city: item.city,
+      district: item.district,
+      coverImageUrl: item.coverImageUrl,
+      imageUrls: List<String>.from(item.imageUrls),
+      sellerName: item.sellerName,
+      sellerUsername: item.sellerUsername,
+      sellerPhotoUrl: item.sellerPhotoUrl,
+      sellerRozet: item.sellerRozet,
+      shortId: item.shortId,
+      shortUrl: item.shortUrl,
+      sellerPhoneNumber: item.sellerPhoneNumber,
+      showPhone: item.showPhone,
+      contactPreference: item.contactPreference,
+      status: item.status,
+      createdAt: item.createdAt,
+      favoriteCount: item.favoriteCount,
+      offerCount: item.offerCount,
+      viewCount: item.viewCount,
+      isNegotiable: item.isNegotiable,
+      attributes: Map<String, dynamic>.from(item.attributes),
+    );
   }
 }

@@ -12,11 +12,12 @@ extension MarketRepositoryQueryPart on MarketRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedMarketItems(
-          items: List<MarketItemModel>.from(disk),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return List<MarketItemModel>.from(disk);
+        return _cloneItems(cloned);
       }
     }
 
@@ -40,11 +41,12 @@ extension MarketRepositoryQueryPart on MarketRepository {
       if (memory != null && memory.isNotEmpty) return memory.first;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null && disk.isNotEmpty) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedMarketItems(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.first;
+        return _cloneItem(cloned.first);
       }
     }
 
@@ -76,11 +78,12 @@ extension MarketRepositoryQueryPart on MarketRepository {
         }
         final disk = await _getFromPrefs('doc:$id');
         if (disk != null && disk.isNotEmpty) {
+          final cloned = _cloneItems(disk);
           _memory['doc:$id'] = _TimedMarketItems(
-            items: disk,
+            items: cloned,
             cachedAt: DateTime.now(),
           );
-          resolved[id] = disk.first;
+          resolved[id] = _cloneItem(cloned.first);
           continue;
         }
         missing.add(id);
@@ -118,11 +121,12 @@ extension MarketRepositoryQueryPart on MarketRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedMarketItems(
-          items: List<MarketItemModel>.from(disk),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return List<MarketItemModel>.from(disk);
+        return _cloneItems(cloned);
       }
     }
 
@@ -146,11 +150,12 @@ extension MarketRepositoryQueryPart on MarketRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedMarketItems(
-          items: List<MarketItemModel>.from(disk),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return List<MarketItemModel>.from(disk);
+        return _cloneItems(cloned);
       }
     }
 
