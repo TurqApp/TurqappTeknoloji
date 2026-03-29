@@ -11,12 +11,10 @@ extension AgendaControllerPlaybackPart on AgendaController {
     }
     if (current < 0 || current >= agendaList.length) return false;
     if (!_canAutoplayVideoPost(agendaList[current])) return false;
-    final lastCommandAt = _lastPlaybackCommandAt;
-    if (lastCommandAt == null) return false;
-    if (DateTime.now().difference(lastCommandAt) >
-        const Duration(milliseconds: 1200)) {
-      return false;
-    }
+    if (_lastPlaybackCommandAt == null) return false;
+    // iOS cold-start layout can rebalance visible fractions for a few frames
+    // before the user actually scrolls. Releasing the startup target early
+    // causes 0->2->3 handoffs and sequential player spin-up across cards.
     final currentFraction = _visibleFractions[current] ?? 0.0;
     return currentFraction >= stopThreshold;
   }

@@ -1,6 +1,8 @@
 part of 'global_video_adapter_pool.dart';
 
 extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
+  static const Duration _nonLoopingRestartTailThreshold = Duration(seconds: 5);
+
   Future<void> _parkAdapter(HLSVideoAdapter adapter) async {
     if (Platform.isAndroid || Platform.isIOS) {
       await adapter.silenceAndStopPlayback();
@@ -77,7 +79,11 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
     if (adapter.isDisposed) return;
 
-    _saveState(cacheKey, adapter);
+    if (_shouldResetSavedState(adapter)) {
+      VideoStateManager.instance.clearVideoState(cacheKey);
+    } else {
+      _saveState(cacheKey, adapter);
+    }
 
     if (!keepWarm || remaining > 0) {
       if (!keepWarm) {
@@ -166,6 +172,21 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     final state = VideoStateManager.instance.getVideoState(cacheKey);
     if (state == null || state.position <= Duration.zero) return;
     unawaited(adapter.seekTo(state.position));
+  }
+
+  bool _shouldResetSavedState(HLSVideoAdapter adapter) {
+    if (adapter.loop) return false;
+    final value = adapter.value;
+    if (value.isCompleted) return true;
+    final duration = value.duration;
+    final position = value.position;
+    if (duration <= Duration.zero || position <= Duration.zero) return false;
+    if (position >= duration) return true;
+    final remaining = duration - position;
+    if (remaining <= _nonLoopingRestartTailThreshold) return true;
+    final watchedRatio =
+        position.inMilliseconds / duration.inMilliseconds.clamp(1, 1 << 30);
+    return watchedRatio >= 0.9;
   }
 
   void _saveState(String cacheKey, HLSVideoAdapter adapter) {

@@ -1,7 +1,8 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
-  static const int _initialHeadSyncLimit = 24;
+  static const int _initialHeadSyncLimit =
+      ReadBudgetRegistry.feedHomeInitialLimit;
 
   void _resumeFeedPlaybackAfterRefresh() {
     if (agendaList.isEmpty) return;
@@ -89,7 +90,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
         unawaited(
           fetchAgendaBigData(
-            pageLimit: 24,
+            pageLimit: ReadBudgetRegistry.feedHomeInitialLimit,
             trigger: 'deferred_initial_bootstrap',
           ),
         );
