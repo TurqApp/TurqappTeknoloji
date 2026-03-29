@@ -1,6 +1,45 @@
 part of 'story_maker_controller.dart';
 
 extension StoryMakerControllerSavePart on StoryMakerController {
+  Future<void> _saveStoryDocWithAuthRetry({
+    required DocumentReference<Map<String, dynamic>> docRef,
+    required Map<String, dynamic> storyData,
+    required CurrentUserService currentUserService,
+  }) async {
+    const retryDelays = <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 700),
+      Duration(milliseconds: 1400),
+    ];
+
+    FirebaseException? lastError;
+    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        await docRef.set(storyData);
+        return;
+      } on FirebaseException catch (e) {
+        final code = e.code.trim().toLowerCase();
+        if (code != 'permission-denied' &&
+            code != 'unauthenticated' &&
+            code != 'unauthorized') {
+          rethrow;
+        }
+        lastError = e;
+        if (attempt == retryDelays.length) break;
+        final authUser =
+            await currentUserService.resolveAuthUser(waitForAuthState: true);
+        if (authUser != null) {
+          try {
+            await authUser.getIdToken(true);
+          } catch (_) {}
+        }
+        await Future<void>.delayed(retryDelays[attempt]);
+      }
+    }
+
+    throw lastError!;
+  }
+
   void onScheduleStoryPressed() async {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishStory)) {
       return;
@@ -251,7 +290,11 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         storyData['scheduledAt'] = scheduledAt.millisecondsSinceEpoch;
         storyData['deleteReason'] = 'scheduled';
       }
-      await docRef.set(storyData);
+      await _saveStoryDocWithAuthRetry(
+        docRef: docRef,
+        storyData: storyData,
+        currentUserService: currentUserService,
+      );
       if (selectedMusicSnapshot != null && scheduledAt == null) {
         unawaited(
           StoryMusicLibraryService.instance.recordStoryUsage(
