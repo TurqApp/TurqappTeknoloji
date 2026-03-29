@@ -92,7 +92,7 @@ extension BookletRepositoryCachePart on BookletRepository {
       '${BookletRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
-        'items': items,
+        'items': _cloneRawItems(items),
       }),
     );
   }
@@ -179,9 +179,11 @@ extension BookletRepositoryCachePart on BookletRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return ((decoded['items'] as List?) ?? const [])
-          .map((e) => Map<String, dynamic>.from((e as Map)))
-          .toList(growable: false);
+      return _cloneRawItems(
+        ((decoded['items'] as List?) ?? const [])
+            .map((e) => Map<String, dynamic>.from((e as Map)))
+            .toList(growable: false),
+      );
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -208,5 +210,25 @@ extension BookletRepositoryCachePart on BookletRepository {
       shortId: item.shortId,
       shortUrl: item.shortUrl,
     );
+  }
+
+  List<Map<String, dynamic>> _cloneRawItems(List<Map<String, dynamic>> items) {
+    return items.map(_cloneRawItem).toList(growable: false);
+  }
+
+  Map<String, dynamic> _cloneRawItem(Map<String, dynamic> item) {
+    return item.map((key, value) => MapEntry(key, _cloneRawValue(value)));
+  }
+
+  dynamic _cloneRawValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneRawValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneRawValue).toList(growable: false);
+    }
+    return value;
   }
 }
