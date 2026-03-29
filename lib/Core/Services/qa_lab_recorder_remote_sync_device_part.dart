@@ -1,5 +1,24 @@
 part of 'qa_lab_recorder.dart';
 
+Map<String, dynamic> _qaLabCloneDeviceInfoMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _qaLabCloneDeviceInfoValue(value)),
+  );
+}
+
+dynamic _qaLabCloneDeviceInfoValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) =>
+          MapEntry(key.toString(), _qaLabCloneDeviceInfoValue(nestedValue)),
+    );
+  }
+  if (value is List) {
+    return value.map(_qaLabCloneDeviceInfoValue).toList(growable: false);
+  }
+  return value;
+}
+
 Map<String, dynamic> _qaLabDeviceInfoSnapshot() {
   return <String, dynamic>{
     'platform': defaultTargetPlatform.name,
@@ -15,7 +34,7 @@ Future<Map<String, dynamic>> _qaLabBuildExtendedDeviceInfo(
   QALabRecorder recorder,
 ) async {
   if (recorder._cachedExtendedDeviceInfo != null) {
-    return Map<String, dynamic>.from(recorder._cachedExtendedDeviceInfo!);
+    return _qaLabCloneDeviceInfoMap(recorder._cachedExtendedDeviceInfo!);
   }
   final packageInfo = await PackageInfo.fromPlatform();
   final deviceInfo = DeviceInfoPlugin();
@@ -38,8 +57,8 @@ Future<Map<String, dynamic>> _qaLabBuildExtendedDeviceInfo(
       if (iosInfo != null) 'systemVersion': iosInfo.systemVersion,
     },
   };
-  recorder._cachedExtendedDeviceInfo = snapshot;
-  return Map<String, dynamic>.from(snapshot);
+  recorder._cachedExtendedDeviceInfo = _qaLabCloneDeviceInfoMap(snapshot);
+  return _qaLabCloneDeviceInfoMap(snapshot);
 }
 
 Future<Map<String, dynamic>> _qaLabGetCachedExtendedDeviceInfo(
@@ -48,7 +67,7 @@ Future<Map<String, dynamic>> _qaLabGetCachedExtendedDeviceInfo(
   final cached = recorder._cachedExtendedDeviceInfo;
   if (cached != null) {
     return Future<Map<String, dynamic>>.value(
-      Map<String, dynamic>.from(cached),
+      _qaLabCloneDeviceInfoMap(cached),
     );
   }
   final inFlight = recorder._extendedDeviceInfoFuture;
