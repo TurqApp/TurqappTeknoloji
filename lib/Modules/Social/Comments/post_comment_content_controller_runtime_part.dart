@@ -48,6 +48,7 @@ extension PostCommentContentControllerRuntimePart
     required String uid,
     required bool liked,
   }) {
+    model.likes = List<String>.from(model.likes);
     if (liked) {
       if (!likes.contains(uid)) {
         likes.add(uid);
