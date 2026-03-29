@@ -3,6 +3,7 @@ part of 'answer_key_snapshot_repository.dart';
 const String _answerKeyHomeSurfaceKey = 'answer_key_home_snapshot';
 const String _answerKeySearchSurfaceKey = 'answer_key_search_snapshot';
 const String _answerKeyOwnerSurfaceKey = 'answer_key_owner_snapshot';
+const String _answerKeyTypeSurfaceKey = 'answer_key_type_snapshot';
 
 class AnswerKeyOwnerQuery {
   const AnswerKeyOwnerQuery({
@@ -21,6 +22,30 @@ class AnswerKeyOwnerQuery {
       schemaVersion: schemaVersion,
       qualifiers: <String, Object?>{
         'owner': userId.trim(),
+      },
+    );
+  }
+}
+
+class AnswerKeyExamTypeQuery {
+  const AnswerKeyExamTypeQuery({
+    required this.userId,
+    required this.examType,
+  });
+
+  final String userId;
+  final String examType;
+
+  String buildScopeId({
+    required int schemaVersion,
+  }) {
+    return CacheScopeNamespace.buildQueryScope(
+      userId: userId,
+      limit: 0,
+      scopeTag: 'exam_type',
+      schemaVersion: schemaVersion,
+      qualifiers: <String, Object?>{
+        'examType': examType.trim(),
       },
     );
   }
@@ -108,6 +133,29 @@ CacheFirstQueryPipeline<AnswerKeyOwnerQuery, List<BookletModel>,
   );
 }
 
+CacheFirstQueryPipeline<AnswerKeyExamTypeQuery, List<BookletModel>,
+    List<BookletModel>> _createAnswerKeyTypePipeline(
+  AnswerKeySnapshotRepository repository,
+) {
+  return CacheFirstQueryPipeline<AnswerKeyExamTypeQuery, List<BookletModel>,
+      List<BookletModel>>(
+    surfaceKey: _answerKeyTypeSurfaceKey,
+    coordinator: repository._coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        _answerKeyTypeSurfaceKey,
+      ),
+    ),
+    fetchRaw: _fetchAnswerKeyTypeItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _answerKeyTypeSurfaceKey,
+    ),
+  );
+}
+
 Future<List<BookletModel>> _fetchAnswerKeyOwnerItems(
   AnswerKeyOwnerQuery query,
 ) async {
@@ -116,6 +164,22 @@ Future<List<BookletModel>> _fetchAnswerKeyOwnerItems(
   final snapshot = await FirebaseFirestore.instance
       .collection('books')
       .where('userID', isEqualTo: normalizedUserId)
+      .get(const GetOptions(source: Source.serverAndCache));
+  final items = snapshot.docs
+      .map((doc) => BookletModel.fromMap(doc.data(), doc.id))
+      .toList(growable: false)
+    ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+  return items;
+}
+
+Future<List<BookletModel>> _fetchAnswerKeyTypeItems(
+  AnswerKeyExamTypeQuery query,
+) async {
+  final normalizedExamType = query.examType.trim();
+  if (normalizedExamType.isEmpty) return const <BookletModel>[];
+  final snapshot = await FirebaseFirestore.instance
+      .collection('books')
+      .where('sinavTuru', isEqualTo: normalizedExamType)
       .get(const GetOptions(source: Source.serverAndCache));
   final items = snapshot.docs
       .map((doc) => BookletModel.fromMap(doc.data(), doc.id))

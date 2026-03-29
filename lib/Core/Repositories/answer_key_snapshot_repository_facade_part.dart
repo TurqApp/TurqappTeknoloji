@@ -7,6 +7,54 @@ AnswerKeySnapshotRepository ensureAnswerKeySnapshotRepository() =>
     _ensureAnswerKeySnapshotRepository();
 
 extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
+  Future<CachedResource<List<BookletModel>>> loadCachedExamType({
+    required String userId,
+    required String examType,
+  }) {
+    final query = AnswerKeyExamTypeQuery(
+      userId: userId,
+      examType: examType,
+    );
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _answerKeyTypeSurfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: _answerKeyTypeSurfaceKey,
+      userId: userId.trim(),
+      scopeId: query.buildScopeId(schemaVersion: schemaVersion),
+    );
+    return _coordinator.bootstrap(
+      key,
+      schemaVersion: schemaVersion,
+    );
+  }
+
+  Stream<CachedResource<List<BookletModel>>> openExamType({
+    required String userId,
+    required String examType,
+    bool forceSync = false,
+  }) {
+    return _typePipeline.open(
+      AnswerKeyExamTypeQuery(
+        userId: userId,
+        examType: examType,
+      ),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<BookletModel>>> loadExamType({
+    required String userId,
+    required String examType,
+    bool forceSync = false,
+  }) {
+    return openExamType(
+      userId: userId,
+      examType: examType,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Future<CachedResource<List<BookletModel>>> loadCachedOwner({
     required String userId,
   }) {

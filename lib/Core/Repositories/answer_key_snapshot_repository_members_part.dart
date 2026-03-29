@@ -20,6 +20,10 @@ mixin _AnswerKeySnapshotRepositoryMembersPart on GetxService {
           List<BookletModel>> _ownerPipeline =
       _createAnswerKeyOwnerPipeline(this as AnswerKeySnapshotRepository);
 
+  late final CacheFirstQueryPipeline<AnswerKeyExamTypeQuery, List<BookletModel>,
+          List<BookletModel>> _typePipeline =
+      _createAnswerKeyTypePipeline(this as AnswerKeySnapshotRepository);
+
   Future<List<BookletModel>?> _loadWarmSnapshot(
     EducationTypesenseDocIdQuery query,
   ) =>

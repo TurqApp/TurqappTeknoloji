@@ -47,13 +47,16 @@ extension CategoryBasedAnswerKeyControllerRuntimePart
     search.dispose();
   }
 
+  String get _categoryCacheUserId =>
+      CurrentUserService.instance.effectiveUserId;
+
   Future<void> _bootstrapData() async {
     try {
-      final cached = await _bookletRepository.fetchByExamType(
-        sinavTuru,
-        preferCache: true,
-        cacheOnly: true,
-      );
+      final cached = (await _answerKeySnapshotRepository.loadCachedExamType(
+        userId: _categoryCacheUserId,
+        examType: sinavTuru,
+      ))
+          .data;
       if (cached.isNotEmpty) {
         if (!_sameBookletEntries(list, cached)) {
           list.assignAll(cached);
@@ -84,11 +87,12 @@ extension CategoryBasedAnswerKeyControllerRuntimePart
       isLoading.value = true;
     }
     try {
-      final items = await _bookletRepository.fetchByExamType(
-        sinavTuru,
-        preferCache: true,
-        forceRefresh: forceRefresh,
-      );
+      final items = (await _answerKeySnapshotRepository.loadExamType(
+        userId: _categoryCacheUserId,
+        examType: sinavTuru,
+        forceSync: forceRefresh,
+      ))
+          .data;
       if (!_sameBookletEntries(list, items)) {
         list.assignAll(items);
       }
