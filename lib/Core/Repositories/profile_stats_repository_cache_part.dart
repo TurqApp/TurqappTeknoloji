@@ -69,6 +69,7 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
     if (entry == null) return null;
     if (DateTime.now().difference(entry.cachedAt) >
         ProfileStatsRepository._ttl) {
+      _memory.remove(key);
       return null;
     }
     return Map<String, dynamic>.from(entry.data);
