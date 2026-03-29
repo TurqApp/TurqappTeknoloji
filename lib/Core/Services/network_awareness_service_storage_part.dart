@@ -62,12 +62,14 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
     final settingsString = prefs.getString(_networkAwarenessSettingsKey);
 
     if (settingsString != null) {
-      final settingsJson = Map<String, dynamic>.from(
-        prefs.getString(_networkAwarenessSettingsKey) != null
-            ? Uri.splitQueryString(settingsString)
-            : {},
-      );
-      _settings.value = NetworkSettings.fromJson(settingsJson);
+      try {
+        final settingsJson = Map<String, dynamic>.from(
+          Uri.splitQueryString(settingsString),
+        );
+        _settings.value = NetworkSettings.fromJson(settingsJson);
+      } catch (_) {
+        await prefs.remove(_networkAwarenessSettingsKey);
+      }
     }
   }
 
@@ -86,10 +88,14 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
     final dataUsageString = prefs.getString(_networkAwarenessDataUsageKey);
 
     if (dataUsageString != null) {
-      final dataUsageJson = Map<String, dynamic>.from(
-        Uri.splitQueryString(dataUsageString),
-      );
-      _dataUsage.value = DataUsageStats.fromJson(dataUsageJson);
+      try {
+        final dataUsageJson = Map<String, dynamic>.from(
+          Uri.splitQueryString(dataUsageString),
+        );
+        _dataUsage.value = DataUsageStats.fromJson(dataUsageJson);
+      } catch (_) {
+        await prefs.remove(_networkAwarenessDataUsageKey);
+      }
     }
   }
 

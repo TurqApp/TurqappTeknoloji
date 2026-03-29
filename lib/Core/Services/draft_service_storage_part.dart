@@ -61,10 +61,18 @@ extension DraftServiceStoragePart on DraftService {
 
     _drafts.clear();
     if (draftsString != null) {
-      final draftsJson = jsonDecode(draftsString) as List;
-      _drafts.assignAll(
-        draftsJson.map((item) => PostDraft.fromJson(item)).toList(),
-      );
+      try {
+        final draftsJson = jsonDecode(draftsString);
+        if (draftsJson is! List) {
+          await prefs.remove(_activeDraftsKey);
+          return;
+        }
+        _drafts.assignAll(
+          draftsJson.map((item) => PostDraft.fromJson(item)).toList(),
+        );
+      } catch (_) {
+        await prefs.remove(_activeDraftsKey);
+      }
     }
   }
 
