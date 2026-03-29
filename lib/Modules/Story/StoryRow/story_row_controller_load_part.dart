@@ -2,8 +2,12 @@ part of 'story_row_controller.dart';
 
 extension StoryRowControllerLoadPart on StoryRowController {
   Future<void> _bootstrapStoryRow() async {
-    await _loadStoriesFromMiniCache();
     final myUid = _currentUid;
+    if (myUid.isEmpty || !userService.hasAuthUser) {
+      users.clear();
+      return;
+    }
+    await _loadStoriesFromMiniCache();
     final bootstrapPlan = _storyRowApplicationService.buildBootstrapPlan(
       hasUsers: users.isNotEmpty,
       shouldSilentRefresh: SilentRefreshGate.shouldRefresh(
@@ -23,6 +27,11 @@ extension StoryRowControllerLoadPart on StoryRowController {
   }) async {
     final loadWatch = Stopwatch()..start();
     var cacheHit = false;
+    final myUid = _currentUid;
+    if (myUid.isEmpty || !userService.hasAuthUser) {
+      users.clear();
+      return;
+    }
     try {
       if (!silentLoad) {
         isLoading.value = true;
@@ -32,7 +41,6 @@ extension StoryRowControllerLoadPart on StoryRowController {
         return;
       }
       final lim = limit ?? initialLimit;
-      final myUid = _currentUid;
 
       if (myUid.isNotEmpty) {
         final now = DateTime.now();
