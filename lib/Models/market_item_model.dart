@@ -2,15 +2,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MarketItemModel {
   static int _asInt(Object? value) {
-    if (value is int) return value;
     if (value is num) return value.toInt();
-    return int.tryParse((value ?? '').toString()) ?? 0;
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return 0;
   }
 
   static double _asDouble(Object? value) {
-    if (value is double) return value;
     if (value is num) return value.toDouble();
-    return double.tryParse((value ?? '').toString()) ?? 0;
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = double.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toDouble();
+    }
+    return 0;
   }
 
   static bool _asBool(Object? value, {bool fallback = false}) {
@@ -303,6 +315,13 @@ class MarketItemModel {
   static int _toMillis(dynamic value) {
     if (value is Timestamp) return value.millisecondsSinceEpoch;
     if (value is num) return value.toInt();
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
     return 0;
   }
 }
