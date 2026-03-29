@@ -35,13 +35,16 @@ class JobModel {
   final String shortUrl;
   final String rozet;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   JobModel({
     required this.docID,
     required this.brand,
-    required this.calismaGunleri,
+    required List<String> calismaGunleri,
     required this.calismaSaatiBaslangic,
     required this.calismaSaatiBitis,
-    required this.calismaTuru,
+    required List<String> calismaTuru,
     required this.ended,
     required this.isTanimi,
     required this.lat,
@@ -53,7 +56,7 @@ class JobModel {
     required this.meslek,
     required this.timeStamp,
     required this.userID,
-    required this.yanHaklar,
+    required List<String> yanHaklar,
     required this.city,
     required this.town,
     this.kacKm = 0.0,
@@ -71,7 +74,9 @@ class JobModel {
     this.shortId = "",
     this.shortUrl = "",
     this.rozet = "",
-  });
+  }) : calismaGunleri = _cloneStringList(calismaGunleri),
+       calismaTuru = _cloneStringList(calismaTuru),
+       yanHaklar = _cloneStringList(yanHaklar);
 
   factory JobModel.fromMap(Map<String, dynamic> map, String docID) {
     return JobModel(
@@ -180,10 +185,10 @@ class JobModel {
   Map<String, dynamic> toMap() {
     return {
       'brand': brand,
-      'calismaGunleri': calismaGunleri,
+      'calismaGunleri': _cloneStringList(calismaGunleri),
       'calismaSaatiBaslangic': calismaSaatiBaslangic,
       'calismaSaatiBitis': calismaSaatiBitis,
-      'calismaTuru': calismaTuru,
+      'calismaTuru': _cloneStringList(calismaTuru),
       'ended': ended,
       'isTanimi': isTanimi,
       'lat': lat,
@@ -195,7 +200,7 @@ class JobModel {
       'adres': adres,
       'timeStamp': timeStamp,
       'userID': userID,
-      'yanHaklar': yanHaklar,
+      'yanHaklar': _cloneStringList(yanHaklar),
       'city': city,
       'town': town,
       'about': about,
