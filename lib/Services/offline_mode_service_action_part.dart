@@ -2,9 +2,39 @@ part of 'offline_mode_service.dart';
 
 extension PendingActionExecutionPart on PendingAction {
   int _asInt(Object? value) {
-    if (value is int) return value;
     if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return 0;
+  }
+
+  bool _asBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
   }
 
   Future<void> execute() async {
@@ -58,7 +88,7 @@ extension PendingActionExecutionPart on PendingAction {
   Future<void> _executeSetLikePost() async {
     final postId = data['postId'] as String?;
     final userId = data['userId'] as String?;
-    final shouldLike = data['value'] == true;
+    final shouldLike = _asBool(data['value']);
     if (postId == null || userId == null) return;
 
     final firestore = FirebaseFirestore.instance;
@@ -121,7 +151,7 @@ extension PendingActionExecutionPart on PendingAction {
   Future<void> _executeSetSavePost() async {
     final postId = data['postId'] as String?;
     final userId = data['userId'] as String?;
-    final shouldSave = data['value'] == true;
+    final shouldSave = _asBool(data['value']);
     if (postId == null || userId == null) return;
 
     final firestore = FirebaseFirestore.instance;
