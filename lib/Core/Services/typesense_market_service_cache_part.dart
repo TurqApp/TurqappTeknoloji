@@ -81,16 +81,29 @@ extension TypesenseMarketSearchServiceCachePart
 
   Future<_CachedMarketSearchResult?> _getCachedFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_prefsKey(key));
+    final prefs = _prefs;
+    final prefsKey = _prefsKey(key);
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = json.decode(raw) as Map<String, dynamic>;
+      final decodedRaw = json.decode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       final payload = (decoded['d'] as List<dynamic>?) ?? const <dynamic>[];
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       if (DateTime.now().difference(cachedAt) >
           TypesenseMarketSearchService._ttl) {
+        await prefs?.remove(prefsKey);
         return null;
       }
       final items = payload
@@ -103,6 +116,7 @@ extension TypesenseMarketSearchServiceCachePart
         cachedAt: cachedAt,
       );
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
