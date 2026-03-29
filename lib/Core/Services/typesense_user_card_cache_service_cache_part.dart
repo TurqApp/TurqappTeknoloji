@@ -5,6 +5,17 @@ class _TypesenseUserCardCacheServiceCachePart {
 
   const _TypesenseUserCardCacheServiceCachePart(this.service);
 
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<Map<String, Map<String, dynamic>>> getUserCardsByIds(
     List<String> ids, {
     required bool preferCache,
@@ -74,7 +85,7 @@ class _TypesenseUserCardCacheServiceCachePart {
         return null;
       }
       final data = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
-      final cachedAtMs = (data['cachedAt'] as num?)?.toInt() ?? 0;
+      final cachedAtMs = _asInt(data['cachedAt']);
       final cardsRaw = data['cards'];
       if (cachedAtMs <= 0 || cardsRaw is! Map) {
         await prefs?.remove(prefsKey);
