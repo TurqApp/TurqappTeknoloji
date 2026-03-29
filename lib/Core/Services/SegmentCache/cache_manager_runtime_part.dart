@@ -2,6 +2,7 @@ part of 'cache_manager.dart';
 
 extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   Future<void> init() async {
+    _isReady = false;
     final appDir = await getApplicationSupportDirectory();
     _cacheDir = '${appDir.path}/hls_cache';
     await Directory(_cacheDir).create(recursive: true);
@@ -11,8 +12,10 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _reconcileTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       _reconcileTotalSize();
     });
+    _isReady = true;
   }
 
+  bool get isReady => _isReady;
   String get cacheDir => _cacheDir;
   int get entryCount => _index.entries.length;
   int get totalSizeBytes => _index.totalSizeBytes;
@@ -117,6 +120,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   }
 
   Future<void> disposeRuntime() async {
+    _isReady = false;
     _persistTimer?.cancel();
     _reconcileTimer?.cancel();
     metrics.stopPeriodicLog();

@@ -68,7 +68,11 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   VideoRemoteConfigService? get _remote => maybeFindVideoRemoteConfigService();
 
-  SegmentCacheManager? _getCacheManager() => SegmentCacheManager.maybeFind();
+  SegmentCacheManager? _getCacheManager() {
+    final cache = SegmentCacheManager.maybeFind();
+    if (cache == null || !cache.isReady) return null;
+    return cache;
+  }
 
   void _handlePrefetchSchedulerClose() {
     _watchdogTimer?.cancel();

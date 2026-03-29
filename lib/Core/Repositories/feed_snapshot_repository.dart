@@ -153,6 +153,16 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         limit: limit,
       );
 
+  Future<CachedResource<List<PostsModel>>> inspectWarmHome({
+    required String userId,
+    int limit = FeedSnapshotRepository.startupHomeLimit,
+  }) =>
+      inspectWarmFeedHome(
+        this,
+        userId: userId,
+        limit: limit,
+      );
+
   Future<void> persistHomeSnapshot({
     required String userId,
     required List<PostsModel> posts,

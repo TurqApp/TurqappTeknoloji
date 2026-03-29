@@ -36,6 +36,7 @@ extension HLSProxyServerRuntimeX on HLSProxyServer {
   String resolveUrl(String originalUrl) {
     if (!_started) return originalUrl;
     if (!originalUrl.contains('cdn.turqapp.com')) return originalUrl;
+    if (_getCacheManager() == null) return originalUrl;
     return originalUrl.replaceFirst(_hlsProxyServerCdnOrigin, baseUrl);
   }
 
@@ -58,8 +59,12 @@ extension HLSProxyServerRuntimeX on HLSProxyServer {
       } else {
         await _handleSegment(request, path, docID);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('[HLSProxy] Error handling ${request.uri}: $e');
+      debugPrintStack(
+        label: '[HLSProxy] Error stack for ${request.uri}',
+        stackTrace: stackTrace,
+      );
       try {
         request.response
           ..statusCode = HttpStatus.internalServerError
@@ -89,7 +94,9 @@ extension HLSProxyServerRuntimeX on HLSProxyServer {
   bool _isPlaylistRequest(String path) => path.endsWith('.m3u8');
 
   SegmentCacheManager? _getCacheManager() {
-    return SegmentCacheManager.maybeFind();
+    final cache = SegmentCacheManager.maybeFind();
+    if (cache == null || !cache.isReady) return null;
+    return cache;
   }
 
   NetworkAwarenessService? _getNetworkService() {

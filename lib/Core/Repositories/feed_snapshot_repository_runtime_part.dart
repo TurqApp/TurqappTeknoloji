@@ -18,6 +18,30 @@ Future<CachedResource<List<PostsModel>>> bootstrapFeedHome(
   );
 }
 
+Future<CachedResource<List<PostsModel>>> inspectWarmFeedHome(
+  FeedSnapshotRepository repository, {
+  required String userId,
+  int limit = FeedSnapshotRepository.startupHomeLimit,
+}) async {
+  final query = FeedSnapshotQuery(
+    userId: userId,
+    limit: limit,
+  );
+  final warmData = await repository._loadWarmHomeSnapshot(query);
+  if (warmData == null || warmData.isEmpty) {
+    return const CachedResource<List<PostsModel>>.empty();
+  }
+  return CachedResource<List<PostsModel>>(
+    data: warmData,
+    hasLocalSnapshot: true,
+    isRefreshing: false,
+    isStale: repository._coordinator.policy.treatWarmLaunchAsStale,
+    hasLiveError: false,
+    snapshotAt: null,
+    source: CachedResourceSource.warmLaunchPool,
+  );
+}
+
 Future<void> persistFeedHomeSnapshot(
   FeedSnapshotRepository repository, {
   required String userId,

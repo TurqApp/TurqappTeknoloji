@@ -200,8 +200,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           docID: job.docID,
         ));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('[Prefetch] Job failed for ${job.docID}: $e');
+      debugPrintStack(
+        label: '[Prefetch] Job failed stack for ${job.docID}',
+        stackTrace: stackTrace,
+      );
     }
   }
 

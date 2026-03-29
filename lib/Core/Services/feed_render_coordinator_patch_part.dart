@@ -77,46 +77,48 @@ extension FeedRenderCoordinatorPatchPart on FeedRenderCoordinator {
     RenderListPatch<Map<String, dynamic>> patch,
   ) {
     if (patch.isEmpty) return;
+    final next = target.toList(growable: true);
     for (final operation in patch.operations) {
       switch (operation.type) {
         case RenderPatchOperationType.insert:
           final item = operation.item;
           if (item == null) continue;
-          if (operation.index >= 0 && operation.index <= target.length) {
-            target.insert(operation.index, item);
+          if (operation.index >= 0 && operation.index <= next.length) {
+            next.insert(operation.index, item);
           } else {
-            target.add(item);
+            next.add(item);
           }
           break;
         case RenderPatchOperationType.update:
         case RenderPatchOperationType.replace:
           final item = operation.item;
           if (item == null) continue;
-          if (operation.index >= 0 && operation.index < target.length) {
-            target[operation.index] = item;
-          } else if (operation.index == target.length) {
-            target.add(item);
+          if (operation.index >= 0 && operation.index < next.length) {
+            next[operation.index] = item;
+          } else if (operation.index == next.length) {
+            next.add(item);
           }
           break;
         case RenderPatchOperationType.remove:
-          if (operation.index >= 0 && operation.index < target.length) {
-            target.removeAt(operation.index);
+          if (operation.index >= 0 && operation.index < next.length) {
+            next.removeAt(operation.index);
           }
           break;
         case RenderPatchOperationType.move:
           final fromIndex = operation.fromIndex;
           if (fromIndex == null ||
               fromIndex < 0 ||
-              fromIndex >= target.length ||
+              fromIndex >= next.length ||
               operation.index < 0 ||
-              operation.index >= target.length) {
+              operation.index >= next.length) {
             continue;
           }
-          final item = target.removeAt(fromIndex);
-          target.insert(operation.index, item);
+          final item = next.removeAt(fromIndex);
+          next.insert(operation.index, item);
           break;
       }
     }
+    target.assignAll(next);
   }
 
   bool _sameRenderableSequence(

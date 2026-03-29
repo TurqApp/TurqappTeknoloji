@@ -91,7 +91,9 @@ class SegmentCacheRuntimeService {
     if (reader != null) {
       return reader(docId);
     }
-    return maybeFindSegmentCacheManager()?.getEntry(docId);
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return null;
+    return cache.getEntry(docId);
   }
 
   void _markPlaying(String docId) {
@@ -100,7 +102,9 @@ class SegmentCacheRuntimeService {
       action(docId);
       return;
     }
-    maybeFindSegmentCacheManager()?.markPlaying(docId);
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.markPlaying(docId);
   }
 
   void _touchEntry(String docId) {
@@ -109,7 +113,9 @@ class SegmentCacheRuntimeService {
       action(docId);
       return;
     }
-    maybeFindSegmentCacheManager()?.touchEntry(docId);
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.touchEntry(docId);
   }
 
   void _updateWatchProgress(String docId, double progress) {
@@ -118,7 +124,9 @@ class SegmentCacheRuntimeService {
       action(docId, progress);
       return;
     }
-    maybeFindSegmentCacheManager()?.updateWatchProgress(docId, progress);
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.updateWatchProgress(docId, progress);
   }
 
   int cachedSegmentCount(String docId) {

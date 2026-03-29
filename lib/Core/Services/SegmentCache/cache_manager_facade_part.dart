@@ -15,6 +15,7 @@ SegmentCacheManager ensureSegmentCacheManager() {
 extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   Future<void> init() => _SegmentCacheManagerRuntimeX(this).init();
 
+  bool get isReady => _SegmentCacheManagerRuntimeX(this).isReady;
   String get cacheDir => _SegmentCacheManagerRuntimeX(this).cacheDir;
   int get entryCount => _SegmentCacheManagerRuntimeX(this).entryCount;
   int get totalSizeBytes => _SegmentCacheManagerRuntimeX(this).totalSizeBytes;

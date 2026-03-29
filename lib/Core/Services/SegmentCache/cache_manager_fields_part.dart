@@ -2,6 +2,7 @@ part of 'cache_manager.dart';
 
 class _SegmentCacheManagerState {
   String? cacheDir;
+  bool ready = false;
   CacheIndex index = CacheIndex();
   final metrics = CacheMetrics();
   int? userHardLimitBytes;
@@ -19,6 +20,8 @@ class _SegmentCacheManagerState {
 extension SegmentCacheManagerFieldsPart on SegmentCacheManager {
   String get _cacheDir => _state.cacheDir!;
   set _cacheDir(String value) => _state.cacheDir = value;
+  bool get _isReady => _state.ready;
+  set _isReady(bool value) => _state.ready = value;
   CacheIndex get _index => _state.index;
   set _index(CacheIndex value) => _state.index = value;
   CacheMetrics get metrics => _state.metrics;
