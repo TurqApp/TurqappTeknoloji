@@ -132,12 +132,25 @@ class GifLibraryService {
         await prefs.remove(_manifestKey);
         return const <Map<String, dynamic>>[];
       }
-      final restored = decoded
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList(growable: true);
+      var shouldPrune = false;
+      final restored = <Map<String, dynamic>>[];
+      for (final rawItem in decoded) {
+        if (rawItem is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        final item = Map<String, dynamic>.from(rawItem);
+        final url = (item['url'] ?? '').toString().trim();
+        if (url.isEmpty) {
+          shouldPrune = true;
+          continue;
+        }
+        restored.add(item);
+      }
       if (restored.isEmpty && decoded.isNotEmpty) {
         await prefs.remove(_manifestKey);
+      } else if (shouldPrune) {
+        await prefs.setString(_manifestKey, jsonEncode(restored));
       }
       return restored;
     } catch (_) {
