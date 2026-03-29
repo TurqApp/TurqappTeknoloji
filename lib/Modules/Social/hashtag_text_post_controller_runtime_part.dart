@@ -110,10 +110,8 @@ class HashtagTextVideoPostControllerRuntimePart {
     controller.spans.assignAll(result);
   }
 
-  TextStyle interactiveStyle() => TextStyle(
+  TextStyle interactiveStyle() => AppTypography.postHandle.copyWith(
         color: controller.interactiveColor,
         height: AppTypography.postCaption.height,
-        fontSize: AppTypography.postCaption.fontSize,
-        fontFamily: AppFontFamilies.mregular,
       );
 }

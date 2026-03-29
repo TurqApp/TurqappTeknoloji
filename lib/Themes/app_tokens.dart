@@ -157,9 +157,9 @@ class AppTypography {
     fontWeight: FontWeight.w700,
   );
   static const TextStyle postHandle = TextStyle(
-    fontFamily: 'Montserrat',
-    fontSize: 13,
-    fontWeight: FontWeight.w400,
+    fontFamily: 'MontserratMedium',
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
   );
   static const TextStyle postMeta = TextStyle(
     fontFamily: 'MontserratMedium',
