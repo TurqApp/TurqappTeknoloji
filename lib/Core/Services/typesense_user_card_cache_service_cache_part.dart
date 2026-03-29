@@ -21,10 +21,10 @@ class _TypesenseUserCardCacheServiceCachePart {
     final cacheKey = _cacheKey(cleaned);
     if (!forceRefresh && preferCache) {
       final memoryHit = _getFromMemory(cacheKey);
-      if (memoryHit != null) return memoryHit.cards;
+      if (memoryHit != null) return _cloneCards(memoryHit.cards);
 
       final diskHit = await _getFromPrefs(cacheKey);
-      if (diskHit != null) return diskHit.cards;
+      if (diskHit != null) return _cloneCards(diskHit.cards);
     }
 
     if (cacheOnly) return const <String, Map<String, dynamic>>{};
@@ -83,13 +83,15 @@ class _TypesenseUserCardCacheServiceCachePart {
       final cards = <String, Map<String, dynamic>>{};
       cardsRaw.forEach((key, value) {
         if (value is Map) {
-          cards[key.toString()] = Map<String, dynamic>.from(
-            value.cast<dynamic, dynamic>(),
+          cards[key.toString()] = _cloneCard(
+            Map<String, dynamic>.from(
+              value.cast<dynamic, dynamic>(),
+            ),
           );
         }
       });
       final cached = _CachedUserCardsResult(
-        cards: cards,
+        cards: _cloneCards(cards),
         cachedAt: DateTime.fromMillisecondsSinceEpoch(cachedAtMs),
       );
       if (!cached.isFresh) {
@@ -109,7 +111,7 @@ class _TypesenseUserCardCacheServiceCachePart {
     Map<String, Map<String, dynamic>> cards,
   ) async {
     final cached = _CachedUserCardsResult(
-      cards: Map<String, Map<String, dynamic>>.from(cards),
+      cards: _cloneCards(cards),
       cachedAt: DateTime.now(),
     );
     service._memory[cacheKey] = cached;
@@ -119,7 +121,7 @@ class _TypesenseUserCardCacheServiceCachePart {
         _prefsKey(cacheKey),
         jsonEncode(<String, dynamic>{
           'cachedAt': cached.cachedAt.millisecondsSinceEpoch,
-          'cards': cards,
+          'cards': _cloneCards(cards),
         }),
       );
     } catch (_) {}
@@ -132,4 +134,33 @@ class _TypesenseUserCardCacheServiceCachePart {
 
   String _prefsKey(String cacheKey) =>
       '$_typesenseUserCardPrefsPrefix:$cacheKey';
+
+  Map<String, Map<String, dynamic>> _cloneCards(
+    Map<String, Map<String, dynamic>> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneCard(value)),
+    );
+  }
+
+  Map<String, dynamic> _cloneCard(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneCardValue(value)),
+    );
+  }
+
+  dynamic _cloneCardValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneCardValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneCardValue).toList(growable: false);
+    }
+    return value;
+  }
 }
