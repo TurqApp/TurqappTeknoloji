@@ -88,6 +88,17 @@ class CommentLikes {
   static List<String> _cloneStringList(List<String> source) =>
       List<String>.from(source, growable: false);
 
+  static List<String> _sanitizeUserIds(dynamic raw) {
+    if (raw is! List) return const <String>[];
+    final sanitized = <String>[];
+    for (final item in raw) {
+      final userId = item?.toString().trim() ?? '';
+      if (userId.isEmpty) continue;
+      sanitized.add(userId);
+    }
+    return List<String>.from(sanitized, growable: false);
+  }
+
   CommentLikes({
     this.count = 0,
     List<String> userIDs = const [],
@@ -96,7 +107,7 @@ class CommentLikes {
   factory CommentLikes.fromMap(Map<String, dynamic> data) {
     return CommentLikes(
       count: (data['count'] ?? 0) as num,
-      userIDs: List<String>.from(data['userIDs'] ?? []),
+      userIDs: _sanitizeUserIds(data['userIDs']),
     );
   }
 
