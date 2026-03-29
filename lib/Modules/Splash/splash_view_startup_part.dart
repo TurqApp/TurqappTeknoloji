@@ -159,9 +159,7 @@ extension _SplashViewStartupPart on _SplashViewState {
   }
 
   int _feedStartupShardLimit() {
-    final warmLimit = _feedWarmPoolLimit();
-    if (warmLimit <= 0) return 0;
-    return warmLimit > 10 ? 10 : warmLimit;
+    return _feedWarmPoolLimit();
   }
 
   int _shortStartupShardLimit({

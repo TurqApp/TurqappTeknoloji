@@ -468,7 +468,6 @@ extension _SplashViewWarmPart on _SplashViewState {
         startupShardHydrated: _feedStartupShardHydrated,
         startupShardAgeMs: _feedStartupShardAgeMs,
       );
-      unawaited(_persistFeedStartupShard(snapshot));
     } catch (_) {}
   }
 

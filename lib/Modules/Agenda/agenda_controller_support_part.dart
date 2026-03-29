@@ -304,6 +304,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     required DateTime snapshotAt,
     required String source,
   }) async {
+    final limit = ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
     if (ordered.isEmpty) {
       await ensureStartupSnapshotShardStore().clear(
         surface: 'feed',
@@ -319,12 +320,12 @@ extension AgendaControllerPublicApiPart on AgendaController {
       surface: 'feed',
       userId: userId,
       itemCount: ordered.length,
-      limit: 10,
+      limit: limit,
       source: source,
       snapshotAt: snapshotAt,
       payload: _feedSnapshotRepository.encodeHomeStartupPayload(
         ordered,
-        limit: 10,
+        limit: limit,
       ),
     );
     await _recordFeedStartupSurface(
