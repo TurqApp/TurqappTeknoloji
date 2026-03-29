@@ -115,38 +115,12 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                     ),
                   ),
                 ),
-              ),
+            ),
             Padding(
               padding: const EdgeInsets.only(right: 10),
-              child: PullDownButton(
-                itemBuilder: (context) => [
-                  if (isOwnScholarship)
-                    PullDownMenuItem(
-                      onTap: () {
-                        noYesAlert(
-                          title: 'scholarship.delete_title'.tr,
-                          message: 'scholarship.delete_confirm'.tr,
-                          onYesPressed: () async {
-                            await controller.deleteScholarship(
-                              scholarshipDocId,
-                              type,
-                            );
-                          },
-                        );
-                      },
-                      title: 'common.delete'.tr,
-                      icon: CupertinoIcons.trash,
-                      isDestructive: true,
-                    ),
-                ],
-                buttonBuilder: (context, showMenu) => AppHeaderActionButton(
-                  onTap: showMenu,
-                  child: const Icon(
-                    AppIcons.ellipsisVertical,
-                    color: Colors.black,
-                    size: 20,
-                  ),
-                ),
+              child: _buildReportMenu(
+                userId: userData['userID']?.toString() ?? model.userID,
+                scholarshipDocId: scholarshipDocId,
               ),
             ),
           ],
