@@ -16,19 +16,24 @@ class SocialMediaModel {
     required this.logo,
   });
 
+  static String _asString(Object? value) => (value ?? '').toString();
+
+  static num _asNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse(_asString(value)) ?? 0;
+  }
+
   factory SocialMediaModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final title = (data['title'] ?? '').toString();
-    final rawLogo = (data['logo'] ?? '').toString();
+    final title = _asString(data['title']);
+    final rawLogo = _asString(data['logo']);
     final resolvedLogo =
         rawLogo.trim().isNotEmpty ? rawLogo : _embeddedLogoByTitle(title);
     return SocialMediaModel(
       docID: doc.id,
       title: title,
-      url: (data['url'] ?? '').toString(),
-      sira: (data['sira'] as num?) ??
-          num.tryParse((data['sira'] ?? '').toString()) ??
-          0,
+      url: _asString(data['url']),
+      sira: _asNum(data['sira']),
       logo: resolvedLogo,
     );
   }
@@ -44,7 +49,7 @@ class SocialMediaModel {
 
   bool get hasLogo => logo.trim().isNotEmpty;
   bool get isAssetLogo => logo.startsWith('assets/');
-  int get createdAtMillis => int.tryParse(docID) ?? 0;
+  int get createdAtMillis => _asNum(docID).toInt();
 
   static String _embeddedLogoByTitle(String title) {
     final key = normalizeSocialMediaEmbeddedKey(title);
