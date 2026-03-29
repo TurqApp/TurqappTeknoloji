@@ -41,7 +41,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
-        'data': data,
+        'data': _cloneMap(data),
       }),
     );
   }
@@ -55,7 +55,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
-        'items': data,
+        'items': _cloneMaps(data),
       }),
     );
   }
@@ -142,8 +142,10 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return Map<String, dynamic>.from(
-        (decoded['data'] as Map?) ?? const <String, dynamic>{},
+      return _cloneMap(
+        Map<String, dynamic>.from(
+          (decoded['data'] as Map?) ?? const <String, dynamic>{},
+        ),
       );
     } catch (_) {
       await prefs?.remove(prefsKey);
@@ -179,9 +181,13 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
         return null;
       }
       final items = (decoded['items'] as List?) ?? const [];
-      return items
-          .map((item) => Map<String, dynamic>.from((item as Map?) ?? const {}))
-          .toList(growable: false);
+      return _cloneMaps(
+        items
+            .map(
+              (item) => Map<String, dynamic>.from((item as Map?) ?? const {}),
+            )
+            .toList(growable: false),
+      );
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -212,5 +218,25 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       shortId: item.shortId,
       shortUrl: item.shortUrl,
     );
+  }
+
+  List<Map<String, dynamic>> _cloneMaps(List<Map<String, dynamic>> items) {
+    return items.map(_cloneMap).toList(growable: false);
+  }
+
+  Map<String, dynamic> _cloneMap(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _cloneValue(value)));
+  }
+
+  dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 }
