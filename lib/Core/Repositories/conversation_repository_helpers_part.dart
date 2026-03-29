@@ -1,6 +1,15 @@
 part of 'conversation_repository.dart';
 
 extension ConversationRepositoryHelpersPart on ConversationRepository {
+  List<String> _sanitizeParticipantIds(dynamic raw) {
+    if (raw is! List) return const <String>[];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
   Map<String, int> _sanitizeUnreadMap(
     dynamic raw,
     List<String> participants,
@@ -75,7 +84,7 @@ extension ConversationRepositoryHelpersPart on ConversationRepository {
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
   ) {
     final data = doc.data();
-    final participants = List<String>.from(data["participants"] ?? const []);
+    final participants = _sanitizeParticipantIds(data["participants"]);
     final otherFromParticipants = participants.firstWhere(
       (value) => value != currentUid,
       orElse: () => '',
@@ -144,11 +153,9 @@ extension ConversationRepositoryHelpersPart on ConversationRepository {
       };
     }
 
-    final existingParticipants = existing["participants"] is List
-        ? List<String>.from(
-            (existing["participants"] as List).map((e) => e.toString()),
-          )
-        : <String>[];
+    final existingParticipants = _sanitizeParticipantIds(
+      existing["participants"],
+    );
     final hasCanonicalParticipants = existingParticipants.length == 2 &&
         existingParticipants.contains(currentUid) &&
         existingParticipants.contains(otherUid);
