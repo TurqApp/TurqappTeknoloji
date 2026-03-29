@@ -103,10 +103,16 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
         .toList(growable: false);
     for (final key in keys) {
       final raw = prefs.getString(key);
-      if (raw == null || raw.isEmpty) continue;
+      if (raw == null || raw.isEmpty) {
+        await prefs.remove(key);
+        continue;
+      }
       try {
         final decoded = jsonDecode(raw);
-        if (decoded is! Map) continue;
+        if (decoded is! Map) {
+          await prefs.remove(key);
+          continue;
+        }
         final payload =
             Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
         final storedSurface = (payload['surfaceKey'] ?? '').toString().trim();
@@ -116,7 +122,9 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
           continue;
         }
         await prefs.remove(key);
-      } catch (_) {}
+      } catch (_) {
+        await prefs.remove(key);
+      }
     }
   }
 
