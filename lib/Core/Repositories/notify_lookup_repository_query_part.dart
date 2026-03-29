@@ -6,7 +6,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     final cached = _postLookupCache[postID];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _notifyPostLookupTtl) {
-      return cached;
+      return _clonePostLookup(cached);
     }
 
     final doc = await _firestore.collection('Posts').doc(postID).get();
@@ -16,7 +16,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
       cachedAt: DateTime.now(),
     );
     _postLookupCache[postID] = lookup;
-    return lookup;
+    return _clonePostLookup(lookup);
   }
 
   Future<NotifyChatLookup> getChatLookup(String chatID) async {
@@ -26,7 +26,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     final cached = _chatLookupCache[cacheKey];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _notifyChatLookupTtl) {
-      return cached;
+      return _cloneChatLookup(cached);
     }
     if (currentUid.isEmpty) {
       return NotifyChatLookup(otherUser: '', cachedAt: DateTime.now());
@@ -61,7 +61,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
       cachedAt: DateTime.now(),
     );
     _chatLookupCache[cacheKey] = lookup;
-    return lookup;
+    return _cloneChatLookup(lookup);
   }
 
   Future<NotifyJobLookup> getJobLookup(String jobID) async {
@@ -69,7 +69,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     final cached = _jobLookupCache[jobID];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _notifyJobLookupTtl) {
-      return cached;
+      return _cloneJobLookup(cached);
     }
     final doc = await _firestore.collection('isBul').doc(jobID).get();
     final lookup = NotifyJobLookup(
@@ -78,7 +78,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
       cachedAt: DateTime.now(),
     );
     _jobLookupCache[jobID] = lookup;
-    return lookup;
+    return _cloneJobLookup(lookup);
   }
 
   Future<NotifyTutoringLookup> getTutoringLookup(String tutoringID) async {
@@ -87,7 +87,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
             _notifyTutoringLookupTtl) {
-      return cached;
+      return _cloneTutoringLookup(cached);
     }
     final doc = await _firestore.collection('educators').doc(tutoringID).get();
     final lookup = NotifyTutoringLookup(
@@ -96,7 +96,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
       cachedAt: DateTime.now(),
     );
     _tutoringLookupCache[tutoringID] = lookup;
-    return lookup;
+    return _cloneTutoringLookup(lookup);
   }
 
   Future<NotifyMarketLookup> getMarketLookup(String itemId) async {
@@ -104,7 +104,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     final cached = _marketLookupCache[itemId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _notifyMarketLookupTtl) {
-      return cached;
+      return _cloneMarketLookup(cached);
     }
     final model = await ensureMarketRepository().fetchById(
       itemId,
@@ -117,6 +117,56 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
       cachedAt: DateTime.now(),
     );
     _marketLookupCache[itemId] = lookup;
-    return lookup;
+    return _cloneMarketLookup(lookup);
+  }
+
+  NotifyPostLookup _clonePostLookup(NotifyPostLookup lookup) {
+    return NotifyPostLookup(
+      exists: lookup.exists,
+      model: lookup.model == null
+          ? null
+          : PostsModel.fromMap(lookup.model!.toMap(), lookup.model!.docID),
+      cachedAt: lookup.cachedAt,
+    );
+  }
+
+  NotifyChatLookup _cloneChatLookup(NotifyChatLookup lookup) {
+    return NotifyChatLookup(
+      otherUser: lookup.otherUser,
+      cachedAt: lookup.cachedAt,
+    );
+  }
+
+  NotifyJobLookup _cloneJobLookup(NotifyJobLookup lookup) {
+    final model = lookup.model;
+    return NotifyJobLookup(
+      exists: lookup.exists,
+      model: model == null
+          ? null
+          : JobModel.fromMap(model.toMap(), model.docID),
+      cachedAt: lookup.cachedAt,
+    );
+  }
+
+  NotifyTutoringLookup _cloneTutoringLookup(NotifyTutoringLookup lookup) {
+    final model = lookup.model;
+    return NotifyTutoringLookup(
+      exists: lookup.exists,
+      model: model == null
+          ? null
+          : TutoringModel.fromJson(model.toJson(), model.docID),
+      cachedAt: lookup.cachedAt,
+    );
+  }
+
+  NotifyMarketLookup _cloneMarketLookup(NotifyMarketLookup lookup) {
+    final model = lookup.model;
+    return NotifyMarketLookup(
+      exists: lookup.exists,
+      model: model == null
+          ? null
+          : MarketItemModel.fromJson(model.toJson()),
+      cachedAt: lookup.cachedAt,
+    );
   }
 }
