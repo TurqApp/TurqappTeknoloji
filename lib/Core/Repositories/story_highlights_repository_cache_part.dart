@@ -35,8 +35,11 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
         decodedRaw.cast<dynamic, dynamic>(),
       );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      final list =
-          (decoded['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      final rawItems = decoded['items'];
+      if (rawItems is! List) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -50,25 +53,79 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
         }
         return null;
       }
+      var shouldPersist = false;
+      final items = <StoryHighlightModel>[];
+      for (final rawItem in rawItems) {
+        if (rawItem is! Map) {
+          shouldPersist = true;
+          continue;
+        }
+        try {
+          final item =
+              Map<String, dynamic>.from(rawItem.cast<dynamic, dynamic>());
+          final storyIdsRaw = item['storyIds'];
+          final storyIds = <String>[];
+          if (storyIdsRaw is List) {
+            for (final rawStoryId in storyIdsRaw) {
+              final storyId = rawStoryId?.toString().trim() ?? '';
+              if (storyId.isEmpty) {
+                shouldPersist = true;
+                continue;
+              }
+              storyIds.add(storyId);
+            }
+          } else if (storyIdsRaw != null) {
+            shouldPersist = true;
+          }
+          final highlight = StoryHighlightModel(
+            id: (item['id'] ?? '').toString(),
+            userId: (item['userId'] ?? '').toString(),
+            title: (item['title'] ?? '').toString(),
+            coverUrl: (item['coverUrl'] ?? '').toString(),
+            storyIds: storyIds,
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              (item['createdDate'] as num?)?.toInt() ??
+                  DateTime.now().millisecondsSinceEpoch,
+            ),
+            order: (item['order'] as num?)?.toInt() ?? 0,
+          );
+          if (highlight.id.trim().isEmpty) {
+            shouldPersist = true;
+            continue;
+          }
+          items.add(highlight);
+        } catch (_) {
+          shouldPersist = true;
+        }
+      }
+      if (items.isEmpty) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      if (shouldPersist || items.length != rawItems.length) {
+        await prefs?.setString(
+          prefsKey,
+          jsonEncode(<String, dynamic>{
+            't': ts,
+            'items': items
+                .map(
+                  (item) => <String, dynamic>{
+                    'id': item.id,
+                    'userId': item.userId,
+                    'title': item.title,
+                    'coverUrl': item.coverUrl,
+                    'storyIds': List<String>.from(item.storyIds),
+                    'createdDate': item.createdAt.millisecondsSinceEpoch,
+                    'order': item.order,
+                  },
+                )
+                .toList(growable: false),
+          }),
+        );
+      }
       return _CachedStoryHighlights(
         cachedAt: cachedAt,
-        items: list
-            .map(
-              (e) => StoryHighlightModel(
-                id: (e['id'] ?? '').toString(),
-                userId: (e['userId'] ?? '').toString(),
-                title: (e['title'] ?? '').toString(),
-                coverUrl: (e['coverUrl'] ?? '').toString(),
-                storyIds: (e['storyIds'] as List?)?.cast<String>() ??
-                    const <String>[],
-                createdAt: DateTime.fromMillisecondsSinceEpoch(
-                  (e['createdDate'] as num?)?.toInt() ??
-                      DateTime.now().millisecondsSinceEpoch,
-                ),
-                order: (e['order'] as num?)?.toInt() ?? 0,
-              ),
-            )
-            .toList(growable: false),
+        items: items,
       );
     } catch (_) {
       await prefs?.remove(prefsKey);
