@@ -25,6 +25,7 @@ Future<void> _performPutDataWithSingleAuthRetry(
   Uint8List data,
   SettableMetadata metadata,
 ) async {
+  final uploadData = Uint8List.fromList(data);
   const retryDelays = <Duration>[
     Duration(milliseconds: 250),
     Duration(milliseconds: 700),
@@ -34,7 +35,7 @@ Future<void> _performPutDataWithSingleAuthRetry(
   FirebaseException? lastError;
   for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
     try {
-      await ref.putData(data, metadata);
+      await ref.putData(uploadData, metadata);
       return;
     } on FirebaseException catch (e) {
       if (!_performIsAuthRetryable(e)) rethrow;
