@@ -67,14 +67,14 @@ extension QALabRecorderCapturePerformancePart on QALabRecorder {
     if (timings.isEmpty) return;
     final observedAt = DateTime.now();
     final appSummary = _mergeFramePerformanceSummary(
-      previous: Map<String, dynamic>.from(appFramePerformance),
+      previous: _cloneQaLabExportMap(appFramePerformance),
       timings: timings,
       surface: 'app',
       observedAt: observedAt,
     );
     appFramePerformance.assignAll(appSummary);
 
-    final previousSurfaceSummary = Map<String, dynamic>.from(
+    final previousSurfaceSummary = _cloneQaLabExportMap(
       framePerformanceBySurface[surface] ?? const <String, dynamic>{},
     );
     framePerformanceBySurface[surface] = _mergeFramePerformanceSummary(

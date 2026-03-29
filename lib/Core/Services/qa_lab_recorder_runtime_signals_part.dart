@@ -8,8 +8,12 @@ extension QALabRecorderRuntimeSignalsPart on QALabRecorder {
     required DateTime sampledAt,
   }) {
     final nestedSnapshot = snapshot['snapshot'] is Map
-        ? Map<String, dynamic>.from(snapshot['snapshot'] as Map)
-        : Map<String, dynamic>.from(snapshot);
+        ? _cloneQaLabExportMap(
+            (snapshot['snapshot'] as Map).map(
+              (key, value) => MapEntry(key.toString(), value),
+            ),
+          )
+        : _cloneQaLabExportMap(snapshot);
     final errors = _nativePlaybackErrors(snapshot);
     return <String, dynamic>{
       'platform': defaultTargetPlatform.name,

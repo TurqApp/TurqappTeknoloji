@@ -88,7 +88,7 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
     List<QALabIssue> surfaceIssues,
     List<QALabCheckpoint> surfaceCheckpoints,
   ) {
-    final framePerformance = Map<String, dynamic>.from(
+    final framePerformance = _cloneQaLabExportMap(
       framePerformanceBySurface[surface] ?? const <String, dynamic>{},
     );
     final surfaceTimeline = _surfaceTimelineEvents(surface);
