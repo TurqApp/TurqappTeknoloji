@@ -1,6 +1,33 @@
 part of 'personalized_controller.dart';
 
 extension PersonalizedControllerDataPart on PersonalizedController {
+  List<Map<String, dynamic>> _scholarshipDocsFromSnapshot(
+    List<Map<String, dynamic>> items,
+  ) {
+    return items.map((item) {
+      final model = item['model'] as IndividualScholarshipsModel?;
+      final docId = (item['docId'] ?? '').toString().trim();
+      return <String, dynamic>{
+        ...(model?.toJson() ?? const <String, dynamic>{}),
+        if (docId.isNotEmpty) 'docId': docId,
+      };
+    }).toList(growable: false);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadLatestScholarshipDocs({
+    required int limit,
+    bool forceSync = false,
+  }) async {
+    final result = await _scholarshipSnapshotRepository.loadHome(
+      userId: CurrentUserService.instance.effectiveUserId,
+      limit: limit,
+      forceSync: forceSync,
+    );
+    return _scholarshipDocsFromSnapshot(
+      result.data?.items ?? const <Map<String, dynamic>>[],
+    );
+  }
+
   Future<void> _initializeData() async {
     try {
       await _loadCachedList();
@@ -77,7 +104,7 @@ extension PersonalizedControllerDataPart on PersonalizedController {
   }
 
   void _loadVitrinData() {
-    _scholarshipRepository.fetchLatestRaw(limit: 10).then((items) {
+    _loadLatestScholarshipDocs(limit: 10).then((items) {
       if (items.isNotEmpty) {
         final tempList = items
             .map((item) => IndividualScholarshipsModel.fromJson(item))
@@ -91,7 +118,7 @@ extension PersonalizedControllerDataPart on PersonalizedController {
     if (!isUserDataLoaded.value) return;
 
     try {
-      final items = await _scholarshipRepository.fetchLatestRaw(limit: 50);
+      final items = await _loadLatestScholarshipDocs(limit: 50);
       _processScholarshipsData(items);
     } catch (_) {
       isLoading.value = false;

@@ -24,6 +24,24 @@ ScholarshipProvidersController? maybeFindScholarshipProvidersController({
 
 extension ScholarshipProvidersControllerRuntimePart
     on ScholarshipProvidersController {
+  Future<List<Map<String, dynamic>>> _loadProviderSeedItems({
+    required bool cacheOnly,
+    required bool forceRefresh,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId;
+    final resource = cacheOnly
+        ? await _scholarshipSnapshotRepository.loadCachedHome(
+            userId: userId,
+            limit: ReadBudgetRegistry.scholarshipProviderSeedLimit,
+          )
+        : await _scholarshipSnapshotRepository.loadHome(
+            userId: userId,
+            limit: ReadBudgetRegistry.scholarshipProviderSeedLimit,
+            forceSync: forceRefresh,
+          );
+    return resource.data?.items ?? const <Map<String, dynamic>>[];
+  }
+
   void _handleInit() {
     unawaited(_bootstrapProviders());
   }
@@ -69,16 +87,17 @@ extension ScholarshipProvidersControllerRuntimePart
     bool cacheOnly = false,
     bool forceRefresh = false,
   }) async {
-    final scholarships = await _scholarshipRepository.fetchLatestRaw(
-      limit: ReadBudgetRegistry.scholarshipProviderSeedLimit,
-      preferCache: !forceRefresh,
-      forceRefresh: forceRefresh,
+    final scholarships = await _loadProviderSeedItems(
       cacheOnly: cacheOnly,
+      forceRefresh: forceRefresh,
     );
 
     final seenUserIDs = <String>{};
     for (final bursDoc in scholarships) {
-      final userID = bursDoc['userID'] as String?;
+      final userID = ((bursDoc['userData'] as Map?)?['userID'] ??
+              bursDoc['userID'] ??
+              (bursDoc['model'] as IndividualScholarshipsModel?)?.userID)
+          ?.toString();
       if (userID != null && userID.isNotEmpty) {
         seenUserIDs.add(userID);
       }

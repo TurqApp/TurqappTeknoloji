@@ -14,6 +14,34 @@ ScholarshipSnapshotRepository ensureScholarshipSnapshotRepository() {
 
 extension ScholarshipSnapshotRepositoryFacadePart
     on ScholarshipSnapshotRepository {
+  Future<CachedResource<ScholarshipListingSnapshot>> loadCachedHome({
+    required String userId,
+    int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
+    int page = 1,
+  }) {
+    final query = EducationTypesenseQuery(
+      entity: EducationTypesenseEntity.scholarship,
+      query: '*',
+      limit: limit,
+      page: page,
+      userId: userId,
+      scopeTag: page <= 1 ? 'home' : 'home_page_$page',
+    );
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      ScholarshipSnapshotRepository._homeSurfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: ScholarshipSnapshotRepository._homeSurfaceKey,
+      userId: userId.trim(),
+      scopeId: query.buildScopeId(schemaVersion: schemaVersion),
+    );
+    return _coordinator.bootstrap(
+      key,
+      loadWarmSnapshot: () => _loadWarmSnapshot(query),
+      schemaVersion: schemaVersion,
+    );
+  }
+
   Stream<CachedResource<ScholarshipListingSnapshot>> openHome({
     required String userId,
     int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
