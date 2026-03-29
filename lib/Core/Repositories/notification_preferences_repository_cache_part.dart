@@ -19,7 +19,7 @@ extension NotificationPreferencesRepositoryCachePart
           data: Map<String, dynamic>.from(disk),
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return Map<String, dynamic>.from(disk);
       }
     }
 
@@ -130,7 +130,7 @@ extension NotificationPreferencesRepositoryCachePart
         await prefs?.remove(prefsKey);
         return null;
       }
-      return data;
+      return Map<String, dynamic>.from(data);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
