@@ -12,13 +12,14 @@ class SavedTestsController extends GetxController {
 }
 
 class _SavedTestsControllerState {
-  final testRepository = ensureTestRepository();
+  final testSnapshotRepository = ensureTestSnapshotRepository();
   final list = <TestsModel>[].obs;
   final isLoading = true.obs;
 }
 
 extension SavedTestsControllerFieldsPart on SavedTestsController {
-  TestRepository get _testRepository => _state.testRepository;
+  TestSnapshotRepository get _testSnapshotRepository =>
+      _state.testSnapshotRepository;
   RxList<TestsModel> get list => _state.list;
   RxBool get isLoading => _state.isLoading;
 }
@@ -30,10 +31,11 @@ extension SavedTestsControllerRuntimePart on SavedTestsController {
 
   Future<void> _bootstrapData() async {
     final uid = CurrentUserService.instance.effectiveUserId;
-    final cached = await _testRepository.fetchFavorites(
-      uid,
-      cacheOnly: true,
-    );
+    final cached = (await _testSnapshotRepository.loadCachedFavorites(
+          userId: uid,
+        ))
+            .data ??
+        const <TestsModel>[];
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
@@ -57,11 +59,23 @@ extension SavedTestsControllerRuntimePart on SavedTestsController {
     }
     try {
       final uid = CurrentUserService.instance.effectiveUserId;
-      final items = await _testRepository.fetchFavorites(
-        uid,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final items = forceRefresh
+          ? ((await _testSnapshotRepository.loadFavorites(
+                userId: uid,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[])
+          : ((await _testSnapshotRepository.loadCachedFavorites(
+                userId: uid,
+              ))
+                  .data ??
+              (await _testSnapshotRepository.loadFavorites(
+                userId: uid,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[]);
       list.assignAll(items);
       SilentRefreshGate.markRefreshed('tests:saved:$uid');
     } catch (_) {

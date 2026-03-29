@@ -12,13 +12,14 @@ class MyTestResultsController extends GetxController {
 }
 
 class _MyTestResultsControllerState {
-  final testRepository = ensureTestRepository();
+  final testSnapshotRepository = ensureTestSnapshotRepository();
   final list = <TestsModel>[].obs;
   final isLoading = true.obs;
 }
 
 extension MyTestResultsControllerFieldsPart on MyTestResultsController {
-  TestRepository get _testRepository => _state.testRepository;
+  TestSnapshotRepository get _testSnapshotRepository =>
+      _state.testSnapshotRepository;
   RxList<TestsModel> get list => _state.list;
   RxBool get isLoading => _state.isLoading;
 }
@@ -30,10 +31,11 @@ extension MyTestResultsControllerRuntimePart on MyTestResultsController {
 
   Future<void> _bootstrapData() async {
     final currentUserID = CurrentUserService.instance.effectiveUserId;
-    final cached = await _testRepository.fetchAnsweredByUser(
-      currentUserID,
-      cacheOnly: true,
-    );
+    final cached = (await _testSnapshotRepository.loadCachedAnswered(
+          userId: currentUserID,
+        ))
+            .data ??
+        const <TestsModel>[];
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
@@ -57,11 +59,23 @@ extension MyTestResultsControllerRuntimePart on MyTestResultsController {
     }
     try {
       final currentUserID = CurrentUserService.instance.effectiveUserId;
-      final items = await _testRepository.fetchAnsweredByUser(
-        currentUserID,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final items = forceRefresh
+          ? ((await _testSnapshotRepository.loadAnswered(
+                userId: currentUserID,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[])
+          : ((await _testSnapshotRepository.loadCachedAnswered(
+                userId: currentUserID,
+              ))
+                  .data ??
+              (await _testSnapshotRepository.loadAnswered(
+                userId: currentUserID,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[]);
       list.assignAll(items);
       SilentRefreshGate.markRefreshed('tests:answered:$currentUserID');
     } catch (_) {

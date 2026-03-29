@@ -65,6 +65,46 @@ class TestTypeQuery {
       );
 }
 
+class TestAnsweredQuery {
+  const TestAnsweredQuery({
+    required this.userId,
+  });
+
+  final String userId;
+
+  String buildScopeId() => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: 0,
+        scopeTag: 'answered',
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          TestSnapshotRepository.answeredSurfaceKey,
+        ),
+        qualifiers: <String, Object?>{
+          'answered': userId.trim(),
+        },
+      );
+}
+
+class TestFavoritesQuery {
+  const TestFavoritesQuery({
+    required this.userId,
+  });
+
+  final String userId;
+
+  String buildScopeId() => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: 0,
+        scopeTag: 'favorites',
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          TestSnapshotRepository.favoritesSurfaceKey,
+        ),
+        qualifiers: <String, Object?>{
+          'favorites': userId.trim(),
+        },
+      );
+}
+
 TestSnapshotRepository? maybeFindTestSnapshotRepository() {
   final isRegistered = Get.isRegistered<TestSnapshotRepository>();
   if (!isRegistered) return null;
@@ -83,6 +123,8 @@ class TestSnapshotRepository extends GetxService {
   static const String ownerSurfaceKey = 'test_owner_snapshot';
   static const String allSurfaceKey = 'test_home_snapshot';
   static const String typeSurfaceKey = 'test_type_snapshot';
+  static const String answeredSurfaceKey = 'test_answered_snapshot';
+  static const String favoritesSurfaceKey = 'test_favorites_snapshot';
 
   late final CacheFirstCoordinator<List<TestsModel>> _coordinator =
       CacheFirstCoordinator<List<TestsModel>>(
@@ -146,6 +188,40 @@ class TestSnapshotRepository extends GetxService {
     ),
   );
 
+  late final CacheFirstQueryPipeline<TestAnsweredQuery, List<TestsModel>,
+          List<TestsModel>> _answeredPipeline =
+      CacheFirstQueryPipeline<TestAnsweredQuery, List<TestsModel>,
+          List<TestsModel>>(
+    surfaceKey: answeredSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(),
+    fetchRaw: _fetchAnsweredItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      answeredSurfaceKey,
+    ),
+  );
+
+  late final CacheFirstQueryPipeline<TestFavoritesQuery, List<TestsModel>,
+          List<TestsModel>> _favoritesPipeline =
+      CacheFirstQueryPipeline<TestFavoritesQuery, List<TestsModel>,
+          List<TestsModel>>(
+    surfaceKey: favoritesSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(),
+    fetchRaw: _fetchFavoriteItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      favoritesSurfaceKey,
+    ),
+  );
+
   Future<CachedResource<List<TestsModel>>> loadCachedOwner({
     required String userId,
   }) {
@@ -178,6 +254,28 @@ class TestSnapshotRepository extends GetxService {
     );
     return _bootstrap(
       surfaceKey: typeSurfaceKey,
+      userId: userId,
+      scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadCachedAnswered({
+    required String userId,
+  }) {
+    final query = TestAnsweredQuery(userId: userId);
+    return _bootstrap(
+      surfaceKey: answeredSurfaceKey,
+      userId: userId,
+      scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadCachedFavorites({
+    required String userId,
+  }) {
+    final query = TestFavoritesQuery(userId: userId);
+    return _bootstrap(
+      surfaceKey: favoritesSurfaceKey,
       userId: userId,
       scopeId: query.buildScopeId(),
     );
@@ -263,6 +361,46 @@ class TestSnapshotRepository extends GetxService {
     return openType(
       userId: userId,
       testType: testType,
+      forceSync: forceSync,
+    ).last;
+  }
+
+  Stream<CachedResource<List<TestsModel>>> openAnswered({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _answeredPipeline.open(
+      TestAnsweredQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadAnswered({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openAnswered(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
+  Stream<CachedResource<List<TestsModel>>> openFavorites({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _favoritesPipeline.open(
+      TestFavoritesQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadFavorites({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openFavorites(
+      userId: userId,
       forceSync: forceSync,
     ).last;
   }
@@ -377,6 +515,63 @@ class TestSnapshotRepository extends GetxService {
     return snapshot.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
         .where((item) => item.docID.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<TestsModel>> _fetchAnsweredItems(TestAnsweredQuery query) async {
+    final normalizedUserId = query.userId.trim();
+    if (normalizedUserId.isEmpty) return const <TestsModel>[];
+    final snapshot = await FirebaseFirestore.instance
+        .collectionGroup('Yanitlar')
+        .where('userID', isEqualTo: normalizedUserId)
+        .get(const GetOptions(source: Source.serverAndCache));
+    final testIds = <String>[];
+    final seen = <String>{};
+    for (final doc in snapshot.docs) {
+      final parent = doc.reference.parent.parent;
+      final testId = parent?.id ?? '';
+      if (testId.isEmpty || !seen.add(testId)) continue;
+      testIds.add(testId);
+    }
+    final items = await _fetchByIds(testIds);
+    items.sort(
+      (a, b) => _asTimestamp(b.timeStamp).compareTo(_asTimestamp(a.timeStamp)),
+    );
+    return items;
+  }
+
+  Future<List<TestsModel>> _fetchFavoriteItems(TestFavoritesQuery query) async {
+    final normalizedUserId = query.userId.trim();
+    if (normalizedUserId.isEmpty) return const <TestsModel>[];
+    final snapshot = await FirebaseFirestore.instance
+        .collection('Testler')
+        .where('favoriler', arrayContains: normalizedUserId)
+        .get(const GetOptions(source: Source.serverAndCache));
+    return snapshot.docs
+        .map((doc) => _fromDoc(doc.id, doc.data()))
+        .where((item) => item.docID.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<TestsModel>> _fetchByIds(List<String> ids) async {
+    final wanted = ids.where((id) => id.trim().isNotEmpty).toSet().toList();
+    if (wanted.isEmpty) return const <TestsModel>[];
+    final resolved = <String, TestsModel>{};
+    for (final chunkStart in <int>[
+      for (var i = 0; i < wanted.length; i += 10) i,
+    ]) {
+      final chunk = wanted.skip(chunkStart).take(10).toList(growable: false);
+      final snapshot = await FirebaseFirestore.instance
+          .collection('Testler')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get(const GetOptions(source: Source.serverAndCache));
+      for (final doc in snapshot.docs) {
+        resolved[doc.id] = _fromDoc(doc.id, doc.data());
+      }
+    }
+    return wanted
+        .map((id) => resolved[id])
+        .whereType<TestsModel>()
         .toList(growable: false);
   }
 }
