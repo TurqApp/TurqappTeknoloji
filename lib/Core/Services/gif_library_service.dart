@@ -122,6 +122,17 @@ class GifLibraryService {
     return hash.toRadixString(16);
   }
 
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<List<Map<String, dynamic>>> _loadManifest() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -145,6 +156,9 @@ class GifLibraryService {
           shouldPrune = true;
           continue;
         }
+        item['useCount'] = _asInt(item['useCount']);
+        item['lastUsedAt'] = _asInt(item['lastUsedAt']);
+        item['createdAt'] = _asInt(item['createdAt']);
         restored.add(item);
       }
       if (restored.isEmpty && decoded.isNotEmpty) {
@@ -179,7 +193,7 @@ class GifLibraryService {
     final idx = items.indexWhere((e) => (e['url'] ?? '').toString() == url);
     if (idx >= 0) {
       final current = Map<String, dynamic>.from(items[idx]);
-      current['useCount'] = (((current['useCount'] ?? 0) as num).toInt() + 1);
+      current['useCount'] = _asInt(current['useCount']) + 1;
       current['lastUsedAt'] = now;
       current['source'] = source;
       current['category'] = category;
@@ -212,12 +226,12 @@ class GifLibraryService {
         .toList(growable: true);
 
     filtered.sort((a, b) {
-      final useA = ((a['useCount'] ?? 0) as num).toInt();
-      final useB = ((b['useCount'] ?? 0) as num).toInt();
+      final useA = _asInt(a['useCount']);
+      final useB = _asInt(b['useCount']);
       final byUse = useB.compareTo(useA);
       if (byUse != 0) return byUse;
-      final lastA = ((a['lastUsedAt'] ?? 0) as num).toInt();
-      final lastB = ((b['lastUsedAt'] ?? 0) as num).toInt();
+      final lastA = _asInt(a['lastUsedAt']);
+      final lastB = _asInt(b['lastUsedAt']);
       return lastB.compareTo(lastA);
     });
 
