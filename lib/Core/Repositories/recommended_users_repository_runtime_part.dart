@@ -65,6 +65,17 @@ extension RecommendedUsersRepositoryFacadePart on RecommendedUsersRepository {
 }
 
 extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
     _prefs = await SharedPreferences.getInstance();
@@ -116,7 +127,7 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
         prefs?.remove(_prefsKey);
         return;
       }
-      final cachedAtMs = (decoded['cachedAt'] as num?)?.toInt() ?? 0;
+      final cachedAtMs = _asInt(decoded['cachedAt']);
       final items = (decoded['items'] as List?) ?? const [];
       if (cachedAtMs <= 0 || items.isEmpty) {
         prefs?.remove(_prefsKey);
