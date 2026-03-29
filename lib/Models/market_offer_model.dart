@@ -1,4 +1,16 @@
 class MarketOfferModel {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   MarketOfferModel({
     required this.id,
     required this.itemId,
@@ -38,18 +50,12 @@ class MarketOfferModel {
       itemTitle: (json['itemTitle'] ?? '').toString(),
       buyerId: (json['buyerId'] ?? '').toString(),
       sellerId: (json['sellerId'] ?? '').toString(),
-      offerPrice: (json['offerPrice'] as num?)?.toDouble() ?? 0,
+      offerPrice: _asDouble(json['offerPrice']),
       currency: (json['currency'] ?? 'TRY').toString(),
       status: (json['status'] ?? 'pending').toString(),
-      createdAt: (json['createdAt'] as num?)?.toInt() ??
-          int.tryParse((json['createdAt'] ?? '').toString()) ??
-          0,
-      updatedAt: (json['updatedAt'] as num?)?.toInt() ??
-          int.tryParse((json['updatedAt'] ?? '').toString()) ??
-          0,
-      respondedAt: (json['respondedAt'] as num?)?.toInt() ??
-          int.tryParse((json['respondedAt'] ?? '').toString()) ??
-          0,
+      createdAt: _asInt(json['createdAt']),
+      updatedAt: _asInt(json['updatedAt']),
+      respondedAt: _asInt(json['respondedAt']),
       message: (json['message'] ?? '').toString(),
       coverImageUrl: (json['coverImageUrl'] ?? '').toString(),
       locationText: (json['locationText'] ?? '').toString(),
