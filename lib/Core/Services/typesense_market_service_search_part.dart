@@ -8,6 +8,12 @@ extension TypesenseMarketSearchServiceSearchPart
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
+  double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<List<MarketItemModel>> _performSearchItems({
     required String query,
     required int limit,
@@ -88,7 +94,7 @@ extension TypesenseMarketSearchServiceSearchPart
           userId: (hitMap['userId'] ?? '').toString(),
           title: (hitMap['title'] ?? '').toString(),
           description: (hitMap['description'] ?? '').toString(),
-          price: (hitMap['price'] as num?)?.toDouble() ?? 0,
+          price: _asDouble(hitMap['price']),
           currency: (hitMap['currency'] ?? 'TRY').toString(),
           categoryKey: (hitMap['categoryKey'] ?? '').toString(),
           categoryPath: ((hitMap['categoryPath'] as List<dynamic>?) ?? const [])
