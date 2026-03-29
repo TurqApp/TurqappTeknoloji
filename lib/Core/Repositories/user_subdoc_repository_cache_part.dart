@@ -11,7 +11,7 @@ Future<void> _putUserSubdoc(
   final key = _userSubdocCacheKey(uid, collection, docId);
   final cachedAt = DateTime.now();
   repository._memory[key] = _CachedUserSubdoc(
-    data: Map<String, dynamic>.from(data),
+    data: _cloneUserSubdocMap(data),
     cachedAt: cachedAt,
   );
   repository._prefs ??= await SharedPreferences.getInstance();
@@ -35,7 +35,7 @@ Map<String, dynamic>? _getUserSubdocFromMemory(
     repository._memory.remove(key);
     return null;
   }
-  return Map<String, dynamic>.from(entry.data);
+  return _cloneUserSubdocMap(entry.data);
 }
 
 Future<Map<String, dynamic>?> _getUserSubdocFromPrefs(
@@ -68,7 +68,7 @@ Future<Map<String, dynamic>?> _getUserSubdocFromPrefs(
       await prefs?.remove(prefsKey);
       return null;
     }
-    return Map<String, dynamic>.from(data);
+    return _cloneUserSubdocMap(data);
   } catch (_) {
     await prefs?.remove(prefsKey);
     return null;
@@ -92,3 +92,24 @@ String _userSubdocCacheKey(String uid, String collection, String docId) =>
 
 String _userSubdocPrefsKey(String key) =>
     '${UserSubdocRepository._prefsPrefix}:$key';
+
+Map<String, dynamic> _cloneUserSubdocMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneUserSubdocValue(value)),
+  );
+}
+
+dynamic _cloneUserSubdocValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneUserSubdocValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneUserSubdocValue).toList(growable: false);
+  }
+  return value;
+}
