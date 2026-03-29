@@ -1,6 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ViewerModel {
+  static num _asNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   String userID;
   num timeStamp;
 
@@ -12,9 +17,7 @@ class ViewerModel {
   factory ViewerModel.fromMap(Map<String, dynamic> data) {
     return ViewerModel(
       userID: (data['userID'] ?? '').toString(),
-      timeStamp: (data['timeStamp'] as num?) ??
-          num.tryParse((data['timeStamp'] ?? '').toString()) ??
-          0,
+      timeStamp: _asNum(data['timeStamp']),
     );
   }
 

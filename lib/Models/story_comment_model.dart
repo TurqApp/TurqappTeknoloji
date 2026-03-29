@@ -1,4 +1,9 @@
 class StoryCommentModel {
+  static num _asNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   String docID;
   num timeStamp;
   String metin;
@@ -19,9 +24,7 @@ class StoryCommentModel {
       docID: docID,
       userID: (data['userID'] ?? '').toString(),
       metin: (data['metin'] ?? '').toString(),
-      timeStamp: (data['timeStamp'] as num?) ??
-          num.tryParse((data['timeStamp'] ?? '').toString()) ??
-          0,
+      timeStamp: _asNum(data['timeStamp']),
       gif: (data['gif'] ?? '').toString(),
     );
   }
