@@ -87,20 +87,42 @@ extension MarketRepositoryCachePart on MarketRepository {
 
   Future<List<MarketItemModel>?> _getFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    final dataKey = '${MarketRepository._prefsPrefix}::$key';
+    final tsKey = '${MarketRepository._prefsPrefix}::$key::ts';
     final ts =
-        _prefs?.getInt('${MarketRepository._prefsPrefix}::$key::ts') ?? 0;
-    if (ts <= 0) return null;
+        prefs?.getInt(tsKey) ?? 0;
+    if (ts <= 0) {
+      await prefs?.remove(dataKey);
+      await prefs?.remove(tsKey);
+      return null;
+    }
     final age = DateTime.now().millisecondsSinceEpoch - ts;
-    if (age > MarketRepository._ttl.inMilliseconds) return null;
-    final raw =
-        _prefs?.getString('${MarketRepository._prefsPrefix}::$key') ?? '';
-    if (raw.isEmpty) return null;
+    if (age > MarketRepository._ttl.inMilliseconds) {
+      await prefs?.remove(dataKey);
+      await prefs?.remove(tsKey);
+      return null;
+    }
+    final raw = prefs?.getString(dataKey) ?? '';
+    if (raw.isEmpty) {
+      await prefs?.remove(dataKey);
+      await prefs?.remove(tsKey);
+      return null;
+    }
     try {
-      final list = (json.decode(raw) as List<dynamic>)
+      final decoded = json.decode(raw);
+      if (decoded is! List) {
+        await prefs?.remove(dataKey);
+        await prefs?.remove(tsKey);
+        return null;
+      }
+      final list = decoded
           .map((e) => MarketItemModel.fromJson(Map<String, dynamic>.from(e)))
           .toList(growable: false);
       return list;
     } catch (_) {
+      await prefs?.remove(dataKey);
+      await prefs?.remove(tsKey);
       return null;
     }
   }
