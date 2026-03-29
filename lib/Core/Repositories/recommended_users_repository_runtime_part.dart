@@ -108,13 +108,20 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
 
   void _restoreFromPrefs() {
     try {
+      final prefs = _prefs;
       final raw = _prefs?.getString(_prefsKey);
       if (raw == null || raw.isEmpty) return;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return;
+      if (decoded is! Map<String, dynamic>) {
+        prefs?.remove(_prefsKey);
+        return;
+      }
       final cachedAtMs = (decoded['cachedAt'] as num?)?.toInt() ?? 0;
       final items = (decoded['items'] as List?) ?? const [];
-      if (cachedAtMs <= 0 || items.isEmpty) return;
+      if (cachedAtMs <= 0 || items.isEmpty) {
+        prefs?.remove(_prefsKey);
+        return;
+      }
       final restored = <RecommendedUserModel>[];
       for (final item in items) {
         if (item is! Map) continue;
@@ -123,10 +130,15 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
         if (uid.isEmpty) continue;
         restored.add(RecommendedUserModel.fromMap(uid, map));
       }
-      if (restored.isEmpty) return;
+      if (restored.isEmpty) {
+        prefs?.remove(_prefsKey);
+        return;
+      }
       _memory = restored;
       _cachedAt = DateTime.fromMillisecondsSinceEpoch(cachedAtMs);
-    } catch (_) {}
+    } catch (_) {
+      _prefs?.remove(_prefsKey);
+    }
   }
 
   Future<void> _persistToPrefs() async {

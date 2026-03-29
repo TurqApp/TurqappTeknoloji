@@ -75,11 +75,16 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
 
   void _loadFromPrefs() {
     try {
-      final raw = _prefs?.getString(UserProfileCacheService._prefsKey);
+      final prefs = _prefs;
+      final raw = prefs?.getString(UserProfileCacheService._prefsKey);
       if (raw == null || raw.trim().isEmpty) return;
       final json = jsonDecode(raw);
-      if (json is! Map<String, dynamic>) return;
+      if (json is! Map<String, dynamic>) {
+        prefs?.remove(UserProfileCacheService._prefsKey);
+        return;
+      }
 
+      var validEntries = 0;
       for (final entry in json.entries) {
         final value = entry.value;
         if (value is! Map) continue;
@@ -94,9 +99,16 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
           data: data,
           cachedAt: cachedAt,
         );
+        validEntries++;
+      }
+      if (validEntries == 0 && json.isNotEmpty) {
+        prefs?.remove(UserProfileCacheService._prefsKey);
+        return;
       }
       _trimIfNeeded();
-    } catch (_) {}
+    } catch (_) {
+      _prefs?.remove(UserProfileCacheService._prefsKey);
+    }
   }
 
   Future<void> _persistToPrefs() async {
