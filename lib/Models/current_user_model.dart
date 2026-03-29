@@ -182,6 +182,22 @@ class CurrentUserModel {
   final Map<String, int> readStoriesTimes;
   final String mail; // Secondary email?
 
+  static List<String> _cloneStringList(Iterable<dynamic> source) {
+    return source
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Map<String, int> _cloneStringIntMap(Map source) {
+    return source.map(
+      (key, value) => MapEntry(
+        key.toString(),
+        value is int ? value : int.tryParse(value.toString()) ?? 0,
+      ),
+    );
+  }
+
   String get fullName => '$firstName $lastName'.trim();
   bool get isVerified => hesapOnayi;
   bool get isPrivate => gizliHesap;
@@ -205,8 +221,8 @@ class CurrentUserModel {
     required this.hesapOnayi,
     required this.gizliHesap,
     required this.viewSelection,
-    required this.ilgialanlari,
-    required this.favoriMuzikler,
+    required List<String> ilgialanlari,
+    required List<String> favoriMuzikler,
     required this.meslekKategori,
     required this.calismaDurumu,
     required this.medeniHal,
@@ -286,7 +302,7 @@ class CurrentUserModel {
     required this.signInMethod,
     required this.sifre,
     required this.refCode,
-    required this.blockedUsers,
+    required List<String> blockedUsers,
     required this.device,
     required this.deviceID,
     required this.deviceVersion,
@@ -300,11 +316,16 @@ class CurrentUserModel {
     required this.settings,
     required this.themeSettings,
     required this.canliYayin,
-    required this.lastSearchList,
-    required this.readStories,
-    required this.readStoriesTimes,
+    required List<String> lastSearchList,
+    required List<String> readStories,
+    required Map<String, int> readStoriesTimes,
     required this.mail,
-  });
+  })  : ilgialanlari = _cloneStringList(ilgialanlari),
+        favoriMuzikler = _cloneStringList(favoriMuzikler),
+        blockedUsers = _cloneStringList(blockedUsers),
+        lastSearchList = _cloneStringList(lastSearchList),
+        readStories = _cloneStringList(readStories),
+        readStoriesTimes = _cloneStringIntMap(readStoriesTimes);
 
   factory CurrentUserModel.fromFirestore(DocumentSnapshot doc) =>
       _currentUserModelFromFirestore(doc);
