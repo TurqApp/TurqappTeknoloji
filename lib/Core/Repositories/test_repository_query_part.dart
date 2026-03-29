@@ -1,6 +1,11 @@
 part of 'test_repository_parts.dart';
 
 extension TestRepositoryQueryPart on TestRepository {
+  int _asTestTimestamp(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Future<List<Map<String, dynamic>>> fetchAnswers(
     String testId, {
     bool preferCache = true,
@@ -156,10 +161,8 @@ extension TestRepositoryQueryPart on TestRepository {
     final items = snap.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
         .toList(growable: false)
-      ..sort((a, b) =>
-          int.tryParse(b.timeStamp)
-              ?.compareTo(int.tryParse(a.timeStamp) ?? 0) ??
-          0);
+      ..sort((a, b) => _asTestTimestamp(b.timeStamp)
+          .compareTo(_asTestTimestamp(a.timeStamp)));
     await _store(cacheKey, items);
     return items;
   }
@@ -207,8 +210,8 @@ extension TestRepositoryQueryPart on TestRepository {
       cacheOnly: cacheOnly,
     );
     items.sort((a, b) {
-      final aTs = int.tryParse(a.timeStamp) ?? 0;
-      final bTs = int.tryParse(b.timeStamp) ?? 0;
+      final aTs = _asTestTimestamp(a.timeStamp);
+      final bTs = _asTestTimestamp(b.timeStamp);
       return bTs.compareTo(aTs);
     });
     await _store(cacheKey, items);
