@@ -24,6 +24,27 @@ class TypesenseUserService {
     ),
   ];
 
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneHitMap(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneValue(value)),
+    );
+  }
+
   Future<Map<String, Map<String, dynamic>>> getUserCardsByIds(
     List<String> ids,
   ) async {
@@ -50,7 +71,7 @@ class TypesenseUserService {
           if (hitMap == null) continue;
           final id = (hitMap['id'] ?? '').toString().trim();
           if (id.isEmpty) continue;
-          out[id] = hitMap;
+          out[id] = _cloneHitMap(hitMap);
         }
         return out;
       } catch (e) {
