@@ -152,15 +152,33 @@ class SliderCacheService {
       }
       final resolvedItems = decoded['resolvedItems'];
       if (resolvedItems is List) {
-        final restored = resolvedItems
-            .whereType<Map>()
-            .map((item) => SliderResolvedItem.fromMap(
-                  Map<String, dynamic>.from(item),
-                ))
-            .where((item) => item.source.trim().isNotEmpty)
-            .toList(growable: false);
+        var shouldPrune = false;
+        final restored = <SliderResolvedItem>[];
+        for (final rawItem in resolvedItems) {
+          if (rawItem is! Map) {
+            shouldPrune = true;
+            continue;
+          }
+          final item = SliderResolvedItem.fromMap(
+            Map<String, dynamic>.from(rawItem),
+          );
+          if (item.source.trim().isEmpty) {
+            shouldPrune = true;
+            continue;
+          }
+          restored.add(item);
+        }
         if (restored.isEmpty && resolvedItems.isNotEmpty) {
           await prefs.remove(key);
+        } else if (shouldPrune) {
+          await prefs.setString(
+            key,
+            jsonEncode(<String, dynamic>{
+              'savedAt': savedAt,
+              'resolvedItems':
+                  restored.map((item) => item.toMap()).toList(growable: false),
+            }),
+          );
         }
         return SliderCacheSnapshot(
           savedAtMs: savedAt,
