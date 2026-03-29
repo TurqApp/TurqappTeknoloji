@@ -1,6 +1,12 @@
 part of 'verified_account_repository.dart';
 
 extension VerifiedAccountRepositoryRuntimePart on VerifiedAccountRepository {
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<bool> hasApplication(
     String uid, {
     bool preferCache = true,
@@ -47,8 +53,8 @@ extension VerifiedAccountRepositoryRuntimePart on VerifiedAccountRepository {
       exists: true,
       status: (data['status'] ?? 'pending').toString().trim(),
       selected: (data['selected'] ?? '').toString().trim(),
-      badgeExpiresAt: (data['badgeExpiresAt'] as num?)?.toInt() ?? 0,
-      renewalOpensAt: (data['renewalOpensAt'] as num?)?.toInt() ?? 0,
+      badgeExpiresAt: _asInt(data['badgeExpiresAt']),
+      renewalOpensAt: _asInt(data['renewalOpensAt']),
     );
     await _storeVerifiedAccountStatus(this, uid, state.isPending);
     return state;
