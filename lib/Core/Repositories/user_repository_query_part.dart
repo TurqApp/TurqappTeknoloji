@@ -67,9 +67,7 @@ extension UserRepositoryQueryPart on UserRepository {
         cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
             const Duration(minutes: 10)) {
-      return cached.value == null
-          ? null
-          : Map<String, dynamic>.from(cached.value!);
+      return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
     final snap = await FirebaseFirestore.instance
         .collection('users')
@@ -83,10 +81,10 @@ extension UserRepositoryQueryPart on UserRepository {
       await _cache.putProfile(doc.id, doc.data());
     }
     _queryCache[key] = _TimedUserLookup<Map<String, dynamic>?>(
-      value: result == null ? null : Map<String, dynamic>.from(result),
+      value: result == null ? null : _cloneUserMap(result),
       cachedAt: DateTime.now(),
     );
-    return result == null ? null : Map<String, dynamic>.from(result);
+    return result == null ? null : _cloneUserMap(result);
   }
 
   Future<String?> findUserIdByFcmToken(
@@ -115,7 +113,7 @@ extension UserRepositoryQueryPart on UserRepository {
       await _cache.putProfile(doc.id, doc.data());
     }
     _queryCache[key] = _TimedUserLookup<Map<String, dynamic>?>(
-      value: result == null ? null : Map<String, dynamic>.from(result),
+      value: result == null ? null : _cloneUserMap(result),
       cachedAt: DateTime.now(),
     );
     return result == null ? null : result['id']?.toString();
@@ -133,9 +131,7 @@ extension UserRepositoryQueryPart on UserRepository {
         cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
             const Duration(minutes: 10)) {
-      return cached.value == null
-          ? null
-          : Map<String, dynamic>.from(cached.value!);
+      return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
     final snap = await FirebaseFirestore.instance
         .collection('users')
@@ -149,10 +145,10 @@ extension UserRepositoryQueryPart on UserRepository {
       await _cache.putProfile(doc.id, doc.data());
     }
     _queryCache[key] = _TimedUserLookup<Map<String, dynamic>?>(
-      value: result == null ? null : Map<String, dynamic>.from(result),
+      value: result == null ? null : _cloneUserMap(result),
       cachedAt: DateTime.now(),
     );
-    return result == null ? null : Map<String, dynamic>.from(result);
+    return result == null ? null : _cloneUserMap(result);
   }
 
   Future<Map<String, dynamic>?> findFirstByNicknamePrefix(
@@ -167,9 +163,7 @@ extension UserRepositoryQueryPart on UserRepository {
         cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
             const Duration(minutes: 5)) {
-      return cached.value == null
-          ? null
-          : Map<String, dynamic>.from(cached.value!);
+      return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
     final snap = await FirebaseFirestore.instance
         .collection('users')
@@ -184,10 +178,10 @@ extension UserRepositoryQueryPart on UserRepository {
       await _cache.putProfile(doc.id, doc.data());
     }
     _queryCache[key] = _TimedUserLookup<Map<String, dynamic>?>(
-      value: result == null ? null : Map<String, dynamic>.from(result),
+      value: result == null ? null : _cloneUserMap(result),
       cachedAt: DateTime.now(),
     );
-    return result == null ? null : Map<String, dynamic>.from(result);
+    return result == null ? null : _cloneUserMap(result);
   }
 
   Future<List<Map<String, dynamic>>> searchUsersByNicknamePrefix(
@@ -207,7 +201,7 @@ extension UserRepositoryQueryPart on UserRepository {
       if (rawList is List) {
         return rawList
             .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
+            .map((e) => _cloneUserMap(Map<String, dynamic>.from(e)))
             .toList(growable: false);
       }
       return const <Map<String, dynamic>>[];
@@ -234,7 +228,7 @@ extension UserRepositoryQueryPart on UserRepository {
       cachedAt: DateTime.now(),
     );
     return items
-        .map((entry) => Map<String, dynamic>.from(entry))
+        .map((entry) => _cloneUserMap(entry))
         .toList(growable: false);
   }
 
@@ -257,5 +251,21 @@ extension UserRepositoryQueryPart on UserRepository {
       unawaited(_cache.putProfile(uid, sanitized));
       return sanitized;
     });
+  }
+
+  Map<String, dynamic> _cloneUserMap(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _cloneUserValue(value)));
+  }
+
+  dynamic _cloneUserValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneUserValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneUserValue).toList(growable: false);
+    }
+    return value;
   }
 }
