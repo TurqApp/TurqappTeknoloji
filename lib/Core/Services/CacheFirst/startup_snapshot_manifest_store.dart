@@ -6,6 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'cache_scope_namespace.dart';
 import 'cached_resource.dart';
 
+int _startupManifestAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
 class StartupSnapshotSurfaceRecord {
   const StartupSnapshotSurfaceRecord({
     required this.surface,
@@ -48,15 +54,19 @@ class StartupSnapshotSurfaceRecord {
   factory StartupSnapshotSurfaceRecord.fromJson(Map<String, dynamic> json) {
     return StartupSnapshotSurfaceRecord(
       surface: (json['surface'] ?? '').toString().trim(),
-      itemCount: (json['itemCount'] as num?)?.toInt() ?? 0,
+      itemCount: _startupManifestAsInt(json['itemCount']),
       hasLocalSnapshot: json['hasLocalSnapshot'] == true,
       source:
           (json['source'] ?? CachedResourceSource.none.name).toString().trim(),
       isStale: json['isStale'] == true,
-      recordedAtMs: (json['recordedAtMs'] as num?)?.toInt() ?? 0,
-      snapshotAgeMs: (json['snapshotAgeMs'] as num?)?.toInt(),
+      recordedAtMs: _startupManifestAsInt(json['recordedAtMs']),
+      snapshotAgeMs: json.containsKey('snapshotAgeMs')
+          ? _startupManifestAsInt(json['snapshotAgeMs'])
+          : null,
       startupShardHydrated: json['startupShardHydrated'] == true,
-      startupShardAgeMs: (json['startupShardAgeMs'] as num?)?.toInt(),
+      startupShardAgeMs: json.containsKey('startupShardAgeMs')
+          ? _startupManifestAsInt(json['startupShardAgeMs'])
+          : null,
     );
   }
 }
@@ -142,15 +152,19 @@ class StartupSnapshotManifest {
     });
 
     return StartupSnapshotManifest(
-      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 1,
+      schemaVersion: _startupManifestAsInt(json['schemaVersion']) == 0
+          ? 1
+          : _startupManifestAsInt(json['schemaVersion']),
       actorId: (json['actorId'] ?? CacheScopeNamespace.guestActorId)
           .toString()
           .trim(),
-      savedAtMs: (json['savedAtMs'] as num?)?.toInt() ?? 0,
+      savedAtMs: _startupManifestAsInt(json['savedAtMs']),
       routeHint: (json['routeHint'] ?? '').toString().trim(),
       loggedIn: json['loggedIn'] == true,
       minimumStartupPrepared: json['minimumStartupPrepared'] == true,
-      launchToRouteMs: (json['launchToRouteMs'] as num?)?.toInt(),
+      launchToRouteMs: json.containsKey('launchToRouteMs')
+          ? _startupManifestAsInt(json['launchToRouteMs'])
+          : null,
       surfaces: surfaces,
       extra: _sanitizeExtraMap(
         Map<String, dynamic>.from(

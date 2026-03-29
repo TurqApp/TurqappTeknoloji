@@ -5,6 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'cache_scope_namespace.dart';
 
+int _startupShardAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
 class StartupSnapshotShardRecord {
   StartupSnapshotShardRecord({
     required this.schemaVersion,
@@ -56,15 +62,17 @@ class StartupSnapshotShardRecord {
       json['payload'] as Map? ?? const <String, dynamic>{},
     );
     return StartupSnapshotShardRecord(
-      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 1,
+      schemaVersion: _startupShardAsInt(json['schemaVersion']) == 0
+          ? 1
+          : _startupShardAsInt(json['schemaVersion']),
       actorId: (json['actorId'] ?? CacheScopeNamespace.guestActorId)
           .toString()
           .trim(),
       surface: (json['surface'] ?? '').toString().trim(),
-      savedAtMs: (json['savedAtMs'] as num?)?.toInt() ?? 0,
-      snapshotAtMs: (json['snapshotAtMs'] as num?)?.toInt() ?? 0,
-      itemCount: (json['itemCount'] as num?)?.toInt() ?? 0,
-      limit: (json['limit'] as num?)?.toInt() ?? 0,
+      savedAtMs: _startupShardAsInt(json['savedAtMs']),
+      snapshotAtMs: _startupShardAsInt(json['snapshotAtMs']),
+      itemCount: _startupShardAsInt(json['itemCount']),
+      limit: _startupShardAsInt(json['limit']),
       source: (json['source'] ?? 'scopedDisk').toString().trim(),
       payload: _sanitizePayloadMap(rawPayload),
     );
