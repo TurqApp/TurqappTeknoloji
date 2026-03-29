@@ -65,7 +65,10 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
     if (entry == null) return null;
     final fresh =
         DateTime.now().difference(entry.cachedAt) <= _practiceExamRepositoryTtl;
-    if (!fresh) return null;
+    if (!fresh) {
+      _memory.remove(cacheKey);
+      return null;
+    }
     return entry.items.toList(growable: false);
   }
 

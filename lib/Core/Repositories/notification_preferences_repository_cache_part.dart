@@ -97,6 +97,7 @@ extension NotificationPreferencesRepositoryCachePart
     if (entry == null) return null;
     if (DateTime.now().difference(entry.cachedAt) >
         NotificationPreferencesRepository._ttl) {
+      _memory.remove(key);
       return null;
     }
     return Map<String, dynamic>.from(entry.data);

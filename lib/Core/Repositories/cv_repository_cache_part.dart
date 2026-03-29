@@ -66,7 +66,10 @@ extension CvRepositoryCachePart on CvRepository {
     if (entry == null) return null;
     final fresh =
         DateTime.now().difference(entry.cachedAt) <= CvRepository._ttl;
-    if (!fresh) return null;
+    if (!fresh) {
+      _memory.remove(uid);
+      return null;
+    }
     return entry.data == null ? null : Map<String, dynamic>.from(entry.data!);
   }
 

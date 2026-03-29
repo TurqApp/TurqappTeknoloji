@@ -102,7 +102,10 @@ extension BookletRepositoryCachePart on BookletRepository {
     if (entry == null) return null;
     final fresh =
         DateTime.now().difference(entry.cachedAt) <= BookletRepository._ttl;
-    if (!fresh) return null;
+    if (!fresh) {
+      _memory.remove(cacheKey);
+      return null;
+    }
     return entry.items.toList(growable: false);
   }
 

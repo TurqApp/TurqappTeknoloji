@@ -31,7 +31,10 @@ Map<String, dynamic>? _getUserSubdocFromMemory(
 }) {
   final entry = repository._memory[key];
   if (entry == null) return null;
-  if (DateTime.now().difference(entry.cachedAt) > ttl) return null;
+  if (DateTime.now().difference(entry.cachedAt) > ttl) {
+    repository._memory.remove(key);
+    return null;
+  }
   return Map<String, dynamic>.from(entry.data);
 }
 

@@ -57,6 +57,7 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
     final entry = _memory[key];
     if (entry == null) return null;
     if (DateTime.now().difference(entry.cachedAt) > ttl) {
+      _memory.remove(key);
       return null;
     }
     return Map<String, dynamic>.from(entry.data);
