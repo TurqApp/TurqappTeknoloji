@@ -20,8 +20,8 @@ class ValidationResult {
   ValidationResult({
     required this.isValid,
     this.errorMessage,
-    this.metadata,
-  });
+    Map<String, dynamic>? metadata,
+  }) : metadata = _cloneValidationMetadata(metadata);
 
   factory ValidationResult.success({Map<String, dynamic>? metadata}) {
     return ValidationResult(isValid: true, metadata: metadata);
@@ -30,6 +30,30 @@ class ValidationResult {
   factory ValidationResult.error(String message) {
     return ValidationResult(isValid: false, errorMessage: message);
   }
+}
+
+Map<String, dynamic>? _cloneValidationMetadata(Map<String, dynamic>? source) {
+  if (source == null) return null;
+  return source.map(
+    (key, value) => MapEntry(key, _cloneValidationMetadataValue(value)),
+  );
+}
+
+dynamic _cloneValidationMetadataValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneValidationMetadataValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value
+        .map(_cloneValidationMetadataValue)
+        .toList(growable: false);
+  }
+  return value;
 }
 
 class UploadValidationService {
