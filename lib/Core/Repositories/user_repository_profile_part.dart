@@ -30,7 +30,7 @@ extension UserRepositoryProfilePart on UserRepository {
       forceServer: forceServer,
     );
     if (data == null) return null;
-    return Map<String, dynamic>.from(data);
+    return _cloneUserProfileRawMap(data);
   }
 
   Future<void> putUserRaw(String uid, Map<String, dynamic> data) async {
@@ -48,7 +48,8 @@ extension UserRepositoryProfilePart on UserRepository {
     if (!mergeIntoCache) return;
     final existing =
         _cache.peekProfile(uid, allowStale: true) ?? const <String, dynamic>{};
-    final merged = Map<String, dynamic>.from(existing)..addAll(data);
+    final merged = _cloneUserProfileRawMap(existing)
+      ..addAll(_cloneUserProfileRawMap(data));
     await _cache.putProfile(uid, merged);
   }
 
@@ -65,7 +66,8 @@ extension UserRepositoryProfilePart on UserRepository {
     if (!mergeIntoCache) return;
     final existing =
         _cache.peekProfile(uid, allowStale: true) ?? const <String, dynamic>{};
-    final merged = Map<String, dynamic>.from(existing)..addAll(data);
+    final merged = _cloneUserProfileRawMap(existing)
+      ..addAll(_cloneUserProfileRawMap(data));
     await _cache.putProfile(uid, merged);
   }
 
@@ -104,7 +106,7 @@ extension UserRepositoryProfilePart on UserRepository {
       cacheOnly: cacheOnly,
     );
     return data.map(
-      (key, value) => MapEntry(key, Map<String, dynamic>.from(value)),
+      (key, value) => MapEntry(key, _cloneUserProfileRawMap(value)),
     );
   }
 
@@ -129,5 +131,26 @@ extension UserRepositoryProfilePart on UserRepository {
     await _cache.clearAll();
     _existsCache.clear();
     _queryCache.clear();
+  }
+
+  Map<String, dynamic> _cloneUserProfileRawMap(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneUserProfileRawValue(value)),
+    );
+  }
+
+  dynamic _cloneUserProfileRawValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneUserProfileRawValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneUserProfileRawValue).toList(growable: false);
+    }
+    return value;
   }
 }
