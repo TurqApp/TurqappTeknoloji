@@ -1,6 +1,17 @@
 part of 'optical_form_repository.dart';
 
 extension OpticalFormRepositoryCachePart on OpticalFormRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<Map<String, dynamic>?> _getCachedMap(String key) async {
     final cached = await _getCachedValue(key);
     if (cached is Map<String, dynamic>) return _cloneMap(cached);
@@ -52,7 +63,7 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
