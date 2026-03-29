@@ -1,6 +1,15 @@
 part of 'conversation_repository.dart';
 
 extension ConversationRepositoryMessagePart on ConversationRepository {
+  List<String> _sanitizeReactionUsers(dynamic raw) {
+    if (raw is! List) return const <String>[];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
   Future<void> _commitMessageUpdatesInChunks(
     String chatId,
     Iterable<String> messageIds, {
@@ -115,13 +124,13 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
 
       final data = snap.data() ?? const <String, dynamic>{};
       final reactions = Map<String, dynamic>.from(data["reactions"] ?? {});
-      final selectedUsers = List<String>.from(reactions[emoji] ?? const []);
+      final selectedUsers = _sanitizeReactionUsers(reactions[emoji]);
       final wasSelected = selectedUsers.contains(currentUid);
 
       final updates = <String, dynamic>{};
       for (final entry in reactions.entries) {
         final key = entry.key.toString();
-        final users = List<String>.from(entry.value ?? const []);
+        final users = _sanitizeReactionUsers(entry.value);
         if (users.contains(currentUid)) {
           updates["reactions.$key"] = FieldValue.arrayRemove([currentUid]);
         }
