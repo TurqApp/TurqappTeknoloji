@@ -1,5 +1,26 @@
 part of 'conversation_repository.dart';
 
+Map<String, dynamic> _cloneConversationMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneConversationValue(value)),
+  );
+}
+
+dynamic _cloneConversationValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneConversationValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneConversationValue).toList(growable: false);
+  }
+  return value;
+}
+
 extension ConversationRepositoryStatePart on ConversationRepository {
   List<String> normalizeConversationParticipants({
     required String chatId,
@@ -213,7 +234,7 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       try {
         final cached = await ref.get(const GetOptions(source: Source.cache));
         if (cached.exists) {
-          return Map<String, dynamic>.from(
+          return _cloneConversationMap(
             cached.data() ?? const <String, dynamic>{},
           );
         }
@@ -222,7 +243,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     if (cacheOnly) return null;
     final doc = await ref.get();
     if (!doc.exists) return null;
-    return Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});
+    return _cloneConversationMap(
+      doc.data() ?? const <String, dynamic>{},
+    );
   }
 
   Future<void> setMarketContext({
