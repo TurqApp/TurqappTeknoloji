@@ -1,5 +1,16 @@
 part of 'story_repository.dart';
 
+int _deletedStoryCacheAsInt(dynamic value, {int fallback = 0}) {
+  if (value is num) return value.toInt();
+  if (value is String) {
+    final parsed = int.tryParse(value.trim());
+    if (parsed != null) return parsed;
+    final parsedNum = num.tryParse(value.trim());
+    if (parsedNum != null) return parsedNum.toInt();
+  }
+  return fallback;
+}
+
 extension StoryRepositoryDeletedPart on StoryRepository {
   Future<void> _performMarkExpiredStoriesDeleted(String uid) async {
     try {
@@ -204,7 +215,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
         await _prefs?.remove(prefsKey);
         return null;
       }
-      final savedAtMs = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      final savedAtMs = _deletedStoryCacheAsInt(decoded['savedAt']);
       if (savedAtMs <= 0) {
         await _prefs?.remove(prefsKey);
         return null;
@@ -242,7 +253,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
           }
           restoredStories.add(story);
           restoredDeletedAt[story.id] =
-              (map['deletedAt'] as num?)?.toInt() ?? 0;
+              _deletedStoryCacheAsInt(map['deletedAt']);
           final reason = (map['deleteReason'] ?? '').toString();
           if (reason.isNotEmpty) restoredReasons[story.id] = reason;
         } catch (_) {
