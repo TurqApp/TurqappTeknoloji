@@ -24,21 +24,34 @@ class PostStats {
     this.statsCount = 0,
   });
 
+  static num _asNum(dynamic value, {num fallback = 0}) {
+    if (value is num) return value;
+    if (value is Timestamp) {
+      return value.millisecondsSinceEpoch;
+    }
+    if (value is String) {
+      final parsed = num.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
   factory PostStats.fromMap(Map<String, dynamic> data) {
     return PostStats(
-      commentCount: (data['commentCount'] ?? 0) as num,
-      likeCount: (data['likeCount'] ?? 0) as num,
-      reportedCount: (data['reportedCount'] ?? 0) as num,
-      retryCount: (data['retryCount'] ?? 0) as num,
-      savedCount: (data['savedCount'] ?? 0) as num,
-      statsCount: (data['statsCount'] ?? 0) as num,
+      commentCount: _asNum(data['commentCount']),
+      likeCount: _asNum(data['likeCount']),
+      reportedCount: _asNum(data['reportedCount']),
+      retryCount: _asNum(data['retryCount']),
+      savedCount: _asNum(data['savedCount']),
+      statsCount: _asNum(data['statsCount']),
     );
   }
 
   // Firebase'deki post verisinden stats oluşturur - sadece stats map kullanır
   factory PostStats.fromPostData(Map<String, dynamic> postData) {
     // Stats objesi içindeki değerleri al - zorunlu yapı
-    final statsData = postData['stats'] as Map<String, dynamic>?;
+    final rawStats = postData['stats'];
+    final statsData = rawStats is Map ? rawStats.cast<String, dynamic>() : null;
 
     if (statsData != null) {
       return PostStats.fromMap(statsData);
