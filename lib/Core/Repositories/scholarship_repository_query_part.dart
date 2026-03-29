@@ -168,14 +168,26 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
         .toList(growable: false);
   }
 
+  int _asScholarshipCount(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  List<String> _asScholarshipStringList(Object? value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).toList(growable: false);
+    }
+    return const <String>[];
+  }
+
   Future<int> fetchTotalCount({
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
     if (!forceRefresh && preferCache) {
       final cached = await _getRawDoc(_scholarshipRepositoryCountKey);
-      final count = (cached?['count'] as num?)?.toInt();
-      if (count != null) return count;
+      final count = _asScholarshipCount(cached?['count']);
+      if (count > 0) return count;
     }
     final agg = await ScholarshipFirestorePath.collection().count().get();
     final count = agg.count ?? 0;
@@ -305,8 +317,9 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
     var applied = doc.exists;
     if (!applied) {
       final parentDoc = await docRef.get();
-      final applicants =
-          List<String>.from(parentDoc.data()?['basvurular'] ?? const []);
+      final applicants = _asScholarshipStringList(
+        parentDoc.data()?['basvurular'],
+      );
       applied = applicants.contains(cleanUserId);
     }
 
@@ -325,13 +338,12 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
     if (!forceRefresh && preferCache) {
       final cached = await _getRawDoc(cacheKey);
       if (cached != null) {
-        return List<String>.from(cached['ids'] ?? const <String>[]);
+        return _asScholarshipStringList(cached['ids']);
       }
     }
 
     final doc = await ScholarshipFirestorePath.doc(cleanId).get();
-    final ids =
-        List<String>.from(doc.data()?['basvurular'] ?? const <String>[]);
+    final ids = _asScholarshipStringList(doc.data()?['basvurular']);
     await _storeRawDoc(cacheKey, <String, dynamic>{'ids': ids});
     return ids;
   }
