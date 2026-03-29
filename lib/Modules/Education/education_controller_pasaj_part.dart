@@ -93,6 +93,7 @@ extension EducationControllerPasajPart on EducationController {
         }
       });
       _restoreSearchForTab(preferredActual);
+      _primeVisiblePasajSurface(preferredActual);
       return;
     }
 
@@ -108,6 +109,7 @@ extension EducationControllerPasajPart on EducationController {
         }
       });
       _restoreSearchForTab(firstActual);
+      _primeVisiblePasajSurface(firstActual);
       return;
     }
 
@@ -118,6 +120,7 @@ extension EducationControllerPasajPart on EducationController {
         pageController.jumpToPage(visibleIndex);
       }
     });
+    _primeVisiblePasajSurface(selectedTab.value);
   }
 
   int actualIndexForVisible(int visibleIndex) {
