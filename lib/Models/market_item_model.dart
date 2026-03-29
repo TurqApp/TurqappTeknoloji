@@ -1,6 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MarketItemModel {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   MarketItemModel({
     required this.id,
     required this.userId,
@@ -112,7 +124,7 @@ class MarketItemModel {
       userId: (json['userId'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
-      price: (json['price'] as num?)?.toDouble() ?? 0,
+      price: _asDouble(json['price']),
       currency: (json['currency'] ?? 'TRY').toString(),
       categoryKey: (json['categoryKey'] ?? '').toString(),
       categoryPath: categoryPath,
@@ -154,9 +166,9 @@ class MarketItemModel {
           (json['contactPreference'] ?? 'message_only').toString(),
       status: (json['status'] ?? 'active').toString(),
       createdAt: _toMillis(json['createdAt']),
-      favoriteCount: (json['favoriteCount'] as num?)?.toInt() ?? 0,
-      offerCount: (json['offerCount'] as num?)?.toInt() ?? 0,
-      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
+      favoriteCount: _asInt(json['favoriteCount']),
+      offerCount: _asInt(json['offerCount']),
+      viewCount: _asInt(json['viewCount']),
       isNegotiable: json['isNegotiable'] == true,
       attributes: _cloneAttributes(json['attributes'] as Map? ?? const {}),
     );
