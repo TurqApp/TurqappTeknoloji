@@ -1,5 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+num _interactionAsNum(Object? value) {
+  if (value is num) return value;
+  return num.tryParse((value ?? '').toString()) ?? 0;
+}
+
 // Like Modeli - Posts/{postID}/likes koleksiyonu için
 class PostLikeModel {
   String userID;
@@ -12,8 +17,8 @@ class PostLikeModel {
 
   factory PostLikeModel.fromMap(Map<String, dynamic> data) {
     return PostLikeModel(
-      userID: data['userID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timeStamp: _interactionAsNum(data['timeStamp']),
     );
   }
 
@@ -73,18 +78,18 @@ class PostCommentModel {
   factory PostCommentModel.fromMap(Map<String, dynamic> data, String docID) {
     return PostCommentModel(
       likes: _cloneStringList(data['likes'] ?? const []),
-      text: data['text'] ?? '',
+      text: (data['text'] ?? '').toString(),
       imgs: _cloneStringList(data['imgs'] ?? const []),
       videos: _cloneStringList(data['videos'] ?? const []),
-      timeStamp: (data['timeStamp'] ?? 0) as num,
-      userID: data['userID'] ?? '',
+      timeStamp: _interactionAsNum(data['timeStamp']),
+      userID: (data['userID'] ?? '').toString(),
       docID: docID,
       edited: data['edited'] ?? false,
-      editTimestamp: (data['editTimestamp'] ?? 0) as num,
+      editTimestamp: _interactionAsNum(data['editTimestamp']),
       deleted: data['deleted'] ?? false,
-      deletedTimeStamp: (data['deletedTimeStamp'] ?? 0) as num,
+      deletedTimeStamp: _interactionAsNum(data['deletedTimeStamp']),
       hasReplies: data['hasReplies'] ?? false,
-      repliesCount: (data['repliesCount'] ?? 0) as num,
+      repliesCount: _interactionAsNum(data['repliesCount']),
     );
   }
 
@@ -150,16 +155,16 @@ class SubCommentModel {
   factory SubCommentModel.fromMap(Map<String, dynamic> data, String docID) {
     return SubCommentModel(
       likes: _cloneStringList(data['likes'] ?? const []),
-      text: data['text'] ?? '',
+      text: (data['text'] ?? '').toString(),
       imgs: _cloneStringList(data['imgs'] ?? const []),
       videos: _cloneStringList(data['videos'] ?? const []),
-      timeStamp: (data['timeStamp'] ?? 0) as num,
-      userID: data['userID'] ?? '',
+      timeStamp: _interactionAsNum(data['timeStamp']),
+      userID: (data['userID'] ?? '').toString(),
       docID: docID,
       edited: data['edited'] ?? false,
-      editTimestamp: (data['editTimestamp'] ?? 0) as num,
+      editTimestamp: _interactionAsNum(data['editTimestamp']),
       deleted: data['deleted'] ?? false,
-      deletedTimeStamp: (data['deletedTimeStamp'] ?? 0) as num,
+      deletedTimeStamp: _interactionAsNum(data['deletedTimeStamp']),
     );
   }
 
@@ -200,10 +205,10 @@ class PostReshareModel {
 
   factory PostReshareModel.fromMap(Map<String, dynamic> data) {
     return PostReshareModel(
-      userID: data['userID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
-      originalUserID: data['originalUserID'],
-      originalPostID: data['originalPostID'],
+      userID: (data['userID'] ?? '').toString(),
+      timeStamp: _interactionAsNum(data['timeStamp']),
+      originalUserID: data['originalUserID']?.toString(),
+      originalPostID: data['originalPostID']?.toString(),
     );
   }
 
@@ -241,8 +246,8 @@ class PostSharedAsModel {
 
   factory PostSharedAsModel.fromMap(Map<String, dynamic> data) {
     return PostSharedAsModel(
-      userID: data['userID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timeStamp: _interactionAsNum(data['timeStamp']),
     );
   }
 
@@ -270,8 +275,8 @@ class PostSavedModel {
 
   factory PostSavedModel.fromMap(Map<String, dynamic> data) {
     return PostSavedModel(
-      userID: data['userID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timeStamp: _interactionAsNum(data['timeStamp']),
     );
   }
 
@@ -299,8 +304,8 @@ class PostViewerModel {
 
   factory PostViewerModel.fromMap(Map<String, dynamic> data) {
     return PostViewerModel(
-      userID: data['userID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timeStamp: _interactionAsNum(data['timeStamp']),
     );
   }
 
@@ -328,8 +333,8 @@ class PostReporterModel {
 
   factory PostReporterModel.fromMap(Map<String, dynamic> data) {
     return PostReporterModel(
-      userID: data['userID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timeStamp: _interactionAsNum(data['timeStamp']),
     );
   }
 
