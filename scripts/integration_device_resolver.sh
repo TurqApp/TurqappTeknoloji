@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
+trim_integration_device_id() {
+  local value="${1:-}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s\n' "$value"
+}
+
 resolve_integration_device_id() {
   local platform="${1:-android}"
   local explicit="${INTEGRATION_SMOKE_DEVICE_ID:-}"
   if [[ -n "$explicit" ]]; then
-    printf '%s\n' "$explicit"
+    trim_integration_device_id "$explicit"
     return 0
   fi
 
@@ -36,5 +43,5 @@ resolve_integration_device_id() {
     return 1
   fi
 
-  printf '%s\n' "$resolved"
+  trim_integration_device_id "$resolved"
 }
