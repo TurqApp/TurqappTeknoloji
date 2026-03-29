@@ -240,10 +240,18 @@ class IndexPoolStore {
     final all = await _loadAll(allowStale: allowStale);
     final now = DateTime.now().millisecondsSinceEpoch;
     final ttlMs = (_kindTtl[kind] ?? _fallbackTtl).inMilliseconds;
+    final staleIds = <String>{};
     final filtered = all.where((e) => e.kind == k).where((entry) {
       if (allowStale) return true;
-      if (entry.updatedAt <= 0) return false;
-      return (now - entry.updatedAt) <= ttlMs;
+      if (entry.updatedAt <= 0) {
+        staleIds.add(entry.docID);
+        return false;
+      }
+      final isFresh = (now - entry.updatedAt) <= ttlMs;
+      if (!isFresh) {
+        staleIds.add(entry.docID);
+      }
+      return isFresh;
     }).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     final malformedIds = <String>{};
@@ -258,10 +266,11 @@ class IndexPoolStore {
         break;
       }
     }
-    if (malformedIds.isNotEmpty) {
+    final idsToPrune = <String>{...staleIds, ...malformedIds};
+    if (idsToPrune.isNotEmpty) {
       final repaired = all
-          .where((entry) =>
-              !(entry.kind == k && malformedIds.contains(entry.docID)))
+          .where(
+              (entry) => !(entry.kind == k && idsToPrune.contains(entry.docID)))
           .toList(growable: false);
       await _persistAll(repaired);
     }
