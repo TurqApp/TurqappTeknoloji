@@ -50,6 +50,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private let playbackHealthMonitor = PlaybackHealthMonitor(tag: "AVPlaybackHealth")
     private var playbackHealthProbe: AVPlayerPlaybackProbe?
     private var playbackWatchdog: PlaybackWatchdog?
+    private var wasMutedBeforeBackground: Bool = false
+    private var volumeBeforeBackground: Float = 1.0
 
     private func log(_ message: String) {
         print("[HLSPlayerView] \(message)")
@@ -498,6 +500,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private func setupLifecycleObservers() {
         NotificationCenter.default.addObserver(
             self,
+            selector: #selector(appWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
             selector: #selector(appDidEnterBackground),
             name: UIApplication.didEnterBackgroundNotification,
             object: nil
@@ -511,13 +520,44 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         )
     }
 
+    @objc private func appWillResignActive() {
+        forceBackgroundSilence()
+    }
+
     @objc private func appDidEnterBackground() {
         playbackHealthMonitor.onAppDidEnterBackground()
-        player?.pause()
+        forceBackgroundSilence()
     }
 
     @objc private func appWillEnterForeground() {
         playbackHealthMonitor.onAppWillEnterForeground()
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(true)
+        } catch {
+            log("Audio session reactivate failed: \(error)")
+        }
+
+        player?.isMuted = wasMutedBeforeBackground
+        player?.volume = volumeBeforeBackground
+    }
+
+    private func forceBackgroundSilence() {
+        wasMutedBeforeBackground = player?.isMuted ?? false
+        volumeBeforeBackground = player?.volume ?? 1.0
+
+        player?.pause()
+        player?.isMuted = true
+        player?.volume = 0
+        player?.rate = 0
+        playbackHealthMonitor.onPlaybackPaused()
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            log("Audio session deactivate failed: \(error)")
+        }
     }
 
     // MARK: - Layout

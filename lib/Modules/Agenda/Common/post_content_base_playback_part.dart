@@ -96,7 +96,18 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
-      v.pause();
+      unawaited(v.forceSilence());
+      _hasAutoPlayed = false;
+      _resetAutoplaySegmentGate();
+      _playbackIntentTracked = false;
+      _syncRuntimeHints(hasStableFocus: false);
+    }
+  }
+
+  void _stopPlaybackForSurfaceLoss() {
+    final v = _videoAdapter;
+    if (v != null) {
+      unawaited(v.silenceAndStopPlayback());
       _hasAutoPlayed = false;
       _resetAutoplaySegmentGate();
       _playbackIntentTracked = false;

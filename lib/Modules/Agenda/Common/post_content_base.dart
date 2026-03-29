@@ -299,7 +299,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         agendaController.playbackSuspended,
         (suspended) {
           if (suspended || !_isSurfacePlaybackAllowed) {
-            _safePauseVideo();
+            _stopPlaybackForSurfaceLoss();
           } else {
             _resumePlaybackIfEligible(source: 'playback_suspension_released');
           }
@@ -310,7 +310,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       if (nav != null) {
         _navSelectionWorker = ever<int>(nav.selectedIndex, (_) {
           if (!_isSurfacePlaybackAllowed) {
-            _safePauseVideo();
+            _stopPlaybackForSurfaceLoss();
           } else {
             _resumePlaybackIfEligible(source: 'nav_selection_changed');
           }
