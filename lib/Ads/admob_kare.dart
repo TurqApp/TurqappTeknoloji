@@ -81,12 +81,14 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _impressionReported = false;
   int _retryCount = 0;
   Timer? _retryTimer;
+  Timer? _fallbackGateTimer;
   DateTime? _qaRequestStartedAt;
   late final Key _visibilityKey;
   bool _isVisible = false;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
+  static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
   static const double _promoSlotHeight = 270;
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
@@ -96,6 +98,7 @@ class _AdmobKareState extends State<AdmobKare> {
       const <SliderResolvedItem>[];
   int _visibleSuggestionIndex = 0;
   String _lastReportedManagedItemId = '';
+  bool _allowFallbackSurface = false;
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
@@ -285,6 +288,8 @@ class _AdmobKareState extends State<AdmobKare> {
     if (previousPlacement == nextPlacement) {
       return;
     }
+    _fallbackGateTimer?.cancel();
+    _allowFallbackSurface = false;
     _suggestionConfig = null;
     _fallbackSuggestionConfig = nextPlacement.isEmpty
         ? null
@@ -456,6 +461,21 @@ class _AdmobKareState extends State<AdmobKare> {
     });
   }
 
+  void _armFallbackGate() {
+    _fallbackGateTimer?.cancel();
+    if (_isDisposed || !_isVisible || _canRenderAd(_bannerAd)) {
+      return;
+    }
+    _fallbackGateTimer = Timer(_fallbackRevealDelay, () {
+      if (_isDisposed || !mounted || !_isVisible || _canRenderAd(_bannerAd)) {
+        return;
+      }
+      setState(() {
+        _allowFallbackSurface = true;
+      });
+    });
+  }
+
   void _handleVisibilityChanged(VisibilityInfo info) {
     final nextVisible = info.visibleFraction > 0.01;
     if (_isVisible == nextVisible) {
@@ -464,6 +484,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _isVisible = nextVisible;
     if (!_isVisible) {
       _retryTimer?.cancel();
+      _fallbackGateTimer?.cancel();
       return;
     }
     if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
@@ -471,7 +492,11 @@ class _AdmobKareState extends State<AdmobKare> {
       if (_canRenderAd(_bannerAd)) {
         return;
       }
-      _queueManagedSuggestionImpressionIfVisible();
+      if (_allowFallbackSurface || _loadFailed) {
+        _queueManagedSuggestionImpressionIfVisible();
+      } else {
+        _armFallbackGate();
+      }
     }
     if (_bannerAd == null || !_isAdLoaded) {
       _attachBannerOrLoad();
@@ -510,6 +535,7 @@ class _AdmobKareState extends State<AdmobKare> {
       setState(() {
         _isAdLoaded = false;
         _loadFailed = false;
+        _allowFallbackSurface = false;
       });
     }
     _impressionReported = false;
@@ -545,8 +571,10 @@ class _AdmobKareState extends State<AdmobKare> {
             setState(() {
               _isAdLoaded = true;
               _loadFailed = false;
+              _allowFallbackSurface = false;
             });
           }
+          _fallbackGateTimer?.cancel();
           if (_supportsSharedPool) {
             unawaited(warmupPool(
               bypassMinInterval: true,
@@ -584,6 +612,11 @@ class _AdmobKareState extends State<AdmobKare> {
               _globalFailureBurstCount >= _failureBurstBeforeCooldown ||
               _retryCount >= _maxRetryCount;
           if (shouldEnterCooldown) {
+            if (mounted && !_isDisposed) {
+              setState(() {
+                _allowFallbackSurface = true;
+              });
+            }
             _globalCooldownUntil = DateTime.now().add(_cooldownRetryDelay);
             _log(
                 'cooldown retry in ${_cooldownRetryDelay.inMilliseconds}ms after code=${error.code} unit=$adUnitId platform=${Platform.operatingSystem}');
@@ -625,6 +658,7 @@ class _AdmobKareState extends State<AdmobKare> {
               _isAdLoaded = false;
             });
           }
+          _armFallbackGate();
           _scheduleRetry(delay: retryDelay);
         },
         onAdOpened: (Ad ad) {
@@ -660,6 +694,7 @@ class _AdmobKareState extends State<AdmobKare> {
   void dispose() {
     _isDisposed = true;
     _retryTimer?.cancel();
+    _fallbackGateTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;
@@ -752,11 +787,17 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         }
       } else if (showManagedSuggestion) {
-        _queueManagedSuggestionImpressionIfVisible();
-        child = _buildManagedSuggestionSlot();
+        if (_allowFallbackSurface || _loadFailed) {
+          _queueManagedSuggestionImpressionIfVisible();
+          child = _buildManagedSuggestionSlot();
+        } else {
+          child = _buildPendingAdSlot();
+        }
       } else {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
+        } else if (!_allowFallbackSurface && !_loadFailed) {
+          child = _buildPendingAdSlot();
         } else {
           final fallbackSurface = SizedBox(
             height: _promoSlotHeight,
@@ -795,6 +836,23 @@ class _AdmobKareState extends State<AdmobKare> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: child,
+      ),
+    );
+  }
+
+  Widget _buildPendingAdSlot() {
+    if (!widget.showChrome) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: widget.contentPadding,
+      child: SizedBox(
+        height: _promoSlotHeight,
+        child: _buildPromoFrame(
+          child: const Center(
+            child: CupertinoActivityIndicator(),
+          ),
+        ),
       ),
     );
   }

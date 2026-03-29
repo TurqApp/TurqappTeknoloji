@@ -105,6 +105,15 @@ extension AgendaControllerLoadingPart on AgendaController {
         message.contains('the service is currently unavailable');
   }
 
+  bool _isTransientAgendaPermissionDenied(Object error) {
+    if (error is FirebaseException && error.code == 'permission-denied') {
+      return true;
+    }
+    final message = normalizeLowercase(error.toString());
+    return message.contains('cloud_firestore/permission-denied') ||
+        message.contains('permission denied');
+  }
+
   void _clearAgendaRetry() {
     _agendaRetryTimer?.cancel();
     _agendaRetryTimer = null;
@@ -479,14 +488,27 @@ extension AgendaControllerLoadingPart on AgendaController {
   Future<void> _performSyncFeedHeadAfterSurfaceOpen() async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cutoffMs = _agendaCutoffMs(nowMs);
-    final page = await _loadAgendaSourcePage(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: _initialHeadSyncLimit,
-      startAfter: null,
-      preferCache: false,
-      cacheOnly: false,
-    );
+    _AgendaSourcePage page;
+    try {
+      page = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: _initialHeadSyncLimit,
+        startAfter: null,
+        preferCache: false,
+        cacheOnly: false,
+      );
+    } catch (error) {
+      final signedOut =
+          CurrentUserService.instance.effectiveUserId.trim().isEmpty;
+      if (signedOut && _isTransientAgendaPermissionDenied(error)) {
+        debugPrint(
+          '[agenda] ignored head sync permission loss after sign-out: $error',
+        );
+        return;
+      }
+      rethrow;
+    }
     final visibleItems = page.items;
 
     _usePrimaryFeedPaging = page.usesPrimaryFeed;
