@@ -1,6 +1,8 @@
 part of 'profile_repository_library.dart';
 
 extension ProfileRepositoryQueryPart on ProfileRepository {
+  String _asTrimmedString(dynamic value) => (value ?? '').toString().trim();
+
   Map<String, dynamic> _coerceMap(dynamic value) {
     if (value is Map<String, dynamic>) {
       return Map<String, dynamic>.from(value);
@@ -17,7 +19,9 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     required Map<String, dynamic>? snapshotData,
   }) {
     final base = card ??
-        (snapshotData == null ? null : PostsModel.fromMap(snapshotData, postId));
+        (snapshotData == null
+            ? null
+            : PostsModel.fromMap(snapshotData, postId));
     if (base == null || snapshotData == null) return base;
 
     final poll = _coerceMap(snapshotData['poll']);
@@ -133,8 +137,8 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       return null;
     }
 
-    final postId = snapshot.docs.first.data()['post_docID'] as String?;
-    if (postId == null || postId.isEmpty) {
+    final postId = _asTrimmedString(snapshot.docs.first.data()['post_docID']);
+    if (postId.isEmpty) {
       _latestResharePostMemory[uid] = null;
       return null;
     }
