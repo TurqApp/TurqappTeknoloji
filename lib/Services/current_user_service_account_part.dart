@@ -431,7 +431,8 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
           final uid = user?.uid;
           if (uid != null && uid.isNotEmpty) {
             final data = await _readCachedRootUserDataSilently(uid);
-            isVerified = data['emailVerified'] == true;
+            isVerified =
+                parseAccountFlag(data['emailVerified'], fallback: false);
           }
         } catch (e, st) {
           _logSilently('email.verify.root-check', e, st);
@@ -449,7 +450,8 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
         final uid = authUserId;
         if (uid.isNotEmpty) {
           final data = await _readCachedRootUserDataSilently(uid);
-          emailVerifiedRx.value = data['emailVerified'] == true;
+          emailVerifiedRx.value =
+              parseAccountFlag(data['emailVerified'], fallback: false);
           return;
         }
       } catch (inner, innerSt) {
