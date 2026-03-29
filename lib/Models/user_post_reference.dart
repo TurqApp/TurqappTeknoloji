@@ -22,10 +22,10 @@ class UserPostReference {
         ? rawTime
         : rawTime is Timestamp
             ? rawTime.millisecondsSinceEpoch
-            : 0;
+            : num.tryParse(rawTime?.toString() ?? '') ?? 0;
     return UserPostReference(
       docId: docId,
-      postId: data['post_docID'] as String? ?? docId,
+      postId: (data['post_docID'] ?? docId).toString(),
       timeStamp: parsedTime,
     );
   }

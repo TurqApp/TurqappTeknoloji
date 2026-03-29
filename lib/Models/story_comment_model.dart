@@ -17,10 +17,12 @@ class StoryCommentModel {
       {required String docID}) {
     return StoryCommentModel(
       docID: docID,
-      userID: data['userID'] ?? '',
-      metin: data['metin'] ?? '',
-      timeStamp: data['timeStamp'] ?? 0,
-      gif: data['gif'] ?? '',
+      userID: (data['userID'] ?? '').toString(),
+      metin: (data['metin'] ?? '').toString(),
+      timeStamp: (data['timeStamp'] as num?) ??
+          num.tryParse((data['timeStamp'] ?? '').toString()) ??
+          0,
+      gif: (data['gif'] ?? '').toString(),
     );
   }
 }

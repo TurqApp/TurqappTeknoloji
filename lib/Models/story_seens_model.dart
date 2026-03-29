@@ -16,7 +16,7 @@ class StorySeensModel {
     final data = doc.data()!;
     final ts = data['timeStamp'];
     return StorySeensModel(
-      userID: data['userID'] as String? ?? doc.id,
+      userID: (data['userID'] ?? doc.id).toString(),
       timeStamp: ts is Timestamp
           ? ts.millisecondsSinceEpoch
           : int.tryParse(ts.toString()) ?? 0,

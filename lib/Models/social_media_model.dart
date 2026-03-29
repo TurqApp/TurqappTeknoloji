@@ -25,8 +25,10 @@ class SocialMediaModel {
     return SocialMediaModel(
       docID: doc.id,
       title: title,
-      url: data['url'] ?? '',
-      sira: data['sira'] ?? 0,
+      url: (data['url'] ?? '').toString(),
+      sira: (data['sira'] as num?) ??
+          num.tryParse((data['sira'] ?? '').toString()) ??
+          0,
       logo: resolvedLogo,
     );
   }

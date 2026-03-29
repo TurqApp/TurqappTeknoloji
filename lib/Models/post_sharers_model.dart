@@ -13,9 +13,11 @@ class PostSharersModel {
 
   factory PostSharersModel.fromMap(Map<String, dynamic> data) {
     return PostSharersModel(
-      userID: data['userID'] ?? '',
-      timestamp: (data['timestamp'] ?? 0) as int,
-      sharedPostID: data['sharedPostID'] ?? '',
+      userID: (data['userID'] ?? '').toString(),
+      timestamp: (data['timestamp'] as num?)?.toInt() ??
+          int.tryParse((data['timestamp'] ?? '').toString()) ??
+          0,
+      sharedPostID: (data['sharedPostID'] ?? '').toString(),
     );
   }
 
