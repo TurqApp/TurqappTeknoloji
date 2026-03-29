@@ -132,6 +132,69 @@ Future<void> pruneFeedHomeSnapshots(
   }
 }
 
+Future<void> pruneFeedHomeStartupShard(
+  FeedSnapshotRepository repository, {
+  required String userId,
+  required Iterable<String> docIds,
+}) async {
+  final normalizedUserId = userId.trim();
+  final removeIds = docIds
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toSet();
+  if (normalizedUserId.isEmpty || removeIds.isEmpty) return;
+
+  final shardStore = ensureStartupSnapshotShardStore();
+  final shard = await shardStore.load(
+    surface: 'feed',
+    userId: normalizedUserId,
+    maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+  );
+  if (shard == null || shard.itemCount <= 0 || shard.payload.isEmpty) return;
+
+  final effectiveLimit = shard.limit > 0
+      ? shard.limit
+      : FeedSnapshotRepository._defaultPersistLimit;
+  final current = repository
+      ._normalizePosts(repository._decodePosts(shard.payload))
+      .take(effectiveLimit)
+      .toList(growable: false);
+  if (current.isEmpty) {
+    await shardStore.clear(
+      surface: 'feed',
+      userId: normalizedUserId,
+    );
+    return;
+  }
+
+  final filtered = current
+      .where((post) => !removeIds.contains(post.docID))
+      .take(effectiveLimit)
+      .toList(growable: false);
+  if (filtered.length == current.length) return;
+
+  if (filtered.isEmpty) {
+    await shardStore.clear(
+      surface: 'feed',
+      userId: normalizedUserId,
+    );
+    return;
+  }
+
+  await shardStore.save(
+    surface: 'feed',
+    userId: normalizedUserId,
+    itemCount: filtered.length,
+    limit: effectiveLimit,
+    source: shard.source,
+    snapshotAt: shard.snapshotAt,
+    payload: repository.encodeHomeStartupPayload(
+      filtered,
+      limit: effectiveLimit,
+    ),
+  );
+}
+
 extension FeedSnapshotRepositoryStartupShardPart on FeedSnapshotRepository {
   Map<String, dynamic> encodeHomeStartupPayload(
     List<PostsModel> posts, {

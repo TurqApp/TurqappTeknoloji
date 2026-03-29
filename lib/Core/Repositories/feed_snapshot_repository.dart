@@ -187,6 +187,16 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         docIds: docIds,
         additionalLimits: additionalLimits,
       );
+
+  Future<void> pruneHomeStartupShard({
+    required String userId,
+    required Iterable<String> docIds,
+  }) =>
+      pruneFeedHomeStartupShard(
+        this,
+        userId: userId,
+        docIds: docIds,
+      );
 }
 
 class FeedSnapshotQuery {

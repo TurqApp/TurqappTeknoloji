@@ -4,7 +4,6 @@ import '../Models/posts_model.dart';
 import '../Core/Repositories/feed_snapshot_repository.dart';
 import '../Core/Repositories/post_repository.dart';
 import '../Core/Repositories/user_repository.dart';
-import '../Core/Services/CacheFirst/startup_snapshot_shard_store.dart';
 import '../Core/Services/IndexPool/index_pool_store.dart';
 import '../Core/Services/agenda_shuffle_cache_service.dart';
 import '../Core/Services/typesense_post_service.dart';
@@ -312,9 +311,9 @@ class PostDeleteService {
       } catch (_) {}
 
       try {
-        await ensureStartupSnapshotShardStore().clear(
-          surface: 'feed',
+        await ensureFeedSnapshotRepository().pruneHomeStartupShard(
           userId: viewerUserId,
+          docIds: ids,
         );
       } catch (_) {}
     }
