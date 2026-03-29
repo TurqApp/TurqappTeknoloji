@@ -1,6 +1,18 @@
 part of 'app_health_dashboard.dart';
 
 extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Widget _buildPlaybackIntelligenceCard() {
     final budgetManager = StorageBudgetManager.ensure();
     final profile = budgetManager.currentProfile;
@@ -453,8 +465,8 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
     final mediaStats = _getMediaStats();
 
     final errorStatus = (health['status'] ?? 'unknown').toString();
-    final uploadBekliyor = (uploadStats['pending'] as num?)?.toInt() ?? 0;
-    final draftTotal = (draftStats['total'] as num?)?.toInt() ?? 0;
+    final uploadBekliyor = _asInt(uploadStats['pending']);
+    final draftTotal = _asInt(draftStats['total']);
     final canUndo = (editStats['canUndo'] as bool?) ?? false;
     final mediaProcessing = (mediaStats['isProcessing'] as bool?) ?? false;
 
@@ -538,10 +550,9 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
     final errorStats = _getErrorStats();
     final uploadStats = _getUploadStats();
 
-    final dataUsagePercent =
-        (networkStats['dataUsagePercentage'] as num?)?.toDouble() ?? 0.0;
-    final criticalErrors = (errorStats['critical'] as num?)?.toInt() ?? 0;
-    final pendingUploads = (uploadStats['pending'] as num?)?.toInt() ?? 0;
+    final dataUsagePercent = _asDouble(networkStats['dataUsagePercentage']);
+    final criticalErrors = _asInt(errorStats['critical']);
+    final pendingUploads = _asInt(uploadStats['pending']);
 
     double cacheHitRate = 0;
     final cache = SegmentCacheManager.maybeFind();
