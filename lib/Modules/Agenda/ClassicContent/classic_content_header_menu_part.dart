@@ -4,6 +4,7 @@ extension ClassicContentHeaderMenuPart on _ClassicContentState {
   Widget pulldownmenu(Color color) {
     final canManagePost =
         widget.model.userID == _currentUid || controller.canSendAdminPush;
+    final canEditPost = controller.canSendAdminPush;
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(
@@ -36,7 +37,7 @@ extension ClassicContentHeaderMenuPart on _ClassicContentState {
           title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
         ),
-        if (canManagePost)
+        if (canEditPost)
           PullDownMenuItem(
             onTap: () {
               _suspendClassicFeedForRoute();

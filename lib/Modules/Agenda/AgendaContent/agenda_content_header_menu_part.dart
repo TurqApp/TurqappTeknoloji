@@ -5,6 +5,7 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
     final currentUid = _currentUid;
     final canManagePost =
         widget.model.userID == currentUid || controller.canSendAdminPush;
+    final canEditPost = controller.canSendAdminPush;
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(
@@ -37,7 +38,7 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
           title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
         ),
-        if (canManagePost)
+        if (canEditPost)
           PullDownMenuItem(
             onTap: () {
               _suspendAgendaFeedForRoute();
