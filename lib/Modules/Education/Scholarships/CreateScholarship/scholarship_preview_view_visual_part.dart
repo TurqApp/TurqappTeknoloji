@@ -122,82 +122,168 @@ extension ScholarshipPreviewViewVisualPart on ScholarshipPreviewView {
         key: controller.templateKey,
         child: AspectRatio(
           aspectRatio: 4 / 3,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                'assets/bursSablonlar/${controller.selectedTemplateIndex.value + 1}.webp',
-                fit: BoxFit.cover,
-              ),
-              if (controller.bursVeren.value.isNotEmpty)
-                Positioned(
-                  top: 65,
-                  left: 15,
-                  child: Obx(() {
-                    final words = controller.bursVeren.value.split(' ');
-                    final allWords = [...words, 'BURS', 'BAŞVURULARI'];
-                    return Text(
-                      allWords.join('\n'),
-                      style: TextStyles.textFieldTitle.copyWith(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textHeightBehavior: const TextHeightBehavior(
-                        applyHeightToFirstAscent: false,
-                        applyHeightToLastDescent: false,
-                      ),
-                    );
-                  }),
-                ),
-              if (controller.logo.value.isNotEmpty)
-                Positioned(
-                  top: 70,
-                  right: 12,
-                  child: controller.logo.value.startsWith('http')
-                      ? CachedNetworkImage(
-                          imageUrl: controller.logo.value,
-                          width: logoSize,
-                          height: logoSize,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
-                        )
-                      : Image.file(
-                          File(controller.logo.value),
-                          width: logoSize,
-                          height: logoSize,
-                          fit: BoxFit.cover,
-                        ),
-                ),
-              if (controller.website.value.isNotEmpty)
-                Positioned(
-                  bottom: 6,
-                  left: 20,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        CupertinoIcons.globe,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        controller.website.value,
-                        style: TextStyles.textFieldTitle.copyWith(
-                          color: Colors.white,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final height = constraints.maxHeight;
+
+              return Stack(
+                fit: StackFit.expand,
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  Image.asset(
+                    'assets/bursSablonlar/${controller.selectedTemplateIndex.value + 1}.webp',
+                    fit: BoxFit.cover,
                   ),
-                ),
-            ],
+                  if (controller.bursVeren.value.isNotEmpty)
+                    Positioned(
+                      top: height * 0.21,
+                      left: width * 0.045,
+                      width: width * 0.35,
+                      height: height * 0.5,
+                      child: _buildTemplateTitle(
+                        bursVeren: controller.bursVeren.value,
+                        width: width * 0.35,
+                        height: height * 0.5,
+                      ),
+                    ),
+                  if (controller.logo.value.isNotEmpty)
+                    Positioned(
+                      top: height * 0.23,
+                      right: width * 0.035,
+                      width: width * 0.4,
+                      height: height * 0.45,
+                      child: _buildTemplateLogo(
+                        logoPath: controller.logo.value,
+                        width: width * 0.4,
+                        height: height * 0.45,
+                      ),
+                    ),
+                  if (controller.website.value.isNotEmpty)
+                    Positioned(
+                      left: width * 0.045,
+                      right: width * 0.12,
+                      bottom: height * 0.015,
+                      height: height * 0.11,
+                      child: _buildTemplateWebsite(
+                        website: controller.website.value,
+                        width: width * 0.835,
+                        height: height * 0.11,
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),
     ];
+  }
+
+  Widget _buildTemplateTitle({
+    required String bursVeren,
+    required double width,
+    required double height,
+  }) {
+    final words = bursVeren
+        .split(RegExp(r'\s+'))
+        .where((word) => word.trim().isNotEmpty)
+        .toList();
+    final titleText = [...words, 'BURS', 'BAŞVURULARI'].join('\n');
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: FittedBox(
+        alignment: Alignment.topLeft,
+        fit: BoxFit.scaleDown,
+        child: SizedBox(
+          width: width,
+          child: Text(
+            titleText,
+            maxLines: 6,
+            softWrap: true,
+            style: TextStyles.textFieldTitle.copyWith(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              height: 1.08,
+            ),
+            textHeightBehavior: const TextHeightBehavior(
+              applyHeightToFirstAscent: false,
+              applyHeightToLastDescent: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTemplateLogo({
+    required String logoPath,
+    required double width,
+    required double height,
+  }) {
+    final imageWidget = logoPath.startsWith('http')
+        ? CachedNetworkImage(
+            imageUrl: logoPath,
+            fit: BoxFit.contain,
+            errorWidget: (context, url, error) => const Icon(Icons.error),
+          )
+        : Image.file(
+            File(logoPath),
+            fit: BoxFit.contain,
+          );
+
+    return ClipRect(
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: width * 0.06,
+          vertical: height * 0.06,
+        ),
+        child: Align(
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: imageWidget,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTemplateWebsite({
+    required String website,
+    required double width,
+    required double height,
+  }) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: FittedBox(
+        alignment: Alignment.centerLeft,
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              CupertinoIcons.globe,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              website,
+              style: TextStyles.textFieldTitle.copyWith(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   List<Widget> _buildCustomImages(CreateScholarshipController controller) {
