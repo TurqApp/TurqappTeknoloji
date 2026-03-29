@@ -8,13 +8,19 @@ class StoryUserModel {
   String userID;
   List<StoryModel> stories;
 
+  static List<StoryModel> _cloneStories(List<StoryModel> stories) {
+    return stories
+        .map((story) => StoryModel.fromCacheMap(story.toCacheMap()))
+        .toList(growable: false);
+  }
+
   StoryUserModel({
     required this.nickname,
     required this.avatarUrl,
     required this.fullName,
     required this.userID,
-    required this.stories,
-  });
+    required List<StoryModel> stories,
+  }) : stories = _cloneStories(stories);
 
   Map<String, dynamic> toCacheMap() => {
         'nickname': nickname,
@@ -25,8 +31,18 @@ class StoryUserModel {
       };
 
   factory StoryUserModel.fromCacheMap(Map<String, dynamic> map) {
-    final rawStories =
-        (map['stories'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final rawStories = (map['stories'] as List?) ?? const [];
+    final stories = <StoryModel>[];
+    for (final rawStory in rawStories) {
+      if (rawStory is! Map) continue;
+      try {
+        stories.add(
+          StoryModel.fromCacheMap(
+            Map<String, dynamic>.from(rawStory.cast<dynamic, dynamic>()),
+          ),
+        );
+      } catch (_) {}
+    }
     return StoryUserModel(
       nickname: (map['nickname'] ?? '').toString(),
       avatarUrl: ((map['avatarUrl'] ?? '').toString().trim().isEmpty)
@@ -34,7 +50,7 @@ class StoryUserModel {
           : (map['avatarUrl'] ?? '').toString(),
       fullName: (map['fullName'] ?? '').toString(),
       userID: (map['userID'] ?? '').toString(),
-      stories: rawStories.map(StoryModel.fromCacheMap).toList(),
+      stories: stories,
     );
   }
 }
