@@ -205,26 +205,47 @@ class CurrentUserSyncRole {
     required String uid,
     required Map<String, dynamic> rootData,
   }) async {
-    final merged = <String, dynamic>{...rootData};
+    dynamic cloneValue(dynamic value) {
+      if (value is Map) {
+        return value.map(
+          (key, nestedValue) =>
+              MapEntry(key.toString(), cloneValue(nestedValue)),
+        );
+      }
+      if (value is List) {
+        return value.map(cloneValue).toList(growable: false);
+      }
+      return value;
+    }
+
+    Map<String, dynamic> cloneMap(Map<String, dynamic> source) {
+      return source.map((key, value) => MapEntry(key, cloneValue(value)));
+    }
+
+    final merged = cloneMap(rootData);
     final currentSnapshot =
         (service._currentUser != null && service._currentUser!.userID == uid)
             ? service._currentUser!.toJson()
             : const <String, dynamic>{};
 
     Map<String, dynamic> extractRootMap(String key) {
-      final raw = rootData[key];
-      if (raw is Map<String, dynamic>) return Map<String, dynamic>.from(raw);
+      final raw = merged[key];
+      if (raw is Map<String, dynamic>) return cloneMap(raw);
       if (raw is Map) {
-        return raw.map((mapKey, value) => MapEntry(mapKey.toString(), value));
+        return cloneMap(
+          raw.map((mapKey, value) => MapEntry(mapKey.toString(), value)),
+        );
       }
       return <String, dynamic>{};
     }
 
     Map<String, dynamic> extractCurrentMap(String key) {
       final raw = currentSnapshot[key];
-      if (raw is Map<String, dynamic>) return Map<String, dynamic>.from(raw);
+      if (raw is Map<String, dynamic>) return cloneMap(raw);
       if (raw is Map) {
-        return raw.map((mapKey, value) => MapEntry(mapKey.toString(), value));
+        return cloneMap(
+          raw.map((mapKey, value) => MapEntry(mapKey.toString(), value)),
+        );
       }
       return <String, dynamic>{};
     }
@@ -258,19 +279,19 @@ class CurrentUserSyncRole {
       if (cached != null &&
           CurrentUserCacheStore(service)
               .isFresh(cached.fetchedAt, _listCacheTtl)) {
-        return Map<String, dynamic>.from(cached.value);
+        return cloneMap(cached.value);
       }
       try {
         final loaded = await loader();
         _listCache[cacheKey] = _TimedValue<Map<String, dynamic>>(
-          value: loaded,
+          value: cloneMap(loaded),
           fetchedAt: DateTime.now(),
         );
-        return loaded;
+        return cloneMap(loaded);
       } catch (e, st) {
         CurrentUserCacheStore(service).logSilently('subcol.$key', e, st);
         if (cached != null) {
-          return Map<String, dynamic>.from(cached.value);
+          return cloneMap(cached.value);
         }
         return <String, dynamic>{};
       }
@@ -315,7 +336,7 @@ class CurrentUserSyncRole {
 
     void mergeOverride(Map<String, dynamic> source) {
       source.forEach((k, v) {
-        merged[k] = v;
+        merged[k] = cloneValue(v);
       });
     }
 
@@ -371,7 +392,7 @@ class CurrentUserSyncRole {
       if (!rootData.containsKey(key)) return;
       final value = rootData[key];
       if (value != null) {
-        merged[key] = value;
+        merged[key] = cloneValue(value);
       }
     }
 
@@ -543,7 +564,7 @@ class CurrentUserSyncRole {
       }
     }
 
-    return merged;
+    return cloneMap(merged);
   }
 
   Future<void> stopFirebaseSync() async {
