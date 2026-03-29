@@ -1,6 +1,11 @@
 part of 'practice_exam_repository.dart';
 
 extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
+  int _asPracticeExamTimestamp(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Future<List<SinavModel>> fetchByExamType(
     String sinavTuru, {
     int limit = ReadBudgetRegistry.practiceExamTypeInitialLimit,
@@ -97,8 +102,8 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
         .get();
     final items = snap.docs
       ..sort((a, b) {
-        final aTs = (a.data()['timeStamp'] as num?) ?? 0;
-        final bTs = (b.data()['timeStamp'] as num?) ?? 0;
+        final aTs = _asPracticeExamTimestamp(a.data()['timeStamp']);
+        final bTs = _asPracticeExamTimestamp(b.data()['timeStamp']);
         return bTs.compareTo(aTs);
       });
     final models = items
