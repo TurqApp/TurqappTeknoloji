@@ -122,6 +122,12 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
         prefs?.remove(_prefsKey);
         return;
       }
+      final cachedAt = DateTime.fromMillisecondsSinceEpoch(cachedAtMs);
+      if (DateTime.now().difference(cachedAt) >
+          RecommendedUsersRepository._ttl) {
+        prefs?.remove(_prefsKey);
+        return;
+      }
       final restored = <RecommendedUserModel>[];
       for (final item in items) {
         if (item is! Map) continue;
@@ -135,7 +141,7 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
         return;
       }
       _memory = restored;
-      _cachedAt = DateTime.fromMillisecondsSinceEpoch(cachedAtMs);
+      _cachedAt = cachedAt;
     } catch (_) {
       _prefs?.remove(_prefsKey);
     }
