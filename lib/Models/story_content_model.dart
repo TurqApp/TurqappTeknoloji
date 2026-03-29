@@ -14,8 +14,13 @@ class StoryContentModel {
   num aspectRatio;
   num seenCount;
 
-  static List<String> _cloneStringList(List<String> source) =>
-      List<String>.from(source, growable: false);
+  static List<String> _cloneStringList(List<String> source) {
+    if (source.isEmpty) return const <String>[];
+    return source
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+  }
 
   StoryContentModel({
     required this.start,
