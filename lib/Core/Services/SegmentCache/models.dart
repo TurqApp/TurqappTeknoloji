@@ -32,11 +32,19 @@ class CachedSegment {
       };
 
   factory CachedSegment.fromJson(Map<String, dynamic> json) => CachedSegment(
-        segmentUri: json['segmentUri'] as String,
-        diskPath: json['diskPath'] as String,
-        sizeBytes: json['sizeBytes'] as int,
-        cachedAt: DateTime.fromMillisecondsSinceEpoch(json['cachedAt'] as int),
+        segmentUri: (json['segmentUri'] ?? '').toString(),
+        diskPath: (json['diskPath'] ?? '').toString(),
+        sizeBytes: _asInt(json['sizeBytes']),
+        cachedAt: DateTime.fromMillisecondsSinceEpoch(
+          _asInt(
+            json['cachedAt'],
+            fallback: DateTime.now().millisecondsSinceEpoch,
+          ),
+        ),
       );
+
+  bool get isValid =>
+      segmentUri.trim().isNotEmpty && diskPath.trim().isNotEmpty;
 }
 
 class VideoCacheEntry {
@@ -89,28 +97,42 @@ class VideoCacheEntry {
 
   factory VideoCacheEntry.fromJson(Map<String, dynamic> json) {
     final segmentsMap = <String, CachedSegment>{};
-    final segmentsJson = json['segments'] as Map<String, dynamic>? ?? {};
+    final segmentsJson = (json['segments'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
     for (final entry in segmentsJson.entries) {
-      segmentsMap[entry.key] =
-          CachedSegment.fromJson(entry.value as Map<String, dynamic>);
+      final rawValue = entry.value;
+      if (rawValue is! Map) continue;
+      final segment = CachedSegment.fromJson(
+        Map<String, dynamic>.from(rawValue.cast<dynamic, dynamic>()),
+      );
+      if (!segment.isValid) continue;
+      segmentsMap[entry.key] = segment;
     }
 
     return VideoCacheEntry(
-      docID: json['docID'] as String,
-      masterPlaylistUrl: json['masterPlaylistUrl'] as String,
+      docID: (json['docID'] ?? '').toString(),
+      masterPlaylistUrl: (json['masterPlaylistUrl'] ?? '').toString(),
       segments: segmentsMap,
-      totalSegmentCount: json['totalSegmentCount'] as int? ?? 0,
-      totalSizeBytes: json['totalSizeBytes'] as int? ?? 0,
+      totalSegmentCount: _asInt(json['totalSegmentCount']),
+      totalSizeBytes: _asInt(json['totalSizeBytes']),
       lastAccessedAt: json['lastAccessedAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(json['lastAccessedAt'] as int)
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['lastAccessedAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
           : DateTime.now(),
       watchProgress: (json['watchProgress'] as num?)?.toDouble() ?? 0.0,
       state: VideoCacheState.values.firstWhere(
-        (s) => s.name == json['state'],
+        (s) => s.name == (json['state'] ?? '').toString(),
         orElse: () => VideoCacheState.uncached,
       ),
     );
   }
+
+  bool get isValid =>
+      docID.trim().isNotEmpty && masterPlaylistUrl.trim().isNotEmpty;
 }
 
 class CacheIndex {
@@ -127,8 +149,9 @@ class CacheIndex {
     Map<String, VideoCacheEntry>? entries,
     this.totalSizeBytes = 0,
   }) : entries = (entries ?? const <String, VideoCacheEntry>{}).map(
-         (key, value) => MapEntry(key, VideoCacheEntry.fromJson(value.toJson())),
-       );
+          (key, value) =>
+              MapEntry(key, VideoCacheEntry.fromJson(value.toJson())),
+        );
 
   Map<String, dynamic> toJson() => {
         'entries': entries.map((k, v) => MapEntry(k, v.toJson())),
@@ -137,14 +160,27 @@ class CacheIndex {
 
   factory CacheIndex.fromJson(Map<String, dynamic> json) {
     final entriesMap = <String, VideoCacheEntry>{};
-    final entriesJson = json['entries'] as Map<String, dynamic>? ?? {};
+    final entriesJson = (json['entries'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
     for (final entry in entriesJson.entries) {
-      entriesMap[entry.key] =
-          VideoCacheEntry.fromJson(entry.value as Map<String, dynamic>);
+      final rawValue = entry.value;
+      if (rawValue is! Map) continue;
+      final cacheEntry = VideoCacheEntry.fromJson(
+        Map<String, dynamic>.from(rawValue.cast<dynamic, dynamic>()),
+      );
+      if (!cacheEntry.isValid) continue;
+      entriesMap[entry.key] = cacheEntry;
     }
     return CacheIndex(
       entries: entriesMap,
-      totalSizeBytes: json['totalSizeBytes'] as int? ?? 0,
+      totalSizeBytes: _asInt(json['totalSizeBytes']),
     );
   }
+}
+
+int _asInt(dynamic value, {int fallback = 0}) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value.trim()) ?? fallback;
+  return fallback;
 }
