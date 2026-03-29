@@ -12,7 +12,7 @@ class _AgendaControllerState {
   final centeredIndex = 0.obs;
   final playbackSuspended = false.obs;
   int? lastCenteredIndex;
-  int lastPlaybackRowUpdateIndex = -1;
+  String? lastPlaybackRowUpdateDocId;
   final isMuted = false.obs;
   DocumentSnapshot? lastDoc;
   bool usePrimaryFeedPaging = true;
@@ -83,9 +83,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   RxBool get playbackSuspended => _state.playbackSuspended;
   int? get lastCenteredIndex => _state.lastCenteredIndex;
   set lastCenteredIndex(int? value) => _state.lastCenteredIndex = value;
-  int get _lastPlaybackRowUpdateIndex => _state.lastPlaybackRowUpdateIndex;
-  set _lastPlaybackRowUpdateIndex(int value) =>
-      _state.lastPlaybackRowUpdateIndex = value;
+  String? get _lastPlaybackRowUpdateDocId => _state.lastPlaybackRowUpdateDocId;
+  set _lastPlaybackRowUpdateDocId(String? value) =>
+      _state.lastPlaybackRowUpdateDocId = value;
   RxBool get isMuted => _state.isMuted;
   DocumentSnapshot? get lastDoc => _state.lastDoc;
   set lastDoc(DocumentSnapshot? value) => _state.lastDoc = value;

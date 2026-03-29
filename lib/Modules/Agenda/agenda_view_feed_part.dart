@@ -233,7 +233,7 @@ extension _AgendaViewFeedPart on AgendaView {
     }
 
     return GetBuilder<AgendaController>(
-      id: controller.feedPlaybackRowUpdateId(agendaIndex),
+      id: controller.feedPlaybackRowUpdateId(model.docID),
       builder: (agendaController) {
         final isCentered = agendaController.centeredIndex.value == agendaIndex;
         final shouldPlay = FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(

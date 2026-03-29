@@ -288,17 +288,20 @@ extension AgendaControllerFeedPart on AgendaController {
     _playbackReassertTimer = null;
   }
 
-  String feedPlaybackRowUpdateId(int index) => 'feed-playback-row-$index';
+  String feedPlaybackRowUpdateId(String docId) => 'feed-playback-row-$docId';
 
   void _notifyPlaybackRowUpdates(int newIndex) {
     final ids = <String>{};
-    if (_lastPlaybackRowUpdateIndex >= 0) {
-      ids.add(feedPlaybackRowUpdateId(_lastPlaybackRowUpdateIndex));
+    final previousDocId = _lastPlaybackRowUpdateDocId?.trim() ?? '';
+    if (previousDocId.isNotEmpty) {
+      ids.add(feedPlaybackRowUpdateId(previousDocId));
     }
+    String? nextDocId;
     if (newIndex >= 0) {
-      ids.add(feedPlaybackRowUpdateId(newIndex));
+      nextDocId = agendaList[newIndex].docID;
+      ids.add(feedPlaybackRowUpdateId(nextDocId));
     }
-    _lastPlaybackRowUpdateIndex = newIndex;
+    _lastPlaybackRowUpdateDocId = nextDocId;
     if (ids.isNotEmpty) {
       update(ids.toList(growable: false));
     }
