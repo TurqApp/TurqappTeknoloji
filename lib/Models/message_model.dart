@@ -32,6 +32,24 @@ class MessageModel {
   final int audioDurationMs;
   final bool isStarred;
 
+  static List<String> _cloneStringList(Iterable<dynamic> source) {
+    return source
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Map<String, List<String>> _cloneReactionsMap(
+    Map<String, List<String>> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(
+        key,
+        List<String>.from(value, growable: false),
+      ),
+    );
+  }
+
   MessageModel({
     required this.docID,
     required this.rawDocID,
@@ -42,15 +60,15 @@ class MessageModel {
     required this.long,
     required this.postType,
     required this.postID,
-    required this.imgs,
+    required List<String> imgs,
     required this.video,
     required this.isRead,
-    required this.kullanicilar,
+    required List<String> kullanicilar,
     required this.metin,
     required this.sesliMesaj,
     required this.kisiAdSoyad,
     required this.kisiTelefon,
-    required this.begeniler,
+    required List<String> begeniler,
     required this.isEdited,
     required this.isUnsent,
     required this.isForwarded,
@@ -58,12 +76,15 @@ class MessageModel {
     required this.replySenderId,
     required this.replyText,
     required this.replyType,
-    required this.reactions,
+    required Map<String, List<String>> reactions,
     this.status = '',
     this.videoThumbnail = '',
     this.audioDurationMs = 0,
     this.isStarred = false,
-  });
+  })  : imgs = List<String>.from(imgs, growable: false),
+        kullanicilar = List<String>.from(kullanicilar, growable: false),
+        begeniler = List<String>.from(begeniler, growable: false),
+        reactions = _cloneReactionsMap(reactions);
 
   factory MessageModel.fromJson(Map<String, dynamic> json, String docID) {
     return MessageModel(
@@ -76,11 +97,11 @@ class MessageModel {
       long: json['long'] ?? 0,
       postType: json['postType'] ?? '',
       postID: json['postID'] ?? '',
-      imgs: List<String>.from(json['imgs'] ?? []),
+      imgs: _cloneStringList(json['imgs'] ?? const []),
       video: json['video'] ?? '',
       isRead: json['isRead'] ?? false,
-      kullanicilar: List<String>.from(json['kullanicilar'] ?? []),
-      begeniler: List<String>.from(json['begeniler'] ?? []),
+      kullanicilar: _cloneStringList(json['kullanicilar'] ?? const []),
+      begeniler: _cloneStringList(json['begeniler'] ?? const []),
       metin: json['metin'] ?? '',
       sesliMesaj: json['sesliMesaj'] ?? '',
       kisiAdSoyad: json['kisiAdSoyad'] ?? '',
@@ -122,12 +143,12 @@ class MessageModel {
       ts = createdAt;
     }
 
-    final mediaUrls = List<String>.from(data['mediaUrls'] ?? []);
+    final mediaUrls = _cloneStringList(data['mediaUrls'] ?? const []);
     final location = data['location'] as Map<String, dynamic>?;
     final contact = data['contact'] as Map<String, dynamic>?;
     final postRef = data['postRef'] as Map<String, dynamic>?;
-    final seenBy = List<String>.from(data['seenBy'] ?? []);
-    final likes = List<String>.from(data['likes'] ?? []);
+    final seenBy = _cloneStringList(data['seenBy'] ?? const []);
+    final likes = _cloneStringList(data['likes'] ?? const []);
     final replyTo = data['replyTo'] as Map<String, dynamic>?;
 
     return MessageModel(
@@ -168,7 +189,7 @@ class MessageModel {
     if (raw is! Map) return {};
     final out = <String, List<String>>{};
     raw.forEach((key, value) {
-      out[key.toString()] = List<String>.from(value ?? const []);
+      out[key.toString()] = _cloneStringList(value ?? const []);
     });
     return out;
   }
