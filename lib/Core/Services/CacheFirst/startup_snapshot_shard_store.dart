@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'cache_scope_namespace.dart';
 
 class StartupSnapshotShardRecord {
-  const StartupSnapshotShardRecord({
+  StartupSnapshotShardRecord({
     required this.schemaVersion,
     required this.actorId,
     required this.surface,
@@ -15,8 +15,8 @@ class StartupSnapshotShardRecord {
     required this.itemCount,
     required this.limit,
     required this.source,
-    required this.payload,
-  });
+    required Map<String, dynamic> payload,
+  }) : payload = _sanitizePayloadMap(payload);
 
   final int schemaVersion;
   final String actorId;

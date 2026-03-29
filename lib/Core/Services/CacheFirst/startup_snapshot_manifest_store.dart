@@ -60,17 +60,18 @@ class StartupSnapshotSurfaceRecord {
 }
 
 class StartupSnapshotManifest {
-  const StartupSnapshotManifest({
+  StartupSnapshotManifest({
     required this.schemaVersion,
     required this.actorId,
     required this.savedAtMs,
     required this.routeHint,
     required this.loggedIn,
     required this.minimumStartupPrepared,
-    required this.surfaces,
+    required Map<String, StartupSnapshotSurfaceRecord> surfaces,
     this.launchToRouteMs,
-    this.extra = const <String, dynamic>{},
-  });
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  }) : surfaces = Map<String, StartupSnapshotSurfaceRecord>.from(surfaces),
+       extra = _sanitizeExtraMap(extra);
 
   final int schemaVersion;
   final String actorId;
