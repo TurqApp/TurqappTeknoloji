@@ -119,11 +119,12 @@ extension BookletRepositoryQueryPart on BookletRepository {
       if (memory != null && memory.isNotEmpty) return memory.first;
       final disk = await _getFromPrefs(key);
       if (disk != null && disk.isNotEmpty) {
+        final cloned = _cloneItems(disk);
         _memory[key] = _TimedBooklets(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.first;
+        return _cloneItem(cloned.first);
       }
     }
 
@@ -174,11 +175,12 @@ extension BookletRepositoryQueryPart on BookletRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedBooklets(
-          items: disk.toList(growable: false),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.toList(growable: false);
+        return _cloneItems(cloned);
       }
     }
 

@@ -54,7 +54,7 @@ extension BookletRepositoryCachePart on BookletRepository {
   }
 
   Future<void> _store(String cacheKey, List<BookletModel> items) async {
-    final cloned = items.toList(growable: false);
+    final cloned = _cloneItems(items);
     final now = DateTime.now();
     _memory[cacheKey] = _TimedBooklets(items: cloned, cachedAt: now);
     _prefs ??= await SharedPreferences.getInstance();
@@ -106,7 +106,7 @@ extension BookletRepositoryCachePart on BookletRepository {
       _memory.remove(cacheKey);
       return null;
     }
-    return entry.items.toList(growable: false);
+    return _cloneItems(entry.items);
   }
 
   Future<List<BookletModel>?> _getFromPrefs(String cacheKey) async {
@@ -186,5 +186,27 @@ extension BookletRepositoryCachePart on BookletRepository {
       await prefs?.remove(prefsKey);
       return null;
     }
+  }
+
+  List<BookletModel> _cloneItems(List<BookletModel> items) {
+    return items.map(_cloneItem).toList(growable: false);
+  }
+
+  BookletModel _cloneItem(BookletModel item) {
+    return BookletModel(
+      dil: item.dil,
+      sinavTuru: item.sinavTuru,
+      cover: item.cover,
+      baslik: item.baslik,
+      timeStamp: item.timeStamp,
+      docID: item.docID,
+      kaydet: List<String>.from(item.kaydet),
+      basimTarihi: item.basimTarihi,
+      yayinEvi: item.yayinEvi,
+      userID: item.userID,
+      viewCount: item.viewCount,
+      shortId: item.shortId,
+      shortUrl: item.shortUrl,
+    );
   }
 }
