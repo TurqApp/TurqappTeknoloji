@@ -26,26 +26,8 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
       };
     }
 
-    for (final reshareEntry in feedReshareEntries) {
-      final post = reshareEntry['post'] as PostsModel;
-      final idx = agendaIndexByDoc[post.docID] ?? -1;
-      final modelRef = idx >= 0 ? agendaList[idx] : post;
-      final reshareTimestamp = (reshareEntry['reshareTimestamp'] ?? 0) as int;
-      final reshareUserID = reshareEntry['reshareUserID'] as String?;
-
-      final existing = displayByDoc[post.docID];
-      final existingTs = (existing?['timestamp'] ?? 0) as int;
-      if (existing == null || reshareTimestamp >= existingTs) {
-        displayByDoc[post.docID] = <String, dynamic>{
-          'type': 'reshare',
-          'model': modelRef,
-          'reshare': true,
-          'reshareUserID': reshareUserID,
-          'timestamp': reshareTimestamp,
-          'agendaIndex': idx,
-        };
-      }
-    }
+    // Main feed ordering stays anchored to real Posts documents. Bare reshare
+    // events are kept as metadata until they are materialized as shared posts.
 
     final merged = displayByDoc.values.toList(growable: false)
       ..sort(

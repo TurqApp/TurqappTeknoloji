@@ -493,6 +493,11 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> _performSyncFeedHeadAfterSurfaceOpen() async {
+    final playbackAnchor = _agendaFeedApplicationService.capturePlaybackAnchor(
+      agendaList: agendaList.toList(growable: false),
+      centeredIndex: centeredIndex.value,
+      lastCenteredIndex: lastCenteredIndex,
+    );
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cutoffMs = _agendaCutoffMs(nowMs);
     _AgendaSourcePage page;
@@ -540,10 +545,22 @@ extension AgendaControllerLoadingPart on AgendaController {
       ...agendaList.where((post) => !liveHeadIds.contains(post.docID)),
     ];
     agendaList.assignAll(mergedAgenda);
+    if (playbackAnchor != null && playbackAnchor.isNotEmpty) {
+      _pendingCenteredDocId = playbackAnchor;
+    }
 
     if (added.isNotEmpty) {
       _scheduleFeedPrefetch();
       _scheduleReshareFetchForPosts(added, perPostLimit: 1);
+    }
+
+    if (playbackAnchor != null &&
+        playbackAnchor.isNotEmpty &&
+        !pauseAll.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed || pauseAll.value || agendaList.isEmpty) return;
+        resumeFeedPlayback();
+      });
     }
 
     await _saveFeedPostsToPool(
@@ -620,8 +637,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         lastDoc: page.lastDoc,
         usesPrimaryFeed: page.usesPrimaryFeed,
       );
-      final liveHeadIds =
-          page.items.map((post) => post.docID).toSet();
+      final liveHeadIds = page.items.map((post) => post.docID).toSet();
       final mergedAgenda = <PostsModel>[
         ...page.items,
         ...previousAgenda.where((post) => !liveHeadIds.contains(post.docID)),
@@ -650,18 +666,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         source: CachedResourceSource.server,
       );
 
-      if (agendaList.isNotEmpty) {
-        if (pageApplyPlan.itemsToAdd.isNotEmpty) {
-          _scheduleReshareFetchForPosts(
-            pageApplyPlan.itemsToAdd,
-            perPostLimit: 1,
-          );
-        }
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-            primeInitialCenteredPost();
-          }
-        });
+      if (agendaList.isNotEmpty && pageApplyPlan.itemsToAdd.isNotEmpty) {
+        _scheduleReshareFetchForPosts(
+          pageApplyPlan.itemsToAdd,
+          perPostLimit: 1,
+        );
       }
     } finally {
       isLoading.value = false;
