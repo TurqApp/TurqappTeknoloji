@@ -72,3 +72,24 @@ CacheFirstQueryPipeline<MarketListingQuery, List<MarketItemModel>,
     ),
   );
 }
+
+CacheFirstQueryPipeline<MarketOwnerQuery, List<MarketItemModel>,
+    List<MarketItemModel>> _createMarketSnapshotOwnerPipeline(
+  MarketSnapshotRepository repository,
+) {
+  return CacheFirstQueryPipeline<MarketOwnerQuery, List<MarketItemModel>,
+      List<MarketItemModel>>(
+    surfaceKey: MarketSnapshotRepository._ownerSurfaceKey,
+    coordinator: repository._coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) =>
+        query.buildScopeId(MarketSnapshotRepository._ownerSurfaceKey),
+    fetchRaw: repository._fetchOwnerItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      MarketSnapshotRepository._ownerSurfaceKey,
+    ),
+  );
+}

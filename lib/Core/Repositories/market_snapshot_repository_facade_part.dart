@@ -1,6 +1,44 @@
 part of 'market_snapshot_repository.dart';
 
 extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
+  Future<CachedResource<List<MarketItemModel>>> loadCachedOwner({
+    required String userId,
+  }) {
+    final query = MarketOwnerQuery(userId: userId);
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      MarketSnapshotRepository._ownerSurfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: MarketSnapshotRepository._ownerSurfaceKey,
+      userId: userId.trim(),
+      scopeId: query.buildScopeId(MarketSnapshotRepository._ownerSurfaceKey),
+    );
+    return _coordinator.bootstrap(
+      key,
+      schemaVersion: schemaVersion,
+    );
+  }
+
+  Stream<CachedResource<List<MarketItemModel>>> openOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _ownerPipeline.open(
+      MarketOwnerQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<MarketItemModel>>> loadOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openOwner(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Stream<CachedResource<List<MarketItemModel>>> openHome({
     required String userId,
     int limit = ReadBudgetRegistry.marketHomeInitialLimit,
@@ -72,6 +110,10 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     final normalized = userId.trim();
     if (normalized.isEmpty) return;
     await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(
+        MarketSnapshotRepository._ownerSurfaceKey,
+        userId: normalized,
+      ),
       _coordinator.clearSurface(
         MarketSnapshotRepository._homeSurfaceKey,
         userId: normalized,

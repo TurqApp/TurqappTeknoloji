@@ -37,4 +37,29 @@ extension _MarketSnapshotRepositoryDataX on MarketSnapshotRepository {
         .where((item) => item.id.isNotEmpty)
         .toList(growable: false);
   }
+
+  Future<List<MarketItemModel>> _fetchOwnerItems(MarketOwnerQuery query) async {
+    final normalizedUserId = query.userId.trim();
+    if (normalizedUserId.isEmpty) return const <MarketItemModel>[];
+    const options = GetOptions(source: Source.serverAndCache);
+    QuerySnapshot<Map<String, dynamic>> snapshot;
+    try {
+      snapshot = await FirebaseFirestore.instance
+          .collection('marketStore')
+          .where('userId', isEqualTo: normalizedUserId)
+          .orderBy('createdAt', descending: true)
+          .get(options);
+    } on FirebaseException {
+      snapshot = await FirebaseFirestore.instance
+          .collection('marketStore')
+          .where('userId', isEqualTo: normalizedUserId)
+          .get(options);
+    }
+    final items = snapshot.docs
+        .map((doc) => MarketItemModel.fromMap(doc.data(), doc.id))
+        .where((item) => item.id.isNotEmpty)
+        .toList(growable: false)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
+  }
 }

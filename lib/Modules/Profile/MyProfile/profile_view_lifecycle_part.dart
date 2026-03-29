@@ -130,10 +130,9 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       _marketLoading = true;
     });
     try {
-      final items = await _marketRepository.fetchByOwner(
+      final items = await _loadProfileMarketItems(
         uid,
-        preferCache: !force,
-        forceRefresh: force,
+        force: force,
       );
       _updateViewState(() {
         _marketItems = items
@@ -149,6 +148,32 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
         _marketLoading = false;
       });
     }
+  }
+
+  Future<List<MarketItemModel>> _loadProfileMarketItems(
+    String userId, {
+    required bool force,
+  }) async {
+    if (force) {
+      final resource = await _marketSnapshotRepository.loadOwner(
+        userId: userId,
+        forceSync: true,
+      );
+      return resource.data ?? const <MarketItemModel>[];
+    }
+
+    final cached = await _marketSnapshotRepository.loadCachedOwner(
+      userId: userId,
+    );
+    if (cached.hasLocalSnapshot && cached.data != null) {
+      return cached.data!;
+    }
+
+    final live = await _marketSnapshotRepository.loadOwner(
+      userId: userId,
+      forceSync: true,
+    );
+    return live.data ?? const <MarketItemModel>[];
   }
 
   void _onScroll() {

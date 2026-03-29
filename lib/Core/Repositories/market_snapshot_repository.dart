@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
@@ -14,6 +15,7 @@ class MarketSnapshotRepository extends GetxService {
 
   static const String _homeSurfaceKey = 'market_home_snapshot';
   static const String _searchSurfaceKey = 'market_search_snapshot';
+  static const String _ownerSurfaceKey = 'market_owner_snapshot';
 
   static MarketSnapshotRepository? maybeFind() =>
       _maybeFindMarketSnapshotRepository();
@@ -30,4 +32,8 @@ class MarketSnapshotRepository extends GetxService {
   late final CacheFirstQueryPipeline<MarketListingQuery, List<MarketItemModel>,
           List<MarketItemModel>> _searchPipeline =
       _createMarketSnapshotSearchPipeline(this);
+
+  late final CacheFirstQueryPipeline<MarketOwnerQuery, List<MarketItemModel>,
+          List<MarketItemModel>> _ownerPipeline =
+      _createMarketSnapshotOwnerPipeline(this);
 }

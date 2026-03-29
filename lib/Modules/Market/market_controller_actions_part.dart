@@ -151,9 +151,8 @@ extension _MarketControllerActionsPart on MarketController {
     }
 
     try {
-      final ownerFuture = _repository.fetchByOwner(
+      final ownerFuture = _loadOwnerListingItems(
         uid,
-        preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
       final sentFuture = MarketOfferService.fetchSentOffers(uid);
@@ -191,6 +190,32 @@ extension _MarketControllerActionsPart on MarketController {
       }
       roundMenuBadges.assignAll(fallback);
     }
+  }
+
+  Future<List<MarketItemModel>> _loadOwnerListingItems(
+    String userId, {
+    required bool forceRefresh,
+  }) async {
+    if (forceRefresh) {
+      final resource = await _marketSnapshotRepository.loadOwner(
+        userId: userId,
+        forceSync: true,
+      );
+      return resource.data ?? const <MarketItemModel>[];
+    }
+
+    final cached = await _marketSnapshotRepository.loadCachedOwner(
+      userId: userId,
+    );
+    if (cached.hasLocalSnapshot && cached.data != null) {
+      return cached.data!;
+    }
+
+    final live = await _marketSnapshotRepository.loadOwner(
+      userId: userId,
+      forceSync: true,
+    );
+    return live.data ?? const <MarketItemModel>[];
   }
 
   void _performApplyLocalFavoriteDelta(String itemId, int delta) {

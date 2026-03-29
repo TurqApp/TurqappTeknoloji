@@ -18,7 +18,7 @@ import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
-import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -103,7 +103,8 @@ class _ProfileViewState extends State<ProfileView> {
       ScrollController(keepScrollOffset: false);
   final userService = CurrentUserService.instance;
   final PostRepository _postRepository = PostRepository.ensure();
-  final MarketRepository _marketRepository = ensureMarketRepository();
+  final MarketSnapshotRepository _marketSnapshotRepository =
+      MarketSnapshotRepository.ensure();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
   bool _scrollProbeScheduled = false;
@@ -126,7 +127,8 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void dispose() {
     if (IntegrationTestMode.enabled) {
-      debugPrint('[integration-smoke] ProfileView.dispose owns=$_ownsController');
+      debugPrint(
+          '[integration-smoke] ProfileView.dispose owns=$_ownsController');
     }
     _disposeProfileView();
     super.dispose();

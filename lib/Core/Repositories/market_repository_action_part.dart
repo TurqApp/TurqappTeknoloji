@@ -12,6 +12,9 @@ extension MarketRepositoryActionPart on MarketRepository {
       docId: docId,
       userId: userId,
     );
+    await MarketSnapshotRepository.maybeFind()?.invalidateUserScopedSurfaces(
+      userId,
+    );
   }
 
   Future<void> updateItemStatus({
@@ -32,8 +35,8 @@ extension MarketRepositoryActionPart on MarketRepository {
       userId: userId,
     );
     await MarketSnapshotRepository.maybeFind()?.invalidateUserScopedSurfaces(
-          userId,
-        );
+      userId,
+    );
   }
 
   Future<void> invalidateItemCaches({
@@ -44,6 +47,9 @@ extension MarketRepositoryActionPart on MarketRepository {
     await TypesenseMarketSearchService.instance.invalidateForMutation(
       docId: docId,
       userId: userId,
+    );
+    await MarketSnapshotRepository.maybeFind()?.invalidateUserScopedSurfaces(
+      userId,
     );
   }
 
@@ -56,10 +62,10 @@ extension MarketRepositoryActionPart on MarketRepository {
       await FirebaseFunctions.instanceFor(region: 'europe-west1')
           .httpsCallable('recordMarketViewBatch')
           .call({
-            'items': [
-              {'itemId': docId, 'count': 1},
-            ],
-          });
+        'items': [
+          {'itemId': docId, 'count': 1},
+        ],
+      });
     } on FirebaseFunctionsException {
       return;
     } catch (_) {

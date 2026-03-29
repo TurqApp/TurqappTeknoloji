@@ -49,6 +49,7 @@ class CacheFirstPolicyRegistry {
         return _timelineSnapshotPolicy;
       case 'market_home_snapshot':
       case 'market_search_snapshot':
+      case 'market_owner_snapshot':
       case 'jobs_home_snapshot':
       case 'jobs_search_snapshot':
       case 'scholarship_home_snapshot':
@@ -84,6 +85,7 @@ class CacheFirstPolicyRegistry {
         return notificationsInboxSchemaVersion;
       case 'market_home_snapshot':
       case 'market_search_snapshot':
+      case 'market_owner_snapshot':
       case 'jobs_home_snapshot':
       case 'jobs_search_snapshot':
       case 'scholarship_home_snapshot':

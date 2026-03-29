@@ -28,3 +28,23 @@ class MarketListingQuery {
         },
       );
 }
+
+class MarketOwnerQuery {
+  const MarketOwnerQuery({
+    required this.userId,
+  });
+
+  final String userId;
+
+  String buildScopeId(String surfaceKey) => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: 0,
+        scopeTag: 'owner',
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          surfaceKey,
+        ),
+        qualifiers: <String, Object?>{
+          'owner': userId.trim(),
+        },
+      );
+}
