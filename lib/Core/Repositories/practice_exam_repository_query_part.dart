@@ -14,11 +14,12 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedPracticeExams(
-          items: disk.toList(growable: false),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.toList(growable: false);
+        return _cloneItems(cloned);
       }
     }
 
@@ -47,11 +48,12 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedPracticeExams(
-          items: disk.toList(growable: false),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.toList(growable: false);
+        return _cloneItems(cloned);
       }
     }
 
@@ -80,11 +82,12 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedPracticeExams(
-          items: disk.toList(growable: false),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.toList(growable: false);
+        return _cloneItems(cloned);
       }
     }
 
@@ -141,11 +144,12 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
       if (memory != null && memory.isNotEmpty) return memory.first;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null && disk.isNotEmpty) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedPracticeExams(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.first;
+        return _cloneItem(cloned.first);
       }
     }
 
@@ -194,11 +198,12 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
         }
         final disk = await _getFromPrefs('doc:$id');
         if (disk != null && disk.isNotEmpty) {
+          final cloned = _cloneItems(disk);
           _memory['doc:$id'] = _TimedPracticeExams(
-            items: disk,
+            items: cloned,
             cachedAt: DateTime.now(),
           );
-          resolved[id] = disk.first;
+          resolved[id] = _cloneItem(cloned.first);
           continue;
         }
         missing.add(id);
@@ -246,11 +251,12 @@ extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneItems(disk);
         _memory[cacheKey] = _TimedPracticeExams(
-          items: disk.toList(growable: false),
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk.toList(growable: false);
+        return _cloneItems(cloned);
       }
     }
 

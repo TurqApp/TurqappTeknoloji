@@ -2,7 +2,7 @@ part of 'practice_exam_repository.dart';
 
 extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   Future<void> _store(String cacheKey, List<SinavModel> items) async {
-    final cloned = items.toList(growable: false);
+    final cloned = _cloneItems(items);
     final now = DateTime.now();
     _memory[cacheKey] = _TimedPracticeExams(items: cloned, cachedAt: now);
     _prefs ??= await SharedPreferences.getInstance();
@@ -69,7 +69,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       _memory.remove(cacheKey);
       return null;
     }
-    return entry.items.toList(growable: false);
+    return _cloneItems(entry.items);
   }
 
   Future<List<SinavModel>?> _getFromPrefs(String cacheKey) async {
@@ -186,5 +186,31 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
       await prefs?.remove(prefsKey);
       return null;
     }
+  }
+
+  List<SinavModel> _cloneItems(List<SinavModel> items) {
+    return items.map(_cloneItem).toList(growable: false);
+  }
+
+  SinavModel _cloneItem(SinavModel item) {
+    return SinavModel(
+      docID: item.docID,
+      cover: item.cover,
+      sinavTuru: item.sinavTuru,
+      timeStamp: item.timeStamp,
+      sinavAciklama: item.sinavAciklama,
+      sinavAdi: item.sinavAdi,
+      kpssSecilenLisans: item.kpssSecilenLisans,
+      dersler: List<String>.from(item.dersler),
+      taslak: item.taslak,
+      public: item.public,
+      userID: item.userID,
+      soruSayilari: List<String>.from(item.soruSayilari),
+      bitis: item.bitis,
+      bitisDk: item.bitisDk,
+      participantCount: item.participantCount,
+      shortId: item.shortId,
+      shortUrl: item.shortUrl,
+    );
   }
 }
