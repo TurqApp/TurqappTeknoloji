@@ -34,7 +34,7 @@ extension TypesenseMarketSearchServiceSearchPart
       if (disk != null) {
         _memory[cacheKey] = disk;
         _seedDocCaches(disk.items, cachedAt: disk.cachedAt);
-        return List<MarketItemModel>.from(disk.items);
+        return _cloneMarketItems(disk.items);
       }
     }
 
@@ -136,7 +136,7 @@ extension TypesenseMarketSearchServiceSearchPart
       final disk = await _getCachedFromPrefs(cacheKey);
       if (disk != null && disk.items.isNotEmpty) {
         _memory[cacheKey] = disk;
-        return disk.items.first;
+        return _cloneMarketItems(<MarketItemModel>[disk.items.first]).first;
       }
     }
 
