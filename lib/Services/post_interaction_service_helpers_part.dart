@@ -1,6 +1,14 @@
 part of 'post_interaction_service.dart';
 
 extension PostInteractionServiceHelpersPart on PostInteractionService {
+  List<String> _asStringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
   String? get currentUserID {
     final uid = CurrentUserService.instance.effectiveUserId;
     return uid.isEmpty ? null : uid;
@@ -90,7 +98,7 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
       final snap = await tx.get(ref);
       if (!snap.exists) return;
       final data = snap.data() as Map<String, dynamic>;
-      final likes = List<String>.from(data['likes'] ?? const []);
+      final likes = _asStringList(data['likes']);
       final bool alreadyLiked = likes.contains(userId);
 
       tx.update(
@@ -131,9 +139,14 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
   }
 
   int _asInt(dynamic value, {int fallback = 0}) {
-    if (value is int) return value;
     if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? fallback;
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
     return fallback;
   }
 
