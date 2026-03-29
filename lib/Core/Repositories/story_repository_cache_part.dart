@@ -1,6 +1,12 @@
 part of 'story_repository.dart';
 
 extension StoryRepositoryCachePart on StoryRepository {
+  int _storyRowCacheAsInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<StoryFetchResult> _performFetchStoryUsers({
     required int limit,
     required bool cacheFirst,
@@ -204,7 +210,7 @@ extension StoryRepositoryCachePart on StoryRepository {
         await file.delete();
         return const <StoryUserModel>[];
       }
-      final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
+      final savedAt = _storyRowCacheAsInt(data['savedAt']);
       if (!allowExpired && savedAt > 0) {
         final age = DateTime.now().difference(
           DateTime.fromMillisecondsSinceEpoch(savedAt),
