@@ -73,7 +73,7 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       final existing = catalog.variants[variantKey];
       final segments = M3U8Parser.parseSegments(content);
       catalog.variants[variantKey] = (existing ?? _VariantInfo(key: variantKey))
-        ..segments = segments;
+        ..segments = List<M3U8Segment>.from(segments, growable: false);
     }
 
     _recordPlaylistEvent(

@@ -207,7 +207,10 @@ class _VariantInfo {
     this.bandwidth = 0,
     this.resolution,
     List<M3U8Segment>? segments,
-  }) : segments = segments ?? <M3U8Segment>[];
+  }) : segments = List<M3U8Segment>.from(
+          segments ?? const <M3U8Segment>[],
+          growable: false,
+        );
 
   final String key;
   final int bandwidth;
