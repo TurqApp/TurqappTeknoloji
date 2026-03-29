@@ -72,41 +72,73 @@ extension _TestRepositoryCacheX on TestRepository {
 
   Future<List<Map<String, dynamic>>?> _getRawList(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('${TestRepository._prefsPrefix}:$cacheKey');
+    final prefs = _prefs;
+    final prefsKey = '${TestRepository._prefsPrefix}:$cacheKey';
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final fresh =
           DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) <=
               TestRepository._ttl;
-      if (!fresh) return null;
+      if (!fresh) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final items = (decoded['items'] as List?) ?? const [];
       return items
           .map((item) => Map<String, dynamic>.from((item as Map?) ?? const {}))
           .toList(growable: false);
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
 
   Future<Map<String, dynamic>?> _getRawDoc(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('${TestRepository._prefsPrefix}:$cacheKey');
+    final prefs = _prefs;
+    final prefsKey = '${TestRepository._prefsPrefix}:$cacheKey';
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final fresh =
           DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) <=
               TestRepository._ttl;
-      if (!fresh) return null;
+      if (!fresh) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       return Map<String, dynamic>.from(
         (decoded['data'] as Map?) ?? const <String, dynamic>{},
       );
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
@@ -122,16 +154,31 @@ extension _TestRepositoryCacheX on TestRepository {
 
   Future<_TimedTests?> _getTimedFromPrefs(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('${TestRepository._prefsPrefix}:$cacheKey');
+    final prefs = _prefs;
+    final prefsKey = '${TestRepository._prefsPrefix}:$cacheKey';
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final fresh =
           DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) <=
               TestRepository._ttl;
-      if (!fresh) return null;
+      if (!fresh) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final items = (decoded['items'] as List?) ?? const [];
       return _TimedTests(
         items: items
@@ -146,6 +193,7 @@ extension _TestRepositoryCacheX on TestRepository {
         cachedAt: DateTime.fromMillisecondsSinceEpoch(ts),
       );
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }

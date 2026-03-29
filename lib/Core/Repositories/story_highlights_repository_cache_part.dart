@@ -18,18 +18,35 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
     required bool allowStale,
   }) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_prefsKey(uid));
+    final prefs = _prefs;
+    final prefsKey = _prefsKey(uid);
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       final list =
           (decoded['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       final fresh =
           DateTime.now().difference(cachedAt) <= StoryHighlightsRepository._ttl;
-      if (!fresh && !allowStale) return null;
+      if (!fresh) {
+        if (!allowStale) {
+          await prefs?.remove(prefsKey);
+        }
+        return null;
+      }
       return _CachedStoryHighlights(
         cachedAt: cachedAt,
         items: list
@@ -51,6 +68,7 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
             .toList(growable: false),
       );
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
