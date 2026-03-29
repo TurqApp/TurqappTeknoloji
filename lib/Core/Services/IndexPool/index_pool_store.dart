@@ -22,6 +22,9 @@ class IndexPoolEntry {
   final String caption;
   final int updatedAt;
 
+  bool get isValid =>
+      docID.trim().isNotEmpty && kind.trim().isNotEmpty && cardData.isNotEmpty;
+
   IndexPoolEntry({
     required this.docID,
     required this.kind,
@@ -178,11 +181,30 @@ class IndexPoolStore {
         }
       }
 
-      return entriesRaw
-          .whereType<Map>()
-          .map((m) => IndexPoolEntry.fromJson(m.cast<String, dynamic>()))
-          .where((e) => e.docID.isNotEmpty && e.kind.isNotEmpty)
-          .toList();
+      var shouldPersist = false;
+      final entries = <IndexPoolEntry>[];
+      for (final rawEntry in entriesRaw) {
+        if (rawEntry is! Map) {
+          shouldPersist = true;
+          continue;
+        }
+        try {
+          final entry = IndexPoolEntry.fromJson(
+            Map<String, dynamic>.from(rawEntry.cast<dynamic, dynamic>()),
+          );
+          if (!entry.isValid) {
+            shouldPersist = true;
+            continue;
+          }
+          entries.add(entry);
+        } catch (_) {
+          shouldPersist = true;
+        }
+      }
+      if (shouldPersist) {
+        await _persistAll(entries);
+      }
+      return entries;
     } catch (_) {
       await _deletePoolFile();
       return const [];
