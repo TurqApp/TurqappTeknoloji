@@ -1,5 +1,21 @@
 part of 'current_user_model.dart';
 
+List<String> _cloneCurrentUserStringList(Iterable<dynamic> source) {
+  return source
+      .map((item) => item.toString())
+      .where((item) => item.trim().isNotEmpty)
+      .toList(growable: false);
+}
+
+Map<String, int> _cloneCurrentUserStringIntMap(Map source) {
+  return source.map(
+    (key, value) => MapEntry(
+      key.toString(),
+      value is int ? value : int.tryParse(value.toString()) ?? 0,
+    ),
+  );
+}
+
 CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
   final data = doc.data() as Map<String, dynamic>? ?? {};
   final education = _asMap(data['education']);
@@ -28,8 +44,12 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     hesapOnayi: (data['isApproved'] ?? false) == true,
     gizliHesap: (data['isPrivate'] ?? false) == true,
     viewSelection: data['viewSelection'] ?? 1,
-    ilgialanlari: List<String>.from(data['ilgialanlari'] ?? []),
-    favoriMuzikler: List<String>.from(data['favoriMuzikler'] ?? []),
+    ilgialanlari: _cloneCurrentUserStringList(
+      data['ilgialanlari'] ?? const [],
+    ),
+    favoriMuzikler: _cloneCurrentUserStringList(
+      data['favoriMuzikler'] ?? const [],
+    ),
     meslekKategori: data['meslekKategori'] ?? '',
     calismaDurumu: data['calismaDurumu'] ?? '',
     medeniHal: data['medeniHal'] ?? '',
@@ -132,7 +152,9 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     signInMethod: data['signInMethod'] ?? '',
     sifre: '',
     refCode: data['refCode'] ?? '',
-    blockedUsers: List<String>.from(data['blockedUsers'] ?? []),
+    blockedUsers: _cloneCurrentUserStringList(
+      data['blockedUsers'] ?? const [],
+    ),
     device: data['device'] ?? '',
     deviceID: data['deviceID'] ?? '',
     deviceVersion: data['deviceVersion'] ?? '',
@@ -146,8 +168,10 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     settings: data['settings'] ?? '',
     themeSettings: data['themeSettings'] ?? '',
     canliYayin: data['canliYayin'] ?? '',
-    lastSearchList: List<String>.from(data['lastSearchList'] ?? []),
-    readStories: List<String>.from(data['readStories'] ?? []),
+    lastSearchList: _cloneCurrentUserStringList(
+      data['lastSearchList'] ?? const [],
+    ),
+    readStories: _cloneCurrentUserStringList(data['readStories'] ?? const []),
     readStoriesTimes: _parseReadStoriesTimes(data['readStoriesTimes']),
     mail: data['mail'] ?? '',
   );
@@ -174,8 +198,8 @@ Map<String, dynamic> _currentUserModelToJson(CurrentUserModel user) {
     'isApproved': user.hesapOnayi,
     'isPrivate': user.gizliHesap,
     'viewSelection': user.viewSelection,
-    'ilgialanlari': user.ilgialanlari,
-    'favoriMuzikler': user.favoriMuzikler,
+    'ilgialanlari': _cloneCurrentUserStringList(user.ilgialanlari),
+    'favoriMuzikler': _cloneCurrentUserStringList(user.favoriMuzikler),
     'meslekKategori': user.meslekKategori,
     'calismaDurumu': user.calismaDurumu,
     'medeniHal': user.medeniHal,
@@ -257,7 +281,7 @@ Map<String, dynamic> _currentUserModelToJson(CurrentUserModel user) {
     'isBot': user.bot,
     'signInMethod': user.signInMethod,
     'refCode': user.refCode,
-    'blockedUsers': user.blockedUsers,
+    'blockedUsers': _cloneCurrentUserStringList(user.blockedUsers),
     'device': user.device,
     'deviceID': user.deviceID,
     'deviceVersion': user.deviceVersion,
@@ -271,9 +295,9 @@ Map<String, dynamic> _currentUserModelToJson(CurrentUserModel user) {
     'settings': user.settings,
     'themeSettings': user.themeSettings,
     'canliYayin': user.canliYayin,
-    'lastSearchList': user.lastSearchList,
-    'readStories': user.readStories,
-    'readStoriesTimes': user.readStoriesTimes,
+    'lastSearchList': _cloneCurrentUserStringList(user.lastSearchList),
+    'readStories': _cloneCurrentUserStringList(user.readStories),
+    'readStoriesTimes': _cloneCurrentUserStringIntMap(user.readStoriesTimes),
     'mail': user.mail,
   };
 }
@@ -321,8 +345,12 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     hesapOnayi: (json['isApproved'] ?? false) == true,
     gizliHesap: (json['isPrivate'] ?? false) == true,
     viewSelection: json['viewSelection'] ?? 1,
-    ilgialanlari: List<String>.from(json['ilgialanlari'] ?? []),
-    favoriMuzikler: List<String>.from(json['favoriMuzikler'] ?? []),
+    ilgialanlari: _cloneCurrentUserStringList(
+      json['ilgialanlari'] ?? const [],
+    ),
+    favoriMuzikler: _cloneCurrentUserStringList(
+      json['favoriMuzikler'] ?? const [],
+    ),
     meslekKategori: json['meslekKategori'] ?? '',
     calismaDurumu: json['calismaDurumu'] ?? '',
     medeniHal: json['medeniHal'] ?? '',
@@ -425,7 +453,9 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     signInMethod: json['signInMethod'] ?? '',
     sifre: '',
     refCode: json['refCode'] ?? '',
-    blockedUsers: List<String>.from(json['blockedUsers'] ?? []),
+    blockedUsers: _cloneCurrentUserStringList(
+      json['blockedUsers'] ?? const [],
+    ),
     device: json['device'] ?? '',
     deviceID: json['deviceID'] ?? '',
     deviceVersion: json['deviceVersion'] ?? '',
@@ -439,8 +469,10 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     settings: json['settings'] ?? '',
     themeSettings: json['themeSettings'] ?? '',
     canliYayin: json['canliYayin'] ?? '',
-    lastSearchList: List<String>.from(json['lastSearchList'] ?? []),
-    readStories: List<String>.from(json['readStories'] ?? []),
+    lastSearchList: _cloneCurrentUserStringList(
+      json['lastSearchList'] ?? const [],
+    ),
+    readStories: _cloneCurrentUserStringList(json['readStories'] ?? const []),
     readStoriesTimes: _parseReadStoriesTimes(json['readStoriesTimes']),
     mail: json['mail'] ?? '',
   );
@@ -451,12 +483,9 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Map<String, int> _parseReadStoriesTimes(dynamic data) {
   if (data == null) return {};
-  if (data is Map<String, int>) return data;
+  if (data is Map<String, int>) return _cloneCurrentUserStringIntMap(data);
   if (data is Map) {
-    return data.map((key, value) => MapEntry(
-          key.toString(),
-          (value is int) ? value : int.tryParse(value.toString()) ?? 0,
-        ));
+    return _cloneCurrentUserStringIntMap(data);
   }
   return {};
 }
