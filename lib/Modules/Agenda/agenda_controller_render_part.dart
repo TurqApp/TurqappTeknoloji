@@ -42,6 +42,8 @@ extension AgendaControllerRenderPart on AgendaController {
     final merged = _feedRenderCoordinator.buildMergedEntries(
       agendaList: agendaList.toList(growable: false),
       feedReshareEntries: feedReshareEntries.toList(growable: false),
+      myReshares: Map<String, int>.from(myReshares),
+      currentUserId: CurrentUserService.instance.effectiveUserId,
     );
     final patch = _feedRenderCoordinator.buildPatch(
       previous: mergedFeedEntries.toList(growable: false),

@@ -4,6 +4,8 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
   List<Map<String, dynamic>> buildMergedEntries({
     required List<PostsModel> agendaList,
     required List<Map<String, dynamic>> feedReshareEntries,
+    required Map<String, int> myReshares,
+    required String currentUserId,
   }) {
     if (agendaList.isEmpty && feedReshareEntries.isEmpty) {
       return const <Map<String, dynamic>>[];
@@ -16,12 +18,15 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
 
     for (int i = 0; i < agendaList.length; i++) {
       final post = agendaList[i];
+      final selfReshareTimestamp = myReshares[post.docID] ?? 0;
+      final isSelfReshare = selfReshareTimestamp > 0;
       displayByDoc[post.docID] = <String, dynamic>{
-        'type': 'normal',
+        'type': isSelfReshare ? 'reshare' : 'normal',
         'model': post,
-        'reshare': false,
-        'reshareUserID': null,
-        'timestamp': post.timeStamp,
+        'reshare': isSelfReshare,
+        'reshareUserID':
+            isSelfReshare && currentUserId.isNotEmpty ? currentUserId : null,
+        'timestamp': isSelfReshare ? selfReshareTimestamp : post.timeStamp,
         'agendaIndex': i,
       };
     }

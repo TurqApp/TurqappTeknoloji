@@ -20,6 +20,8 @@ void main() {
             'reshareUserID': 'reshare-user',
           },
         ],
+        myReshares: const <String, int>{},
+        currentUserId: 'viewer-1',
       );
 
       expect(merged, hasLength(1));
@@ -42,9 +44,34 @@ void main() {
             'reshareUserID': 'reshare-user',
           },
         ],
+        myReshares: const <String, int>{},
+        currentUserId: 'viewer-1',
       );
 
       expect(merged, isEmpty);
+    });
+
+    test('lifts self-reshared posts using the reshare action timestamp', () {
+      final coordinator = FeedRenderCoordinator();
+      final agendaList = <PostsModel>[
+        _post(id: 'older', timeStamp: 100),
+        _post(id: 'mine', timeStamp: 90),
+      ];
+
+      final merged = coordinator.buildMergedEntries(
+        agendaList: agendaList,
+        feedReshareEntries: const <Map<String, dynamic>>[],
+        myReshares: const <String, int>{
+          'mine': 600,
+        },
+        currentUserId: 'viewer-1',
+      );
+
+      expect(merged, hasLength(2));
+      expect((merged.first['model'] as PostsModel).docID, 'mine');
+      expect(merged.first['reshare'], isTrue);
+      expect(merged.first['reshareUserID'], 'viewer-1');
+      expect(merged.first['timestamp'], 600);
     });
   });
 }
