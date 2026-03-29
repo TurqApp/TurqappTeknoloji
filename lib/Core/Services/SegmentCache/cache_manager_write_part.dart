@@ -6,11 +6,12 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
   Future<File> writeSegment(
       String docID, String segmentKey, Uint8List bytes) async {
     final lockKey = '$docID/$segmentKey';
+    final clonedBytes = Uint8List.fromList(bytes);
 
     final existing = _writeInFlight[lockKey];
     if (existing != null) return existing;
 
-    final future = _writeSegmentInternal(docID, segmentKey, bytes);
+    final future = _writeSegmentInternal(docID, segmentKey, clonedBytes);
     _writeInFlight[lockKey] = future;
     try {
       return await future;
