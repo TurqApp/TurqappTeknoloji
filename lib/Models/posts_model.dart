@@ -64,6 +64,30 @@ class PostStats {
   }
 }
 
+List<String> _clonePostsStringList(List<String> values) =>
+    List<String>.from(values);
+
+dynamic _clonePostsDynamicValue(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return _clonePostsDynamicMap(value);
+  }
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) =>
+          MapEntry(key.toString(), _clonePostsDynamicValue(nestedValue)),
+    );
+  }
+  if (value is List) {
+    return value.map(_clonePostsDynamicValue).toList();
+  }
+  return value;
+}
+
+Map<String, dynamic> _clonePostsDynamicMap(Map<String, dynamic> value) =>
+    value.map(
+      (key, nestedValue) => MapEntry(key, _clonePostsDynamicValue(nestedValue)),
+    );
+
 class PostsModel {
   bool ad;
   bool arsiv;
@@ -175,7 +199,14 @@ class PostsModel {
     this.yorumMap = const {},
     this.reshareMap = const {},
     this.poll = const {},
-  });
+  }) {
+    img = _clonePostsStringList(img);
+    tags = _clonePostsStringList(tags);
+    videoLook = _clonePostsDynamicMap(videoLook);
+    yorumMap = _clonePostsDynamicMap(yorumMap);
+    reshareMap = _clonePostsDynamicMap(reshareMap);
+    poll = _clonePostsDynamicMap(poll);
+  }
 
   bool get hasHls => hlsMasterUrl.trim().isNotEmpty;
 
@@ -369,9 +400,11 @@ class PostsModel {
       rozet: resolvedRozet,
       video: CdnUrlBuilder.toCdnUrl((data['video'] ?? '').toString().trim()),
       videoLook: data['videoLook'] is Map<String, dynamic>
-          ? Map<String, dynamic>.from(data['videoLook'] as Map<String, dynamic>)
+          ? _clonePostsDynamicMap(data['videoLook'] as Map<String, dynamic>)
           : (data['videoLook'] is Map
-              ? Map<String, dynamic>.from(data['videoLook'] as Map)
+              ? _clonePostsDynamicMap(
+                  Map<String, dynamic>.from(data['videoLook'] as Map),
+                )
               : const {
                   'preset': 'original',
                   'version': 1,
@@ -383,9 +416,15 @@ class PostsModel {
       hlsStatus: data['hlsStatus'] ?? 'none',
       hlsUpdatedAt: parseNum(data['hlsUpdatedAt']),
       yorum: data['yorum'] ?? true,
-      yorumMap: Map<String, dynamic>.from(data['yorumMap'] ?? {}),
-      reshareMap: Map<String, dynamic>.from(data['reshareMap'] ?? {}),
-      poll: Map<String, dynamic>.from(data['poll'] ?? {}),
+      yorumMap: _clonePostsDynamicMap(
+        Map<String, dynamic>.from(data['yorumMap'] ?? {}),
+      ),
+      reshareMap: _clonePostsDynamicMap(
+        Map<String, dynamic>.from(data['reshareMap'] ?? {}),
+      ),
+      poll: _clonePostsDynamicMap(
+        Map<String, dynamic>.from(data['poll'] ?? {}),
+      ),
     );
   }
 
@@ -401,7 +440,7 @@ class PostsModel {
       'flood': flood,
       'floodCount': floodCount,
       'gizlendi': gizlendi,
-      'img': img,
+      'img': _clonePostsStringList(img),
       'isAd': isAd,
       'isUploading': isUploading,
       'izBirakYayinTarihi': izBirakYayinTarihi,
@@ -422,7 +461,7 @@ class PostsModel {
       'sikayetEdildi': sikayetEdildi,
       'stabilized': stabilized,
       'stats': stats.toMap(),
-      'tags': tags,
+      'tags': _clonePostsStringList(tags),
       'thumbnail': thumbnail,
       'timeStamp': timeStamp,
       'userID': userID,
@@ -433,14 +472,14 @@ class PostsModel {
       if (shortUrl.isNotEmpty) 'shortUrl': shortUrl,
       if (rozet.isNotEmpty) 'rozet': rozet,
       'video': video,
-      'videoLook': videoLook,
+      'videoLook': _clonePostsDynamicMap(videoLook),
       'hlsMasterUrl': hlsMasterUrl,
       'hlsStatus': hlsStatus,
       'hlsUpdatedAt': hlsUpdatedAt,
       'yorum': yorum,
-      'yorumMap': yorumMap,
-      'reshareMap': reshareMap,
-      'poll': poll,
+      'yorumMap': _clonePostsDynamicMap(yorumMap),
+      'reshareMap': _clonePostsDynamicMap(reshareMap),
+      'poll': _clonePostsDynamicMap(poll),
     };
   }
 
