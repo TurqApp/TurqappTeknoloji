@@ -1,6 +1,17 @@
 part of 'config_repository.dart';
 
 extension ConfigRepositoryStoragePart on ConfigRepository {
+  int _asIntImpl(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<void> _putAdminConfigDocImpl(
     String docId,
     Map<String, dynamic> data,
@@ -81,7 +92,7 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asIntImpl(decoded['t']);
       final data = (decoded['d'] as Map?)?.cast<String, dynamic>();
       if (ts <= 0 || data == null) {
         await prefs?.remove(prefsKey);
