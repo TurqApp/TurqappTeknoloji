@@ -23,6 +23,48 @@ class TestOwnerQuery {
       );
 }
 
+class TestAllQuery {
+  const TestAllQuery({
+    required this.userId,
+  });
+
+  final String userId;
+
+  String buildScopeId() => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: 0,
+        scopeTag: 'home',
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          TestSnapshotRepository.allSurfaceKey,
+        ),
+        qualifiers: const <String, Object?>{
+          'all': true,
+        },
+      );
+}
+
+class TestTypeQuery {
+  const TestTypeQuery({
+    required this.userId,
+    required this.testType,
+  });
+
+  final String userId;
+  final String testType;
+
+  String buildScopeId() => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: 0,
+        scopeTag: 'type',
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          TestSnapshotRepository.typeSurfaceKey,
+        ),
+        qualifiers: <String, Object?>{
+          'type': testType.trim(),
+        },
+      );
+}
+
 TestSnapshotRepository? maybeFindTestSnapshotRepository() {
   final isRegistered = Get.isRegistered<TestSnapshotRepository>();
   if (!isRegistered) return null;
@@ -39,6 +81,8 @@ class TestSnapshotRepository extends GetxService {
   TestSnapshotRepository();
 
   static const String ownerSurfaceKey = 'test_owner_snapshot';
+  static const String allSurfaceKey = 'test_home_snapshot';
+  static const String typeSurfaceKey = 'test_type_snapshot';
 
   late final CacheFirstCoordinator<List<TestsModel>> _coordinator =
       CacheFirstCoordinator<List<TestsModel>>(
@@ -69,19 +113,90 @@ class TestSnapshotRepository extends GetxService {
     ),
   );
 
+  late final CacheFirstQueryPipeline<TestAllQuery, List<TestsModel>,
+          List<TestsModel>> _allPipeline =
+      CacheFirstQueryPipeline<TestAllQuery, List<TestsModel>, List<TestsModel>>(
+    surfaceKey: allSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(),
+    fetchRaw: _fetchAllItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      allSurfaceKey,
+    ),
+  );
+
+  late final CacheFirstQueryPipeline<TestTypeQuery, List<TestsModel>,
+          List<TestsModel>> _typePipeline =
+      CacheFirstQueryPipeline<TestTypeQuery, List<TestsModel>,
+          List<TestsModel>>(
+    surfaceKey: typeSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(),
+    fetchRaw: _fetchTypeItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      typeSurfaceKey,
+    ),
+  );
+
   Future<CachedResource<List<TestsModel>>> loadCachedOwner({
     required String userId,
   }) {
     final query = TestOwnerQuery(userId: userId);
-    final key = ScopedSnapshotKey(
+    return _bootstrap(
       surfaceKey: ownerSurfaceKey,
-      userId: userId.trim(),
+      userId: userId,
       scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadCachedAll({
+    required String userId,
+  }) {
+    final query = TestAllQuery(userId: userId);
+    return _bootstrap(
+      surfaceKey: allSurfaceKey,
+      userId: userId,
+      scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadCachedType({
+    required String userId,
+    required String testType,
+  }) {
+    final query = TestTypeQuery(
+      userId: userId,
+      testType: testType,
+    );
+    return _bootstrap(
+      surfaceKey: typeSurfaceKey,
+      userId: userId,
+      scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> _bootstrap({
+    required String surfaceKey,
+    required String userId,
+    required String scopeId,
+  }) {
+    final key = ScopedSnapshotKey(
+      surfaceKey: surfaceKey,
+      userId: userId.trim(),
+      scopeId: scopeId,
     );
     return _coordinator.bootstrap(
       key,
       schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
-        ownerSurfaceKey,
+        surfaceKey,
       ),
     );
   }
@@ -102,6 +217,52 @@ class TestSnapshotRepository extends GetxService {
   }) {
     return openOwner(
       userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
+  Stream<CachedResource<List<TestsModel>>> openAll({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _allPipeline.open(
+      TestAllQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadAll({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openAll(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
+  Stream<CachedResource<List<TestsModel>>> openType({
+    required String userId,
+    required String testType,
+    bool forceSync = false,
+  }) {
+    return _typePipeline.open(
+      TestTypeQuery(
+        userId: userId,
+        testType: testType,
+      ),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadType({
+    required String userId,
+    required String testType,
+    bool forceSync = false,
+  }) {
+    return openType(
+      userId: userId,
+      testType: testType,
       forceSync: forceSync,
     ).last;
   }
@@ -192,5 +353,30 @@ class TestSnapshotRepository extends GetxService {
             _asTimestamp(a.timeStamp),
           ));
     return items;
+  }
+
+  Future<List<TestsModel>> _fetchAllItems(TestAllQuery query) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('Testler')
+        .get(const GetOptions(source: Source.serverAndCache));
+    return snapshot.docs
+        .map((doc) => _fromDoc(doc.id, doc.data()))
+        .where((item) => item.docID.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<TestsModel>> _fetchTypeItems(TestTypeQuery query) async {
+    final normalizedType = query.testType.trim();
+    if (normalizedType.isEmpty) {
+      return const <TestsModel>[];
+    }
+    final snapshot = await FirebaseFirestore.instance
+        .collection('Testler')
+        .where('testTuru', isEqualTo: normalizedType)
+        .get(const GetOptions(source: Source.serverAndCache));
+    return snapshot.docs
+        .map((doc) => _fromDoc(doc.id, doc.data()))
+        .where((item) => item.docID.isNotEmpty)
+        .toList(growable: false);
   }
 }

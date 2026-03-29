@@ -18,7 +18,8 @@ class SearchTestsController extends GetxController {
 }
 
 class _SearchTestsControllerState {
-  final TestRepository testRepository = ensureTestRepository();
+  final TestSnapshotRepository testSnapshotRepository =
+      ensureTestSnapshotRepository();
   final RxList<TestsModel> list = <TestsModel>[].obs;
   final RxList<TestsModel> filteredList = <TestsModel>[].obs;
   final RxBool isLoading = true.obs;
@@ -27,7 +28,8 @@ class _SearchTestsControllerState {
 }
 
 extension SearchTestsControllerFieldsPart on SearchTestsController {
-  TestRepository get _testRepository => _state.testRepository;
+  TestSnapshotRepository get _testSnapshotRepository =>
+      _state.testSnapshotRepository;
   RxList<TestsModel> get list => _state.list;
   RxList<TestsModel> get filteredList => _state.filteredList;
   RxBool get isLoading => _state.isLoading;
@@ -69,7 +71,12 @@ void _filterSearchTestsResults(
 }
 
 Future<void> _bootstrapSearchTestsData(SearchTestsController controller) async {
-  final cached = await controller._testRepository.fetchAll(cacheOnly: true);
+  final uid = CurrentUserService.instance.effectiveUserId;
+  final cached = (await controller._testSnapshotRepository.loadCachedAll(
+        userId: uid,
+      ))
+          .data ??
+      const <TestsModel>[];
   if (cached.isNotEmpty) {
     controller.list.assignAll(cached);
     controller.filteredList.assignAll(cached);
@@ -98,10 +105,24 @@ Future<void> _getSearchTestsData(
   if (!silent || controller.list.isEmpty) {
     controller.isLoading.value = true;
   }
-  final items = await controller._testRepository.fetchAll(
-    preferCache: !forceRefresh,
-    forceRefresh: forceRefresh,
-  );
+  final uid = CurrentUserService.instance.effectiveUserId;
+  final items = forceRefresh
+      ? ((await controller._testSnapshotRepository.loadAll(
+            userId: uid,
+            forceSync: true,
+          ))
+              .data ??
+          const <TestsModel>[])
+      : ((await controller._testSnapshotRepository.loadCachedAll(
+            userId: uid,
+          ))
+              .data ??
+          (await controller._testSnapshotRepository.loadAll(
+            userId: uid,
+            forceSync: true,
+          ))
+              .data ??
+          const <TestsModel>[]);
   controller.list.assignAll(items);
   _filterSearchTestsResults(controller, controller.searchController.text);
   SilentRefreshGate.markRefreshed('tests:search_all');

@@ -1,7 +1,8 @@
 part of 'lesson_based_tests_controller.dart';
 
 class LessonBasedTestsController extends GetxController {
-  final TestRepository _testRepository = ensureTestRepository();
+  final TestSnapshotRepository _testSnapshotRepository =
+      ensureTestSnapshotRepository();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final String testTuru;
   final list = <TestsModel>[].obs;

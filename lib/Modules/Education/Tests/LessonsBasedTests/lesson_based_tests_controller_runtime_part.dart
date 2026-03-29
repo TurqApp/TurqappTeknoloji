@@ -6,10 +6,13 @@ extension LessonBasedTestsControllerRuntimePart on LessonBasedTestsController {
   }
 
   Future<void> _bootstrapData() async {
-    final cached = await _testRepository.fetchByType(
-      testTuru,
-      cacheOnly: true,
-    );
+    final uid = CurrentUserService.instance.effectiveUserId;
+    final cached = (await _testSnapshotRepository.loadCachedType(
+          userId: uid,
+          testType: testTuru,
+        ))
+            .data ??
+        const <TestsModel>[];
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
@@ -32,11 +35,27 @@ extension LessonBasedTestsControllerRuntimePart on LessonBasedTestsController {
       isLoading.value = true;
     }
     try {
-      final items = await _testRepository.fetchByType(
-        testTuru,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final uid = CurrentUserService.instance.effectiveUserId;
+      final items = forceRefresh
+          ? ((await _testSnapshotRepository.loadType(
+                userId: uid,
+                testType: testTuru,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[])
+          : ((await _testSnapshotRepository.loadCachedType(
+                userId: uid,
+                testType: testTuru,
+              ))
+                  .data ??
+              (await _testSnapshotRepository.loadType(
+                userId: uid,
+                testType: testTuru,
+                forceSync: true,
+              ))
+                  .data ??
+              const <TestsModel>[]);
       list.assignAll(items);
       SilentRefreshGate.markRefreshed('tests:type:$testTuru');
     } finally {
