@@ -22,15 +22,15 @@ Map<String, dynamic> _cloneDeviceLogMap(Map source) {
 }
 
 class DeviceLogIssue {
-  const DeviceLogIssue({
+  DeviceLogIssue({
     required this.code,
     required this.severity,
     required this.tag,
     required this.message,
     required this.count,
     required this.sampleLine,
-    this.context,
-  });
+    Map<String, dynamic>? context,
+  }) : context = context == null ? null : _cloneDeviceLogMap(context);
 
   final String code;
   final String severity;
@@ -81,13 +81,20 @@ class DeviceLogObservation {
 }
 
 class DeviceLogReport {
-  const DeviceLogReport({
-    required this.source,
-    required this.summary,
-    required this.metrics,
-    required this.issues,
-    required this.observations,
-  });
+  DeviceLogReport({
+    required Map<String, dynamic> source,
+    required Map<String, dynamic> summary,
+    required Map<String, dynamic> metrics,
+    required List<DeviceLogIssue> issues,
+    required List<DeviceLogObservation> observations,
+  })  : source = _cloneDeviceLogMap(source),
+        summary = _cloneDeviceLogMap(summary),
+        metrics = _cloneDeviceLogMap(metrics),
+        issues = List<DeviceLogIssue>.from(issues, growable: false),
+        observations = List<DeviceLogObservation>.from(
+          observations,
+          growable: false,
+        );
 
   final Map<String, dynamic> source;
   final Map<String, dynamic> summary;
