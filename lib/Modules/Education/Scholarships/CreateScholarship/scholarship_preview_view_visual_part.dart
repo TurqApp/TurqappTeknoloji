@@ -282,16 +282,24 @@ extension ScholarshipPreviewViewVisualPart on ScholarshipPreviewView {
   }
 
   Future<void> _openTemplateWebsite(String website) async {
-    final trimmed = website.trim();
-    if (trimmed.isEmpty) return;
-
-    final uri = Uri.tryParse(ensureUrlHasScheme(trimmed));
-    if (uri == null) {
-      AppSnackbar('common.error'.tr, 'scholarship.website_open_failed'.tr);
+    String urlString = website.trim();
+    if (urlString.isEmpty) {
+      AppSnackbar(
+        'common.warning'.tr,
+        'scholarship.application_link_missing'.tr,
+      );
       return;
     }
 
-    await confirmAndLaunchExternalUrl(uri);
+    urlString = ensureUrlHasScheme(urlString);
+
+    final url = Uri.parse(urlString);
+    if (await canLaunchUrl(url)) {
+      await confirmAndLaunchExternalUrl(url);
+      return;
+    }
+
+    AppSnackbar('common.error'.tr, 'scholarship.website_open_failed'.tr);
   }
 
   List<Widget> _buildCustomImages(CreateScholarshipController controller) {
