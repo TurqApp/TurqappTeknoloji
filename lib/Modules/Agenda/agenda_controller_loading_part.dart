@@ -590,6 +590,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
     isLoading.value = true;
     try {
+      final previousAgenda = agendaList.toList(growable: false);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
       const loadLimit = 30;
@@ -602,16 +603,41 @@ extension AgendaControllerLoadingPart on AgendaController {
         cacheOnly: false,
         usePrimaryFeedPaging: true,
       );
+      if (page.items.isEmpty) {
+        return;
+      }
 
-      _usePrimaryFeedPaging = page.usesPrimaryFeed;
-      lastDoc = page.lastDoc;
-      hasMore.value = page.lastDoc != null && page.items.length >= loadLimit;
+      final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
+        currentItems: previousAgenda,
+        pageItems: page.items,
+        nowMs: nowMs,
+        loadLimit: loadLimit,
+        lastDoc: page.lastDoc,
+        usesPrimaryFeed: page.usesPrimaryFeed,
+      );
+      final liveHeadIds =
+          page.items.map((post) => post.docID).toSet();
+      final mergedAgenda = <PostsModel>[
+        ...page.items,
+        ...previousAgenda.where((post) => !liveHeadIds.contains(post.docID)),
+      ];
+
+      _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
+      lastDoc = pageApplyPlan.lastDoc;
+      hasMore.value = pageApplyPlan.hasMore;
       _prefetchedThumbnailPostCount = 0;
       _shuffleCache.clear();
       publicReshareEvents.clear();
       feedReshareEntries.clear();
       highlightDocIDs.clear();
-      agendaList.assignAll(page.items);
+      agendaList.assignAll(mergedAgenda);
+
+      if (pageApplyPlan.freshScheduledIds.isNotEmpty) {
+        markHighlighted(
+          pageApplyPlan.freshScheduledIds,
+          keepFor: const Duration(milliseconds: 900),
+        );
+      }
 
       await _saveFeedPostsToPool(
         _buildOrderedAgendaSnapshot(limit: 40),
@@ -620,10 +646,12 @@ extension AgendaControllerLoadingPart on AgendaController {
       );
 
       if (agendaList.isNotEmpty) {
-        _scheduleReshareFetchForPosts(
-          agendaList.toList(growable: false),
-          perPostLimit: 1,
-        );
+        if (pageApplyPlan.itemsToAdd.isNotEmpty) {
+          _scheduleReshareFetchForPosts(
+            pageApplyPlan.itemsToAdd,
+            perPostLimit: 1,
+          );
+        }
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (agendaList.isNotEmpty && centeredIndex.value == -1) {
             primeInitialCenteredPost();
