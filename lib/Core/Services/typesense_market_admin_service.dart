@@ -14,11 +14,34 @@ class TypesenseMarketAdminService {
   final FirebaseFunctions _functions =
       FirebaseFunctions.instanceFor(region: 'us-central1');
 
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneResponseMap(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneValue(value)),
+    );
+  }
+
   Future<Map<String, dynamic>> ensureCollection() async {
     final response = await _functions
         .httpsCallable('f25_ensureMarketTypesenseCollectionCallable')
         .call(<String, dynamic>{});
-    return Map<String, dynamic>.from(response.data as Map? ?? const {});
+    return _cloneResponseMap(
+      Map<String, dynamic>.from(response.data as Map? ?? const {}),
+    );
   }
 
   Future<Map<String, dynamic>> reindex({
@@ -33,6 +56,8 @@ class TypesenseMarketAdminService {
       if ((cursor ?? '').trim().isNotEmpty) 'cursor': cursor,
       'dryRun': dryRun,
     });
-    return Map<String, dynamic>.from(response.data as Map? ?? const {});
+    return _cloneResponseMap(
+      Map<String, dynamic>.from(response.data as Map? ?? const {}),
+    );
   }
 }
