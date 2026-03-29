@@ -1,6 +1,12 @@
 part of 'feed_snapshot_repository.dart';
 
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
+  int? _asNullableFeedInt(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
   Future<List<PostsModel>> loadQuickCachedPersonalFallback({
     required String userId,
     required Set<String> followingIds,
@@ -486,10 +492,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   ) {
     if (startAfter == null) return null;
     final data = startAfter.data();
-    final raw = data?['timeStamp'];
-    if (raw is int) return raw;
-    if (raw is num) return raw.toInt();
-    return int.tryParse(raw?.toString() ?? '');
+    return _asNullableFeedInt(data?['timeStamp']);
   }
 
   Future<List<PostsModel>> _fetchVisiblePublicIzBirakPosts({
