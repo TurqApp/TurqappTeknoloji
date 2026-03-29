@@ -27,11 +27,12 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
       if (memory != null) return memory;
       final disk = await _readPrefs(cleanId);
       if (disk != null) {
+        final cloned = _cloneDoc(disk);
         _memory[cleanId] = _TimedScholarship(
-          data: disk,
+          data: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return _cloneDoc(cloned);
       }
     }
 
@@ -58,11 +59,12 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
       if (memory != null) return memory;
       final disk = await _readQueryPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneDocs(disk);
         _queryMemory[cacheKey] = _TimedScholarshipList(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return _cloneDocs(cloned);
       }
     }
 
@@ -96,11 +98,12 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
       if (memory != null) return memory;
       final disk = await _readQueryPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneDocs(disk);
         _queryMemory[cacheKey] = _TimedScholarshipList(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return _cloneDocs(cloned);
       }
     }
 
@@ -199,11 +202,12 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
       if (memory != null) return memory;
       final disk = await _readQueryPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneDocs(disk);
         _queryMemory[cacheKey] = _TimedScholarshipList(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return _cloneDocs(cloned);
       }
     }
 
@@ -245,11 +249,12 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
       if (memory != null) return memory;
       final disk = await _readQueryPrefs(cacheKey);
       if (disk != null) {
+        final cloned = _cloneDocs(disk);
         _queryMemory[cacheKey] = _TimedScholarshipList(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return _cloneDocs(cloned);
       }
     }
 

@@ -9,7 +9,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       _memory.remove(docId);
       return null;
     }
-    return Map<String, dynamic>.from(cached.data);
+    return _cloneDoc(cached.data);
   }
 
   Future<Map<String, dynamic>?> _readPrefs(String docId) async {
@@ -42,7 +42,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return Map<String, dynamic>.from(data);
+      return _cloneDoc(data);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -51,7 +51,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
 
   Future<void> _store(String docId, Map<String, dynamic> data) async {
     _memory[docId] = _TimedScholarship(
-      data: data,
+      data: _cloneDoc(data),
       cachedAt: DateTime.now(),
     );
     _prefs ??= await SharedPreferences.getInstance();
@@ -72,9 +72,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       _queryMemory.remove(key);
       return null;
     }
-    return cached.items
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList(growable: false);
+    return _cloneDocs(cached.items);
   }
 
   Future<List<Map<String, dynamic>>?> _readQueryPrefs(String key) async {
@@ -104,7 +102,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       }
       final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
+          .map((item) => _cloneDoc(Map<String, dynamic>.from(item)))
           .toList(growable: false);
       return items;
     } catch (_) {
@@ -118,7 +116,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     List<Map<String, dynamic>> items,
   ) async {
     _queryMemory[key] = _TimedScholarshipList(
-      items: items,
+      items: _cloneDocs(items),
       cachedAt: DateTime.now(),
     );
     _prefs ??= await SharedPreferences.getInstance();
@@ -216,7 +214,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       '$_scholarshipRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
-        'data': data,
+        'data': _cloneDoc(data),
       }),
     );
   }
@@ -248,12 +246,34 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return Map<String, dynamic>.from(
-        (decoded['data'] as Map?) ?? const <String, dynamic>{},
+      return _cloneDoc(
+        Map<String, dynamic>.from(
+          (decoded['data'] as Map?) ?? const <String, dynamic>{},
+        ),
       );
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
     }
+  }
+
+  List<Map<String, dynamic>> _cloneDocs(List<Map<String, dynamic>> items) {
+    return items.map(_cloneDoc).toList(growable: false);
+  }
+
+  Map<String, dynamic> _cloneDoc(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _cloneValue(value)));
+  }
+
+  dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 }
