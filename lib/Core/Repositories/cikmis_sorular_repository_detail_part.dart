@@ -1,6 +1,23 @@
 part of 'cikmis_sorular_repository_parts.dart';
 
 extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  num _asNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Future<void> saveResult({
     required String uid,
     required String anaBaslik,
@@ -66,12 +83,12 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
   }
 
   int _compareRootDocs(Map<String, dynamic> a, Map<String, dynamic> b) {
-    final seqA = (a['sira'] as num?)?.toInt() ?? 0;
-    final seqB = (b['sira'] as num?)?.toInt() ?? 0;
+    final seqA = _asInt(a['sira']);
+    final seqB = _asInt(b['sira']);
     final bySeq = seqA.compareTo(seqB);
     if (bySeq != 0) return bySeq;
-    final tsA = (a['timeStamp'] as num?)?.toInt() ?? 0;
-    final tsB = (b['timeStamp'] as num?)?.toInt() ?? 0;
+    final tsA = _asInt(a['timeStamp']);
+    final tsB = _asInt(b['timeStamp']);
     return tsB.compareTo(tsA);
   }
 
@@ -87,7 +104,7 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
       'baslik2': (data['baslik2'] ?? '').toString(),
       'baslik3': (data['baslik3'] ?? '').toString(),
       'dil': (data['dil'] ?? '').toString(),
-      'sira': (data['sira'] as num?)?.toInt() ?? 0,
+      'sira': _asInt(data['sira']),
       'title': (data['title'] ?? '').toString(),
       'subtitle': (data['subtitle'] ?? '').toString(),
       'description': (data['description'] ?? '').toString(),
@@ -120,7 +137,7 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
       ders: (doc['ders'] ?? '').toString(),
       dogruCevap: (doc['dogruCevap'] ?? '').toString(),
       soru: (doc['soru'] ?? '').toString(),
-      kacCevap: (doc['kacCevap'] as num?) ?? 0,
+      kacCevap: _asNum(doc['kacCevap']),
       docID: (doc['_docId'] ?? doc['docID'] ?? '').toString(),
       soruNo: (doc['soruNo'] ?? '').toString(),
     );
@@ -134,14 +151,14 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
       baslik2: (doc['baslik2'] ?? '').toString(),
       baslik3: (doc['baslik3'] ?? '').toString(),
       userID: (doc['userID'] ?? '').toString(),
-      timeStamp: (doc['timeStamp'] as num?) ?? 0,
+      timeStamp: _asNum(doc['timeStamp']),
       cikmisSoruID: (doc['cikmisSoruID'] ?? '').toString(),
       docID: (doc['_docId'] ?? '').toString(),
-      soruSayisi: (doc['soruSayisi'] as num?)?.toInt() ?? 0,
-      dogruSayisi: (doc['dogruSayisi'] as num?)?.toInt() ?? 0,
-      yanlisSayisi: (doc['yanlisSayisi'] as num?)?.toInt() ?? 0,
-      bosSayisi: (doc['bosSayisi'] as num?)?.toInt() ?? 0,
-      net: (doc['net'] as num?)?.toDouble() ?? 0,
+      soruSayisi: _asInt(doc['soruSayisi']),
+      dogruSayisi: _asInt(doc['dogruSayisi']),
+      yanlisSayisi: _asInt(doc['yanlisSayisi']),
+      bosSayisi: _asInt(doc['bosSayisi']),
+      net: _asDouble(doc['net']),
     );
   }
 
