@@ -301,6 +301,10 @@ extension _MarketControllerHomePart on MarketController {
       final activeFetched = (fetched.data ?? const <MarketItemModel>[])
           .where((item) => item.status == 'active')
           .toList(growable: false);
+      if (activeFetched.isEmpty &&
+          (items.isNotEmpty || visibleItems.isNotEmpty)) {
+        return;
+      }
       final merged = _mergePendingCreatedItems(activeFetched);
       if (!_sameMarketList(merged)) {
         items.assignAll(merged);
