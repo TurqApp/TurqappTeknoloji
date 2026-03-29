@@ -81,14 +81,22 @@ class _TypesenseUserCardCacheServiceCachePart {
         return null;
       }
       final cards = <String, Map<String, dynamic>>{};
+      var shouldPrune = false;
       cardsRaw.forEach((key, value) {
         if (value is Map) {
-          cards[key.toString()] = _cloneCard(
+          final card = _cloneCard(
             Map<String, dynamic>.from(
               value.cast<dynamic, dynamic>(),
             ),
           );
+          if (card.isEmpty) {
+            shouldPrune = true;
+            return;
+          }
+          cards[key.toString()] = card;
+          return;
         }
+        shouldPrune = true;
       });
       final cached = _CachedUserCardsResult(
         cards: _cloneCards(cards),
@@ -97,6 +105,19 @@ class _TypesenseUserCardCacheServiceCachePart {
       if (!cached.isFresh) {
         await prefs?.remove(prefsKey);
         return null;
+      }
+      if (shouldPrune) {
+        if (cards.isEmpty) {
+          await prefs?.remove(prefsKey);
+          return null;
+        }
+        await prefs?.setString(
+          prefsKey,
+          jsonEncode(<String, dynamic>{
+            'cachedAt': cachedAtMs,
+            'cards': _cloneCards(cards),
+          }),
+        );
       }
       service._memory[cacheKey] = cached;
       return cached;
