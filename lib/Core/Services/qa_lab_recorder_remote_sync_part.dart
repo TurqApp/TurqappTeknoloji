@@ -18,11 +18,12 @@ Future<void> _qaLabSyncRemoteSummary(
     extendedDeviceInfoOverride: extendedDeviceInfoOverride,
   );
   await ensureQALabRemoteUploader().scheduleUpload(
-    sessionDocument: Map<String, dynamic>.from(
+    sessionDocument: _cloneQaLabExportMap(
       payload['session'] as Map<String, dynamic>? ?? const <String, dynamic>{},
     ),
     occurrences: (payload['occurrences'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
+        .map(_cloneQaLabExportMap)
         .toList(growable: false),
     reason: reason,
     immediate: immediate,
@@ -107,7 +108,7 @@ Future<Map<String, dynamic>> _qaLabBuildRemoteSessionDocument(
     'healthScore': recorder.healthScore,
     'performance': <String, dynamic>{
       'app': _qaLabSanitizeRemoteValue(
-        Map<String, dynamic>.from(recorder.appFramePerformance),
+        _cloneQaLabExportMap(recorder.appFramePerformance),
       ),
     },
     'permissions': Map<String, String>.from(recorder.lastPermissionStatuses),
