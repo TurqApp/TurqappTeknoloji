@@ -15,6 +15,21 @@ Future<void> resetPlaybackForSurfaceRefresh() async {
   await _GlobalVideoAdapterPoolRuntimeX(ensureGlobalVideoAdapterPool()).clear();
 }
 
+Future<void> runSurfaceRefresh({
+  required Future<void> Function() primaryRefresh,
+  List<Future<void> Function()> backgroundRefreshes = const [],
+}) async {
+  await resetPlaybackForSurfaceRefresh();
+  await primaryRefresh();
+  for (final refresh in backgroundRefreshes) {
+    unawaited(Future<void>(() async {
+      try {
+        await refresh();
+      } catch (_) {}
+    }));
+  }
+}
+
 extension GlobalVideoAdapterPoolFacadePart on GlobalVideoAdapterPool {
   HLSVideoAdapter acquire({
     required String cacheKey,

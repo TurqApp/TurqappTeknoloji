@@ -12,12 +12,16 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
               children: [
                 Expanded(
                   child: RefreshIndicator(
-                    onRefresh: () async {
-                      await resetPlaybackForSurfaceRefresh();
-                      await controller.refreshAll(forceSync: true);
-                      await _loadMarketItems(force: true);
-                      socialMediaController.getData();
-                    },
+                    onRefresh: () => runSurfaceRefresh(
+                      primaryRefresh: () =>
+                          controller.refreshAll(forceSync: true),
+                      backgroundRefreshes: [
+                        () => _loadMarketItems(force: true),
+                        () async {
+                          await socialMediaController.getData();
+                        },
+                      ],
+                    ),
                     child: Obx(() => _buildProfileContent(context)),
                   ),
                 ),

@@ -72,10 +72,9 @@ class _ArchivesState extends State<Archives> {
     return RefreshIndicator(
       backgroundColor: Colors.black,
       color: Colors.white,
-      onRefresh: () async {
-        await resetPlaybackForSurfaceRefresh();
-        await controller.fetchData();
-      },
+      onRefresh: () => runSurfaceRefresh(
+        primaryRefresh: controller.fetchData,
+      ),
       child: ListView.builder(
         controller: controller.scrollController,
         itemCount: controller.list.length + 1,

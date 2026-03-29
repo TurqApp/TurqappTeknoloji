@@ -5,23 +5,18 @@ extension _AgendaViewFeedPart on AgendaView {
     return RefreshIndicator(
       backgroundColor: Colors.black,
       color: Colors.white,
-      onRefresh: () async {
-        await resetPlaybackForSurfaceRefresh();
-        await controller.refreshAgenda();
-        try {
-          await unreadController.refreshUnreadCount();
-        } catch (e) {
-          print("Unread messages refresh error: $e");
-        }
-        try {
-          await maybeFindStoryRowController()?.loadStories();
-        } catch (e) {
-          print("Story refresh error: $e");
-        }
-        try {
-          await recommendedController.getUsers();
-        } catch (_) {}
-      },
+      onRefresh: () => runSurfaceRefresh(
+        primaryRefresh: controller.refreshAgenda,
+        backgroundRefreshes: [
+          unreadController.refreshUnreadCount,
+          () async {
+            await maybeFindStoryRowController()?.loadStories();
+          },
+          () async {
+            await recommendedController.getUsers();
+          },
+        ],
+      ),
       child: Obx(() {
         final display = controller.mergedFeedEntries;
         final filteredDisplay = controller.filteredFeedEntries;
