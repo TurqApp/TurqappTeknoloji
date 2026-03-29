@@ -335,22 +335,22 @@ class TypesenseEducationSearchService {
 }
 
 class _CachedEducationSearchResult {
-  const _CachedEducationSearchResult({
-    required this.result,
+  _CachedEducationSearchResult({
+    required EducationTypesenseSearchResult result,
     required this.cachedAt,
-  });
+  }) : result = TypesenseEducationSearchService._cloneResult(result);
 
   final EducationTypesenseSearchResult result;
   final DateTime cachedAt;
 }
 
 class EducationTypesenseSearchResult {
-  const EducationTypesenseSearchResult({
-    required this.hits,
+  EducationTypesenseSearchResult({
+    required List<Map<String, dynamic>> hits,
     required this.found,
     required this.page,
     required this.limit,
-  });
+  }) : hits = TypesenseEducationSearchService._cloneHits(hits);
 
   final List<Map<String, dynamic>> hits;
   final int found;
