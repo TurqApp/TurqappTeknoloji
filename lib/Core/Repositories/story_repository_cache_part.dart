@@ -214,28 +214,63 @@ extension StoryRepositoryCachePart on StoryRepository {
           return const <StoryUserModel>[];
         }
       }
-      final usersJson =
-          (data['users'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      final usersJson = data['users'];
+      if (usersJson is! List) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
       final expiryCutoff = storyExpiryCutoffInternal;
-      return usersJson
-          .map(StoryUserModel.fromCacheMap)
-          .map((user) {
-            if (allowExpired) return user;
+      var shouldPersist = false;
+      final restoredUsers = <StoryUserModel>[];
+      for (final rawUser in usersJson) {
+        if (rawUser is! Map) {
+          shouldPersist = true;
+          continue;
+        }
+        try {
+          var user = StoryUserModel.fromCacheMap(
+            Map<String, dynamic>.from(rawUser.cast<dynamic, dynamic>()),
+          );
+          if (user.userID.isEmpty) {
+            shouldPersist = true;
+            continue;
+          }
+          if (!allowExpired) {
             final activeStories = user.stories
                 .where((story) => story.createdAt.isAfter(expiryCutoff))
                 .toList(growable: false)
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return StoryUserModel(
+            if (activeStories.length != user.stories.length) {
+              shouldPersist = true;
+            }
+            user = StoryUserModel(
               nickname: user.nickname,
               avatarUrl: user.avatarUrl,
               fullName: user.fullName,
               userID: user.userID,
               stories: activeStories,
             );
-          })
-          .where((u) => u.userID.isNotEmpty)
-          .where((u) => u.stories.isNotEmpty || u.userID == ownerUid)
-          .toList(growable: false);
+          }
+          if (user.stories.isEmpty && user.userID != ownerUid) {
+            shouldPersist = true;
+            continue;
+          }
+          restoredUsers.add(user);
+        } catch (_) {
+          shouldPersist = true;
+        }
+      }
+      if (restoredUsers.isEmpty) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
+      if (shouldPersist || restoredUsers.length != usersJson.length) {
+        await _performSaveStoryRowCache(
+          restoredUsers,
+          ownerUid: ownerUid,
+        );
+      }
+      return restoredUsers;
     } catch (_) {
       try {
         if (await file.exists()) {
