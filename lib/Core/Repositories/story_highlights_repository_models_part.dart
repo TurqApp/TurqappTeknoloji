@@ -1,5 +1,15 @@
 part of 'story_highlights_repository.dart';
 
+List<String> _cloneStoryHighlightStoryIds(List<String> storyIds) {
+  final out = <String>[];
+  for (final storyId in storyIds) {
+    final normalized = storyId.trim();
+    if (normalized.isEmpty) continue;
+    out.add(normalized);
+  }
+  return out;
+}
+
 List<StoryHighlightModel> _cloneStoryHighlightItems(
   List<StoryHighlightModel> items,
 ) {
@@ -10,7 +20,7 @@ List<StoryHighlightModel> _cloneStoryHighlightItems(
           userId: item.userId,
           title: item.title,
           coverUrl: item.coverUrl,
-          storyIds: List<String>.from(item.storyIds),
+          storyIds: _cloneStoryHighlightStoryIds(item.storyIds),
           createdAt: item.createdAt,
           order: item.order,
         ),
