@@ -3,6 +3,11 @@ part of 'nav_bar_controller.dart';
 extension _NavBarControllerUpdatePart on NavBarController {
   Future<void> _launchStore() => _launchStoreImpl();
 
+  int _asConfigInt(Object? value, int fallback) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? fallback;
+  }
+
   Future<void> _loadAppVersionConfigImpl({bool forceRefresh = false}) async {
     final repo = ensureConfigRepository();
     final doc = await repo.getAdminConfigDoc(
@@ -32,11 +37,12 @@ extension _NavBarControllerUpdatePart on NavBarController {
     _iosStoreUrlOverride = iosStoreUrl.isEmpty ? null : iosStoreUrl;
 
     _ratingPromptEnabled = doc['ratingPromptEnabled'] != false;
-    final initialDays =
-        (doc['ratingPromptInitialDelayDays'] as num?)?.toInt() ?? 7;
-    final repeatDays = (doc['ratingPromptRepeatDays'] as num?)?.toInt() ?? 7;
-    final cooldownDays =
-        (doc['ratingPromptStoreCooldownDays'] as num?)?.toInt() ?? 90;
+    final initialDays = _asConfigInt(doc['ratingPromptInitialDelayDays'], 7);
+    final repeatDays = _asConfigInt(doc['ratingPromptRepeatDays'], 7);
+    final cooldownDays = _asConfigInt(
+      doc['ratingPromptStoreCooldownDays'],
+      90,
+    );
     _ratingPromptEnabledAfter =
         Duration(days: initialDays < 1 ? 7 : initialDays);
     _ratingPromptRepeatAfter = Duration(days: repeatDays < 1 ? 7 : repeatDays);
