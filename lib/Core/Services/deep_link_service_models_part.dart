@@ -51,18 +51,18 @@ class _StoryListLookupCache {
   final List<StoryModel> stories;
   final DateTime cachedAt;
 
-  const _StoryListLookupCache({
-    required this.stories,
+  _StoryListLookupCache({
+    required List<StoryModel> stories,
     required this.cachedAt,
-  });
+  }) : stories = _cloneDeepLinkStories(stories);
 }
 
 class _StoryDocLookupCache {
   final Map<String, dynamic>? data;
   final DateTime cachedAt;
 
-  const _StoryDocLookupCache({
-    required this.data,
+  _StoryDocLookupCache({
+    required Map<String, dynamic>? data,
     required this.cachedAt,
-  });
+  }) : data = data == null ? null : _cloneDeepLinkStoryDocMap(data);
 }
