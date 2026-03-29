@@ -210,8 +210,32 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         return;
       }
 
+      final writeAuthUser =
+          await currentUserService.resolveAuthUser(waitForAuthState: true);
+      if (writeAuthUser == null) {
+        AppSnackbar("common.error".tr, "story.no_user".tr);
+        return;
+      }
+      try {
+        await writeAuthUser.getIdToken(true);
+      } on FirebaseAuthException catch (e) {
+        AppSnackbar(
+          "common.error".tr,
+          "story.save_failed".trParams({"error": e.code}),
+        );
+        return;
+      }
+      final writeUid = writeAuthUser.uid.trim();
+      if (writeUid.isEmpty || writeUid != resolvedUid) {
+        AppSnackbar(
+          "common.error".tr,
+          "story.save_failed".trParams({"error": "auth_mismatch"}),
+        );
+        return;
+      }
+
       final storyData = <String, dynamic>{
-        'userId': resolvedUid,
+        'userId': writeUid,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': colorSnapshot.toARGB32(),
         'musicId': selectedMusicSnapshot?.docID ?? '',
@@ -233,7 +257,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           StoryMusicLibraryService.instance.recordStoryUsage(
             track: selectedMusicSnapshot,
             storyId: storyId,
-            userId: resolvedUid,
+            userId: writeUid,
             createdAt: storyData['createdDate'] as int? ??
                 DateTime.now().millisecondsSinceEpoch,
           ),
