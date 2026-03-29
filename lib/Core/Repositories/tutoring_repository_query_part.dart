@@ -1,6 +1,12 @@
 part of 'tutoring_repository.dart';
 
 extension TutoringRepositoryQueryPart on TutoringRepository {
+  int _applicationAsInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<TutoringPage> fetchPage({
     DocumentSnapshot? startAfter,
     int limit = 30,
@@ -259,8 +265,8 @@ extension TutoringRepositoryQueryPart on TutoringRepository {
                   tutorName: (e['tutorName'] ?? '').toString(),
                   tutorImage: (e['tutorImage'] ?? '').toString(),
                   status: (e['status'] ?? 'pending').toString(),
-                  timeStamp: (e['timeStamp'] as num?)?.toInt() ?? 0,
-                  statusUpdatedAt: (e['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+                  timeStamp: _applicationAsInt(e['timeStamp']),
+                  statusUpdatedAt: _applicationAsInt(e['statusUpdatedAt']),
                   note: (e['note'] ?? '').toString(),
                 ))
             .toList(growable: false);
@@ -285,8 +291,8 @@ extension TutoringRepositoryQueryPart on TutoringRepository {
               tutorName: (e['tutorName'] ?? '').toString(),
               tutorImage: (e['tutorImage'] ?? '').toString(),
               status: (e['status'] ?? 'pending').toString(),
-              timeStamp: (e['timeStamp'] as num?)?.toInt() ?? 0,
-              statusUpdatedAt: (e['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+              timeStamp: _applicationAsInt(e['timeStamp']),
+              statusUpdatedAt: _applicationAsInt(e['statusUpdatedAt']),
               note: (e['note'] ?? '').toString(),
             ))
         .toList(growable: false);
