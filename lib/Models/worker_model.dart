@@ -7,15 +7,19 @@ class WorkerModel {
   String meslek;
   num timeStamp;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   WorkerModel({
     required this.userID,
-    required this.calismaTuru,
+    required List<String> calismaTuru,
     required this.call,
-    required this.city,
+    required List<String> city,
     required this.info,
     required this.meslek,
     required this.timeStamp,
-  });
+  }) : calismaTuru = _cloneStringList(calismaTuru),
+       city = _cloneStringList(city);
 
   factory WorkerModel.fromMap(String id, Map<String, dynamic> data) {
     return WorkerModel(
