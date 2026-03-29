@@ -152,7 +152,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                 child: Icon(
                   CupertinoIcons.qrcode,
                   color: AppColors.textBlack,
-                  size: 18,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 6),
@@ -163,7 +163,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                 child: Icon(
                   CupertinoIcons.mail,
                   color: AppColors.textBlack,
-                  size: 18,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 6),
@@ -176,7 +176,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                 child: Icon(
                   CupertinoIcons.gear,
                   color: AppColors.textBlack,
-                  size: 18,
+                  size: 20,
                 ),
               ),
             ],
