@@ -17,10 +17,10 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
     final cacheKey = _cardsCacheKey(cleaned);
     if (!forceRefresh && preferCache) {
       final memoryHit = _getFromMemory(cacheKey);
-      if (memoryHit != null) return memoryHit.cards;
+      if (memoryHit != null) return _cloneTypesensePostCards(memoryHit.cards);
 
       final diskHit = await _getFromPrefs(cacheKey);
-      if (diskHit != null) return diskHit.cards;
+      if (diskHit != null) return _cloneTypesensePostCards(diskHit.cards);
     }
     if (cacheOnly) return const <String, Map<String, dynamic>>{};
 
@@ -40,10 +40,10 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
           if (hitMap == null) continue;
           final id = (hitMap['id'] ?? hitMap['docID'] ?? '').toString().trim();
           if (id.isEmpty) continue;
-          out[id] = hitMap;
+          out[id] = _cloneTypesensePostCard(hitMap);
         }
         await _store(cacheKey, out);
-        return out;
+        return _cloneTypesensePostCards(out);
       } catch (e) {
         lastError = e;
       }

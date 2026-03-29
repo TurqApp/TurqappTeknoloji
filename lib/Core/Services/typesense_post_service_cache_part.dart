@@ -68,13 +68,15 @@ extension TypesensePostServiceCachePart on TypesensePostService {
       final cards = <String, Map<String, dynamic>>{};
       cardsRaw.forEach((key, value) {
         if (value is Map) {
-          cards[key.toString()] = Map<String, dynamic>.from(
-            value.cast<dynamic, dynamic>(),
+          cards[key.toString()] = _cloneTypesensePostCard(
+            Map<String, dynamic>.from(
+              value.cast<dynamic, dynamic>(),
+            ),
           );
         }
       });
       final cached = _CachedPostCardsResult(
-        cards: cards,
+        cards: _cloneTypesensePostCards(cards),
         cachedAt: DateTime.fromMillisecondsSinceEpoch(cachedAtMs),
       );
       if (!cached.isFresh) {
@@ -94,7 +96,7 @@ extension TypesensePostServiceCachePart on TypesensePostService {
     Map<String, Map<String, dynamic>> cards,
   ) async {
     final cached = _CachedPostCardsResult(
-      cards: Map<String, Map<String, dynamic>>.from(cards),
+      cards: _cloneTypesensePostCards(cards),
       cachedAt: DateTime.now(),
     );
     _memory[cacheKey] = cached;
@@ -104,9 +106,40 @@ extension TypesensePostServiceCachePart on TypesensePostService {
         _prefsKey(cacheKey),
         jsonEncode(<String, dynamic>{
           'cachedAt': cached.cachedAt.millisecondsSinceEpoch,
-          'cards': cards,
+          'cards': _cloneTypesensePostCards(cards),
         }),
       );
     } catch (_) {}
+  }
+
+  Map<String, Map<String, dynamic>> _cloneTypesensePostCards(
+    Map<String, Map<String, dynamic>> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneTypesensePostCard(value)),
+    );
+  }
+
+  Map<String, dynamic> _cloneTypesensePostCard(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneTypesensePostCardValue(value)),
+    );
+  }
+
+  dynamic _cloneTypesensePostCardValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneTypesensePostCardValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value
+          .map(_cloneTypesensePostCardValue)
+          .toList(growable: false);
+    }
+    return value;
   }
 }
