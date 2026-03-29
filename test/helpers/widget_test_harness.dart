@@ -26,6 +26,38 @@ class WidgetHarnessVariant {
 }
 
 class WidgetHarnessVariants {
+  static const WidgetHarnessVariant phoneSmallAndroid = WidgetHarnessVariant(
+    name: 'phone_small_android',
+    size: Size(360, 640),
+    devicePixelRatio: 3.0,
+    platform: TargetPlatform.android,
+  );
+
+  static const WidgetHarnessVariant phoneSmallAndroidLargeText =
+      WidgetHarnessVariant(
+        name: 'phone_small_android_large_text',
+        size: Size(360, 640),
+        devicePixelRatio: 3.0,
+        textScale: 1.6,
+        platform: TargetPlatform.android,
+      );
+
+  static const WidgetHarnessVariant phoneSmallIos = WidgetHarnessVariant(
+    name: 'phone_small_ios',
+    size: Size(360, 640),
+    devicePixelRatio: 3.0,
+    platform: TargetPlatform.iOS,
+  );
+
+  static const WidgetHarnessVariant phoneSmallIosLargeText =
+      WidgetHarnessVariant(
+        name: 'phone_small_ios_large_text',
+        size: Size(360, 640),
+        devicePixelRatio: 3.0,
+        textScale: 1.6,
+        platform: TargetPlatform.iOS,
+      );
+
   static const WidgetHarnessVariant phoneAndroid = WidgetHarnessVariant(
     name: 'phone_android',
     size: Size(393, 852),
@@ -54,6 +86,15 @@ class WidgetHarnessVariants {
     devicePixelRatio: 2.0,
     platform: TargetPlatform.android,
   );
+
+  static const List<WidgetHarnessVariant> responsiveAuditMatrix = [
+    phoneSmallAndroid,
+    phoneSmallAndroidLargeText,
+    phoneSmallIos,
+    phoneSmallIosLargeText,
+    phoneAndroid,
+    tabletAndroid,
+  ];
 
   static const List<WidgetHarnessVariant> accessibilityMatrix = [
     phoneAndroid,
