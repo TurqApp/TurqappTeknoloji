@@ -606,6 +606,9 @@ extension ExploreControllerFeedPart on ExploreController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
+      if (tags.isEmpty && trendingTags.isNotEmpty) {
+        return;
+      }
       trendingTags.assignAll(tags);
     } catch (_) {}
   }
