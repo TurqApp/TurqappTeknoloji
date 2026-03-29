@@ -2,6 +2,20 @@ part of 'scholarship_snapshot_repository.dart';
 
 extension ScholarshipSnapshotRepositoryQueryPart
     on ScholarshipSnapshotRepository {
+  int _asScholarshipHitInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  String _asScholarshipHitString(Object? value) => (value ?? '').toString();
+
+  List<String> _asScholarshipHitStringList(Object? value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).toList(growable: false);
+    }
+    return const <String>[];
+  }
+
   Stream<CachedResource<ScholarshipListingSnapshot>> _openHomeImpl({
     required String userId,
     required int limit,
@@ -118,69 +132,63 @@ extension ScholarshipSnapshotRepositoryQueryPart
       'type': kIndividualScholarshipType,
       'userData': userData,
       'docId': docId,
-      'likesCount': (hit['likeCount'] as num?)?.toInt() ?? 0,
-      'bookmarksCount': (hit['bookmarkCount'] as num?)?.toInt() ?? 0,
+      'likesCount': _asScholarshipHitInt(hit['likeCount']),
+      'bookmarksCount': _asScholarshipHitInt(hit['bookmarkCount']),
       'timeStamp': model.timeStamp,
       'isSummary': true,
     };
   }
 
   IndividualScholarshipsModel _buildModelFromHit(Map<String, dynamic> hit) {
-    final cover = (hit['cover'] ?? '').toString().trim();
+    final cover = _asScholarshipHitString(hit['cover']).trim();
     return IndividualScholarshipsModel.fromJson(<String, dynamic>{
-      'aciklama': (hit['aciklama'] ?? hit['description'] ?? '').toString(),
-      'shortDescription': (hit['shortDescription'] ?? '').toString().trim(),
-      'altEgitimKitlesi': List<String>.from(
-        (hit['altEgitimKitlesi'] as List<dynamic>? ?? const <dynamic>[]),
+      'aciklama': _asScholarshipHitString(
+        hit['aciklama'] ?? hit['description'],
       ),
-      'aylar': List<String>.from(
-        (hit['aylar'] as List<dynamic>? ?? const <dynamic>[]),
-      ),
+      'shortDescription': _asScholarshipHitString(
+        hit['shortDescription'],
+      ).trim(),
+      'altEgitimKitlesi': _asScholarshipHitStringList(hit['altEgitimKitlesi']),
+      'aylar': _asScholarshipHitStringList(hit['aylar']),
       'basvurular': const <String>[],
-      'baslangicTarihi': (hit['baslangicTarihi'] ?? '').toString(),
-      'baslik': (hit['title'] ?? '').toString(),
-      'basvuruKosullari': (hit['basvuruKosullari'] ?? '').toString(),
-      'basvuruURL': (hit['basvuruURL'] ?? '').toString(),
-      'basvuruYapilacakYer': (hit['basvuruYapilacakYer'] ?? '').toString(),
+      'baslangicTarihi': _asScholarshipHitString(hit['baslangicTarihi']),
+      'baslik': _asScholarshipHitString(hit['title']),
+      'basvuruKosullari': _asScholarshipHitString(hit['basvuruKosullari']),
+      'basvuruURL': _asScholarshipHitString(hit['basvuruURL']),
+      'basvuruYapilacakYer': _asScholarshipHitString(
+        hit['basvuruYapilacakYer'],
+      ),
       'begeniler': const <String>[],
-      'belgeler': List<String>.from(
-        (hit['belgeler'] as List<dynamic>? ?? const <dynamic>[]),
-      ),
-      'bitisTarihi': (hit['bitisTarihi'] ?? '').toString(),
-      'bursVeren': (hit['bursVeren'] ?? hit['subtitle'] ?? '').toString(),
-      'egitimKitlesi': (hit['egitimKitlesi'] ?? '').toString(),
-      'geriOdemeli': (hit['geriOdemeli'] ?? '').toString(),
+      'belgeler': _asScholarshipHitStringList(hit['belgeler']),
+      'bitisTarihi': _asScholarshipHitString(hit['bitisTarihi']),
+      'bursVeren': _asScholarshipHitString(hit['bursVeren'] ?? hit['subtitle']),
+      'egitimKitlesi': _asScholarshipHitString(hit['egitimKitlesi']),
+      'geriOdemeli': _asScholarshipHitString(hit['geriOdemeli']),
       'goruntuleme': const <String>[],
-      'hedefKitle': (hit['hedefKitle'] ?? '').toString(),
-      'ilceler': List<String>.from(
-        (hit['ilceler'] as List<dynamic>? ?? const <dynamic>[]),
-      ),
+      'hedefKitle': _asScholarshipHitString(hit['hedefKitle']),
+      'ilceler': _asScholarshipHitStringList(hit['ilceler']),
       'img': cover,
-      'img2': (hit['img2'] ?? '').toString(),
+      'img2': _asScholarshipHitString(hit['img2']),
       'kaydedenler': const <String>[],
       'kaydedilenler': const <String>[],
-      'liseOrtaOkulIlceler': List<String>.from(
-        (hit['liseOrtaOkulIlceler'] as List<dynamic>? ?? const <dynamic>[]),
+      'liseOrtaOkulIlceler': _asScholarshipHitStringList(
+        hit['liseOrtaOkulIlceler'],
       ),
-      'liseOrtaOkulSehirler': List<String>.from(
-        (hit['liseOrtaOkulSehirler'] as List<dynamic>? ?? const <dynamic>[]),
+      'liseOrtaOkulSehirler': _asScholarshipHitStringList(
+        hit['liseOrtaOkulSehirler'],
       ),
-      'logo': ((hit['logo'] ?? hit['logoUrl']) ?? '').toString().trim(),
-      'mukerrerDurumu': (hit['mukerrerDurumu'] ?? '').toString(),
-      'ogrenciSayisi': (hit['ogrenciSayisi'] ?? '').toString(),
-      'sehirler': List<String>.from(
-        (hit['sehirler'] as List<dynamic>? ?? const <dynamic>[]),
-      ),
-      'timeStamp': (hit['timeStamp'] as num?)?.toInt() ?? 0,
-      'tutar': (hit['tutar'] ?? '').toString(),
-      'universiteler': List<String>.from(
-        (hit['universiteler'] as List<dynamic>? ?? const <dynamic>[]),
-      ),
-      'userID': ((hit['ownerId'] ?? hit['userID']) ?? '').toString(),
-      'website': (hit['website'] ?? '').toString(),
-      'lisansTuru': (hit['lisansTuru'] ?? '').toString(),
-      'template': (hit['template'] ?? '').toString(),
-      'ulke': (hit['ulke'] ?? hit['country'] ?? '').toString(),
+      'logo': _asScholarshipHitString(hit['logo'] ?? hit['logoUrl']).trim(),
+      'mukerrerDurumu': _asScholarshipHitString(hit['mukerrerDurumu']),
+      'ogrenciSayisi': _asScholarshipHitString(hit['ogrenciSayisi']),
+      'sehirler': _asScholarshipHitStringList(hit['sehirler']),
+      'timeStamp': _asScholarshipHitInt(hit['timeStamp']),
+      'tutar': _asScholarshipHitString(hit['tutar']),
+      'universiteler': _asScholarshipHitStringList(hit['universiteler']),
+      'userID': _asScholarshipHitString(hit['ownerId'] ?? hit['userID']),
+      'website': _asScholarshipHitString(hit['website']),
+      'lisansTuru': _asScholarshipHitString(hit['lisansTuru']),
+      'template': _asScholarshipHitString(hit['template']),
+      'ulke': _asScholarshipHitString(hit['ulke'] ?? hit['country']),
     });
   }
 
