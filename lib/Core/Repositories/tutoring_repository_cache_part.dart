@@ -7,14 +7,16 @@ void _handleTutoringRepositoryInit(TutoringRepository repository) {
 extension TutoringRepositoryCachePart on TutoringRepository {
   Future<Map<String, dynamic>?> _getCachedMap(String key) async {
     final value = await _getCachedValue(key);
-    if (value is Map<String, dynamic>) return value;
+    if (value is Map<String, dynamic>) return _cloneMap(value);
     return null;
   }
 
   Future<List<Map<String, dynamic>>?> _getCachedList(String key) async {
     final value = await _getCachedValue(key);
     if (value is List) {
-      return value.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      return value
+          .map((e) => _cloneMap(Map<String, dynamic>.from(e as Map)))
+          .toList(growable: false);
     }
     return null;
   }
@@ -23,7 +25,7 @@ extension TutoringRepositoryCachePart on TutoringRepository {
     final memory = _memory[key];
     if (memory != null &&
         DateTime.now().difference(memory.cachedAt) <= TutoringRepository._ttl) {
-      return memory.value;
+      return _cloneValue(memory.value);
     }
     _prefs ??= await SharedPreferences.getInstance();
     final prefs = _prefs;
@@ -51,8 +53,8 @@ extension TutoringRepositoryCachePart on TutoringRepository {
       }
       final value = decoded['v'];
       _memory[key] =
-          _TimedValue<dynamic>(value: value, cachedAt: DateTime.now());
-      return value;
+          _TimedValue<dynamic>(value: _cloneValue(value), cachedAt: DateTime.now());
+      return _cloneValue(value);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -64,14 +66,31 @@ extension TutoringRepositoryCachePart on TutoringRepository {
 
   Future<void> _storeValue(String key, dynamic value) async {
     final now = DateTime.now();
-    _memory[key] = _TimedValue<dynamic>(value: value, cachedAt: now);
+    final cloned = _cloneValue(value);
+    _memory[key] = _TimedValue<dynamic>(value: cloned, cachedAt: now);
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
       '${TutoringRepository._prefsPrefix}:$key',
       jsonEncode({
         't': now.millisecondsSinceEpoch,
-        'v': value,
+        'v': cloned,
       }),
     );
+  }
+
+  Map<String, dynamic> _cloneMap(Map<String, dynamic> value) {
+    return value.map((key, child) => MapEntry(key, _cloneValue(child)));
+  }
+
+  dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 }
