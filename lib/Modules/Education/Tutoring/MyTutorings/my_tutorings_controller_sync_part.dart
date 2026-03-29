@@ -2,10 +2,10 @@ part of 'my_tutorings_controller_library.dart';
 
 extension MyTutoringsControllerSyncPart on MyTutoringsController {
   Future<void> _bootstrapData(String currentUserId) async {
-    final cached = await _tutoringRepository.fetchByOwner(
-      currentUserId,
-      cacheOnly: true,
-    );
+    final cached = (await _tutoringSnapshotRepository.loadCachedOwner(
+      userId: currentUserId,
+    ))
+        .data;
     if (cached.isNotEmpty) {
       if (!_sameTutoringEntries(myTutorings, cached)) {
         myTutorings.assignAll(cached);
@@ -40,17 +40,17 @@ extension MyTutoringsControllerSyncPart on MyTutoringsController {
       isLoading.value = true;
     }
     try {
-      final tutorings = await _tutoringRepository.fetchByOwner(
-        currentUserId,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final tutorings = (await _tutoringSnapshotRepository.loadOwner(
+        userId: currentUserId,
+        forceSync: forceRefresh,
+      ))
+          .data;
       await _archiveExpiredTutorings(tutorings);
-      final refreshed = await _tutoringRepository.fetchByOwner(
-        currentUserId,
-        preferCache: false,
-        forceRefresh: true,
-      );
+      final refreshed = (await _tutoringSnapshotRepository.loadOwner(
+        userId: currentUserId,
+        forceSync: true,
+      ))
+          .data;
       if (!_sameTutoringEntries(myTutorings, refreshed)) {
         myTutorings.assignAll(refreshed);
       }

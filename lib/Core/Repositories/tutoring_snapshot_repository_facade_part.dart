@@ -13,6 +13,44 @@ TutoringSnapshotRepository ensureTutoringSnapshotRepository() {
 }
 
 extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
+  Future<CachedResource<List<TutoringModel>>> loadCachedOwner({
+    required String userId,
+  }) {
+    final query = TutoringOwnerQuery(userId: userId);
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      TutoringSnapshotRepository._ownerSurfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: TutoringSnapshotRepository._ownerSurfaceKey,
+      userId: userId.trim(),
+      scopeId: query.buildScopeId(schemaVersion: schemaVersion),
+    );
+    return _coordinator.bootstrap(
+      key,
+      schemaVersion: schemaVersion,
+    );
+  }
+
+  Stream<CachedResource<List<TutoringModel>>> openOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _ownerPipeline.open(
+      TutoringOwnerQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<TutoringModel>>> loadOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openOwner(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Stream<CachedResource<List<TutoringModel>>> openHome({
     required String userId,
     int limit = 30,

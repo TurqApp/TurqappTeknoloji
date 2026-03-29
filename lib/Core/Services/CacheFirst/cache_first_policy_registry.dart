@@ -57,6 +57,7 @@ class CacheFirstPolicyRegistry {
       case 'answer_key_search_snapshot':
       case 'tutoring_home_snapshot':
       case 'tutoring_search_snapshot':
+      case 'tutoring_owner_snapshot':
       case 'practice_exam_home_snapshot':
       case 'practice_exam_search_snapshot':
       case 'practice_exam_owner_snapshot':
@@ -88,6 +89,7 @@ class CacheFirstPolicyRegistry {
       case 'answer_key_search_snapshot':
       case 'tutoring_home_snapshot':
       case 'tutoring_search_snapshot':
+      case 'tutoring_owner_snapshot':
       case 'practice_exam_home_snapshot':
       case 'practice_exam_search_snapshot':
       case 'practice_exam_owner_snapshot':
