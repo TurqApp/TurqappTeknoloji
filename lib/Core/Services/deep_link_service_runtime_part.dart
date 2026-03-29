@@ -41,7 +41,11 @@ extension _DeepLinkServiceRuntimeX on DeepLinkService {
       );
 
       final data = Map<String, dynamic>.from(
-        resolved['data'] as Map? ?? const {},
+        _cloneDeepLinkStoryDocMap(
+          (resolved['data'] as Map? ?? const {}).map(
+            (key, value) => MapEntry(key.toString(), value),
+          ),
+        ),
       );
       final entityId = (data['entityId'] ?? '').toString().trim();
       if (entityId.isEmpty) {
