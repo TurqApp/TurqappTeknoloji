@@ -29,6 +29,17 @@ class SliderResolvedItem {
   final bool isRemote;
   final bool isDefault;
 
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'itemId': itemId,
@@ -47,11 +58,11 @@ class SliderResolvedItem {
     return SliderResolvedItem(
       itemId: (map['itemId'] ?? '').toString(),
       source: (map['source'] ?? '').toString(),
-      order: (map['order'] as num?)?.toInt() ?? 0,
-      startDateMs: (map['startDateMs'] as num?)?.toInt() ?? 0,
-      endDateMs: (map['endDateMs'] as num?)?.toInt() ?? 0,
-      viewCount: (map['viewCount'] as num?)?.toInt() ?? 0,
-      uniqueViewCount: (map['uniqueViewCount'] as num?)?.toInt() ?? 0,
+      order: _asInt(map['order']),
+      startDateMs: _asInt(map['startDateMs']),
+      endDateMs: _asInt(map['endDateMs']),
+      viewCount: _asInt(map['viewCount']),
+      uniqueViewCount: _asInt(map['uniqueViewCount']),
       isRemote: map['isRemote'] == true,
       isDefault: map['isDefault'] == true,
     );
@@ -116,6 +127,17 @@ class SliderCacheService {
 
   String _key(String sliderId) => '$_keyPrefix::$sliderId';
 
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<SliderCacheSnapshot> readSnapshot(String sliderId) async {
     if (sliderId.trim().isEmpty) {
       return SliderCacheSnapshot(
@@ -142,7 +164,7 @@ class SliderCacheService {
         );
       }
 
-      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      final savedAt = _asInt(decoded['savedAt']);
       if (savedAt <= 0) {
         await prefs.remove(key);
         return SliderCacheSnapshot(
