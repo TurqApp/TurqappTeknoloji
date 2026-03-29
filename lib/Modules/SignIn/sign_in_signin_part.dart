@@ -16,16 +16,14 @@ extension SignInSignInPart on _SignInState {
                     ? MainAxisAlignment.start
                     : MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Column(
-                        children: [
-                          _brandTypewriter(),
-                          const SizedBox(height: 7),
-                        ],
-                      ),
-                    ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      children: [
+                        _brandTypewriter(),
+                        const SizedBox(height: 7),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Obx(() {
@@ -72,7 +70,7 @@ extension SignInSignInPart on _SignInState {
                     child: Column(
                       children: [
                         Container(
-                          height: 50,
+                          constraints: const BoxConstraints(minHeight: 50),
                           alignment: Alignment.centerLeft,
                           decoration: BoxDecoration(
                             color: Colors.grey.withAlpha(20),
@@ -85,12 +83,16 @@ extension SignInSignInPart on _SignInState {
                                   : Colors.transparent,
                             ),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
-                            child: Row(
-                              children: [
-                                const SizedBox(
-                                  width: 20,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 6,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const SizedBox(
+                                    width: 20,
                                   child: Icon(
                                     CupertinoIcons.person,
                                     color: Colors.black,
@@ -161,7 +163,7 @@ extension SignInSignInPart on _SignInState {
                           final hasPassword =
                               controller.password.value.trim().isNotEmpty;
                           return Container(
-                            height: 50,
+                            constraints: const BoxConstraints(minHeight: 50),
                             alignment: Alignment.centerLeft,
                             decoration: BoxDecoration(
                               color: Colors.grey.withAlpha(20),
@@ -174,10 +176,13 @@ extension SignInSignInPart on _SignInState {
                                     : Colors.transparent,
                               ),
                             ),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 15),
+                              child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 15,
+                                    vertical: 6,
+                                  ),
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   const SizedBox(
                                     width: 20,
@@ -235,37 +240,61 @@ extension SignInSignInPart on _SignInState {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  if (hasPassword)
-                                    GestureDetector(
-                                      onTap: () {
-                                        controller.showPassword.value =
-                                            !controller.showPassword.value;
-                                      },
-                                      child: Icon(
-                                        controller.showPassword.value
-                                            ? CupertinoIcons.eye
-                                            : CupertinoIcons.eye_slash,
-                                        color: Colors.blueAccent,
-                                      ),
-                                    )
-                                  else
-                                    GestureDetector(
-                                      onTap: () {
-                                        controller.resetMailController.clear();
-                                        controller.resetOtpController.clear();
-                                        controller.clearStoredAccountContext();
-                                        controller.selection.value = 5;
-                                      },
-                                      child: Text(
-                                        'login.reset'.tr,
-                                        style: TextStyle(
-                                          color: Colors.blueAccent,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium",
-                                        ),
-                                      ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: hasPassword
+                                          ? GestureDetector(
+                                              onTap: () {
+                                                controller.showPassword.value =
+                                                    !controller
+                                                        .showPassword.value;
+                                              },
+                                              child: Icon(
+                                                controller.showPassword.value
+                                                    ? CupertinoIcons.eye
+                                                    : CupertinoIcons.eye_slash,
+                                                color: Colors.blueAccent,
+                                              ),
+                                            )
+                                          : TextButton(
+                                              onPressed: () {
+                                                controller
+                                                    .resetMailController
+                                                    .clear();
+                                                controller.resetOtpController
+                                                    .clear();
+                                                controller
+                                                    .clearStoredAccountContext();
+                                                controller.selection.value = 5;
+                                              },
+                                              style: TextButton.styleFrom(
+                                                minimumSize: Size.zero,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 4,
+                                                ),
+                                                tapTargetSize:
+                                                    MaterialTapTargetSize
+                                                        .shrinkWrap,
+                                              ),
+                                              child: FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                child: Text(
+                                                  'login.reset'.tr,
+                                                  style: TextStyle(
+                                                    color: Colors.blueAccent,
+                                                    fontSize: 15,
+                                                    fontFamily:
+                                                        "MontserratMedium",
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                     ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -276,86 +305,107 @@ extension SignInSignInPart on _SignInState {
                   ),
                   const SizedBox(height: 18),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          controller.emailcontroller.text = "";
-                          controller.passwordcontroller.text = "";
-                          controller.emailFocus.value.unfocus();
-                          controller.passwordFocus.value.unfocus();
-                          controller.clearStoredAccountContext();
-                          controller.selection.value--;
-                        },
-                        child: Container(
-                          width: 80,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withAlpha(20),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            controller.emailcontroller.text = "";
+                            controller.passwordcontroller.text = "";
+                            controller.emailFocus.value.unfocus();
+                            controller.passwordFocus.value.unfocus();
+                            controller.clearStoredAccountContext();
+                            controller.selection.value--;
+                          },
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 44),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withAlpha(20),
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(8),
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            'common.back'.tr,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              child: Text(
+                                'common.back'.tr,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          key: const ValueKey('login_submit_button'),
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: controller.wait.value
-                              ? null
-                              : () async {
-                                  final mailOrNick =
-                                      controller.emailcontroller.text.trim();
-                                  final pass =
-                                      controller.passwordcontroller.text;
-                                  if (mailOrNick.isEmpty || pass.isEmpty) {
-                                    AppSnackbar(
-                                      'common.warning'.tr,
-                                      'sign_in.enter_credentials'.tr,
-                                    );
-                                    return;
-                                  }
-                                  if (pass.length < 6) {
-                                    AppSnackbar(
-                                      'sign_in.invalid_password_title'.tr,
-                                      'sign_in.invalid_password_body'.tr,
-                                    );
-                                    return;
-                                  }
-                                  controller.wait.value = true;
-                                  await controller.signIn();
-                                },
-                          child: Ink(
-                            width: 80,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: controller.wait.value
-                                  ? const CupertinoActivityIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : Text(
-                                      'common.continue'.tr,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium",
-                                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            key: const ValueKey('login_submit_button'),
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: controller.wait.value
+                                ? null
+                                : () async {
+                                    final mailOrNick =
+                                        controller.emailcontroller.text.trim();
+                                    final pass =
+                                        controller.passwordcontroller.text;
+                                    if (mailOrNick.isEmpty || pass.isEmpty) {
+                                      AppSnackbar(
+                                        'common.warning'.tr,
+                                        'sign_in.enter_credentials'.tr,
+                                      );
+                                      return;
+                                    }
+                                    if (pass.length < 6) {
+                                      AppSnackbar(
+                                        'sign_in.invalid_password_title'.tr,
+                                        'sign_in.invalid_password_body'.tr,
+                                      );
+                                      return;
+                                    }
+                                    controller.wait.value = true;
+                                    await controller.signIn();
+                                  },
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minHeight: 44,
+                                ),
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
                                     ),
+                                    child: controller.wait.value
+                                        ? const CupertinoActivityIndicator(
+                                            color: Colors.white,
+                                          )
+                                        : Text(
+                                            'common.continue'.tr,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 15,
+                                              fontFamily:
+                                                  "MontserratMedium",
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),

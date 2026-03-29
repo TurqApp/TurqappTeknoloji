@@ -44,14 +44,17 @@ void main() {
         variant: variant.name,
         findings: findings,
       );
-      expect(findings, isA<List<ResponsiveAuditFinding>>());
+      expectNoResponsiveAuditFailures(
+        findings,
+        reason: 'SignIn ${variant.name} responsive audit fail verdi.',
+      );
     });
   }
 
   testWidgets('SignIn stored account audit keeps CTA visible on large text', (
     tester,
   ) async {
-    const account = StoredAccount(
+    final account = StoredAccount(
       uid: 'stored-audit',
       email: 'audit@example.com',
       username: 'audit',
@@ -93,6 +96,9 @@ void main() {
       variant: WidgetHarnessVariants.phoneSmallAndroidLargeText.name,
       findings: findings,
     );
-    expect(findings, isA<List<ResponsiveAuditFinding>>());
+    expectNoResponsiveAuditFailures(
+      findings,
+      reason: 'SignIn stored-account large text audit fail verdi.',
+    );
   });
 }

@@ -7,7 +7,10 @@ extension _ProfileViewActionsPart on _ProfileViewState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 4,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
                 '$_myDisplayFirstName $_myDisplayLastName'.trim(),
@@ -17,7 +20,6 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                   fontFamily: "MontserratBold",
                 ),
               ),
-              4.pw,
               if (!_hasVerifiedRozet)
                 GestureDetector(
                   onTap: () {
@@ -26,14 +28,16 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                       _resumeProfileFeedAfterRoute();
                     });
                   },
-                  child: Row(
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       const Icon(
                         CupertinoIcons.checkmark_seal_fill,
                         color: Colors.blueAccent,
                         size: 15,
                       ),
-                      4.pw,
                       Text(
                         "settings.become_verified".tr,
                         style: const TextStyle(
@@ -103,171 +107,204 @@ extension _ProfileViewActionsPart on _ProfileViewState {
   }
 
   Widget _buildTopHeaderRow() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 15, right: 15, bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: GestureDetector(
-                    onTap: _openAboutProfile,
-                    child: Text(
-                      _myIosSafeNickname,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontFamily: AppFontFamilies.mbold,
-                      ),
-                    ),
-                  ),
-                ),
-                if (_myIosSafeNickname.trim().isNotEmpty) ...[
-                  RozetContent(
-                    size: 15,
-                    userID: _myUserId,
-                    leftSpacing: 6,
-                    rozetValue: normalizeRozetValue(
-                      controller.headerRozet.value,
-                    ).isNotEmpty
-                        ? normalizeRozetValue(controller.headerRozet.value)
-                        : normalizeRozetValue(userService.rozet),
-                  ),
-                ],
-              ],
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final compact = MediaQuery.sizeOf(context).width < 390 || textScale > 1.2;
+    final identity = Row(
+      children: [
+        Flexible(
+          child: GestureDetector(
+            onTap: _openAboutProfile,
+            child: Text(
+              _myIosSafeNickname,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontFamily: AppFontFamilies.mbold,
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppHeaderActionButton(
-                key: const ValueKey(IntegrationTestKeys.actionProfileOpenQr),
-                size: 36,
-                onTap: _openQrCode,
-                child: Icon(
-                  CupertinoIcons.qrcode,
-                  color: AppColors.textBlack,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 6),
-              AppHeaderActionButton(
-                key: const ValueKey(IntegrationTestKeys.actionProfileOpenChat),
-                size: 36,
-                onTap: _openChatListing,
-                child: Icon(
-                  CupertinoIcons.mail,
-                  color: AppColors.textBlack,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 6),
-              AppHeaderActionButton(
-                key: const ValueKey(
-                  IntegrationTestKeys.actionProfileOpenSettings,
-                ),
-                size: 36,
-                onTap: _openSettings,
-                child: Icon(
-                  CupertinoIcons.gear,
-                  color: AppColors.textBlack,
-                  size: 18,
-                ),
-              ),
-            ],
+        ),
+        if (_myIosSafeNickname.trim().isNotEmpty) ...[
+          const SizedBox(width: 6),
+          RozetContent(
+            size: 15,
+            userID: _myUserId,
+            leftSpacing: 0,
+            rozetValue: normalizeRozetValue(
+              controller.headerRozet.value,
+            ).isNotEmpty
+                ? normalizeRozetValue(controller.headerRozet.value)
+                : normalizeRozetValue(userService.rozet),
           ),
         ],
-      ),
+      ],
+    );
+    final actions = Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        AppHeaderActionButton(
+          key: const ValueKey(IntegrationTestKeys.actionProfileOpenQr),
+          size: 36,
+          onTap: _openQrCode,
+          child: Icon(
+            CupertinoIcons.qrcode,
+            color: AppColors.textBlack,
+            size: 18,
+          ),
+        ),
+        AppHeaderActionButton(
+          key: const ValueKey(IntegrationTestKeys.actionProfileOpenChat),
+          size: 36,
+          onTap: _openChatListing,
+          child: Icon(
+            CupertinoIcons.mail,
+            color: AppColors.textBlack,
+            size: 18,
+          ),
+        ),
+        AppHeaderActionButton(
+          key: const ValueKey(
+            IntegrationTestKeys.actionProfileOpenSettings,
+          ),
+          size: 36,
+          onTap: _openSettings,
+          child: Icon(
+            CupertinoIcons.gear,
+            color: AppColors.textBlack,
+            size: 18,
+          ),
+        ),
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.only(left: 15, right: 15, bottom: 6),
+      child: compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                identity,
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: actions,
+                ),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: identity),
+                const SizedBox(width: 8),
+                actions,
+              ],
+            ),
     );
   }
 
   Widget _buildImageAndButtonsRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textScale = MediaQuery.textScalerOf(context).scale(1);
+          final compact = constraints.maxWidth < 390 || textScale > 1.2;
+          final avatar = Stack(
             children: [
-              Stack(
-                children: [
-                  GestureDetector(
-                    onTap: _handleProfileImageTap,
-                    onLongPress: _showProfileImagePreview,
-                    child: _buildProfileImageWithBorder(),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: _openStoryMakerAndRefresh,
-                      child: Container(
-                        width: 25,
-                        height: 25,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.green,
-                        ),
-                        child: const Icon(
-                          CupertinoIcons.add,
-                          color: Colors.white,
-                          size: 15,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              GestureDetector(
+                onTap: _handleProfileImageTap,
+                onLongPress: _showProfileImagePreview,
+                child: _buildProfileImageWithBorder(),
               ),
-              12.pw,
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        key: const ValueKey(
-                          IntegrationTestKeys.actionProfileEdit,
-                        ),
-                        onTap: _openEditProfile,
-                        child: _buildHeaderButton("profile.edit".tr),
-                      ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: _openStoryMakerAndRefresh,
+                  child: Container(
+                    width: 25,
+                    height: 25,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.green,
                     ),
-                    12.pw,
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _openMyStatistics,
-                        child: _buildHeaderButton("profile.statistics".tr),
-                      ),
+                    child: const Icon(
+                      CupertinoIcons.add,
+                      color: Colors.white,
+                      size: 15,
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
-          ),
-        ),
-      ],
+          );
+          final buttons = Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  key: const ValueKey(
+                    IntegrationTestKeys.actionProfileEdit,
+                  ),
+                  onTap: _openEditProfile,
+                  child: _buildHeaderButton("profile.edit".tr),
+                ),
+              ),
+              12.pw,
+              Expanded(
+                child: GestureDetector(
+                  onTap: _openMyStatistics,
+                  child: _buildHeaderButton("profile.statistics".tr),
+                ),
+              ),
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                avatar,
+                const SizedBox(height: 12),
+                buttons,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              avatar,
+              12.pw,
+              Expanded(child: buttons),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Widget _buildHeaderButton(String text) {
     return Container(
-      height: 30,
+      constraints: const BoxConstraints(minHeight: 36),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.grey.withAlpha(50),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.black,
-          fontSize: 13,
-          fontFamily: "MontserratBold",
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 13,
+            fontFamily: "MontserratBold",
+          ),
         ),
       ),
     );

@@ -143,7 +143,10 @@ void main() {
         variant: variant.name,
         findings: findings,
       );
-      expect(findings, isA<List<ResponsiveAuditFinding>>());
+      expectNoResponsiveAuditFailures(
+        findings,
+        reason: 'SocialProfile ${variant.name} responsive audit fail verdi.',
+      );
     });
   }
 }

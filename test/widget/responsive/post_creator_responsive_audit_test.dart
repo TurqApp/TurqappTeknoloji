@@ -83,7 +83,10 @@ void main() {
         variant: variant.name,
         findings: findings,
       );
-      expect(findings, isA<List<ResponsiveAuditFinding>>());
+      expectNoResponsiveAuditFailures(
+        findings,
+        reason: 'PostCreator ${variant.name} responsive audit fail verdi.',
+      );
     });
   }
 
@@ -114,12 +117,15 @@ void main() {
         ),
       );
 
-      logResponsiveAuditFindings(
-        screen: 'PostCreatorKeyboard',
-        variant: WidgetHarnessVariants.phoneSmallAndroidLargeText.name,
-        findings: findings,
-      );
-      expect(findings, isA<List<ResponsiveAuditFinding>>());
-    },
+    logResponsiveAuditFindings(
+      screen: 'PostCreatorKeyboard',
+      variant: WidgetHarnessVariants.phoneSmallAndroidLargeText.name,
+      findings: findings,
+    );
+    expectNoResponsiveAuditFailures(
+      findings,
+      reason: 'PostCreator keyboard large text audit fail verdi.',
+    );
+  },
   );
 }

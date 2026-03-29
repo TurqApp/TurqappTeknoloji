@@ -229,3 +229,52 @@ Gerekce:
 - responsive/accessibility audit paketi eklendi
 - ekran bazli patlama noktalarini cikardi
 - T-UI-002 icin hedef ekranlar ve ilk temas dosyalari netlesti
+
+## Guncel Durum
+
+Tarih: `2026-03-29`
+Is: `T-UI-002`
+Durum: `Tamamlandi`
+
+Audit sonrasi su ekranlarda kontrollu duzeltme uygulandi:
+
+- `SignIn`
+- `MyProfile`
+- `SocialProfile`
+- `PostCreator`
+
+Ek olarak audit testleri artik sadece log atmiyor; `fail` bulgusu gorurse testi kiran guard haline getirildi:
+
+- `ChatListing`
+- `ChatView`
+- `SignIn`
+- `MyProfile`
+- `SocialProfile`
+- `PostCreator`
+
+Son teknik sonuc:
+
+- `ChatListing` -> `pass`
+- `ChatView` -> `pass`
+- `ChatViewKeyboard` -> `pass`
+- `SignIn` -> `pass`
+- `SignInStoredAccount` -> `pass`
+- `MyProfile` -> `pass`
+- `SocialProfile` -> `pass`
+- `PostCreator` -> `pass`
+- `PostCreatorKeyboard` -> `pass`
+
+Kullanilan dogrulama:
+
+```bash
+dart analyze test/widget/responsive/chat_listing_responsive_audit_test.dart test/widget/responsive/chat_view_responsive_audit_test.dart test/widget/responsive/sign_in_responsive_audit_test.dart test/widget/responsive/profile_responsive_audit_test.dart test/widget/responsive/social_profile_responsive_audit_test.dart test/widget/responsive/post_creator_responsive_audit_test.dart
+
+flutter test test/widget/responsive/chat_listing_responsive_audit_test.dart test/widget/responsive/chat_view_responsive_audit_test.dart test/widget/responsive/sign_in_responsive_audit_test.dart test/widget/responsive/profile_responsive_audit_test.dart test/widget/responsive/social_profile_responsive_audit_test.dart test/widget/responsive/post_creator_responsive_audit_test.dart
+```
+
+Kapanan ana responsive kiriklar:
+
+- `SignIn` buyuk font ve stored-account tasmasi
+- `MyProfile` nickname/verify ve header-only shell tasmasi
+- `SocialProfile` telefon + buyuk font header/follow aksiyon tasmasi
+- `PostCreator` kucuk telefon header/publish tasmasi

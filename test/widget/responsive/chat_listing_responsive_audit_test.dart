@@ -119,7 +119,10 @@ void main() {
         variant: variant.name,
         findings: findings,
       );
-      expect(findings, isA<List<ResponsiveAuditFinding>>());
+      expectNoResponsiveAuditFailures(
+        findings,
+        reason: 'ChatListing ${variant.name} responsive audit fail verdi.',
+      );
     });
   }
 }

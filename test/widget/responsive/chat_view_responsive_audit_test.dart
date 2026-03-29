@@ -108,7 +108,10 @@ void main() {
         variant: variant.name,
         findings: findings,
       );
-      expect(findings, isA<List<ResponsiveAuditFinding>>());
+      expectNoResponsiveAuditFailures(
+        findings,
+        reason: 'ChatView ${variant.name} responsive audit fail verdi.',
+      );
     });
   }
 
@@ -157,6 +160,9 @@ void main() {
       variant: WidgetHarnessVariants.phoneSmallAndroidLargeText.name,
       findings: findings,
     );
-    expect(findings, isA<List<ResponsiveAuditFinding>>());
+    expectNoResponsiveAuditFailures(
+      findings,
+      reason: 'ChatView keyboard large text audit fail verdi.',
+    );
   });
 }
