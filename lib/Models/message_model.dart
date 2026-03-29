@@ -50,6 +50,23 @@ class MessageModel {
     );
   }
 
+  static String _asString(dynamic value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    final normalized = value.toString();
+    return normalized;
+  }
+
+  static num _asNum(dynamic value, {num fallback = 0}) {
+    if (value is num) return value;
+    return num.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
   MessageModel({
     required this.docID,
     required this.rawDocID,
@@ -89,34 +106,34 @@ class MessageModel {
   factory MessageModel.fromJson(Map<String, dynamic> json, String docID) {
     return MessageModel(
       docID: docID,
-      rawDocID: json['rawDocID'] ?? docID,
-      source: json['source'] ?? 'legacy',
-      timeStamp: json['timeStamp'] ?? 0,
-      userID: json['userID'] ?? '',
-      lat: json['lat'] ?? 0,
-      long: json['long'] ?? 0,
-      postType: json['postType'] ?? '',
-      postID: json['postID'] ?? '',
+      rawDocID: _asString(json['rawDocID'], fallback: docID),
+      source: _asString(json['source'], fallback: 'legacy'),
+      timeStamp: _asNum(json['timeStamp']),
+      userID: _asString(json['userID']),
+      lat: _asNum(json['lat']),
+      long: _asNum(json['long']),
+      postType: _asString(json['postType']),
+      postID: _asString(json['postID']),
       imgs: _cloneStringList(json['imgs'] ?? const []),
-      video: json['video'] ?? '',
+      video: _asString(json['video']),
       isRead: json['isRead'] ?? false,
       kullanicilar: _cloneStringList(json['kullanicilar'] ?? const []),
       begeniler: _cloneStringList(json['begeniler'] ?? const []),
-      metin: json['metin'] ?? '',
-      sesliMesaj: json['sesliMesaj'] ?? '',
-      kisiAdSoyad: json['kisiAdSoyad'] ?? '',
-      kisiTelefon: json['kisiTelefon'] ?? '',
+      metin: _asString(json['metin']),
+      sesliMesaj: _asString(json['sesliMesaj']),
+      kisiAdSoyad: _asString(json['kisiAdSoyad']),
+      kisiTelefon: _asString(json['kisiTelefon']),
       isEdited: json['isEdited'] ?? false,
       isUnsent: json['unsent'] ?? false,
       isForwarded: json['forwarded'] ?? false,
-      replyMessageId: json['replyMessageId'] ?? '',
-      replySenderId: json['replySenderId'] ?? '',
-      replyText: json['replyText'] ?? '',
-      replyType: json['replyType'] ?? '',
+      replyMessageId: _asString(json['replyMessageId']),
+      replySenderId: _asString(json['replySenderId']),
+      replyText: _asString(json['replyText']),
+      replyType: _asString(json['replyType']),
       reactions: _normalizeReactions(json['reactions']),
-      status: json['status'] ?? '',
-      videoThumbnail: json['videoThumbnail'] ?? '',
-      audioDurationMs: json['audioDurationMs'] ?? 0,
+      status: _asString(json['status']),
+      videoThumbnail: _asString(json['videoThumbnail']),
+      audioDurationMs: _asInt(json['audioDurationMs']),
       isStarred: json['isStarred'] ?? false,
     );
   }
@@ -156,31 +173,31 @@ class MessageModel {
       rawDocID: docId,
       source: 'conversation',
       timeStamp: ts,
-      userID: data['senderId'] ?? '',
-      lat: (location?['lat'] ?? 0).toDouble(),
-      long: (location?['lng'] ?? 0).toDouble(),
-      postType: postRef?['postType'] ?? '',
-      postID: postRef?['postId'] ?? '',
+      userID: _asString(data['senderId']),
+      lat: _asNum(location?['lat']),
+      long: _asNum(location?['lng']),
+      postType: _asString(postRef?['postType']),
+      postID: _asString(postRef?['postId']),
       imgs: mediaUrls,
-      video: data['videoUrl'] ?? '',
+      video: _asString(data['videoUrl']),
       isRead: seenBy.length > 1,
       kullanicilar: [],
       begeniler: likes,
-      metin: data['text'] ?? '',
-      sesliMesaj: data['audioUrl'] ?? '',
-      kisiAdSoyad: contact?['name'] ?? '',
-      kisiTelefon: contact?['phone'] ?? '',
+      metin: _asString(data['text']),
+      sesliMesaj: _asString(data['audioUrl']),
+      kisiAdSoyad: _asString(contact?['name']),
+      kisiTelefon: _asString(contact?['phone']),
       isEdited: data['isEdited'] ?? false,
       isUnsent: data['unsent'] ?? false,
       isForwarded: data['forwarded'] ?? false,
-      replyMessageId: replyTo?['messageId'] ?? '',
-      replySenderId: replyTo?['senderId'] ?? '',
-      replyText: replyTo?['text'] ?? '',
-      replyType: replyTo?['type'] ?? '',
+      replyMessageId: _asString(replyTo?['messageId']),
+      replySenderId: _asString(replyTo?['senderId']),
+      replyText: _asString(replyTo?['text']),
+      replyType: _asString(replyTo?['type']),
       reactions: _normalizeReactions(data['reactions']),
-      status: data['status'] ?? '',
-      videoThumbnail: data['videoThumbnail'] ?? '',
-      audioDurationMs: data['audioDurationMs'] ?? 0,
+      status: _asString(data['status']),
+      videoThumbnail: _asString(data['videoThumbnail']),
+      audioDurationMs: _asInt(data['audioDurationMs']),
       isStarred: data['isStarred'] ?? false,
     );
   }
