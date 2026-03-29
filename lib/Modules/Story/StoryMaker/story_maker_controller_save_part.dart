@@ -95,6 +95,16 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     DateTime? scheduledAt,
   }) async {
     try {
+      final resolvedUid = (await CurrentUserService.instance.ensureAuthReady(
+                waitForAuthState: true,
+                forceTokenRefresh: true,
+              ) ??
+              '')
+          .trim();
+      if (resolvedUid.isEmpty) {
+        AppSnackbar("common.error".tr, "story.no_user".tr);
+        return;
+      }
       final docRef = FirebaseFirestore.instance.collection('stories').doc();
       final storyId = docRef.id;
 
@@ -135,7 +145,9 @@ extension StoryMakerControllerSavePart on StoryMakerController {
             }
             final ext = path.extension(file.path);
             final ref =
-                FirebaseStorage.instance.ref('stories/$uid/$storyId/$ts$ext');
+                FirebaseStorage.instance.ref(
+                  'stories/$resolvedUid/$storyId/$ts$ext',
+                );
             final task = await ref.putFile(
               file,
               SettableMetadata(
@@ -148,7 +160,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
             final downloadUrl = await WebpUploadService.uploadFileAsWebp(
               storage: FirebaseStorage.instance,
               file: file,
-              storagePathWithoutExt: 'stories/$uid/$storyId/$ts',
+              storagePathWithoutExt: 'stories/$resolvedUid/$storyId/$ts',
             );
             url = CdnUrlBuilder.toCdnUrl(downloadUrl);
           }
@@ -188,7 +200,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       }
 
       final storyData = <String, dynamic>{
-        'userId': uid,
+        'userId': resolvedUid,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': colorSnapshot.toARGB32(),
         'musicId': selectedMusicSnapshot?.docID ?? '',
@@ -210,7 +222,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           StoryMusicLibraryService.instance.recordStoryUsage(
             track: selectedMusicSnapshot,
             storyId: storyId,
-            userId: uid,
+            userId: resolvedUid,
             createdAt: storyData['createdDate'] as int? ??
                 DateTime.now().millisecondsSinceEpoch,
           ),
