@@ -1,4 +1,9 @@
 class ExamModel {
+  static num _asNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   static List<String> _cloneStringList(Iterable<dynamic> source) {
     return source
         .map((item) => item.toString())
@@ -42,21 +47,21 @@ class ExamModel {
 
   factory ExamModel.fromJson(Map<String, dynamic> json) {
     return ExamModel(
-      bitis: json['bitis'],
-      bitisDk: json['bitisDk'],
-      cover: json['cover'],
+      bitis: _asNum(json['bitis']),
+      bitisDk: _asNum(json['bitisDk']),
+      cover: (json['cover'] ?? '').toString(),
       dersler: _cloneStringList(json['dersler'] ?? const []),
       gecersizSayilanlar:
           _cloneStringList(json['gecersizSayilanlar'] ?? const []),
-      kpssSecilenLisans: json['kpssSecilenLisans'],
-      isPublic: json['public'],
-      sinavAciklama: json['sinavAciklama'],
-      sinavAdi: json['sinavAdi'],
-      sinavTuru: json['sinavTuru'],
+      kpssSecilenLisans: (json['kpssSecilenLisans'] ?? '').toString(),
+      isPublic: json['public'] == true,
+      sinavAciklama: (json['sinavAciklama'] ?? '').toString(),
+      sinavAdi: (json['sinavAdi'] ?? '').toString(),
+      sinavTuru: (json['sinavTuru'] ?? '').toString(),
       soruSayilari: _cloneStringList(json['soruSayilari'] ?? const []),
-      taslak: json['taslak'],
-      timeStamp: json['timeStamp'],
-      userID: json['userID'],
+      taslak: json['taslak'] == true,
+      timeStamp: _asNum(json['timeStamp']),
+      userID: (json['userID'] ?? '').toString(),
     );
   }
 
