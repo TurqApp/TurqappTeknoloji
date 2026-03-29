@@ -25,10 +25,10 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
       final disk = await _getFromPrefsEntry(key);
       if (disk != null) {
         _memory[key] = _CachedProfileStats(
-          data: Map<String, dynamic>.from(disk.data),
+          data: _cloneProfileStatsMap(disk.data),
           cachedAt: disk.cachedAt,
         );
-        return Map<String, dynamic>.from(disk.data);
+        return _cloneProfileStatsMap(disk.data);
       }
     }
 
@@ -41,7 +41,7 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
     if (uid.isEmpty) return;
     final key = _cacheKey(uid);
     final cachedAt = DateTime.now();
-    final cloned = Map<String, dynamic>.from(data);
+    final cloned = _cloneProfileStatsMap(data);
     _memory[key] = _CachedProfileStats(
       data: cloned,
       cachedAt: cachedAt,
@@ -72,7 +72,7 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
       _memory.remove(key);
       return null;
     }
-    return Map<String, dynamic>.from(entry.data);
+    return _cloneProfileStatsMap(entry.data);
   }
 
   Future<_CachedProfileStats?> _getFromPrefsEntry(String key) async {
@@ -102,7 +102,7 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
         return null;
       }
       return _CachedProfileStats(
-        data: Map<String, dynamic>.from(data),
+        data: _cloneProfileStatsMap(data),
         cachedAt: cachedAt,
       );
     } catch (_) {
@@ -114,4 +114,25 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
   String _cacheKey(String uid) => 'stats:$uid';
 
   String _prefsKey(String key) => '${ProfileStatsRepository._prefsPrefix}:$key';
+
+  Map<String, dynamic> _cloneProfileStatsMap(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneProfileStatsValue(value)),
+    );
+  }
+
+  dynamic _cloneProfileStatsValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneProfileStatsValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneProfileStatsValue).toList(growable: false);
+    }
+    return value;
+  }
 }
