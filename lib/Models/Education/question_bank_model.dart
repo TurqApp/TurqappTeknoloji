@@ -25,10 +25,13 @@ class QuestionBankModel {
   final String yil;
   final bool active;
 
+  static List<dynamic> _cloneDynamicList(List<dynamic> source) =>
+      List<dynamic>.from(source, growable: false);
+
   QuestionBankModel({
     required this.docID,
     required this.anaBaslik,
-    required this.begeniler,
+    required List<dynamic> begeniler,
     required this.categoryKey,
     required this.ders,
     required this.diger1,
@@ -39,7 +42,7 @@ class QuestionBankModel {
     required this.viewCount,
     required this.iptal,
     required this.kacCevap,
-    required this.paylasanlar,
+    required List<dynamic> paylasanlar,
     required this.seq,
     required this.sinavTuru,
     required this.soru,
@@ -49,7 +52,8 @@ class QuestionBankModel {
     required this.wrongCount,
     required this.yil,
     required this.active,
-  });
+  }) : begeniler = _cloneDynamicList(begeniler),
+       paylasanlar = _cloneDynamicList(paylasanlar);
 
   factory QuestionBankModel.fromJson(Map<String, dynamic> json) {
     final docID = json['docID'] as String? ?? '';
@@ -122,7 +126,7 @@ class QuestionBankModel {
     return {
       'docID': docID,
       'anaBaslik': anaBaslik,
-      'begeniler': begeniler,
+      'begeniler': _cloneDynamicList(begeniler),
       'categoryKey': categoryKey,
       'ders': ders,
       'diger1': diger1,
@@ -133,7 +137,7 @@ class QuestionBankModel {
       'viewCount': viewCount,
       'iptal': iptal,
       'kacCevap': kacCevap,
-      'paylasanlar': paylasanlar,
+      'paylasanlar': _cloneDynamicList(paylasanlar),
       'seq': seq,
       'sinavTuru': sinavTuru,
       'soru': soru,
