@@ -23,7 +23,29 @@ class _CachedUserProfile {
   final DateTime cachedAt;
 
   _CachedUserProfile({
-    required this.data,
+    required Map<String, dynamic> data,
     required this.cachedAt,
-  });
+  }) : data = data.map(
+         (key, value) => MapEntry(
+           key,
+           _cloneCachedUserProfileValue(value),
+         ),
+       );
+}
+
+dynamic _cloneCachedUserProfileValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneCachedUserProfileValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value
+        .map(_cloneCachedUserProfileValue)
+        .toList(growable: false);
+  }
+  return value;
 }
