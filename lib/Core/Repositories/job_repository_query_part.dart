@@ -1,6 +1,12 @@
 part of 'job_repository.dart';
 
 extension JobRepositoryQueryPart on JobRepository {
+  int _applicationAsInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<JobModel?> fetchById(
     String docId, {
     bool preferCache = true,
@@ -240,9 +246,8 @@ extension JobRepositoryQueryPart on JobRepository {
                       (data['applicantNickname'] ?? '').toString(),
                   applicantPfImage: (data['applicantPfImage'] ?? '').toString(),
                   status: (data['status'] ?? 'pending').toString(),
-                  timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
-                  statusUpdatedAt:
-                      (data['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+                  timeStamp: _applicationAsInt(data['timeStamp']),
+                  statusUpdatedAt: _applicationAsInt(data['statusUpdatedAt']),
                   note: (data['note'] ?? '').toString(),
                 ))
             .toList(growable: false);
@@ -272,8 +277,8 @@ extension JobRepositoryQueryPart on JobRepository {
               applicantNickname: (data['applicantNickname'] ?? '').toString(),
               applicantPfImage: (data['applicantPfImage'] ?? '').toString(),
               status: (data['status'] ?? 'pending').toString(),
-              timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
-              statusUpdatedAt: (data['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+              timeStamp: _applicationAsInt(data['timeStamp']),
+              statusUpdatedAt: _applicationAsInt(data['statusUpdatedAt']),
               note: (data['note'] ?? '').toString(),
             ))
         .toList(growable: false);
