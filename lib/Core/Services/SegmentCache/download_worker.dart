@@ -29,9 +29,9 @@ class DownloadResult {
   DownloadResult({
     required this.segmentKey,
     required this.docID,
-    this.bytes,
+    Uint8List? bytes,
     this.error,
-  });
+  }) : bytes = bytes == null ? null : Uint8List.fromList(bytes);
 
   bool get success => bytes != null;
 }
