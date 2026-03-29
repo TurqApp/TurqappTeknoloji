@@ -44,7 +44,7 @@ class IntegrationSmokeScenarioReport {
 }
 
 class IntegrationSmokeReport {
-  const IntegrationSmokeReport({
+  IntegrationSmokeReport({
     required this.scenarioCount,
     required this.failureCount,
     required this.screenshotCount,
@@ -52,8 +52,11 @@ class IntegrationSmokeReport {
     required this.telemetryIssueCount,
     required this.telemetryBlockingCount,
     required this.blockingScenarioCount,
-    required this.scenarios,
-  });
+    required List<IntegrationSmokeScenarioReport> scenarios,
+  }) : scenarios = List<IntegrationSmokeScenarioReport>.from(
+         scenarios,
+         growable: false,
+       );
 
   final int scenarioCount;
   final int failureCount;
