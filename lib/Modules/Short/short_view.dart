@@ -21,6 +21,7 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
+import '../../main.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
@@ -142,7 +143,7 @@ class ShortView extends StatefulWidget {
   _ShortViewState createState() => _ShortViewState();
 }
 
-class _ShortViewState extends State<ShortView> {
+class _ShortViewState extends State<ShortView> with RouteAware {
   ShortController get controller => ensureShortController();
   final ShortRenderCoordinator _shortRenderCoordinator =
       ensureShortRenderCoordinator();
@@ -186,6 +187,7 @@ class _ShortViewState extends State<ShortView> {
   Timer? _stallWatchdogTimer;
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
+  bool _routeObserverSubscribed = false;
   static const Duration _shortAutoplaySegmentGateTimeout =
       Duration(milliseconds: 950);
   static const Duration _shortAutoplaySegmentGatePollInterval =
@@ -221,11 +223,56 @@ class _ShortViewState extends State<ShortView> {
     });
   }
 
+  void _syncShortSurfaceAfterStartup() {
+    if (!mounted) return;
+    _cachedShorts = List<PostsModel>.from(controller.shorts);
+    currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+    if (pageController.hasClients) {
+      try {
+        pageController.jumpToPage(currentPage);
+      } catch (_) {}
+    }
+    setState(() {});
+    if (_cachedShorts.isNotEmpty) {
+      unawaited(controller.updateCacheTiers(currentPage));
+      _primeInitialPlayback();
+    }
+  }
+
+  Future<void> _pauseCurrentShortRoutePlayback() async {
+    _scrollDebounce?.cancel();
+    _playDebounce?.cancel();
+    _tierDebounce?.cancel();
+    _engagementRescoreTimer?.cancel();
+    _playbackWatchdogTimer?.cancel();
+    _stallWatchdogTimer?.cancel();
+    final vc = controller.cache[currentPage];
+    if (vc != null) {
+      _persistShortPlaybackState(currentPage, vc);
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        _quietBackgroundPlayback(vc);
+      } else {
+        await _releasePlayback(vc);
+      }
+      vc.removeListener(_videoEndListener);
+      vc.removeListener(_telemetryListener);
+    }
+    if (currentPage < _cachedShorts.length) {
+      await VideoTelemetryService.instance.endSession(
+        _cachedShorts[currentPage].docID,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     unawaited(
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
+    try {
+      maybeFindNavBarController()?.suspendFeedForTabExit();
+      maybeFindNavBarController()?.pauseGlobalTabMedia();
+    } catch (_) {}
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
@@ -244,17 +291,9 @@ class _ShortViewState extends State<ShortView> {
     pageController = PageController(initialPage: initialIndex);
 
     controller.onPrimarySurfaceVisible().then((_) {
-      if (!mounted) return;
-      _cachedShorts = List<PostsModel>.from(controller.shorts);
-      currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
-      if (pageController.hasClients) {
-        pageController.jumpToPage(currentPage);
-      }
-      setState(() {});
-      if (_cachedShorts.isNotEmpty) {
-        unawaited(controller.updateCacheTiers(currentPage));
-      }
-      _primeInitialPlayback();
+      _syncShortSurfaceAfterStartup();
+    }).catchError((_) {
+      _syncShortSurfaceAfterStartup();
     });
 
     // Hedefli reaktivite: RxList değişimlerini debounced setState ile takip et
@@ -266,6 +305,33 @@ class _ShortViewState extends State<ShortView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeObserverSubscribed) return;
+    final route = ModalRoute.of(context);
+    if (route == null) return;
+    routeObserver.subscribe(this, route);
+    _routeObserverSubscribed = true;
+  }
+
+  @override
+  void didPushNext() {
+    unawaited(_pauseCurrentShortRoutePlayback());
+  }
+
+  @override
+  void didPopNext() {
+    final isStillCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+    if (!isStillCurrent) return;
+    try {
+      maybeFindNavBarController()?.suspendFeedForTabExit();
+      maybeFindNavBarController()?.pauseGlobalTabMedia();
+    } catch (_) {}
+    if (_cachedShorts.isEmpty) return;
+    _startAutoPlayCurrentVideo();
+  }
+
+  @override
   void dispose() {
     _scrollDebounce?.cancel();
     _playDebounce?.cancel();
@@ -274,6 +340,12 @@ class _ShortViewState extends State<ShortView> {
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _shortsWorker?.dispose();
+    if (_routeObserverSubscribed) {
+      try {
+        routeObserver.unsubscribe(this);
+      } catch (_) {}
+      _routeObserverSubscribed = false;
+    }
     controller.lastIndex.value = currentPage;
     pageController.dispose();
 
@@ -291,6 +363,9 @@ class _ShortViewState extends State<ShortView> {
     }
     try {
       _playbackRuntimeService.exitExclusiveMode();
+    } catch (_) {}
+    try {
+      maybeFindNavBarController()?.resumeFeedIfNeeded();
     } catch (_) {}
 
     super.dispose();
