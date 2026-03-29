@@ -40,6 +40,10 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
             result(PlaybackHealthStore.shared.snapshot())
             return
         }
+        if call.method == "disposeAllPlayers" {
+            handleDisposeAllPlayers(result: result)
+            return
+        }
 
         guard let args = call.arguments as? [String: Any],
               let viewId = args["viewId"] as? Int64 else {
@@ -331,6 +335,13 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
             playerViews.removeValue(forKey: viewId)
             print("[HLSPlayerPlugin] Disposed view \(viewId)")
         }
+        result(nil)
+    }
+
+    private func handleDisposeAllPlayers(result: FlutterResult) {
+        playerViews.values.forEach { $0.dispose() }
+        playerViews.removeAll()
+        print("[HLSPlayerPlugin] Disposed all views")
         result(nil)
     }
 

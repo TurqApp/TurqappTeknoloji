@@ -25,6 +25,7 @@ import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
+import 'package:turqappv2/hls_player/hls_controller.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final RouteObserver<ModalRoute<void>> routeObserver =
@@ -44,6 +45,9 @@ Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kDebugMode) {
+    await HLSController.disposeAllNativePlayers();
+  }
   ensureQALabIfEnabled();
   if (QALabMode.freshStartOnLaunch && !IntegrationTestMode.enabled) {
     await prepareQALabFreshStartIfNeeded(trigger: 'app_launch').timeout(

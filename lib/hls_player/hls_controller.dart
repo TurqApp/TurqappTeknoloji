@@ -40,6 +40,14 @@ class HLSController {
     }
   }
 
+  static Future<void> disposeAllNativePlayers() async {
+    try {
+      await _methodChannel.invokeMethod<void>('disposeAllPlayers');
+    } on PlatformException {
+      return;
+    }
+  }
+
   int? _viewId;
   EventChannel? _eventChannel;
   StreamSubscription? _eventSubscription;
