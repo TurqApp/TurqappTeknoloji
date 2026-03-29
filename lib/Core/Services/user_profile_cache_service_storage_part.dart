@@ -1,6 +1,17 @@
 part of 'user_profile_cache_service.dart';
 
 extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<void> _initialize() async {
     _prefs = await SharedPreferences.getInstance();
     _loadFromPrefs();
@@ -92,7 +103,7 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
           shouldPrune = true;
           continue;
         }
-        final cachedAtMs = (value['t'] as num?)?.toInt() ?? 0;
+        final cachedAtMs = _asInt(value['t']);
         final data = (value['d'] as Map?)?.cast<String, dynamic>();
         if (cachedAtMs <= 0 || data == null) {
           shouldPrune = true;
