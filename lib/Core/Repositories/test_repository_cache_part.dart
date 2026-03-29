@@ -18,7 +18,7 @@ extension _TestRepositoryCacheX on TestRepository {
   }
 
   Future<void> _store(String cacheKey, List<TestsModel> items) async {
-    final cloned = items.toList(growable: false);
+    final cloned = _cloneItems(items);
     final now = DateTime.now();
     _memory[cacheKey] = _TimedTests(items: cloned, cachedAt: now);
     _prefs ??= await SharedPreferences.getInstance();
@@ -51,7 +51,7 @@ extension _TestRepositoryCacheX on TestRepository {
       '${TestRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
-        'data': data,
+        'data': _cloneMap(data),
       }),
     );
   }
@@ -65,7 +65,7 @@ extension _TestRepositoryCacheX on TestRepository {
       '${TestRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
         't': DateTime.now().millisecondsSinceEpoch,
-        'items': data,
+        'items': _cloneMaps(data),
       }),
     );
   }
@@ -98,9 +98,13 @@ extension _TestRepositoryCacheX on TestRepository {
         return null;
       }
       final items = (decoded['items'] as List?) ?? const [];
-      return items
-          .map((item) => Map<String, dynamic>.from((item as Map?) ?? const {}))
-          .toList(growable: false);
+      return _cloneMaps(
+        items
+            .map(
+              (item) => Map<String, dynamic>.from((item as Map?) ?? const {}),
+            )
+            .toList(growable: false),
+      );
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -134,8 +138,10 @@ extension _TestRepositoryCacheX on TestRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return Map<String, dynamic>.from(
-        (decoded['data'] as Map?) ?? const <String, dynamic>{},
+      return _cloneMap(
+        Map<String, dynamic>.from(
+          (decoded['data'] as Map?) ?? const <String, dynamic>{},
+        ),
       );
     } catch (_) {
       await prefs?.remove(prefsKey);
@@ -152,7 +158,7 @@ extension _TestRepositoryCacheX on TestRepository {
       _memory.remove(cacheKey);
       return null;
     }
-    return entry.items.toList(growable: false);
+    return _cloneItems(entry.items);
   }
 
   Future<_TimedTests?> _getTimedFromPrefs(String cacheKey) async {
@@ -184,15 +190,17 @@ extension _TestRepositoryCacheX on TestRepository {
       }
       final items = (decoded['items'] as List?) ?? const [];
       return _TimedTests(
-        items: items
-            .map((e) => e as Map)
-            .map(
-              (e) => _fromDoc(
-                (e['id'] ?? '').toString(),
-                Map<String, dynamic>.from((e['d'] as Map?) ?? const {}),
-              ),
-            )
-            .toList(growable: false),
+        items: _cloneItems(
+          items
+              .map((e) => e as Map)
+              .map(
+                (e) => _fromDoc(
+                  (e['id'] ?? '').toString(),
+                  Map<String, dynamic>.from((e['d'] as Map?) ?? const {}),
+                ),
+              )
+              .toList(growable: false),
+        ),
         cachedAt: DateTime.fromMillisecondsSinceEpoch(ts),
       );
     } catch (_) {
@@ -223,5 +231,43 @@ extension _TestRepositoryCacheX on TestRepository {
       dogruCevap: (raw['dogruCevap'] ?? '').toString(),
       docID: docId,
     );
+  }
+
+  List<TestsModel> _cloneItems(List<TestsModel> items) {
+    return items.map(_cloneItem).toList(growable: false);
+  }
+
+  TestsModel _cloneItem(TestsModel item) {
+    return TestsModel(
+      userID: item.userID,
+      timeStamp: item.timeStamp,
+      aciklama: item.aciklama,
+      dersler: List<String>.from(item.dersler),
+      img: item.img,
+      docID: item.docID,
+      paylasilabilir: item.paylasilabilir,
+      testTuru: item.testTuru,
+      taslak: item.taslak,
+    );
+  }
+
+  List<Map<String, dynamic>> _cloneMaps(List<Map<String, dynamic>> items) {
+    return items.map(_cloneMap).toList(growable: false);
+  }
+
+  Map<String, dynamic> _cloneMap(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _cloneValue(value)));
+  }
+
+  dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 }

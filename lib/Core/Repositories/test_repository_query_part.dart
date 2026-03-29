@@ -87,8 +87,12 @@ extension TestRepositoryQueryPart on TestRepository {
         }
         final disk = await _getTimedFromPrefs('doc:$id');
         if (disk != null && disk.items.isNotEmpty) {
-          _memory['doc:$id'] = disk;
-          resolved[id] = disk.items.first;
+          final cloned = _cloneItems(disk.items);
+          _memory['doc:$id'] = _TimedTests(
+            items: cloned,
+            cachedAt: disk.cachedAt,
+          );
+          resolved[id] = _cloneItem(cloned.first);
           continue;
         }
         missing.add(id);
@@ -134,8 +138,12 @@ extension TestRepositoryQueryPart on TestRepository {
       if (memory != null) return memory;
       final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = disk;
-        return disk.items;
+        final cloned = _cloneItems(disk.items);
+        _memory[cacheKey] = _TimedTests(
+          items: cloned,
+          cachedAt: disk.cachedAt,
+        );
+        return _cloneItems(cloned);
       }
     }
 
@@ -168,8 +176,12 @@ extension TestRepositoryQueryPart on TestRepository {
       if (memory != null) return memory;
       final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = disk;
-        return disk.items;
+        final cloned = _cloneItems(disk.items);
+        _memory[cacheKey] = _TimedTests(
+          items: cloned,
+          cachedAt: disk.cachedAt,
+        );
+        return _cloneItems(cloned);
       }
     }
 
@@ -215,8 +227,12 @@ extension TestRepositoryQueryPart on TestRepository {
       if (memory != null) return memory;
       final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = disk;
-        return disk.items;
+        final cloned = _cloneItems(disk.items);
+        _memory[cacheKey] = _TimedTests(
+          items: cloned,
+          cachedAt: disk.cachedAt,
+        );
+        return _cloneItems(cloned);
       }
     }
 
@@ -305,11 +321,15 @@ extension TestRepositoryQueryPart on TestRepository {
       }
       final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = disk;
+        final cloned = _cloneItems(disk.items);
+        _memory[cacheKey] = _TimedTests(
+          items: cloned,
+          cachedAt: disk.cachedAt,
+        );
         return TestPageResult(
-          items: disk.items,
+          items: _cloneItems(cloned),
           lastDocument: null,
-          hasMore: disk.items.length >= limit,
+          hasMore: cloned.length >= limit,
         );
       }
     }
