@@ -3,6 +3,13 @@ part of 'profile_render_coordinator.dart';
 class _ProfileRenderCoordinatorPatchPart {
   const _ProfileRenderCoordinatorPatchPart();
 
+  bool _asProfileEntryBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   RenderListPatch<Map<String, dynamic>> buildPatch({
     required List<Map<String, dynamic>> previous,
     required List<Map<String, dynamic>> next,
@@ -114,7 +121,7 @@ class _ProfileRenderCoordinatorPatchPart {
 
   String _entryKey(Map<String, dynamic> entry) {
     final post = entry['post'] as PostsModel;
-    final isReshare = entry['isReshare'] == true;
+    final isReshare = _asProfileEntryBool(entry['isReshare']);
     return '${post.docID}|${isReshare ? 'reshare' : 'post'}';
   }
 
@@ -136,7 +143,8 @@ class _ProfileRenderCoordinatorPatchPart {
   ) {
     final leftPost = left['post'] as PostsModel;
     final rightPost = right['post'] as PostsModel;
-    return (left['isReshare'] == right['isReshare']) &&
+    return (_asProfileEntryBool(left['isReshare']) ==
+            _asProfileEntryBool(right['isReshare'])) &&
         (left['timestamp'] == right['timestamp']) &&
         leftPost.playbackUrl == rightPost.playbackUrl &&
         leftPost.thumbnail == rightPost.thumbnail &&
