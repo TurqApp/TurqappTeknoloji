@@ -15,6 +15,20 @@ class AdminAccessService {
   static const Duration _taskTtl = Duration(minutes: 2);
   static List<String> _taskCache = <String>[];
 
+  static bool _claimAsBool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+    return fallback;
+  }
+
   static bool isKnownAdminSync() {
     final currentUid = CurrentUserService.instance.effectiveUserId.trim();
     if (_cachedUid != currentUid) {
@@ -55,7 +69,7 @@ class AdminAccessService {
     if (currentUser != null) {
       try {
         final token = await currentUser.getIdTokenResult(true);
-        allowed = token.claims?["admin"] == true;
+        allowed = _claimAsBool(token.claims?["admin"], fallback: false);
       } catch (_) {
         allowed = false;
       }
@@ -73,7 +87,7 @@ class AdminAccessService {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return false;
     final token = await currentUser.getIdTokenResult(true);
-    return token.claims?["admin"] == true;
+    return _claimAsBool(token.claims?["admin"], fallback: false);
   }
 
   static Future<List<String>> fetchAssignedTaskIds(
