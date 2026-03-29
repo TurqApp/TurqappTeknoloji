@@ -12,6 +12,30 @@ class StoredAccount {
     return int.tryParse((value ?? '').toString()) ?? 0;
   }
 
+  static bool _asBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   StoredAccount({
     required this.uid,
     required this.email,
@@ -121,9 +145,9 @@ class StoredAccount {
           const <String>[],
       lastUsedAt: _asInt(json['lastUsedAt']),
       isSessionValid: json['isSessionValid'] != false,
-      requiresReauth: json['requiresReauth'] == true,
+      requiresReauth: _asBool(json['requiresReauth']),
       accountState: (json['accountState'] ?? 'active').toString(),
-      isPinned: json['isPinned'] == true,
+      isPinned: _asBool(json['isPinned']),
       sortOrder: _asInt(json['sortOrder']),
       lastSuccessfulSignInAt: _asInt(json['lastSuccessfulSignInAt']),
     );
