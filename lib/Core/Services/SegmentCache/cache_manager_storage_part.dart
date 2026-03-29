@@ -44,8 +44,16 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
         _index = CacheIndex();
         return;
       }
-      final json = decoded;
+      final json = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
+      final rawEntryCount = (json['entries'] as Map?)?.length ?? 0;
       _index = CacheIndex.fromJson(json);
+      final prunedEntryCount = rawEntryCount - _index.entries.length;
+      if (prunedEntryCount > 0) {
+        debugPrint(
+            '[CacheManager] Index load pruned $prunedEntryCount corrupt entries');
+        _markDirty();
+      }
+      _reconcileTotalSize();
       debugPrint(
           '[CacheManager] Index loaded: ${_index.entries.length} entries, '
           '${CacheMetrics.formatBytes(_index.totalSizeBytes)}');
