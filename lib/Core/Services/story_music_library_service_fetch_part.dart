@@ -182,14 +182,31 @@ extension StoryMusicLibraryServiceFetchPart on StoryMusicLibraryService {
         await prefs.remove(cacheTimeKey);
         return const <MusicModel>[];
       }
-      final restored = decoded
-          .whereType<Map>()
-          .map((e) => MusicModel.fromCacheMap(Map<String, dynamic>.from(e)))
-          .where((track) => track.isActive && track.audioUrl.isNotEmpty)
-          .toList(growable: true);
+      var shouldPrune = false;
+      final restored = <MusicModel>[];
+      for (final rawItem in decoded) {
+        if (rawItem is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        final track =
+            MusicModel.fromCacheMap(Map<String, dynamic>.from(rawItem));
+        if (!track.isActive || track.audioUrl.isEmpty) {
+          shouldPrune = true;
+          continue;
+        }
+        restored.add(track);
+      }
       if (restored.isEmpty && decoded.isNotEmpty) {
         await prefs.remove(cacheKey);
         await prefs.remove(cacheTimeKey);
+      } else if (shouldPrune) {
+        await prefs.setString(
+          cacheKey,
+          jsonEncode(
+            restored.map((track) => track.toCacheMap()).toList(growable: false),
+          ),
+        );
       }
       return restored;
     } catch (_) {
