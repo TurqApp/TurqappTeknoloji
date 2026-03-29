@@ -27,14 +27,32 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
       final historyString = prefs.getString(_errorHandlingHistoryKey);
 
       if (historyString != null) {
-        final historyJson = jsonDecode(historyString);
-        if (historyJson is! List) {
+        final decoded = jsonDecode(historyString);
+        if (decoded is! List) {
           await prefs.remove(_errorHandlingHistoryKey);
           return;
         }
-        _errorHistory.assignAll(
-          historyJson.map((item) => AppError.fromJson(item)).toList(),
-        );
+        var shouldPrune = false;
+        final restored = <AppError>[];
+        for (final item in decoded) {
+          if (item is! Map) {
+            shouldPrune = true;
+            continue;
+          }
+          try {
+            restored.add(
+              AppError.fromJson(
+                Map<String, dynamic>.from(item.cast<dynamic, dynamic>()),
+              ),
+            );
+          } catch (_) {
+            shouldPrune = true;
+          }
+        }
+        _errorHistory.assignAll(restored);
+        if (shouldPrune) {
+          await _saveErrorHistory();
+        }
 
         _updateStatsFromHistory();
       }
