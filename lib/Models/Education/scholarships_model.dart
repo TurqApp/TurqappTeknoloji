@@ -38,8 +38,22 @@ class ScholarshipsModel {
   final String shortId;
   final String shortUrl;
 
+  static int _asInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static String _asString(Object? value) => (value ?? '').toString();
+
   static List<String> _cloneStringList(List<String> source) =>
       List<String>.from(source, growable: false);
+
+  static List<String> _asStringList(Object? value) {
+    if (value is Iterable) {
+      return value.map((item) => item.toString()).toList(growable: false);
+    }
+    return const <String>[];
+  }
 
   ScholarshipsModel({
     required this.aciklama,
@@ -78,63 +92,63 @@ class ScholarshipsModel {
     required this.docID,
     this.shortId = '',
     this.shortUrl = '',
-  }) : basvuranlar = _cloneStringList(basvuranlar),
-       begeniler = _cloneStringList(begeniler),
-       favoriler = _cloneStringList(favoriler),
-       goruntulemeler = _cloneStringList(goruntulemeler),
-       ikametIlceler = _cloneStringList(ikametIlceler),
-       ikametSehirler = _cloneStringList(ikametSehirler),
-       kazananlar = _cloneStringList(kazananlar),
-       liseSehirler = _cloneStringList(liseSehirler),
-       liseler = _cloneStringList(liseler),
-       nufusIlceler = _cloneStringList(nufusIlceler),
-       nufusSehirler = _cloneStringList(nufusSehirler),
-       ortaOkul = _cloneStringList(ortaOkul),
-       ortaOkulSehirler = _cloneStringList(ortaOkulSehirler),
-       universiteIlceler = _cloneStringList(universiteIlceler),
-       universiteSehirler = _cloneStringList(universiteSehirler),
-       universiteler = _cloneStringList(universiteler),
-       kaydedenler = _cloneStringList(kaydedenler);
+  })  : basvuranlar = _cloneStringList(basvuranlar),
+        begeniler = _cloneStringList(begeniler),
+        favoriler = _cloneStringList(favoriler),
+        goruntulemeler = _cloneStringList(goruntulemeler),
+        ikametIlceler = _cloneStringList(ikametIlceler),
+        ikametSehirler = _cloneStringList(ikametSehirler),
+        kazananlar = _cloneStringList(kazananlar),
+        liseSehirler = _cloneStringList(liseSehirler),
+        liseler = _cloneStringList(liseler),
+        nufusIlceler = _cloneStringList(nufusIlceler),
+        nufusSehirler = _cloneStringList(nufusSehirler),
+        ortaOkul = _cloneStringList(ortaOkul),
+        ortaOkulSehirler = _cloneStringList(ortaOkulSehirler),
+        universiteIlceler = _cloneStringList(universiteIlceler),
+        universiteSehirler = _cloneStringList(universiteSehirler),
+        universiteler = _cloneStringList(universiteler),
+        kaydedenler = _cloneStringList(kaydedenler);
 
   factory ScholarshipsModel.fromSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return ScholarshipsModel(
-      aciklama: data['aciklama'] ?? '',
-      baslik: data['baslik'] ?? '',
-      basvuranlar: List<String>.from(data['basvuranlar'] ?? []),
-      begeniler: List<String>.from(data['begeniler'] ?? []),
-      cinsiyet: data['cinsiyet'] ?? '',
-      endTimeStamp: data['endTimeStamp'] ?? 0,
-      favoriler: List<String>.from(data['favoriler'] ?? []),
-      firma: data['firma'] ?? '',
-      goruntulemeler: List<String>.from(data['goruntulemeler'] ?? []),
-      hedefKitleSecimi: data['hedefKitleSecimi'] ?? '',
-      ikametIlceler: List<String>.from(data['ikametIlceler'] ?? []),
-      ikametSehirler: List<String>.from(data['ikametSehirler'] ?? []),
-      img: data['img'] ?? '',
-      kategori: data['kategori'] ?? '',
-      kazananlar: List<String>.from(data['kazananlar'] ?? []),
-      limit: data['limit'] ?? 0,
-      link: data['link'] ?? '',
-      liseSehirler: List<String>.from(data['liseSehirler'] ?? []),
-      liseler: List<String>.from(data['liseler'] ?? []),
-      miktar: data['miktar'] ?? 0,
-      nufusIlceler: List<String>.from(data['nufusIlceler'] ?? []),
-      nufusSehirler: List<String>.from(data['nufusSehirler'] ?? []),
-      okulBilgisi: data['okulBilgisi'] ?? '',
-      okulTipi: data['okulTipi'] ?? '',
-      ortaOkul: List<String>.from(data['ortaOkul'] ?? []),
-      ortaOkulSehirler: List<String>.from(data['ortaOkulSehirler'] ?? []),
-      secim: data['secim'] ?? 0,
-      sonDegisiklik: data['sonDegisiklik'] ?? 0,
-      timeStamp: data['timeStamp'] ?? 0,
-      universiteIlceler: List<String>.from(data['universiteIlceler'] ?? []),
-      universiteSehirler: List<String>.from(data['universiteSehirler'] ?? []),
-      universiteler: List<String>.from(data['universiteler'] ?? []),
-      kaydedenler: List<String>.from(data['kaydedenler'] ?? []),
+      aciklama: _asString(data['aciklama']),
+      baslik: _asString(data['baslik']),
+      basvuranlar: _asStringList(data['basvuranlar']),
+      begeniler: _asStringList(data['begeniler']),
+      cinsiyet: _asString(data['cinsiyet']),
+      endTimeStamp: _asInt(data['endTimeStamp']),
+      favoriler: _asStringList(data['favoriler']),
+      firma: _asString(data['firma']),
+      goruntulemeler: _asStringList(data['goruntulemeler']),
+      hedefKitleSecimi: _asString(data['hedefKitleSecimi']),
+      ikametIlceler: _asStringList(data['ikametIlceler']),
+      ikametSehirler: _asStringList(data['ikametSehirler']),
+      img: _asString(data['img']),
+      kategori: _asString(data['kategori']),
+      kazananlar: _asStringList(data['kazananlar']),
+      limit: _asInt(data['limit']),
+      link: _asString(data['link']),
+      liseSehirler: _asStringList(data['liseSehirler']),
+      liseler: _asStringList(data['liseler']),
+      miktar: _asInt(data['miktar']),
+      nufusIlceler: _asStringList(data['nufusIlceler']),
+      nufusSehirler: _asStringList(data['nufusSehirler']),
+      okulBilgisi: _asString(data['okulBilgisi']),
+      okulTipi: _asString(data['okulTipi']),
+      ortaOkul: _asStringList(data['ortaOkul']),
+      ortaOkulSehirler: _asStringList(data['ortaOkulSehirler']),
+      secim: _asInt(data['secim']),
+      sonDegisiklik: _asInt(data['sonDegisiklik']),
+      timeStamp: _asInt(data['timeStamp']),
+      universiteIlceler: _asStringList(data['universiteIlceler']),
+      universiteSehirler: _asStringList(data['universiteSehirler']),
+      universiteler: _asStringList(data['universiteler']),
+      kaydedenler: _asStringList(data['kaydedenler']),
       docID: doc.id,
-      shortId: data['shortId'] ?? '',
-      shortUrl: data['shortUrl'] ?? '',
+      shortId: _asString(data['shortId']),
+      shortUrl: _asString(data['shortUrl']),
     );
   }
 
