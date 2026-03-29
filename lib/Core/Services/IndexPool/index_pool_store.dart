@@ -300,6 +300,17 @@ class IndexPoolStore {
     await _persistAll(filtered);
   }
 
+  Future<void> clearKind(IndexPoolKind kind) async {
+    final k = kind.name;
+    final all = await _loadAll(allowStale: true);
+    final filtered =
+        all.where((entry) => entry.kind != k).toList(growable: false);
+    if (filtered.length == all.length) {
+      return;
+    }
+    await _persistAll(filtered);
+  }
+
   Map<String, dynamic> _buildCardData(
     PostsModel post,
     Map<String, dynamic>? user,

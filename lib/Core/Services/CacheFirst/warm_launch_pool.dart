@@ -15,7 +15,7 @@ abstract class _WarmLaunchPoolBase extends GetxService {
 
 class WarmLaunchPool extends _WarmLaunchPoolBase {
   WarmLaunchPool({IndexPoolStore? delegate})
-    : super(delegate ?? IndexPoolStore());
+      : super(delegate ?? IndexPoolStore());
 }
 
 WarmLaunchPool? maybeFindWarmLaunchPool() {
@@ -63,6 +63,8 @@ extension WarmLaunchPoolFacadePart on WarmLaunchPool {
   ) {
     return _delegate.removePosts(kind, docIds);
   }
+
+  Future<void> clearKind(IndexPoolKind kind) => _delegate.clearKind(kind);
 
   Future<void> clear() => _delegate.clear();
 }

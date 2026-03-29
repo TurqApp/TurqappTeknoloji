@@ -28,11 +28,18 @@ Future<void> persistFeedHomeSnapshot(
 }) async {
   final normalized =
       repository._normalizePosts(posts).take(limit).toList(growable: false);
-  if (normalized.isEmpty) return;
   final key = repository._homeKey(FeedSnapshotQuery(
     userId: userId,
     limit: limit,
   ));
+  if (normalized.isEmpty) {
+    await Future.wait(<Future<void>>[
+      repository._memoryStore.clearScope(key),
+      repository._snapshotStore.clearScope(key),
+      repository._warmLaunchPool.clearKind(IndexPoolKind.feed),
+    ]);
+    return;
+  }
   final record = ScopedSnapshotRecord<List<PostsModel>>(
     data: normalized,
     snapshotAt: snapshotAt ?? DateTime.now(),

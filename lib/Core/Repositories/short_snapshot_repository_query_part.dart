@@ -62,7 +62,6 @@ Future<void> _persistHomeSnapshot(
 }) async {
   final normalized =
       repository._normalizePosts(posts).take(limit).toList(growable: false);
-  if (normalized.isEmpty) return;
   final key = ScopedSnapshotKey(
     surfaceKey: ShortSnapshotRepository._homeSurfaceKey,
     userId: userId.trim(),
@@ -71,6 +70,14 @@ Future<void> _persistHomeSnapshot(
       limit: limit,
     ).scopeId,
   );
+  if (normalized.isEmpty) {
+    await Future.wait(<Future<void>>[
+      repository._memoryStore.clearScope(key),
+      repository._snapshotStore.clearScope(key),
+      repository._warmLaunchPool.clearKind(IndexPoolKind.shortFullscreen),
+    ]);
+    return;
+  }
   final record = ScopedSnapshotRecord<List<PostsModel>>(
     data: normalized,
     snapshotAt: snapshotAt ?? DateTime.now(),
