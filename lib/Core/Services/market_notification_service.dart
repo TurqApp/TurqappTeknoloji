@@ -7,6 +7,27 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class MarketNotificationService {
   MarketNotificationService._();
 
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneMap(Map source) {
+    return source.map(
+      (key, value) => MapEntry(key.toString(), _cloneValue(value)),
+    );
+  }
+
   static String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   static String get _senderLabel {
@@ -86,7 +107,7 @@ class MarketNotificationService {
     required String chatId,
     required Map<String, dynamic>? conversationData,
   }) async {
-    final marketContext = Map<String, dynamic>.from(
+    final marketContext = _cloneMap(
       conversationData?['marketContext'] as Map? ?? const <String, dynamic>{},
     );
     final itemId = (marketContext['itemId'] ?? '').toString().trim();
