@@ -1,6 +1,17 @@
 part of 'scholarship_repository.dart';
 
 extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Map<String, dynamic>? _readMemory(String docId) {
     final cached = _memory[docId];
     if (cached == null) return null;
@@ -27,7 +38,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      final savedAt = _asInt(decoded['savedAt']);
       if (savedAt <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -90,7 +101,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      final savedAt = _asInt(decoded['savedAt']);
       if (savedAt <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -173,7 +184,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      final savedAt = _asInt(decoded['savedAt']);
       if (savedAt <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -234,7 +245,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
