@@ -1,5 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+num _parseLegacyInteractionNum(dynamic raw) {
+  if (raw is num) return raw;
+  if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+  return num.tryParse(raw?.toString() ?? '') ?? 0;
+}
+
 // Beğeni modeli
 class PostLikeModel {
   String userID;
@@ -12,8 +18,8 @@ class PostLikeModel {
 
   factory PostLikeModel.fromMap(Map<String, dynamic> data, String docID) {
     return PostLikeModel(
-      userID: data['userID'] ?? '',
-      timestamp: (data['timestamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timestamp: _parseLegacyInteractionNum(data['timestamp']),
     );
   }
 
@@ -52,13 +58,17 @@ class PostCommentModel {
 
   factory PostCommentModel.fromMap(Map<String, dynamic> data, String docID) {
     return PostCommentModel(
-      userID: data['userID'] ?? '',
-      text: data['text'] ?? '',
-      timestamp: (data['timestamp'] ?? 0) as num,
-      likes: CommentLikes.fromMap(data['likes'] ?? {}),
-      parentCommentID: data['parentCommentID'],
+      userID: (data['userID'] ?? '').toString(),
+      text: (data['text'] ?? '').toString(),
+      timestamp: _parseLegacyInteractionNum(data['timestamp']),
+      likes: CommentLikes.fromMap(
+        (data['likes'] as Map?)?.cast<String, dynamic>() ?? const {},
+      ),
+      parentCommentID: (data['parentCommentID'] ?? '').toString().trim().isEmpty
+          ? null
+          : (data['parentCommentID'] ?? '').toString(),
       edited: data['edited'] ?? false,
-      editTimestamp: (data['editTimestamp'] ?? 0) as num,
+      editTimestamp: _parseLegacyInteractionNum(data['editTimestamp']),
     );
   }
 
@@ -131,8 +141,8 @@ class PostSavedModel {
 
   factory PostSavedModel.fromMap(Map<String, dynamic> data, String docID) {
     return PostSavedModel(
-      userID: data['userID'] ?? '',
-      timestamp: (data['timestamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timestamp: _parseLegacyInteractionNum(data['timestamp']),
     );
   }
 
@@ -161,8 +171,8 @@ class PostReshareModel {
 
   factory PostReshareModel.fromMap(Map<String, dynamic> data, String docID) {
     return PostReshareModel(
-      userID: data['userID'] ?? '',
-      timestamp: (data['timestamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timestamp: _parseLegacyInteractionNum(data['timestamp']),
     );
   }
 
@@ -191,8 +201,8 @@ class PostViewerModel {
 
   factory PostViewerModel.fromMap(Map<String, dynamic> data, String docID) {
     return PostViewerModel(
-      userID: data['userID'] ?? '',
-      timestamp: (data['timestamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timestamp: _parseLegacyInteractionNum(data['timestamp']),
     );
   }
 
