@@ -1,6 +1,24 @@
 part of 'answer_key_snapshot_repository.dart';
 
 extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
+  num _asAnswerKeyNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse((value ?? '0').toString()) ?? 0;
+  }
+
+  int _asAnswerKeyInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '0').toString()) ?? 0;
+  }
+
+  List<String> _asAnswerKeyStringList(Object? value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).toList(growable: false);
+    }
+    return const <String>[];
+  }
+
   Stream<CachedResource<List<BookletModel>>> openHome({
     required String userId,
     int limit = 30,
@@ -123,21 +141,13 @@ extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
             sinavTuru: (item['sinavTuru'] ?? '').toString(),
             cover: (item['cover'] ?? '').toString(),
             baslik: (item['baslik'] ?? '').toString(),
-            timeStamp: item['timeStamp'] is num
-                ? item['timeStamp'] as num
-                : num.tryParse((item['timeStamp'] ?? '0').toString()) ?? 0,
+            timeStamp: _asAnswerKeyNum(item['timeStamp']),
             docID: (item['docID'] ?? '').toString(),
-            kaydet: (item['kaydet'] is List)
-                ? (item['kaydet'] as List)
-                    .map((value) => value.toString())
-                    .toList(growable: false)
-                : const <String>[],
+            kaydet: _asAnswerKeyStringList(item['kaydet']),
             basimTarihi: (item['basimTarihi'] ?? '').toString(),
             yayinEvi: (item['yayinEvi'] ?? '').toString(),
             userID: (item['userID'] ?? '').toString(),
-            viewCount: item['viewCount'] is num
-                ? (item['viewCount'] as num).toInt()
-                : int.tryParse((item['viewCount'] ?? '0').toString()) ?? 0,
+            viewCount: _asAnswerKeyInt(item['viewCount']),
             shortId: (item['shortId'] ?? '').toString(),
             shortUrl: (item['shortUrl'] ?? '').toString(),
           );
