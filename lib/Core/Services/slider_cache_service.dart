@@ -350,7 +350,7 @@ class SliderCacheService {
     final extras = <SliderResolvedItem>[];
 
     for (final doc in itemsSnapshot.docs) {
-      final order = (doc.data()['order'] as num?)?.toInt() ?? 0;
+      final order = SliderResolvedItem._asInt(doc.data()['order']);
       final url = (doc.data()['imageUrl'] ?? '').toString().trim();
       if (url.isEmpty) continue;
       final startDateMs = _readDateMs(doc.data()['startDate']);
@@ -366,8 +366,9 @@ class SliderCacheService {
         order: order,
         startDateMs: startDateMs,
         endDateMs: endDateMs,
-        viewCount: (doc.data()['viewCount'] as num?)?.toInt() ?? 0,
-        uniqueViewCount: (doc.data()['uniqueViewCount'] as num?)?.toInt() ?? 0,
+        viewCount: SliderResolvedItem._asInt(doc.data()['viewCount']),
+        uniqueViewCount:
+            SliderResolvedItem._asInt(doc.data()['uniqueViewCount']),
         isRemote: true,
         isDefault: false,
       );
