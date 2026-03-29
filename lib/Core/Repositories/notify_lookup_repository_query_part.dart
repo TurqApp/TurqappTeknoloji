@@ -1,6 +1,15 @@
 part of 'notify_lookup_repository_library.dart';
 
 extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
+  List<String> _sanitizeParticipantIds(dynamic raw) {
+    if (raw is! List) return const <String>[];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
   Future<NotifyPostLookup> getPostLookup(String postID) async {
     _pruneStaleLookups();
     final cached = _postLookupCache[postID];
@@ -37,8 +46,9 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
       final convDoc =
           await _firestore.collection('conversations').doc(chatID).get();
       if (convDoc.exists) {
-        final participants =
-            List<String>.from(convDoc.data()?['participants'] ?? const []);
+        final participants = _sanitizeParticipantIds(
+          convDoc.data()?['participants'],
+        );
         otherUser = participants.firstWhere(
           (id) => id != currentUid,
           orElse: () => '',
@@ -141,9 +151,8 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     final model = lookup.model;
     return NotifyJobLookup(
       exists: lookup.exists,
-      model: model == null
-          ? null
-          : JobModel.fromMap(model.toMap(), model.docID),
+      model:
+          model == null ? null : JobModel.fromMap(model.toMap(), model.docID),
       cachedAt: lookup.cachedAt,
     );
   }
@@ -163,9 +172,7 @@ extension NotifyLookupRepositoryQueryPart on NotifyLookupRepository {
     final model = lookup.model;
     return NotifyMarketLookup(
       exists: lookup.exists,
-      model: model == null
-          ? null
-          : MarketItemModel.fromJson(model.toJson()),
+      model: model == null ? null : MarketItemModel.fromJson(model.toJson()),
       cachedAt: lookup.cachedAt,
     );
   }
