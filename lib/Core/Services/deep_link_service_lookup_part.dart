@@ -1,5 +1,32 @@
 part of 'deep_link_service.dart';
 
+Map<String, dynamic> _cloneDeepLinkStoryDocMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneDeepLinkStoryDocValue(value)),
+  );
+}
+
+dynamic _cloneDeepLinkStoryDocValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneDeepLinkStoryDocValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneDeepLinkStoryDocValue).toList(growable: false);
+  }
+  return value;
+}
+
+List<StoryModel> _cloneDeepLinkStories(List<StoryModel> stories) {
+  return stories
+      .map((story) => StoryModel.fromCacheMap(story.toCacheMap()))
+      .toList(growable: false);
+}
+
 extension DeepLinkServiceLookupPart on DeepLinkService {
   Future<_PostLookupCache> _performGetPostLookup(String postId) async {
     _pruneStaleLookups();
@@ -83,7 +110,7 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
     final storyDoc =
         await StoryRepository.ensure().getStoryRaw(storyId, preferCache: true);
     final lookup = _StoryDocLookupCache(
-      data: storyDoc,
+      data: storyDoc == null ? null : _cloneDeepLinkStoryDocMap(storyDoc),
       cachedAt: DateTime.now(),
     );
     _deepLinkStoryDocLookupCache[storyId] = lookup;
@@ -97,7 +124,7 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
     final cached = _deepLinkStoryListLookupCache[userId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _deepLinkLookupTtl) {
-      return List<StoryModel>.from(cached.stories);
+      return _cloneDeepLinkStories(cached.stories);
     }
 
     final stories = await StoryRepository.ensure().getStoriesForUser(
@@ -106,10 +133,10 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
       includeDeleted: false,
     );
     _deepLinkStoryListLookupCache[userId] = _StoryListLookupCache(
-      stories: List<StoryModel>.from(stories),
+      stories: _cloneDeepLinkStories(stories),
       cachedAt: DateTime.now(),
     );
-    return stories;
+    return _cloneDeepLinkStories(stories);
   }
 
   void _performPruneStaleLookups() {
