@@ -185,7 +185,7 @@ extension ProfileControllerHeaderPart on ProfileController {
       if (!didHydrate) return;
       _startupShardHydrated = true;
       _startupShardAgeMs =
-          DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
+          (DateTime.now().millisecondsSinceEpoch - shard.savedAtMs).toInt();
     } catch (_) {}
   }
 
