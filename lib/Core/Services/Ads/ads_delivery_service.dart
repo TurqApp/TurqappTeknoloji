@@ -13,6 +13,27 @@ class AdsDeliveryService {
 
   final AdsRepositoryService _repository;
 
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneMap(Map source) {
+    return source.map(
+      (key, value) => MapEntry(key.toString(), _cloneValue(value)),
+    );
+  }
+
   Future<AdDeliveryResult> simulateForAdmin(AdDeliveryContext context) async {
     final flags = ensureAdsFeatureFlagsService().flags.value;
     if (!flags.adsInfrastructureEnabled || !flags.adsAdminPanelEnabled) {
@@ -33,13 +54,15 @@ class AdsDeliveryService {
       final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('adsSimulateDelivery');
       final res = await callable.call(context.toMap());
-      final data = Map<String, dynamic>.from(res.data as Map);
+      final data = _cloneMap(res.data as Map? ?? const <String, dynamic>{});
       final hasAd = data['hasAd'] == true;
-      final campaignMap = (data['campaign'] as Map?)?.cast<String, dynamic>();
-      final creativeMap = (data['creative'] as Map?)?.cast<String, dynamic>();
+      final campaignMap =
+          data['campaign'] is Map ? _cloneMap(data['campaign'] as Map) : null;
+      final creativeMap =
+          data['creative'] is Map ? _cloneMap(data['creative'] as Map) : null;
       final decisionRaw = (data['decisions'] as List?) ?? const [];
       final decisions = decisionRaw.map((row) {
-        final m = Map<String, dynamic>.from(row as Map);
+        final m = _cloneMap(row as Map? ?? const <String, dynamic>{});
         final reasons = ((m['reasons'] as List?) ?? const [])
             .map((v) => parseEnum(v.toString(), AdDeliveryRejectReason.values,
                 AdDeliveryRejectReason.userIneligible))
