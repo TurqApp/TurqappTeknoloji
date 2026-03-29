@@ -150,19 +150,19 @@ extension ScholarshipPreviewViewVisualPart on ScholarshipPreviewView {
                   if (controller.logo.value.isNotEmpty)
                     Positioned(
                       top: height * 0.237,
-                      right: width * 0.064,
-                      width: math.min(width * 0.305, height * 0.49),
-                      height: math.min(width * 0.305, height * 0.49),
+                      right: math.max(0.0, width * 0.064 - 8),
+                      width: math.min(width * 0.35868, height * 0.57624),
+                      height: math.min(width * 0.35868, height * 0.57624),
                       child: _buildTemplateLogo(
                         logoPath: controller.logo.value,
-                        size: math.min(width * 0.305, height * 0.49),
+                        size: math.min(width * 0.35868, height * 0.57624),
                       ),
                     ),
                   if (controller.website.value.isNotEmpty)
                     Positioned(
                       left: width * 0.045,
                       right: width * 0.12,
-                      bottom: height * 0.015,
+                      bottom: math.max(0.0, height * 0.015 - 3),
                       height: height * 0.11,
                       child: _buildTemplateWebsite(
                         website: controller.website.value,
@@ -249,32 +249,49 @@ extension ScholarshipPreviewViewVisualPart on ScholarshipPreviewView {
     required double width,
     required double height,
   }) {
-    return SizedBox(
-      width: width,
-      height: height,
-      child: FittedBox(
-        alignment: Alignment.centerLeft,
-        fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              CupertinoIcons.globe,
-              color: Colors.white,
-              size: 18,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              website,
-              style: TextStyles.textFieldTitle.copyWith(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openTemplateWebsite(website),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: FittedBox(
+          alignment: Alignment.centerLeft,
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                CupertinoIcons.globe,
                 color: Colors.white,
-                fontSize: 16,
+                size: 18,
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+              Text(
+                website,
+                style: TextStyles.textFieldTitle.copyWith(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _openTemplateWebsite(String website) async {
+    final trimmed = website.trim();
+    if (trimmed.isEmpty) return;
+
+    final uri = Uri.tryParse(ensureUrlHasScheme(trimmed));
+    if (uri == null) {
+      AppSnackbar('common.error'.tr, 'scholarship.website_open_failed'.tr);
+      return;
+    }
+
+    await confirmAndLaunchExternalUrl(uri);
   }
 
   List<Widget> _buildCustomImages(CreateScholarshipController controller) {
