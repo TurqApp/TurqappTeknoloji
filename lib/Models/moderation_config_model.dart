@@ -106,7 +106,8 @@ class ModerationConfigModel {
     if (raw is int) return raw.clamp(1, 1000);
     if (raw is num) return raw.toInt().clamp(1, 1000);
     if (raw is String) {
-      final parsed = int.tryParse(raw.trim());
+      final value = raw.trim();
+      final parsed = int.tryParse(value) ?? num.tryParse(value)?.toInt();
       if (parsed != null) return parsed.clamp(1, 1000);
     }
     return fallback;
