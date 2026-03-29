@@ -162,6 +162,13 @@ extension AgendaControllerLoadingPart on AgendaController {
     final previousLastDoc = lastDoc;
     final previousHasMore = hasMore.value;
     final previousUsePrimaryFeedPaging = _usePrimaryFeedPaging;
+    final preserveVisibleFeedOnInitialBootstrap =
+        initial && previousAgenda.isNotEmpty && trigger != 'refresh_agenda';
+
+    if (preserveVisibleFeedOnInitialBootstrap) {
+      await syncFeedHeadAfterSurfaceOpen();
+      return;
+    }
 
     if (initial) {
       lastDoc = null;
