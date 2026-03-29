@@ -24,6 +24,7 @@ class ScholarshipPreviewView extends StatelessWidget {
     final controller = ensureCreateScholarshipController(tag: controllerTag);
     final CarouselSliderController carouselController =
         CarouselSliderController();
+    final ScrollController scrollController = ScrollController();
     final currentIndex = 0.obs;
     final logoSize =
         (MediaQuery.of(context).size.width * 0.35).clamp(108.0, 133.0);
@@ -32,6 +33,7 @@ class ScholarshipPreviewView extends StatelessWidget {
       context: context,
       controller: controller,
       carouselController: carouselController,
+      scrollController: scrollController,
       currentIndex: currentIndex,
       logoSize: logoSize,
     );
