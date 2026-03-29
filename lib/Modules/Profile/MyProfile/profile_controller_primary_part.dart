@@ -47,7 +47,9 @@ extension ProfileControllerPrimaryPart on ProfileController {
     _profileRepository.invalidateLatestResharePost(uid);
     final post = await _profileRepository.fetchLatestResharePost(uid);
     if (post == null) {
-      reshares.clear();
+      if (reshares.isEmpty) {
+        reshares.clear();
+      }
       return;
     }
 
