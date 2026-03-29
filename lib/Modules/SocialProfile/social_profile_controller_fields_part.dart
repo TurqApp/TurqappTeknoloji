@@ -14,7 +14,7 @@ class _SocialProfileScrollState {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
-  int lastPlaybackRowUpdateIndex = -1;
+  String? lastPlaybackRowUpdateIdentity;
   String? lastPlaybackCommandDocId;
   DateTime? lastPlaybackCommandAt;
   String? pendingCenteredIdentity;
@@ -91,10 +91,10 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   RxInt get centeredIndex => _scrollState.centeredIndex;
   int? get lastCenteredIndex => _scrollState.lastCenteredIndex;
   set lastCenteredIndex(int? value) => _scrollState.lastCenteredIndex = value;
-  int get _lastPlaybackRowUpdateIndex =>
-      _scrollState.lastPlaybackRowUpdateIndex;
-  set _lastPlaybackRowUpdateIndex(int value) =>
-      _scrollState.lastPlaybackRowUpdateIndex = value;
+  String? get _lastPlaybackRowUpdateIdentity =>
+      _scrollState.lastPlaybackRowUpdateIdentity;
+  set _lastPlaybackRowUpdateIdentity(String? value) =>
+      _scrollState.lastPlaybackRowUpdateIdentity = value;
   String? get _lastPlaybackCommandDocId =>
       _scrollState.lastPlaybackCommandDocId;
   set _lastPlaybackCommandDocId(String? value) =>

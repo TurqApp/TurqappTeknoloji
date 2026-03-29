@@ -31,7 +31,10 @@ extension ProfileControllerCachePart on ProfileController {
       userId: uid,
       limit: postLimit,
     );
-    _applyProfileBuckets(resource.data);
+    final applied = _applyProfileBuckets(resource.data);
+    if (applied) {
+      bootstrapFeedPlaybackAfterDataChange();
+    }
     unawaited(_performWarmProfileSurfaceCache());
   }
 
@@ -102,6 +105,7 @@ extension ProfileControllerCachePart on ProfileController {
     hasMorePostsPhotos = true;
     hasMorePostsVideos = true;
     hasMoreScheduled = true;
+    bootstrapFeedPlaybackAfterDataChange();
     unawaited(_performWarmProfileSurfaceCache());
   }
 

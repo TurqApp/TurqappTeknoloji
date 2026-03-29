@@ -49,14 +49,19 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
   Future<void> _performRestoreCachedBuckets() async {
     final buckets = await _profileRepository.readCachedBuckets(userID);
     if (buckets == null) return;
+    var applied = false;
     if (buckets.all.isNotEmpty) {
       allPosts.assignAll(buckets.all);
+      applied = true;
     }
     if (buckets.photos.isNotEmpty) {
       photos.assignAll(buckets.photos);
     }
     if (buckets.scheduled.isNotEmpty) {
       scheduledPosts.assignAll(buckets.scheduled);
+    }
+    if (applied) {
+      bootstrapFeedPlaybackAfterDataChange();
     }
   }
 

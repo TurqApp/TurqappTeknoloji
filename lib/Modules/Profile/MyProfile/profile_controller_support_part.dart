@@ -59,6 +59,9 @@ extension ProfileControllerSupportPart on ProfileController {
   void ensureCenteredPlaybackForCurrentSelection() =>
       _performEnsureCenteredPlaybackForIndex(centeredIndex.value);
 
+  void bootstrapFeedPlaybackAfterDataChange() =>
+      _performBootstrapFeedPlaybackAfterDataChange();
+
   void capturePendingCenteredEntry({int? preferredIndex}) =>
       _performCapturePendingCenteredEntry(preferredIndex: preferredIndex);
 

@@ -185,7 +185,10 @@ extension _SocialProfileContentPart on _SocialProfileState {
                   },
                   child: GetBuilder<SocialProfileController>(
                     tag: controller.userID,
-                    id: controller.feedPlaybackRowUpdateId(actualIndex),
+                    id: controller.feedPlaybackRowUpdateId(
+                      docId: model.docID,
+                      isReshare: isReshare,
+                    ),
                     builder: (socialController) {
                       final isCentered =
                           socialController.centeredIndex.value == actualIndex;

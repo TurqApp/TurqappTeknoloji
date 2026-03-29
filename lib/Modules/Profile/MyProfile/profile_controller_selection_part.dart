@@ -1,6 +1,31 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerSelectionPart on ProfileController {
+  void _performBootstrapFeedPlaybackAfterDataChange() {
+    if (postSelection.value != 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (postSelection.value != 0) return;
+      final activeEntries = mergedPosts;
+      if (activeEntries.isEmpty) {
+        centeredIndex.value = -1;
+        currentVisibleIndex.value = -1;
+        lastCenteredIndex = null;
+        return;
+      }
+      final target = resolveResumeCenteredIndex();
+      if (target < 0 || target >= activeEntries.length) return;
+      centeredIndex.value = target;
+      currentVisibleIndex.value = target;
+      lastCenteredIndex = target;
+      capturePendingCenteredEntry(preferredIndex: target);
+      if (_performCanAutoplayMergedEntry(activeEntries[target])) {
+        _performEnsureCenteredPlaybackForIndex(target);
+      } else {
+        _performScheduleVisibilityEvaluation();
+      }
+    });
+  }
+
   int _performResolveResumeCenteredIndex() {
     if (mergedPosts.isEmpty) return -1;
     final pendingIdentity = _pendingCenteredIdentity;

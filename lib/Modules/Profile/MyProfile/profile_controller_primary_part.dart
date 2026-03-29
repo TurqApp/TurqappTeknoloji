@@ -21,6 +21,7 @@ extension ProfileControllerPrimaryPart on ProfileController {
       final posts = await _linkService.fetchResharedPosts(uid, refs);
       if (posts.isNotEmpty || reshares.isEmpty) {
         reshares.assignAll(List<PostsModel>.from(posts));
+        bootstrapFeedPlaybackAfterDataChange();
       }
     } catch (e) {
       print('ProfileController hydrate reshares error: $e');
@@ -191,6 +192,7 @@ extension ProfileControllerPrimaryPart on ProfileController {
       hasMorePostsPhotos = _hasMorePrimary;
       hasMorePostsVideos = _hasMorePrimary;
       hasMoreScheduled = _hasMorePrimary;
+      bootstrapFeedPlaybackAfterDataChange();
       unawaited(_performWarmProfileSurfaceCache());
     } catch (e) {
       print('_fetchPrimaryBuckets error: $e');

@@ -173,18 +173,35 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
 
   Future<void> _restoreCachedBuckets() => _performRestoreCachedBuckets();
 
-  String feedPlaybackRowUpdateId(int index) =>
-      'social-feed-playback-row-$index';
+  String feedPlaybackRowUpdateId({
+    required String docId,
+    required bool isReshare,
+  }) =>
+      'social-feed-playback-row-${combinedEntryIdentity(docId: docId, isReshare: isReshare)}';
+
+  String? _playbackRowUpdateIdentityForIndex(int index) {
+    final activeEntries = combinedFeedEntries;
+    if (index < 0 || index >= activeEntries.length) return null;
+    final entry = activeEntries[index];
+    final docId = ((entry['docID'] as String?) ?? '').trim();
+    if (docId.isEmpty) return null;
+    return feedPlaybackRowUpdateId(
+      docId: docId,
+      isReshare: entry['isReshare'] == true,
+    );
+  }
 
   void _notifyPlaybackRowUpdates(int newIndex) {
     final ids = <String>{};
-    if (_lastPlaybackRowUpdateIndex >= 0) {
-      ids.add(feedPlaybackRowUpdateId(_lastPlaybackRowUpdateIndex));
+    final previousIdentity = _lastPlaybackRowUpdateIdentity;
+    if (previousIdentity != null && previousIdentity.isNotEmpty) {
+      ids.add(previousIdentity);
     }
-    if (newIndex >= 0) {
-      ids.add(feedPlaybackRowUpdateId(newIndex));
+    final nextIdentity = _playbackRowUpdateIdentityForIndex(newIndex);
+    if (nextIdentity != null && nextIdentity.isNotEmpty) {
+      ids.add(nextIdentity);
     }
-    _lastPlaybackRowUpdateIndex = newIndex;
+    _lastPlaybackRowUpdateIdentity = nextIdentity;
     if (ids.isNotEmpty) {
       update(ids.toList(growable: false));
     }
