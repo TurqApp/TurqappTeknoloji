@@ -124,6 +124,12 @@ extension AgendaControllerLifecyclePart on AgendaController {
 
   void _performSuspendPlaybackForOverlay() {
     playbackSuspended.value = true;
+    _cancelPendingPlaybackReassert();
+    _visibleFractions.clear();
+    _visibleUpdatedAt.clear();
+    _lastPlaybackWindowSignature = null;
+    _lastPlaybackRowUpdateDocId = null;
+    centeredIndex.value = -1;
     try {
       VideoStateManager.instance.pauseAllVideos(force: true);
     } catch (_) {}

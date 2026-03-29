@@ -3,6 +3,16 @@ part of 'agenda_controller.dart';
 extension AgendaControllerPlaybackPart on AgendaController {
   void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (modelIndex < 0 || modelIndex >= agendaList.length) return;
+    if (playbackSuspended.value || !isPrimaryFeedRouteVisible) {
+      _visibleFractions.remove(modelIndex);
+      _visibleUpdatedAt.remove(modelIndex);
+      if (centeredIndex.value == modelIndex) {
+        centeredIndex.value = -1;
+      }
+      _lastPlaybackWindowSignature = null;
+      _trackPlaybackWindow();
+      return;
+    }
     final prev = _visibleFractions[modelIndex];
 
     if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
