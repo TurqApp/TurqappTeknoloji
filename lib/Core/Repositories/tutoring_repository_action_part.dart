@@ -1,6 +1,20 @@
 part of 'tutoring_repository.dart';
 
 extension TutoringRepositoryActionPart on TutoringRepository {
+  num _readNumericField(
+    Map<String, dynamic>? data,
+    String key, {
+    num fallback = 0,
+  }) {
+    final value = data?[key];
+    if (value is num) return value;
+    if (value is String) {
+      final parsed = num.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
   Future<bool> toggleFavorite({
     required String docId,
     required String userId,
@@ -62,7 +76,7 @@ extension TutoringRepositoryActionPart on TutoringRepository {
       final docSnap = await educatorDocRef
           .get(const GetOptions(source: Source.serverAndCache));
       if (docSnap.exists) {
-        final count = (docSnap.data()?['applicationCount'] ?? 0) as num;
+        final count = _readNumericField(docSnap.data(), 'applicationCount');
         if (count < 0) {
           await educatorDocRef.update({'applicationCount': 0});
         }
@@ -134,7 +148,7 @@ extension TutoringRepositoryActionPart on TutoringRepository {
     final docSnap =
         await educatorRef.get(const GetOptions(source: Source.serverAndCache));
     if (docSnap.exists) {
-      final count = (docSnap.data()?['applicationCount'] ?? 0) as num;
+      final count = _readNumericField(docSnap.data(), 'applicationCount');
       if (count < 0) {
         await educatorRef.update({'applicationCount': 0});
       }
