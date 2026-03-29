@@ -38,6 +38,7 @@ class JobFinder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    controller.primePrimarySurfaceOnce();
     if (!_bannerWarmupTriggered) {
       _bannerWarmupTriggered = true;
       unawaited(

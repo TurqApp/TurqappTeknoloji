@@ -6,6 +6,15 @@ const String _jobFinderListingSelectionPrefKeyPrefix =
 const String _jobFinderAllTurkeyRaw = 'Tüm Türkiye';
 
 extension JobFinderControllerSupportPart on JobFinderController {
+  void primePrimarySurfaceOnce() {
+    if (_primarySurfacePrimedOnce) return;
+    _primarySurfacePrimedOnce = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      unawaited(onPrimarySurfaceVisible());
+    });
+  }
+
   Future<void> onPrimarySurfaceVisible() => prepareStartupSurface();
 
   Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>

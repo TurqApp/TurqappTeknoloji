@@ -31,6 +31,7 @@ class _JobFinderControllerState {
   StreamSubscription<CachedResource<List<JobModel>>>? homeSnapshotSub;
   Timer? deferredLocationTimer;
   Future<void>? startupPrepareFuture;
+  bool primarySurfacePrimedOnce = false;
   bool startupShardHydrated = false;
   int? startupShardAgeMs;
 }
@@ -76,6 +77,9 @@ extension JobFinderControllerFieldsPart on JobFinderController {
   Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
   set _startupPrepareFuture(Future<void>? value) =>
       _state.startupPrepareFuture = value;
+  bool get _primarySurfacePrimedOnce => _state.primarySurfacePrimedOnce;
+  set _primarySurfacePrimedOnce(bool value) =>
+      _state.primarySurfacePrimedOnce = value;
   bool get _startupShardHydrated => _state.startupShardHydrated;
   set _startupShardHydrated(bool value) => _state.startupShardHydrated = value;
   int? get _startupShardAgeMs => _state.startupShardAgeMs;

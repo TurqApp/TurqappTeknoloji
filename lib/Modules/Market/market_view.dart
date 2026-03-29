@@ -45,5 +45,8 @@ class MarketView extends StatelessWidget {
   final MarketController controller;
 
   @override
-  Widget build(BuildContext context) => _buildView(context);
+  Widget build(BuildContext context) {
+    controller.primePrimarySurfaceOnce();
+    return _buildView(context);
+  }
 }
