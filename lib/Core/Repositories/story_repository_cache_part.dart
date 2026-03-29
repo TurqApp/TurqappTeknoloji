@@ -7,6 +7,15 @@ extension StoryRepositoryCachePart on StoryRepository {
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
+  bool _storyRowCacheAsBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = value?.toString().trim().toLowerCase();
+    if (raw == 'true' || raw == '1') return true;
+    if (raw == 'false' || raw == '0') return false;
+    return fallback;
+  }
+
   Future<StoryFetchResult> _performFetchStoryUsers({
     required int limit,
     required bool cacheFirst,
@@ -55,7 +64,7 @@ extension StoryRepositoryCachePart on StoryRepository {
     for (final doc in snap.docs) {
       try {
         final data = doc.data();
-        if ((data['deleted'] ?? false) == true) continue;
+        if (_storyRowCacheAsBool(data['deleted'])) continue;
         final story = StoryModel.fromDoc(doc);
         if (story.createdAt.isBefore(expiry)) continue;
         userStories.putIfAbsent(story.userId, () => <StoryModel>[]);
@@ -73,7 +82,7 @@ extension StoryRepositoryCachePart on StoryRepository {
             'username': embeddedUsername,
             'firstName': (data['firstName'] ?? '').toString(),
             'lastName': (data['lastName'] ?? '').toString(),
-            'isPrivate': data['isPrivate'] == true,
+            'isPrivate': _storyRowCacheAsBool(data['isPrivate']),
           };
         }
       } catch (_) {}
@@ -111,7 +120,7 @@ extension StoryRepositoryCachePart on StoryRepository {
         rawData ?? _fallbackUserData(userId, current),
       );
 
-      final isPrivate = (data['isPrivate'] ?? false) == true;
+      final isPrivate = _storyRowCacheAsBool(data['isPrivate']);
       final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
         authorUserId: userId,
         followingIds: followingIds,
@@ -327,7 +336,7 @@ extension StoryRepositoryCachePart on StoryRepository {
       for (final doc in snap.docs) {
         try {
           final data = doc.data();
-          if ((data['deleted'] ?? false) == true) continue;
+          if (_storyRowCacheAsBool(data['deleted'])) continue;
           final story = StoryModel.fromDoc(doc);
           stories[story.id] = story;
         } catch (_) {}
