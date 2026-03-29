@@ -49,17 +49,17 @@ class AdTargeting {
 
   Map<String, dynamic> toMap() {
     return {
-      'countries': countries,
-      'cities': cities,
-      'languages': languages,
+      'countries': List<String>.from(countries, growable: false),
+      'cities': List<String>.from(cities, growable: false),
+      'languages': List<String>.from(languages, growable: false),
       'minAge': minAge,
       'maxAge': maxAge,
-      'genders': genders,
-      'interests': interests,
-      'devicePlatforms': devicePlatforms,
-      'appVersions': appVersions,
-      'includeUserIds': includeUserIds,
-      'excludeUserIds': excludeUserIds,
+      'genders': List<String>.from(genders, growable: false),
+      'interests': List<String>.from(interests, growable: false),
+      'devicePlatforms': List<String>.from(devicePlatforms, growable: false),
+      'appVersions': List<String>.from(appVersions, growable: false),
+      'includeUserIds': List<String>.from(includeUserIds, growable: false),
+      'excludeUserIds': List<String>.from(excludeUserIds, growable: false),
     };
   }
 

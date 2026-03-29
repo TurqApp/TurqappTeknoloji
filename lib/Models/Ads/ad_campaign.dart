@@ -153,7 +153,9 @@ class AdCampaign {
       'advertiserId': advertiserId,
       'name': name,
       'status': enumToShort(status),
-      'placementTypes': placementTypes.map(enumToShort).toList(),
+      'placementTypes': placementTypes
+          .map(enumToShort)
+          .toList(growable: false),
       'budgetType': enumToShort(budgetType),
       'totalBudget': totalBudget,
       'dailyBudget': dailyBudget,
@@ -162,7 +164,7 @@ class AdCampaign {
       'startAt': startAt.millisecondsSinceEpoch,
       'endAt': endAt.millisecondsSinceEpoch,
       'targeting': targeting.toMap(),
-      'creativeIds': creativeIds,
+      'creativeIds': List<String>.from(creativeIds, growable: false),
       'bidType': enumToShort(bidType),
       'bidAmount': bidAmount,
       'priority': priority,

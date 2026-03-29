@@ -362,7 +362,7 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
             },
             child: Container(
               height: 40,
-              width: 80,
+              width: 140,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.black,

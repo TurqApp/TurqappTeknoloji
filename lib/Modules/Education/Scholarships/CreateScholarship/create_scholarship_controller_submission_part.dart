@@ -2,6 +2,24 @@ part of 'create_scholarship_controller.dart';
 
 extension CreateScholarshipControllerSubmissionPart
     on CreateScholarshipController {
+  Future<RenderRepaintBoundary?> _waitForTemplateBoundary() async {
+    for (var attempt = 0; attempt < 5; attempt++) {
+      await WidgetsBinding.instance.endOfFrame;
+      final boundary =
+          templateKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary != null && !boundary.debugNeedsPaint) {
+        return boundary;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+    final boundary =
+        templateKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary != null && !boundary.debugNeedsPaint) {
+      return boundary;
+    }
+    return null;
+  }
+
   Future<Uint8List?> _compressFileToWebp(File file, {int quality = 85}) async {
     try {
       return await FlutterImageCompress.compressWithFile(
@@ -83,8 +101,7 @@ extension CreateScholarshipControllerSubmissionPart
         return null;
       }
 
-      RenderRepaintBoundary? boundary = templateKey.currentContext
-          ?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary = await _waitForTemplateBoundary();
       if (boundary == null) {
         return null;
       }
