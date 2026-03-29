@@ -107,10 +107,14 @@ extension _LocationBasedTutoringControllerRuntimeX
   Future<List<TutoringModel>> readCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(LocationBasedTutoringController._cacheKey);
+      final cacheKey = LocationBasedTutoringController._cacheKey;
+      final raw = prefs.getString(cacheKey);
       if (raw == null || raw.isEmpty) return const <TutoringModel>[];
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return const <TutoringModel>[];
+      if (decoded is! List) {
+        await prefs.remove(cacheKey);
+        return const <TutoringModel>[];
+      }
       return decoded
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
@@ -123,6 +127,10 @@ extension _LocationBasedTutoringControllerRuntimeX
           .where((item) => item.docID.isNotEmpty)
           .toList(growable: false);
     } catch (_) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(LocationBasedTutoringController._cacheKey);
+      } catch (_) {}
       return const <TutoringModel>[];
     }
   }

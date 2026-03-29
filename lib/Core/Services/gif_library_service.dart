@@ -128,12 +128,19 @@ class GifLibraryService {
       final raw = prefs.getString(_manifestKey);
       if (raw == null || raw.isEmpty) return const <Map<String, dynamic>>[];
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return const <Map<String, dynamic>>[];
+      if (decoded is! List) {
+        await prefs.remove(_manifestKey);
+        return const <Map<String, dynamic>>[];
+      }
       return decoded
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
           .toList(growable: true);
     } catch (_) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_manifestKey);
+      } catch (_) {}
       return const <Map<String, dynamic>>[];
     }
   }
