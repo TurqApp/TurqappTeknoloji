@@ -14,7 +14,7 @@ extension CvRepositoryCachePart on CvRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(uid);
       if (disk != null) {
-        return Map<String, dynamic>.from(disk);
+        return _cloneCvMap(disk);
       }
     }
 
@@ -26,14 +26,14 @@ extension CvRepositoryCachePart on CvRepository {
         ? Map<String, dynamic>.from(snap.data()!)
         : null;
     await setCv(uid, data);
-    return data == null ? null : Map<String, dynamic>.from(data);
+    return data == null ? null : _cloneCvMap(data);
   }
 
   Future<void> setCv(String uid, Map<String, dynamic>? data) async {
     if (uid.isEmpty) return;
     final cachedAt = DateTime.now();
     _memory[uid] = _CachedCv(
-      data: data == null ? null : Map<String, dynamic>.from(data),
+      data: data == null ? null : _cloneCvMap(data),
       cachedAt: cachedAt,
     );
     _prefs ??= await SharedPreferences.getInstance();
@@ -51,7 +51,7 @@ extension CvRepositoryCachePart on CvRepository {
     await FirebaseFirestore.instance.collection('CV').doc(uid).update(data);
     final current = await getCv(uid, preferCache: true, forceRefresh: false) ??
         <String, dynamic>{};
-    final merged = Map<String, dynamic>.from(current)..addAll(data);
+    final merged = _cloneCvMap(current)..addAll(_cloneCvMap(data));
     await setCv(uid, merged);
   }
 
@@ -70,7 +70,7 @@ extension CvRepositoryCachePart on CvRepository {
       _memory.remove(uid);
       return null;
     }
-    return entry.data == null ? null : Map<String, dynamic>.from(entry.data!);
+    return entry.data == null ? null : _cloneCvMap(entry.data!);
   }
 
   Future<Map<String, dynamic>?> _getFromPrefs(String uid) async {
@@ -102,16 +102,18 @@ extension CvRepositoryCachePart on CvRepository {
       final data = decoded['data'];
       Map<String, dynamic>? mapped;
       if (data is Map<String, dynamic>) {
-        mapped = Map<String, dynamic>.from(data);
+        mapped = _cloneCvMap(data);
       } else if (data is Map) {
-        mapped = data.map((key, value) => MapEntry(key.toString(), value));
+        mapped = _cloneCvMap(
+          data.map((key, value) => MapEntry(key.toString(), value)),
+        );
       }
       if (mapped == null) {
         await prefs?.remove(prefsKey);
         return null;
       }
-      _memory[uid] = _CachedCv(data: mapped, cachedAt: cachedAt);
-      return Map<String, dynamic>.from(mapped);
+      _memory[uid] = _CachedCv(data: _cloneCvMap(mapped), cachedAt: cachedAt);
+      return _cloneCvMap(mapped);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -119,4 +121,20 @@ extension CvRepositoryCachePart on CvRepository {
   }
 
   String _prefsKey(String uid) => '${CvRepository._prefsPrefix}:$uid';
+
+  Map<String, dynamic> _cloneCvMap(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _cloneCvValue(value)));
+  }
+
+  dynamic _cloneCvValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneCvValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneCvValue).toList(growable: false);
+    }
+    return value;
+  }
 }
