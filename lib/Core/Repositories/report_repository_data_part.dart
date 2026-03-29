@@ -4,20 +4,20 @@ class ReportAggregateItem {
   final String id;
   final Map<String, dynamic> data;
 
-  const ReportAggregateItem({
+  ReportAggregateItem({
     required this.id,
-    required this.data,
-  });
+    required Map<String, dynamic> data,
+  }) : data = _cloneReportDataMap(data);
 }
 
 class ReportReasonItem {
   final String id;
   final Map<String, dynamic> data;
 
-  const ReportReasonItem({
+  ReportReasonItem({
     required this.id,
-    required this.data,
-  });
+    required Map<String, dynamic> data,
+  }) : data = _cloneReportDataMap(data);
 }
 
 extension ReportRepositoryDataPart on ReportRepository {
@@ -32,7 +32,7 @@ extension ReportRepositoryDataPart on ReportRepository {
               .map(
                 (doc) => ReportAggregateItem(
                   id: doc.id,
-                  data: Map<String, dynamic>.from(doc.data()),
+                  data: _cloneReportDataMap(doc.data()),
                 ),
               )
               .toList(growable: false),
@@ -55,7 +55,7 @@ extension ReportRepositoryDataPart on ReportRepository {
           .map(
             (doc) => ReportReasonItem(
               id: doc.id,
-              data: Map<String, dynamic>.from(doc.data()),
+              data: _cloneReportDataMap(doc.data()),
             ),
           )
           .toList(growable: false);
@@ -76,7 +76,11 @@ extension ReportRepositoryDataPart on ReportRepository {
     });
     final data = res.data;
     if (data is Map && data['config'] is Map) {
-      return Map<String, dynamic>.from(data['config'] as Map);
+      return _cloneReportDataMap(
+        (data['config'] as Map).map(
+          (key, value) => MapEntry(key.toString(), value),
+        ),
+      );
     }
     return const <String, dynamic>{};
   }
@@ -110,7 +114,9 @@ extension ReportRepositoryDataPart on ReportRepository {
         final key = entry.key.toString().trim();
         final raw = entry.value;
         if (key.isEmpty || raw is! Map) continue;
-        final category = Map<String, dynamic>.from(raw);
+        final category = _cloneReportDataMap(
+          raw.map((mapKey, value) => MapEntry(mapKey.toString(), value)),
+        );
         if (category['enabled'] == false) continue;
         final title = (category['title'] ?? '').toString().trim();
         if (title.isEmpty) continue;
@@ -130,6 +136,27 @@ extension ReportRepositoryDataPart on ReportRepository {
       return reportSelections;
     }
   }
+}
+
+Map<String, dynamic> _cloneReportDataMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneReportDataValue(value)),
+  );
+}
+
+dynamic _cloneReportDataValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneReportDataValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneReportDataValue).toList(growable: false);
+  }
+  return value;
 }
 
 int _reportAsInt(dynamic raw) {
