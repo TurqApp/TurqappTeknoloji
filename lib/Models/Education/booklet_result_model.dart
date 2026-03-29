@@ -10,8 +10,11 @@ class BookletResultModel {
   String kitapcikID;
   String docID;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   BookletResultModel({
-    required this.cevaplar,
+    required List<String> cevaplar,
     required this.docID,
     required this.baslik,
     required this.timeStamp,
@@ -19,7 +22,8 @@ class BookletResultModel {
     required this.dogru,
     required this.bos,
     required this.kitapcikID,
-    required this.dogruCevaplar,
+    required List<String> dogruCevaplar,
     required this.puan,
-  });
+  }) : cevaplar = _cloneStringList(cevaplar),
+       dogruCevaplar = _cloneStringList(dogruCevaplar);
 }

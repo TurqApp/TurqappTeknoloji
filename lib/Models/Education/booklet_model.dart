@@ -13,6 +13,9 @@ class BookletModel {
   String shortId;
   String shortUrl;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   BookletModel({
     required this.dil,
     required this.sinavTuru,
@@ -20,14 +23,14 @@ class BookletModel {
     required this.baslik,
     required this.timeStamp,
     required this.docID,
-    required this.kaydet,
+    required List<String> kaydet,
     required this.basimTarihi,
     required this.yayinEvi,
     required this.userID,
     required this.viewCount,
     this.shortId = '',
     this.shortUrl = '',
-  });
+  }) : kaydet = _cloneStringList(kaydet);
 
   factory BookletModel.fromMap(Map<String, dynamic> data, String docID) {
     final legacyViews = data["goruntuleme"];
