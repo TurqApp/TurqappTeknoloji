@@ -1,4 +1,11 @@
 class ChatListingModel {
+  static List<String> _cloneDeletedList(Iterable<dynamic> source) {
+    return source
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
   String chatID;
   String userID;
   String timeStamp;
@@ -16,7 +23,7 @@ class ChatListingModel {
     required this.chatID,
     required this.userID,
     required this.timeStamp,
-    required this.deleted,
+    required List<String> deleted,
     required this.nickname,
     required this.fullName,
     required this.avatarUrl,
@@ -25,14 +32,14 @@ class ChatListingModel {
     this.isConversation = false,
     this.isPinned = false,
     this.isMuted = false,
-  });
+  }) : deleted = _cloneDeletedList(deleted);
 
   factory ChatListingModel.fromJson(Map<String, dynamic> json) {
     return ChatListingModel(
       chatID: json['chatID'] ?? '',
       userID: json['userID'] ?? '',
       timeStamp: json['timeStamp'] ?? '0',
-      deleted: List<String>.from(json['deleted'] ?? []),
+      deleted: _cloneDeletedList(json['deleted'] ?? const []),
       nickname: json['nickname'] ?? '',
       fullName: json['fullName'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
@@ -49,7 +56,7 @@ class ChatListingModel {
       'chatID': chatID,
       'userID': userID,
       'timeStamp': timeStamp,
-      'deleted': deleted,
+      'deleted': _cloneDeletedList(deleted),
       'nickname': nickname,
       'fullName': fullName,
       'avatarUrl': avatarUrl,
