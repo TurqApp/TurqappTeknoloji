@@ -5,6 +5,17 @@ void _handleTutoringRepositoryInit(TutoringRepository repository) {
 }
 
 extension TutoringRepositoryCachePart on TutoringRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<Map<String, dynamic>?> _getCachedMap(String key) async {
     final value = await _getCachedValue(key);
     if (value is Map<String, dynamic>) return _cloneMap(value);
@@ -41,7 +52,7 @@ extension TutoringRepositoryCachePart on TutoringRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -52,8 +63,8 @@ extension TutoringRepositoryCachePart on TutoringRepository {
         return null;
       }
       final value = decoded['v'];
-      _memory[key] =
-          _TimedValue<dynamic>(value: _cloneValue(value), cachedAt: DateTime.now());
+      _memory[key] = _TimedValue<dynamic>(
+          value: _cloneValue(value), cachedAt: DateTime.now());
       return _cloneValue(value);
     } catch (_) {
       await prefs?.remove(prefsKey);
