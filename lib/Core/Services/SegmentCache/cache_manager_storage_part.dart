@@ -34,17 +34,28 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
   }
 
   Future<void> _loadIndex() async {
+    final file = File('$_cacheDir/index.json');
     try {
-      final file = File('$_cacheDir/index.json');
       if (!await file.exists()) return;
       final content = await file.readAsString();
-      final json = jsonDecode(content) as Map<String, dynamic>;
+      final decoded = jsonDecode(content);
+      if (decoded is! Map<String, dynamic>) {
+        await file.delete();
+        _index = CacheIndex();
+        return;
+      }
+      final json = decoded;
       _index = CacheIndex.fromJson(json);
       debugPrint(
           '[CacheManager] Index loaded: ${_index.entries.length} entries, '
           '${CacheMetrics.formatBytes(_index.totalSizeBytes)}');
     } catch (e) {
       debugPrint('[CacheManager] Index load error (starting fresh): $e');
+      try {
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {}
       _index = CacheIndex();
     }
   }
