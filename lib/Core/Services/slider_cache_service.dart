@@ -120,17 +120,28 @@ class SliderCacheService {
       }
 
       final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      if (savedAt <= 0) {
+        await prefs.remove(key);
+        return const SliderCacheSnapshot(
+          resolvedItems: <SliderResolvedItem>[],
+          savedAtMs: 0,
+        );
+      }
       final resolvedItems = decoded['resolvedItems'];
       if (resolvedItems is List) {
+        final restored = resolvedItems
+            .whereType<Map>()
+            .map((item) => SliderResolvedItem.fromMap(
+                  Map<String, dynamic>.from(item),
+                ))
+            .where((item) => item.source.trim().isNotEmpty)
+            .toList(growable: false);
+        if (restored.isEmpty && resolvedItems.isNotEmpty) {
+          await prefs.remove(key);
+        }
         return SliderCacheSnapshot(
           savedAtMs: savedAt,
-          resolvedItems: resolvedItems
-              .whereType<Map>()
-              .map((item) => SliderResolvedItem.fromMap(
-                    Map<String, dynamic>.from(item),
-                  ))
-              .where((item) => item.source.trim().isNotEmpty)
-              .toList(growable: false),
+          resolvedItems: restored,
         );
       }
 
@@ -143,28 +154,32 @@ class SliderCacheService {
         );
       }
 
+      final restored = legacyItems
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false)
+          .asMap()
+          .entries
+          .map(
+            (entry) => SliderResolvedItem(
+              itemId: 'legacy_${entry.key}',
+              source: entry.value,
+              order: entry.key,
+              startDateMs: 0,
+              endDateMs: 0,
+              viewCount: 0,
+              uniqueViewCount: 0,
+              isRemote: entry.value.startsWith('http'),
+              isDefault: !entry.value.startsWith('http'),
+            ),
+          )
+          .toList(growable: false);
+      if (restored.isEmpty && legacyItems.isNotEmpty) {
+        await prefs.remove(key);
+      }
       return SliderCacheSnapshot(
         savedAtMs: savedAt,
-        resolvedItems: legacyItems
-            .map((e) => e.toString().trim())
-            .where((e) => e.isNotEmpty)
-            .toList(growable: false)
-            .asMap()
-            .entries
-            .map(
-              (entry) => SliderResolvedItem(
-                itemId: 'legacy_${entry.key}',
-                source: entry.value,
-                order: entry.key,
-                startDateMs: 0,
-                endDateMs: 0,
-                viewCount: 0,
-                uniqueViewCount: 0,
-                isRemote: entry.value.startsWith('http'),
-                isDefault: !entry.value.startsWith('http'),
-              ),
-            )
-            .toList(growable: false),
+        resolvedItems: restored,
       );
     } catch (_) {
       try {

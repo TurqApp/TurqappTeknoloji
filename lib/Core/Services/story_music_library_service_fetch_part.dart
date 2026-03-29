@@ -161,7 +161,11 @@ extension StoryMusicLibraryServiceFetchPart on StoryMusicLibraryService {
       final cacheTimeKey = StoryMusicLibraryService._cacheTimeKey;
       if (!ignoreTtl) {
         final updatedAt = prefs.getInt(cacheTimeKey) ?? 0;
-        if (updatedAt <= 0) return const <MusicModel>[];
+        if (updatedAt <= 0) {
+          await prefs.remove(cacheKey);
+          await prefs.remove(cacheTimeKey);
+          return const <MusicModel>[];
+        }
         final age = DateTime.now().millisecondsSinceEpoch - updatedAt;
         if (age > StoryMusicLibraryService._cacheTtl.inMilliseconds) {
           await prefs.remove(cacheKey);
@@ -178,11 +182,16 @@ extension StoryMusicLibraryServiceFetchPart on StoryMusicLibraryService {
         await prefs.remove(cacheTimeKey);
         return const <MusicModel>[];
       }
-      return decoded
+      final restored = decoded
           .whereType<Map>()
           .map((e) => MusicModel.fromCacheMap(Map<String, dynamic>.from(e)))
           .where((track) => track.isActive && track.audioUrl.isNotEmpty)
           .toList(growable: true);
+      if (restored.isEmpty && decoded.isNotEmpty) {
+        await prefs.remove(cacheKey);
+        await prefs.remove(cacheTimeKey);
+      }
+      return restored;
     } catch (_) {
       try {
         final prefs = await SharedPreferences.getInstance();

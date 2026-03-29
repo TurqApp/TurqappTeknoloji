@@ -26,10 +26,14 @@ extension ChatListingControllerDataPart on ChatListingController {
         await prefs.remove(key);
         return null;
       }
-      return decoded
+      final restored = decoded
           .whereType<Map<String, dynamic>>()
           .map(ChatListingModel.fromJson)
           .toList();
+      if (restored.isEmpty && decoded.isNotEmpty) {
+        await prefs.remove(key);
+      }
+      return restored;
     } catch (_) {
       try {
         final prefs = await SharedPreferences.getInstance();

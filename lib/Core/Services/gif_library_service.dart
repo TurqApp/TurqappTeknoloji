@@ -132,10 +132,14 @@ class GifLibraryService {
         await prefs.remove(_manifestKey);
         return const <Map<String, dynamic>>[];
       }
-      return decoded
+      final restored = decoded
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
           .toList(growable: true);
+      if (restored.isEmpty && decoded.isNotEmpty) {
+        await prefs.remove(_manifestKey);
+      }
+      return restored;
     } catch (_) {
       try {
         final prefs = await SharedPreferences.getInstance();

@@ -115,7 +115,7 @@ extension _LocationBasedTutoringControllerRuntimeX
         await prefs.remove(cacheKey);
         return const <TutoringModel>[];
       }
-      return decoded
+      final restored = decoded
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .map(
@@ -126,6 +126,10 @@ extension _LocationBasedTutoringControllerRuntimeX
           )
           .where((item) => item.docID.isNotEmpty)
           .toList(growable: false);
+      if (restored.isEmpty && decoded.isNotEmpty) {
+        await prefs.remove(cacheKey);
+      }
+      return restored;
     } catch (_) {
       try {
         final prefs = await SharedPreferences.getInstance();
