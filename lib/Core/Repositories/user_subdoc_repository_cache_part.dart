@@ -41,17 +41,33 @@ Future<Map<String, dynamic>?> _getUserSubdocFromPrefs(
   required Duration ttl,
 }) async {
   repository._prefs ??= await SharedPreferences.getInstance();
-  final raw = repository._prefs?.getString(_userSubdocPrefsKey(key));
+  final prefs = repository._prefs;
+  final prefsKey = _userSubdocPrefsKey(key);
+  final raw = prefs?.getString(prefsKey);
   if (raw == null || raw.isEmpty) return null;
   try {
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    final decodedRaw = jsonDecode(raw);
+    if (decodedRaw is! Map) {
+      await prefs?.remove(prefsKey);
+      return null;
+    }
+    final decoded = Map<String, dynamic>.from(
+      decodedRaw.cast<dynamic, dynamic>(),
+    );
     final ts = (decoded['t'] as num?)?.toInt() ?? 0;
     final data = (decoded['d'] as Map?)?.cast<String, dynamic>();
-    if (ts <= 0 || data == null) return null;
+    if (ts <= 0 || data == null) {
+      await prefs?.remove(prefsKey);
+      return null;
+    }
     final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
-    if (DateTime.now().difference(cachedAt) > ttl) return null;
+    if (DateTime.now().difference(cachedAt) > ttl) {
+      await prefs?.remove(prefsKey);
+      return null;
+    }
     return data;
   } catch (_) {
+    await prefs?.remove(prefsKey);
     return null;
   }
 }
