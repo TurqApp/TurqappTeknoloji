@@ -306,6 +306,9 @@ extension _MarketControllerHomePart on MarketController {
         items.assignAll(merged);
       }
     } catch (_) {
+      if (items.isNotEmpty) {
+        return;
+      }
       final merged = _mergePendingCreatedItems(const <MarketItemModel>[]);
       if (!_sameMarketList(merged)) {
         items.assignAll(merged);
