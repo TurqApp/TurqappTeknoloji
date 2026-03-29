@@ -48,12 +48,25 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
       );
     }
     accounts.assignAll(restored);
+    var shouldPersistPointers = false;
     activeUid.value =
         (_prefs?.getString(_accountCenterActiveUidStorageKey) ?? '').trim();
+    if (activeUid.value.isNotEmpty && accountByUid(activeUid.value) == null) {
+      activeUid.value = '';
+      shouldPersistPointers = true;
+    }
     lastUsedUid.value =
         (_prefs?.getString(_accountCenterLastUsedUidStorageKey) ?? '').trim();
+    if (lastUsedUid.value.isNotEmpty &&
+        accountByUid(lastUsedUid.value) == null) {
+      lastUsedUid.value = '';
+      shouldPersistPointers = true;
+    }
     await _rehydrateMissingEmails();
     await reconcileWithAuthSession();
+    if (shouldPersistPointers) {
+      await _persist();
+    }
   }
 
   Future<void> _rehydrateMissingEmails() async {
