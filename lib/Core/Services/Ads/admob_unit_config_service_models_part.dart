@@ -11,8 +11,8 @@ class _AdmobPlatformUnitConfig {
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
-      'kare': squareIds,
-      'gecis': interstitialIds,
+      'kare': List<String>.from(squareIds, growable: false),
+      'gecis': List<String>.from(interstitialIds, growable: false),
     };
   }
 }
