@@ -13,17 +13,26 @@ part 'education_reference_data_service_facade_part.dart';
 part 'education_reference_data_service_data_part.dart';
 
 List<String> _decodeCountryNames(String response) {
-  final data = jsonDecode(response) as List<dynamic>;
+  final decoded = jsonDecode(response);
+  if (decoded is! List) {
+    return const <String>[];
+  }
+  final data = decoded;
   return data
-      .map((item) => (item as Map<String, dynamic>)['name'] as String)
+      .whereType<Map>()
+      .map((item) => item['name']?.toString().trim() ?? '')
+      .where((name) => name.isNotEmpty)
       .toList(growable: false);
 }
 
 List<Map<String, dynamic>> _decodeObjectEntries(String response) {
-  final data = jsonDecode(response) as List<dynamic>;
+  final decoded = jsonDecode(response);
+  if (decoded is! List) {
+    return const <Map<String, dynamic>>[];
+  }
+  final data = decoded;
   return data
-      .map(
-        (item) => Map<String, dynamic>.from(item as Map),
-      )
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
       .toList(growable: false);
 }
