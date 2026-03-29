@@ -3,6 +3,29 @@ part of 'video_state_manager.dart';
 const int _videoStateManagerMaxPendingPlayRetries = 6;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
+  void _silenceSupersededHandle(
+    String docID,
+    PlaybackHandle handle,
+  ) {
+    try {
+      if (handle.isInitialized) {
+        _saveVideoState(docID, handle);
+      }
+    } catch (_) {}
+
+    if (handle is HLSAdapterPlaybackHandle) {
+      unawaited(handle.adapter.silenceAndStopPlayback());
+      return;
+    }
+
+    try {
+      unawaited(handle.setVolume(0.0));
+    } catch (_) {}
+    try {
+      unawaited(handle.pause());
+    } catch (_) {}
+  }
+
   void _saveVideoState(String docID, PlaybackHandle handle) {
     if (!handle.isInitialized) return;
 
@@ -81,6 +104,10 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _registerPlaybackHandle(String docID, PlaybackHandle handle) {
+    final previous = _allVideoControllers[docID];
+    if (previous != null && !identical(previous, handle)) {
+      _silenceSupersededHandle(docID, previous);
+    }
     _allVideoControllers[docID] = handle;
 
     if (_allVideoControllers.length > _videoStateManagerMaxTrackedControllers) {

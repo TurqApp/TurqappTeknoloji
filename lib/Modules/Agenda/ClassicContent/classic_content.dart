@@ -46,7 +46,6 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
-import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/formatters.dart';
@@ -223,18 +222,6 @@ class _ClassicContentState extends State<ClassicContent>
         : widget.model.originalUserID.trim();
     if (oldSourceUserId != newSourceUserId) {
       _refreshQuotedSourceProfileFuture();
-    }
-    if (widget.shouldPlay != oldWidget.shouldPlay &&
-        videoController?.value.isInitialized == true) {
-      if (_shouldBlurIzBirakPost) {
-        videoController?.pause();
-      } else if (widget.shouldPlay) {
-        videoController!
-          ..setLooping(shouldLoopVideo)
-          ..play();
-      } else {
-        videoController?.pause();
-      }
     }
   }
 
