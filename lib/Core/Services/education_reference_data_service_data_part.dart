@@ -1,16 +1,19 @@
 part of 'education_reference_data_service.dart';
 
 extension EducationReferenceDataServiceDataX on EducationReferenceDataService {
+  List<String> _cloneCountryNames(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   Future<List<String>> getCountries() async {
     final cached = _countries;
     if (cached != null) {
-      return List<String>.from(cached);
+      return _cloneCountryNames(cached);
     }
     final future = _countriesFuture ??= _loadCountries();
     final resolved = await future;
     _countries = resolved;
     _countriesFuture = null;
-    return List<String>.from(resolved);
+    return _cloneCountryNames(resolved);
   }
 
   Future<List<MiddleSchoolModel>> getMiddleSchools() async {
