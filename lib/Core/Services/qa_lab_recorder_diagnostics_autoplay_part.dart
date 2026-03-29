@@ -31,6 +31,9 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
       return null;
     }
     if (surface == 'feed') {
+      if (!_isPrimaryFeedSelected(latestCheckpoint.probe, route: route)) {
+        return null;
+      }
       final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
       final playbackSuspended = surfaceProbe['playbackSuspended'] == true;
       final pauseAll = surfaceProbe['pauseAll'] == true;

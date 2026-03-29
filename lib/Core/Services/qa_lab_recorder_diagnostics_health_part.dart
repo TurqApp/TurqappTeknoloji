@@ -53,6 +53,7 @@ extension QALabRecorderDiagnosticsHealthPart on QALabRecorder {
       _buildNativePlaybackFindings(
         surface: surface,
         latestProbe: latestProbe,
+        rootProbe: latestCheckpoint?.probe ?? const <String, dynamic>{},
         authProbe: authProbe,
         referenceTime: referenceTime,
         route: route,

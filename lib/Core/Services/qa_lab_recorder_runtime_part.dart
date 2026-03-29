@@ -4,6 +4,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
   List<QALabPinpointFinding> _buildNativePlaybackFindings({
     required String surface,
     required Map<String, dynamic> latestProbe,
+    required Map<String, dynamic> rootProbe,
     required Map<String, dynamic> authProbe,
     required DateTime referenceTime,
     required String route,
@@ -150,6 +151,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     }
 
     if (surface == 'feed' &&
+        _isPrimaryFeedSelected(rootProbe, route: route) &&
         isPlaybackExpected &&
         !hasFirstFrame &&
         !isPlaying &&

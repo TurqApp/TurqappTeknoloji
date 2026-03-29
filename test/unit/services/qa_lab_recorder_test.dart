@@ -68,27 +68,37 @@ void main() {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
-    recorder.checkpoints.add(
+    final probe = <String, dynamic>{
+      'short': <String, dynamic>{
+        'registered': true,
+        'count': 0,
+        'activeIndex': -1,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
       QALabCheckpoint(
-        id: 'cp2',
+        id: 'cp2a',
+        label: 'short_loaded',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp2b',
         label: 'short_loaded',
         surface: 'short',
         route: '/ShortView',
         timestamp: now,
-        probe: <String, dynamic>{
-          'short': <String, dynamic>{
-            'registered': true,
-            'count': 0,
-            'activeIndex': -1,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
+        probe: probe,
       ),
-    );
+    ]);
 
     final diagnostics = recorder.buildFocusSurfaceDiagnostics();
     final shortDiagnostic = diagnostics.firstWhere(
@@ -362,21 +372,89 @@ void main() {
     );
   });
 
-  test('qa recorder builds surface alert summaries with blockers first', () {
+  test('qa recorder suppresses feed autoplay findings off the feed tab', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'navBar': <String, dynamic>{
+        'registered': true,
+        'selectedIndex': 1,
+      },
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': '',
+        'registeredHandleCount': 1,
+        'savedStateCount': 0,
+      },
+    };
 
     recorder.checkpoints.addAll(<QALabCheckpoint>[
       QALabCheckpoint(
-        id: 'cp6',
-        label: 'feed_loaded',
+        id: 'cp_feed_bg_autoplay_1',
+        label: 'feed_background',
         surface: 'feed',
-        route: '/NavBar',
+        route: '/NavBarView',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp_feed_bg_autoplay_2',
+        label: 'feed_background',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_autoplay_missing'),
+      isFalse,
+    );
+    expect(
+      findings.any((item) => item.code == 'feed_autoplay_wrong_target'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder suppresses invalid centered feed state off the feed tab',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_feed_bg_state',
+        label: 'feed_background',
+        surface: 'feed',
+        route: '/NavBarView',
         timestamp: now,
         probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 3,
+          },
           'feed': <String, dynamic>{
             'registered': true,
-            'count': 0,
+            'count': 2,
+            'centeredIndex': -1,
+            'centeredDocId': 'post-1',
           },
           'auth': <String, dynamic>{
             'currentUid': 'user-1',
@@ -384,6 +462,48 @@ void main() {
             'currentUserLoaded': true,
           },
         },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_centered_index_invalid'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder builds surface alert summaries with blockers first', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final feedBlankProbe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 0,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp6a',
+        label: 'feed_loaded',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: feedBlankProbe,
+      ),
+      QALabCheckpoint(
+        id: 'cp6b',
+        label: 'feed_loaded',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: feedBlankProbe,
       ),
       QALabCheckpoint(
         id: 'cp7',
@@ -663,6 +783,91 @@ void main() {
 
     expect(
       findings.any((item) => item.code == 'feed_native_first_frame_timeout'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder suppresses feed thumbnail runtime loss off the feed tab',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_native_background',
+        label: 'feed_background',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 1,
+          },
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'ff_1',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_first_frame',
+        message: 'first frame',
+        timestamp: now.subtract(const Duration(seconds: 2)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{'videoId': 'post-1'},
+      ),
+      QALabIssue(
+        id: 'ff_2',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_first_frame',
+        message: 'first frame',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{'videoId': 'post-1'},
+      ),
+    ]);
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'android',
+        'status': 'READY_WITHOUT_FRAME',
+        'errors': const <String>[],
+        'active': true,
+        'firstFrameRendered': false,
+        'isPlaybackExpected': true,
+        'isPlaying': false,
+        'isBuffering': false,
+        'stallCount': 0,
+        'layerAttachCount': 1,
+        'lastKnownPlaybackTime': 0.0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+      });
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_thumbnail_only_runtime_loss'),
       isFalse,
     );
   });
@@ -1267,7 +1472,7 @@ void main() {
         label: 'feed_runtime',
         surface: 'feed',
         route: '/NavBar',
-        timestamp: now,
+        timestamp: now.subtract(const Duration(seconds: 5)),
         probe: <String, dynamic>{
           'feed': <String, dynamic>{
             'registered': true,
@@ -1508,26 +1713,35 @@ void main() {
     recorder.startedAt.value = now.subtract(const Duration(seconds: 10));
     recorder.lastRoute.value = '/NavBar';
     recorder.lastSurface.value = 'feed';
-    recorder.checkpoints.add(
+    final feedProbe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 0,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+    };
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
       QALabCheckpoint(
-        id: 'cp16',
+        id: 'cp16a',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: feedProbe,
+      ),
+      QALabCheckpoint(
+        id: 'cp16b',
         label: 'feed_runtime',
         surface: 'feed',
         route: '/NavBar',
         timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 0,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
+        probe: feedProbe,
       ),
-    );
+    ]);
 
     final occurrences = recorder.buildRemoteIssueOccurrences(
       sessionDocument: <String, dynamic>{

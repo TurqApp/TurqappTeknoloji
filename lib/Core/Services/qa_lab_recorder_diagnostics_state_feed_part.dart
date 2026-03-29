@@ -33,7 +33,9 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
         rootProbe,
         route: route,
       );
-      if (count > 0 && (centeredIndex < 0 || centeredIndex >= count)) {
+      if (isFeedForeground &&
+          count > 0 &&
+          (centeredIndex < 0 || centeredIndex >= count)) {
         findings.add(
           QALabPinpointFinding(
             severity: QALabIssueSeverity.error,

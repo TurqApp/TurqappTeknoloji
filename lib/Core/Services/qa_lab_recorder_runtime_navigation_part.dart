@@ -34,12 +34,28 @@ extension QALabRecorderRuntimeNavigationPart on QALabRecorder {
     final normalizedRoute = route.trim().toLowerCase();
     final usesPrimaryNavRoute = normalizedRoute.isEmpty ||
         normalizedRoute == '/' ||
+        normalizedRoute == '/navbar' ||
+        normalizedRoute == 'navbar' ||
         normalizedRoute == '/navbarview' ||
         normalizedRoute == 'navbarview';
     if (!usesPrimaryNavRoute) {
       return false;
     }
-    return _inferPrimaryNavSurface(snapshot) == 'feed';
+    final primaryNavSurface = _inferPrimaryNavSurface(snapshot);
+    if (primaryNavSurface.isNotEmpty) {
+      return primaryNavSurface == 'feed';
+    }
+
+    bool registered(String key) =>
+        (snapshot[key] as Map<String, dynamic>? ??
+            const <String, dynamic>{})['registered'] ==
+        true;
+
+    return registered('feed') &&
+        !registered('explore') &&
+        !registered('short') &&
+        !registered('education') &&
+        !registered('profile');
   }
 
   String _inferSurfaceFromSnapshot(Map<String, dynamic> snapshot) {
