@@ -5,7 +5,7 @@ class CurrentUserAccountCenterRole {
     this.service, {
     StartupSessionFailureReporter? failureReporter,
   }) : _failureReporter =
-           failureReporter ?? StartupSessionFailureReporter.defaultReporter;
+            failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
   final CurrentUserService service;
   final StartupSessionFailureReporter _failureReporter;
@@ -32,7 +32,10 @@ class CurrentUserAccountCenterRole {
     Map<String, dynamic> data,
   ) async {
     if (_handlingSessionDisplacement) return false;
-    if (data['singleDeviceSessionEnabled'] != true) return false;
+    if (!parseAccountFlag(data['singleDeviceSessionEnabled'],
+        fallback: false)) {
+      return false;
+    }
     final activeDeviceKey =
         (data['activeSessionDeviceKey'] ?? '').toString().trim();
     if (activeDeviceKey.isEmpty) return false;
@@ -106,7 +109,8 @@ class CurrentUserAccountCenterRole {
     } catch (error, stackTrace) {
       _failureReporter.record(
         kind: StartupSessionFailureKind.exclusiveSessionHandling,
-        operation: 'CurrentUserAccountCenterRole.handleExclusiveSessionIfNeeded',
+        operation:
+            'CurrentUserAccountCenterRole.handleExclusiveSessionIfNeeded',
         error: error,
         stackTrace: stackTrace,
       );
