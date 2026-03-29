@@ -247,7 +247,14 @@ extension JobFinderControllerDataPart on JobFinderController {
       final fetchedJobs = _applyCurrentSorting(
         resource.data ?? const <JobModel>[],
       );
-      if (!_sameJobList(fetchedJobs)) {
+      final shouldPreserveExistingJobs =
+          fetchedJobs.isEmpty && (list.isNotEmpty || allJobs.isNotEmpty);
+      final hydrationSourceJobs = shouldPreserveExistingJobs
+          ? _applyCurrentSorting(List<JobModel>.from(
+              allJobs.isNotEmpty ? allJobs : list,
+            ))
+          : fetchedJobs;
+      if (!shouldPreserveExistingJobs && !_sameJobList(fetchedJobs)) {
         list.assignAll(fetchedJobs);
         allJobs.assignAll(fetchedJobs);
       }
@@ -257,10 +264,10 @@ extension JobFinderControllerDataPart on JobFinderController {
       }
 
       if (deferLocationHydration) {
-        _scheduleLocationHydration(fetchedJobs);
+        _scheduleLocationHydration(hydrationSourceJobs);
       } else {
         unawaited(_hydrateLocationAndResort(
-          fetchedJobs,
+          hydrationSourceJobs,
           allowPermissionPrompt: false,
         ));
       }
