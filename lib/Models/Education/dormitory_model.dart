@@ -13,10 +13,10 @@ class DormitoryModel {
 
   factory DormitoryModel.fromJson(Map<String, dynamic> json) {
     return DormitoryModel(
-      tip: json['tip'],
-      sub: json['sub'],
-      ilAdi: json['il_adi'],
-      adi: json['adi'],
+      tip: (json['tip'] ?? '').toString(),
+      sub: (json['sub'] ?? '').toString(),
+      ilAdi: (json['il_adi'] ?? '').toString(),
+      adi: (json['adi'] ?? '').toString(),
     );
   }
 }
