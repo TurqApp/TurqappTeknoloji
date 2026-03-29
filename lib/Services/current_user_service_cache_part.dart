@@ -9,8 +9,6 @@ extension CurrentUserServiceCachePart on CurrentUserService {
   Future<void> _saveToCache(CurrentUserModel user) =>
       _cacheStore.saveToCache(user);
 
-  Future<void> _clearCache([String? uid]) => _cacheStore.clearCache(uid);
-
   Future<void> _clearActiveCachePointer() =>
       _cacheStore.clearActiveCachePointer();
 
@@ -33,12 +31,15 @@ extension CurrentUserServiceCachePart on CurrentUserService {
 
   String _viewSelectionKey(String uid) => '${_viewSelectionPrefKeyPrefix}_$uid';
 
-  int? _extractRequestedViewSelection(Map<String, dynamic> fields) {
-    final raw = fields['viewSelection'];
+  int? _asNullableInt(Object? raw) {
     if (raw is int) return raw;
     if (raw is num) return raw.toInt();
     if (raw == null || raw is FieldValue) return null;
     return int.tryParse(raw.toString());
+  }
+
+  int? _extractRequestedViewSelection(Map<String, dynamic> fields) {
+    return _asNullableInt(fields['viewSelection']);
   }
 
   Future<void> _persistViewSelection(String uid, int selection) async {
@@ -71,12 +72,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
       }
       final data = await _readCachedRootUserDataSilently(uid);
       if (data.isEmpty) return;
-      final raw = data['viewSelection'];
-      final remote = raw is int
-          ? raw
-          : raw is num
-              ? raw.toInt()
-              : int.tryParse(raw?.toString() ?? '');
+      final remote = _asNullableInt(data['viewSelection']);
       if (remote == null) return;
 
       await _persistViewSelection(uid, remote);
