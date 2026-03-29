@@ -46,12 +46,13 @@ class RuntimeHealthExporter {
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
       'surfaceCount': snapshots.length,
       'observedSurfaceCount': observedSurfaceCount,
-      'telemetryCoverage': telemetryCoverage,
-      'surfaces': snapshots.map((snapshot) => snapshot.toJson()).toList(
-            growable: false,
-          ),
-      'thresholdReport': report.toJson(),
-      if (hlsProbe != null) 'hlsDataUsage': hlsProbe.snapshotJson(),
+      'telemetryCoverage': _clonePayloadMap(telemetryCoverage),
+      'surfaces': snapshots
+          .map((snapshot) => _clonePayloadMap(snapshot.toJson()))
+          .toList(growable: false),
+      'thresholdReport': _clonePayloadMap(report.toJson()),
+      if (hlsProbe != null)
+        'hlsDataUsage': _clonePayloadMap(hlsProbe.snapshotJson()),
       'recentEvents': recentEvents
           .skip(startIndex)
           .map(
