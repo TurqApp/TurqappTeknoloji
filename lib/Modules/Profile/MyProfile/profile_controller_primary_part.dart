@@ -153,6 +153,20 @@ extension ProfileControllerPrimaryPart on ProfileController {
         limit: postLimit,
       );
 
+      final shouldPreserveExistingBuckets = initial &&
+          !force &&
+          page.all.isEmpty &&
+          page.photos.isEmpty &&
+          page.videos.isEmpty &&
+          page.scheduled.isEmpty &&
+          (allPosts.isNotEmpty ||
+              photos.isNotEmpty ||
+              videos.isNotEmpty ||
+              scheduledPosts.isNotEmpty);
+      if (shouldPreserveExistingBuckets) {
+        return;
+      }
+
       if (initial) {
         allPosts.assignAll(page.all);
         photos.assignAll(page.photos);
