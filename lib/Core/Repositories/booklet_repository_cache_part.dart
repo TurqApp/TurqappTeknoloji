@@ -49,6 +49,17 @@ BookletRepository ensureBookletRepository() {
 }
 
 extension BookletRepositoryCachePart on BookletRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   void _handleBookletRepositoryInit() {
     SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
   }
@@ -124,7 +135,7 @@ extension BookletRepositoryCachePart on BookletRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -167,7 +178,7 @@ extension BookletRepositoryCachePart on BookletRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
