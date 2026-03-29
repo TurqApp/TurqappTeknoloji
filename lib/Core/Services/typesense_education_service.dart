@@ -205,17 +205,32 @@ class TypesenseEducationSearchService {
 
   Future<_CachedEducationSearchResult?> _getCachedFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_prefsKey(key));
+    final prefs = _prefs;
+    final prefsKey = _prefsKey(key);
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       final data = Map<String, dynamic>.from(
         decoded['d'] as Map? ?? const <String, dynamic>{},
       );
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
-      if (DateTime.now().difference(cachedAt) > _ttl) return null;
+      if (DateTime.now().difference(cachedAt) > _ttl) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final hits = ((data['hits'] as List<dynamic>?) ?? const <dynamic>[])
           .whereType<Map>()
           .map((raw) => Map<String, dynamic>.from(raw))
@@ -230,6 +245,7 @@ class TypesenseEducationSearchService {
         cachedAt: cachedAt,
       );
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
