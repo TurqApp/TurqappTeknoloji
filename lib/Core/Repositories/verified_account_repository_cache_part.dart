@@ -1,5 +1,16 @@
 part of 'verified_account_repository.dart';
 
+int _verifiedAccountAsInt(dynamic value, {int fallback = 0}) {
+  if (value is num) return value.toInt();
+  if (value is String) {
+    final parsed = int.tryParse(value.trim());
+    if (parsed != null) return parsed;
+    final parsedNum = num.tryParse(value.trim());
+    if (parsedNum != null) return parsedNum.toInt();
+  }
+  return fallback;
+}
+
 Future<void> _storeVerifiedAccountStatus(
   VerifiedAccountRepository repository,
   String uid,
@@ -53,7 +64,7 @@ Future<bool?> _getVerifiedAccountFromPrefs(
     final decoded = Map<String, dynamic>.from(
       decodedRaw.cast<dynamic, dynamic>(),
     );
-    final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+    final ts = _verifiedAccountAsInt(decoded['t']);
     if (ts <= 0) {
       await prefs?.remove(prefsKey);
       return null;
