@@ -85,15 +85,25 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
       }
 
       var validEntries = 0;
+      var shouldPrune = false;
       for (final entry in json.entries) {
         final value = entry.value;
-        if (value is! Map) continue;
+        if (value is! Map) {
+          shouldPrune = true;
+          continue;
+        }
         final cachedAtMs = (value['t'] as num?)?.toInt() ?? 0;
         final data = (value['d'] as Map?)?.cast<String, dynamic>();
-        if (cachedAtMs <= 0 || data == null) continue;
+        if (cachedAtMs <= 0 || data == null) {
+          shouldPrune = true;
+          continue;
+        }
 
         final cachedAt = DateTime.fromMillisecondsSinceEpoch(cachedAtMs);
-        if (DateTime.now().difference(cachedAt) > _ttl) continue;
+        if (DateTime.now().difference(cachedAt) > _ttl) {
+          shouldPrune = true;
+          continue;
+        }
 
         _memory[entry.key] = _CachedUserProfile(
           data: _cloneUserProfileMap(data),
@@ -106,6 +116,10 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
         return;
       }
       _trimIfNeeded();
+      if (shouldPrune) {
+        _dirty = true;
+        _schedulePersist();
+      }
     } catch (_) {
       _prefs?.remove(UserProfileCacheService._prefsKey);
     }
