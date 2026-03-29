@@ -11,7 +11,7 @@ NavBarController ensureNavBarController() => _ensureNavBarController();
 NavBarController? maybeFindNavBarController() => _maybeFindNavBarController();
 
 NavBarController _ensureNavBarController() =>
-    _maybeFindNavBarController() ?? Get.put(NavBarController());
+    _maybeFindNavBarController() ?? Get.put(NavBarController(), permanent: true);
 
 NavBarController? _maybeFindNavBarController() =>
     Get.isRegistered<NavBarController>() ? Get.find<NavBarController>() : null;

@@ -45,7 +45,9 @@ class DependencyRegistrar {
     ensureAdmobUnitConfigService(permanent: true);
     ensureStoryInteractionOptimizer();
     Get.lazyPut(() => UnreadMessagesController());
-    Get.lazyPut(() => NavBarController());
+    if (maybeFindNavBarController() == null) {
+      Get.put(NavBarController(), permanent: true);
+    }
     Get.lazyPut(() => ProfileController());
     if (maybeFindAgendaController() == null) {
       Get.put(AgendaController(), permanent: true);

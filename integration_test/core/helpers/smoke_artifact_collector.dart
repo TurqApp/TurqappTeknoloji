@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/runtime_health_exporter.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
@@ -34,6 +35,8 @@ class SmokeArtifactCollector {
       error: caughtError,
       stackTrace: caughtStackTrace,
     );
+
+    await _cleanupPersistentControllers(tester);
 
     if (caughtError != null && caughtStackTrace != null) {
       Error.throwWithStackTrace(caughtError, caughtStackTrace);
@@ -147,5 +150,18 @@ class SmokeArtifactCollector {
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
+  }
+
+  static Future<void> _cleanupPersistentControllers(
+    WidgetTester? tester,
+  ) async {
+    try {
+      if (Get.isRegistered<NavBarController>()) {
+        await Get.delete<NavBarController>(force: true);
+      }
+      if (tester != null) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    } catch (_) {}
   }
 }

@@ -16,7 +16,11 @@ void main() {
         'process_death_verify_restore',
         tester,
         () async {
-          await launchTurqApp(tester);
+          await launchTurqApp(
+            tester,
+            forceFeedTab: false,
+            restoredNavIndex: 3,
+          );
 
           await waitForSurfaceProbe(
             tester,

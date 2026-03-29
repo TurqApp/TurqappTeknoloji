@@ -42,7 +42,11 @@ IntegrationTestWidgetsFlutterBinding ensureIntegrationBinding() {
   return IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 }
 
-Future<void> launchTurqApp(WidgetTester tester) async {
+Future<void> launchTurqApp(
+  WidgetTester tester, {
+  bool forceFeedTab = true,
+  int? restoredNavIndex,
+}) async {
   debugPrint('[integration-smoke] launch: app.main start');
   final originalFlutterOnError = FlutterError.onError;
   final originalErrorWidgetBuilder = ErrorWidget.builder;
@@ -52,7 +56,11 @@ Future<void> launchTurqApp(WidgetTester tester) async {
   debugPrint('[integration-smoke] launch: app.main done');
   await pumpForAppStartup(tester);
   debugPrint('[integration-smoke] launch: startup pumped');
-  await ensureSignedInForSmoke(tester);
+  await ensureSignedInForSmoke(
+    tester,
+    forceFeedTab: forceFeedTab,
+    restoredNavIndex: restoredNavIndex,
+  );
   debugPrint('[integration-smoke] launch: signed-in gate passed');
 }
 
@@ -88,7 +96,11 @@ Future<void> expectNoFlutterException(WidgetTester tester) async {
   drainExpectedTesterExceptions(tester, context: 'expectNoFlutterException');
 }
 
-Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
+Future<void> ensureSignedInForSmoke(
+  WidgetTester tester, {
+  bool forceFeedTab = true,
+  int? restoredNavIndex,
+}) async {
   if (!kRunIntegrationSmoke) return;
   final credentials =
       _cachedIntegrationCredential ??= await _resolveIntegrationCredentials();
@@ -166,11 +178,29 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   await _primeMarketForSmoke(tester);
 
   if (Get.currentRoute != '/NavBarView') {
-    await _routeToNavBarForSmoke(tester);
+    await _routeToNavBarForSmoke(
+      tester,
+      resetNavIndex: forceFeedTab,
+    );
   }
 
-  await _ensureFeedTabForSmoke(tester);
-  await _primeFeedForSmoke(tester);
+  if (restoredNavIndex != null) {
+    _seedRestoredNavStateForSmoke(restoredNavIndex);
+  }
+
+  if (forceFeedTab) {
+    await _ensureFeedTabForSmoke(tester);
+    await _primeFeedForSmoke(tester);
+  }
+}
+
+void _seedRestoredNavStateForSmoke(int index) {
+  final normalizedIndex = index == 2 ? 0 : index.clamp(0, 4);
+  final navBar = maybeFindNavBarController() ?? ensureNavBarController();
+  if (navBar.selectedIndex.value == normalizedIndex) {
+    return;
+  }
+  navBar.changeIndex(normalizedIndex);
 }
 
 Future<void> performSmokeSignOut(WidgetTester tester) async {
@@ -476,11 +506,16 @@ Future<void> _primeMarketForSmoke(WidgetTester tester) async {
   }
 }
 
-Future<void> _routeToNavBarForSmoke(WidgetTester tester) async {
+Future<void> _routeToNavBarForSmoke(
+  WidgetTester tester, {
+  bool resetNavIndex = true,
+}) async {
   try {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (Get.currentRoute == '/NavBarView') return;
-      maybeFindNavBarController()?.selectedIndex.value = 0;
+      if (resetNavIndex) {
+        maybeFindNavBarController()?.selectedIndex.value = 0;
+      }
       Get.offAll(() => NavBarView());
     });
     await pumpForAppStartup(
