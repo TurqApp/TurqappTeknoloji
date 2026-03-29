@@ -24,6 +24,10 @@ class ProfilePostsCacheService {
     return fallback;
   }
 
+  String _asTrimmedString(dynamic value) {
+    return value?.toString().trim() ?? '';
+  }
+
   Future<SharedPreferences> _prefsInstance() async {
     _prefs ??= await SharedPreferences.getInstance();
     return _prefs!;
@@ -67,7 +71,7 @@ class ProfilePostsCacheService {
       for (final item in items) {
         if (item is! Map) continue;
         final map = item.cast<String, dynamic>();
-        final docId = (map['docID'] ?? '').toString().trim();
+        final docId = _asTrimmedString(map['docID']);
         final data = map['data'];
         if (docId.isEmpty || data is! Map) continue;
         try {
@@ -108,7 +112,7 @@ class ProfilePostsCacheService {
         'items': capped
             .map(
               (p) => <String, dynamic>{
-                'docID': p.docID,
+                'docID': _asTrimmedString(p.docID),
                 'data': _cloneProfilePostPayloadMap(p.toMap()),
               },
             )
@@ -166,7 +170,7 @@ class ProfilePostsCacheService {
 
         final filtered = items.where((item) {
           if (item is! Map) return false;
-          return (item['docID'] ?? '').toString().trim() != docId;
+          return _asTrimmedString(item['docID']) != docId;
         }).toList(growable: false);
 
         if (filtered.length == items.length) continue;
