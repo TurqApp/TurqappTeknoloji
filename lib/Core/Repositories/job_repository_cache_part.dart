@@ -21,7 +21,7 @@ extension JobRepositoryCacheX on JobRepository {
       _memory.remove(key);
       return null;
     }
-    return List<JobModel>.from(entry.items);
+    return _cloneJobs(entry.items);
   }
 
   Future<_TimedJobs?> _getFromPrefsEntry(String key) async {
@@ -60,8 +60,10 @@ extension JobRepositoryCacheX on JobRepository {
   }
 
   Future<void> _store(String key, List<JobModel> items) async {
-    _memory[key] =
-        _TimedJobs(items: List<JobModel>.from(items), cachedAt: DateTime.now());
+    _memory[key] = _TimedJobs(
+      items: _cloneJobs(items),
+      cachedAt: DateTime.now(),
+    );
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     final payload = jsonEncode(<String, dynamic>{
       'cachedAt': DateTime.now().toIso8601String(),
@@ -146,5 +148,49 @@ extension JobRepositoryCacheX on JobRepository {
       chunks.add(input.sublist(i, end));
     }
     return chunks;
+  }
+
+  List<JobModel> _cloneJobs(List<JobModel> items) {
+    return items.map(_cloneJob).toList(growable: false);
+  }
+
+  JobModel _cloneJob(JobModel item) {
+    return JobModel(
+      docID: item.docID,
+      brand: item.brand,
+      calismaGunleri: List<String>.from(item.calismaGunleri),
+      calismaSaatiBaslangic: item.calismaSaatiBaslangic,
+      calismaSaatiBitis: item.calismaSaatiBitis,
+      calismaTuru: List<String>.from(item.calismaTuru),
+      ended: item.ended,
+      isTanimi: item.isTanimi,
+      lat: item.lat,
+      long: item.long,
+      adres: item.adres,
+      logo: item.logo,
+      maas1: item.maas1,
+      maas2: item.maas2,
+      meslek: item.meslek,
+      timeStamp: item.timeStamp,
+      userID: item.userID,
+      yanHaklar: List<String>.from(item.yanHaklar),
+      city: item.city,
+      town: item.town,
+      kacKm: item.kacKm,
+      about: item.about,
+      ilanBasligi: item.ilanBasligi,
+      deneyimSeviyesi: item.deneyimSeviyesi,
+      basvuruSayisi: item.basvuruSayisi,
+      pozisyonSayisi: item.pozisyonSayisi,
+      viewCount: item.viewCount,
+      applicationCount: item.applicationCount,
+      endedAt: item.endedAt,
+      authorAvatarUrl: item.authorAvatarUrl,
+      authorDisplayName: item.authorDisplayName,
+      authorNickname: item.authorNickname,
+      shortId: item.shortId,
+      shortUrl: item.shortUrl,
+      rozet: item.rozet,
+    );
   }
 }

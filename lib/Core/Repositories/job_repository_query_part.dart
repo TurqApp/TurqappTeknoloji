@@ -13,11 +13,12 @@ extension JobRepositoryQueryPart on JobRepository {
       if (memory != null && memory.isNotEmpty) return memory.first;
       final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null && disk.items.isNotEmpty) {
+        final cloned = _cloneJobs(disk.items);
         _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
+          items: cloned,
           cachedAt: disk.cachedAt,
         );
-        return disk.items.first;
+        return _cloneJob(cloned.first);
       }
     }
 
@@ -42,11 +43,12 @@ extension JobRepositoryQueryPart on JobRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
+        final cloned = _cloneJobs(disk.items);
         _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
+          items: cloned,
           cachedAt: disk.cachedAt,
         );
-        return List<JobModel>.from(disk.items);
+        return _cloneJobs(cloned);
       }
     }
 
@@ -82,11 +84,12 @@ extension JobRepositoryQueryPart on JobRepository {
         }
         final disk = await _getFromPrefsEntry('doc:$id');
         if (disk != null && disk.items.isNotEmpty) {
+          final cloned = _cloneJobs(disk.items);
           _memory['doc:$id'] = _TimedJobs(
-            items: List<JobModel>.from(disk.items),
+            items: cloned,
             cachedAt: disk.cachedAt,
           );
-          resolved[id] = disk.items.first;
+          resolved[id] = _cloneJob(cloned.first);
           continue;
         }
         missing.add(id);
@@ -133,11 +136,12 @@ extension JobRepositoryQueryPart on JobRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
+        final cloned = _cloneJobs(disk.items);
         _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
+          items: cloned,
           cachedAt: disk.cachedAt,
         );
-        return List<JobModel>.from(disk.items);
+        return _cloneJobs(cloned);
       }
     }
 
@@ -168,11 +172,12 @@ extension JobRepositoryQueryPart on JobRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
+        final cloned = _cloneJobs(disk.items);
         _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
+          items: cloned,
           cachedAt: disk.cachedAt,
         );
-        return List<JobModel>.from(disk.items);
+        return _cloneJobs(cloned);
       }
     }
 
