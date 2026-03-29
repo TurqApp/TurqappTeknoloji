@@ -1,6 +1,12 @@
 part of 'cikmis_sorular_repository_parts.dart';
 
 extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Future<List<Map<String, dynamic>>> fetchRootDocs({
     bool preferCache = true,
     bool forceRefresh = false,
@@ -125,7 +131,7 @@ extension CikmisSorularRepositoryQueryPart on CikmisSorularRepository {
           (doc['yil'] ?? '').toString() == yil &&
           (doc['baslik2'] ?? '').toString() == baslik2 &&
           (doc['baslik3'] ?? '').toString() == baslik3 &&
-          (sira == null || ((doc['sira'] as num?)?.toInt() ?? 0) == sira)) {
+          (sira == null || _asInt(doc['sira']) == sira)) {
         return (doc['_docId'] ?? '').toString();
       }
     }
