@@ -1,6 +1,12 @@
 part of 'admin_push_repository.dart';
 
 extension AdminPushRepositoryFilterPart on AdminPushRepository {
+  int? _parseEpochMillis(String raw) {
+    final asInt = int.tryParse(raw);
+    if (asInt == null) return null;
+    return raw.length >= 13 ? asInt : asInt * 1000;
+  }
+
   bool _hasPushTokenImpl(Map<String, dynamic> data) {
     final candidates = <Object?>[
       data['fcmToken'],
@@ -47,10 +53,13 @@ extension AdminPushRepositoryFilterPart on AdminPushRepository {
     if (raw.isEmpty) return null;
 
     DateTime? birthDate;
-    final asInt = int.tryParse(raw);
-    if (asInt != null) {
-      final ms = raw.length >= 13 ? asInt : asInt * 1000;
-      birthDate = DateTime.fromMillisecondsSinceEpoch(ms);
+    final asMillis = _parseEpochMillis(raw);
+    if (asMillis != null) {
+      try {
+        birthDate = DateTime.fromMillisecondsSinceEpoch(asMillis);
+      } catch (_) {
+        birthDate = null;
+      }
     } else {
       birthDate = DateTime.tryParse(raw);
       if (birthDate == null && raw.contains('/')) {
@@ -65,7 +74,8 @@ extension AdminPushRepositoryFilterPart on AdminPushRepository {
         }
       }
     }
-    if (birthDate == null) return null;
+    if (birthDate == null || birthDate.year < 1900) return null;
+    if (birthDate.isAfter(DateTime.now())) return null;
 
     final now = DateTime.now();
     var age = now.year - birthDate.year;
