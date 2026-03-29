@@ -269,10 +269,39 @@ class TypesenseEducationSearchService {
         await prefs?.remove(prefsKey);
         return null;
       }
-      final hits = ((data['hits'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map>()
-          .map((raw) => _cloneHitMap(Map<String, dynamic>.from(raw)))
-          .toList(growable: false);
+      var shouldPrune = false;
+      final hits = <Map<String, dynamic>>[];
+      for (final rawHit
+          in ((data['hits'] as List<dynamic>?) ?? const <dynamic>[])) {
+        if (rawHit is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        final hit = _cloneHitMap(Map<String, dynamic>.from(rawHit));
+        if (hit.isEmpty) {
+          shouldPrune = true;
+          continue;
+        }
+        hits.add(hit);
+      }
+      if (shouldPrune) {
+        if (hits.isEmpty) {
+          await prefs?.remove(prefsKey);
+          return null;
+        }
+        await prefs?.setString(
+          prefsKey,
+          jsonEncode(<String, dynamic>{
+            't': ts,
+            'd': <String, dynamic>{
+              'hits': hits,
+              'found': (data['found'] as num?)?.toInt() ?? hits.length,
+              'page': (data['page'] as num?)?.toInt() ?? 1,
+              'limit': (data['limit'] as num?)?.toInt() ?? hits.length,
+            },
+          }),
+        );
+      }
       return _CachedEducationSearchResult(
         result: EducationTypesenseSearchResult(
           hits: hits,
