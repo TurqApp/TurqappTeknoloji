@@ -216,16 +216,27 @@ class JobSavedStore {
         await prefs?.remove(prefsKey);
         return null;
       }
-      final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
-          .whereType<Map>()
-          .map(
-            (item) => SavedJobRecord(
-              jobId: (item['jobId'] ?? '').toString(),
-              timeStamp: (item['timeStamp'] as num?)?.toInt() ?? 0,
-            ),
-          )
-          .where((item) => item.jobId.isNotEmpty)
-          .toList(growable: false);
+      var shouldPrune = false;
+      final items = <SavedJobRecord>[];
+      for (final rawItem
+          in (decoded['items'] as List<dynamic>? ?? const <dynamic>[])) {
+        if (rawItem is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        final item = SavedJobRecord(
+          jobId: (rawItem['jobId'] ?? '').toString(),
+          timeStamp: (rawItem['timeStamp'] as num?)?.toInt() ?? 0,
+        );
+        if (item.jobId.isEmpty) {
+          shouldPrune = true;
+          continue;
+        }
+        items.add(item);
+      }
+      if (shouldPrune) {
+        await _storeCache(uid, items);
+      }
       return items;
     } catch (_) {
       await prefs?.remove(prefsKey);
