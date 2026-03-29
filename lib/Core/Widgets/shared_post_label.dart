@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Themes/app_tokens.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
@@ -119,6 +120,10 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
           widget.showBackdrop || widget.textColor == Colors.white;
       final labelText =
           'Kimden: $_displayName${widget.labelSuffix.isEmpty ? '' : ' ${widget.labelSuffix.trim()}'}';
+      final labelStyle = AppTypography.postAttribution.copyWith(
+        color: widget.textColor,
+        fontSize: widget.fontSize,
+      );
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
@@ -146,12 +151,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
                       ),
                       child: Text(
                         labelText,
-                        style: TextStyle(
-                          color: widget.textColor,
-                          fontSize: widget.fontSize,
-                          fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.normal,
-                        ),
+                        style: labelStyle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -165,12 +165,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
                   color: Colors.transparent,
                   child: Text(
                     labelText,
-                    style: TextStyle(
-                      color: widget.textColor,
-                      fontSize: widget.fontSize,
-                      fontWeight: FontWeight.w500,
-                      fontStyle: FontStyle.normal,
-                    ),
+                    style: labelStyle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

@@ -1,8 +1,7 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentBodyPart on _AgendaContentState {
-  double get _feedCaptionFontSize =>
-      Theme.of(context).platform == TargetPlatform.iOS ? 14 : 13;
+  double get _feedCaptionFontSize => AppTypography.postCaption.fontSize!;
 
   Widget mainbody() {
     final hasHeaderSubline =
@@ -35,10 +34,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                 SizedBox(width: 3),
                 Text(
                   widget.model.konum,
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: "MontserratMedium"),
+                  style: AppTypography.postMeta.copyWith(
+                    color: Colors.black,
+                  ),
                 )
               ],
             ),
@@ -345,7 +343,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 ? 'alıntılandı'
                                                 : '',
                                             textColor: Colors.white,
-                                            fontSize: 12,
+                                            fontSize:
+                                                AppTypography.postAttribution
+                                                    .fontSize!,
                                           ),
                                       ],
                                     ),

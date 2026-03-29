@@ -63,10 +63,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                               child: Text(
                                 primaryName,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: AppTypography.postName.copyWith(
                                   color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
                                 ),
                               ),
                             ),
@@ -76,10 +74,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                                 '@$handle',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: AppTypography.postHandle.copyWith(
                                   color: Colors.grey,
-                                  fontSize: 15,
-                                  fontFamily: "Montserrat",
                                 ),
                               ),
                             ),
@@ -97,10 +93,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                                   _relativeTimeTickService.tick.value;
                                   return Text(
                                     buildDisplayTime(),
-                                    style: const TextStyle(
+                                    style: AppTypography.postMeta.copyWith(
                                       color: Colors.grey,
-                                      fontSize: 15,
-                                      fontFamily: "MontserratMedium",
                                     ),
                                   );
                                 },
@@ -236,7 +230,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
-                      fontSize: 12,
+                      fontSize: AppTypography.postAttribution.fontSize!,
                     ),
                 ],
               ),
@@ -269,10 +263,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             controller: controller,
             model: widget.model,
             explicitReshareUserId: widget.reshareUserID,
-            style: const TextStyle(
+            style: AppTypography.postAttribution.copyWith(
               color: Colors.white,
-              fontSize: 12,
-              fontFamily: "MontserratMedium",
             ),
           ),
         ],

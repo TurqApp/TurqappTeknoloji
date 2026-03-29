@@ -75,10 +75,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                       child: Text(
                                         primaryName,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: AppTypography.postName.copyWith(
                                           color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratBold",
                                         ),
                                       ),
                                     ),
@@ -96,10 +94,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                           _relativeTimeTickService.tick.value;
                                           return Text(
                                             buildDisplayTime(),
-                                            style: const TextStyle(
+                                            style:
+                                                AppTypography.postMeta.copyWith(
                                               color: Colors.grey,
-                                              fontSize: 13,
-                                              fontFamily: "MontserratMedium",
                                             ),
                                           );
                                         },
@@ -113,10 +110,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                 '@$handle',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: AppTypography.postHandle.copyWith(
                                   color: Colors.grey,
-                                  fontSize: 13,
-                                  fontFamily: "Montserrat",
                                 ),
                               ),
                             ],
@@ -193,10 +188,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                     widget.model.konum,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: AppTypography.postMeta.copyWith(
                       color: Colors.black,
-                      fontSize: 16,
-                      fontFamily: "Montserrat",
                     ),
                   ),
               ],
@@ -280,10 +273,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                       child: Text(
                                         primaryName,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: AppTypography.postName.copyWith(
                                           color: Colors.white,
-                                          fontSize: 14,
-                                          fontFamily: "MontserratBold",
                                           shadows: textShadow,
                                         ),
                                       ),
@@ -303,11 +294,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                     '@$handle',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
+                                    style: AppTypography.postHandle.copyWith(
                                       color:
                                           Colors.white.withValues(alpha: 0.92),
-                                      fontSize: 12,
-                                      fontFamily: "Montserrat",
                                       shadows: textShadow,
                                     ),
                                   ),
@@ -316,11 +305,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                       _relativeTimeTickService.tick.value;
                                       return Text(
                                         buildDisplayTime(),
-                                        style: TextStyle(
+                                        style: AppTypography.postMeta.copyWith(
                                           color: Colors.white
                                               .withValues(alpha: 0.9),
-                                          fontSize: 11,
-                                          fontFamily: "MontserratMedium",
                                           shadows: textShadow,
                                         ),
                                       );
@@ -381,10 +368,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                     widget.model.konum,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: AppTypography.postMeta.copyWith(
                       color: Colors.white,
-                      fontSize: 13,
-                      fontFamily: "Montserrat",
                       shadows: textShadow,
                     ),
                   ),

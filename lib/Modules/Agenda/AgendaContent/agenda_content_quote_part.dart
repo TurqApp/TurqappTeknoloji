@@ -75,10 +75,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 const SizedBox(width: 3),
                 Text(
                   widget.model.konum,
-                  style: const TextStyle(
+                  style: AppTypography.postMeta.copyWith(
                     color: Colors.black,
-                    fontSize: 13,
-                    fontFamily: "MontserratMedium",
                   ),
                 ),
               ],
@@ -162,11 +160,9 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                       quotedText,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF3A434D),
-                        fontSize: 13,
+                      style: AppTypography.postCaption.copyWith(
+                        color: const Color(0xFF3A434D),
                         height: 1.35,
-                        fontFamily: "Montserrat",
                       ),
                     ),
                   ],
@@ -267,10 +263,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                       displayName.isEmpty ? 'common.user'.tr : displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppTypography.postName.copyWith(
                         color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold",
                       ),
                     ),
                   ),
@@ -281,10 +275,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                         '@$username',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: AppTypography.postHandle.copyWith(
                           color: Colors.grey,
-                          fontSize: 15,
-                          fontFamily: "Montserrat",
                         ),
                       ),
                     ),
@@ -298,10 +290,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                         displayTime,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: AppTypography.postMeta.copyWith(
                           color: Colors.grey,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
                         ),
                       ),
                     ),

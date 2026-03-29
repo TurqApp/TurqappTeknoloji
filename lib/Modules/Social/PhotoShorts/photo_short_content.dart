@@ -21,6 +21,7 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+import 'package:turqappv2/Themes/app_tokens.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/formatters.dart';
@@ -202,7 +203,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                     children: [
                       SharedPostLabel(
                         originalUserID: widget.model.originalUserID,
-                        fontSize: 12,
+                        fontSize: AppTypography.postAttribution.fontSize!,
                         textColor: Colors.white,
                       ),
                     ],

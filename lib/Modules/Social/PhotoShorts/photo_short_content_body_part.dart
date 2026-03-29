@@ -143,11 +143,9 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                               Expanded(
                                                 child: Text(
                                                   controller.fullName.value,
-                                                  style: const TextStyle(
+                                                  style: AppTypography.postName
+                                                      .copyWith(
                                                     color: Colors.white,
-                                                    fontSize: 14,
-                                                    fontFamily:
-                                                        AppFontFamilies.mbold,
                                                   ),
                                                 ),
                                               ),
@@ -162,11 +160,9 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                             controller.nickname.value.trim().isEmpty
                                                 ? ''
                                                 : '@${controller.nickname.value.trim()}',
-                                            style: TextStyle(
+                                            style: AppTypography.postHandle
+                                                .copyWith(
                                               color: Colors.white70,
-                                              fontSize: 12,
-                                              fontFamily:
-                                                  AppFontFamilies.mregular,
                                             ),
                                           ),
                                         ],

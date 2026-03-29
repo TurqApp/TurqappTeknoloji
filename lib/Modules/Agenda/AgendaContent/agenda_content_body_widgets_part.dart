@@ -71,9 +71,8 @@ extension AgendaContentBodyWidgetsPart on _AgendaContentState {
                           '$label$text',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: AppTypography.postCaption.copyWith(
                             color: Colors.black87,
-                            fontSize: 14,
                             fontFamily: "MontserratMedium",
                           ),
                         ),
@@ -82,9 +81,8 @@ extension AgendaContentBodyWidgetsPart on _AgendaContentState {
                       if (showResults)
                         Text(
                           '${(pct * 100).toStringAsFixed(0)}%',
-                          style: const TextStyle(
+                          style: AppTypography.postMeta.copyWith(
                             color: Colors.black54,
-                            fontSize: 12,
                             fontFamily: "MontserratMedium",
                           ),
                         ),
@@ -98,9 +96,8 @@ extension AgendaContentBodyWidgetsPart on _AgendaContentState {
               children: [
                 Text(
                   'Toplam ${totalVotes.toInt()} oy',
-                  style: const TextStyle(
+                  style: AppTypography.postMeta.copyWith(
                     color: Colors.black54,
-                    fontSize: 12,
                     fontFamily: "MontserratMedium",
                   ),
                 ),
@@ -110,9 +107,8 @@ extension AgendaContentBodyWidgetsPart on _AgendaContentState {
                     expired: expired,
                     expiresAtMs: expiresAt,
                   ),
-                  style: const TextStyle(
+                  style: AppTypography.postMeta.copyWith(
                     color: Colors.black54,
-                    fontSize: 12,
                     fontFamily: "MontserratMedium",
                   ),
                 ),

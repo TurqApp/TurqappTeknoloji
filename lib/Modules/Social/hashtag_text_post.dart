@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../../Themes/app_fonts.dart';
+import '../../Themes/app_tokens.dart';
 
 part 'hashtag_text_post_controller_part.dart';
 part 'hashtag_text_post_controller_lookup_part.dart';
@@ -41,10 +42,9 @@ class HashtagTextVideoPost extends StatelessWidget {
       tag: tag,
     );
 
-    final baseStyle = TextStyle(
+    final baseStyle = AppTypography.postCaption.copyWith(
       color: color,
       height: 1.5,
-      fontSize: 13,
       fontFamily: AppFontFamilies.mregular,
     );
 
@@ -81,9 +81,8 @@ class HashtagTextVideoPost extends StatelessWidget {
                       ctrl.expanded.value
                           ? 'common.hide'.tr
                           : 'common.show_more'.tr,
-                      style: baseStyle.copyWith(
+                      style: AppTypography.postMeta.copyWith(
                         color: ctrl.interactiveColor,
-                        fontSize: 12,
                       ),
                     ),
                   ),

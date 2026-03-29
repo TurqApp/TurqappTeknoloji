@@ -32,7 +32,7 @@ extension UrlPostMakerMediaPart on _UrlPostMakerState {
                       child: SharedPostLabel(
                         originalUserID: widget.originalUserID!,
                         textColor: Colors.white,
-                        fontSize: 12,
+                        fontSize: AppTypography.postAttribution.fontSize!,
                       ),
                     ),
                   Positioned(

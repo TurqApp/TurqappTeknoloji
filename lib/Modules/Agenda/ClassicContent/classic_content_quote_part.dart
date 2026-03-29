@@ -33,24 +33,21 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     required String nickname,
     required String text,
   }) {
-    final captionFontSize =
-        Theme.of(context).platform == TargetPlatform.iOS ? 13.0 : 12.0;
-    final nameStyle = TextStyle(
-      color: Color(0xFF20252B),
+    final captionFontSize = AppTypography.postCaption.fontSize!;
+    final nameStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF20252B),
       fontSize: captionFontSize,
       fontFamily: 'MontserratBold',
       height: 1.35,
     );
-    final bodyStyle = TextStyle(
-      color: Color(0xFF20252B),
+    final bodyStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF20252B),
       fontSize: captionFontSize,
-      fontFamily: 'Montserrat',
       height: 1.35,
     );
-    final moreStyle = TextStyle(
-      color: Color(0xFF6E7680),
+    final moreStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF6E7680),
       fontSize: captionFontSize,
-      fontFamily: 'Montserrat',
       height: 1.35,
     );
 
@@ -131,22 +128,19 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     String text, {
     required String sourceUserId,
   }) {
-    final captionFontSize =
-        Theme.of(context).platform == TargetPlatform.iOS ? 13.0 : 12.0;
-    final bodyStyle = TextStyle(
-      color: Color(0xFF8A9199),
+    final captionFontSize = AppTypography.postCaption.fontSize!;
+    final bodyStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF8A9199),
       fontSize: captionFontSize,
-      fontFamily: 'Montserrat',
       height: 1.35,
     );
-    final moreStyle = TextStyle(
-      color: Color(0xFF8A9199),
+    final moreStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF8A9199),
       fontSize: captionFontSize,
-      fontFamily: 'Montserrat',
       height: 1.35,
     );
-    final nickStyle = TextStyle(
-      color: Color(0xFF4B5561),
+    final nickStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF4B5561),
       fontSize: captionFontSize,
       fontFamily: 'MontserratBold',
       height: 1.35,
@@ -362,10 +356,8 @@ extension _ClassicContentQuotePart on _ClassicContentState {
             ),
             child: Text(
               displayTime,
-              style: const TextStyle(
-                color: Color(0xFF8A9199),
-                fontSize: 12,
-                fontFamily: 'Montserrat',
+              style: AppTypography.postMeta.copyWith(
+                color: const Color(0xFF8A9199),
               ),
             ),
           ),

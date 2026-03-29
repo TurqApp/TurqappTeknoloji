@@ -149,6 +149,40 @@ class AppTypography {
     fontWeight: FontWeight.w400,
     color: AppColorTokens.textSecondary,
   );
+
+  // Post
+  static const TextStyle postName = TextStyle(
+    fontFamily: 'MontserratBold',
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+  );
+  static const TextStyle postHandle = TextStyle(
+    fontFamily: 'Montserrat',
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+  );
+  static const TextStyle postMeta = TextStyle(
+    fontFamily: 'MontserratMedium',
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+  );
+  static const TextStyle postAttribution = TextStyle(
+    fontFamily: 'MontserratMedium',
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+  );
+  static const TextStyle postCaption = TextStyle(
+    fontFamily: 'Montserrat',
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    height: 1.4,
+  );
+
+  // Backward-compatible aliases for feed surfaces using post typography.
+  static const TextStyle feedName = postName;
+  static const TextStyle feedHandle = postHandle;
+  static const TextStyle feedMeta = postMeta;
+  static const TextStyle feedCaption = postCaption;
 }
 
 // ─────────────────────────────────────────────────────────────────

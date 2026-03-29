@@ -29,10 +29,9 @@ class HashtagTextVideoPostControllerRuntimePart {
       result.add(
         TextSpan(
           text: '$nickname ',
-          style: TextStyle(
+          style: AppTypography.postCaption.copyWith(
             color:
                 controller.color == Colors.black ? Colors.black : Colors.indigo,
-            fontSize: 13,
             fontFamily: AppFontFamilies.mbold,
           ),
         ),
@@ -51,10 +50,9 @@ class HashtagTextVideoPostControllerRuntimePart {
         result.add(
           TextSpan(
             text: controller.text.substring(lastEnd, m.start),
-            style: TextStyle(
+            style: AppTypography.postCaption.copyWith(
               color: controller.color,
               height: 1.5,
-              fontSize: 13,
               fontFamily: AppFontFamilies.mregular,
             ),
           ),
@@ -97,16 +95,15 @@ class HashtagTextVideoPostControllerRuntimePart {
     }
 
     if (lastEnd < controller.text.length) {
-      result.add(
-        TextSpan(
-          text: controller.text.substring(lastEnd),
-          style: TextStyle(
-            color: controller.color,
-            height: 1.5,
-            fontSize: 13,
-            fontFamily: AppFontFamilies.mregular,
+        result.add(
+          TextSpan(
+            text: controller.text.substring(lastEnd),
+            style: AppTypography.postCaption.copyWith(
+              color: controller.color,
+              height: 1.5,
+              fontFamily: AppFontFamilies.mregular,
+            ),
           ),
-        ),
       );
     }
 
@@ -115,8 +112,8 @@ class HashtagTextVideoPostControllerRuntimePart {
 
   TextStyle interactiveStyle() => TextStyle(
         color: controller.interactiveColor,
-        height: 1.5,
-        fontSize: 13,
+        height: AppTypography.postCaption.height,
+        fontSize: AppTypography.postCaption.fontSize,
         fontFamily: AppFontFamilies.mregular,
       );
 }

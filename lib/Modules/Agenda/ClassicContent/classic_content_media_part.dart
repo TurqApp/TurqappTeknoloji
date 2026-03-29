@@ -279,10 +279,8 @@ extension _ClassicContentMediaPart on _ClassicContentState {
                     controller: controller,
                     model: widget.model,
                     explicitReshareUserId: widget.reshareUserID,
-                    style: const TextStyle(
+                    style: AppTypography.postAttribution.copyWith(
                       color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: 'MontserratMedium',
                     ),
                   ),
                 ],

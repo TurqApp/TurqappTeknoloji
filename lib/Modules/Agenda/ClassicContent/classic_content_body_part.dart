@@ -1,8 +1,7 @@
 part of 'classic_content.dart';
 
 extension ClassicContentBodyPart on _ClassicContentState {
-  double get _captionFontSize =>
-      Theme.of(context).platform == TargetPlatform.iOS ? 13 : 12;
+  double get _captionFontSize => AppTypography.postCaption.fontSize!;
 
   Widget textOnlyBody(BuildContext context) {
     final sanitizedCaption =
@@ -78,7 +77,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           ? widget.model.quotedSourceUserID
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
-                      fontSize: 12,
+                      fontSize: AppTypography.postAttribution.fontSize!,
                       textColor: Colors.red,
                       showBackdrop: true,
                     ),
@@ -214,7 +213,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           labelSuffix:
                               widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
-                          fontSize: 12,
+                          fontSize: AppTypography.postAttribution.fontSize!,
                         ),
                       ),
                     _buildClassicMediaHeader(),
@@ -305,7 +304,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           labelSuffix:
                               widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
-                          fontSize: 12,
+                          fontSize: AppTypography.postAttribution.fontSize!,
                         ),
                       ),
                     _buildClassicMediaHeader(),
@@ -396,9 +395,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             '$label$text',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: AppTypography.postCaption.copyWith(
                               color: Colors.black87,
-                              fontSize: 14,
                               fontFamily: "MontserratMedium",
                             ),
                           ),
@@ -407,9 +405,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         if (showResults)
                           Text(
                             '${(pct * 100).toStringAsFixed(0)}%',
-                            style: const TextStyle(
+                            style: AppTypography.postMeta.copyWith(
                               color: Colors.black54,
-                              fontSize: 12,
                               fontFamily: "MontserratMedium",
                             ),
                           ),
@@ -423,9 +420,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                 children: [
                   Text(
                     'Toplam ${totalVotes.toInt()} oy',
-                    style: const TextStyle(
+                    style: AppTypography.postMeta.copyWith(
                       color: Colors.black54,
-                      fontSize: 12,
                       fontFamily: "MontserratMedium",
                     ),
                   ),
@@ -435,9 +431,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       expired: expired,
                       expiresAtMs: expiresAt,
                     ),
-                    style: const TextStyle(
+                    style: AppTypography.postMeta.copyWith(
                       color: Colors.black54,
-                      fontSize: 12,
                       fontFamily: "MontserratMedium",
                     ),
                   ),
@@ -666,7 +661,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
-                      fontSize: 12,
+                      fontSize: AppTypography.postAttribution.fontSize!,
                     ),
                   ),
                 _buildIzBirakBlurOverlay(),
