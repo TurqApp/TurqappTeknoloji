@@ -24,27 +24,40 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
     ScopedSnapshotKey key, {
     bool allowStale = true,
   }) async {
+    final prefsKey = _prefsKey(key);
     try {
       final prefs = await _ensurePrefs();
-      final raw = prefs.getString(_prefsKey(key));
+      final raw = prefs.getString(prefsKey);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return null;
-      final payload = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
+      if (decoded is! Map) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final payload =
+          Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
       final snapshotAtMs = (payload['snapshotAt'] as num?)?.toInt() ?? 0;
       final schemaVersion = (payload['schemaVersion'] as num?)?.toInt() ?? 1;
       final generationId = (payload['generationId'] ?? '').toString().trim();
       final source = _parseSource(payload['source']);
       final dataMap = payload['data'];
-      if (snapshotAtMs <= 0 || dataMap is! Map) return null;
+      if (snapshotAtMs <= 0 || dataMap is! Map) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
       return ScopedSnapshotRecord<T>(
-        data: decode(Map<String, dynamic>.from(dataMap.cast<dynamic, dynamic>())),
+        data:
+            decode(Map<String, dynamic>.from(dataMap.cast<dynamic, dynamic>())),
         snapshotAt: DateTime.fromMillisecondsSinceEpoch(snapshotAtMs),
         schemaVersion: schemaVersion,
         generationId: generationId,
         source: source,
       );
     } catch (_) {
+      try {
+        final prefs = await _ensurePrefs();
+        await prefs.remove(prefsKey);
+      } catch (_) {}
       return null;
     }
   }
@@ -121,4 +134,3 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
     return CachedResourceSource.scopedDisk;
   }
 }
-
