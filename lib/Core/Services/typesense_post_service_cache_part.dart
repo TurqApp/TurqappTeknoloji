@@ -48,15 +48,23 @@ extension TypesensePostServiceCachePart on TypesensePostService {
   }
 
   Future<_CachedPostCardsResult?> _performGetFromPrefs(String cacheKey) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    final prefsKey = _prefsKey(cacheKey);
     try {
-      _prefs ??= await SharedPreferences.getInstance();
-      final raw = _prefs?.getString(_prefsKey(cacheKey));
+      final raw = prefs?.getString(prefsKey);
       if (raw == null || raw.isEmpty) return null;
       final data = jsonDecode(raw);
-      if (data is! Map) return null;
+      if (data is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAtMs = (data['cachedAt'] as num?)?.toInt() ?? 0;
       final cardsRaw = data['cards'];
-      if (cachedAtMs <= 0 || cardsRaw is! Map) return null;
+      if (cachedAtMs <= 0 || cardsRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cards = <String, Map<String, dynamic>>{};
       cardsRaw.forEach((key, value) {
         if (value is Map) {
@@ -70,12 +78,13 @@ extension TypesensePostServiceCachePart on TypesensePostService {
         cachedAt: DateTime.fromMillisecondsSinceEpoch(cachedAtMs),
       );
       if (!cached.isFresh) {
-        await _prefs?.remove(_prefsKey(cacheKey));
+        await prefs?.remove(prefsKey);
         return null;
       }
       _memory[cacheKey] = cached;
       return cached;
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }

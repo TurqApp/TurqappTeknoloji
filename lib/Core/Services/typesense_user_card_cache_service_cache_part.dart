@@ -62,16 +62,24 @@ class _TypesenseUserCardCacheServiceCachePart {
   }
 
   Future<_CachedUserCardsResult?> _getFromPrefs(String cacheKey) async {
+    service._prefs ??= await SharedPreferences.getInstance();
+    final prefs = service._prefs;
+    final prefsKey = _prefsKey(cacheKey);
     try {
-      service._prefs ??= await SharedPreferences.getInstance();
-      final raw = service._prefs?.getString(_prefsKey(cacheKey));
+      final raw = prefs?.getString(prefsKey);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return null;
+      if (decoded is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final data = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
       final cachedAtMs = (data['cachedAt'] as num?)?.toInt() ?? 0;
       final cardsRaw = data['cards'];
-      if (cachedAtMs <= 0 || cardsRaw is! Map) return null;
+      if (cachedAtMs <= 0 || cardsRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cards = <String, Map<String, dynamic>>{};
       cardsRaw.forEach((key, value) {
         if (value is Map) {
@@ -85,12 +93,13 @@ class _TypesenseUserCardCacheServiceCachePart {
         cachedAt: DateTime.fromMillisecondsSinceEpoch(cachedAtMs),
       );
       if (!cached.isFresh) {
-        await service._prefs?.remove(_prefsKey(cacheKey));
+        await prefs?.remove(prefsKey);
         return null;
       }
       service._memory[cacheKey] = cached;
       return cached;
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
