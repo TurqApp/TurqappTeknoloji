@@ -62,10 +62,13 @@ class SliderCacheSnapshot {
   final List<SliderResolvedItem> resolvedItems;
   final int savedAtMs;
 
-  const SliderCacheSnapshot({
-    required this.resolvedItems,
+  SliderCacheSnapshot({
+    required List<SliderResolvedItem> resolvedItems,
     required this.savedAtMs,
-  });
+  }) : resolvedItems = List<SliderResolvedItem>.from(
+          resolvedItems,
+          growable: false,
+        );
 
   List<String> get items =>
       resolvedItems.map((item) => item.source).toList(growable: false);
@@ -115,7 +118,7 @@ class SliderCacheService {
 
   Future<SliderCacheSnapshot> readSnapshot(String sliderId) async {
     if (sliderId.trim().isEmpty) {
-      return const SliderCacheSnapshot(
+      return SliderCacheSnapshot(
         resolvedItems: <SliderResolvedItem>[],
         savedAtMs: 0,
       );
@@ -125,7 +128,7 @@ class SliderCacheService {
       final key = _key(sliderId);
       final raw = prefs.getString(key);
       if (raw == null || raw.trim().isEmpty) {
-        return const SliderCacheSnapshot(
+        return SliderCacheSnapshot(
           resolvedItems: <SliderResolvedItem>[],
           savedAtMs: 0,
         );
@@ -133,7 +136,7 @@ class SliderCacheService {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
         await prefs.remove(key);
-        return const SliderCacheSnapshot(
+        return SliderCacheSnapshot(
           resolvedItems: <SliderResolvedItem>[],
           savedAtMs: 0,
         );
@@ -142,7 +145,7 @@ class SliderCacheService {
       final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
       if (savedAt <= 0) {
         await prefs.remove(key);
-        return const SliderCacheSnapshot(
+        return SliderCacheSnapshot(
           resolvedItems: <SliderResolvedItem>[],
           savedAtMs: 0,
         );
@@ -206,7 +209,7 @@ class SliderCacheService {
         final prefs = await _prefsInstance();
         await prefs.remove(_key(sliderId));
       } catch (_) {}
-      return const SliderCacheSnapshot(
+      return SliderCacheSnapshot(
         resolvedItems: <SliderResolvedItem>[],
         savedAtMs: 0,
       );
