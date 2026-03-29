@@ -16,6 +16,23 @@ class BookletModel {
   static List<String> _cloneStringList(List<String> source) =>
       List<String>.from(source, growable: false);
 
+  static List<String> _asStringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static num _asNum(dynamic value, {num fallback = 0}) {
+    if (value is num) return value;
+    if (value is String) {
+      final parsed = num.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
   BookletModel({
     required this.dil,
     required this.sinavTuru,
@@ -41,19 +58,13 @@ class BookletModel {
       sinavTuru: (data["sinavTuru"] ?? '').toString(),
       cover: (data["cover"] ?? '').toString(),
       baslik: (data["baslik"] ?? '').toString(),
-      timeStamp: data["timeStamp"] is num
-          ? data["timeStamp"] as num
-          : num.tryParse((data["timeStamp"] ?? "0").toString()) ?? 0,
-      kaydet: (data["kaydet"] is List)
-          ? (data["kaydet"] as List).map((e) => e.toString()).toList()
-          : <String>[],
+      timeStamp: _asNum(data["timeStamp"]),
+      kaydet: _asStringList(data["kaydet"]),
       basimTarihi: (data["basimTarihi"] ?? '').toString(),
       yayinEvi: (data["yayinEvi"] ?? '').toString(),
       docID: docID,
       userID: (data["userID"] ?? '').toString(),
-      viewCount: data["viewCount"] is num
-          ? (data["viewCount"] as num).toInt()
-          : fallbackViewCount,
+      viewCount: _asNum(data["viewCount"], fallback: fallbackViewCount).toInt(),
       shortId: (data["shortId"] ?? '').toString(),
       shortUrl: (data["shortUrl"] ?? '').toString(),
     );

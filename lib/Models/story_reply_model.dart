@@ -14,18 +14,33 @@ class StoryReplyModel {
     required this.timeStamp,
   });
 
+  static DateTime _asDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is num) {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    }
+    if (value is String) {
+      final asInt = int.tryParse(value.trim());
+      if (asInt != null) {
+        return DateTime.fromMillisecondsSinceEpoch(asInt);
+      }
+      final asDate = DateTime.tryParse(value.trim());
+      if (asDate != null) return asDate;
+    }
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
   /// Firestore DocumentSnapshot'tan model oluşturur
   factory StoryReplyModel.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final raw = doc.data();
+    final data =
+        raw is Map ? raw.cast<String, dynamic>() : const <String, dynamic>{};
     return StoryReplyModel(
       docID: doc.id,
       userID: (data['userID'] ?? '').toString(),
       message: (data['message'] ?? '').toString(),
-      timeStamp: data['timeStamp'] is Timestamp
-          ? (data['timeStamp'] as Timestamp).toDate()
-          : DateTime.fromMillisecondsSinceEpoch(
-              (data['timeStamp'] as num?)?.toInt() ?? 0,
-            ),
+      timeStamp: _asDateTime(data['timeStamp']),
     );
   }
 
