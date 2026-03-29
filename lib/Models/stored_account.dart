@@ -6,14 +6,14 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 
 class StoredAccount {
-  const StoredAccount({
+  StoredAccount({
     required this.uid,
     required this.email,
     required this.username,
     required this.displayName,
     required this.rozet,
     required this.avatarUrl,
-    required this.providers,
+    required List<String> providers,
     required this.lastUsedAt,
     required this.isSessionValid,
     required this.requiresReauth,
@@ -21,7 +21,7 @@ class StoredAccount {
     required this.isPinned,
     required this.sortOrder,
     required this.lastSuccessfulSignInAt,
-  });
+  }) : providers = List<String>.from(providers, growable: false);
 
   final String uid;
   final String email;
