@@ -29,6 +29,7 @@ bool? _getVerifiedAccountFromMemory(
   if (entry == null) return null;
   if (DateTime.now().difference(entry.cachedAt) >
       VerifiedAccountRepository._ttl) {
+    repository._memory.remove(key);
     return null;
   }
   return entry.exists;

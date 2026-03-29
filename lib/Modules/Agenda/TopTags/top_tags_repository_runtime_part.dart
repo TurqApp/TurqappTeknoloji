@@ -8,9 +8,9 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
     if (memory != null) return memory;
     final disk = await _readPrefs(limit: resultLimit);
     if (disk != null) {
-      _memory = disk;
+      _memory = List<HashtagModel>.from(disk);
       _memoryAt = DateTime.now();
-      return disk;
+      return List<HashtagModel>.from(disk);
     }
     return null;
   }
