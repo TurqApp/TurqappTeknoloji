@@ -1,5 +1,13 @@
 part of 'qa_lab_remote_uploader.dart';
 
+bool _qaLabRemoteUploaderAsBool(Object? value, {required bool fallback}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase() ?? '';
+  if (normalized.isEmpty) return fallback;
+  return normalized == 'true' || normalized == '1' || normalized == 'yes';
+}
+
 Future<bool> _qaLabRemoteUploaderIsRemoteGateEnabled(
   QALabRemoteUploader uploader,
 ) async {
@@ -30,7 +38,10 @@ Future<bool> _qaLabRemoteUploaderIsRemoteGateEnabled(
       ttl: const Duration(seconds: 20),
     );
     uploader._applyRemoteGateState(
-      qaEnabled: qaDoc?['qaEnabled'] == true,
+      qaEnabled: _qaLabRemoteUploaderAsBool(
+        qaDoc?['qaEnabled'],
+        fallback: false,
+      ),
       source: 'config_fetch',
     );
     return uploader.remoteCollectionEnabled.value;
@@ -62,7 +73,10 @@ void _qaLabRemoteUploaderEnsureAdminConfigSubscription(
       .listen(
     (doc) {
       uploader._applyRemoteGateState(
-        qaEnabled: doc['qaEnabled'] == true,
+        qaEnabled: _qaLabRemoteUploaderAsBool(
+          doc['qaEnabled'],
+          fallback: false,
+        ),
         source: 'qa_watch',
       );
     },
