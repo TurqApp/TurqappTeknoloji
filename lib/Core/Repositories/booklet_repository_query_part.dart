@@ -175,10 +175,10 @@ extension BookletRepositoryQueryPart on BookletRepository {
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
         _memory[cacheKey] = _TimedBooklets(
-          items: disk,
+          items: disk.toList(growable: false),
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return disk.toList(growable: false);
       }
     }
 

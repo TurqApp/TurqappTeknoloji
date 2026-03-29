@@ -137,10 +137,10 @@ extension FollowRepositoryQueryPart on FollowRepository {
       final disk = await _getRelationFromPrefs(relationKey, allowStale: false);
       if (preferCache && disk != null) {
         _relationMemory[relationKey] = _CachedFollowingSet(
-          ids: disk,
+          ids: disk.toSet(),
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return disk.toSet();
       }
     }
 

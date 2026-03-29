@@ -30,7 +30,7 @@ extension UserSubdocRepositoryRuntimePart on UserSubdocRepository {
           data: Map<String, dynamic>.from(disk),
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return Map<String, dynamic>.from(disk);
       }
     }
 

@@ -13,10 +13,10 @@ extension MarketRepositoryQueryPart on MarketRepository {
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
         _memory[cacheKey] = _TimedMarketItems(
-          items: disk,
+          items: List<MarketItemModel>.from(disk),
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return List<MarketItemModel>.from(disk);
       }
     }
 
@@ -119,10 +119,10 @@ extension MarketRepositoryQueryPart on MarketRepository {
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
         _memory[cacheKey] = _TimedMarketItems(
-          items: disk,
+          items: List<MarketItemModel>.from(disk),
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return List<MarketItemModel>.from(disk);
       }
     }
 
@@ -147,10 +147,10 @@ extension MarketRepositoryQueryPart on MarketRepository {
       final disk = await _getFromPrefs(cacheKey);
       if (disk != null) {
         _memory[cacheKey] = _TimedMarketItems(
-          items: disk,
+          items: List<MarketItemModel>.from(disk),
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return List<MarketItemModel>.from(disk);
       }
     }
 
