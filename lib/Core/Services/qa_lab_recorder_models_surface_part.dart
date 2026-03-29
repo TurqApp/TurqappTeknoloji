@@ -1,15 +1,15 @@
 part of 'qa_lab_recorder.dart';
 
 class QALabPinpointFinding {
-  const QALabPinpointFinding({
+  QALabPinpointFinding({
     required this.severity,
     required this.code,
     required this.message,
     required this.route,
     required this.surface,
     required this.timestamp,
-    this.context = const <String, dynamic>{},
-  });
+    Map<String, dynamic> context = const <String, dynamic>{},
+  }) : context = _cloneQaLabModelMap(context);
 
   final QALabIssueSeverity severity;
   final String code;
@@ -27,21 +27,23 @@ class QALabPinpointFinding {
       'route': route,
       'surface': surface,
       'timestamp': timestamp.toUtc().toIso8601String(),
-      'context': context,
+      'context': _cloneQaLabModelMap(context),
     };
   }
 }
 
 class QALabSurfaceDiagnostic {
-  const QALabSurfaceDiagnostic({
+  QALabSurfaceDiagnostic({
     required this.surface,
     required this.latestRoute,
     required this.healthScore,
-    required this.issueCounts,
+    required Map<String, int> issueCounts,
     required this.coverage,
-    required this.runtime,
-    required this.findings,
-  });
+    required Map<String, dynamic> runtime,
+    required List<QALabPinpointFinding> findings,
+  })  : issueCounts = Map<String, int>.from(issueCounts),
+        runtime = _cloneQaLabModelMap(runtime),
+        findings = List<QALabPinpointFinding>.from(findings);
 
   final String surface;
   final String latestRoute;
@@ -56,9 +58,9 @@ class QALabSurfaceDiagnostic {
       'surface': surface,
       'latestRoute': latestRoute,
       'healthScore': healthScore,
-      'issueCounts': issueCounts,
+      'issueCounts': Map<String, int>.from(issueCounts),
       'coverage': coverage.toJson(),
-      'runtime': runtime,
+      'runtime': _cloneQaLabModelMap(runtime),
       'findings': findings.map((item) => item.toJson()).toList(growable: false),
     };
   }
