@@ -39,7 +39,7 @@ class HlsTransferEvent {
 }
 
 class HlsDocUsageSummary {
-  const HlsDocUsageSummary({
+  HlsDocUsageSummary({
     required this.docId,
     required this.downloadedBytes,
     required this.cacheServedBytes,
@@ -47,13 +47,13 @@ class HlsDocUsageSummary {
     required this.repeatedSegmentDownloads,
     required this.playlistDownloads,
     required this.playlistCacheHits,
-    required this.variantKeys,
+    required List<String> variantKeys,
     required this.avgSegmentDurationSec,
     required this.maxSegmentDurationSec,
     required this.minSegmentDurationSec,
     required this.avgSegmentSizeKb,
     required this.maxSegmentSizeKb,
-  });
+  }) : variantKeys = List<String>.from(variantKeys, growable: false);
 
   final String docId;
   final int downloadedBytes;
@@ -80,7 +80,7 @@ class HlsDocUsageSummary {
         'repeatedSegmentDownloads': repeatedSegmentDownloads,
         'playlistDownloads': playlistDownloads,
         'playlistCacheHits': playlistCacheHits,
-        'variantKeys': variantKeys,
+        'variantKeys': List<String>.from(variantKeys, growable: false),
         'avgSegmentDurationSec': avgSegmentDurationSec,
         'maxSegmentDurationSec': maxSegmentDurationSec,
         'minSegmentDurationSec': minSegmentDurationSec,
@@ -90,7 +90,7 @@ class HlsDocUsageSummary {
 }
 
 class HlsDataUsageSnapshot {
-  const HlsDataUsageSnapshot({
+  HlsDataUsageSnapshot({
     required this.label,
     required this.elapsed,
     required this.downloadedBytes,
@@ -109,9 +109,10 @@ class HlsDataUsageSnapshot {
     required this.peakParallelDocDownloads,
     required this.peakOffscreenParallelDownloads,
     required this.variantSwitchesObserved,
-    required this.topDocs,
-    required this.anomalies,
-  });
+    required List<HlsDocUsageSummary> topDocs,
+    required List<String> anomalies,
+  })  : topDocs = List<HlsDocUsageSummary>.from(topDocs, growable: false),
+        anomalies = List<String>.from(anomalies, growable: false);
 
   final String label;
   final Duration elapsed;
@@ -174,8 +175,8 @@ class HlsDataUsageSnapshot {
         'mbPerMinute': mbPerMinute,
         'avgMbPerVideo': avgMbPerVideo,
         'cacheReuseRatio': cacheReuseRatio,
-        'topDocs': topDocs.map((e) => e.toJson()).toList(),
-        'anomalies': anomalies,
+        'topDocs': topDocs.map((e) => e.toJson()).toList(growable: false),
+        'anomalies': List<String>.from(anomalies, growable: false),
       };
 }
 
