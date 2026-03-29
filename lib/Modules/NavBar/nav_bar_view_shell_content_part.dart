@@ -132,20 +132,36 @@ extension _NavBarViewShellContentPart on NavBarView {
     return true;
   }
 
-  void _handleRootHorizontalSwipe(DragEndDetails details) {
+  void _handleRootHorizontalSwipe(DragEndDetails details) async {
     final dx = details.velocity.pixelsPerSecond.dx;
     const shortIndex = 2;
     const feedIndex = 0;
     final selected = controller.selectedIndex.value;
 
     if (selected == feedIndex && dx < -700) {
-      controller.changeIndex(shortIndex);
+      await _openShortRoute();
       return;
     }
 
     if (selected == shortIndex && dx > 700) {
       controller.changeIndex(feedIndex);
     }
+  }
+
+  Future<void> _openShortRoute() async {
+    final shortController = ensureShortController();
+    if (shortController.shorts.isEmpty) {
+      shortController
+          .prepareStartupSurface(
+            allowBackgroundRefresh: false,
+          )
+          .catchError((_) {});
+    }
+
+    controller.suspendFeedForTabExit();
+    controller.pauseGlobalTabMedia();
+    await Get.to(() => const ShortView());
+    controller.resumeFeedIfNeeded();
   }
 
   Widget _buildNavBar(
@@ -339,19 +355,7 @@ extension _NavBarViewShellContentPart on NavBarView {
       return;
     }
 
-    final shortController = ensureShortController();
-    if (shortController.shorts.isEmpty) {
-      shortController
-          .prepareStartupSurface(
-            allowBackgroundRefresh: false,
-          )
-          .catchError((_) {});
-    }
-
-    controller.suspendFeedForTabExit();
-    controller.pauseGlobalTabMedia();
-    await Get.to(() => const ShortView());
-    controller.resumeFeedIfNeeded();
+    await _openShortRoute();
   }
 
   Widget _buildProfileNavIcon({required bool isSelected}) {
