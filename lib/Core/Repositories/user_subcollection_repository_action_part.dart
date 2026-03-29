@@ -26,7 +26,7 @@ extension UserSubcollectionRepositoryActionPart on UserSubcollectionRepository {
       ..add(
         UserSubcollectionEntry(
           id: docId,
-          data: Map<String, dynamic>.from(data),
+          data: _cloneUserSubcollectionMap(data),
         ),
       );
     await setEntries(uid, subcollection: subcollection, items: next);

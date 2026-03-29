@@ -87,7 +87,7 @@ extension UserSubcollectionRepositoryStoragePart
           .map(
             (e) => UserSubcollectionEntry(
               id: (e['id'] ?? '').toString(),
-              data: Map<String, dynamic>.from(
+              data: _cloneUserSubcollectionMap(
                 (e['data'] as Map?)?.map((k, v) => MapEntry('$k', v)) ??
                     const <String, dynamic>{},
               ),
@@ -113,9 +113,34 @@ extension UserSubcollectionRepositoryStoragePart
         .map(
           (e) => UserSubcollectionEntry(
             id: e.id,
-            data: Map<String, dynamic>.from(e.data),
+            data: _cloneUserSubcollectionMap(e.data),
           ),
         )
         .toList(growable: false);
+  }
+
+  Map<String, dynamic> _cloneUserSubcollectionMap(
+    Map<String, dynamic> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneUserSubcollectionValue(value)),
+    );
+  }
+
+  dynamic _cloneUserSubcollectionValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneUserSubcollectionValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value
+          .map(_cloneUserSubcollectionValue)
+          .toList(growable: false);
+    }
+    return value;
   }
 }

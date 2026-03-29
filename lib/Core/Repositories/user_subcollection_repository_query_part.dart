@@ -57,7 +57,7 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
         .map(
           (doc) => UserSubcollectionEntry(
             id: doc.id,
-            data: Map<String, dynamic>.from(doc.data()),
+            data: _cloneUserSubcollectionMap(doc.data()),
           ),
         )
         .toList(growable: false);
@@ -99,7 +99,9 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
 
     final entry = UserSubcollectionEntry(
       id: doc.id,
-      data: Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{}),
+      data: _cloneUserSubcollectionMap(
+        doc.data() ?? const <String, dynamic>{},
+      ),
     );
 
     final current = await getEntries(
