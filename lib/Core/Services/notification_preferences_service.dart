@@ -120,7 +120,7 @@ class NotificationPreferencesService {
       if (current is! Map) return false;
       current = current[segment];
     }
-    return current == true;
+    return _asNullableBool(current) ?? false;
   }
 
   static Map<String, dynamic> _deepMerge(
@@ -158,14 +158,38 @@ class NotificationPreferencesService {
       final mappedPosts = _clonePreferencesMap(
         posts.map((key, value) => MapEntry(key.toString(), value)),
       );
-      final legacyPostActivity = mappedPosts['postActivity'];
-      if (legacyPostActivity is bool) {
+      final legacyPostActivity = _asNullableBool(mappedPosts['postActivity']);
+      if (legacyPostActivity != null) {
         mappedPosts.putIfAbsent('posts', () => legacyPostActivity);
         mappedPosts.putIfAbsent('likes', () => legacyPostActivity);
       }
       normalized['posts'] = mappedPosts;
     }
     return normalized;
+  }
+
+  static bool? _asNullableBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return null;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return null;
   }
 
   static Map<String, dynamic> _pathMap(String path, dynamic value) {
