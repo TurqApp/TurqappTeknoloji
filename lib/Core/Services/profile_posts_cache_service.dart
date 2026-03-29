@@ -13,6 +13,17 @@ class ProfilePostsCacheService {
 
   SharedPreferences? _prefs;
 
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<SharedPreferences> _prefsInstance() async {
     _prefs ??= await SharedPreferences.getInstance();
     return _prefs!;
@@ -39,7 +50,7 @@ class ProfilePostsCacheService {
         return const <PostsModel>[];
       }
 
-      final fetchedAtMs = (decoded['fetchedAt'] as num?)?.toInt() ?? 0;
+      final fetchedAtMs = _asInt(decoded['fetchedAt']);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       if (fetchedAtMs <= 0 || (nowMs - fetchedAtMs) > _ttl.inMilliseconds) {
         await prefs.remove(key);
@@ -189,9 +200,7 @@ class ProfilePostsCacheService {
       );
     }
     if (value is List) {
-      return value
-          .map(_cloneProfilePostPayloadValue)
-          .toList(growable: false);
+      return value.map(_cloneProfilePostPayloadValue).toList(growable: false);
     }
     return value;
   }
