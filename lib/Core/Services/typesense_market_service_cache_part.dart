@@ -2,6 +2,17 @@ part of 'typesense_market_service.dart';
 
 extension TypesenseMarketSearchServiceCachePart
     on TypesenseMarketSearchService {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<void> _performInvalidateAll() async {
     _memory.clear();
     _prefs ??= await SharedPreferences.getInstance();
@@ -94,7 +105,7 @@ extension TypesenseMarketSearchServiceCachePart
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final ts = _asInt(decoded['t']);
       final payload = (decoded['d'] as List<dynamic>?) ?? const <dynamic>[];
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
