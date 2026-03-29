@@ -29,6 +29,8 @@ class StartupSnapshotSurfaceRecord {
   final bool startupShardHydrated;
   final int? startupShardAgeMs;
 
+  bool get isValid => surface.trim().isNotEmpty && source.trim().isNotEmpty;
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'surface': surface,
@@ -70,8 +72,8 @@ class StartupSnapshotManifest {
     required Map<String, StartupSnapshotSurfaceRecord> surfaces,
     this.launchToRouteMs,
     Map<String, dynamic> extra = const <String, dynamic>{},
-  }) : surfaces = Map<String, StartupSnapshotSurfaceRecord>.from(surfaces),
-       extra = _sanitizeExtraMap(extra);
+  })  : surfaces = Map<String, StartupSnapshotSurfaceRecord>.from(surfaces),
+        extra = _sanitizeExtraMap(extra);
 
   final int schemaVersion;
   final String actorId;
@@ -82,6 +84,8 @@ class StartupSnapshotManifest {
   final int? launchToRouteMs;
   final Map<String, StartupSnapshotSurfaceRecord> surfaces;
   final Map<String, dynamic> extra;
+
+  bool get isValid => actorId.trim().isNotEmpty;
 
   StartupSnapshotManifest copyWith({
     int? schemaVersion,
@@ -130,9 +134,11 @@ class StartupSnapshotManifest {
     final surfaces = <String, StartupSnapshotSurfaceRecord>{};
     rawSurfaces.forEach((key, value) {
       if (value is! Map) return;
-      surfaces[key] = StartupSnapshotSurfaceRecord.fromJson(
+      final record = StartupSnapshotSurfaceRecord.fromJson(
         Map<String, dynamic>.from(value),
       );
+      if (!record.isValid) return;
+      surfaces[key] = record;
     });
 
     return StartupSnapshotManifest(
@@ -170,6 +176,7 @@ class StartupSnapshotManifestStore extends GetxService {
     String? userId,
   }) async {
     final storageKey = _storageKey(userId);
+    final normalizedActorId = _normalizeActorId(userId);
     try {
       final prefs = await _prefsInstance();
       final raw = prefs.getString(storageKey);
@@ -179,10 +186,17 @@ class StartupSnapshotManifestStore extends GetxService {
         await prefs.remove(storageKey);
         return null;
       }
-      final manifest = StartupSnapshotManifest.fromJson(decoded);
-      if (manifest.schemaVersion != schemaVersion) {
+      final json = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
+      final rawSurfaceCount = (json['surfaces'] as Map?)?.length ?? 0;
+      final manifest = StartupSnapshotManifest.fromJson(json);
+      if (manifest.schemaVersion != schemaVersion ||
+          manifest.actorId != normalizedActorId ||
+          !manifest.isValid) {
         await prefs.remove(storageKey);
         return null;
+      }
+      if (rawSurfaceCount != manifest.surfaces.length) {
+        await _write(manifest);
       }
       return manifest;
     } catch (_) {
