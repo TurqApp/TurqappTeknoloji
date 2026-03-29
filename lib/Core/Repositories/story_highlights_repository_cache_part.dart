@@ -9,7 +9,10 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
     if (entry == null) return null;
     final fresh = DateTime.now().difference(entry.cachedAt) <=
         StoryHighlightsRepository._ttl;
-    if (!fresh && !allowStale) return null;
+    if (!fresh && !allowStale) {
+      _memory.remove(uid);
+      return null;
+    }
     return entry.items.map(_clone).toList(growable: false);
   }
 

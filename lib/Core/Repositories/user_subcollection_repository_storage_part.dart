@@ -49,7 +49,10 @@ extension UserSubcollectionRepositoryStoragePart
     if (entry == null) return null;
     final fresh = DateTime.now().difference(entry.cachedAt) <=
         UserSubcollectionRepository._ttl;
-    if (!fresh && !allowStale) return null;
+    if (!fresh && !allowStale) {
+      _memory.remove(key);
+      return null;
+    }
     return entry.items
         .map(
           (e) => UserSubcollectionEntry(

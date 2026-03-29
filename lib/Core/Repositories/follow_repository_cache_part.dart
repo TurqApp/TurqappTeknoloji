@@ -10,7 +10,12 @@ extension FollowRepositoryCachePart on FollowRepository {
   bool _hasFreshCache(String uid) {
     final entry = _memory[uid];
     if (entry == null) return false;
-    return DateTime.now().difference(entry.cachedAt) <= FollowRepository._ttl;
+    final fresh =
+        DateTime.now().difference(entry.cachedAt) <= FollowRepository._ttl;
+    if (!fresh) {
+      _memory.remove(uid);
+    }
+    return fresh;
   }
 
   String _prefsKey(String uid) => '${FollowRepository._prefsKeyPrefix}:$uid';
@@ -25,7 +30,10 @@ extension FollowRepositoryCachePart on FollowRepository {
     if (entry == null) return null;
     final fresh =
         DateTime.now().difference(entry.cachedAt) <= FollowRepository._ttl;
-    if (!fresh && !allowStale) return null;
+    if (!fresh && !allowStale) {
+      _relationMemory.remove(relationKey);
+      return null;
+    }
     return entry.ids.toSet();
   }
 

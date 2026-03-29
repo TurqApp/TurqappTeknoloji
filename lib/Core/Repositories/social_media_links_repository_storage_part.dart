@@ -41,7 +41,10 @@ extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
     final fresh =
         DateTime.now().difference(entry.cachedAt) <=
         SocialMediaLinksRepository._ttl;
-    if (!fresh && !allowStale) return null;
+    if (!fresh && !allowStale) {
+      _memory.remove(uid);
+      return null;
+    }
     return _cloneItemsImpl(entry.items);
   }
 
