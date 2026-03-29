@@ -186,15 +186,22 @@ extension StoryRepositoryCachePart on StoryRepository {
     await _ensureInitialized();
     final path = _storyRowCachePathForOwner(ownerUid);
     if (path == null) return const <StoryUserModel>[];
+    final file = File(path);
     try {
-      final file = File(path);
       if (!await file.exists()) return const <StoryUserModel>[];
       final raw = await file.readAsString();
-      if (raw.trim().isEmpty) return const <StoryUserModel>[];
+      if (raw.trim().isEmpty) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
       final data = jsonDecode(raw);
-      if (data is! Map) return const <StoryUserModel>[];
+      if (data is! Map) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
       final cacheOwnerUid = (data['ownerUid'] ?? '').toString();
       if (cacheOwnerUid.isNotEmpty && cacheOwnerUid != ownerUid) {
+        await file.delete();
         return const <StoryUserModel>[];
       }
       final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
@@ -203,6 +210,7 @@ extension StoryRepositoryCachePart on StoryRepository {
           DateTime.fromMillisecondsSinceEpoch(savedAt),
         );
         if (age > storyRowCacheTtlInternal) {
+          await file.delete();
           return const <StoryUserModel>[];
         }
       }
@@ -229,6 +237,11 @@ extension StoryRepositoryCachePart on StoryRepository {
           .where((u) => u.stories.isNotEmpty || u.userID == ownerUid)
           .toList(growable: false);
     } catch (_) {
+      try {
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {}
       return const <StoryUserModel>[];
     }
   }
