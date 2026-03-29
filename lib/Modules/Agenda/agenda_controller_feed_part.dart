@@ -155,15 +155,12 @@ extension AgendaControllerFeedPart on AgendaController {
     if (agendaList.isEmpty) return;
 
     pauseAll.value = false;
-    final expectedDocId = _pendingCenteredDocId ??
-        ((lastCenteredIndex != null &&
-                lastCenteredIndex! >= 0 &&
-                lastCenteredIndex! < agendaList.length)
-            ? agendaList[lastCenteredIndex!].docID
-            : null);
+    final pendingCenteredDocId = _pendingCenteredDocId?.trim() ?? '';
+    final expectedDocId =
+        pendingCenteredDocId.isNotEmpty ? pendingCenteredDocId : null;
     int target = _agendaFeedApplicationService.resolveResumeIndex(
       agendaList: agendaList.toList(growable: false),
-      pendingCenteredDocId: _pendingCenteredDocId,
+      pendingCenteredDocId: pendingCenteredDocId,
       lastCenteredIndex: lastCenteredIndex,
       centeredIndex: centeredIndex.value,
       visibleFractions: Map<int, double>.from(_visibleFractions),
