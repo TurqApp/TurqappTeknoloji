@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../Models/posts_model.dart';
+import '../Core/Repositories/feed_snapshot_repository.dart';
 import '../Core/Repositories/post_repository.dart';
 import '../Core/Repositories/user_repository.dart';
+import '../Core/Services/CacheFirst/startup_snapshot_shard_store.dart';
 import '../Core/Services/IndexPool/index_pool_store.dart';
 import '../Core/Services/agenda_shuffle_cache_service.dart';
 import '../Core/Services/typesense_post_service.dart';
@@ -282,6 +284,7 @@ class PostDeleteService {
   Future<void> _invalidatePostCaches(Iterable<String> docIds) async {
     final ids = docIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
     if (ids.isEmpty) return;
+    final viewerUserId = CurrentUserService.instance.effectiveUserId.trim();
 
     try {
       final pool = IndexPoolStore.maybeFind();
@@ -299,6 +302,22 @@ class PostDeleteService {
     try {
       maybeFindAgendaShuffleCacheService()?.removePosts(ids);
     } catch (_) {}
+
+    if (viewerUserId.isNotEmpty) {
+      try {
+        await ensureFeedSnapshotRepository().pruneHomeSnapshots(
+          userId: viewerUserId,
+          docIds: ids,
+        );
+      } catch (_) {}
+
+      try {
+        await ensureStartupSnapshotShardStore().clear(
+          surface: 'feed',
+          userId: viewerUserId,
+        );
+      } catch (_) {}
+    }
 
     for (final docId in ids) {
       try {

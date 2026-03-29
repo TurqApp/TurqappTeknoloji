@@ -175,6 +175,18 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         FeedSnapshotRepository._homeSurfaceKey,
         userId: userId?.trim().isEmpty ?? true ? null : userId!.trim(),
       );
+
+  Future<void> pruneHomeSnapshots({
+    required String userId,
+    required Iterable<String> docIds,
+    Iterable<int> additionalLimits = const <int>[],
+  }) =>
+      pruneFeedHomeSnapshots(
+        this,
+        userId: userId,
+        docIds: docIds,
+        additionalLimits: additionalLimits,
+      );
 }
 
 class FeedSnapshotQuery {

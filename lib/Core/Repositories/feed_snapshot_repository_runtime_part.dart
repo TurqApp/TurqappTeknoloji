@@ -61,6 +61,77 @@ Future<void> persistFeedHomeSnapshot(
   ]);
 }
 
+Future<void> pruneFeedHomeSnapshots(
+  FeedSnapshotRepository repository, {
+  required String userId,
+  required Iterable<String> docIds,
+  Iterable<int> additionalLimits = const <int>[],
+}) async {
+  final normalizedUserId = userId.trim();
+  final removeIds = docIds
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toSet();
+  if (normalizedUserId.isEmpty || removeIds.isEmpty) return;
+
+  final scopeLimits = <int>{
+    12,
+    24,
+    30,
+    FeedSnapshotRepository._defaultPersistLimit,
+    50,
+    ...additionalLimits.where((value) => value > 0),
+  };
+
+  for (final scopeLimit in scopeLimits) {
+    final key = repository._homeKey(
+      FeedSnapshotQuery(
+        userId: normalizedUserId,
+        limit: scopeLimit,
+      ),
+    );
+    final memoryRecord = await repository._memoryStore.read(
+      key,
+      allowStale: true,
+    );
+    final diskRecord = await repository._snapshotStore.read(
+      key,
+      allowStale: true,
+    );
+
+    final record = memoryRecord ?? diskRecord;
+    if (record == null) continue;
+
+    final filtered = repository
+        ._normalizePosts(record.data)
+        .where((post) => !removeIds.contains(post.docID))
+        .take(scopeLimit)
+        .toList(growable: false);
+
+    if (filtered.length == record.data.length) continue;
+
+    if (filtered.isEmpty) {
+      await Future.wait(<Future<void>>[
+        repository._memoryStore.clearScope(key),
+        repository._snapshotStore.clearScope(key),
+      ]);
+      continue;
+    }
+
+    final nextRecord = ScopedSnapshotRecord<List<PostsModel>>(
+      data: filtered,
+      snapshotAt: record.snapshotAt,
+      schemaVersion: record.schemaVersion,
+      generationId: record.generationId,
+      source: record.source,
+    );
+    await Future.wait(<Future<void>>[
+      repository._memoryStore.write(key, nextRecord),
+      repository._snapshotStore.write(key, nextRecord),
+    ]);
+  }
+}
+
 extension FeedSnapshotRepositoryStartupShardPart on FeedSnapshotRepository {
   Map<String, dynamic> encodeHomeStartupPayload(
     List<PostsModel> posts, {
