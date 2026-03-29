@@ -2,6 +2,17 @@ part of 'scholarship_snapshot_repository.dart';
 
 extension ScholarshipSnapshotRepositoryCodecPart
     on ScholarshipSnapshotRepository {
+  int _asInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  bool _asBool(Object? value) {
+    if (value is bool) return value;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   Map<String, dynamic> _encodeSnapshot(ScholarshipListingSnapshot snapshot) {
     return <String, dynamic>{
       'found': snapshot.found,
@@ -19,7 +30,7 @@ extension ScholarshipSnapshotRepositoryCodecPart
           )
           .where((item) => (item['docId'] ?? '').toString().isNotEmpty)
           .toList(growable: false),
-      found: (json['found'] as num?)?.toInt() ?? 0,
+      found: _asInt(json['found']),
     );
   }
 
@@ -47,10 +58,10 @@ extension ScholarshipSnapshotRepositoryCodecPart
       'userData':
           Map<String, dynamic>.from(item['userData'] as Map? ?? const {}),
       'docId': (item['docId'] ?? '').toString(),
-      'likesCount': (item['likesCount'] as num?)?.toInt() ?? 0,
-      'bookmarksCount': (item['bookmarksCount'] as num?)?.toInt() ?? 0,
-      'timeStamp': (item['timeStamp'] as num?)?.toInt() ?? 0,
-      'isSummary': item['isSummary'] == true,
+      'likesCount': _asInt(item['likesCount']),
+      'bookmarksCount': _asInt(item['bookmarksCount']),
+      'timeStamp': _asInt(item['timeStamp']),
+      'isSummary': _asBool(item['isSummary']),
     };
   }
 }
