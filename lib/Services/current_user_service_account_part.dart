@@ -133,7 +133,9 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       if (raw is int) return raw;
       if (raw is num) return raw.toInt();
       if (raw == null || isDeleteMarker(raw)) return fallback;
-      return int.tryParse(raw.toString()) ?? fallback;
+      final value = raw.toString().trim();
+      if (value.isEmpty) return fallback;
+      return int.tryParse(value) ?? num.tryParse(value)?.toInt() ?? fallback;
     }
 
     bool boolValue(
