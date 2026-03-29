@@ -27,10 +27,10 @@ extension UserSubdocRepositoryRuntimePart on UserSubdocRepository {
       final disk = await _getUserSubdocFromPrefs(this, key, ttl: ttl);
       if (disk != null) {
         _memory[key] = _CachedUserSubdoc(
-          data: Map<String, dynamic>.from(disk),
+          data: _cloneUserSubdocMap(disk),
           cachedAt: DateTime.now(),
         );
-        return Map<String, dynamic>.from(disk);
+        return _cloneUserSubdocMap(disk);
       }
     }
 
@@ -40,8 +40,9 @@ extension UserSubdocRepositoryRuntimePart on UserSubdocRepository {
         .collection(collection)
         .doc(docId)
         .get();
-    final data =
-        Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});
+    final data = _cloneUserSubdocMap(
+      doc.data() ?? const <String, dynamic>{},
+    );
     await putDoc(
       uid,
       collection: collection,
@@ -73,8 +74,8 @@ extension UserSubdocRepositoryRuntimePart on UserSubdocRepository {
       forceRefresh: false,
     );
     final merged = merge
-        ? (Map<String, dynamic>.from(current)..addAll(data))
-        : Map<String, dynamic>.from(data);
+        ? (_cloneUserSubdocMap(current)..addAll(_cloneUserSubdocMap(data)))
+        : _cloneUserSubdocMap(data);
     await putDoc(
       uid,
       collection: collection,
