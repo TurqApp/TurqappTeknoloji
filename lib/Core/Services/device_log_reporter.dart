@@ -1,5 +1,26 @@
 import 'dart:convert';
 
+dynamic _cloneDeviceLogValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneDeviceLogValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneDeviceLogValue).toList(growable: false);
+  }
+  return value;
+}
+
+Map<String, dynamic> _cloneDeviceLogMap(Map source) {
+  return source.map(
+    (key, value) => MapEntry(key.toString(), _cloneDeviceLogValue(value)),
+  );
+}
+
 class DeviceLogIssue {
   const DeviceLogIssue({
     required this.code,
@@ -30,7 +51,7 @@ class DeviceLogIssue {
       'type': 'device_log',
     };
     if (context != null && context!.isNotEmpty) {
-      json['context'] = context;
+      json['context'] = _cloneDeviceLogMap(context!);
     }
     return json;
   }
@@ -77,9 +98,9 @@ class DeviceLogReport {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
-      'source': source,
-      'summary': summary,
-      'metrics': metrics,
+      'source': _cloneDeviceLogMap(source),
+      'summary': _cloneDeviceLogMap(summary),
+      'metrics': _cloneDeviceLogMap(metrics),
       'issues': issues.map((issue) => issue.toJson()).toList(growable: false),
       'observations': observations
           .map((observation) => observation.toJson())
