@@ -62,7 +62,9 @@ class ProfilePostsCacheService {
         try {
           out.add(
             PostsModel.fromMap(
-              Map<String, dynamic>.from(data.cast<String, dynamic>()),
+              _cloneProfilePostPayloadMap(
+                Map<String, dynamic>.from(data.cast<String, dynamic>()),
+              ),
               docId,
             ),
           );
@@ -96,7 +98,7 @@ class ProfilePostsCacheService {
             .map(
               (p) => <String, dynamic>{
                 'docID': p.docID,
-                'data': p.toMap(),
+                'data': _cloneProfilePostPayloadMap(p.toMap()),
               },
             )
             .toList(growable: false),
@@ -167,5 +169,30 @@ class ProfilePostsCacheService {
         await prefs.setString(key, jsonEncode(decoded));
       }
     } catch (_) {}
+  }
+
+  Map<String, dynamic> _cloneProfilePostPayloadMap(
+    Map<String, dynamic> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneProfilePostPayloadValue(value)),
+    );
+  }
+
+  dynamic _cloneProfilePostPayloadValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneProfilePostPayloadValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value
+          .map(_cloneProfilePostPayloadValue)
+          .toList(growable: false);
+    }
+    return value;
   }
 }
