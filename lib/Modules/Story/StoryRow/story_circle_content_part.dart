@@ -67,7 +67,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 11,
+              fontSize: 10,
               height: 1,
               fontFamily: "MontserratMedium",
             ),
