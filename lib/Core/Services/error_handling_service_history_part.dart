@@ -27,7 +27,11 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
       final historyString = prefs.getString(_errorHandlingHistoryKey);
 
       if (historyString != null) {
-        final historyJson = jsonDecode(historyString) as List;
+        final historyJson = jsonDecode(historyString);
+        if (historyJson is! List) {
+          await prefs.remove(_errorHandlingHistoryKey);
+          return;
+        }
         _errorHistory.assignAll(
           historyJson.map((item) => AppError.fromJson(item)).toList(),
         );
@@ -36,6 +40,10 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
       }
     } catch (e) {
       print('Failed to load error history: $e');
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_errorHandlingHistoryKey);
+      } catch (_) {}
     }
   }
 

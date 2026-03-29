@@ -60,24 +60,32 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
     _failedCount.value = 0;
 
     if (queueString != null) {
-      final queueJson = jsonDecode(queueString) as List;
-      _queue.assignAll(
-        queueJson.map((item) => QueuedUpload.fromJson(item)).toList(),
-      );
+      try {
+        final queueJson = jsonDecode(queueString);
+        if (queueJson is! List) {
+          await prefs.remove(_queueKey);
+          return;
+        }
+        _queue.assignAll(
+          queueJson.map((item) => QueuedUpload.fromJson(item)).toList(),
+        );
 
-      for (final upload
-          in _queue.where((item) => item.status == UploadStatus.uploading)) {
-        upload.status = UploadStatus.pending;
-        upload.progress = 0.0;
+        for (final upload
+            in _queue.where((item) => item.status == UploadStatus.uploading)) {
+          upload.status = UploadStatus.pending;
+          upload.progress = 0.0;
+        }
+
+        _completedCount.value =
+            _queue.where((item) => item.status == UploadStatus.completed).length;
+        _failedCount.value =
+            _queue.where((item) => item.status == UploadStatus.failed).length;
+
+        await _saveQueueToStorage();
+        _notifyQueueUpdated();
+      } catch (_) {
+        await prefs.remove(_queueKey);
       }
-
-      _completedCount.value =
-          _queue.where((item) => item.status == UploadStatus.completed).length;
-      _failedCount.value =
-          _queue.where((item) => item.status == UploadStatus.failed).length;
-
-      await _saveQueueToStorage();
-      _notifyQueueUpdated();
     }
   }
 
