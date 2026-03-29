@@ -362,9 +362,9 @@ class ManagedAdInventoryOverview {
     required this.viewCount,
     required this.uniqueViewCount,
   }) : items = List<ManagedAdInventoryItem>.from(
-         items,
-         growable: false,
-       );
+          items,
+          growable: false,
+        );
 
   final List<ManagedAdInventoryItem> items;
   final int totalPlacements;
@@ -499,6 +499,12 @@ class TurqAppSuggestionConfigService {
   final Map<String, Future<TurqAppSuggestionConfig>> _pendingReads =
       <String, Future<TurqAppSuggestionConfig>>{};
 
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection(AdsCollections.surfaceSlots);
 
@@ -628,8 +634,8 @@ class TurqAppSuggestionConfigService {
       } else {
         activeItems++;
       }
-      viewCount += (data['viewCount'] as num?)?.toInt() ?? 0;
-      uniqueViewCount += (data['uniqueViewCount'] as num?)?.toInt() ?? 0;
+      viewCount += _asInt(data['viewCount']);
+      uniqueViewCount += _asInt(data['uniqueViewCount']);
     }
 
     return SliderRuntimeSummary(
