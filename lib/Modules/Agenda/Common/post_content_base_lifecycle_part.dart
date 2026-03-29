@@ -106,6 +106,11 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           _skipNextPause = false;
           return;
         }
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            _isPrimaryFeedSurfaceInstance) {
+          unawaited(_disposePlaybackForSurfaceLoss());
+          return;
+        }
         _safePauseVideo();
       }
     }

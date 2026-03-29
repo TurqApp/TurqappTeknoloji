@@ -1,6 +1,26 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerPlaybackPart on AgendaController {
+  bool _shouldRetainStartupPlaybackTarget({
+    required int current,
+    required double stopThreshold,
+  }) {
+    if (!GetPlatform.isIOS) return false;
+    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+      return false;
+    }
+    if (current < 0 || current >= agendaList.length) return false;
+    if (!_canAutoplayVideoPost(agendaList[current])) return false;
+    final lastCommandAt = _lastPlaybackCommandAt;
+    if (lastCommandAt == null) return false;
+    if (DateTime.now().difference(lastCommandAt) >
+        const Duration(milliseconds: 1200)) {
+      return false;
+    }
+    final currentFraction = _visibleFractions[current] ?? 0.0;
+    return currentFraction >= stopThreshold;
+  }
+
   void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (modelIndex < 0 || modelIndex >= agendaList.length) return;
     if (playbackSuspended.value || !isPrimaryFeedRouteVisible) {
@@ -55,6 +75,14 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double stopThreshold,
   }) {
     final current = centeredIndex.value;
+    if (_shouldRetainStartupPlaybackTarget(
+      current: current,
+      stopThreshold: stopThreshold,
+    )) {
+      lastCenteredIndex = current;
+      _trackPlaybackWindow();
+      return;
+    }
     if (current >= 0 && current < agendaList.length) {
       final currentDocId = agendaList[current].docID;
       final currentFraction = _visibleFractions[current] ?? 0.0;
