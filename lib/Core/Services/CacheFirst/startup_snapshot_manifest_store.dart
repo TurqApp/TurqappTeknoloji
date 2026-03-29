@@ -12,6 +12,12 @@ int _startupManifestAsInt(Object? value) {
   return int.tryParse(value?.toString() ?? '') ?? 0;
 }
 
+bool _startupManifestAsBool(Object? value) {
+  if (value is bool) return value;
+  final raw = (value ?? '').toString().trim().toLowerCase();
+  return raw == 'true' || raw == '1';
+}
+
 class StartupSnapshotSurfaceRecord {
   const StartupSnapshotSurfaceRecord({
     required this.surface,
@@ -55,15 +61,16 @@ class StartupSnapshotSurfaceRecord {
     return StartupSnapshotSurfaceRecord(
       surface: (json['surface'] ?? '').toString().trim(),
       itemCount: _startupManifestAsInt(json['itemCount']),
-      hasLocalSnapshot: json['hasLocalSnapshot'] == true,
+      hasLocalSnapshot: _startupManifestAsBool(json['hasLocalSnapshot']),
       source:
           (json['source'] ?? CachedResourceSource.none.name).toString().trim(),
-      isStale: json['isStale'] == true,
+      isStale: _startupManifestAsBool(json['isStale']),
       recordedAtMs: _startupManifestAsInt(json['recordedAtMs']),
       snapshotAgeMs: json.containsKey('snapshotAgeMs')
           ? _startupManifestAsInt(json['snapshotAgeMs'])
           : null,
-      startupShardHydrated: json['startupShardHydrated'] == true,
+      startupShardHydrated:
+          _startupManifestAsBool(json['startupShardHydrated']),
       startupShardAgeMs: json.containsKey('startupShardAgeMs')
           ? _startupManifestAsInt(json['startupShardAgeMs'])
           : null,
@@ -160,8 +167,9 @@ class StartupSnapshotManifest {
           .trim(),
       savedAtMs: _startupManifestAsInt(json['savedAtMs']),
       routeHint: (json['routeHint'] ?? '').toString().trim(),
-      loggedIn: json['loggedIn'] == true,
-      minimumStartupPrepared: json['minimumStartupPrepared'] == true,
+      loggedIn: _startupManifestAsBool(json['loggedIn']),
+      minimumStartupPrepared:
+          _startupManifestAsBool(json['minimumStartupPrepared']),
       launchToRouteMs: json.containsKey('launchToRouteMs')
           ? _startupManifestAsInt(json['launchToRouteMs'])
           : null,
