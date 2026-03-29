@@ -178,21 +178,6 @@ class JobModel {
   }
 
   factory JobModel.fromTypesenseHit(Map<String, dynamic> hit) {
-    int asInt(dynamic value) {
-      if (value is num) return value.toInt();
-      return int.tryParse('$value') ?? 0;
-    }
-
-    double asDouble(dynamic value) {
-      if (value is num) return value.toDouble();
-      return double.tryParse('$value') ?? 0.0;
-    }
-
-    List<String> asStringList(dynamic value) {
-      if (value is List) return value.map((e) => '$e').toList(growable: false);
-      return const <String>[];
-    }
-
     String firstNonEmpty(dynamic a, dynamic b, [dynamic c]) {
       final values = [a, b, c];
       for (final value in values) {
@@ -205,33 +190,34 @@ class JobModel {
     return JobModel(
       docID: (hit['docId'] ?? hit['id'] ?? '').toString(),
       brand: (hit['brand'] ?? hit['subtitle'] ?? '').toString(),
-      calismaGunleri: asStringList(hit['calismaGunleri']),
+      calismaGunleri: _asStringList(hit['calismaGunleri']),
       calismaSaatiBaslangic: (hit['calismaSaatiBaslangic'] ?? '').toString(),
       calismaSaatiBitis: (hit['calismaSaatiBitis'] ?? '').toString(),
-      calismaTuru: asStringList(hit['calismaTuru']),
-      ended: hit['ended'] == true || hit['active'] == false,
+      calismaTuru: _asStringList(hit['calismaTuru']),
+      ended: _asBool(hit['ended']) || !_asBool(hit['active'], fallback: true),
       isTanimi: (hit['isTanimi'] ?? hit['description'] ?? '').toString(),
-      lat: asDouble(hit['lat']),
-      long: asDouble(hit['long']),
+      lat: _asDouble(hit['lat']),
+      long: _asDouble(hit['long']),
       adres: (hit['adres'] ?? '').toString(),
       logo: firstNonEmpty(hit['logo'], hit['cover']),
-      maas1: asInt(hit['maas1']),
-      maas2: asInt(hit['maas2']),
+      maas1: _asInt(hit['maas1']),
+      maas2: _asInt(hit['maas2']),
       meslek: (hit['meslek'] ?? hit['subtitle'] ?? '').toString(),
-      timeStamp: asInt(hit['timeStamp']),
+      timeStamp: _asInt(hit['timeStamp']),
       userID: (hit['ownerId'] ?? '').toString(),
-      yanHaklar: asStringList(hit['yanHaklar']),
+      yanHaklar: _asStringList(hit['yanHaklar']),
       city: (hit['city'] ?? '').toString(),
       town: (hit['town'] ?? '').toString(),
       about: (hit['about'] ?? '').toString(),
       ilanBasligi: (hit['ilanBasligi'] ?? hit['title'] ?? '').toString(),
       deneyimSeviyesi: (hit['deneyimSeviyesi'] ?? '').toString(),
-      basvuruSayisi: asInt(hit['basvuruSayisi']),
-      pozisyonSayisi:
-          asInt(hit['pozisyonSayisi']) == 0 ? 1 : asInt(hit['pozisyonSayisi']),
-      viewCount: asInt(hit['viewCount']),
-      applicationCount: asInt(hit['applicationCount']),
-      endedAt: asInt(hit['endedAt']),
+      basvuruSayisi: _asInt(hit['basvuruSayisi']),
+      pozisyonSayisi: _asInt(hit['pozisyonSayisi']) == 0
+          ? 1
+          : _asInt(hit['pozisyonSayisi']),
+      viewCount: _asInt(hit['viewCount']),
+      applicationCount: _asInt(hit['applicationCount']),
+      endedAt: _asInt(hit['endedAt']),
       authorAvatarUrl: firstNonEmpty(hit['avatarUrl'], hit['authorAvatarUrl']),
       authorDisplayName:
           firstNonEmpty(hit['displayName'], hit['authorDisplayName']),
