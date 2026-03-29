@@ -172,6 +172,7 @@ class CacheFirstCoordinator<T> {
       if (liveIsEmpty &&
           current.hasData &&
           policy.preservePreviousOnEmptyLive) {
+        _lastLiveSyncAtByKey[key.storageKey] = DateTime.now();
         final preserved = current.copyWith(
           isRefreshing: false,
           isStale: true,
