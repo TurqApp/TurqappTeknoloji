@@ -18,11 +18,15 @@ class TutoringReviewModel {
   factory TutoringReviewModel.fromMap(Map<String, dynamic> map, String docID) {
     return TutoringReviewModel(
       reviewID: docID,
-      userID: map['userID'] ?? '',
-      tutoringDocID: map['tutoringDocID'] ?? '',
-      rating: map['rating'] ?? 0,
-      comment: map['comment'] ?? '',
-      timeStamp: map['timeStamp'] ?? 0,
+      userID: (map['userID'] ?? '').toString(),
+      tutoringDocID: (map['tutoringDocID'] ?? '').toString(),
+      rating: (map['rating'] as num?)?.toInt() ??
+          int.tryParse((map['rating'] ?? '').toString()) ??
+          0,
+      comment: (map['comment'] ?? '').toString(),
+      timeStamp: (map['timeStamp'] as num?)?.toInt() ??
+          int.tryParse((map['timeStamp'] ?? '').toString()) ??
+          0,
     );
   }
 
