@@ -28,6 +28,32 @@ class QuestionBankModel {
   static List<dynamic> _cloneDynamicList(List<dynamic> source) =>
       List<dynamic>.from(source, growable: false);
 
+  static String _asString(dynamic value) => (value ?? '').toString();
+
+  static bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized == 'true' || normalized == '1') return true;
+    if (normalized == 'false' || normalized == '0') return false;
+    return fallback;
+  }
+
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static num _asNum(dynamic value, {num fallback = 0}) {
+    if (value is num) return value;
+    return num.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static List<dynamic> _asDynamicList(dynamic value) {
+    if (value is! List) return const <dynamic>[];
+    return List<dynamic>.from(value, growable: false);
+  }
+
   QuestionBankModel({
     required this.docID,
     required this.anaBaslik,
@@ -52,73 +78,75 @@ class QuestionBankModel {
     required this.wrongCount,
     required this.yil,
     required this.active,
-  }) : begeniler = _cloneDynamicList(begeniler),
-       paylasanlar = _cloneDynamicList(paylasanlar);
+  })  : begeniler = _cloneDynamicList(begeniler),
+        paylasanlar = _cloneDynamicList(paylasanlar);
 
   factory QuestionBankModel.fromJson(Map<String, dynamic> json) {
-    final docID = json['docID'] as String? ?? '';
+    final docID = _asString(json['docID']).trim();
     if (docID.isEmpty) {
       log("Hata: Firestore belgesinde geçersiz veya boş docID: ${json['soru']}");
       throw Exception("Geçersiz docID: Boş veya null olamaz");
     }
     return QuestionBankModel(
       docID: docID,
-      anaBaslik: json['anaBaslik'] as String? ?? '',
-      begeniler: json['begeniler'] as List<dynamic>? ?? [],
-      categoryKey: json['categoryKey'] as String? ?? '',
-      ders: json['ders'] as String? ?? '',
-      diger1: json['diger1'] as String? ?? '',
-      diger2: json['diger2'] as bool? ?? false,
-      diger3: json['diger3'] as num? ?? 0,
-      dogruCevap: json['dogruCevap'] as String? ?? '',
-      correctCount: (json['correctCount'] as num?)?.toInt() ?? 0,
-      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
-      iptal: json['iptal'] as bool? ?? false,
-      kacCevap: json['kacCevap'] as num? ?? 0,
-      paylasanlar: json['paylasanlar'] as List<dynamic>? ?? [],
-      seq: (json['seq'] as num?)?.toInt() ?? 0,
-      sinavTuru: json['sinavTuru'] as String? ?? '',
-      soru: json['soru'] as String? ?? '',
-      soruNo: json['soruNo'] as String? ?? '',
-      shortId: json['shortId'] as String? ?? '',
-      shortUrl: json['shortUrl'] as String? ?? '',
-      wrongCount: (json['wrongCount'] as num?)?.toInt() ?? 0,
-      yil: json['yil'] as String? ?? '',
-      active: json['active'] as bool? ?? true,
+      anaBaslik: _asString(json['anaBaslik']),
+      begeniler: _asDynamicList(json['begeniler']),
+      categoryKey: _asString(json['categoryKey']),
+      ders: _asString(json['ders']),
+      diger1: _asString(json['diger1']),
+      diger2: _asBool(json['diger2']),
+      diger3: _asNum(json['diger3']),
+      dogruCevap: _asString(json['dogruCevap']),
+      correctCount: _asInt(json['correctCount']),
+      viewCount: _asInt(json['viewCount']),
+      iptal: _asBool(json['iptal']),
+      kacCevap: _asNum(json['kacCevap']),
+      paylasanlar: _asDynamicList(json['paylasanlar']),
+      seq: _asInt(json['seq']),
+      sinavTuru: _asString(json['sinavTuru']),
+      soru: _asString(json['soru']),
+      soruNo: _asString(json['soruNo']),
+      shortId: _asString(json['shortId']),
+      shortUrl: _asString(json['shortUrl']),
+      wrongCount: _asInt(json['wrongCount']),
+      yil: _asString(json['yil']),
+      active: _asBool(json['active'], fallback: true),
     );
   }
 
   factory QuestionBankModel.fromTypesenseHit(Map<String, dynamic> json) {
-    final docID = (json['docId'] as String?)?.trim() ??
-        (json['id'] as String?)?.trim() ??
-        '';
+    final docID = _asString(json['docId']).trim().isNotEmpty
+        ? _asString(json['docId']).trim()
+        : _asString(json['id']).trim();
     if (docID.isEmpty) {
       throw Exception("Geçersiz docID: Typesense hit boş");
     }
     return QuestionBankModel(
       docID: docID,
-      anaBaslik: json['anaBaslik'] as String? ?? '',
+      anaBaslik: _asString(json['anaBaslik']),
       begeniler: const [],
-      categoryKey: json['categoryKey'] as String? ?? '',
-      ders: json['ders'] as String? ?? '',
-      diger1: json['diger1'] as String? ?? '',
-      diger2: json['diger2'] as bool? ?? false,
-      diger3: json['diger3'] as num? ?? 0,
-      dogruCevap: json['dogruCevap'] as String? ?? '',
-      correctCount: (json['correctCount'] as num?)?.toInt() ?? 0,
-      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
-      iptal: !(json['active'] as bool? ?? true),
-      kacCevap: json['kacCevap'] as num? ?? 0,
+      categoryKey: _asString(json['categoryKey']),
+      ders: _asString(json['ders']),
+      diger1: _asString(json['diger1']),
+      diger2: _asBool(json['diger2']),
+      diger3: _asNum(json['diger3']),
+      dogruCevap: _asString(json['dogruCevap']),
+      correctCount: _asInt(json['correctCount']),
+      viewCount: _asInt(json['viewCount']),
+      iptal: !_asBool(json['active'], fallback: true),
+      kacCevap: _asNum(json['kacCevap']),
       paylasanlar: const [],
-      seq: (json['seq'] as num?)?.toInt() ?? 0,
-      sinavTuru: json['sinavTuru'] as String? ?? '',
-      soru: json['soru'] as String? ?? (json['cover'] as String? ?? ''),
-      soruNo: json['soruNo'] as String? ?? '',
-      shortId: json['shortId'] as String? ?? '',
-      shortUrl: json['shortUrl'] as String? ?? '',
-      wrongCount: (json['wrongCount'] as num?)?.toInt() ?? 0,
-      yil: json['yil'] as String? ?? '',
-      active: json['active'] as bool? ?? true,
+      seq: _asInt(json['seq']),
+      sinavTuru: _asString(json['sinavTuru']),
+      soru: _asString(json['soru']).isNotEmpty
+          ? _asString(json['soru'])
+          : _asString(json['cover']),
+      soruNo: _asString(json['soruNo']),
+      shortId: _asString(json['shortId']),
+      shortUrl: _asString(json['shortUrl']),
+      wrongCount: _asInt(json['wrongCount']),
+      yil: _asString(json['yil']),
+      active: _asBool(json['active'], fallback: true),
     );
   }
 
