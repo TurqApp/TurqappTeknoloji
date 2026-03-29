@@ -38,13 +38,13 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
 
     _memory.remove(uid);
     _memory[uid] = entry;
-    return Map<String, dynamic>.from(entry.data);
+    return _cloneUserProfileMap(entry.data);
   }
 
   void _put(String uid, Map<String, dynamic> profile) {
     _memory.remove(uid);
     _memory[uid] = _CachedUserProfile(
-      data: Map<String, dynamic>.from(profile),
+      data: _cloneUserProfileMap(profile),
       cachedAt: DateTime.now(),
     );
     _trimIfNeeded();
@@ -96,7 +96,7 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
         if (DateTime.now().difference(cachedAt) > _ttl) continue;
 
         _memory[entry.key] = _CachedUserProfile(
-          data: data,
+          data: _cloneUserProfileMap(data),
           cachedAt: cachedAt,
         );
         validEntries++;
@@ -117,7 +117,7 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
       for (final entry in _memory.entries) {
         map[entry.key] = {
           't': entry.value.cachedAt.millisecondsSinceEpoch,
-          'd': entry.value.data,
+          'd': _cloneUserProfileMap(entry.value.data),
         };
       }
       await _prefs?.setString(
@@ -129,10 +129,14 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
 
   Map<String, dynamic> _sanitizeProfile(Map<String, dynamic> raw) {
     Map<String, dynamic> asMap(dynamic value) {
-      if (value is Map<String, dynamic>) return value;
+      if (value is Map<String, dynamic>) {
+        return _cloneUserProfileMap(value);
+      }
       if (value is Map) {
-        return value.map(
-          (key, entry) => MapEntry(key.toString(), entry),
+        return _cloneUserProfileMap(
+          value.map(
+            (key, entry) => MapEntry(key.toString(), entry),
+          ),
         );
       }
       return const <String, dynamic>{};
@@ -234,5 +238,26 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
     if (u.isNotEmpty) return u;
     if (ul.isNotEmpty) return ul;
     return n;
+  }
+
+  Map<String, dynamic> _cloneUserProfileMap(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneUserProfileValue(value)),
+    );
+  }
+
+  dynamic _cloneUserProfileValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneUserProfileValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneUserProfileValue).toList(growable: false);
+    }
+    return value;
   }
 }
