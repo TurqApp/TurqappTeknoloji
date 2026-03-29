@@ -139,6 +139,7 @@ class MarketNotificationService {
     final targetUid = targetUserId.trim();
     if (fromUid.isEmpty || targetUid.isEmpty || fromUid == targetUid) return;
     final now = DateTime.now().millisecondsSinceEpoch;
+    final clonedExtra = _cloneMap(extra);
     await NotificationsRepository.ensure().createInboxItem(targetUid, {
       'type': type,
       'fromUserID': fromUid,
@@ -152,7 +153,7 @@ class MarketNotificationService {
       'title': title,
       'body': body,
       'desc': desc.isEmpty ? body : desc,
-      ...extra,
+      ...clonedExtra,
     });
   }
 
