@@ -766,15 +766,22 @@ class _ParsedLogLine {
 }
 
 class _FrameEventsCorrelation {
-  const _FrameEventsCorrelation({
+  _FrameEventsCorrelation({
     required this.burstCount,
     required this.startLine,
     required this.endLine,
-    required this.playbackSources,
+    required List<String> playbackSources,
     required this.rootCauseCategory,
     required this.rootCauseDetail,
-    required this.contextSignals,
-  });
+    required List<String> contextSignals,
+  }) : playbackSources = List<String>.from(
+         playbackSources,
+         growable: false,
+       ),
+       contextSignals = List<String>.from(
+         contextSignals,
+         growable: false,
+       );
 
   final int burstCount;
   final int startLine;
@@ -806,10 +813,10 @@ class _FrameEventsCorrelation {
       'burstCount': burstCount,
       'startLine': startLine,
       'endLine': endLine,
-      'playbackSources': playbackSources,
+      'playbackSources': List<String>.from(playbackSources, growable: false),
       'rootCauseCategory': rootCauseCategory,
       'rootCauseDetail': rootCauseDetail,
-      'contextSignals': contextSignals,
+      'contextSignals': List<String>.from(contextSignals, growable: false),
     };
   }
 }
