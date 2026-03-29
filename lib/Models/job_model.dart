@@ -38,6 +38,63 @@ class JobModel {
   static List<String> _cloneStringList(List<String> source) =>
       List<String>.from(source, growable: false);
 
+  static String _asString(dynamic value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    final normalized = value.toString().trim();
+    return normalized.isEmpty ? fallback : normalized;
+  }
+
+  static bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      switch (value.trim().toLowerCase()) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'evet':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'hayir':
+        case 'hayır':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
+  static double _asDouble(dynamic value, {double fallback = 0.0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
+  static List<String> _asStringList(dynamic value) {
+    if (value is List) {
+      return value
+          .map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+    return const <String>[];
+  }
+
   JobModel({
     required this.docID,
     required this.brand,
@@ -74,46 +131,49 @@ class JobModel {
     this.shortId = "",
     this.shortUrl = "",
     this.rozet = "",
-  }) : calismaGunleri = _cloneStringList(calismaGunleri),
-       calismaTuru = _cloneStringList(calismaTuru),
-       yanHaklar = _cloneStringList(yanHaklar);
+  })  : calismaGunleri = _cloneStringList(calismaGunleri),
+        calismaTuru = _cloneStringList(calismaTuru),
+        yanHaklar = _cloneStringList(yanHaklar);
 
   factory JobModel.fromMap(Map<String, dynamic> map, String docID) {
     return JobModel(
       docID: docID,
-      brand: map['brand'] ?? '',
-      calismaGunleri: List<String>.from(map['calismaGunleri'] ?? []),
-      calismaSaatiBaslangic: map['calismaSaatiBaslangic'] ?? '',
-      calismaSaatiBitis: map['calismaSaatiBitis'] ?? '',
-      calismaTuru: List<String>.from(map['calismaTuru'] ?? []),
-      ended: map['ended'] ?? false,
-      isTanimi: map['isTanimi'] ?? '',
-      lat: map['lat']?.toDouble() ?? 0.0,
-      long: map['long']?.toDouble() ?? 0.0,
-      logo: map['logo'] ?? '',
-      adres: map['adres'] ?? '',
-      maas1: map['maas1'] ?? 0,
-      maas2: map['maas2'] ?? 0,
-      meslek: map['meslek'] ?? '',
-      timeStamp: map['timeStamp'] ?? 0,
-      userID: map['userID'] ?? '',
-      yanHaklar: List<String>.from(map['yanHaklar'] ?? []),
-      city: map['city'] ?? '',
-      town: map['town'] ?? '',
-      about: map['about'] ?? '',
-      ilanBasligi: map['ilanBasligi'] ?? '',
-      deneyimSeviyesi: map['deneyimSeviyesi'] ?? '',
-      basvuruSayisi: map['basvuruSayisi'] ?? 0,
-      pozisyonSayisi: map['pozisyonSayisi'] ?? 1,
-      viewCount: map['viewCount'] ?? 0,
-      applicationCount: map['applicationCount'] ?? 0,
-      endedAt: map['endedAt'] ?? 0,
-      authorAvatarUrl: map['authorAvatarUrl'] ?? map['avatarUrl'] ?? '',
-      authorDisplayName: map['authorDisplayName'] ?? map['displayName'] ?? '',
-      authorNickname: map['authorNickname'] ?? map['nickname'] ?? '',
-      shortId: map['shortId'] ?? '',
-      shortUrl: map['shortUrl'] ?? '',
-      rozet: map['rozet'] ?? '',
+      brand: _asString(map['brand']),
+      calismaGunleri: _asStringList(map['calismaGunleri']),
+      calismaSaatiBaslangic: _asString(map['calismaSaatiBaslangic']),
+      calismaSaatiBitis: _asString(map['calismaSaatiBitis']),
+      calismaTuru: _asStringList(map['calismaTuru']),
+      ended: _asBool(map['ended']),
+      isTanimi: _asString(map['isTanimi']),
+      lat: _asDouble(map['lat']),
+      long: _asDouble(map['long']),
+      logo: _asString(map['logo']),
+      adres: _asString(map['adres']),
+      maas1: _asInt(map['maas1']),
+      maas2: _asInt(map['maas2']),
+      meslek: _asString(map['meslek']),
+      timeStamp: _asInt(map['timeStamp']),
+      userID: _asString(map['userID']),
+      yanHaklar: _asStringList(map['yanHaklar']),
+      city: _asString(map['city']),
+      town: _asString(map['town']),
+      about: _asString(map['about']),
+      ilanBasligi: _asString(map['ilanBasligi']),
+      deneyimSeviyesi: _asString(map['deneyimSeviyesi']),
+      basvuruSayisi: _asInt(map['basvuruSayisi']),
+      pozisyonSayisi: _asInt(map['pozisyonSayisi'], fallback: 1),
+      viewCount: _asInt(map['viewCount']),
+      applicationCount: _asInt(map['applicationCount']),
+      endedAt: _asInt(map['endedAt']),
+      authorAvatarUrl: _asString(map['authorAvatarUrl'],
+          fallback: _asString(map['avatarUrl'])),
+      authorDisplayName: _asString(map['authorDisplayName'],
+          fallback: _asString(map['displayName'])),
+      authorNickname: _asString(map['authorNickname'],
+          fallback: _asString(map['nickname'])),
+      shortId: _asString(map['shortId']),
+      shortUrl: _asString(map['shortUrl']),
+      rozet: _asString(map['rozet']),
     );
   }
 
