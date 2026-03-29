@@ -1,3 +1,15 @@
+val enforcedKotlinVersion = "2.1.0"
+
+buildscript {
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin") {
+                useVersion("2.1.0")
+            }
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -9,6 +21,15 @@ val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build"
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
+    buildscript {
+        configurations.configureEach {
+            resolutionStrategy.eachDependency {
+                if (requested.group == "org.jetbrains.kotlin") {
+                    useVersion("2.1.0")
+                }
+            }
+        }
+    }
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
@@ -23,6 +44,9 @@ subprojects {
             config.name.contains("runtimeOnly", ignoreCase = true)
     }.all {
         resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin") {
+                useVersion(enforcedKotlinVersion)
+            }
             if (requested.group == "androidx.concurrent" &&
                 requested.name == "concurrent-futures"
             ) {
