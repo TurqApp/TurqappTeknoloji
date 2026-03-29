@@ -13,6 +13,30 @@ class MarketItemModel {
     return double.tryParse((value ?? '').toString()) ?? 0;
   }
 
+  static bool _asBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   MarketItemModel({
     required this.id,
     required this.userId,
@@ -161,7 +185,7 @@ class MarketItemModel {
               json['phoneNumber'] ??
               '')
           .toString(),
-      showPhone: json['showPhone'] == true,
+      showPhone: _asBool(json['showPhone']),
       contactPreference:
           (json['contactPreference'] ?? 'message_only').toString(),
       status: (json['status'] ?? 'active').toString(),
@@ -169,7 +193,7 @@ class MarketItemModel {
       favoriteCount: _asInt(json['favoriteCount']),
       offerCount: _asInt(json['offerCount']),
       viewCount: _asInt(json['viewCount']),
-      isNegotiable: json['isNegotiable'] == true,
+      isNegotiable: _asBool(json['isNegotiable']),
       attributes: _cloneAttributes(json['attributes'] as Map? ?? const {}),
     );
   }
