@@ -220,22 +220,46 @@ extension StoryRepositoryDeletedPart on StoryRepository {
       final restoredStories = <StoryModel>[];
       final restoredDeletedAt = <String, int>{};
       final restoredReasons = <String, String>{};
+      var shouldPersist = false;
       for (final item in items) {
-        if (item is! Map) continue;
-        final map = Map<String, dynamic>.from(item.cast<String, dynamic>());
-        final storyMap = Map<String, dynamic>.from(
-          (map['story'] as Map?)?.cast<String, dynamic>() ?? const {},
-        );
-        if (storyMap.isEmpty) continue;
-        final story = StoryModel.fromCacheMap(storyMap);
-        restoredStories.add(story);
-        restoredDeletedAt[story.id] = (map['deletedAt'] as num?)?.toInt() ?? 0;
-        final reason = (map['deleteReason'] ?? '').toString();
-        if (reason.isNotEmpty) restoredReasons[story.id] = reason;
+        if (item is! Map) {
+          shouldPersist = true;
+          continue;
+        }
+        try {
+          final map = Map<String, dynamic>.from(item.cast<String, dynamic>());
+          final storyMap = Map<String, dynamic>.from(
+            (map['story'] as Map?)?.cast<String, dynamic>() ?? const {},
+          );
+          if (storyMap.isEmpty) {
+            shouldPersist = true;
+            continue;
+          }
+          final story = StoryModel.fromCacheMap(storyMap);
+          if (story.id.trim().isEmpty) {
+            shouldPersist = true;
+            continue;
+          }
+          restoredStories.add(story);
+          restoredDeletedAt[story.id] =
+              (map['deletedAt'] as num?)?.toInt() ?? 0;
+          final reason = (map['deleteReason'] ?? '').toString();
+          if (reason.isNotEmpty) restoredReasons[story.id] = reason;
+        } catch (_) {
+          shouldPersist = true;
+        }
       }
       if (restoredStories.isEmpty) {
         await _prefs?.remove(prefsKey);
         return null;
+      }
+      if (shouldPersist || restoredStories.length != items.length) {
+        await _performPersistDeletedStoriesCache(
+          uid: uid,
+          stories: restoredStories,
+          deletedAtById: restoredDeletedAt,
+          deleteReasonById: restoredReasons,
+        );
       }
       return DeletedStoryCachePayload(
         stories: restoredStories,
@@ -382,9 +406,8 @@ extension StoryRepositoryDeletedPart on StoryRepository {
       return bDeletedAt.compareTo(aDeletedAt);
     });
 
-    final trimmed = items
-        .take(deletedStoriesCacheLimitInternal)
-        .toList(growable: false);
+    final trimmed =
+        items.take(deletedStoriesCacheLimitInternal).toList(growable: false);
     final keptIds = trimmed.map((e) => e.id).toSet();
     deletedAtById.removeWhere((key, _) => !keptIds.contains(key));
     deleteReasonById.removeWhere((key, _) => !keptIds.contains(key));
