@@ -2,6 +2,12 @@ part of 'typesense_market_service.dart';
 
 extension TypesenseMarketSearchServiceSearchPart
     on TypesenseMarketSearchService {
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<List<MarketItemModel>> _performSearchItems({
     required String query,
     required int limit,
@@ -107,10 +113,10 @@ extension TypesenseMarketSearchServiceSearchPart
           showPhone: showPhone,
           contactPreference: contactPreference,
           status: (hitMap['status'] ?? 'active').toString(),
-          createdAt: (hitMap['createdAt'] as num?)?.toInt() ?? 0,
-          favoriteCount: (hitMap['favoriteCount'] as num?)?.toInt() ?? 0,
-          offerCount: (hitMap['offerCount'] as num?)?.toInt() ?? 0,
-          viewCount: (hitMap['viewCount'] as num?)?.toInt() ?? 0,
+          createdAt: _asInt(hitMap['createdAt']),
+          favoriteCount: _asInt(hitMap['favoriteCount']),
+          offerCount: _asInt(hitMap['offerCount']),
+          viewCount: _asInt(hitMap['viewCount']),
           attributes: attributes,
         ),
       );
