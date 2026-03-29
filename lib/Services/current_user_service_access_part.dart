@@ -1,6 +1,14 @@
 part of 'current_user_service.dart';
 
 extension CurrentUserServiceAccessPart on CurrentUserService {
+  List<String> _normalizeBlockedUserIds(List<String>? source) {
+    if (source == null || source.isEmpty) return const <String>[];
+    return source
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+  }
+
   String get preferredLocationCityOrEmpty {
     final candidates = [
       _currentUser?.locationSehir,
@@ -22,7 +30,7 @@ extension CurrentUserServiceAccessPart on CurrentUserService {
   }
 
   List<String> get blockedUserIds =>
-      List<String>.from(_currentUser?.blockedUsers ?? const <String>[]);
+      _normalizeBlockedUserIds(_currentUser?.blockedUsers);
 
   bool get isPrivate => _currentUser?.isPrivate ?? false;
 
