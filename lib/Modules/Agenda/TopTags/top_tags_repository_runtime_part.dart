@@ -20,11 +20,16 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
+    List<HashtagModel>? cachedForFallback;
     if (!forceRefresh && preferCache) {
       final cached = await readTrendingTagsCache(
         resultLimit: resultLimit,
       );
       if (cached != null) return cached;
+    } else {
+      cachedForFallback = await readTrendingTagsCache(
+        resultLimit: resultLimit,
+      );
     }
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -78,6 +83,11 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
       return (b.lastSeenTs ?? 0).compareTo(a.lastSeenTs ?? 0);
     });
     final result = list.take(resultLimit).toList(growable: false);
+    if (result.isEmpty &&
+        cachedForFallback != null &&
+        cachedForFallback.isNotEmpty) {
+      return cachedForFallback;
+    }
     await _store(result);
     return result;
   }
