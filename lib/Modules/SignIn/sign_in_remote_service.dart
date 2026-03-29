@@ -29,6 +29,12 @@ class SignInRemoteService extends GetxService {
     ),
   );
 
+  static bool _asBool(Object? value) {
+    if (value is bool) return value;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   Future<void> sendPasswordResetSmsCode({required String email}) async {
     await _functions.httpsCallable('sendPasswordResetSmsCode').call({
       'email': normalizeEmailAddress(email),
@@ -62,16 +68,16 @@ class SignInRemoteService extends GetxService {
       );
       final data = Map<String, dynamic>.from(response.data as Map);
       return (
-        emailAvailable: data['emailAvailable'] == true,
-        nicknameAvailable: data['nicknameAvailable'] == true,
+        emailAvailable: _asBool(data['emailAvailable']),
+        nicknameAvailable: _asBool(data['nicknameAvailable']),
         reachable: true,
       );
     } on DioException catch (error) {
       final responseData = error.response?.data;
       if (responseData is Map<String, dynamic>) {
         return (
-          emailAvailable: responseData['emailAvailable'] == true,
-          nicknameAvailable: responseData['nicknameAvailable'] == true,
+          emailAvailable: _asBool(responseData['emailAvailable']),
+          nicknameAvailable: _asBool(responseData['nicknameAvailable']),
           reachable: error.response?.statusCode == 400,
         );
       }
