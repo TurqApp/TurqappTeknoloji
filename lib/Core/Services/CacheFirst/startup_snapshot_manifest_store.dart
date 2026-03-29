@@ -174,7 +174,10 @@ class StartupSnapshotManifestStore extends GetxService {
       final raw = prefs.getString(storageKey);
       if (raw == null || raw.trim().isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return null;
+      if (decoded is! Map<String, dynamic>) {
+        await prefs.remove(storageKey);
+        return null;
+      }
       final manifest = StartupSnapshotManifest.fromJson(decoded);
       if (manifest.schemaVersion != schemaVersion) {
         await prefs.remove(storageKey);

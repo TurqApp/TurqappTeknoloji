@@ -95,7 +95,10 @@ class StartupSnapshotShardStore extends GetxService {
       final raw = prefs.getString(storageKey);
       if (raw == null || raw.trim().isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return null;
+      if (decoded is! Map) {
+        await prefs.remove(storageKey);
+        return null;
+      }
       final record = StartupSnapshotShardRecord.fromJson(
         Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>()),
       );
