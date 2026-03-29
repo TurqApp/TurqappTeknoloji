@@ -4,7 +4,7 @@ extension ClassicContentHeaderMenuPart on _ClassicContentState {
   Widget pulldownmenu(Color color) {
     final canManagePost =
         widget.model.userID == _currentUid || controller.canSendAdminPush;
-    final canEditPost = controller.canSendAdminPush;
+    final canEditPost = AdminAccessService.isKnownAdminSync();
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(
@@ -65,7 +65,7 @@ extension ClassicContentHeaderMenuPart on _ClassicContentState {
           title: 'common.hide'.tr,
           icon: CupertinoIcons.eye_slash,
         ),
-        if (canManagePost)
+        if (canEditPost)
           PullDownMenuItem(
             onTap: () {
               _suspendClassicFeedForRoute();

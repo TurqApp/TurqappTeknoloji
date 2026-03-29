@@ -5,7 +5,7 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
     final currentUid = _currentUid;
     final canManagePost =
         widget.model.userID == currentUid || controller.canSendAdminPush;
-    final canEditPost = controller.canSendAdminPush;
+    final canEditPost = AdminAccessService.isKnownAdminSync();
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(
@@ -68,7 +68,7 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
           title: 'common.hide'.tr,
           icon: CupertinoIcons.eye_slash,
         ),
-        if (canManagePost)
+        if (canEditPost)
           PullDownMenuItem(
             onTap: () {
               _suspendAgendaFeedForRoute();

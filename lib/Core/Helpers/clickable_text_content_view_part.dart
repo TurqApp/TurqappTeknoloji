@@ -106,8 +106,9 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
           final collapsed = !controller.expanded.value;
           final maxLines =
               collapsed ? (controller.startWith7line ? 7 : 2) : null;
-          final showInlineExpand =
-              collapsed && controller.showExpandButton.value;
+          final showInlineExpand = collapsed &&
+              controller.showExpandButton.value &&
+              !widget.toggleExpandOnTextTap;
           final showOverlay = widget.showEllipsisOverlay &&
               collapsed &&
               controller.showExpandButton.value &&
