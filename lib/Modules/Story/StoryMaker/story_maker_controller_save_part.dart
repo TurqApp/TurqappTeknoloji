@@ -95,12 +95,23 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     DateTime? scheduledAt,
   }) async {
     try {
-      final resolvedUid = (await CurrentUserService.instance.ensureAuthReady(
-                waitForAuthState: true,
-                forceTokenRefresh: true,
-              ) ??
-              '')
-          .trim();
+      final currentUserService = CurrentUserService.instance;
+      final authUser =
+          await currentUserService.resolveAuthUser(waitForAuthState: true);
+      if (authUser == null) {
+        AppSnackbar("common.error".tr, "story.no_user".tr);
+        return;
+      }
+      try {
+        await authUser.getIdToken(true);
+      } on FirebaseAuthException catch (e) {
+        AppSnackbar(
+          "common.error".tr,
+          "story.save_failed".trParams({"error": e.code}),
+        );
+        return;
+      }
+      final resolvedUid = authUser.uid.trim();
       if (resolvedUid.isEmpty) {
         AppSnackbar("common.error".tr, "story.no_user".tr);
         return;
