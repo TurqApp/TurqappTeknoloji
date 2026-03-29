@@ -91,6 +91,26 @@ class SliderCacheService {
     return _prefs!;
   }
 
+  List<SliderResolvedItem> _cloneResolvedItems(
+    List<SliderResolvedItem> items,
+  ) {
+    return items
+        .map(
+          (item) => SliderResolvedItem(
+            itemId: item.itemId,
+            source: item.source,
+            order: item.order,
+            startDateMs: item.startDateMs,
+            endDateMs: item.endDateMs,
+            viewCount: item.viewCount,
+            uniqueViewCount: item.uniqueViewCount,
+            isRemote: item.isRemote,
+            isDefault: item.isDefault,
+          ),
+        )
+        .toList(growable: false);
+  }
+
   String _key(String sliderId) => '$_keyPrefix::$sliderId';
 
   Future<SliderCacheSnapshot> readSnapshot(String sliderId) async {
@@ -202,7 +222,7 @@ class SliderCacheService {
     if (!allowStale && !snapshot.isFresh) {
       return const <SliderResolvedItem>[];
     }
-    return snapshot.resolvedItems;
+    return _cloneResolvedItems(snapshot.resolvedItems);
   }
 
   Future<List<String>> readResolvedSources(
@@ -218,13 +238,15 @@ class SliderCacheService {
     List<SliderResolvedItem> items,
   ) async {
     if (sliderId.trim().isEmpty) return;
+    final clonedItems = _cloneResolvedItems(items);
     try {
       final prefs = await _prefsInstance();
       await prefs.setString(
         _key(sliderId),
         jsonEncode({
           'savedAt': DateTime.now().millisecondsSinceEpoch,
-          'resolvedItems': items.map((item) => item.toMap()).toList(),
+          'resolvedItems':
+              clonedItems.map((item) => item.toMap()).toList(growable: false),
         }),
       );
     } catch (_) {}
@@ -342,7 +364,7 @@ class SliderCacheService {
     }
     extras.sort((a, b) => a.order.compareTo(b.order));
     resolved.addAll(extras);
-    return resolved;
+    return _cloneResolvedItems(resolved);
   }
 
   Future<List<String>> resolveRemoteSources(String sliderId) async {
