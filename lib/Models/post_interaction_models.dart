@@ -85,10 +85,13 @@ class CommentLikes {
   num count;
   List<String> userIDs;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   CommentLikes({
     this.count = 0,
-    this.userIDs = const [],
-  });
+    List<String> userIDs = const [],
+  }) : userIDs = _cloneStringList(userIDs);
 
   factory CommentLikes.fromMap(Map<String, dynamic> data) {
     return CommentLikes(
@@ -100,7 +103,7 @@ class CommentLikes {
   Map<String, dynamic> toMap() {
     return {
       'count': count,
-      'userIDs': userIDs,
+      'userIDs': _cloneStringList(userIDs),
     };
   }
 }
