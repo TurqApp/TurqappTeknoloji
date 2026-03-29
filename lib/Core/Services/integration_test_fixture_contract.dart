@@ -8,6 +8,12 @@ class IntegrationTestFixtureSurface {
         .toList(growable: false);
   }
 
+  static int? _asNullableInt(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
   IntegrationTestFixtureSurface({
     this.minCount,
     List<String> requiredDocIds = const <String>[],
@@ -24,11 +30,10 @@ class IntegrationTestFixtureSurface {
   static IntegrationTestFixtureSurface fromMap(Map<String, dynamic> raw) {
     final rawDocIds = raw['docIds'];
     return IntegrationTestFixtureSurface(
-      minCount: (raw['minCount'] as num?)?.toInt(),
-      requiredDocIds: rawDocIds is List
-          ? _cloneDocIds(rawDocIds)
-          : const <String>[],
-      maxUnread: (raw['maxUnread'] as num?)?.toInt(),
+      minCount: _asNullableInt(raw['minCount']),
+      requiredDocIds:
+          rawDocIds is List ? _cloneDocIds(rawDocIds) : const <String>[],
+      maxUnread: _asNullableInt(raw['maxUnread']),
     );
   }
 }
