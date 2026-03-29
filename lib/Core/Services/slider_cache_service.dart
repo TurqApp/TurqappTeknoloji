@@ -40,6 +40,30 @@ class SliderResolvedItem {
     return fallback;
   }
 
+  static bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'itemId': itemId,
@@ -63,8 +87,8 @@ class SliderResolvedItem {
       endDateMs: _asInt(map['endDateMs']),
       viewCount: _asInt(map['viewCount']),
       uniqueViewCount: _asInt(map['uniqueViewCount']),
-      isRemote: map['isRemote'] == true,
-      isDefault: map['isDefault'] == true,
+      isRemote: _asBool(map['isRemote']),
+      isDefault: _asBool(map['isDefault']),
     );
   }
 }
