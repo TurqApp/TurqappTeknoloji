@@ -16,11 +16,12 @@ extension ConfigRepositoryQueryPart on ConfigRepository {
 
       final disk = await _getFromPrefsImpl(key, ttl: ttl);
       if (disk != null) {
+        final cloned = _cloneMapImpl(disk);
         _memory[key] = _CachedConfigDoc(
-          data: Map<String, dynamic>.from(disk),
+          data: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return _cloneMapImpl(cloned);
       }
     }
 
@@ -85,11 +86,12 @@ extension ConfigRepositoryQueryPart on ConfigRepository {
 
       final disk = await _getFromPrefsImpl(key, ttl: ttl);
       if (disk != null) {
+        final cloned = _cloneMapImpl(disk);
         _memory[key] = _CachedConfigDoc(
-          data: Map<String, dynamic>.from(disk),
+          data: cloned,
           cachedAt: DateTime.now(),
         );
-        return disk;
+        return _cloneMapImpl(cloned);
       }
     }
 
