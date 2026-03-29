@@ -49,6 +49,17 @@ class VideoCacheEntry {
   double watchProgress; // 0.0 - 1.0
   VideoCacheState state;
 
+  static Map<String, CachedSegment> _cloneSegments(
+    Map<String, CachedSegment> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(
+        key,
+        CachedSegment.fromJson(value.toJson()),
+      ),
+    );
+  }
+
   VideoCacheEntry({
     required this.docID,
     required this.masterPlaylistUrl,
@@ -58,7 +69,7 @@ class VideoCacheEntry {
     DateTime? lastAccessedAt,
     this.watchProgress = 0.0,
     this.state = VideoCacheState.uncached,
-  })  : segments = segments ?? {},
+  })  : segments = _cloneSegments(segments ?? const <String, CachedSegment>{}),
         lastAccessedAt = lastAccessedAt ?? DateTime.now();
 
   int get cachedSegmentCount => segments.length;
@@ -115,7 +126,9 @@ class CacheIndex {
   CacheIndex({
     Map<String, VideoCacheEntry>? entries,
     this.totalSizeBytes = 0,
-  }) : entries = entries ?? {};
+  }) : entries = (entries ?? const <String, VideoCacheEntry>{}).map(
+         (key, value) => MapEntry(key, VideoCacheEntry.fromJson(value.toJson())),
+       );
 
   Map<String, dynamic> toJson() => {
         'entries': entries.map((k, v) => MapEntry(k, v.toJson())),
