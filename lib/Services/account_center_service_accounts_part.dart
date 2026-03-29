@@ -1,6 +1,14 @@
 part of 'account_center_service.dart';
 
 extension AccountCenterServiceAccountsPart on AccountCenterService {
+  bool _accountCenterAsBool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+
   Future<void> addOrUpdateAccount(
     StoredAccount account, {
     bool promoteActiveUid = true,
@@ -209,7 +217,13 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
       preferCache: false,
       forceServer: true,
     );
-    if (raw == null || raw['singleDeviceSessionEnabled'] != true) return;
+    if (raw == null ||
+        !_accountCenterAsBool(
+          raw['singleDeviceSessionEnabled'],
+          fallback: false,
+        )) {
+      return;
+    }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final deviceKey =
         await DeviceSessionService.instance.getOrCreateDeviceKey();
