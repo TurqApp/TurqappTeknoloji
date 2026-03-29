@@ -28,6 +28,11 @@ class StartupSnapshotShardRecord {
   final String source;
   final Map<String, dynamic> payload;
 
+  bool get isValid =>
+      actorId.trim().isNotEmpty &&
+      surface.trim().isNotEmpty &&
+      payload.isNotEmpty;
+
   DateTime? get snapshotAt => snapshotAtMs <= 0
       ? null
       : DateTime.fromMillisecondsSinceEpoch(snapshotAtMs);
@@ -86,6 +91,7 @@ class StartupSnapshotShardStore extends GetxService {
   }) async {
     final normalizedSurface = surface.trim();
     if (normalizedSurface.isEmpty) return null;
+    final normalizedActorId = _normalizeActorId(userId);
     final storageKey = _storageKey(
       userId: userId,
       surface: normalizedSurface,
@@ -103,7 +109,9 @@ class StartupSnapshotShardStore extends GetxService {
         Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>()),
       );
       if (record.schemaVersion != schemaVersion ||
-          record.surface != normalizedSurface) {
+          record.surface != normalizedSurface ||
+          record.actorId != normalizedActorId ||
+          !record.isValid) {
         await clear(
           surface: normalizedSurface,
           userId: userId,
