@@ -3,6 +3,14 @@ part of 'agenda_controller.dart';
 extension AgendaControllerLoadingPart on AgendaController {
   static const int _initialHeadSyncLimit = 24;
 
+  void _resumeFeedPlaybackAfterRefresh() {
+    if (agendaList.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed || pauseAll.value || agendaList.isEmpty) return;
+      resumeFeedPlayback();
+    });
+  }
+
   void _prepareFeedSurfaceAfterDataReady({
     required String playbackBootstrapSource,
   }) {
@@ -579,9 +587,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
       );
       pauseAll.value = false;
+      _resumeFeedPlaybackAfterRefresh();
     } catch (e) {
       print("refreshAgenda error: $e");
       pauseAll.value = false;
+      _resumeFeedPlaybackAfterRefresh();
     }
   }
 
