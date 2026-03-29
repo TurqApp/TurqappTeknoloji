@@ -9,12 +9,12 @@ class MarketItemModel {
     required this.price,
     required this.currency,
     required this.categoryKey,
-    required this.categoryPath,
+    required List<String> categoryPath,
     required this.locationText,
     required this.city,
     required this.district,
     required this.coverImageUrl,
-    required this.imageUrls,
+    required List<String> imageUrls,
     required this.sellerName,
     this.sellerUsername = '',
     this.sellerPhotoUrl = '',
@@ -30,8 +30,10 @@ class MarketItemModel {
     this.offerCount = 0,
     this.viewCount = 0,
     this.isNegotiable = false,
-    this.attributes = const <String, dynamic>{},
-  });
+    Map<String, dynamic> attributes = const <String, dynamic>{},
+  })  : categoryPath = List<String>.from(categoryPath, growable: false),
+        imageUrls = List<String>.from(imageUrls, growable: false),
+        attributes = _cloneAttributes(attributes);
 
   final String id;
   final String userId;
@@ -62,6 +64,27 @@ class MarketItemModel {
   final int viewCount;
   final bool isNegotiable;
   final Map<String, dynamic> attributes;
+
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneAttributes(Map source) {
+    return source.map(
+      (key, value) => MapEntry(key.toString(), _cloneValue(value)),
+    );
+  }
 
   String get categoryLabel {
     if (categoryPath.isNotEmpty) return categoryPath.last;
@@ -135,9 +158,7 @@ class MarketItemModel {
       offerCount: (json['offerCount'] as num?)?.toInt() ?? 0,
       viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       isNegotiable: json['isNegotiable'] == true,
-      attributes: Map<String, dynamic>.from(
-        json['attributes'] as Map? ?? const {},
-      ),
+      attributes: _cloneAttributes(json['attributes'] as Map? ?? const {}),
     );
   }
 
@@ -154,12 +175,12 @@ class MarketItemModel {
       'price': price,
       'currency': currency,
       'categoryKey': categoryKey,
-      'categoryPath': categoryPath,
+      'categoryPath': List<String>.from(categoryPath, growable: false),
       'locationText': locationText,
       'city': city,
       'district': district,
       'coverImageUrl': coverImageUrl,
-      'imageUrls': imageUrls,
+      'imageUrls': List<String>.from(imageUrls, growable: false),
       'sellerName': sellerName,
       'sellerUsername': sellerUsername,
       'sellerPhotoUrl': sellerPhotoUrl,
@@ -175,7 +196,7 @@ class MarketItemModel {
       'offerCount': offerCount,
       'viewCount': viewCount,
       'isNegotiable': isNegotiable,
-      'attributes': attributes,
+      'attributes': _cloneAttributes(attributes),
     };
   }
 
