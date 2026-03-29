@@ -69,19 +69,24 @@ class AccountSessionVault {
   Future<AccountSessionCredential?> read(String uid) async {
     final normalizedUid = uid.trim();
     if (normalizedUid.isEmpty) return null;
-    final raw = await _storage.read(key: _keyFor(normalizedUid));
+    final storageKey = _keyFor(normalizedUid);
+    final raw = await _storage.read(key: storageKey);
     if (raw == null || raw.trim().isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return null;
+      if (decoded is! Map) {
+        await _storage.delete(key: storageKey);
+        return null;
+      }
       final payload = Map<String, dynamic>.from(decoded);
       final credential = AccountSessionCredential.fromJson(payload);
       if (credential.email.isEmpty) {
+        await _storage.delete(key: storageKey);
         return null;
       }
       final sanitizedPayload = jsonEncode(credential.toJson());
       if (raw != sanitizedPayload) {
-        await _storage.write(key: _keyFor(normalizedUid), value: sanitizedPayload);
+        await _storage.write(key: storageKey, value: sanitizedPayload);
       }
       return credential;
     } catch (error, stackTrace) {
@@ -91,6 +96,7 @@ class AccountSessionVault {
         error: error,
         stackTrace: stackTrace,
       );
+      await _storage.delete(key: storageKey);
       return null;
     }
   }
