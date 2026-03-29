@@ -70,7 +70,7 @@ class AdCampaign {
       currency: 'TRY',
       startAt: now,
       endAt: now.add(const Duration(days: 7)),
-      targeting: const AdTargeting(),
+      targeting: AdTargeting(),
       creativeIds: const <String>[],
       bidType: AdBidType.cpm,
       bidAmount: 0,

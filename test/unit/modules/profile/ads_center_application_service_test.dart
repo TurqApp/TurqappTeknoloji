@@ -196,7 +196,7 @@ AdCampaign _campaign({required String id}) {
     currency: 'TRY',
     startAt: now,
     endAt: now.add(const Duration(days: 7)),
-    targeting: const AdTargeting(),
+    targeting: AdTargeting(),
     creativeIds: const <String>['creative-1'],
     bidType: AdBidType.cpm,
     bidAmount: 2.5,
