@@ -72,6 +72,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     final hasEducation =
         maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
+    final profileIndex = hasEducation ? 4 : 3;
 
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
@@ -90,6 +91,14 @@ extension _NavBarControllerLifecyclePart on NavBarController {
         _scheduleRatingPromptImpl(const Duration(seconds: 12));
       }
       _resumeFeedIfNeededImpl();
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      _primeVisibleSurfaceAfterTabChangeImpl(
+        index: selectedIndex.value,
+        educationIndex: educationIndex,
+        profileIndex: profileIndex,
+      );
     }
 
     if (state == AppLifecycleState.resumed &&
