@@ -302,14 +302,23 @@ stop_android_artifact_mirror() {
   rm -f "$stop_file"
 }
 
-if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
-  android_enable_keep_awake
+reset_android_suite_state() {
+  [[ "$TARGET_PLATFORM" == "android" ]] || return 0
+  [[ -n "$DEVICE_ID" ]] || return 0
   if is_android_package_installed "$DEVICE_ID"; then
+    "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
+      shell am force-stop "$ANDROID_PACKAGE" >/dev/null 2>&1 || true
     "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
       shell run-as "$ANDROID_PACKAGE" rm -rf "$ANDROID_REMOTE_ARTIFACT_DIR" >/dev/null 2>&1 || true
     "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
       shell run-as "$ANDROID_PACKAGE" mkdir -p "$ANDROID_REMOTE_ARTIFACT_DIR" >/dev/null 2>&1 || true
+    sleep 1
   fi
+}
+
+if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+  android_enable_keep_awake
+  reset_android_suite_state
 fi
 
 for test_file in "${suite_tests[@]}"; do
@@ -317,6 +326,7 @@ for test_file in "${suite_tests[@]}"; do
   scenario_name="$(basename "$test_file" .dart)"
   watcher_handle=""
   if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+    reset_android_suite_state
     android_prepare_awake_device
     android_start_awake_watchdog
     watcher_handle="$(start_android_artifact_mirror "$DEVICE_ID" "$scenario_name")"

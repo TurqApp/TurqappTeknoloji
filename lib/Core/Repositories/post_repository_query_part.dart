@@ -165,7 +165,7 @@ extension PostRepositoryQueryPart on PostRepository {
     if (fallbackIds.isNotEmpty) {
       final firestoreModels = await fetchPostsByIds(
         fallbackIds,
-        preferCache: preferCache,
+        preferCache: false,
         cacheOnly: false,
       );
       for (final entry in firestoreModels.entries) {
