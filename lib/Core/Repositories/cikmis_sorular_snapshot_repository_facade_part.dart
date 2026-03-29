@@ -14,6 +14,32 @@ CikmisSorularSnapshotRepository ensureCikmisSorularSnapshotRepository() {
 
 extension CikmisSorularSnapshotRepositoryFacadePart
     on CikmisSorularSnapshotRepository {
+  Future<CachedResource<List<Map<String, dynamic>>>> loadCachedHome({
+    required String userId,
+  }) {
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _pastQuestionHomeSnapshotSurfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: _pastQuestionHomeSnapshotSurfaceKey,
+      userId: userId,
+      scopeId: CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: 0,
+        scopeTag: 'home',
+        schemaVersion: schemaVersion,
+        qualifiers: const <String, Object?>{
+          'entity': 'past_question_root',
+        },
+      ),
+    );
+    return _coordinator.bootstrap(
+      key,
+      loadWarmSnapshot: () => _repository.fetchRootDocs(cacheOnly: true),
+      schemaVersion: schemaVersion,
+    );
+  }
+
   Stream<CachedResource<List<Map<String, dynamic>>>> openHome({
     required String userId,
     bool forceSync = false,

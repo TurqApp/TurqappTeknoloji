@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik2_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik3_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_preview.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'cikmis_sorular_yil_sectirme_actions_part.dart';
 part 'cikmis_sorular_yil_sectirme_content_part.dart';
@@ -29,7 +30,8 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 }
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
-  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
+  final CikmisSorularSnapshotRepository _snapshotRepository =
+      ensureCikmisSorularSnapshotRepository();
   List<String> yillar = [];
   static const _english = 'İngilizce';
   static const _german = 'Almanca';
@@ -105,7 +107,11 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   }
 
   Future<void> getData() async {
-    final docs = await _repository.fetchRootDocs();
+    final docs = (await _snapshotRepository.loadCachedHome(
+          userId: CurrentUserService.instance.effectiveUserId,
+        ))
+            .data ??
+        const <Map<String, dynamic>>[];
     final filtered = docs.where(_matchesSessionDoc).toList(growable: false);
     final years = <String>[];
     for (final doc in filtered) {

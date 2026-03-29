@@ -22,20 +22,23 @@ Stream<CachedResource<List<Map<String, dynamic>>>> openPastQuestionSearch(
   }
 
   try {
-    final docs = await repository._repository.fetchRootDocs(
-      preferCache: !forceSync,
-      forceRefresh: forceSync,
-    );
+    final resource = forceSync
+        ? await repository.loadHome(
+            userId: userId,
+            forceSync: true,
+          )
+        : await repository.loadCachedHome(userId: userId);
+    final docs = resource.data ?? const <Map<String, dynamic>>[];
     yield CachedResource<List<Map<String, dynamic>>>(
       data: filterPastQuestionSearchDocs(docs, normalizedQuery, limit: limit),
-      hasLocalSnapshot: !forceSync,
+      hasLocalSnapshot: resource.hasLocalSnapshot,
       isRefreshing: false,
-      isStale: false,
-      hasLiveError: false,
-      snapshotAt: DateTime.now(),
-      source: forceSync
-          ? CachedResourceSource.server
-          : CachedResourceSource.scopedDisk,
+      isStale: resource.isStale,
+      hasLiveError: resource.hasLiveError,
+      snapshotAt: resource.snapshotAt,
+      source: resource.source,
+      liveError: resource.liveError,
+      liveErrorStackTrace: resource.liveErrorStackTrace,
     );
   } catch (error, stackTrace) {
     yield CachedResource<List<Map<String, dynamic>>>(
