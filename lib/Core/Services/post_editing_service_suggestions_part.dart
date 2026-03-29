@@ -1,6 +1,17 @@
 part of 'post_editing_service.dart';
 
 extension PostEditingServiceSuggestionsPart on PostEditingService {
+  String _suggestionText(
+    SmartSuggestion suggestion,
+    String key, {
+    String fallback = '',
+  }) {
+    final value = suggestion.metadata[key];
+    if (value == null) return fallback;
+    final normalized = value.toString();
+    return normalized.isEmpty ? fallback : normalized;
+  }
+
   void _startSuggestionGeneration() {
     ever(_currentText, (String text) {
       if (_smartSuggestionsEnabled.value && text.isNotEmpty) {
@@ -178,18 +189,18 @@ extension PostEditingServiceSuggestionsPart on PostEditingService {
   String applySuggestion(String currentText, SmartSuggestion suggestion) {
     switch (suggestion.type) {
       case 'hashtag':
-        final hashtag = suggestion.metadata['hashtag'] as String;
+        final hashtag = _suggestionText(suggestion, 'hashtag');
         return '$currentText $hashtag';
       case 'mention':
-        final username = suggestion.metadata['username'] as String;
-        final partial = suggestion.metadata['partial'] as String;
+        final username = _suggestionText(suggestion, 'username');
+        final partial = _suggestionText(suggestion, 'partial');
         return currentText.replaceAll('@$partial', '@$username');
       case 'grammar':
-        final original = suggestion.metadata['original'] as String;
-        final corrected = suggestion.metadata['corrected'] as String;
+        final original = _suggestionText(suggestion, 'original');
+        final corrected = _suggestionText(suggestion, 'corrected');
         return currentText.replaceAll(original, corrected);
       case 'emoji':
-        final emoji = suggestion.metadata['emoji'] as String;
+        final emoji = _suggestionText(suggestion, 'emoji');
         return '$currentText $emoji';
       default:
         return currentText;
