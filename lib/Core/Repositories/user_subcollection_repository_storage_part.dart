@@ -9,14 +9,7 @@ extension UserSubcollectionRepositoryStoragePart
   }) async {
     if (uid.isEmpty || subcollection.isEmpty) return;
     final key = _cacheKeyImpl(uid, subcollection);
-    final cloned = items
-        .map(
-          (e) => UserSubcollectionEntry(
-            id: e.id,
-            data: Map<String, dynamic>.from(e.data),
-          ),
-        )
-        .toList(growable: false);
+    final cloned = _cloneEntriesImpl(items);
     final cachedAt = DateTime.now();
     _memory[key] = _CachedUserSubcollection(items: cloned, cachedAt: cachedAt);
     _prefs ??= await SharedPreferences.getInstance();
@@ -53,14 +46,7 @@ extension UserSubcollectionRepositoryStoragePart
       _memory.remove(key);
       return null;
     }
-    return entry.items
-        .map(
-          (e) => UserSubcollectionEntry(
-            id: e.id,
-            data: Map<String, dynamic>.from(e.data),
-          ),
-        )
-        .toList(growable: false);
+    return _cloneEntriesImpl(entry.items);
   }
 
   Future<List<UserSubcollectionEntry>?> _getFromPrefsImpl(
@@ -119,4 +105,17 @@ extension UserSubcollectionRepositoryStoragePart
 
   String _prefsKeyImpl(String key) =>
       '${UserSubcollectionRepository._prefsPrefix}:$key';
+
+  List<UserSubcollectionEntry> _cloneEntriesImpl(
+    List<UserSubcollectionEntry> items,
+  ) {
+    return items
+        .map(
+          (e) => UserSubcollectionEntry(
+            id: e.id,
+            data: Map<String, dynamic>.from(e.data),
+          ),
+        )
+        .toList(growable: false);
+  }
 }

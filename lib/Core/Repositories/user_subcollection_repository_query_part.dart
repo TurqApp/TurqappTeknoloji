@@ -26,14 +26,17 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
       }
       final disk = await _getFromPrefsImpl(key, allowStale: false);
       if (preferCache && disk != null) {
+        final cloned = _cloneEntriesImpl(disk);
         _memory[key] = _CachedUserSubcollection(
-          items: disk,
+          items: cloned,
           cachedAt: DateTime.now(),
         );
-        if (limit == null || limit <= 0 || disk.length <= limit) {
-          return disk;
+        if (limit == null || limit <= 0 || cloned.length <= limit) {
+          return _cloneEntriesImpl(cloned);
         }
-        return disk.take(limit).toList(growable: false);
+        return _cloneEntriesImpl(
+          cloned.take(limit).toList(growable: false),
+        );
       }
     }
 
