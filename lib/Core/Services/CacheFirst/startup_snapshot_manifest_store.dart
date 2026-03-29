@@ -168,19 +168,24 @@ class StartupSnapshotManifestStore extends GetxService {
   Future<StartupSnapshotManifest?> load({
     String? userId,
   }) async {
+    final storageKey = _storageKey(userId);
     try {
       final prefs = await _prefsInstance();
-      final raw = prefs.getString(_storageKey(userId));
+      final raw = prefs.getString(storageKey);
       if (raw == null || raw.trim().isEmpty) return null;
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return null;
       final manifest = StartupSnapshotManifest.fromJson(decoded);
       if (manifest.schemaVersion != schemaVersion) {
-        await prefs.remove(_storageKey(userId));
+        await prefs.remove(storageKey);
         return null;
       }
       return manifest;
     } catch (_) {
+      try {
+        final prefs = await _prefsInstance();
+        await prefs.remove(storageKey);
+      } catch (_) {}
       return null;
     }
   }

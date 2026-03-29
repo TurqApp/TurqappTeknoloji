@@ -86,14 +86,13 @@ class StartupSnapshotShardStore extends GetxService {
   }) async {
     final normalizedSurface = surface.trim();
     if (normalizedSurface.isEmpty) return null;
+    final storageKey = _storageKey(
+      userId: userId,
+      surface: normalizedSurface,
+    );
     try {
       final prefs = await _prefsInstance();
-      final raw = prefs.getString(
-        _storageKey(
-          userId: userId,
-          surface: normalizedSurface,
-        ),
-      );
+      final raw = prefs.getString(storageKey);
       if (raw == null || raw.trim().isEmpty) return null;
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return null;
@@ -118,6 +117,10 @@ class StartupSnapshotShardStore extends GetxService {
       }
       return record;
     } catch (_) {
+      try {
+        final prefs = await _prefsInstance();
+        await prefs.remove(storageKey);
+      } catch (_) {}
       return null;
     }
   }
