@@ -1,6 +1,30 @@
 part of 'upload_queue_service.dart';
 
 extension UploadQueueServicePostShellContentPart on UploadQueueService {
+  bool _uploadQueuePostShellAsBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   Future<void> _performCreatePendingPostShellContent(
       QueuedUpload upload) async {
     final postDataMap = jsonDecode(upload.postData) as Map<String, dynamic>;
@@ -18,14 +42,16 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
         Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
     final Map<String, dynamic> poll =
         Map<String, dynamic>.from(postDataMap['poll'] ?? {});
-    final bool sharedAsPost = (postDataMap['sharedAsPost'] ?? false) == true;
+    final bool sharedAsPost =
+        _uploadQueuePostShellAsBool(postDataMap['sharedAsPost']);
     final String originalUserID =
         (postDataMap['originalUserID'] ?? '').toString().trim();
     final String originalPostID =
         (postDataMap['originalPostID'] ?? '').toString().trim();
     final String sourcePostID =
         (postDataMap['sourcePostID'] ?? '').toString().trim();
-    final bool quotedPost = (postDataMap['quotedPost'] ?? false) == true;
+    final bool quotedPost =
+        _uploadQueuePostShellAsBool(postDataMap['quotedPost']);
     final String quotedOriginalText =
         (postDataMap['quotedOriginalText'] ?? '').toString().trim();
     final String quotedSourceUserID =
