@@ -27,6 +27,49 @@ class QueuedUpload {
   static List<String> _cloneStringList(List<String> source) =>
       List<String>.from(source, growable: false);
 
+  static String _asString(dynamic value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    final normalized = value.toString().trim();
+    return normalized.isEmpty ? fallback : normalized;
+  }
+
+  static List<String> _asStringList(dynamic value) {
+    if (value is List) {
+      return value
+          .map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+    return const <String>[];
+  }
+
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
+  static double _asDouble(dynamic value, {double fallback = 0.0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
+  static UploadStatus _asStatus(dynamic value) {
+    final raw = value?.toString().trim();
+    if (raw == null || raw.isEmpty) return UploadStatus.pending;
+    return UploadStatus.values.firstWhere(
+      (status) => status.name == raw,
+      orElse: () => UploadStatus.pending,
+    );
+  }
+
   QueuedUpload({
     required this.id,
     required this.postData,
@@ -52,14 +95,20 @@ class QueuedUpload {
       };
 
   factory QueuedUpload.fromJson(Map<String, dynamic> json) => QueuedUpload(
-        id: json['id'],
-        postData: json['postData'],
-        imagePaths: List<String>.from(json['imagePaths']),
-        videoPath: json['videoPath'],
-        createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdDate']),
-        status: UploadStatus.values.firstWhere((e) => e.name == json['status']),
-        retryCount: json['retryCount'] ?? 0,
-        errorMessage: json['errorMessage'],
-        progress: json['progress']?.toDouble() ?? 0.0,
+        id: _asString(json['id']),
+        postData: _asString(json['postData']),
+        imagePaths: _asStringList(json['imagePaths']),
+        videoPath: _asString(json['videoPath'], fallback: '').isEmpty
+            ? null
+            : _asString(json['videoPath']),
+        createdAt: DateTime.fromMillisecondsSinceEpoch(
+          _asInt(json['createdDate']),
+        ),
+        status: _asStatus(json['status']),
+        retryCount: _asInt(json['retryCount']),
+        errorMessage: _asString(json['errorMessage'], fallback: '').isEmpty
+            ? null
+            : _asString(json['errorMessage']),
+        progress: _asDouble(json['progress']),
       );
 }
