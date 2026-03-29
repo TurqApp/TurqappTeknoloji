@@ -2,6 +2,17 @@ part of 'user_subcollection_repository.dart';
 
 extension UserSubcollectionRepositoryStoragePart
     on UserSubcollectionRepository {
+  int _asIntImpl(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<void> _setEntriesImpl(
     String uid, {
     required String subcollection,
@@ -67,9 +78,10 @@ extension UserSubcollectionRepositoryStoragePart
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      final items =
-          (decoded['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      final ts = _asIntImpl(decoded['t']);
+      final items = decoded['items'] is List
+          ? List<dynamic>.from(decoded['items'] as List, growable: false)
+          : const <dynamic>[];
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
@@ -84,6 +96,8 @@ extension UserSubcollectionRepositoryStoragePart
         return null;
       }
       return items
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
           .map(
             (e) => UserSubcollectionEntry(
               id: (e['id'] ?? '').toString(),
@@ -93,6 +107,7 @@ extension UserSubcollectionRepositoryStoragePart
               ),
             ),
           )
+          .where((entry) => entry.id.trim().isNotEmpty)
           .toList(growable: false);
     } catch (_) {
       await prefs?.remove(prefsKey);
@@ -137,9 +152,7 @@ extension UserSubcollectionRepositoryStoragePart
       );
     }
     if (value is List) {
-      return value
-          .map(_cloneUserSubcollectionValue)
-          .toList(growable: false);
+      return value.map(_cloneUserSubcollectionValue).toList(growable: false);
     }
     return value;
   }
