@@ -12,25 +12,40 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
   }
 
   Widget _buildActionSurface({required Widget child}) {
-    return Container(
+    final surface = BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.black.withValues(alpha: 0.22),
+          Colors.black.withValues(alpha: 0.36),
+        ],
+      ),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(
+        color: Colors.white.withValues(alpha: 0.10),
+      ),
+    );
+    final frameOffsetY = GetPlatform.isIOS ? -2.0 : 0.0;
+    return SizedBox(
       width: double.infinity,
       height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withValues(alpha: 0.22),
-            Colors.black.withValues(alpha: 0.36),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-        ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            top: frameOffsetY,
+            bottom: -frameOffsetY,
+            child: IgnorePointer(
+              child: DecoratedBox(decoration: surface),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: child,
+          ),
+        ],
       ),
-      child: child,
     );
   }
 
