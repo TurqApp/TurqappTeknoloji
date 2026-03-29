@@ -1,5 +1,11 @@
 part of 'market_offer_service.dart';
 
+int _marketOfferAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse((value ?? '').toString()) ?? 0;
+}
+
 Future<int> _countTodayOffersImpl({
   required String buyerId,
   required int startOfDay,
@@ -22,8 +28,7 @@ Future<int> _countTodayOffersImpl({
           .get(options);
       return buyerOffers.docs
           .where(
-            (doc) =>
-                ((doc.data()['createdAt'] as num?)?.toInt() ?? 0) >= startOfDay,
+            (doc) => _marketOfferAsInt(doc.data()['createdAt']) >= startOfDay,
           )
           .length;
     } on FirebaseException {
