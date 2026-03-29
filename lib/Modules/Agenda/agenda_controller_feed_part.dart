@@ -1,6 +1,18 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerFeedPart on AgendaController {
+  int _resolveInitialAutoplayIndexFromFilteredEntries() {
+    if (filteredFeedEntries.isEmpty || agendaList.isEmpty) return -1;
+    for (final entry in filteredFeedEntries) {
+      final model = entry['model'];
+      if (model is! PostsModel) continue;
+      if (!_canAutoplayVideoPost(model)) continue;
+      final index = agendaList.indexWhere((post) => post.docID == model.docID);
+      if (index >= 0) return index;
+    }
+    return -1;
+  }
+
   void _ensureFeedPlaybackForIndex(int index) {
     if (!canClaimPlaybackNow) return;
     if (index < 0 || index >= agendaList.length) return;
@@ -127,12 +139,19 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void primeInitialCenteredPost() {
-    final target = _agendaFeedApplicationService.resolveInitialCenteredIndex(
-      agendaList: agendaList.toList(growable: false),
-      pendingCenteredDocId: _pendingCenteredDocId,
-      lastCenteredIndex: lastCenteredIndex,
-      canAutoplayPost: _canAutoplayVideoPost,
-    );
+    final preferredFilteredIndex =
+        (_pendingCenteredDocId?.trim().isNotEmpty ?? false) ||
+                lastCenteredIndex != null
+            ? -1
+            : _resolveInitialAutoplayIndexFromFilteredEntries();
+    final target = preferredFilteredIndex >= 0
+        ? preferredFilteredIndex
+        : _agendaFeedApplicationService.resolveInitialCenteredIndex(
+            agendaList: agendaList.toList(growable: false),
+            pendingCenteredDocId: _pendingCenteredDocId,
+            lastCenteredIndex: lastCenteredIndex,
+            canAutoplayPost: _canAutoplayVideoPost,
+          );
     if (target < 0 || target >= agendaList.length) return;
     final expectedDocId = _pendingCenteredDocId;
     centeredIndex.value = target;
