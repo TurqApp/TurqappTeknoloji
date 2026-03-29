@@ -1,5 +1,28 @@
 part of 'post_editing_service.dart';
 
+Map<String, dynamic> _clonePostEditingMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _clonePostEditingValue(value)),
+  );
+}
+
+dynamic _clonePostEditingValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _clonePostEditingValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value
+        .map(_clonePostEditingValue)
+        .toList(growable: false);
+  }
+  return value;
+}
+
 class EditAction {
   final String id;
   final String type;
@@ -10,10 +33,11 @@ class EditAction {
   EditAction({
     required this.id,
     required this.type,
-    required this.beforeState,
-    required this.afterState,
+    required Map<String, dynamic> beforeState,
+    required Map<String, dynamic> afterState,
     required this.timestamp,
-  });
+  }) : beforeState = _clonePostEditingMap(beforeState),
+       afterState = _clonePostEditingMap(afterState);
 }
 
 class TextFormatting {
@@ -88,6 +112,6 @@ class SmartSuggestion {
     required this.type,
     required this.text,
     required this.suggestion,
-    this.metadata = const {},
-  });
+    Map<String, dynamic> metadata = const {},
+  }) : metadata = _clonePostEditingMap(metadata);
 }
