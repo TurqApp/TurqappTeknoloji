@@ -27,22 +27,77 @@ List<StoryModel> _cloneDeepLinkStories(List<StoryModel> stories) {
       .toList(growable: false);
 }
 
+PostsModel? _cloneDeepLinkPostModel(PostsModel? model) {
+  if (model == null) return null;
+  return PostsModel.fromMap(model.toMap(), model.docID);
+}
+
+JobModel? _cloneDeepLinkJobModel(JobModel? model) {
+  if (model == null) return null;
+  return JobModel.fromMap(model.toMap(), model.docID);
+}
+
+MarketItemModel? _cloneDeepLinkMarketModel(MarketItemModel? model) {
+  if (model == null) return null;
+  return MarketItemModel.fromJson(model.toJson());
+}
+
+UserSummary? _cloneDeepLinkUserSummary(UserSummary? data) {
+  if (data == null) return null;
+  return UserSummary.fromMap(data.userID, data.toMap());
+}
+
+_PostLookupCache _cloneDeepLinkPostLookup(_PostLookupCache cached) {
+  return _PostLookupCache(
+    model: _cloneDeepLinkPostModel(cached.model),
+    cachedAt: cached.cachedAt,
+  );
+}
+
+_JobLookupCache _cloneDeepLinkJobLookup(_JobLookupCache cached) {
+  return _JobLookupCache(
+    model: _cloneDeepLinkJobModel(cached.model),
+    cachedAt: cached.cachedAt,
+  );
+}
+
+_MarketLookupCache _cloneDeepLinkMarketLookup(_MarketLookupCache cached) {
+  return _MarketLookupCache(
+    model: _cloneDeepLinkMarketModel(cached.model as MarketItemModel?),
+    cachedAt: cached.cachedAt,
+  );
+}
+
+_UserLookupCache _cloneDeepLinkUserLookup(_UserLookupCache cached) {
+  return _UserLookupCache(
+    data: _cloneDeepLinkUserSummary(cached.data),
+    cachedAt: cached.cachedAt,
+  );
+}
+
+_StoryDocLookupCache _cloneDeepLinkStoryDocLookup(_StoryDocLookupCache cached) {
+  return _StoryDocLookupCache(
+    data: cached.data == null ? null : _cloneDeepLinkStoryDocMap(cached.data!),
+    cachedAt: cached.cachedAt,
+  );
+}
+
 extension DeepLinkServiceLookupPart on DeepLinkService {
   Future<_PostLookupCache> _performGetPostLookup(String postId) async {
     _pruneStaleLookups();
     final cached = _deepLinkPostLookupCache[postId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _deepLinkLookupTtl) {
-      return cached;
+      return _cloneDeepLinkPostLookup(cached);
     }
     final doc =
         (await PostRepository.ensure().fetchPostCardsByIds([postId]))[postId];
     final lookup = _PostLookupCache(
-      model: doc,
+      model: _cloneDeepLinkPostModel(doc),
       cachedAt: DateTime.now(),
     );
     _deepLinkPostLookupCache[postId] = lookup;
-    return lookup;
+    return _cloneDeepLinkPostLookup(lookup);
   }
 
   Future<_JobLookupCache> _performGetJobLookup(String jobId) async {
@@ -50,17 +105,17 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
     final cached = _deepLinkJobLookupCache[jobId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _deepLinkLookupTtl) {
-      return cached;
+      return _cloneDeepLinkJobLookup(cached);
     }
     final lookup = _JobLookupCache(
-      model: await ensureJobRepository().fetchById(
+      model: _cloneDeepLinkJobModel(await ensureJobRepository().fetchById(
         jobId,
         preferCache: true,
-      ),
+      )),
       cachedAt: DateTime.now(),
     );
     _deepLinkJobLookupCache[jobId] = lookup;
-    return lookup;
+    return _cloneDeepLinkJobLookup(lookup);
   }
 
   Future<_UserLookupCache> _performGetUserLookup(String userId) async {
@@ -68,18 +123,18 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
     final cached = _deepLinkUserLookupCache[userId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _deepLinkLookupTtl) {
-      return cached;
+      return _cloneDeepLinkUserLookup(cached);
     }
     final data = await _userSummaryResolver.resolve(
       userId,
       preferCache: true,
     );
     final lookup = _UserLookupCache(
-      data: data,
+      data: _cloneDeepLinkUserSummary(data),
       cachedAt: DateTime.now(),
     );
     _deepLinkUserLookupCache[userId] = lookup;
-    return lookup;
+    return _cloneDeepLinkUserLookup(lookup);
   }
 
   Future<_MarketLookupCache> _performGetMarketLookup(String itemId) async {
@@ -87,17 +142,17 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
     final cached = _deepLinkMarketLookupCache[itemId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _deepLinkLookupTtl) {
-      return cached;
+      return _cloneDeepLinkMarketLookup(cached);
     }
     final lookup = _MarketLookupCache(
-      model: await ensureMarketRepository().fetchById(
+      model: _cloneDeepLinkMarketModel(await ensureMarketRepository().fetchById(
         itemId,
         preferCache: true,
-      ),
+      )),
       cachedAt: DateTime.now(),
     );
     _deepLinkMarketLookupCache[itemId] = lookup;
-    return lookup;
+    return _cloneDeepLinkMarketLookup(lookup);
   }
 
   Future<_StoryDocLookupCache> _performGetStoryDocLookup(String storyId) async {
@@ -105,7 +160,7 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
     final cached = _deepLinkStoryDocLookupCache[storyId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _deepLinkLookupTtl) {
-      return cached;
+      return _cloneDeepLinkStoryDocLookup(cached);
     }
     final storyDoc =
         await StoryRepository.ensure().getStoryRaw(storyId, preferCache: true);
@@ -114,7 +169,7 @@ extension DeepLinkServiceLookupPart on DeepLinkService {
       cachedAt: DateTime.now(),
     );
     _deepLinkStoryDocLookupCache[storyId] = lookup;
-    return lookup;
+    return _cloneDeepLinkStoryDocLookup(lookup);
   }
 
   Future<List<StoryModel>> _performFetchStoriesByUserIndexSafe(
