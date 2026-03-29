@@ -115,6 +115,11 @@ fs.writeFileSync(artifactPath, JSON.stringify(raw, null, 2));
 " "$artifact_file" "$screenshot_path"
 }
 
+is_valid_json_file() {
+  local json_file="$1"
+  node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$json_file" >/dev/null 2>&1
+}
+
 suite_tests=()
 if [[ "$MANIFEST" == *.tsv ]]; then
   while IFS= read -r suite_entry; do
@@ -251,6 +256,10 @@ sync_android_remote_artifacts() {
     local tmp_artifact="${local_artifact}.tmp"
     if "$ANDROID_ADB_BIN" -s "$target_device" \
       exec-out run-as "$ANDROID_PACKAGE" cat "$ANDROID_REMOTE_ARTIFACT_DIR/$remote_name" >"$tmp_artifact"; then
+      if [[ "$remote_name" == *.json ]] && ! is_valid_json_file "$tmp_artifact"; then
+        rm -f "$tmp_artifact"
+        continue
+      fi
       mv "$tmp_artifact" "$local_artifact"
       pulled_any=1
       if [[ "$local_artifact" == *.json ]]; then

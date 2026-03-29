@@ -27,7 +27,17 @@ Future<void> main(List<String> args) async {
   final artifacts = <Map<String, dynamic>>[];
   await for (final entity in directory.list()) {
     if (entity is! File || !entity.path.endsWith('.json')) continue;
-    final decoded = jsonDecode(await entity.readAsString());
+    final raw = await entity.readAsString();
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException catch (error) {
+      stderr.writeln(
+        '[integration-smoke-report] skipping malformed artifact '
+        '${entity.path}: $error',
+      );
+      continue;
+    }
     if (decoded is! Map) continue;
     artifacts.add(Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>()));
   }

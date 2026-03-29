@@ -101,32 +101,55 @@ copy_suite_artifacts() {
   return 1
 }
 
+artifact_is_host_stub() {
+  local artifact="$1"
+  [[ -f "$artifact" ]] || return 1
+  rg -q '"source"[[:space:]]*:[[:space:]]*"host_stub"' "$artifact"
+}
+
 run_suite_entry() {
   local test_file="$1"
   local artifact="$2"
   local scenario_name="$3"
+  local attempt=1
+  local max_attempts=2
 
-  local suite_manifest
-  suite_manifest="$(mktemp /tmp/integration_smoke_suite.XXXXXX.txt)"
-  local suite_artifact_dir
-  suite_artifact_dir="$(mktemp -d /tmp/integration_smoke_artifacts.XXXXXX)"
-  local runner_status=0
+  while (( attempt <= max_attempts )); do
+    local suite_manifest
+    suite_manifest="$(mktemp /tmp/integration_smoke_suite.XXXXXX)"
+    local suite_artifact_dir
+    suite_artifact_dir="$(mktemp -d /tmp/integration_smoke_artifacts.XXXXXX)"
+    local runner_status=0
 
-  printf '%s\n' "$test_file" >"$suite_manifest"
+    printf '%s\n' "$test_file" >"$suite_manifest"
 
-  set +e
-  INTEGRATION_TEST_MANIFEST="$suite_manifest" \
-  INTEGRATION_SMOKE_ARTIFACT_DIR="$suite_artifact_dir" \
-  bash scripts/run_turqapp_test_smoke.sh
-  runner_status=$?
-  set -e
+    set +e
+    INTEGRATION_TEST_MANIFEST="$suite_manifest" \
+    INTEGRATION_SMOKE_ARTIFACT_DIR="$suite_artifact_dir" \
+    bash scripts/run_turqapp_test_smoke.sh
+    runner_status=$?
+    set -e
 
-  copy_suite_artifacts "$suite_artifact_dir" "$artifact" "$scenario_name" "$runner_status" || true
+    copy_suite_artifacts "$suite_artifact_dir" "$artifact" "$scenario_name" "$runner_status" || true
 
-  rm -rf "$suite_artifact_dir"
-  rm -f "$suite_manifest"
+    rm -rf "$suite_artifact_dir"
+    rm -f "$suite_manifest"
 
-  return "$runner_status"
+    if [[ "$runner_status" -eq 0 ]]; then
+      return 0
+    fi
+
+    if (( attempt < max_attempts )) && artifact_is_host_stub "$artifact"; then
+      echo "[integration-smoke] retrying $(basename "$test_file") after host stub failure"
+      sleep 5
+      attempt=$((attempt + 1))
+      continue
+    fi
+
+    return "$runner_status"
+  done
+
+  return 1
 }
 
 rm -rf "$artifact_dir"

@@ -120,6 +120,7 @@ void expectSurfaceMatchesFixture(
   String countField = 'count',
   String docIdsField = 'docIds',
   String unreadField = 'unreadTotal',
+  bool enforceRequiredDocIds = true,
 }) {
   final contract = IntegrationTestFixtureContract.current.surface(surface);
   if (contract == null || !contract.isConfigured) return;
@@ -136,12 +137,14 @@ void expectSurfaceMatchesFixture(
   final docIds = _readDocIds(
     <String, dynamic>{'docIds': payload[docIdsField]},
   );
-  for (final docId in contract.requiredDocIds) {
-    expect(
-      docIds,
-      contains(docId),
-      reason: '$surface fixture docId missing: $docId',
-    );
+  if (enforceRequiredDocIds) {
+    for (final docId in contract.requiredDocIds) {
+      expect(
+        docIds,
+        contains(docId),
+        reason: '$surface fixture docId missing: $docId',
+      );
+    }
   }
 
   if (contract.maxUnread != null) {

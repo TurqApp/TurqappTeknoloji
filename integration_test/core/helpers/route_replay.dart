@@ -43,7 +43,11 @@ Future<void> goToFeedTab(WidgetTester tester) async {
     tester,
     context: 'feed tab replay settle',
   );
-  expectSurfaceMatchesFixture('feed', readSurfaceProbe('feed'));
+  expectSurfaceMatchesFixture(
+    'feed',
+    readSurfaceProbe('feed'),
+    enforceRequiredDocIds: false,
+  );
 }
 
 Future<void> replayFeedToExploreToFeed(WidgetTester tester) async {

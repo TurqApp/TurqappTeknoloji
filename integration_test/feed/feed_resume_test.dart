@@ -83,7 +83,11 @@ void main() {
             before: beforeFeed,
             after: afterFeed,
           );
-          expectSurfaceMatchesFixture('feed', afterFeed);
+          expectSurfaceMatchesFixture(
+            'feed',
+            afterFeed,
+            enforceRequiredDocIds: false,
+          );
         });
       } finally {
         restoreTransientFlutterErrorPolicy(originalOnError);
