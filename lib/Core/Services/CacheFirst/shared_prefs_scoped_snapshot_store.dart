@@ -6,6 +6,12 @@ import 'cache_first_serialization.dart';
 import 'cached_resource.dart';
 import 'scoped_snapshot_store.dart';
 
+int _scopedSnapshotAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
 class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
   SharedPrefsScopedSnapshotStore({
     required this.prefsPrefix,
@@ -45,8 +51,10 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
         await prefs.remove(prefsKey);
         return null;
       }
-      final snapshotAtMs = (payload['snapshotAt'] as num?)?.toInt() ?? 0;
-      final schemaVersion = (payload['schemaVersion'] as num?)?.toInt() ?? 1;
+      final snapshotAtMs = _scopedSnapshotAsInt(payload['snapshotAt']);
+      final schemaVersion = _scopedSnapshotAsInt(payload['schemaVersion']) == 0
+          ? 1
+          : _scopedSnapshotAsInt(payload['schemaVersion']);
       final generationId = (payload['generationId'] ?? '').toString().trim();
       final source = _parseSource(payload['source']);
       final dataMap = payload['data'];
