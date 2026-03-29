@@ -21,11 +21,35 @@ extension OfflineModeServicePersistencePart on OfflineModeService {
     try {
       final json = _prefs?.getString(_deadLetterActionsKey);
       if (json == null) return;
-      final List<dynamic> list = jsonDecode(json);
-      deadLetterActions.value =
-          list.map((e) => PendingAction.fromJson(e)).toList();
+      final decoded = jsonDecode(json);
+      if (decoded is! List) {
+        await _prefs?.remove(_deadLetterActionsKey);
+        return;
+      }
+      var shouldPrune = false;
+      final restored = <PendingAction>[];
+      for (final item in decoded) {
+        if (item is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        try {
+          restored.add(
+            PendingAction.fromJson(
+              Map<String, dynamic>.from(item.cast<dynamic, dynamic>()),
+            ),
+          );
+        } catch (_) {
+          shouldPrune = true;
+        }
+      }
+      deadLetterActions.value = restored;
+      if (shouldPrune) {
+        await _saveDeadLetterActions();
+      }
     } catch (e) {
       print('❌ Failed to load dead-letter actions: $e');
+      await _prefs?.remove(_deadLetterActionsKey);
     }
   }
 
@@ -45,13 +69,37 @@ extension OfflineModeServicePersistencePart on OfflineModeService {
       final json = _prefs?.getString(_pendingActionsKey);
       if (json == null) return;
 
-      final List<dynamic> list = jsonDecode(json);
-      pendingActions.value =
-          list.map((e) => PendingAction.fromJson(e)).toList();
+      final decoded = jsonDecode(json);
+      if (decoded is! List) {
+        await _prefs?.remove(_pendingActionsKey);
+        return;
+      }
+      var shouldPrune = false;
+      final restored = <PendingAction>[];
+      for (final item in decoded) {
+        if (item is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        try {
+          restored.add(
+            PendingAction.fromJson(
+              Map<String, dynamic>.from(item.cast<dynamic, dynamic>()),
+            ),
+          );
+        } catch (_) {
+          shouldPrune = true;
+        }
+      }
+      pendingActions.value = restored;
+      if (shouldPrune) {
+        await _savePendingActions();
+      }
 
       print('📂 Loaded ${pendingActions.length} pending actions');
     } catch (e) {
       print('❌ Failed to load pending actions: $e');
+      await _prefs?.remove(_pendingActionsKey);
     }
   }
 
