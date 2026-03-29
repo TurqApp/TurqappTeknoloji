@@ -12,18 +12,19 @@ class PendingAction {
 
   PendingAction({
     required this.type,
-    required this.data,
+    required Map<String, dynamic> data,
     DateTime? timestamp,
     this.dedupeKey,
     this.attemptCount = 0,
     this.nextAttemptAtMs = 0,
     this.lastTriedAtMs = 0,
     this.lastError,
-  }) : timestamp = timestamp ?? DateTime.now();
+  })  : data = _clonePendingActionMap(data),
+        timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
         'type': type,
-        'data': data,
+        'data': _clonePendingActionMap(data),
         'timestamp': timestamp.millisecondsSinceEpoch,
         if (dedupeKey != null && dedupeKey!.isNotEmpty) 'dedupeKey': dedupeKey,
         'attemptCount': attemptCount,
@@ -35,7 +36,9 @@ class PendingAction {
   factory PendingAction.fromJson(Map<String, dynamic> json) {
     return PendingAction(
       type: json['type'],
-      data: Map<String, dynamic>.from(json['data']),
+      data: _clonePendingActionMap(
+        Map<String, dynamic>.from(json['data']),
+      ),
       timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
       dedupeKey: (json['dedupeKey'] ?? '').toString().trim().isEmpty
           ? null
@@ -61,7 +64,7 @@ class PendingAction {
   }) {
     return PendingAction(
       type: type ?? this.type,
-      data: data ?? this.data,
+      data: data != null ? _clonePendingActionMap(data) : this.data,
       timestamp: timestamp ?? this.timestamp,
       dedupeKey: dedupeKey ?? this.dedupeKey,
       attemptCount: attemptCount ?? this.attemptCount,
@@ -76,5 +79,28 @@ class PendingAction {
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
+  }
+
+  static Map<String, dynamic> _clonePendingActionMap(
+    Map<String, dynamic> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _clonePendingActionValue(value)),
+    );
+  }
+
+  static dynamic _clonePendingActionValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _clonePendingActionValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_clonePendingActionValue).toList(growable: false);
+    }
+    return value;
   }
 }
