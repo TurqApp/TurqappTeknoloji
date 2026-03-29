@@ -149,14 +149,13 @@ extension ScholarshipPreviewViewVisualPart on ScholarshipPreviewView {
                     ),
                   if (controller.logo.value.isNotEmpty)
                     Positioned(
-                      top: height * 0.23,
-                      right: width * 0.035,
-                      width: width * 0.4,
-                      height: height * 0.45,
+                      top: height * 0.237,
+                      right: width * 0.064,
+                      width: math.min(width * 0.305, height * 0.49),
+                      height: math.min(width * 0.305, height * 0.49),
                       child: _buildTemplateLogo(
                         logoPath: controller.logo.value,
-                        width: width * 0.4,
-                        height: height * 0.45,
+                        size: math.min(width * 0.305, height * 0.49),
                       ),
                     ),
                   if (controller.website.value.isNotEmpty)
@@ -221,33 +220,25 @@ extension ScholarshipPreviewViewVisualPart on ScholarshipPreviewView {
 
   Widget _buildTemplateLogo({
     required String logoPath,
-    required double width,
-    required double height,
+    required double size,
   }) {
     final imageWidget = logoPath.startsWith('http')
         ? CachedNetworkImage(
             imageUrl: logoPath,
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
             errorWidget: (context, url, error) => const Icon(Icons.error),
           )
         : Image.file(
             File(logoPath),
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
           );
 
     return ClipRect(
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: width * 0.06,
-          vertical: height * 0.06,
-        ),
-        child: Align(
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: imageWidget,
-          ),
+      child: Align(
+        alignment: Alignment.center,
+        child: SizedBox.square(
+          dimension: size,
+          child: imageWidget,
         ),
       ),
     );

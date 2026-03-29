@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:turqappv2/Utils/empty_padding.dart';
 
