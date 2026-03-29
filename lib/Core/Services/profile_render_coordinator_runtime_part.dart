@@ -1,7 +1,10 @@
 part of 'profile_render_coordinator.dart';
 
 int _profileEntryTimestamp(Map<String, dynamic> entry) {
-  final value = entry['timestamp'];
+  return _asProfileEntryTimestamp(entry['timestamp']);
+}
+
+int _asProfileEntryTimestamp(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) {
     final parsed = int.tryParse(value.trim());
@@ -33,7 +36,7 @@ List<Map<String, dynamic>> _buildProfileMergedEntries({
       !post.deletedPost && !post.arsiv && !post.shouldHideWhileUploading)) {
     final reshareTimestamp = reshareSortTimestampFor(
       reshare.docID,
-      reshare.timeStamp.toInt(),
+      _asProfileEntryTimestamp(reshare.timeStamp),
     );
     combined.add(<String, dynamic>{
       'docID': reshare.docID,
