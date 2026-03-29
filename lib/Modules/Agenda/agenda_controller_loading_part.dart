@@ -552,11 +552,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
-      // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.
-      await fetchAgendaBigData(
-        initial: true,
-        trigger: 'refresh_agenda',
-      );
+      await _refreshAgendaFromLiveSource();
       await _fetchAndMergeReshareEvents(
         eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
       );
@@ -564,6 +560,56 @@ extension AgendaControllerLoadingPart on AgendaController {
     } catch (e) {
       print("refreshAgenda error: $e");
       pauseAll.value = false;
+    }
+  }
+
+  Future<void> _refreshAgendaFromLiveSource() async {
+    if (isLoading.value) return;
+
+    isLoading.value = true;
+    try {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final cutoffMs = _agendaCutoffMs(nowMs);
+      const loadLimit = 30;
+      final page = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: loadLimit,
+        startAfter: null,
+        preferCache: false,
+        cacheOnly: false,
+        usePrimaryFeedPaging: true,
+      );
+
+      _usePrimaryFeedPaging = page.usesPrimaryFeed;
+      lastDoc = page.lastDoc;
+      hasMore.value = page.lastDoc != null && page.items.length >= loadLimit;
+      _prefetchedThumbnailPostCount = 0;
+      _shuffleCache.clear();
+      publicReshareEvents.clear();
+      feedReshareEntries.clear();
+      highlightDocIDs.clear();
+      agendaList.assignAll(page.items);
+
+      await _saveFeedPostsToPool(
+        _buildOrderedAgendaSnapshot(limit: 40),
+        const <String, Map<String, dynamic>>{},
+        source: CachedResourceSource.server,
+      );
+
+      if (agendaList.isNotEmpty) {
+        _scheduleReshareFetchForPosts(
+          agendaList.toList(growable: false),
+          perPostLimit: 1,
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+            primeInitialCenteredPost();
+          }
+        });
+      }
+    } finally {
+      isLoading.value = false;
     }
   }
 }
