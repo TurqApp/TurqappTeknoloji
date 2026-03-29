@@ -1,5 +1,17 @@
 part of 'profile_render_coordinator.dart';
 
+int _profileEntryTimestamp(Map<String, dynamic> entry) {
+  final value = entry['timestamp'];
+  if (value is num) return value.toInt();
+  if (value is String) {
+    final parsed = int.tryParse(value.trim());
+    if (parsed != null) return parsed;
+    final parsedNum = num.tryParse(value.trim());
+    if (parsedNum != null) return parsedNum.toInt();
+  }
+  return 0;
+}
+
 List<Map<String, dynamic>> _buildProfileMergedEntries({
   required List<PostsModel> allPosts,
   required List<PostsModel> reshares,
@@ -32,7 +44,7 @@ List<Map<String, dynamic>> _buildProfileMergedEntries({
   }
 
   combined.sort(
-    (a, b) => (b['timestamp'] as num).compareTo(a['timestamp'] as num),
+    (a, b) => _profileEntryTimestamp(b).compareTo(_profileEntryTimestamp(a)),
   );
   return combined;
 }
