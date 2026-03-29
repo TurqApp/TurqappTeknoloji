@@ -373,7 +373,7 @@ extension StoryRepositoryCachePart on StoryRepository {
         .map((doc) {
           try {
             final data = doc.data();
-            if ((data['deleted'] ?? false) == true) {
+            if (_storyRowCacheAsBool(data['deleted'])) {
               return null;
             }
             return StoryModel.fromDoc(doc);
