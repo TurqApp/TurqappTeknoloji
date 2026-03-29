@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -83,12 +85,16 @@ class _ExploreViewState extends State<ExploreView> {
       controller = ensureExploreController();
       _ownsController = true;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(controller.onPrimarySurfaceVisible());
+    });
   }
 
   @override
   void dispose() {
     if (IntegrationTestMode.enabled) {
-      debugPrint('[integration-smoke] ExploreView.dispose owns=$_ownsController');
+      debugPrint(
+          '[integration-smoke] ExploreView.dispose owns=$_ownsController');
     }
     if (_ownsController &&
         identical(maybeFindExploreController(), controller)) {
