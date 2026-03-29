@@ -4,6 +4,30 @@ class ExamModel {
     return num.tryParse((value ?? '').toString()) ?? 0;
   }
 
+  static bool _asBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   static List<String> _cloneStringList(Iterable<dynamic> source) {
     return source
         .map((item) => item.toString())
@@ -54,12 +78,12 @@ class ExamModel {
       gecersizSayilanlar:
           _cloneStringList(json['gecersizSayilanlar'] ?? const []),
       kpssSecilenLisans: (json['kpssSecilenLisans'] ?? '').toString(),
-      isPublic: json['public'] == true,
+      isPublic: _asBool(json['public']),
       sinavAciklama: (json['sinavAciklama'] ?? '').toString(),
       sinavAdi: (json['sinavAdi'] ?? '').toString(),
       sinavTuru: (json['sinavTuru'] ?? '').toString(),
       soruSayilari: _cloneStringList(json['soruSayilari'] ?? const []),
-      taslak: json['taslak'] == true,
+      taslak: _asBool(json['taslak']),
       timeStamp: _asNum(json['timeStamp']),
       userID: (json['userID'] ?? '').toString(),
     );
