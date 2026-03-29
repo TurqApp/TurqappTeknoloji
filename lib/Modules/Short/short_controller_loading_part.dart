@@ -625,6 +625,7 @@ extension ShortControllerLoadingPart on ShortController {
     final releaseTasks = <Future<void>>[];
     for (final entry in adaptersByDocId.entries) {
       if (retainedDocIds.contains(entry.key)) continue;
+      _unregisterPlaybackHandleForIndex(-1, docIdOverride: entry.key);
       releaseTasks.add(_videoPool.release(entry.value));
     }
 

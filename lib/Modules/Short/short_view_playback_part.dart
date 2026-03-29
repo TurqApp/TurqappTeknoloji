@@ -1,6 +1,27 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  void _requestExclusivePlayback(
+    String docId, {
+    Duration minSpacing = const Duration(milliseconds: 220),
+  }) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return;
+    final now = DateTime.now();
+    final lastDocId = _lastExclusivePlayDocId;
+    final lastAt = _lastExclusivePlayAt;
+    if (lastDocId == trimmed &&
+        lastAt != null &&
+        now.difference(lastAt) < minSpacing) {
+      return;
+    }
+    _lastExclusivePlayDocId = trimmed;
+    _lastExclusivePlayAt = now;
+    try {
+      _playbackRuntimeService.playOnlyThis(trimmed);
+    } catch (_) {}
+  }
+
   void _resetShortAutoplaySegmentGate() {
     _autoplaySegmentGateStartedAt = null;
     _autoplaySegmentGateTimedOut = false;
@@ -283,6 +304,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (!vc.value.isPlaying) {
           vc.play();
         }
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId);
+        }
         _setupVideoEndListener(vc);
         _schedulePlaybackWatchdog(page, vc);
         _scheduleStallWatchdog(page, vc);
@@ -365,6 +389,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
         vc.setVolume(volume ? 1 : 0);
         await vc.play();
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId);
+        }
       } catch (_) {}
       _armStallWatchdog(page, vc);
     });
@@ -405,6 +432,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
         vc.setVolume(volume ? 1 : 0);
         await vc.play();
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId);
+        }
       } catch (_) {}
       _armPlaybackWatchdog(page, vc);
     });

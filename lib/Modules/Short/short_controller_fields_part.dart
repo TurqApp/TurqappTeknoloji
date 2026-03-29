@@ -5,6 +5,7 @@ class _ShortControllerState {
   final shortFeedApplicationService = ShortFeedApplicationService();
   final videoPool = ensureGlobalVideoAdapterPool();
   final playbackCoordinator = ShortPlaybackCoordinator.forCurrentPlatform();
+  final playbackRuntimeService = const PlaybackRuntimeService();
   final cache = <int, HLSVideoAdapter>{};
   final tiers = <int, _CacheTier>{};
   final lastIndex = 0.obs;
@@ -36,6 +37,8 @@ extension ShortControllerFieldsPart on ShortController {
   GlobalVideoAdapterPool get _videoPool => _state.videoPool;
   ShortPlaybackCoordinator get _playbackCoordinator =>
       _state.playbackCoordinator;
+  PlaybackRuntimeService get _playbackRuntimeService =>
+      _state.playbackRuntimeService;
   Map<int, HLSVideoAdapter> get cache => _state.cache;
   Map<int, _CacheTier> get _tiers => _state.tiers;
   RxInt get lastIndex => _state.lastIndex;
