@@ -299,6 +299,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         agendaController.playbackSuspended,
         (suspended) {
           if (suspended || !_isSurfacePlaybackAllowed) {
+            if (suspended &&
+                defaultTargetPlatform == TargetPlatform.iOS &&
+                _isPrimaryFeedSurfaceInstance) {
+              unawaited(_disposePlaybackForSurfaceLoss());
+              return;
+            }
             _stopPlaybackForSurfaceLoss();
           } else {
             _resumePlaybackIfEligible(source: 'playback_suspension_released');

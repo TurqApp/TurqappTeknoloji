@@ -115,6 +115,26 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
   }
 
+  Future<void> _disposePlaybackForSurfaceLoss() async {
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    _videoAdapter = null;
+    adapter.removeListener(_onVideoUpdate);
+    _hasAutoPlayed = false;
+    _resetAutoplaySegmentGate();
+    _playbackIntentTracked = false;
+    _syncRuntimeHints(hasStableFocus: false);
+    try {
+      _playbackRuntimeService.unregisterPlaybackHandle(playbackHandleKey);
+    } catch (_) {}
+    try {
+      await adapterPool.release(adapter, keepWarm: false);
+    } catch (_) {}
+    if (mounted) {
+      _markPostContentDirty();
+    }
+  }
+
   void pauseVideoManually() {
     _manualPauseRequested = true;
     _safePauseVideo();
