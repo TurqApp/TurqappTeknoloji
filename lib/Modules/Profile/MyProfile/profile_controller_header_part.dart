@@ -10,6 +10,15 @@ extension ProfileControllerHeaderPart on ProfileController {
     return target.value.trim();
   }
 
+  String _preserveResolvedAvatar(
+    Map<String, dynamic> data, {
+    required Map<String, dynamic> profile,
+  }) {
+    final next = resolveAvatarUrl(data, profile: profile).trim();
+    if (next.isNotEmpty) return next;
+    return headerAvatarUrl.value.trim();
+  }
+
   Future<void> _performBootstrapProfileData() async {
     await _performPrepareStartupSurface();
   }
@@ -77,11 +86,12 @@ extension ProfileControllerHeaderPart on ProfileController {
       followingCount.value = nextFollowingCount;
     }
     headerNickname.value =
-        (data['nickname'] ?? data['username'] ?? '').toString().trim();
+        _preserveNonEmpty(headerNickname, data['nickname'] ?? data['username']);
     headerRozet.value =
-        (data['rozet'] ?? data['badge'] ?? '').toString().trim();
-    headerDisplayName.value = (data['displayName'] ?? '').toString().trim();
-    headerAvatarUrl.value = resolveAvatarUrl(data, profile: profile);
+        _preserveNonEmpty(headerRozet, data['rozet'] ?? data['badge']);
+    headerDisplayName.value =
+        _preserveNonEmpty(headerDisplayName, data['displayName']);
+    headerAvatarUrl.value = _preserveResolvedAvatar(data, profile: profile);
 
     final display = headerDisplayName.value.trim();
     if (display.isNotEmpty) {
