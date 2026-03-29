@@ -6,13 +6,13 @@ enum TelemetryThresholdSeverity {
 }
 
 class TelemetryThresholdIssue {
-  const TelemetryThresholdIssue({
+  TelemetryThresholdIssue({
     required this.surface,
     required this.code,
     required this.message,
     required this.severity,
-    this.metrics = const <String, dynamic>{},
-  });
+    Map<String, dynamic> metrics = const <String, dynamic>{},
+  }) : metrics = _cloneTelemetryMetrics(metrics);
 
   final String surface;
   final String code;
@@ -26,7 +26,7 @@ class TelemetryThresholdIssue {
       'code': code,
       'message': message,
       'severity': severity.name,
-      'metrics': metrics,
+      'metrics': _cloneTelemetryMetrics(metrics),
     };
   }
 }
@@ -115,9 +115,9 @@ class SurfaceTelemetrySnapshot {
 }
 
 class TelemetryThresholdReport {
-  const TelemetryThresholdReport({
-    required this.issues,
-  });
+  TelemetryThresholdReport({
+    required List<TelemetryThresholdIssue> issues,
+  }) : issues = issues.toList(growable: false);
 
   final List<TelemetryThresholdIssue> issues;
 
@@ -133,6 +133,29 @@ class TelemetryThresholdReport {
       'issues': issues.map((issue) => issue.toJson()).toList(growable: false),
     };
   }
+}
+
+Map<String, dynamic> _cloneTelemetryMetrics(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneTelemetryMetricValue(value)),
+  );
+}
+
+dynamic _cloneTelemetryMetricValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneTelemetryMetricValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value
+        .map(_cloneTelemetryMetricValue)
+        .toList(growable: false);
+  }
+  return value;
 }
 
 class _SurfaceThresholds {
