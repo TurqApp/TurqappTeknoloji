@@ -35,7 +35,9 @@ extension CurrentUserServiceCachePart on CurrentUserService {
     if (raw is int) return raw;
     if (raw is num) return raw.toInt();
     if (raw == null || raw is FieldValue) return null;
-    return int.tryParse(raw.toString());
+    final value = raw.toString().trim();
+    if (value.isEmpty) return null;
+    return int.tryParse(value) ?? num.tryParse(value)?.toInt();
   }
 
   int? _extractRequestedViewSelection(Map<String, dynamic> fields) {
