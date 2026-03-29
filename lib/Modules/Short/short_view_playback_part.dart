@@ -250,6 +250,35 @@ extension ShortViewPlaybackPart on _ShortViewState {
     }
   }
 
+  void _ensureActivePageAdapterAfterBuild(int page) {
+    if (!mounted || page != currentPage) return;
+    if (page < 0 || page >= _cachedShorts.length) return;
+    final docId = _cachedShorts[page].docID.trim();
+    if (docId.isEmpty) return;
+    final token = '$page:$docId';
+    if (_pendingActiveAdapterEnsureToken == token) return;
+    _pendingActiveAdapterEnsureToken = token;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (!mounted || page != currentPage) return;
+        final hadActiveAdapter = controller.cache[page] != null;
+        await controller.updateCacheTiers(
+          page,
+          suppressWarmPause: true,
+        );
+        if (!mounted || page != currentPage) return;
+        _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
+        if (!isManuallyPaused && controller.cache[page] != null) {
+          _schedulePlayForPage(page);
+        }
+      } finally {
+        if (_pendingActiveAdapterEnsureToken == token) {
+          _pendingActiveAdapterEnsureToken = null;
+        }
+      }
+    });
+  }
+
   void _schedulePlayForPage(int page) {
     _playDebounce?.cancel();
     _playDebounce = Timer(

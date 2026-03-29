@@ -243,19 +243,22 @@ extension ShortViewUiPart on _ShortViewState {
                 final modelAr = list[idx].aspectRatio > 0
                     ? list[idx].aspectRatio.toDouble()
                     : (9 / 16);
+                final isActivePage = idx == currentPage;
 
                 if (vp == null) {
+                  if (isActivePage) {
+                    _ensureActivePageAdapterAfterBuild(idx);
+                  }
                   return Stack(
                     fit: StackFit.expand,
                     children: [_buildThumbOverlay(thumb, modelAr)],
                   );
                 }
 
-                final isActivePage = idx == currentPage;
                 final videoWidget = isActivePage
                     ? _buildFullscreenVideoSurface(
                         vp,
-                        'vp-${list[idx].docID}',
+                        'vp-${list[idx].docID}-${vp.hashCode}',
                         modelAspectRatio: modelAr,
                       )
                     : const SizedBox.shrink();

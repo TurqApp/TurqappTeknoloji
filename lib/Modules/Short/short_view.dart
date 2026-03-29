@@ -165,6 +165,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   DateTime? _lastExclusivePlayAt;
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
+  String? _pendingActiveAdapterEnsureToken;
   List<PostsModel> _cachedShorts = [];
   double _manualGestureDragDy = 0.0;
 
