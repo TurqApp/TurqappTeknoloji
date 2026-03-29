@@ -17,42 +17,45 @@ extension MarketDetailViewShellContentPart on _MarketDetailViewState {
         leading: const AppBackButton(),
         title: AppPageTitle('pasaj.market.detail_title'.tr),
         actions: [
-          if (!_isOwner)
-            Padding(
-              padding: const EdgeInsets.only(right: 2),
-              child: EducationShareIconButton(
-                onTap: () => const MarketShareService().shareItem(item),
-                size: 36,
-                iconSize: 20,
-              ),
-            ),
           Padding(
-            padding: const EdgeInsets.only(right: 2),
-            child: EducationFeedShareIconButton(
-              onTap: () => const MarketFeedPostShareService().shareItem(item),
-              size: 36,
-              iconSize: 20,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: PullDownButton(
-              itemBuilder: (context) => [
-                if (!_isOwner)
-                  PullDownMenuItem(
-                    onTap: _showReportSheet,
-                    title: 'pasaj.market.report_listing'.tr,
-                    icon: CupertinoIcons.exclamationmark_circle,
+            padding: const EdgeInsets.only(right: 15),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!_isOwner) ...[
+                  EducationShareIconButton(
+                    onTap: () => const MarketShareService().shareItem(item),
+                    size: 36,
+                    iconSize: 18,
                   ),
-              ],
-              buttonBuilder: (context, showMenu) => AppHeaderActionButton(
-                onTap: showMenu,
-                child: const Icon(
-                  AppIcons.ellipsisVertical,
-                  color: Colors.black,
-                  size: 20,
+                  const SizedBox(width: 6),
+                ],
+                EducationFeedShareIconButton(
+                  onTap: () => const MarketFeedPostShareService().shareItem(item),
+                  size: 36,
+                  iconSize: 18,
                 ),
-              ),
+                const SizedBox(width: 6),
+                PullDownButton(
+                  itemBuilder: (context) => [
+                    if (!_isOwner)
+                      PullDownMenuItem(
+                        onTap: _showReportSheet,
+                        title: 'pasaj.market.report_listing'.tr,
+                        icon: CupertinoIcons.exclamationmark_circle,
+                      ),
+                  ],
+                  buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+                    onTap: showMenu,
+                    size: 36,
+                    child: const Icon(
+                      AppIcons.ellipsisVertical,
+                      color: Colors.black,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

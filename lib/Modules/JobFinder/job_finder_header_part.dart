@@ -75,36 +75,27 @@ extension JobFinderHeaderPart on JobFinder {
                     ),
                   ),
                   const SizedBox(width: 7),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      minimumSize: const Size(25, 25),
-                      fixedSize: const Size(30, 30),
-                    ),
-                    onPressed: () => controller.filtreTapped(),
+                  AppHeaderActionButton(
+                    size: 36,
+                    onTap: () => controller.filtreTapped(),
                     child: Icon(
                       Icons.filter_alt_outlined,
                       color: controller.filtre.value
                           ? Colors.pinkAccent
                           : Colors.black,
-                      size: 20,
+                      size: 18,
                     ),
                   ),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      minimumSize: const Size(25, 25),
-                      fixedSize: const Size(30, 30),
-                    ),
-                    onPressed: controller.toggleListingSelection,
+                  const SizedBox(width: 6),
+                  AppHeaderActionButton(
+                    size: 36,
+                    onTap: controller.toggleListingSelection,
                     child: Icon(
                       controller.listingSelection.value == 0
                           ? CupertinoIcons.list_bullet
                           : CupertinoIcons.square_grid_2x2,
                       color: Colors.black,
-                      size: 20,
+                      size: 18,
                     ),
                   ),
                 ],

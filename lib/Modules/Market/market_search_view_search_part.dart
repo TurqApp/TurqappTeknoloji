@@ -61,7 +61,7 @@ extension _MarketSearchViewSearchPart on _MarketSearchViewState {
 
   Widget _buildSearchHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 15, 0),
+      padding: const EdgeInsets.fromLTRB(15, 8, 15, 0),
       child: Row(
         children: [
           const AppBackButton(),
@@ -75,15 +75,10 @@ extension _MarketSearchViewSearchPart on _MarketSearchViewState {
               onClear: () => controller.setSearchQuery(''),
             ),
           ),
-          const SizedBox(width: 10),
-          TextButton(
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              minimumSize: const Size(30, 30),
-              fixedSize: const Size(30, 30),
-            ),
-            onPressed: () => showModalBottomSheet<void>(
+          const SizedBox(width: 6),
+          AppHeaderActionButton(
+            size: 36,
+            onTap: () => showModalBottomSheet<void>(
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.white,
@@ -97,7 +92,7 @@ extension _MarketSearchViewSearchPart on _MarketSearchViewState {
             child: Icon(
               Icons.filter_alt_outlined,
               color: controller.hasAdvancedFilters ? Colors.pink : Colors.black,
-              size: 20,
+              size: 18,
             ),
           ),
         ],

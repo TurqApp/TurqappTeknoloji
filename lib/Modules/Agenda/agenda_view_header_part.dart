@@ -6,15 +6,15 @@ extension _AgendaViewHeaderPart on AgendaView {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 380;
         final horizontalPadding = compact ? 12.0 : 15.0;
-        final trailingGap = compact ? 1.0 : AppIconSurface.kGap;
-        final actionSize = compact ? 34.0 : AppIconSurface.kSize;
+        const trailingGap = 6.0;
+        const actionSize = 36.0;
 
         return Column(
           children: [
             Padding(
               padding: EdgeInsets.only(
                 left: horizontalPadding,
-                right: compact ? 8 : 10,
+                right: 15,
                 top: Get.mediaQuery.padding.top + 3,
                 bottom: 8,
               ),

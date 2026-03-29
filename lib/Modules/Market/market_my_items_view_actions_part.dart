@@ -88,6 +88,7 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
                       buttonBuilder: (context, showMenu) =>
                           AppHeaderActionButton(
                         onTap: showMenu,
+                        size: 36,
                         child: Icon(
                           AppIcons.ellipsisVertical,
                           color: Colors.black,
