@@ -42,7 +42,7 @@ enum QALabIssueSource {
 }
 
 class QALabIssue {
-  const QALabIssue({
+  QALabIssue({
     required this.id,
     required this.source,
     required this.severity,
@@ -52,8 +52,8 @@ class QALabIssue {
     required this.route,
     required this.surface,
     this.stackTrace,
-    this.metadata = const <String, dynamic>{},
-  });
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) : metadata = _cloneQaLabModelMap(metadata);
 
   final String id;
   final QALabIssueSource source;
@@ -106,15 +106,16 @@ class QALabRouteEvent {
 }
 
 class QALabCheckpoint {
-  const QALabCheckpoint({
+  QALabCheckpoint({
     required this.id,
     required this.label,
     required this.surface,
     required this.route,
     required this.timestamp,
-    required this.probe,
-    this.extra = const <String, dynamic>{},
-  });
+    required Map<String, dynamic> probe,
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  }) : probe = _cloneQaLabModelMap(probe),
+       extra = _cloneQaLabModelMap(extra);
 
   final String id;
   final String label;
@@ -138,15 +139,15 @@ class QALabCheckpoint {
 }
 
 class QALabTimelineEvent {
-  const QALabTimelineEvent({
+  QALabTimelineEvent({
     required this.id,
     required this.category,
     required this.code,
     required this.route,
     required this.surface,
     required this.timestamp,
-    this.metadata = const <String, dynamic>{},
-  });
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) : metadata = _cloneQaLabModelMap(metadata);
 
   final String id;
   final String category;
