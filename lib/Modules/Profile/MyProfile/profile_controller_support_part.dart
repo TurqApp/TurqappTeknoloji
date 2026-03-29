@@ -23,6 +23,11 @@ extension ProfileControllerSupportPart on ProfileController {
   int get postLimitPhotos => _profilePageLimit;
   int get postLimitVideos => _profilePageLimit;
 
+  Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
+        allowBackgroundRefresh:
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.profile),
+      );
+
   Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
       _performPrepareStartupSurface(
         allowBackgroundRefresh: allowBackgroundRefresh,

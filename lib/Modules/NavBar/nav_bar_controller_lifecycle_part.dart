@@ -131,6 +131,11 @@ extension _NavBarControllerLifecyclePart on NavBarController {
         _resetPrimaryTabSurfacesForTransitionImpl(
           educationIndex: educationIndex,
         );
+        _primeVisibleSurfaceAfterTabChangeImpl(
+          index: index,
+          educationIndex: educationIndex,
+          profileIndex: hasEducation ? 4 : 3,
+        );
         if (index == 0) {
           _resumeFeedIfNeededImpl();
         }
@@ -184,6 +189,36 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     try {
       maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     } catch (_) {}
+  }
+
+  void _primeVisibleSurfaceAfterTabChangeImpl({
+    required int index,
+    required int educationIndex,
+    required int profileIndex,
+  }) {
+    if (index == 0) {
+      unawaited(maybeFindAgendaController()?.onPrimarySurfaceVisible());
+      return;
+    }
+    if (index == 1) {
+      unawaited(maybeFindExploreController()?.onPrimarySurfaceVisible());
+      return;
+    }
+    if (educationIndex >= 0 && index == educationIndex) {
+      final activeEducationTabId =
+          maybeFindEducationController()?.currentPasajTabId();
+      if (activeEducationTabId == PasajTabIds.market) {
+        unawaited(maybeFindMarketController()?.onPrimarySurfaceVisible());
+        return;
+      }
+      if (activeEducationTabId == PasajTabIds.jobFinder) {
+        unawaited(maybeFindJobFinderController()?.onPrimarySurfaceVisible());
+      }
+      return;
+    }
+    if (index == profileIndex) {
+      unawaited(ProfileController.maybeFind()?.onPrimarySurfaceVisible());
+    }
   }
 
   Future<void> _persistCurrentStartupSurfacesImpl({

@@ -3,6 +3,11 @@ part of 'explore_controller.dart';
 extension ExploreControllerApiX on ExploreController {
   void _bindFollowingListener() => _performBindFollowingListener();
 
+  Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
+        allowBackgroundRefresh:
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore),
+      );
+
   Future<void> _fetchFollowingIDs(String uid) => _performFetchFollowingIDs(uid);
 
   Future<void> fetchExplorePosts() => _performFetchExplorePosts();
