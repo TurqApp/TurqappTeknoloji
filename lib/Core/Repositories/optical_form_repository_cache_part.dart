@@ -3,7 +3,7 @@ part of 'optical_form_repository.dart';
 extension OpticalFormRepositoryCachePart on OpticalFormRepository {
   Future<Map<String, dynamic>?> _getCachedMap(String key) async {
     final cached = await _getCachedValue(key);
-    if (cached is Map<String, dynamic>) return cached;
+    if (cached is Map<String, dynamic>) return _cloneMap(cached);
     return null;
   }
 
@@ -16,7 +16,7 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
   Future<List<String>?> _getCachedStringList(String key) async {
     final cached = await _getCachedValue(key);
     if (cached is List) {
-      return cached.map((e) => e.toString()).toList(growable: false);
+      return List<String>.from(cached.map((e) => e.toString()));
     }
     return null;
   }
@@ -25,7 +25,7 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
     final cached = await _getCachedValue(key);
     if (cached is List) {
       return cached
-          .map((e) => Map<String, dynamic>.from((e as Map)))
+          .map((e) => _cloneMap(Map<String, dynamic>.from((e as Map))))
           .toList(growable: false);
     }
     return null;
@@ -36,7 +36,7 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
     if (memory != null &&
         DateTime.now().difference(memory.cachedAt) <=
             OpticalFormRepository._ttl) {
-      return memory.value;
+      return _cloneValue(memory.value);
     }
     _prefs ??= await SharedPreferences.getInstance();
     final prefs = _prefs;
@@ -64,10 +64,10 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
       }
       final value = decoded['v'];
       _memory[key] = _TimedValue<dynamic>(
-        value: value,
+        value: _cloneValue(value),
         cachedAt: DateTime.now(),
       );
-      return value;
+      return _cloneValue(value);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -79,14 +79,31 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
 
   Future<void> _storePrimitive(String key, dynamic value) async {
     final now = DateTime.now();
-    _memory[key] = _TimedValue<dynamic>(value: value, cachedAt: now);
+    final cloned = _cloneValue(value);
+    _memory[key] = _TimedValue<dynamic>(value: cloned, cachedAt: now);
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
       '${OpticalFormRepository._prefsPrefix}:$key',
       jsonEncode({
         't': now.millisecondsSinceEpoch,
-        'v': value,
+        'v': cloned,
       }),
     );
+  }
+
+  Map<String, dynamic> _cloneMap(Map<String, dynamic> value) {
+    return value.map((key, child) => MapEntry(key, _cloneValue(child)));
+  }
+
+  dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 }
