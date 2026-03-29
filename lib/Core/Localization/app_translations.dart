@@ -3051,7 +3051,7 @@ class AppTranslations extends Translations {
         'tutoring.search_empty_info': 'Eşleşen özel ders bulunmuyor!',
         'tutoring.similar_listings': 'Benzer İlanlar',
         'tutoring.open_listing': 'İlana Git',
-        'tutoring.report_listing': 'Ilani Bildir',
+        'tutoring.report_listing': 'İlanı Bildir',
         'tutoring.saved_empty': 'Kaydedilen ilan yok.',
         'tutoring.detail_description': 'Açıklama',
         'tutoring.detail_no_description': 'Bu ilan için açıklama eklenmemiş.',

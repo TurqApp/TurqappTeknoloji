@@ -4,12 +4,28 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   Widget _buildScholarshipImage(int index, String type, dynamic burs,
       Map<String, dynamic> scholarshipData) {
     return GestureDetector(
-      onTap: () =>
-          ScholarshipNavigationService.openDetail(scholarshipData),
       onDoubleTap: () => controller.toggleLike(scholarshipData['docId'], type),
       child: _hasMultipleImages(type, burs)
-          ? _buildMultipleImagesView(index, burs)
-          : _buildSingleImageView(burs),
+          ? _buildMultipleImagesView(index, burs, scholarshipData)
+          : _buildSingleImageView(burs, scholarshipData),
+    );
+  }
+
+  Future<void> _openScholarshipDetail(
+    Map<String, dynamic> scholarshipData,
+  ) async {
+    await ScholarshipNavigationService.openDetail(scholarshipData);
+  }
+
+  Future<void> _openScholarshipWebsite(String website) async {
+    final url = Uri.parse(ensureUrlHasScheme(website));
+    if (await canLaunchUrl(url)) {
+      await confirmAndLaunchExternalUrl(url);
+      return;
+    }
+    AppSnackbar(
+      'common.error'.tr,
+      'scholarship.website_open_failed'.tr,
     );
   }
 
@@ -17,7 +33,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     return false;
   }
 
-  Widget _buildMultipleImagesView(int index, IndividualScholarshipsModel burs) {
+  Widget _buildMultipleImagesView(
+    int index,
+    IndividualScholarshipsModel burs,
+    Map<String, dynamic> scholarshipData,
+  ) {
     return Column(
       children: [
         AspectRatio(
@@ -26,7 +46,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
             itemCount: 2,
             itemBuilder: (context, pageIndex) {
               final imageUrl = pageIndex == 0 ? burs.img : burs.img2;
-              return _buildNetworkImage(imageUrl);
+              return _buildInteractiveScholarshipImage(
+                burs: burs,
+                scholarshipData: scholarshipData,
+                imageUrl: imageUrl,
+              );
             },
             onPageChanged: (pageIndex) =>
                 controller.updatePageIndex(index, pageIndex),
@@ -38,10 +62,56 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     );
   }
 
-  Widget _buildSingleImageView(dynamic burs) {
+  Widget _buildSingleImageView(
+    dynamic burs,
+    Map<String, dynamic> scholarshipData,
+  ) {
     return AspectRatio(
       aspectRatio: 4 / 3,
-      child: _buildNetworkImage(burs.img),
+      child: _buildInteractiveScholarshipImage(
+        burs: burs,
+        scholarshipData: scholarshipData,
+        imageUrl: burs.img,
+      ),
+    );
+  }
+
+  Widget _buildInteractiveScholarshipImage({
+    required dynamic burs,
+    required Map<String, dynamic> scholarshipData,
+    required String imageUrl,
+  }) {
+    final website =
+        burs is IndividualScholarshipsModel ? burs.website.trim() : '';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _openScholarshipDetail(scholarshipData),
+              child: _buildNetworkImage(imageUrl),
+            ),
+            if (website.isNotEmpty)
+              Positioned(
+                left: width * 0.045,
+                right: width * 0.12,
+                bottom: math.max(0.0, height * 0.015 - 3),
+                height: height * 0.11,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _openScholarshipWebsite(website),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
