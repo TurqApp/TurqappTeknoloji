@@ -61,6 +61,30 @@ class MessageModel {
     return num.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
+  static bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   static int _asInt(dynamic value, {int fallback = 0}) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -116,16 +140,16 @@ class MessageModel {
       postID: _asString(json['postID']),
       imgs: _cloneStringList(json['imgs'] ?? const []),
       video: _asString(json['video']),
-      isRead: json['isRead'] ?? false,
+      isRead: _asBool(json['isRead']),
       kullanicilar: _cloneStringList(json['kullanicilar'] ?? const []),
       begeniler: _cloneStringList(json['begeniler'] ?? const []),
       metin: _asString(json['metin']),
       sesliMesaj: _asString(json['sesliMesaj']),
       kisiAdSoyad: _asString(json['kisiAdSoyad']),
       kisiTelefon: _asString(json['kisiTelefon']),
-      isEdited: json['isEdited'] ?? false,
-      isUnsent: json['unsent'] ?? false,
-      isForwarded: json['forwarded'] ?? false,
+      isEdited: _asBool(json['isEdited']),
+      isUnsent: _asBool(json['unsent']),
+      isForwarded: _asBool(json['forwarded']),
       replyMessageId: _asString(json['replyMessageId']),
       replySenderId: _asString(json['replySenderId']),
       replyText: _asString(json['replyText']),
@@ -134,7 +158,7 @@ class MessageModel {
       status: _asString(json['status']),
       videoThumbnail: _asString(json['videoThumbnail']),
       audioDurationMs: _asInt(json['audioDurationMs']),
-      isStarred: json['isStarred'] ?? false,
+      isStarred: _asBool(json['isStarred']),
     );
   }
 
@@ -187,9 +211,9 @@ class MessageModel {
       sesliMesaj: _asString(data['audioUrl']),
       kisiAdSoyad: _asString(contact?['name']),
       kisiTelefon: _asString(contact?['phone']),
-      isEdited: data['isEdited'] ?? false,
-      isUnsent: data['unsent'] ?? false,
-      isForwarded: data['forwarded'] ?? false,
+      isEdited: _asBool(data['isEdited']),
+      isUnsent: _asBool(data['unsent']),
+      isForwarded: _asBool(data['forwarded']),
       replyMessageId: _asString(replyTo?['messageId']),
       replySenderId: _asString(replyTo?['senderId']),
       replyText: _asString(replyTo?['text']),
@@ -198,7 +222,7 @@ class MessageModel {
       status: _asString(data['status']),
       videoThumbnail: _asString(data['videoThumbnail']),
       audioDurationMs: _asInt(data['audioDurationMs']),
-      isStarred: data['isStarred'] ?? false,
+      isStarred: _asBool(data['isStarred']),
     );
   }
 
