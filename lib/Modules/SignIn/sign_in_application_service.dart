@@ -364,7 +364,10 @@ class SignInApplicationService {
         final storyController = maybeFindStoryRowController();
         if (storyController == null) return;
         await Future.any([
-          storyController.loadStories(limit: 100, cacheFirst: false),
+          storyController.loadStories(
+            limit: storyController.fullLimit,
+            cacheFirst: false,
+          ),
           Future.delayed(const Duration(seconds: 3)),
         ]);
         if (storyController.users.isEmpty) {

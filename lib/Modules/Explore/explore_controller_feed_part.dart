@@ -126,11 +126,15 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastExploreDoc == null) _exploreEmptyScans = 0;
       int pagesFetched = 0;
-      const int pageLimit = 20;
+      const int pageLimit = ReadBudgetRegistry.explorePostsPageLimit;
       final isBootstrapTopUp =
           lastExploreDoc == null && explorePosts.isNotEmpty;
-      final int maxPages = isBootstrapTopUp ? 4 : 10;
-      final int targetBatch = isBootstrapTopUp ? 12 : 24;
+      final int maxPages = isBootstrapTopUp
+          ? ReadBudgetRegistry.explorePostsBootstrapMaxPages
+          : ReadBudgetRegistry.explorePostsMaxPages;
+      final int targetBatch = isBootstrapTopUp
+          ? ReadBudgetRegistry.explorePostsBootstrapTargetBatch
+          : ReadBudgetRegistry.explorePostsTargetBatch;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && exploreHasMore.value) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -319,7 +323,7 @@ extension ExploreControllerFeedPart on ExploreController {
     if (trendingTags.isNotEmpty) return;
     try {
       final cached = await _topTagsRepository.readTrendingTagsCache(
-        resultLimit: 30,
+        resultLimit: ReadBudgetRegistry.exploreTrendingTagsLimit,
       );
       if (cached == null || cached.isEmpty) return;
       trendingTags.assignAll(cached);
@@ -330,8 +334,16 @@ extension ExploreControllerFeedPart on ExploreController {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
     final payload = <String, dynamic>{
-      'trendingTags': _encodeExploreStartupTags(trendingTags.take(18).toList()),
-      'explorePosts': _encodeExploreStartupPosts(explorePosts.take(8).toList()),
+      'trendingTags': _encodeExploreStartupTags(
+        trendingTags
+            .take(ReadBudgetRegistry.exploreStartupTagsShardLimit)
+            .toList(),
+      ),
+      'explorePosts': _encodeExploreStartupPosts(
+        explorePosts
+            .take(ReadBudgetRegistry.exploreStartupPostsShardLimit)
+            .toList(),
+      ),
     };
     final itemCount = trendingTags.length + explorePosts.length;
     final hasData = (payload['trendingTags'] as List).isNotEmpty ||
@@ -351,7 +363,7 @@ extension ExploreControllerFeedPart on ExploreController {
         surface: 'explore',
         userId: userId,
         itemCount: itemCount,
-        limit: 26,
+        limit: ReadBudgetRegistry.exploreStartupShardLimit,
         source: trendingTags.isNotEmpty ? 'top_tags_cache' : 'index_pool',
         payload: payload,
       );
@@ -602,7 +614,7 @@ extension ExploreControllerFeedPart on ExploreController {
   }) async {
     try {
       final tags = await _topTagsRepository.fetchTrendingTags(
-        resultLimit: 30,
+        resultLimit: ReadBudgetRegistry.exploreTrendingTagsLimit,
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
@@ -619,11 +631,11 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastVideoDoc == null) _videoEmptyScans = 0;
       int pagesFetched = 0;
-      const int maxPages = 10;
-      const int targetBatch = 24;
+      const int maxPages = ReadBudgetRegistry.exploreVideoMaxPages;
+      const int targetBatch = ReadBudgetRegistry.exploreVideoTargetBatch;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && videoHasMore.value) {
-        const int pageLimit = 30;
+        const int pageLimit = ReadBudgetRegistry.exploreVideoPageLimit;
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         ExploreQueryPage page;
         try {
@@ -705,8 +717,8 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastPhotoDoc == null) _photoEmptyScans = 0;
       int pagesFetched = 0;
-      const int maxPages = 5;
-      const int pageLimit = 20;
+      const int maxPages = ReadBudgetRegistry.explorePhotoMaxPages;
+      const int pageLimit = ReadBudgetRegistry.explorePhotoPageLimit;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && photoHasMore.value) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -736,7 +748,8 @@ extension ExploreControllerFeedPart on ExploreController {
         if (newPhotos.isNotEmpty) {
           newPhotos.shuffle();
           accumulated.addAll(newPhotos);
-          if (accumulated.length >= 30) {
+          if (accumulated.length >=
+              ReadBudgetRegistry.explorePhotoTargetBatch) {
             break;
           }
         }
@@ -768,8 +781,8 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastFloodsDoc == null) _floodsEmptyScans = 0;
       int pagesFetched = 0;
-      const int maxPages = 10;
-      const int pageLimit = 60;
+      const int maxPages = ReadBudgetRegistry.explorePostsMaxPages;
+      const int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit;
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       List<PostsModel> accumulated = [];
       bool noMoreServerPages = false;

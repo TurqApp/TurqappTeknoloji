@@ -149,7 +149,8 @@ extension _SplashViewStartupPart on _SplashViewState {
       userId: userId,
       payload: shard.payload,
       limit: _shortStartupShardLimit(onWiFi: onWiFi),
-      additionalLimits: onWiFi ? const <int>[6, 8] : const <int>[3, 4],
+      additionalLimits:
+          ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: onWiFi),
       snapshotAt: shard.snapshotAt,
     );
     if (!didPrime) return;
@@ -165,7 +166,7 @@ extension _SplashViewStartupPart on _SplashViewState {
   int _shortStartupShardLimit({
     required bool onWiFi,
   }) {
-    return onWiFi ? 6 : 4;
+    return ReadBudgetRegistry.shortStartupShardLimit(onWiFi: onWiFi);
   }
 
   Future<void> _persistFeedStartupShard(

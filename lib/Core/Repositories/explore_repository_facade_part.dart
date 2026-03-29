@@ -3,7 +3,7 @@ part of 'explore_repository.dart';
 extension ExploreRepositoryFacadePart on ExploreRepository {
   Future<ExploreQueryPage> fetchExplorePostsPage({
     DocumentSnapshot? startAfter,
-    int pageLimit = 20,
+    int pageLimit = ReadBudgetRegistry.explorePostsPageLimit,
     int? nowMs,
   }) =>
       _fetchExplorePostsPageImpl(
@@ -14,7 +14,7 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
 
   Future<ExploreQueryPage> fetchVideoReadyPage({
     DocumentSnapshot? startAfter,
-    int pageLimit = 30,
+    int pageLimit = ReadBudgetRegistry.exploreVideoPageLimit,
     int? nowMs,
   }) =>
       _fetchVideoReadyPageImpl(
@@ -25,7 +25,7 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
 
   Future<ExploreQueryPage> fetchVideoFallbackPage({
     DocumentSnapshot? startAfter,
-    int pageLimit = 30,
+    int pageLimit = ReadBudgetRegistry.exploreVideoPageLimit,
     int? nowMs,
   }) =>
       _fetchVideoFallbackPageImpl(
@@ -36,7 +36,7 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
 
   Future<ExploreQueryPage> fetchVideoBroadPage({
     DocumentSnapshot? startAfter,
-    int pageLimit = 30,
+    int pageLimit = ReadBudgetRegistry.exploreVideoPageLimit,
     int? nowMs,
   }) =>
       _fetchVideoBroadPageImpl(
@@ -47,7 +47,7 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
 
   Future<ExploreQueryPage> fetchPhotoPage({
     DocumentSnapshot? startAfter,
-    int pageLimit = 20,
+    int pageLimit = ReadBudgetRegistry.explorePhotoPageLimit,
     int? nowMs,
   }) =>
       _fetchPhotoPageImpl(
@@ -58,7 +58,7 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
 
   Future<ExploreQueryPage> fetchFloodServerPage({
     DocumentSnapshot? startAfter,
-    int pageLimit = 60,
+    int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit,
   }) =>
       _fetchFloodServerPageImpl(
         startAfter: startAfter,
@@ -67,7 +67,7 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
 
   Future<ExploreQueryPage> fetchFloodFallbackPage({
     DocumentSnapshot? startAfter,
-    int pageLimit = 60,
+    int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit,
     int? nowMs,
   }) =>
       _fetchFloodFallbackPageImpl(

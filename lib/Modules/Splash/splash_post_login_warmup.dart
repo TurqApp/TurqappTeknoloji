@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
@@ -246,7 +247,7 @@ class PostLoginWarmup {
 
   static Future<void> _defaultFetchTrendingTags() async {
     await ensureTopTagsRepository().fetchTrendingTags(
-      resultLimit: 30,
+      resultLimit: ReadBudgetRegistry.exploreTrendingTagsLimit,
       preferCache: false,
       forceRefresh: true,
     );

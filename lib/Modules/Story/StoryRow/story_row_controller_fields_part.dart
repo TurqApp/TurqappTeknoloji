@@ -9,8 +9,8 @@ class _StoryRowControllerState {
       StoryRowApplicationService();
   final CurrentUserService userService = CurrentUserService.instance;
   final UserProfileCacheService userCache = ensureUserProfileCacheService();
-  final int initialLimit = 30;
-  final int fullLimit = 100;
+  final int initialLimit = ReadBudgetRegistry.storyInitialLimit;
+  final int fullLimit = ReadBudgetRegistry.storyFullLimit;
   bool backgroundScheduled = false;
   Timer? backgroundFullLoadTimer;
   final RxBool isLoading = false.obs;

@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_shard_store.
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/profile_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';

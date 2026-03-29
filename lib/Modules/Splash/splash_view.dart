@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -59,9 +60,11 @@ class _SplashViewState extends State<SplashView> {
   static const Duration _syncMinLaunchToNavDuration = Duration.zero;
   static const Duration _startupManifestFreshWindow = Duration(hours: 18);
   static const String _splashWord = 'TurqApp';
-  static const int _minFeedPostsForNav = 3;
-  static const int _minStoryUsersForNav = 1;
-  static const int _minShortsForNav = 1;
+  static const int _minFeedPostsForNav =
+      ReadBudgetRegistry.feedReadyForNavCount;
+  static const int _minStoryUsersForNav =
+      ReadBudgetRegistry.storyReadyForNavCount;
+  static const int _minShortsForNav = ReadBudgetRegistry.shortReadyForNavCount;
   static const NetworkRuntimeService _networkRuntimeService =
       NetworkRuntimeService();
 

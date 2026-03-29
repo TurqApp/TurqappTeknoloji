@@ -1,4 +1,5 @@
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 enum ContentScreenKind {
   feed,
@@ -9,7 +10,8 @@ enum ContentScreenKind {
 }
 
 class ContentPolicy {
-  static const int feedInitialFromPool = 12;
+  static const int feedInitialFromPool =
+      ReadBudgetRegistry.feedHomeInitialLimit;
   static const int mobileWarmWindow = 20;
   static const int mobileNextWindow = 10;
   static const int minGlobalCachedVideos = 50;
@@ -50,25 +52,29 @@ class ContentPolicy {
     if (isOnWiFi) {
       switch (screen) {
         case ContentScreenKind.feed:
-          return 12;
+          return ReadBudgetRegistry.feedInitialPoolLimit(onWiFi: true);
         case ContentScreenKind.shorts:
+          return ReadBudgetRegistry.shortInitialPoolLimit(onWiFi: true);
         case ContentScreenKind.explore:
+          return ReadBudgetRegistry.exploreInitialPoolLimit(onWiFi: true);
         case ContentScreenKind.profile:
-          return 30;
+          return ReadBudgetRegistry.profileInitialPoolLimit(onWiFi: true);
         case ContentScreenKind.story:
-          return 10;
+          return ReadBudgetRegistry.storyInitialPoolLimit(onWiFi: true);
       }
     }
 
     switch (screen) {
       case ContentScreenKind.feed:
-        return feedInitialFromPool;
+        return ReadBudgetRegistry.feedInitialPoolLimit(onWiFi: false);
       case ContentScreenKind.shorts:
+        return ReadBudgetRegistry.shortInitialPoolLimit(onWiFi: false);
       case ContentScreenKind.explore:
+        return ReadBudgetRegistry.exploreInitialPoolLimit(onWiFi: false);
       case ContentScreenKind.profile:
-        return mobileWarmWindow;
+        return ReadBudgetRegistry.profileInitialPoolLimit(onWiFi: false);
       case ContentScreenKind.story:
-        return 10;
+        return ReadBudgetRegistry.storyInitialPoolLimit(onWiFi: false);
     }
   }
 }

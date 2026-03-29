@@ -27,16 +27,23 @@ extension _NavBarControllerLifecyclePart on NavBarController {
 
       try {
         final shortsController = maybeFindShortController();
-        if (shortsController != null && shortsController.shorts.length < 8) {
-          shortsController.warmStart(targetCount: 8, maxPages: 2);
+        if (shortsController != null &&
+            shortsController.shorts.length <
+                ReadBudgetRegistry.shortBackgroundWarmTargetCount) {
+          shortsController.warmStart(
+            targetCount: ReadBudgetRegistry.shortBackgroundWarmTargetCount,
+            maxPages: ReadBudgetRegistry.shortBackgroundWarmMaxPages,
+          );
         }
       } catch (_) {}
 
       try {
         final storyController = maybeFindStoryRowController();
-        if (storyController != null && storyController.users.length < 30) {
+        if (storyController != null &&
+            storyController.users.length <
+                ReadBudgetRegistry.storyInitialLimit) {
           await storyController.loadStories(
-            limit: 30,
+            limit: ReadBudgetRegistry.storyInitialLimit,
             cacheFirst: true,
             silentLoad: true,
           );

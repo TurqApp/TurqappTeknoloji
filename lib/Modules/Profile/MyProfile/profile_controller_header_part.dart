@@ -194,7 +194,9 @@ extension ProfileControllerHeaderPart on ProfileController {
     if (userId == null || userId.isEmpty) return;
     final payload = <String, dynamic>{
       'header': _encodeProfileStartupHeader(),
-      'allPosts': _encodeProfileStartupPosts(allPosts.take(6).toList()),
+      'allPosts': _encodeProfileStartupPosts(
+        allPosts.take(ReadBudgetRegistry.profileStartupShardLimit).toList(),
+      ),
     };
     final hasHeader = (payload['header'] as Map<String, dynamic>).isNotEmpty;
     final hasPosts =
@@ -213,7 +215,7 @@ extension ProfileControllerHeaderPart on ProfileController {
         surface: 'profile',
         userId: userId,
         itemCount: allPosts.length,
-        limit: 6,
+        limit: ReadBudgetRegistry.profileStartupShardLimit,
         source: hasPosts ? 'profile_snapshot' : 'user_summary',
         payload: payload,
       );

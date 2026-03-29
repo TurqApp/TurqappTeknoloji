@@ -181,6 +181,29 @@ Beklenen kapanis:
 - Tiny-sample telemetry warning'lerini tekrar `3` event civarina cekme.
 - Sadece threshold ile warning bastirip kok nedeni kapandi varsayma.
 
+### Merkezi Budget ve Cache Ownership Kurali
+
+- Kullaniciya gorunen surface/list startup-read-warm budget'lari tek yerden
+  yonetilecek:
+  - `lib/Core/Services/read_budget_registry.dart`
+- Yeni bir surface icin `limit`, `pageLimit`, `warmCount`, `startupShard`
+  veya `take(...)` tipi bir sayisal karar eklenecekse once registry'ye
+  girilecek, sonra call-site oraya baglanacak.
+- Su alanlarda sabit sayi hardcode etmek yasak:
+  - splash/startup warmup
+  - snapshot repo default limit'leri
+  - story/recommended/profile/job/market startup shard boyutlari
+  - explore/feed/listing page budget'lari
+  - navbar arka plan warm loop'u
+- `ContentPolicy` sadece ag/davranis karari verir; sayisal budget uretmez.
+- `CacheFirstPolicyRegistry` TTL/stale/sync politikasi icin kalir; sayisal
+  budget kararlari `read_budget_registry.dart` icinde tutulur.
+- Ayni surface icin ikinci bir lokal budget kaynagi olusturma:
+  - controller field icinde sabit
+  - repo icinde ayri sabit
+  - splash icinde farkli sabit
+  yaklasimlari yasak.
+
 ### Acik Sonraki Plan
 
 Ana plan kapanmistir. Aktif blocker yoktur. Siradaki tek non-blocking mini

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
@@ -21,14 +22,15 @@ class ShortSnapshotRepository extends GetxService {
   }
 
   static const String _homeSurfaceKey = 'short_home_snapshot';
-  static const int _defaultPersistLimit = 20;
+  static const int _defaultPersistLimit =
+      ReadBudgetRegistry.shortHomeInitialLimit;
   static const int _maxPageSkips = 4;
 }
 
 class ShortSnapshotQuery {
   const ShortSnapshotQuery({
     required this.userId,
-    this.limit = 20,
+    this.limit = ReadBudgetRegistry.shortHomeInitialLimit,
     this.scopeTag = 'home',
   });
 

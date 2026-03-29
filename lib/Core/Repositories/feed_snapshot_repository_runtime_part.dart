@@ -3,7 +3,7 @@ part of 'feed_snapshot_repository.dart';
 Future<CachedResource<List<PostsModel>>> bootstrapFeedHome(
   FeedSnapshotRepository repository, {
   required String userId,
-  int limit = 30,
+  int limit = ReadBudgetRegistry.feedHomeInitialLimit,
 }) {
   final query = FeedSnapshotQuery(
     userId: userId,

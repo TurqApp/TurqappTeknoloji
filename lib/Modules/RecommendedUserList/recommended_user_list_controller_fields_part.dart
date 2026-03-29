@@ -10,12 +10,12 @@ class _RecommendedUserListControllerState {
   DocumentSnapshot? lastFollowingDoc;
   bool hasMoreFollowing = true;
   bool isLoadingFollowing = false;
-  final int followingLimit = 100;
-  final int usersWarmCount = 18;
-  final int usersReadyCount = 60;
-  final int usersFetchWarm = 80;
-  final int usersLimitInitial = 200;
-  final int usersLimitFull = 500;
+  final int followingLimit = ReadBudgetRegistry.recommendedFollowingLimit;
+  final int usersWarmCount = ReadBudgetRegistry.recommendedUsersWarmCount;
+  final int usersReadyCount = ReadBudgetRegistry.recommendedUsersReadyCount;
+  final int usersFetchWarm = ReadBudgetRegistry.recommendedUsersFetchWarm;
+  final int usersLimitInitial = ReadBudgetRegistry.recommendedUsersInitialLimit;
+  final int usersLimitFull = ReadBudgetRegistry.recommendedUsersFullLimit;
   bool bgScheduled = false;
   bool loadedOnce = false;
   DateTime? lastLoadTime;

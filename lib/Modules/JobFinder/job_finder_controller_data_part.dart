@@ -116,7 +116,9 @@ extension JobFinderControllerDataPart on JobFinderController {
   Future<void> _persistJobFinderStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
-    final startupJobs = list.take(8).toList(growable: false);
+    final startupJobs = list
+        .take(ReadBudgetRegistry.jobStartupShardLimit)
+        .toList(growable: false);
     final store = ensureStartupSnapshotShardStore();
     if (startupJobs.isEmpty) {
       await store.clear(
@@ -129,7 +131,7 @@ extension JobFinderControllerDataPart on JobFinderController {
       surface: 'jobs',
       userId: userId,
       itemCount: list.length,
-      limit: 8,
+      limit: ReadBudgetRegistry.jobStartupShardLimit,
       source: 'job_snapshot',
       payload: <String, dynamic>{
         'listingSelection': listingSelection.value == 1 ? 1 : 0,

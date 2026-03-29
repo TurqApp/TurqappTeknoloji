@@ -118,7 +118,9 @@ extension _MarketControllerHomePart on MarketController {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
     final sourceItems = visibleItems.isNotEmpty ? visibleItems : items;
-    final startupItems = sourceItems.take(8).toList(growable: false);
+    final startupItems = sourceItems
+        .take(ReadBudgetRegistry.marketStartupShardLimit)
+        .toList(growable: false);
     final store = ensureStartupSnapshotShardStore();
     if (startupItems.isEmpty) {
       await store.clear(
@@ -131,7 +133,7 @@ extension _MarketControllerHomePart on MarketController {
       surface: 'market',
       userId: userId,
       itemCount: sourceItems.length,
-      limit: 8,
+      limit: ReadBudgetRegistry.marketStartupShardLimit,
       source: 'market_snapshot',
       payload: <String, dynamic>{
         'listingSelection': listingSelection.value == 1 ? 1 : 0,

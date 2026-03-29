@@ -24,6 +24,7 @@ import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../Core/Services/audio_focus_coordinator.dart';
 import '../../Core/Services/CacheFirst/cache_first.dart';
 import '../../Core/Services/integration_test_mode.dart';
+import '../../Core/Services/read_budget_registry.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Services/current_user_service.dart';

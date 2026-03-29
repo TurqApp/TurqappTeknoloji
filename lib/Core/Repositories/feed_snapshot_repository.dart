@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
@@ -31,7 +32,8 @@ abstract class _FeedSnapshotRepositoryBase extends GetxService {
 
 class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const String _homeSurfaceKey = 'feed_home_snapshot';
-  static const int _defaultPersistLimit = 40;
+  static const int _defaultPersistLimit =
+      ReadBudgetRegistry.feedHomeInitialLimit;
   static const int startupHomeLimit = _defaultPersistLimit;
   static const FeedHomeContract _homeContract =
       FeedHomeContract.primaryHybridV1;
@@ -119,7 +121,7 @@ extension FeedSnapshotRepositoryFieldsPart on FeedSnapshotRepository {
 extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
   Stream<CachedResource<List<PostsModel>>> openHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.feedHomeInitialLimit,
     bool forceSync = false,
   }) {
     return _homePipeline.open(
@@ -133,7 +135,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
 
   Future<CachedResource<List<PostsModel>>> loadHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.feedHomeInitialLimit,
     bool forceSync = false,
   }) {
     return openHome(
@@ -145,7 +147,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
 
   Future<CachedResource<List<PostsModel>>> bootstrapHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.feedHomeInitialLimit,
   }) =>
       bootstrapFeedHome(
         this,
@@ -213,7 +215,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
 class FeedSnapshotQuery {
   const FeedSnapshotQuery({
     required this.userId,
-    this.limit = 30,
+    this.limit = ReadBudgetRegistry.feedHomeInitialLimit,
     this.scopeTag = 'home',
   });
 
