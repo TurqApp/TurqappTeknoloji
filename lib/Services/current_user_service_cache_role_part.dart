@@ -27,9 +27,11 @@ class CurrentUserCacheStore {
       final cacheAge = DateTime.now().millisecondsSinceEpoch - cachedTimestamp;
       if (!readDecision.allowStaleRead &&
           cacheAge > _cacheExpiration.inMilliseconds) {
+        await clearCache(resolvedUid);
         return false;
       }
       if (cacheAge > _cacheExpiration.inMilliseconds) {
+        await clearCache(resolvedUid);
         return false;
       }
 
