@@ -39,9 +39,12 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
     await _ensurePrefs();
     await AccountSessionVault.instance.removeStoredPasswords();
     final raw = _prefs?.getString(_accountCenterAccountsStorageKey) ?? '';
+    final decodedAccounts =
+        StoredAccount.decodeList(raw).toList(growable: true);
     final restored = _dedupeAccounts(
-      StoredAccount.decodeList(raw).toList(growable: true),
+      decodedAccounts,
     )..sort(_compareAccounts);
+    final shouldPersistAccounts = restored.length != decodedAccounts.length;
     if (_shouldLogDebug) {
       debugPrint(
         '[AccountCenter] init rawLength=${raw.length} restored=${restored.map((e) => e.uid).toList()}',
@@ -64,7 +67,7 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
     }
     await _rehydrateMissingEmails();
     await reconcileWithAuthSession();
-    if (shouldPersistPointers) {
+    if (shouldPersistAccounts || shouldPersistPointers) {
       await _persist();
     }
   }
