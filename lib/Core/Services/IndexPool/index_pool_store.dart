@@ -173,6 +173,7 @@ class IndexPoolStore {
       if (updatedAtMs > 0 && !allowStale) {
         final ageMs = DateTime.now().millisecondsSinceEpoch - updatedAtMs;
         if (ageMs > _poolFileTtl.inMilliseconds) {
+          await _deletePoolFile();
           return const [];
         }
       }
