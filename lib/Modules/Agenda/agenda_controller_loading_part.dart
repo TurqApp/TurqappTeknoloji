@@ -30,7 +30,6 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (IntegrationTestMode.skipBackgroundStartupWork) {
       return;
     }
-    unawaited(syncFeedHeadAfterSurfaceOpen());
   }
 
   void _performResetSurfaceForTabTransition() {
@@ -531,20 +530,16 @@ extension AgendaControllerLoadingPart on AgendaController {
       return;
     }
 
-    final existingIndexById = <String, int>{
-      for (int i = 0; i < agendaList.length; i++) agendaList[i].docID: i,
-    };
-    final added = <PostsModel>[];
-    for (final post in visibleItems) {
-      final existingIndex = existingIndexById[post.docID];
-      if (existingIndex == null) {
-        agendaList.add(post);
-        existingIndexById[post.docID] = agendaList.length - 1;
-        added.add(post);
-        continue;
-      }
-      agendaList[existingIndex] = post;
-    }
+    final existingIds = agendaList.map((post) => post.docID).toSet();
+    final added = visibleItems
+        .where((post) => !existingIds.contains(post.docID))
+        .toList(growable: false);
+    final liveHeadIds = visibleItems.map((post) => post.docID).toSet();
+    final mergedAgenda = <PostsModel>[
+      ...visibleItems,
+      ...agendaList.where((post) => !liveHeadIds.contains(post.docID)),
+    ];
+    agendaList.assignAll(mergedAgenda);
 
     if (added.isNotEmpty) {
       _scheduleFeedPrefetch();
