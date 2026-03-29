@@ -28,8 +28,8 @@ class NSFWCheckResult {
     required this.framesChecked,
     required this.processingTime,
     this.errorMessage,
-    this.debugSamples = const <String>[],
-  });
+    List<String> debugSamples = const <String>[],
+  }) : debugSamples = List<String>.from(debugSamples);
 
   factory NSFWCheckResult.error(String message) {
     return NSFWCheckResult(
@@ -207,12 +207,12 @@ class _CachedModerationResult {
   final int framesChecked;
   final List<String> debugSamples;
 
-  const _CachedModerationResult({
+  _CachedModerationResult({
     required this.isNSFW,
     required this.confidence,
     required this.framesChecked,
-    this.debugSamples = const <String>[],
-  });
+    List<String> debugSamples = const <String>[],
+  }) : debugSamples = List<String>.from(debugSamples);
 
   NSFWCheckResult toResult(Duration processingTime) {
     return NSFWCheckResult(
