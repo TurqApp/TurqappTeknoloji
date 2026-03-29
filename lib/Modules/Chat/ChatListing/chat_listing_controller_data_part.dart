@@ -22,12 +22,19 @@ extension ChatListingControllerDataPart on ChatListingController {
       final raw = prefs.getString(key);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return null;
+      if (decoded is! List) {
+        await prefs.remove(key);
+        return null;
+      }
       return decoded
           .whereType<Map<String, dynamic>>()
           .map(ChatListingModel.fromJson)
           .toList();
     } catch (_) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+      } catch (_) {}
       return null;
     }
   }

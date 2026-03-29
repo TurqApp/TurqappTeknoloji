@@ -150,7 +150,10 @@ extension ExploreControllerRecentSearchPart on ExploreController {
       final raw = prefs.getString(key);
       if (raw == null || raw.trim().isEmpty) return;
       final parsed = jsonDecode(raw);
-      if (parsed is! List) return;
+      if (parsed is! List) {
+        await prefs.remove(key);
+        return;
+      }
 
       final restored = <OgrenciModel>[];
       for (final item in parsed) {
@@ -171,8 +174,17 @@ extension ExploreControllerRecentSearchPart on ExploreController {
       }
       if (restored.isNotEmpty) {
         recentSearchUsers.value = restored;
+      } else if (parsed.isNotEmpty) {
+        await prefs.remove(key);
       }
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final key = _recentSearchUsersCacheKey();
+        if (key == null) return;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+      } catch (_) {}
+    }
   }
 
   Future<void> _saveRecentSearchUsersCache() async {

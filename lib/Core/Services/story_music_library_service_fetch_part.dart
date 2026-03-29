@@ -157,26 +157,38 @@ extension StoryMusicLibraryServiceFetchPart on StoryMusicLibraryService {
   Future<List<MusicModel>> _loadCache({bool ignoreTtl = false}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final cacheKey = StoryMusicLibraryService._cacheKey;
+      final cacheTimeKey = StoryMusicLibraryService._cacheTimeKey;
       if (!ignoreTtl) {
-        final updatedAt =
-            prefs.getInt(StoryMusicLibraryService._cacheTimeKey) ?? 0;
+        final updatedAt = prefs.getInt(cacheTimeKey) ?? 0;
         if (updatedAt <= 0) return const <MusicModel>[];
         final age = DateTime.now().millisecondsSinceEpoch - updatedAt;
         if (age > StoryMusicLibraryService._cacheTtl.inMilliseconds) {
+          await prefs.remove(cacheKey);
+          await prefs.remove(cacheTimeKey);
           return const <MusicModel>[];
         }
       }
 
-      final raw = prefs.getString(StoryMusicLibraryService._cacheKey);
+      final raw = prefs.getString(cacheKey);
       if (raw == null || raw.isEmpty) return const <MusicModel>[];
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return const <MusicModel>[];
+      if (decoded is! List) {
+        await prefs.remove(cacheKey);
+        await prefs.remove(cacheTimeKey);
+        return const <MusicModel>[];
+      }
       return decoded
           .whereType<Map>()
           .map((e) => MusicModel.fromCacheMap(Map<String, dynamic>.from(e)))
           .where((track) => track.isActive && track.audioUrl.isNotEmpty)
           .toList(growable: true);
     } catch (_) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(StoryMusicLibraryService._cacheKey);
+        await prefs.remove(StoryMusicLibraryService._cacheTimeKey);
+      } catch (_) {}
       return const <MusicModel>[];
     }
   }
