@@ -2,6 +2,32 @@ part of 'practice_exam_snapshot_repository.dart';
 
 extension PracticeExamSnapshotRepositoryQueryPart
     on PracticeExamSnapshotRepository {
+  Stream<CachedResource<List<SinavModel>>> _openTypeImpl({
+    required String userId,
+    required String examType,
+    required bool forceSync,
+  }) {
+    return _typePipeline.open(
+      PracticeExamTypeQuery(
+        userId: userId,
+        examType: examType,
+      ),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<SinavModel>>> _loadTypeImpl({
+    required String userId,
+    required String examType,
+    required bool forceSync,
+  }) {
+    return openType(
+      userId: userId,
+      examType: examType,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Stream<CachedResource<List<SinavModel>>> _openOwnerImpl({
     required String userId,
     required bool forceSync,

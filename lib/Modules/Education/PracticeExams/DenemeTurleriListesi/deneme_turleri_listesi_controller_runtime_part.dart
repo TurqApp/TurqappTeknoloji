@@ -43,10 +43,11 @@ extension DenemeTurleriListesiControllerRuntimePart
       );
 
   Future<void> _bootstrapDataImpl() async {
-    final cached = await _practiceExamRepository.fetchByExamType(
-      sinavTuru,
-      cacheOnly: true,
-    );
+    final cached = (await _practiceExamSnapshotRepository.loadType(
+      userId: CurrentUserService.instance.effectiveUserId,
+      examType: sinavTuru,
+    ))
+        .data;
     if (cached.isNotEmpty) {
       if (!_sameExamEntries(list, cached)) {
         list.assignAll(cached);
@@ -72,11 +73,12 @@ extension DenemeTurleriListesiControllerRuntimePart
       isLoading.value = true;
     }
     try {
-      final items = await _practiceExamRepository.fetchByExamType(
-        sinavTuru,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final items = (await _practiceExamSnapshotRepository.loadType(
+        userId: CurrentUserService.instance.effectiveUserId,
+        examType: sinavTuru,
+        forceSync: forceRefresh,
+      ))
+          .data;
       if (!_sameExamEntries(list, items)) {
         list.assignAll(items);
       }

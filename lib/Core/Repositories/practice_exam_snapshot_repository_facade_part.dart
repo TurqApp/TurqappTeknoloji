@@ -14,6 +14,28 @@ PracticeExamSnapshotRepository ensurePracticeExamSnapshotRepository() {
 
 extension PracticeExamSnapshotRepositoryFacadePart
     on PracticeExamSnapshotRepository {
+  Stream<CachedResource<List<SinavModel>>> openType({
+    required String userId,
+    required String examType,
+    bool forceSync = false,
+  }) =>
+      _openTypeImpl(
+        userId: userId,
+        examType: examType,
+        forceSync: forceSync,
+      );
+
+  Future<CachedResource<List<SinavModel>>> loadType({
+    required String userId,
+    required String examType,
+    bool forceSync = false,
+  }) =>
+      _loadTypeImpl(
+        userId: userId,
+        examType: examType,
+        forceSync: forceSync,
+      );
+
   Stream<CachedResource<List<SinavModel>>> openOwner({
     required String userId,
     bool forceSync = false,

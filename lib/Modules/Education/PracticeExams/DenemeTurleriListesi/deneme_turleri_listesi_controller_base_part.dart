@@ -16,6 +16,8 @@ abstract class _DenemeTurleriListesiControllerBase extends GetxController {
   final String sinavTuru;
   final PracticeExamRepository _practiceExamRepository =
       ensurePracticeExamRepository();
+  final PracticeExamSnapshotRepository _practiceExamSnapshotRepository =
+      ensurePracticeExamSnapshotRepository();
 
   @override
   void onInit() {

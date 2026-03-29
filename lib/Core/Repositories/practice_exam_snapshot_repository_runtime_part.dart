@@ -3,6 +3,7 @@ part of 'practice_exam_snapshot_repository.dart';
 const String _practiceExamHomeSurfaceKey = 'practice_exam_home_snapshot';
 const String _practiceExamSearchSurfaceKey = 'practice_exam_search_snapshot';
 const String _practiceExamOwnerSurfaceKey = 'practice_exam_owner_snapshot';
+const String _practiceExamTypeSurfaceKey = 'practice_exam_type_snapshot';
 
 class PracticeExamOwnerQuery {
   const PracticeExamOwnerQuery({
@@ -21,6 +22,30 @@ class PracticeExamOwnerQuery {
       schemaVersion: schemaVersion,
       qualifiers: <String, Object?>{
         'owner': userId.trim(),
+      },
+    );
+  }
+}
+
+class PracticeExamTypeQuery {
+  const PracticeExamTypeQuery({
+    required this.userId,
+    required this.examType,
+  });
+
+  final String userId;
+  final String examType;
+
+  String buildScopeId({
+    required int schemaVersion,
+  }) {
+    return CacheScopeNamespace.buildQueryScope(
+      userId: userId,
+      limit: 0,
+      scopeTag: 'type',
+      schemaVersion: schemaVersion,
+      qualifiers: <String, Object?>{
+        'examType': examType.trim(),
       },
     );
   }
@@ -66,6 +91,26 @@ class PracticeExamSnapshotRepository extends GetxService {
     isEmpty: (items) => items.isEmpty,
     schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
       _practiceExamOwnerSurfaceKey,
+    ),
+  );
+
+  late final CacheFirstQueryPipeline<PracticeExamTypeQuery, List<SinavModel>,
+          List<SinavModel>> _typePipeline =
+      CacheFirstQueryPipeline<PracticeExamTypeQuery, List<SinavModel>,
+          List<SinavModel>>(
+    surfaceKey: _practiceExamTypeSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        _practiceExamTypeSurfaceKey,
+      ),
+    ),
+    fetchRaw: _fetchPracticeExamTypeItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _practiceExamTypeSurfaceKey,
     ),
   );
 }
@@ -197,6 +242,21 @@ Future<List<SinavModel>> _fetchPracticeExamOwnerItems(
       return bTs.compareTo(aTs);
     });
   return docs
+      .map((doc) => _practiceExamSnapshotFromDoc(doc.id, doc.data()))
+      .toList(growable: false);
+}
+
+Future<List<SinavModel>> _fetchPracticeExamTypeItems(
+  PracticeExamTypeQuery query,
+) async {
+  final normalizedExamType = query.examType.trim();
+  if (normalizedExamType.isEmpty) return const <SinavModel>[];
+  final snap = await FirebaseFirestore.instance
+      .collection('practiceExams')
+      .where('sinavTuru', isEqualTo: normalizedExamType)
+      .limit(ReadBudgetRegistry.practiceExamTypeInitialLimit)
+      .get();
+  return snap.docs
       .map((doc) => _practiceExamSnapshotFromDoc(doc.id, doc.data()))
       .toList(growable: false);
 }
