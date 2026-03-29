@@ -2,11 +2,8 @@ part of 'sign_in.dart';
 
 extension SignInAuthPart on _SignInState {
   Widget _brandTypewriter() {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: _LoginBrandTypewriter(
-        key: ValueKey('login-brand-${controller.selection.value}'),
-      ),
+    return _LoginBrandTypewriter(
+      key: ValueKey('login-brand-${controller.selection.value}'),
     );
   }
 }
