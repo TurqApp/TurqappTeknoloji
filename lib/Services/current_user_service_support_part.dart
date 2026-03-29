@@ -4,10 +4,30 @@ class _TimedValue<T> {
   final T value;
   final DateTime fetchedAt;
 
-  const _TimedValue({
-    required this.value,
+  _TimedValue({
+    required T value,
     required this.fetchedAt,
-  });
+  }) : value = _cloneTimedValuePayload(value);
+}
+
+T _cloneTimedValuePayload<T>(T value) {
+  final cloned = _cloneTimedValueDynamic(value);
+  return cloned is T ? cloned : value;
+}
+
+dynamic _cloneTimedValueDynamic(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneTimedValueDynamic(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneTimedValueDynamic).toList(growable: false);
+  }
+  return value;
 }
 
 SharedPreferences? _prefs;
