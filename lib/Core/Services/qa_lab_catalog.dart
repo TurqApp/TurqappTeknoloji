@@ -1,6 +1,13 @@
 part 'qa_lab_catalog_entries_part.dart';
 part 'qa_lab_catalog_helpers_part.dart';
 
+List<String> _cloneQaLabCatalogTags(Iterable<dynamic> source) {
+  return source
+      .map((item) => item.toString())
+      .where((item) => item.trim().isNotEmpty)
+      .toList(growable: false);
+}
+
 enum QALabTestOrigin {
   integration,
   suite,
@@ -44,9 +51,9 @@ class QALabSurfaceCoverageReport {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'surface': surface,
-      'requiredTags': requiredTags,
-      'coveredTags': coveredTags,
-      'missingTags': missingTags,
+      'requiredTags': _cloneQaLabCatalogTags(requiredTags),
+      'coveredTags': _cloneQaLabCatalogTags(coveredTags),
+      'missingTags': _cloneQaLabCatalogTags(missingTags),
       'integrationCount': integrationCount,
       'runnableInAppCount': runnableInAppCount,
       'suiteCount': suiteCount,
@@ -89,7 +96,7 @@ class QALabCatalogEntry {
       'path': path,
       'origin': origin.name,
       'runnableInApp': runnableInApp,
-      'tags': tags,
+      'tags': _cloneQaLabCatalogTags(tags),
       'notes': notes,
     };
   }
