@@ -30,6 +30,30 @@ class PostDeleteService {
 
   static PostDeleteService get instance => ensure();
 
+  bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   Future<void> softDelete(PostsModel model) async {
     final firestore = FirebaseFirestore.instance;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -39,7 +63,7 @@ class PostDeleteService {
     bool alreadyDeleted = false;
     try {
       final preSnap = await postRef.get();
-      alreadyDeleted = (preSnap.data()?['deletedPost'] ?? false) == true;
+      alreadyDeleted = _asBool(preSnap.data()?['deletedPost']);
     } catch (_) {}
 
     // 1) Firestore soft delete
@@ -142,10 +166,10 @@ class PostDeleteService {
     final Set<String> sharedPostIds = {
       ...sharedSnap.docs.where((doc) {
         final data = doc.data();
-        return (data['quotedPost'] ?? false) != true;
+        return !_asBool(data['quotedPost']);
       }).map((doc) => doc.id),
       ...postSharersSnap.docs
-          .where((doc) => (doc.data()['quotedPost'] ?? false) != true)
+          .where((doc) => !_asBool(doc.data()['quotedPost']))
           .map((doc) => (doc.data()['sharedPostID'] ?? '').toString().trim())
           .where((id) => id.isNotEmpty),
     };
