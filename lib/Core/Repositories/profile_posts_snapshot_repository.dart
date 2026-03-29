@@ -156,6 +156,18 @@ extension ProfilePostsSnapshotRepositoryFacadePart
       userId: query.userId.trim(),
       scopeId: query.scopeId,
     );
+    final isEmptyBuckets = normalized.all.isEmpty &&
+        normalized.photos.isEmpty &&
+        normalized.videos.isEmpty &&
+        normalized.scheduled.isEmpty;
+    if (isEmptyBuckets) {
+      await Future.wait(<Future<void>>[
+        _memoryStore.clearScope(key),
+        _snapshotStore.clearScope(key),
+        _profileRepository.writeBuckets(userId, normalized),
+      ]);
+      return;
+    }
     final record = ScopedSnapshotRecord<ProfileBuckets>(
       data: normalized,
       snapshotAt: DateTime.now(),
