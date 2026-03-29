@@ -1,4 +1,10 @@
 class IndividualScholarshipsModel {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   final String aciklama;
   final String shortDescription;
   final List<String> altEgitimKitlesi;
@@ -78,64 +84,65 @@ class IndividualScholarshipsModel {
     required this.lisansTuru,
     required this.template,
     required this.ulke,
-  }) : altEgitimKitlesi = _cloneStringList(altEgitimKitlesi),
-       aylar = _cloneStringList(aylar),
-       basvurular = _cloneStringList(basvurular),
-       begeniler = _cloneStringList(begeniler),
-       belgeler = _cloneStringList(belgeler),
-       goruntuleme = _cloneStringList(goruntuleme),
-       ilceler = _cloneStringList(ilceler),
-       kaydedenler = _cloneStringList(kaydedenler),
-       kaydedilenler = _cloneStringList(kaydedilenler),
-       liseOrtaOkulIlceler = _cloneStringList(liseOrtaOkulIlceler),
-       liseOrtaOkulSehirler = _cloneStringList(liseOrtaOkulSehirler),
-       sehirler = _cloneStringList(sehirler),
-       universiteler = _cloneStringList(universiteler);
+  })  : altEgitimKitlesi = _cloneStringList(altEgitimKitlesi),
+        aylar = _cloneStringList(aylar),
+        basvurular = _cloneStringList(basvurular),
+        begeniler = _cloneStringList(begeniler),
+        belgeler = _cloneStringList(belgeler),
+        goruntuleme = _cloneStringList(goruntuleme),
+        ilceler = _cloneStringList(ilceler),
+        kaydedenler = _cloneStringList(kaydedenler),
+        kaydedilenler = _cloneStringList(kaydedilenler),
+        liseOrtaOkulIlceler = _cloneStringList(liseOrtaOkulIlceler),
+        liseOrtaOkulSehirler = _cloneStringList(liseOrtaOkulSehirler),
+        sehirler = _cloneStringList(sehirler),
+        universiteler = _cloneStringList(universiteler);
 
   factory IndividualScholarshipsModel.fromJson(Map<String, dynamic> json) {
     return IndividualScholarshipsModel(
-      aciklama: json['aciklama'] ?? '',
-      shortDescription: json['shortDescription'] ??
-          json['kisaAciklama'] ??
-          json['ozet'] ??
-          '',
+      aciklama: (json['aciklama'] ?? '').toString(),
+      shortDescription: (json['shortDescription'] ??
+              json['kisaAciklama'] ??
+              json['ozet'] ??
+              '')
+          .toString(),
       altEgitimKitlesi: List<String>.from(json['altEgitimKitlesi'] ?? []),
       aylar: List<String>.from(json['aylar'] ?? []),
       basvurular: List<String>.from(json['basvurular'] ?? []),
-      baslangicTarihi: json['baslangicTarihi'] ?? '',
-      baslik: json['baslik'] ?? '',
-      basvuruKosullari: json['basvuruKosullari'] ?? '',
-      basvuruURL: json['basvuruURL'] ?? '',
-      basvuruYapilacakYer: json['basvuruYapilacakYer'] ?? '',
+      baslangicTarihi: (json['baslangicTarihi'] ?? '').toString(),
+      baslik: (json['baslik'] ?? '').toString(),
+      basvuruKosullari: (json['basvuruKosullari'] ?? '').toString(),
+      basvuruURL: (json['basvuruURL'] ?? '').toString(),
+      basvuruYapilacakYer: (json['basvuruYapilacakYer'] ?? '').toString(),
       begeniler: List<String>.from(json['begeniler'] ?? []),
       belgeler: List<String>.from(json['belgeler'] ?? []),
-      bitisTarihi: json['bitisTarihi'] ?? '',
-      bursVeren: json['bursVeren'] ?? '',
-      egitimKitlesi: json['egitimKitlesi'] ?? '',
-      geriOdemeli: json['geriOdemeli'] ?? '',
+      bitisTarihi: (json['bitisTarihi'] ?? '').toString(),
+      bursVeren: (json['bursVeren'] ?? '').toString(),
+      egitimKitlesi: (json['egitimKitlesi'] ?? '').toString(),
+      geriOdemeli: (json['geriOdemeli'] ?? '').toString(),
       goruntuleme: List<String>.from(json['goruntuleme'] ?? []),
-      hedefKitle: json['hedefKitle'] ?? '',
+      hedefKitle: (json['hedefKitle'] ?? '').toString(),
       ilceler: List<String>.from(json['ilceler'] ?? []),
-      img: json['img'] ?? '',
-      img2: json['img2'] ?? '',
+      img: (json['img'] ?? '').toString(),
+      img2: (json['img2'] ?? '').toString(),
       kaydedenler: List<String>.from(json['kaydedenler'] ?? []),
       kaydedilenler: List<String>.from(json['kaydedilenler'] ?? []),
       liseOrtaOkulIlceler: List<String>.from(json['liseOrtaOkulIlceler'] ?? []),
       liseOrtaOkulSehirler: List<String>.from(
         json['liseOrtaOkulSehirler'] ?? [],
       ),
-      logo: json['logo'] ?? '',
-      mukerrerDurumu: json['mukerrerDurumu'] ?? '',
-      ogrenciSayisi: json['ogrenciSayisi'] ?? '',
+      logo: (json['logo'] ?? '').toString(),
+      mukerrerDurumu: (json['mukerrerDurumu'] ?? '').toString(),
+      ogrenciSayisi: (json['ogrenciSayisi'] ?? '').toString(),
       sehirler: List<String>.from(json['sehirler'] ?? []),
-      timeStamp: json['timeStamp'] ?? 0,
-      tutar: json['tutar'] ?? '',
+      timeStamp: _asInt(json['timeStamp']),
+      tutar: (json['tutar'] ?? '').toString(),
       universiteler: List<String>.from(json['universiteler'] ?? []),
-      userID: json['userID'] ?? '',
-      website: json['website'] ?? '',
-      lisansTuru: json['lisansTuru'] ?? '',
-      template: json['template'] ?? '',
-      ulke: json['ulke'] ?? '',
+      userID: (json['userID'] ?? '').toString(),
+      website: (json['website'] ?? '').toString(),
+      lisansTuru: (json['lisansTuru'] ?? '').toString(),
+      template: (json['template'] ?? '').toString(),
+      ulke: (json['ulke'] ?? '').toString(),
     );
   }
 
