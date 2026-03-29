@@ -29,6 +29,33 @@ void main() {
     );
   });
 
+  test('does not flag feed local hit ratio on tiny smoke samples', () {
+    final report = TelemetryThresholdPolicy.evaluateSnapshots(
+      const <SurfaceTelemetrySnapshot>[
+        SurfaceTelemetrySnapshot(
+          surface: 'feed',
+          cacheFirst: CacheFirstSurfaceSummary(
+            eventCount: 3,
+            localHitCount: 1,
+            warmHitCount: 0,
+            liveSuccessCount: 1,
+            liveFailCount: 0,
+            preservedPreviousCount: 0,
+          ),
+        ),
+      ],
+    );
+
+    expect(
+      report.issues.any((issue) => issue.code == 'local_hit_ratio_low'),
+      isFalse,
+    );
+    expect(
+      report.issues.any((issue) => issue.code == 'local_hit_ratio_critical'),
+      isFalse,
+    );
+  });
+
   test('flags warning when short attached players exceed warning threshold',
       () {
     final report = TelemetryThresholdPolicy.evaluateSnapshots(

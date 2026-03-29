@@ -151,9 +151,7 @@ dynamic _cloneTelemetryMetricValue(dynamic value) {
     );
   }
   if (value is List) {
-    return value
-        .map(_cloneTelemetryMetricValue)
-        .toList(growable: false);
+    return value.map(_cloneTelemetryMetricValue).toList(growable: false);
   }
   return value;
 }
@@ -219,7 +217,7 @@ class TelemetryThresholdPolicy {
   static const Map<String, _SurfaceThresholds> _defaults =
       <String, _SurfaceThresholds>{
     'feed': _SurfaceThresholds(
-      minCacheEvents: 3,
+      minCacheEvents: 4,
       warnLocalHitRatio: 0.45,
       blockLocalHitRatio: 0.20,
       warnLiveFailCount: 1,
