@@ -17,7 +17,7 @@ class AdEligibilityDecision {
     return {
       'campaignId': campaignId,
       'eligible': eligible,
-      'reasons': reasons.map(enumToShort).toList(),
+      'reasons': reasons.map(enumToShort).toList(growable: false),
     };
   }
 }
@@ -58,7 +58,7 @@ class AdDeliveryResult {
       'selectedCampaignId': campaign?.id ?? '',
       'selectedCreativeId': creative?.id ?? '',
       'message': message,
-      'decisions': decisions.map((e) => e.toMap()).toList(),
+      'decisions': decisions.map((e) => e.toMap()).toList(growable: false),
       'createdAt': DateTime.now().millisecondsSinceEpoch,
     };
   }
