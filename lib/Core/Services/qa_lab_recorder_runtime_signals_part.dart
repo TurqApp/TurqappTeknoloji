@@ -1,6 +1,20 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderRuntimeSignalsPart on QALabRecorder {
+  bool _runtimeSignalAsBool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+    return fallback;
+  }
+
   Map<String, dynamic> _normalizeNativePlaybackSnapshot(
     Map<String, dynamic> snapshot, {
     required String trigger,
@@ -20,23 +34,40 @@ extension QALabRecorderRuntimeSignalsPart on QALabRecorder {
       'trigger': trigger,
       'surfaceHint': surfaceHint ?? '',
       'sampledAt': sampledAt.toUtc().toIso8601String(),
-      'supported': snapshot['supported'] != false,
-      'active': snapshot['active'] == true,
+      'supported': _runtimeSignalAsBool(snapshot['supported'], fallback: true),
+      'active': _runtimeSignalAsBool(snapshot['active'], fallback: false),
       'status': (snapshot['status'] ?? '').toString(),
       'errors': errors,
-      'firstFrameRendered': snapshot['firstFrameRendered'] == true ||
-          nestedSnapshot['hasRenderedFirstFrame'] == true,
-      'isPlaybackExpected': nestedSnapshot['isPlaybackExpected'] == true,
-      'isPlaying': nestedSnapshot['isPlaying'] == true,
-      'isBuffering': nestedSnapshot['isBuffering'] == true,
+      'firstFrameRendered': _runtimeSignalAsBool(snapshot['firstFrameRendered'],
+              fallback: false) ||
+          _runtimeSignalAsBool(
+            nestedSnapshot['hasRenderedFirstFrame'],
+            fallback: false,
+          ),
+      'isPlaybackExpected': _runtimeSignalAsBool(
+        nestedSnapshot['isPlaybackExpected'],
+        fallback: false,
+      ),
+      'isPlaying': _runtimeSignalAsBool(
+        nestedSnapshot['isPlaying'],
+        fallback: false,
+      ),
+      'isBuffering': _runtimeSignalAsBool(
+        nestedSnapshot['isBuffering'],
+        fallback: false,
+      ),
       'stallCount': _asInt(nestedSnapshot['stallCount']),
       'layerAttachCount': _asInt(nestedSnapshot['layerAttachCount']),
       'lastKnownPlaybackTime':
           _asDouble(nestedSnapshot['lastKnownPlaybackTime']),
-      'awaitingFullscreenRecovery':
-          nestedSnapshot['awaitingFullscreenRecovery'] == true,
-      'awaitingBackgroundRecovery':
-          nestedSnapshot['awaitingBackgroundRecovery'] == true,
+      'awaitingFullscreenRecovery': _runtimeSignalAsBool(
+        nestedSnapshot['awaitingFullscreenRecovery'],
+        fallback: false,
+      ),
+      'awaitingBackgroundRecovery': _runtimeSignalAsBool(
+        nestedSnapshot['awaitingBackgroundRecovery'],
+        fallback: false,
+      ),
       'raw': (snapshot['raw'] ?? '').toString(),
       'snapshot': nestedSnapshot,
     };
