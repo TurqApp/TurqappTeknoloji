@@ -1,5 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+num _parseInteractionTimestamp(dynamic raw) {
+  if (raw is num) return raw;
+  if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+  return num.tryParse(raw?.toString() ?? '') ?? 0;
+}
+
 // Kullanıcı Beğendiği Postlar - users/{userID}/liked_posts
 class UserLikedPostModel {
   String postDocID;
@@ -12,8 +18,8 @@ class UserLikedPostModel {
 
   factory UserLikedPostModel.fromMap(Map<String, dynamic> data) {
     return UserLikedPostModel(
-      postDocID: data['post_docID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      postDocID: (data['post_docID'] ?? '').toString(),
+      timeStamp: _parseInteractionTimestamp(data['timeStamp']),
     );
   }
 
@@ -41,8 +47,8 @@ class UserSavedPostModel {
 
   factory UserSavedPostModel.fromMap(Map<String, dynamic> data) {
     return UserSavedPostModel(
-      postDocID: data['post_docID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      postDocID: (data['post_docID'] ?? '').toString(),
+      timeStamp: _parseInteractionTimestamp(data['timeStamp']),
     );
   }
 
@@ -70,8 +76,8 @@ class UserCommentedPostModel {
 
   factory UserCommentedPostModel.fromMap(Map<String, dynamic> data) {
     return UserCommentedPostModel(
-      postDocID: data['post_docID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      postDocID: (data['post_docID'] ?? '').toString(),
+      timeStamp: _parseInteractionTimestamp(data['timeStamp']),
     );
   }
 
@@ -104,10 +110,14 @@ class UserResharedPostModel {
 
   factory UserResharedPostModel.fromMap(Map<String, dynamic> data) {
     return UserResharedPostModel(
-      postDocID: data['post_docID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
-      originalUserID: data['originalUserID'],
-      originalPostID: data['originalPostID'],
+      postDocID: (data['post_docID'] ?? '').toString(),
+      timeStamp: _parseInteractionTimestamp(data['timeStamp']),
+      originalUserID: (data['originalUserID'] ?? '').toString().trim().isEmpty
+          ? null
+          : (data['originalUserID'] ?? '').toString(),
+      originalPostID: (data['originalPostID'] ?? '').toString().trim().isEmpty
+          ? null
+          : (data['originalPostID'] ?? '').toString(),
     );
   }
 
@@ -145,8 +155,8 @@ class UserSharedAsPostModel {
 
   factory UserSharedAsPostModel.fromMap(Map<String, dynamic> data) {
     return UserSharedAsPostModel(
-      postDocID: data['post_docID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      postDocID: (data['post_docID'] ?? '').toString(),
+      timeStamp: _parseInteractionTimestamp(data['timeStamp']),
     );
   }
 
@@ -180,10 +190,10 @@ class NotificationModel {
 
   factory NotificationModel.fromMap(Map<String, dynamic> data) {
     return NotificationModel(
-      type: data['type'] ?? '',
-      fromUserID: data['fromUserID'] ?? '',
-      postID: data['postID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      type: (data['type'] ?? '').toString(),
+      fromUserID: (data['fromUserID'] ?? '').toString(),
+      postID: (data['postID'] ?? '').toString(),
+      timeStamp: _parseInteractionTimestamp(data['timeStamp']),
       read: data['read'] ?? false,
     );
   }
