@@ -1,6 +1,17 @@
 part of 'nav_bar_controller.dart';
 
 extension _NavBarControllerLifecyclePart on NavBarController {
+  int _asNavStatInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  bool _asNavStatBool(Object? value) {
+    if (value is bool) return value;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   void _startBackgroundCacheLoopImpl() {
     _backgroundCacheTimer?.cancel();
     _backgroundCacheTimer =
@@ -44,8 +55,8 @@ extension _NavBarControllerLifecyclePart on NavBarController {
         return;
       }
       final stats = queue.getQueueStats();
-      final pending = (stats['pending'] as int?) ?? 0;
-      final processing = (stats['processing'] as bool?) ?? false;
+      final pending = _asNavStatInt(stats['pending']);
+      final processing = _asNavStatBool(stats['processing']);
       uploadingPosts.value = processing || pending > 0;
     });
   }
