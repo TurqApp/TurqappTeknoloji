@@ -169,6 +169,7 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
     await _routeToNavBarForSmoke(tester);
   }
 
+  await _ensureFeedTabForSmoke(tester);
   await _primeFeedForSmoke(tester);
 }
 
@@ -496,6 +497,33 @@ Future<void> _routeToNavBarForSmoke(WidgetTester tester) async {
     debugPrint('[integration-smoke] auth: routed to NavBar');
   } catch (error) {
     debugPrint('[integration-smoke] auth: route to NavBar skipped: $error');
+  }
+}
+
+Future<void> _ensureFeedTabForSmoke(WidgetTester tester) async {
+  try {
+    await pumpUntilVisible(
+      tester,
+      byItKey(IntegrationTestKeys.navBarRoot),
+      step: const Duration(milliseconds: 250),
+      maxPumps: 12,
+    );
+    final navBar = maybeFindNavBarController() ?? ensureNavBarController();
+    if (navBar.selectedIndex.value != 0) {
+      navBar.changeIndex(0);
+      await settleSmokeShell(
+        tester,
+        context: 'smoke force feed tab',
+      );
+    }
+    await pumpUntilVisible(
+      tester,
+      byItKey(IntegrationTestKeys.screenFeed),
+      step: const Duration(milliseconds: 250),
+      maxPumps: 12,
+    );
+  } catch (error) {
+    debugPrint('[integration-smoke] auth: ensure feed tab skipped: $error');
   }
 }
 
