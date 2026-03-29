@@ -61,7 +61,8 @@ class UserPostLinkService {
       if (cached.isNotEmpty) {
         yield cached
             .map(
-              (entry) => UserPostReference.fromMap(entry.data, entry.id),
+              (entry) =>
+                  UserPostReference.fromMap(_cloneUserRefData(entry.data), entry.id),
             )
             .toList(growable: false);
       }
@@ -78,7 +79,7 @@ class UserPostLinkService {
             .map(
               (doc) => UserSubcollectionEntry(
                 id: doc.id,
-                data: Map<String, dynamic>.from(doc.data()),
+                data: _cloneUserRefData(doc.data()),
               ),
             )
             .toList(growable: false);
@@ -208,6 +209,27 @@ class UserPostLinkService {
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
+
+  Map<String, dynamic> _cloneUserRefData(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneUserRefValue(value)),
+    );
+  }
+
+  dynamic _cloneUserRefValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneUserRefValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneUserRefValue).toList(growable: false);
+    }
+    return value;
+  }
 
   Future<List<PostsModel>> fetchResharedPosts(
     String userId,
