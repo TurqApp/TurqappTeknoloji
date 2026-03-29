@@ -64,12 +64,7 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                         ? buildMarkets(context)
                         : controller.postSelection.value == 5
                             ? buildIzbiraklar(context)
-                            : SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(
-                                  parent: BouncingScrollPhysics(),
-                                ),
-                                child: Column(children: [header()]),
-                              );
+                            : Column(children: [header()]);
   }
 
   Widget _buildIntegrationSmokeShell() {

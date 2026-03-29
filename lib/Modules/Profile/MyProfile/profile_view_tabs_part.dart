@@ -57,23 +57,9 @@ extension _ProfileViewTabsPart on _ProfileViewState {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final textScale = MediaQuery.textScalerOf(context).scale(1);
-          final compact = constraints.maxWidth < 390 || textScale > 1.2;
-          final columns = compact ? 3 : items.length;
-          const spacing = 8.0;
-          final width = compact
-              ? (constraints.maxWidth - (spacing * (columns - 1))) / columns
-              : constraints.maxWidth / items.length;
-          return Wrap(
-            spacing: compact ? spacing : 0,
-            runSpacing: compact ? spacing : 0,
-            children: items
-                .map((item) => SizedBox(width: width, child: item))
-                .toList(growable: false),
-          );
-        },
+      child: Row(
+        children:
+            items.map((item) => Expanded(child: item)).toList(growable: false),
       ),
     );
   }
@@ -104,7 +90,7 @@ extension _ProfileViewTabsPart on _ProfileViewState {
             label,
             key: valueKey,
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.black,
@@ -139,7 +125,7 @@ extension _ProfileViewTabsPart on _ProfileViewState {
       children: [
         Transform.translate(
           offset: const Offset(3, 0),
-      child: Row(
+          child: Row(
           children: [
             Expanded(
               child: GestureDetector(
