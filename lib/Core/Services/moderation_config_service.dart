@@ -8,6 +8,27 @@ class ModerationConfigService {
   static const String collection = 'adminConfig';
   static const String docId = 'moderation';
 
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneConfigMap(Map source) {
+    return source.map(
+      (key, value) => MapEntry(key.toString(), _cloneValue(value)),
+    );
+  }
+
   Future<ModerationConfigModel> fetch() async {
     try {
       final data = await ensureConfigRepository().getAdminConfigDoc(
@@ -37,7 +58,7 @@ class ModerationConfigService {
       final res = await callable.call();
       final data = res.data;
       if (data is Map && data['config'] is Map) {
-        final configMap = Map<String, dynamic>.from(data['config'] as Map);
+        final configMap = _cloneConfigMap(data['config'] as Map);
         await ensureConfigRepository().putAdminConfigDoc(docId, configMap);
         return ModerationConfigModel.fromMap(configMap);
       }
