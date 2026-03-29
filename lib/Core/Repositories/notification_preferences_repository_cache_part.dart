@@ -16,10 +16,10 @@ extension NotificationPreferencesRepositoryCachePart
       final disk = await _getFromPrefs(key);
       if (disk != null) {
         _memory[key] = _CachedNotificationPreferences(
-          data: Map<String, dynamic>.from(disk),
+          data: _cloneNotificationPreferencesMap(disk),
           cachedAt: DateTime.now(),
         );
-        return Map<String, dynamic>.from(disk);
+        return _cloneNotificationPreferencesMap(disk);
       }
     }
 
@@ -29,11 +29,11 @@ extension NotificationPreferencesRepositoryCachePart
         .collection('settings')
         .doc('notifications')
         .get();
-    final data = Map<String, dynamic>.from(
+    final data = _cloneNotificationPreferencesMap(
       doc.data() ?? const <String, dynamic>{},
     );
     await putPreferences(uid, data);
-    return data;
+    return _cloneNotificationPreferencesMap(data);
   }
 
   Stream<Map<String, dynamic>> _watchPreferencesImpl(String uid) async* {
@@ -44,7 +44,7 @@ extension NotificationPreferencesRepositoryCachePart
 
     final cached = await getPreferences(uid, preferCache: true);
     if (cached != null) {
-      yield Map<String, dynamic>.from(cached);
+      yield _cloneNotificationPreferencesMap(cached);
     }
 
     yield* FirebaseFirestore.instance
@@ -54,11 +54,11 @@ extension NotificationPreferencesRepositoryCachePart
         .doc('notifications')
         .snapshots()
         .asyncMap((snap) async {
-      final data = Map<String, dynamic>.from(
+      final data = _cloneNotificationPreferencesMap(
         snap.data() ?? const <String, dynamic>{},
       );
       await putPreferences(uid, data);
-      return Map<String, dynamic>.from(data);
+      return _cloneNotificationPreferencesMap(data);
     });
   }
 
@@ -69,7 +69,7 @@ extension NotificationPreferencesRepositoryCachePart
     if (uid.isEmpty) return;
     final key = _cacheKey(uid);
     final cachedAt = DateTime.now();
-    final cloned = Map<String, dynamic>.from(data);
+    final cloned = _cloneNotificationPreferencesMap(data);
     _memory[key] = _CachedNotificationPreferences(
       data: cloned,
       cachedAt: cachedAt,
@@ -100,7 +100,7 @@ extension NotificationPreferencesRepositoryCachePart
       _memory.remove(key);
       return null;
     }
-    return Map<String, dynamic>.from(entry.data);
+    return _cloneNotificationPreferencesMap(entry.data);
   }
 
   Future<Map<String, dynamic>?> _getFromPrefs(String key) async {
@@ -130,7 +130,7 @@ extension NotificationPreferencesRepositoryCachePart
         await prefs?.remove(prefsKey);
         return null;
       }
-      return Map<String, dynamic>.from(data);
+      return _cloneNotificationPreferencesMap(data);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -141,4 +141,29 @@ extension NotificationPreferencesRepositoryCachePart
 
   String _prefsKey(String key) =>
       '${NotificationPreferencesRepository._prefsPrefix}:$key';
+
+  Map<String, dynamic> _cloneNotificationPreferencesMap(
+    Map<String, dynamic> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneNotificationPreferencesValue(value)),
+    );
+  }
+
+  dynamic _cloneNotificationPreferencesValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneNotificationPreferencesValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value
+          .map(_cloneNotificationPreferencesValue)
+          .toList(growable: false);
+    }
+    return value;
+  }
 }
