@@ -11,40 +11,40 @@ class _PostLookupCache {
   final PostsModel? model;
   final DateTime cachedAt;
 
-  const _PostLookupCache({
-    required this.model,
+  _PostLookupCache({
+    required PostsModel? model,
     required this.cachedAt,
-  });
+  }) : model = _cloneDeepLinkPostModel(model);
 }
 
 class _JobLookupCache {
   final JobModel? model;
   final DateTime cachedAt;
 
-  const _JobLookupCache({
-    required this.model,
+  _JobLookupCache({
+    required JobModel? model,
     required this.cachedAt,
-  });
+  }) : model = _cloneDeepLinkJobModel(model);
 }
 
 class _MarketLookupCache {
   final dynamic model;
   final DateTime cachedAt;
 
-  const _MarketLookupCache({
-    required this.model,
+  _MarketLookupCache({
+    required dynamic model,
     required this.cachedAt,
-  });
+  }) : model = _cloneDeepLinkMarketModel(model as MarketItemModel?);
 }
 
 class _UserLookupCache {
   final UserSummary? data;
   final DateTime cachedAt;
 
-  const _UserLookupCache({
-    required this.data,
+  _UserLookupCache({
+    required UserSummary? data,
     required this.cachedAt,
-  });
+  }) : data = _cloneDeepLinkUserSummary(data);
 }
 
 class _StoryListLookupCache {
