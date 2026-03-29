@@ -72,7 +72,7 @@ extension NotificationsSnapshotRepositoryQueryPart
   ) {
     return docs.where((doc) {
       final data = doc.data();
-      final hideByFlag = data['hideInAppInbox'] == true;
+      final hideByFlag = _asBool(data['hideInAppInbox']);
       final hideByLegacyPostId =
           (data['postID'] ?? '').toString() == 'admin-manual-push';
       return !hideByFlag && !hideByLegacyPostId;
@@ -81,7 +81,7 @@ extension NotificationsSnapshotRepositoryQueryPart
       if (data.containsKey('type') || data.containsKey('fromUserID')) {
         return NotificationModel(
           docID: doc.id,
-          isRead: (data['isRead'] ?? data['read'] ?? false) == true,
+          isRead: _asBool(data['isRead'] ?? data['read']),
           type: (data['type'] ?? '').toString(),
           postID: (data['postID'] ?? '').toString(),
           postType: notificationPostTypeFromEventType(
@@ -97,6 +97,12 @@ extension NotificationsSnapshotRepositoryQueryPart
       }
       return NotificationModel.fromJson(data, doc.id);
     }).toList(growable: false);
+  }
+
+  bool _asBool(dynamic value) {
+    if (value is bool) return value;
+    final raw = '$value'.trim().toLowerCase();
+    return raw == 'true' || raw == '1';
   }
 
   int _asInt(dynamic value) {
