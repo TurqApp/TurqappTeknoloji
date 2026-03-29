@@ -260,8 +260,12 @@ extension TestRepositoryQueryPart on TestRepository {
       if (memory != null) return memory;
       final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = disk;
-        return disk.items;
+        final cloned = _cloneItems(disk.items);
+        _memory[cacheKey] = _TimedTests(
+          items: cloned,
+          cachedAt: disk.cachedAt,
+        );
+        return _cloneItems(cloned);
       }
     }
     if (cacheOnly) return const <TestsModel>[];
@@ -285,8 +289,12 @@ extension TestRepositoryQueryPart on TestRepository {
       if (memory != null) return memory;
       final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = disk;
-        return disk.items;
+        final cloned = _cloneItems(disk.items);
+        _memory[cacheKey] = _TimedTests(
+          items: cloned,
+          cachedAt: disk.cachedAt,
+        );
+        return _cloneItems(cloned);
       }
     }
     if (cacheOnly) return const <TestsModel>[];
