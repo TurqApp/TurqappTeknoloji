@@ -1,6 +1,17 @@
 part of 'social_media_links_repository.dart';
 
 extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
+  int _asIntImpl(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
   Future<void> _setLinksImpl(String uid, List<SocialMediaModel> items) async {
     if (uid.isEmpty) return;
     final cloned = _cloneItemsImpl(items);
@@ -38,8 +49,7 @@ extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
   }) {
     final entry = _memory[uid];
     if (entry == null) return null;
-    final fresh =
-        DateTime.now().difference(entry.cachedAt) <=
+    final fresh = DateTime.now().difference(entry.cachedAt) <=
         SocialMediaLinksRepository._ttl;
     if (!fresh && !allowStale) {
       _memory.remove(uid);
@@ -66,16 +76,16 @@ extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      final list =
-          (decoded['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      final ts = _asIntImpl(decoded['t']);
+      final list = decoded['items'] is List
+          ? List<dynamic>.from(decoded['items'] as List, growable: false)
+          : const <dynamic>[];
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
       }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
-      final fresh =
-          DateTime.now().difference(cachedAt) <=
+      final fresh = DateTime.now().difference(cachedAt) <=
           SocialMediaLinksRepository._ttl;
       if (!fresh) {
         if (!allowStale) {
@@ -86,15 +96,18 @@ extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
       return _CachedSocialMediaLinks(
         cachedAt: cachedAt,
         items: list
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
             .map(
               (e) => SocialMediaModel(
                 docID: (e['docID'] ?? '').toString(),
                 title: (e['title'] ?? '').toString(),
                 url: (e['url'] ?? '').toString(),
-                sira: (e['sira'] as num?) ?? 0,
+                sira: _asIntImpl(e['sira']),
                 logo: (e['logo'] ?? '').toString(),
               ),
             )
+            .where((item) => item.docID.trim().isNotEmpty)
             .toList(growable: false),
       );
     } catch (_) {
