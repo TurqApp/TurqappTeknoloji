@@ -443,7 +443,8 @@ extension StoryRepositoryCachePart on StoryRepository {
     final expiryCutoff = storyExpiryCutoffInternal;
     final stories = snap.docs
         .where(
-          (doc) => includeDeleted || (doc.data()['deleted'] ?? false) != true,
+          (doc) =>
+              includeDeleted || !_storyRowCacheAsBool(doc.data()['deleted']),
         )
         .map(StoryModel.fromDoc)
         .where(
