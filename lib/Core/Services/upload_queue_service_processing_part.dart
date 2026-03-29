@@ -1,6 +1,33 @@
 part of 'upload_queue_service.dart';
 
 extension UploadQueueServiceProcessingPart on UploadQueueService {
+  bool _uploadQueueProcessingAsBool(
+    Object? value, {
+    required bool fallback,
+  }) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+    return fallback;
+  }
+
+  int _uploadQueueProcessingAsInt(Object? value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final normalized = value?.toString().trim() ?? '';
+    if (normalized.isEmpty) return fallback;
+    return int.tryParse(normalized) ??
+        num.tryParse(normalized)?.toInt() ??
+        fallback;
+  }
+
   Future<void> _performRefreshAuthTokenIfNeeded() async {
     try {
       await CurrentUserService.instance.refreshAuthTokenIfNeeded();
@@ -78,14 +105,20 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
       final Map<String, dynamic> poll =
           Map<String, dynamic>.from(postDataMap['poll'] ?? {});
-      final bool sharedAsPost = (postDataMap['sharedAsPost'] ?? false) == true;
+      final bool sharedAsPost = _uploadQueueProcessingAsBool(
+        postDataMap['sharedAsPost'],
+        fallback: false,
+      );
       final String originalUserID =
           (postDataMap['originalUserID'] ?? '').toString().trim();
       final String originalPostID =
           (postDataMap['originalPostID'] ?? '').toString().trim();
       final String sourcePostID =
           (postDataMap['sourcePostID'] ?? '').toString().trim();
-      final bool quotedPost = (postDataMap['quotedPost'] ?? false) == true;
+      final bool quotedPost = _uploadQueueProcessingAsBool(
+        postDataMap['quotedPost'],
+        fallback: false,
+      );
       final String quotedOriginalText =
           (postDataMap['quotedOriginalText'] ?? '').toString().trim();
       final String quotedSourceUserID =
@@ -127,22 +160,27 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         currentUser.currentUser?.rozet.trim() ?? '',
       ]);
       if (yorumMap.isEmpty) {
-        final bool comment = (postDataMap['comment'] ?? true) == true;
+        final bool comment = _uploadQueueProcessingAsBool(
+          postDataMap['comment'],
+          fallback: true,
+        );
         yorumMap['visibility'] = comment ? 0 : 3;
       }
       if (reshareMap.isEmpty) {
-        final int paylasGizliligi =
-            int.tryParse('${postDataMap['paylasGizliligi'] ?? 0}') ?? 0;
+        final int paylasGizliligi = _uploadQueueProcessingAsInt(
+          postDataMap['paylasGizliligi'],
+        );
         reshareMap['visibility'] = paylasGizliligi;
       }
-      final int scheduledAt =
-          int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
+      final int scheduledAt = _uploadQueueProcessingAsInt(
+        postDataMap['scheduledAt'],
+      );
 
       bool flood = false;
       String mainFlood = '';
       try {
         final idxStr = upload.id.substring(upload.id.lastIndexOf('_') + 1);
-        final idx = int.tryParse(idxStr) ?? 0;
+        final idx = _uploadQueueProcessingAsInt(idxStr);
         flood = idx != 0;
         if (flood) {
           final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
