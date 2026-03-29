@@ -43,7 +43,7 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     rozet: (data['rozet'] ?? data['badge'] ?? '').toString(),
     hesapOnayi: _parseCurrentUserBool(data['isApproved']),
     gizliHesap: _parseCurrentUserBool(data['isPrivate']),
-    viewSelection: data['viewSelection'] ?? 1,
+    viewSelection: _parseToInt(data['viewSelection']).clamp(0, 1),
     ilgialanlari: _cloneCurrentUserStringList(
       data['ilgialanlari'] ?? const [],
     ),
@@ -66,9 +66,9 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     counterOfPosts: _parseToInt(
       data['postCount'] ?? data['counterOfPosts'] ?? data['gonderSayisi'],
     ),
-    counterOfLikes: data['counterOfLikes'] ?? 0,
-    antPoint: data['antPoint'] ?? 100,
-    dailyDurations: data['dailyDurations'] ?? 1,
+    counterOfLikes: _parseToInt(data['counterOfLikes']),
+    antPoint: _parseToInt(data['antPoint']).clamp(0, 1 << 30),
+    dailyDurations: _parseToInt(data['dailyDurations']).clamp(0, 1 << 30),
     educationLevel:
         _pickScopedString(data, education, 'educationLevel', fallback: ''),
     universite: _pickScopedString(data, education, 'universite', fallback: ''),
@@ -345,7 +345,7 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     rozet: (json['rozet'] ?? json['badge'] ?? '').toString(),
     hesapOnayi: _parseCurrentUserBool(json['isApproved']),
     gizliHesap: _parseCurrentUserBool(json['isPrivate']),
-    viewSelection: json['viewSelection'] ?? 1,
+    viewSelection: _parseToInt(json['viewSelection']).clamp(0, 1),
     ilgialanlari: _cloneCurrentUserStringList(
       json['ilgialanlari'] ?? const [],
     ),
@@ -368,9 +368,9 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     counterOfPosts: _parseToInt(
       json['postCount'] ?? json['counterOfPosts'] ?? json['gonderSayisi'],
     ),
-    counterOfLikes: json['counterOfLikes'] ?? 0,
-    antPoint: json['antPoint'] ?? 100,
-    dailyDurations: json['dailyDurations'] ?? 1,
+    counterOfLikes: _parseToInt(json['counterOfLikes']),
+    antPoint: _parseToInt(json['antPoint']).clamp(0, 1 << 30),
+    dailyDurations: _parseToInt(json['dailyDurations']).clamp(0, 1 << 30),
     educationLevel:
         _pickScopedString(json, education, 'educationLevel', fallback: ''),
     universite: _pickScopedString(json, education, 'universite', fallback: ''),
