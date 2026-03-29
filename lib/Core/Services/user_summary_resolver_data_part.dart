@@ -104,9 +104,9 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
       ),
       followingCount: _summaryInt(merged['followingCount']),
       postCount: _summaryInt(merged['postCount']),
-      isPrivate: merged['isPrivate'] == true,
-      isDeleted: merged['isDeleted'] == true,
-      isApproved: merged['isApproved'] == true,
+      isPrivate: _summaryBool(merged['isPrivate']),
+      isDeleted: _summaryBool(merged['isDeleted']),
+      isApproved: _summaryBool(merged['isApproved']),
     );
   }
 }
@@ -122,5 +122,14 @@ String _pickFirstSummaryText(List<Object?> candidates) {
 int _summaryInt(Object? raw) {
   if (raw is int) return raw;
   if (raw is num) return raw.toInt();
-  return int.tryParse(raw?.toString() ?? '') ?? 0;
+  final value = raw?.toString().trim() ?? '';
+  if (value.isEmpty) return 0;
+  return int.tryParse(value) ?? num.tryParse(value)?.toInt() ?? 0;
+}
+
+bool _summaryBool(Object? raw) {
+  if (raw is bool) return raw;
+  if (raw is num) return raw != 0;
+  final value = raw?.toString().trim().toLowerCase() ?? '';
+  return value == 'true' || value == '1' || value == 'yes';
 }
