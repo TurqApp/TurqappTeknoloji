@@ -3,5 +3,14 @@ class AnswerKeySubModel {
   num sira;
   String baslik;
   List<String> dogruCevaplar;
-  AnswerKeySubModel(this.baslik, this.docID, this.dogruCevaplar, this.sira);
+
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
+  AnswerKeySubModel(
+    this.baslik,
+    this.docID,
+    List<String> dogruCevaplar,
+    this.sira,
+  ) : dogruCevaplar = _cloneStringList(dogruCevaplar);
 }
