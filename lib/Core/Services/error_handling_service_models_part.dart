@@ -47,11 +47,11 @@ class AppError {
     required this.category,
     this.severity = ErrorSeverity.medium,
     required this.timestamp,
-    this.metadata = const {},
+    Map<String, dynamic> metadata = const {},
     this.stackTrace,
     this.isRetryable = false,
     this.retryCount = 0,
-  });
+  }) : metadata = _cloneAppErrorMetadataMap(metadata);
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -61,7 +61,7 @@ class AppError {
         'category': category.name,
         'severity': severity.name,
         'timestamp': timestamp.millisecondsSinceEpoch,
-        'metadata': metadata,
+        'metadata': _cloneAppErrorMetadataMap(metadata),
         'stackTrace': stackTrace,
         'isRetryable': isRetryable,
         'retryCount': retryCount,
@@ -77,7 +77,9 @@ class AppError {
         severity:
             ErrorSeverity.values.firstWhere((e) => e.name == json['severity']),
         timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
-        metadata: Map<String, dynamic>.from(json['metadata'] ?? {}),
+        metadata: _cloneAppErrorMetadataMap(
+          Map<String, dynamic>.from(json['metadata'] ?? {}),
+        ),
         stackTrace: json['stackTrace'],
         isRetryable: json['isRetryable'] ?? false,
         retryCount: json['retryCount'] ?? 0,
@@ -96,9 +98,33 @@ class AppError {
         category: category,
         severity: severity ?? this.severity,
         timestamp: timestamp,
-        metadata: metadata ?? this.metadata,
+        metadata:
+            metadata != null ? _cloneAppErrorMetadataMap(metadata) : this.metadata,
         stackTrace: stackTrace,
         isRetryable: isRetryable,
         retryCount: retryCount ?? this.retryCount,
       );
+
+  static Map<String, dynamic> _cloneAppErrorMetadataMap(
+    Map<String, dynamic> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneAppErrorMetadataValue(value)),
+    );
+  }
+
+  static dynamic _cloneAppErrorMetadataValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneAppErrorMetadataValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneAppErrorMetadataValue).toList(growable: false);
+    }
+    return value;
+  }
 }
