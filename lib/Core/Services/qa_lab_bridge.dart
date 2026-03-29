@@ -76,14 +76,14 @@ void recordQALabHandledError({
     code: code,
     message: message,
     severity: severity,
-    metadata: metadata,
+    metadata: _cloneQALabBridgeMap(metadata),
     stackTrace: stackTrace,
   );
 }
 
 void recordQALabCacheFirstEvent(Map<String, dynamic> payload) {
   if (!QALabMode.enabled) return;
-  QALabRecorder.ensure().recordCacheFirstEvent(payload);
+  QALabRecorder.ensure().recordCacheFirstEvent(_cloneQALabBridgeMap(payload));
 }
 
 void recordQALabVideoEvent({
@@ -95,7 +95,7 @@ void recordQALabVideoEvent({
   QALabRecorder.ensure().recordVideoEvent(
     code: code,
     message: message,
-    metadata: metadata,
+    metadata: _cloneQALabBridgeMap(metadata),
   );
 }
 
@@ -125,7 +125,7 @@ void captureQALabCheckpoint({
   QALabRecorder.ensure().captureCheckpoint(
     label: label,
     surface: surface,
-    extra: extra,
+    extra: _cloneQALabBridgeMap(extra),
   );
 }
 
@@ -138,7 +138,7 @@ void recordQALabScrollEvent({
   QALabRecorder.ensure().recordScrollEvent(
     surface: surface,
     phase: phase,
-    metadata: metadata,
+    metadata: _cloneQALabBridgeMap(metadata),
   );
 }
 
@@ -153,7 +153,7 @@ void recordQALabFeedFetchEvent({
     surface: surface,
     stage: stage,
     trigger: trigger,
-    metadata: metadata,
+    metadata: _cloneQALabBridgeMap(metadata),
   );
 }
 
@@ -168,7 +168,7 @@ void recordQALabAdEvent({
     surface: surface,
     stage: stage,
     placement: placement,
-    metadata: metadata,
+    metadata: _cloneQALabBridgeMap(metadata),
   );
 }
 
@@ -181,6 +181,27 @@ void recordQALabPlaybackDispatch({
   QALabRecorder.ensure().recordPlaybackDispatch(
     surface: surface,
     stage: stage,
-    metadata: metadata,
+    metadata: _cloneQALabBridgeMap(metadata),
   );
+}
+
+Map<String, dynamic> _cloneQALabBridgeMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneQALabBridgeValue(value)),
+  );
+}
+
+dynamic _cloneQALabBridgeValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneQALabBridgeValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneQALabBridgeValue).toList(growable: false);
+  }
+  return value;
 }
