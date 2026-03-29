@@ -41,8 +41,8 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     cinsiyet: data['cinsiyet'] ?? '',
     bio: data['bio'] ?? '',
     rozet: (data['rozet'] ?? data['badge'] ?? '').toString(),
-    hesapOnayi: (data['isApproved'] ?? false) == true,
-    gizliHesap: (data['isPrivate'] ?? false) == true,
+    hesapOnayi: _parseCurrentUserBool(data['isApproved']),
+    gizliHesap: _parseCurrentUserBool(data['isPrivate']),
     viewSelection: data['viewSelection'] ?? 1,
     ilgialanlari: _cloneCurrentUserStringList(
       data['ilgialanlari'] ?? const [],
@@ -140,15 +140,16 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     isDisabled: _pickScopedBool(data, family, 'isDisabled', fallback: false),
     bank: data['bank'] ?? '',
     iban: data['iban'] ?? '',
-    ban: (data['isBanned'] ?? false) == true,
+    ban: _parseCurrentUserBool(data['isBanned']),
     moderationStrikeCount: _parseToInt(data['moderationStrikeCount']),
     moderationLevel: _parseToInt(data['moderationLevel']),
     moderationRestrictedUntil: _parseToInt(data['moderationRestrictedUntil']),
-    moderationPermanentBan: (data['moderationPermanentBan'] ?? false) == true,
+    moderationPermanentBan:
+        _parseCurrentUserBool(data['moderationPermanentBan']),
     moderationBanReason: (data['moderationBanReason'] ?? '').toString(),
     moderationUpdatedAt: _parseToInt(data['moderationUpdatedAt']),
-    deletedAccount: (data['isDeleted'] ?? false) == true,
-    bot: (data['isBot'] ?? false) == true,
+    deletedAccount: _parseCurrentUserBool(data['isDeleted']),
+    bot: _parseCurrentUserBool(data['isBot']),
     signInMethod: data['signInMethod'] ?? '',
     sifre: '',
     refCode: data['refCode'] ?? '',
@@ -342,8 +343,8 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     cinsiyet: json['cinsiyet'] ?? '',
     bio: json['bio'] ?? '',
     rozet: (json['rozet'] ?? json['badge'] ?? '').toString(),
-    hesapOnayi: (json['isApproved'] ?? false) == true,
-    gizliHesap: (json['isPrivate'] ?? false) == true,
+    hesapOnayi: _parseCurrentUserBool(json['isApproved']),
+    gizliHesap: _parseCurrentUserBool(json['isPrivate']),
     viewSelection: json['viewSelection'] ?? 1,
     ilgialanlari: _cloneCurrentUserStringList(
       json['ilgialanlari'] ?? const [],
@@ -441,15 +442,16 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     isDisabled: _pickScopedBool(json, family, 'isDisabled', fallback: false),
     bank: json['bank'] ?? '',
     iban: json['iban'] ?? '',
-    ban: (json['isBanned'] ?? false) == true,
+    ban: _parseCurrentUserBool(json['isBanned']),
     moderationStrikeCount: _parseToInt(json['moderationStrikeCount']),
     moderationLevel: _parseToInt(json['moderationLevel']),
     moderationRestrictedUntil: _parseToInt(json['moderationRestrictedUntil']),
-    moderationPermanentBan: (json['moderationPermanentBan'] ?? false) == true,
+    moderationPermanentBan:
+        _parseCurrentUserBool(json['moderationPermanentBan']),
     moderationBanReason: (json['moderationBanReason'] ?? '').toString(),
     moderationUpdatedAt: _parseToInt(json['moderationUpdatedAt']),
-    deletedAccount: (json['isDeleted'] ?? false) == true,
-    bot: (json['isBot'] ?? false) == true,
+    deletedAccount: _parseCurrentUserBool(json['isDeleted']),
+    bot: _parseCurrentUserBool(json['isBot']),
     signInMethod: json['signInMethod'] ?? '',
     sifre: '',
     refCode: json['refCode'] ?? '',
@@ -536,6 +538,10 @@ bool _pickScopedBool(
 }) {
   final value = _pickScoped(root, scoped, key);
   return parseFlexibleBool(value, fallback: fallback);
+}
+
+bool _parseCurrentUserBool(dynamic value) {
+  return parseFlexibleBool(value, fallback: false);
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
