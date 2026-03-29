@@ -32,7 +32,7 @@ class _TypesenseUserCardCacheServiceCachePart {
     final cards =
         await TypesenseUserService.instance.getUserCardsByIds(cleaned);
     await _store(cacheKey, cards);
-    return cards;
+    return _cloneCards(cards);
   }
 
   Future<void> invalidateAll() async {
