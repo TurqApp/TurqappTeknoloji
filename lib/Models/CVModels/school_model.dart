@@ -101,6 +101,43 @@ class CVReferenceHumans {
 }
 
 class CvModel {
+  static List<CvSchoolModel> _cloneSchools(Iterable<CvSchoolModel> source) {
+    return source
+        .map((item) => CvSchoolModel.fromMap(item.toMap()))
+        .toList(growable: false);
+  }
+
+  static List<CVLanguegeModel> _cloneLanguages(
+    Iterable<CVLanguegeModel> source,
+  ) {
+    return source
+        .map((item) => CVLanguegeModel.fromMap(item.toMap()))
+        .toList(growable: false);
+  }
+
+  static List<CVExperinceModel> _cloneExperiences(
+    Iterable<CVExperinceModel> source,
+  ) {
+    return source
+        .map((item) => CVExperinceModel.fromMap(item.toMap()))
+        .toList(growable: false);
+  }
+
+  static List<CVReferenceHumans> _cloneReferences(
+    Iterable<CVReferenceHumans> source,
+  ) {
+    return source
+        .map((item) => CVReferenceHumans.fromMap(item.toMap()))
+        .toList(growable: false);
+  }
+
+  static List<String> _cloneSkills(Iterable<dynamic> source) {
+    return source
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
   final String firstName;
   final String lastName;
   final String mail;
@@ -121,13 +158,17 @@ class CvModel {
     required this.phone,
     required this.linkedin,
     required this.about,
-    required this.schools,
-    required this.languages,
-    required this.experiences,
-    required this.references,
+    required List<CvSchoolModel> schools,
+    required List<CVLanguegeModel> languages,
+    required List<CVExperinceModel> experiences,
+    required List<CVReferenceHumans> references,
     required this.findingJob,
-    this.skills = const [],
-  });
+    List<String> skills = const [],
+  })  : schools = _cloneSchools(schools),
+        languages = _cloneLanguages(languages),
+        experiences = _cloneExperiences(experiences),
+        references = _cloneReferences(references),
+        skills = _cloneSkills(skills);
 
   Map<String, dynamic> toMap() => {
         "firstName": firstName,
@@ -136,12 +177,12 @@ class CvModel {
         "phone": phone,
         "linkedin": linkedin,
         "about": about,
-        "okullar": schools.map((e) => e.toMap()).toList(),
-        "diller": languages.map((e) => e.toMap()).toList(),
-        "deneyim": experiences.map((e) => e.toMap()).toList(),
-        "referans": references.map((e) => e.toMap()).toList(),
+        "okullar": schools.map((e) => e.toMap()).toList(growable: false),
+        "diller": languages.map((e) => e.toMap()).toList(growable: false),
+        "deneyim": experiences.map((e) => e.toMap()).toList(growable: false),
+        "referans": references.map((e) => e.toMap()).toList(growable: false),
         "findingJob": findingJob,
-        "skills": skills,
+        "skills": _cloneSkills(skills),
       };
 
   factory CvModel.fromMap(Map<String, dynamic> map) => CvModel(
@@ -163,9 +204,7 @@ class CvModel {
             .toList(),
         references: (map["referans"] as List<dynamic>? ?? [])
             .map((e) => CVReferenceHumans.fromMap(e))
-            .toList(),
-        skills: (map["skills"] as List<dynamic>? ?? [])
-            .map((e) => e.toString())
-            .toList(),
+            .toList(growable: false),
+        skills: _cloneSkills(map["skills"] as List<dynamic>? ?? const []),
       );
 }
