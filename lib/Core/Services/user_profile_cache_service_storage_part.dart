@@ -12,6 +12,17 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
     return fallback;
   }
 
+  bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
+    }
+    return fallback;
+  }
+
   Future<void> _initialize() async {
     _prefs = await SharedPreferences.getInstance();
     _loadFromPrefs();
@@ -233,15 +244,17 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
       'followersCount': followerCount,
       'followingCount': followingCount,
       'postCount': postCount,
-      'isApproved': (raw['isApproved'] ?? scoped['isApproved']) == true,
-      'isPrivate': (raw['isPrivate'] ?? scoped['isPrivate']) == true,
-      'isDeleted': (raw['isDeleted'] ?? scoped['isDeleted']) == true,
+      'isApproved': _asBool(raw['isApproved'] ?? scoped['isApproved']),
+      'isPrivate': _asBool(raw['isPrivate'] ?? scoped['isPrivate']),
+      'isDeleted': _asBool(raw['isDeleted'] ?? scoped['isDeleted']),
       'accountStatus':
           (raw['accountStatus'] ?? scoped['accountStatus'] ?? '').toString(),
-      'singleDeviceSessionEnabled': raw['singleDeviceSessionEnabled'] == true,
+      'singleDeviceSessionEnabled': _asBool(
+        raw['singleDeviceSessionEnabled'],
+      ),
       'activeSessionDeviceKey':
           (raw['activeSessionDeviceKey'] ?? '').toString(),
-      'activeSessionUpdatedAt': raw['activeSessionUpdatedAt'] ?? 0,
+      'activeSessionUpdatedAt': _asInt(raw['activeSessionUpdatedAt']),
       'deviceID': (raw['deviceID'] ?? '').toString(),
       'email': (raw['email'] ?? scoped['email'] ?? '').toString(),
       if (profile.isNotEmpty) 'profile': profile,
