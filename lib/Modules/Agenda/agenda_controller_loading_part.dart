@@ -563,12 +563,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       _cancelDeferredInitialNetworkBootstrap();
       // Refresh başlarken tüm oynatımları kesin durdur.
       pauseAll.value = true;
-      _pendingCenteredDocId =
-          _agendaFeedApplicationService.capturePlaybackAnchor(
-        agendaList: agendaList.toList(growable: false),
-        centeredIndex: centeredIndex.value,
-        lastCenteredIndex: lastCenteredIndex,
-      );
+      _pendingCenteredDocId = null;
+      lastCenteredIndex = 0;
       centeredIndex.value = -1;
       try {
         VideoStateManager.instance.pauseAllVideos(force: true);
