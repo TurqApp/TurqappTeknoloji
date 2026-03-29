@@ -31,6 +31,13 @@ class PostLikeModel {
 
 // Comment Modeli - Posts/{postID}/comments koleksiyonu için
 class PostCommentModel {
+  static List<String> _cloneStringList(Iterable<dynamic> source) {
+    return source
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
   List<String> likes;
   String text;
   List<String> imgs;
@@ -46,10 +53,10 @@ class PostCommentModel {
   num repliesCount;
 
   PostCommentModel({
-    required this.likes,
+    required List<String> likes,
     required this.text,
-    required this.imgs,
-    required this.videos,
+    required List<String> imgs,
+    required List<String> videos,
     required this.timeStamp,
     required this.userID,
     required this.docID,
@@ -59,14 +66,16 @@ class PostCommentModel {
     this.deletedTimeStamp = 0,
     this.hasReplies = false,
     this.repliesCount = 0,
-  });
+  })  : likes = _cloneStringList(likes),
+        imgs = _cloneStringList(imgs),
+        videos = _cloneStringList(videos);
 
   factory PostCommentModel.fromMap(Map<String, dynamic> data, String docID) {
     return PostCommentModel(
-      likes: List<String>.from(data['likes'] ?? []),
+      likes: _cloneStringList(data['likes'] ?? const []),
       text: data['text'] ?? '',
-      imgs: List<String>.from(data['imgs'] ?? []),
-      videos: List<String>.from(data['videos'] ?? []),
+      imgs: _cloneStringList(data['imgs'] ?? const []),
+      videos: _cloneStringList(data['videos'] ?? const []),
       timeStamp: (data['timeStamp'] ?? 0) as num,
       userID: data['userID'] ?? '',
       docID: docID,
@@ -81,10 +90,10 @@ class PostCommentModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'likes': likes,
+      'likes': _cloneStringList(likes),
       'text': text,
-      'imgs': imgs,
-      'videos': videos,
+      'imgs': _cloneStringList(imgs),
+      'videos': _cloneStringList(videos),
       'timeStamp': timeStamp,
       'userID': userID,
       'edited': edited,
@@ -103,6 +112,13 @@ class PostCommentModel {
 
 // Sub Comment Modeli - Posts/{postID}/comments/{commentID}/sub_comments için
 class SubCommentModel {
+  static List<String> _cloneStringList(Iterable<dynamic> source) {
+    return source
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
   List<String> likes;
   String text;
   List<String> imgs;
@@ -116,10 +132,10 @@ class SubCommentModel {
   num deletedTimeStamp;
 
   SubCommentModel({
-    required this.likes,
+    required List<String> likes,
     required this.text,
-    required this.imgs,
-    required this.videos,
+    required List<String> imgs,
+    required List<String> videos,
     required this.timeStamp,
     required this.userID,
     required this.docID,
@@ -127,14 +143,16 @@ class SubCommentModel {
     this.editTimestamp = 0,
     this.deleted = false,
     this.deletedTimeStamp = 0,
-  });
+  })  : likes = _cloneStringList(likes),
+        imgs = _cloneStringList(imgs),
+        videos = _cloneStringList(videos);
 
   factory SubCommentModel.fromMap(Map<String, dynamic> data, String docID) {
     return SubCommentModel(
-      likes: List<String>.from(data['likes'] ?? []),
+      likes: _cloneStringList(data['likes'] ?? const []),
       text: data['text'] ?? '',
-      imgs: List<String>.from(data['imgs'] ?? []),
-      videos: List<String>.from(data['videos'] ?? []),
+      imgs: _cloneStringList(data['imgs'] ?? const []),
+      videos: _cloneStringList(data['videos'] ?? const []),
       timeStamp: (data['timeStamp'] ?? 0) as num,
       userID: data['userID'] ?? '',
       docID: docID,
@@ -147,10 +165,10 @@ class SubCommentModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'likes': likes,
+      'likes': _cloneStringList(likes),
       'text': text,
-      'imgs': imgs,
-      'videos': videos,
+      'imgs': _cloneStringList(imgs),
+      'videos': _cloneStringList(videos),
       'timeStamp': timeStamp,
       'userID': userID,
       'edited': edited,
