@@ -63,6 +63,10 @@ class JobSavedStore {
     return fallback;
   }
 
+  static String _asTrimmedString(dynamic value) {
+    return value?.toString().trim() ?? '';
+  }
+
   static Future<bool> isSaved(String uid, String jobId) async {
     DocumentSnapshot<Map<String, dynamic>> currentSnap;
     try {
@@ -146,7 +150,9 @@ class JobSavedStore {
     final byJobId = <String, SavedJobRecord>{};
     for (final doc in currentSnap.docs) {
       final data = doc.data();
-      final jobId = (data['jobID'] ?? doc.id).toString().trim();
+      final jobId = _asTrimmedString(data['jobID']) == ''
+          ? _asTrimmedString(doc.id)
+          : _asTrimmedString(data['jobID']);
       if (jobId.isEmpty) continue;
       byJobId[jobId] = SavedJobRecord(
         jobId: jobId,
@@ -158,7 +164,7 @@ class JobSavedStore {
       final batch = _firestore.batch();
       for (final doc in legacySnap.docs) {
         final data = doc.data();
-        final jobId = (data['jobID'] ?? '').toString().trim();
+        final jobId = _asTrimmedString(data['jobID']);
         if (jobId.isEmpty) continue;
         final timeStamp = _asInt(
           data['timeStamp'],
@@ -240,7 +246,7 @@ class JobSavedStore {
           continue;
         }
         final item = SavedJobRecord(
-          jobId: (rawItem['jobId'] ?? '').toString(),
+          jobId: _asTrimmedString(rawItem['jobId']),
           timeStamp: _asInt(rawItem['timeStamp']),
         );
         if (item.jobId.isEmpty) {
