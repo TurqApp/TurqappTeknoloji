@@ -2,6 +2,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StorySeensModel {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   final String userID;
   final int timeStamp; // millisecondsSinceEpoch
 
@@ -17,9 +23,7 @@ class StorySeensModel {
     final ts = data['timeStamp'];
     return StorySeensModel(
       userID: (data['userID'] ?? doc.id).toString(),
-      timeStamp: ts is Timestamp
-          ? ts.millisecondsSinceEpoch
-          : int.tryParse(ts.toString()) ?? 0,
+      timeStamp: ts is Timestamp ? ts.millisecondsSinceEpoch : _asInt(ts),
     );
   }
 
