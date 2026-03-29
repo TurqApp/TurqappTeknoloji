@@ -28,6 +28,8 @@ ANDROID_ADB_BIN="${ANDROID_ADB_BIN:-/Users/turqapp/Library/Android/sdk/platform-
 ANDROID_PACKAGE="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 ANDROID_REMOTE_ARTIFACT_DIR="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 ANDROID_EXPORT_POLL_SECONDS="${INTEGRATION_SMOKE_ANDROID_EXPORT_POLL_SECONDS:-0.25}"
+android_original_stay_on=""
+android_awake_watchdog_pid=""
 default_fixture_file="integration_test/core/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
 fixture_json="${INTEGRATION_FIXTURE_JSON:-}"
@@ -126,7 +128,59 @@ else
 fi
 
 seed_integration_fixture_if_enabled
-trap 'reset_integration_fixture_if_enabled' EXIT
+
+android_prepare_awake_device() {
+  [[ "${TARGET_PLATFORM}" == "android" ]] || return 0
+  "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell svc power stayon true >/dev/null 2>&1 || true
+  "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell input keyevent 224 >/dev/null 2>&1 || true
+  "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell wm dismiss-keyguard >/dev/null 2>&1 || true
+}
+
+android_start_awake_watchdog() {
+  [[ "${TARGET_PLATFORM}" == "android" ]] || return 0
+  [[ -n "$DEVICE_ID" ]] || return 0
+  [[ -z "$android_awake_watchdog_pid" ]] || return 0
+  (
+    while true; do
+      local_wakefulness="$("$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell dumpsys power 2>/dev/null | tr -d '\r' | grep -m1 'mWakefulness=' | cut -d= -f2)"
+      if [[ "$local_wakefulness" != "Awake" ]]; then
+        "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell input keyevent 224 >/dev/null 2>&1 || true
+        "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell wm dismiss-keyguard >/dev/null 2>&1 || true
+      fi
+      sleep 1
+    done
+  ) >/dev/null 2>&1 &
+  android_awake_watchdog_pid="$!"
+}
+
+android_stop_awake_watchdog() {
+  [[ -n "$android_awake_watchdog_pid" ]] || return 0
+  kill "$android_awake_watchdog_pid" >/dev/null 2>&1 || true
+  wait "$android_awake_watchdog_pid" 2>/dev/null || true
+  android_awake_watchdog_pid=""
+}
+
+android_enable_keep_awake() {
+  [[ "${TARGET_PLATFORM}" == "android" ]] || return 0
+  if [[ -z "$android_original_stay_on" ]]; then
+    android_original_stay_on="$("$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell settings get global stay_on_while_plugged_in 2>/dev/null | tr -d '\r' | tr -d '\n')"
+    if [[ -z "$android_original_stay_on" || "$android_original_stay_on" == "null" ]]; then
+      android_original_stay_on="0"
+    fi
+  fi
+  android_prepare_awake_device
+}
+
+android_restore_keep_awake() {
+  [[ "${TARGET_PLATFORM}" == "android" ]] || return 0
+  android_stop_awake_watchdog
+  [[ -n "$android_original_stay_on" ]] || return 0
+  "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell settings put global stay_on_while_plugged_in "$android_original_stay_on" >/dev/null 2>&1 || true
+  "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell input keyevent 224 >/dev/null 2>&1 || true
+  "$ANDROID_ADB_BIN" -s "$DEVICE_ID" shell wm dismiss-keyguard >/dev/null 2>&1 || true
+}
+
+trap 'android_restore_keep_awake; reset_integration_fixture_if_enabled' EXIT
 
 last_artifact_export_reason=""
 
@@ -249,6 +303,7 @@ stop_android_artifact_mirror() {
 }
 
 if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+  android_enable_keep_awake
   if is_android_package_installed "$DEVICE_ID"; then
     "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
       shell run-as "$ANDROID_PACKAGE" rm -rf "$ANDROID_REMOTE_ARTIFACT_DIR" >/dev/null 2>&1 || true
@@ -262,6 +317,8 @@ for test_file in "${suite_tests[@]}"; do
   scenario_name="$(basename "$test_file" .dart)"
   watcher_handle=""
   if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+    android_prepare_awake_device
+    android_start_awake_watchdog
     watcher_handle="$(start_android_artifact_mirror "$DEVICE_ID" "$scenario_name")"
   fi
   test_status=0
@@ -270,6 +327,9 @@ for test_file in "${suite_tests[@]}"; do
   fi
   if [[ -n "$watcher_handle" ]]; then
     stop_android_artifact_mirror "$watcher_handle"
+  fi
+  if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+    android_stop_awake_watchdog
   fi
   if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
     sync_android_remote_artifacts "$DEVICE_ID" >/dev/null 2>&1 || true
