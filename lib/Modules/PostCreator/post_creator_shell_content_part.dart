@@ -39,53 +39,56 @@ extension PostCreatorShellContentPart on PostCreator {
                 onTap: () => Get.back(),
                 icon: Icons.arrow_back,
               ),
-              InkWell(
-                key: const ValueKey(
-                  IntegrationTestKeys.actionPostCreatorPublish,
-                ),
-                onTap: controller.isPublishing.value
-                    ? null
-                    : () async {
-                        if (controller.isSavingEdit.value) return;
-                        if (controller.isEditMode.value) {
-                          final ok = await controller.savePostEdit();
-                          if (ok) {
-                            final popped =
-                                await Navigator.of(context).maybePop();
-                            if (!popped) {
-                              if (Navigator.of(context, rootNavigator: true)
-                                  .canPop()) {
-                                Navigator.of(context, rootNavigator: true)
-                                    .pop();
-                              } else {
-                                Get.back();
+              Padding(
+                padding: const EdgeInsets.only(right: 5),
+                child: InkWell(
+                  key: const ValueKey(
+                    IntegrationTestKeys.actionPostCreatorPublish,
+                  ),
+                  onTap: controller.isPublishing.value
+                      ? null
+                      : () async {
+                          if (controller.isSavingEdit.value) return;
+                          if (controller.isEditMode.value) {
+                            final ok = await controller.savePostEdit();
+                            if (ok) {
+                              final popped =
+                                  await Navigator.of(context).maybePop();
+                              if (!popped) {
+                                if (Navigator.of(context, rootNavigator: true)
+                                    .canPop()) {
+                                  Navigator.of(context, rootNavigator: true)
+                                      .pop();
+                                } else {
+                                  Get.back();
+                                }
                               }
                             }
+                            return;
                           }
-                          return;
-                        }
-                        controller
-                            .uploadAllPostsInBackgroundWithErrorHandling();
-                      },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    controller.isEditMode.value
-                        ? (controller.isSavingEdit.value
-                            ? 'post_creator.saving'.tr
-                            : 'common.save'.tr)
-                        : (controller.isPublishing.value
-                            ? 'post_creator.uploading'.tr
-                            : 'post_creator.publish'.tr),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
+                          controller
+                              .uploadAllPostsInBackgroundWithErrorHandling();
+                        },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      controller.isEditMode.value
+                          ? (controller.isSavingEdit.value
+                              ? 'post_creator.saving'.tr
+                              : 'common.save'.tr)
+                          : (controller.isPublishing.value
+                              ? 'post_creator.uploading'.tr
+                              : 'post_creator.publish'.tr),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontFamily: "MontserratMedium",
+                      ),
                     ),
                   ),
                 ),
