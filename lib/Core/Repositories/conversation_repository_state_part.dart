@@ -97,12 +97,11 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       if (otherUid.isEmpty) continue;
       final archivedMap = data["archived"];
       if (archivedMap is! Map) continue;
-      final raw = archivedMap[currentUid];
-      if (raw is bool) {
-        map[otherUid] = raw;
-      } else if (raw is num) {
-        map[otherUid] = raw != 0;
-      }
+      map[otherUid] = participantBoolValue(
+        archivedMap,
+        currentUid,
+        defaultValue: false,
+      );
     }
     return map;
   }
@@ -118,12 +117,11 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       if (otherUid.isEmpty) continue;
       final deletedMap = data["deletedAt"];
       if (deletedMap is! Map) continue;
-      final raw = deletedMap[currentUid];
-      final deletedAt = raw is int
-          ? raw
-          : raw is num
-              ? raw.toInt()
-              : int.tryParse("$raw") ?? 0;
+      final deletedAt = participantIntValue(
+        deletedMap,
+        currentUid,
+        defaultValue: 0,
+      );
       if (deletedAt > 0) {
         map[otherUid] = deletedAt;
       }
