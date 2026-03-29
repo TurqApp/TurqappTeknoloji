@@ -565,6 +565,10 @@ extension AgendaControllerLoadingPart on AgendaController {
       pauseAll.value = true;
       _pendingCenteredDocId = null;
       lastCenteredIndex = 0;
+      _visibleFractions.clear();
+      _visibleUpdatedAt.clear();
+      _lastPlaybackWindowSignature = null;
+      _lastPlaybackRowUpdateDocId = null;
       centeredIndex.value = -1;
       try {
         VideoStateManager.instance.pauseAllVideos(force: true);
