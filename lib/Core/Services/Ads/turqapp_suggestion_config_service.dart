@@ -348,8 +348,8 @@ class ManagedAdInventoryItem {
 }
 
 class ManagedAdInventoryOverview {
-  const ManagedAdInventoryOverview({
-    required this.items,
+  ManagedAdInventoryOverview({
+    required List<ManagedAdInventoryItem> items,
     required this.totalPlacements,
     required this.suggestionPlacementCount,
     required this.topSliderPlacementCount,
@@ -361,7 +361,10 @@ class ManagedAdInventoryOverview {
     required this.expiredItems,
     required this.viewCount,
     required this.uniqueViewCount,
-  });
+  }) : items = List<ManagedAdInventoryItem>.from(
+         items,
+         growable: false,
+       );
 
   final List<ManagedAdInventoryItem> items;
   final int totalPlacements;
