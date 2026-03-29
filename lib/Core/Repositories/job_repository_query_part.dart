@@ -2,9 +2,15 @@ part of 'job_repository.dart';
 
 extension JobRepositoryQueryPart on JobRepository {
   int _applicationAsInt(Object? value) {
-    if (value is int) return value;
     if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return 0;
   }
 
   Future<JobModel?> fetchById(
