@@ -1,6 +1,20 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderRuntimeSurfacesPart on QALabRecorder {
+  bool _surfaceProbeAsBool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+    return fallback;
+  }
+
   void _recordCriticalPermissionIfBlocked({
     required String permissionKey,
     required PermissionStatus? status,
@@ -102,8 +116,14 @@ extension QALabRecorderRuntimeSurfacesPart on QALabRecorder {
 
   bool _hasAuthenticatedUser(Map<String, dynamic> authProbe) {
     final currentUid = (authProbe['currentUid'] ?? '').toString();
-    final firebaseSignedIn = authProbe['isFirebaseSignedIn'] == true;
-    final currentUserLoaded = authProbe['currentUserLoaded'] == true;
+    final firebaseSignedIn = _surfaceProbeAsBool(
+      authProbe['isFirebaseSignedIn'],
+      fallback: false,
+    );
+    final currentUserLoaded = _surfaceProbeAsBool(
+      authProbe['currentUserLoaded'],
+      fallback: false,
+    );
     return currentUid.isNotEmpty || firebaseSignedIn || currentUserLoaded;
   }
 
@@ -173,16 +193,23 @@ extension QALabRecorderRuntimeSurfacesPart on QALabRecorder {
     final surfaceProbe =
         snapshot[surface] as Map<String, dynamic>? ?? const <String, dynamic>{};
     final count = _asInt(surfaceProbe['count']);
-    if (surfaceProbe['registered'] != true || count <= 0) {
+    if (!_surfaceProbeAsBool(surfaceProbe['registered'], fallback: false) ||
+        count <= 0) {
       return false;
     }
     if (surface == 'feed') {
       final centeredIndex = _asInt(surfaceProbe['centeredIndex']);
       return centeredIndex >= 0 &&
           centeredIndex < count &&
-          surfaceProbe['playbackSuspended'] != true &&
-          surfaceProbe['pauseAll'] != true &&
-          surfaceProbe['canClaimPlaybackNow'] == true &&
+          !_surfaceProbeAsBool(
+            surfaceProbe['playbackSuspended'],
+            fallback: false,
+          ) &&
+          !_surfaceProbeAsBool(surfaceProbe['pauseAll'], fallback: false) &&
+          _surfaceProbeAsBool(
+            surfaceProbe['canClaimPlaybackNow'],
+            fallback: false,
+          ) &&
           (surfaceProbe['centeredDocId'] ?? '').toString().isNotEmpty;
     }
     final activeIndex = _asInt(surfaceProbe['activeIndex']);
