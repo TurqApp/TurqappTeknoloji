@@ -7,6 +7,8 @@ part 'profile_posts_snapshot_repository_codec_part.dart';
 
 class ProfilePostsSnapshotRepository extends GetxService {
   static const String _surfaceKey = 'profile_posts_snapshot';
+  static const int _defaultScopeLimit = 24;
+  static const List<int> _knownLocalLimits = <int>[10, _defaultScopeLimit];
 
   static ProfilePostsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfilePostsSnapshotRepository>();
@@ -137,24 +139,60 @@ extension ProfilePostsSnapshotRepositoryFacadePart
   Future<void> persistBuckets({
     required String userId,
     required ProfileBuckets buckets,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     CachedResourceSource source = CachedResourceSource.server,
   }) async {
-    if (userId.trim().isEmpty) return;
+    await writeLocalBuckets(
+      userId: userId,
+      buckets: buckets,
+      limit: limit,
+      source: source,
+    );
+  }
+
+  Future<void> clearUserSnapshots({
+    String? userId,
+  }) =>
+      _coordinator.clearSurface(
+        ProfilePostsSnapshotRepository._surfaceKey,
+        userId: userId?.trim().isEmpty ?? true ? null : userId!.trim(),
+      );
+
+  Future<ProfileBuckets?> readLocalBuckets({
+    required String userId,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return null;
+    final key = _localScopeKey(
+      userId: normalizedUserId,
+      limit: limit,
+    );
+    final memory = await _memoryStore.read(key, allowStale: true);
+    if (memory != null) return memory.data;
+    final disk = await _snapshotStore.read(key, allowStale: true);
+    if (disk == null) return null;
+    await _memoryStore.write(key, disk);
+    return disk.data;
+  }
+
+  Future<void> writeLocalBuckets({
+    required String userId,
+    required ProfileBuckets buckets,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
+    CachedResourceSource source = CachedResourceSource.server,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return;
     final normalized = ProfileBuckets(
       all: buckets.all.take(limit).toList(growable: false),
       photos: buckets.photos.take(limit).toList(growable: false),
       videos: buckets.videos.take(limit).toList(growable: false),
       scheduled: buckets.scheduled.take(limit).toList(growable: false),
     );
-    final query = ProfilePostsSnapshotQuery(
-      userId: userId,
+    final key = _localScopeKey(
+      userId: normalizedUserId,
       limit: limit,
-    );
-    final key = ScopedSnapshotKey(
-      surfaceKey: ProfilePostsSnapshotRepository._surfaceKey,
-      userId: query.userId.trim(),
-      scopeId: query.scopeId,
     );
     final isEmptyBuckets = normalized.all.isEmpty &&
         normalized.photos.isEmpty &&
@@ -164,7 +202,6 @@ extension ProfilePostsSnapshotRepositoryFacadePart
       await Future.wait(<Future<void>>[
         _memoryStore.clearScope(key),
         _snapshotStore.clearScope(key),
-        _profileRepository.writeBuckets(userId, normalized),
       ]);
       return;
     }
@@ -180,23 +217,87 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     await Future.wait(<Future<void>>[
       _memoryStore.write(key, record),
       _snapshotStore.write(key, record),
-      _profileRepository.writeBuckets(userId, normalized),
     ]);
   }
 
-  Future<void> clearUserSnapshots({
-    String? userId,
-  }) =>
-      _coordinator.clearSurface(
-        ProfilePostsSnapshotRepository._surfaceKey,
-        userId: userId?.trim().isEmpty ?? true ? null : userId!.trim(),
+  Future<void> removePostLocally({
+    required String userId,
+    required String docId,
+    Iterable<int> additionalLimits = const <int>[],
+  }) async {
+    final normalizedUserId = userId.trim();
+    final normalizedDocId = docId.trim();
+    if (normalizedUserId.isEmpty || normalizedDocId.isEmpty) return;
+    final limits = <int>{
+      ...ProfilePostsSnapshotRepository._knownLocalLimits,
+      ...additionalLimits.where((value) => value > 0),
+    };
+    for (final limit in limits) {
+      final existing = await readLocalBuckets(
+        userId: normalizedUserId,
+        limit: limit,
       );
+      if (existing == null) continue;
+      final filtered = ProfileBuckets(
+        all: existing.all
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        photos: existing.photos
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        videos: existing.videos
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        scheduled: existing.scheduled
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+      );
+      await writeLocalBuckets(
+        userId: normalizedUserId,
+        buckets: filtered,
+        limit: limit,
+      );
+    }
+  }
+
+  Future<void> clearLocalUser({
+    required String userId,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return;
+    final limits = <int>{...ProfilePostsSnapshotRepository._knownLocalLimits};
+    for (final limit in limits) {
+      final key = _localScopeKey(
+        userId: normalizedUserId,
+        limit: limit,
+      );
+      await Future.wait(<Future<void>>[
+        _memoryStore.clearScope(key),
+        _snapshotStore.clearScope(key),
+      ]);
+    }
+  }
+
+  ScopedSnapshotKey _localScopeKey({
+    required String userId,
+    required int limit,
+  }) {
+    final query = ProfilePostsSnapshotQuery(
+      userId: userId,
+      limit: limit,
+    );
+    return ScopedSnapshotKey(
+      surfaceKey: ProfilePostsSnapshotRepository._surfaceKey,
+      userId: query.userId.trim(),
+      scopeId: query.scopeId,
+    );
+  }
 }
 
 class ProfilePostsSnapshotQuery {
   const ProfilePostsSnapshotQuery({
     required this.userId,
-    this.limit = 24,
+    this.limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     this.scopeTag = 'my_profile',
   });
 

@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
-import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
+import 'package:turqappv2/Core/Repositories/profile_posts_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 part 'profile_repository_cache_part.dart';

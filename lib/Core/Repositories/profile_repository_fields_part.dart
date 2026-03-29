@@ -3,20 +3,16 @@ part of 'profile_repository_library.dart';
 class ProfileRepository extends _ProfileRepositoryBase {
   ProfileRepository({
     FirebaseFirestore? firestore,
-    ProfilePostsCacheService? cacheService,
   }) : super(
           firestore: firestore ?? FirebaseFirestore.instance,
-          cacheService: cacheService ?? ProfilePostsCacheService(),
         );
 }
 
 abstract class _ProfileRepositoryBase extends GetxService {
   _ProfileRepositoryBase({
     required FirebaseFirestore firestore,
-    required ProfilePostsCacheService cacheService,
   }) : _state = _ProfileRepositoryState(
           firestore: firestore,
-          cacheService: cacheService,
         );
 
   final _ProfileRepositoryState _state;
@@ -53,11 +49,9 @@ class ProfilePageResult extends ProfileBuckets {
 class _ProfileRepositoryState {
   _ProfileRepositoryState({
     required this.firestore,
-    required this.cacheService,
   });
 
   final FirebaseFirestore firestore;
-  final ProfilePostsCacheService cacheService;
   final PostRepository postRepository = PostRepository.ensure();
   final Map<String, ProfileBuckets> memory = <String, ProfileBuckets>{};
   final Map<String, List<PostsModel>> archiveMemory =
@@ -69,7 +63,6 @@ class _ProfileRepositoryState {
 
 extension ProfileRepositoryFieldsPart on ProfileRepository {
   FirebaseFirestore get _firestore => _state.firestore;
-  ProfilePostsCacheService get _cacheService => _state.cacheService;
   PostRepository get _postRepository => _state.postRepository;
   Map<String, ProfileBuckets> get _memory => _state.memory;
   Map<String, List<PostsModel>> get _archiveMemory => _state.archiveMemory;

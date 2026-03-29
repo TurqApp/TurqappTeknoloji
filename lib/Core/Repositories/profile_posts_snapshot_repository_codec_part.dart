@@ -18,7 +18,10 @@ extension ProfilePostsSnapshotRepositoryCodecPart
   Future<ProfileBuckets?> _loadWarmSnapshot(
     ProfilePostsSnapshotQuery query,
   ) {
-    return _profileRepository.readCachedBuckets(query.userId);
+    return readLocalBuckets(
+      userId: query.userId,
+      limit: query.limit,
+    );
   }
 
   Map<String, dynamic> _encodeBuckets(ProfileBuckets buckets) {
