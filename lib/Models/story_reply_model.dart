@@ -19,8 +19,8 @@ class StoryReplyModel {
     final data = doc.data() as Map<String, dynamic>;
     return StoryReplyModel(
       docID: doc.id,
-      userID: data['userID'] ?? '',
-      message: data['message'] ?? '',
+      userID: (data['userID'] ?? '').toString(),
+      message: (data['message'] ?? '').toString(),
       timeStamp: data['timeStamp'] is Timestamp
           ? (data['timeStamp'] as Timestamp).toDate()
           : DateTime.fromMillisecondsSinceEpoch(

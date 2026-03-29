@@ -24,12 +24,12 @@ class RecommendedUserModel {
   factory RecommendedUserModel.fromMap(String id, Map<String, dynamic> data) {
     return RecommendedUserModel(
       userID: id,
-      firstName: data['firstName'] ?? '',
-      lastName: data['lastName'] ?? '',
-      avatarUrl: data['avatarUrl'] ?? '',
-      nickname: data['nickname'] ?? '',
-      bio: data['bio'] ?? '', // ✱ Buradan al
-      rozet: data['rozet'] ?? '',
+      firstName: (data['firstName'] ?? '').toString(),
+      lastName: (data['lastName'] ?? '').toString(),
+      avatarUrl: (data['avatarUrl'] ?? '').toString(),
+      nickname: (data['nickname'] ?? '').toString(),
+      bio: (data['bio'] ?? '').toString(), // ✱ Buradan al
+      rozet: (data['rozet'] ?? '').toString(),
     );
   }
 

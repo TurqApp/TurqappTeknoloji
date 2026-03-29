@@ -22,7 +22,9 @@ class JobReviewModel {
       jobDocID: (map['jobDocID'] ?? '').toString(),
       rating: (map['rating'] as num?)?.toInt() ?? 0,
       comment: (map['comment'] ?? '').toString(),
-      timeStamp: (map['timeStamp'] as num?)?.toInt() ?? 0,
+      timeStamp: (map['timeStamp'] as num?)?.toInt() ??
+          int.tryParse((map['timeStamp'] ?? '').toString()) ??
+          0,
     );
   }
 

@@ -28,15 +28,18 @@ class NotificationModel {
     return NotificationModel(
       docID: docID,
       isRead: (json['isRead'] ?? json['read'] ?? false) == true,
-      type: json['type'] ?? '',
-      postID: json['postID'] ?? '',
-      postType: json['postType'] ?? '',
+      type: (json['type'] ?? '').toString(),
+      postID: (json['postID'] ?? '').toString(),
+      postType: (json['postType'] ?? '').toString(),
       thumbnail:
-          json['thumbnail'] ?? json['imageUrl'] ?? json['imageURL'] ?? '',
-      timeStamp: json['timeStamp'] ?? 0,
-      title: json['title'] ?? '',
-      userID: json['userID'] ?? '',
-      desc: json['desc'] ?? '',
+          (json['thumbnail'] ?? json['imageUrl'] ?? json['imageURL'] ?? '')
+              .toString(),
+      timeStamp: (json['timeStamp'] as num?)?.toInt() ??
+          int.tryParse((json['timeStamp'] ?? '').toString()) ??
+          0,
+      title: (json['title'] ?? '').toString(),
+      userID: (json['userID'] ?? '').toString(),
+      desc: (json['desc'] ?? '').toString(),
     );
   }
 

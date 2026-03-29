@@ -25,14 +25,18 @@ class TutoringApplicationModel {
       Map<String, dynamic> map, String docID) {
     return TutoringApplicationModel(
       tutoringDocID: docID,
-      userID: map['userID'] ?? '',
-      tutoringTitle: map['tutoringTitle'] ?? '',
-      tutorName: map['tutorName'] ?? '',
-      tutorImage: map['tutorImage'] ?? '',
-      status: map['status'] ?? 'pending',
-      timeStamp: map['timeStamp'] ?? 0,
-      statusUpdatedAt: map['statusUpdatedAt'] ?? 0,
-      note: map['note'] ?? '',
+      userID: (map['userID'] ?? '').toString(),
+      tutoringTitle: (map['tutoringTitle'] ?? '').toString(),
+      tutorName: (map['tutorName'] ?? '').toString(),
+      tutorImage: (map['tutorImage'] ?? '').toString(),
+      status: (map['status'] ?? 'pending').toString(),
+      timeStamp: (map['timeStamp'] as num?)?.toInt() ??
+          int.tryParse((map['timeStamp'] ?? '').toString()) ??
+          0,
+      statusUpdatedAt: (map['statusUpdatedAt'] as num?)?.toInt() ??
+          int.tryParse((map['statusUpdatedAt'] ?? '').toString()) ??
+          0,
+      note: (map['note'] ?? '').toString(),
     );
   }
 

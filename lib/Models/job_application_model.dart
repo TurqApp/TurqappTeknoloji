@@ -30,17 +30,21 @@ class JobApplicationModel {
   factory JobApplicationModel.fromMap(Map<String, dynamic> map, String docID) {
     return JobApplicationModel(
       jobDocID: docID,
-      userID: map['userID'] ?? '',
-      jobTitle: map['jobTitle'] ?? '',
-      companyName: map['companyName'] ?? '',
-      companyLogo: map['companyLogo'] ?? '',
-      applicantName: map['applicantName'] ?? '',
-      applicantNickname: map['applicantNickname'] ?? '',
-      applicantPfImage: map['applicantPfImage'] ?? '',
-      status: map['status'] ?? 'pending',
-      timeStamp: map['timeStamp'] ?? 0,
-      statusUpdatedAt: map['statusUpdatedAt'] ?? 0,
-      note: map['note'] ?? '',
+      userID: (map['userID'] ?? '').toString(),
+      jobTitle: (map['jobTitle'] ?? '').toString(),
+      companyName: (map['companyName'] ?? '').toString(),
+      companyLogo: (map['companyLogo'] ?? '').toString(),
+      applicantName: (map['applicantName'] ?? '').toString(),
+      applicantNickname: (map['applicantNickname'] ?? '').toString(),
+      applicantPfImage: (map['applicantPfImage'] ?? '').toString(),
+      status: (map['status'] ?? 'pending').toString(),
+      timeStamp: (map['timeStamp'] as num?)?.toInt() ??
+          int.tryParse((map['timeStamp'] ?? '').toString()) ??
+          0,
+      statusUpdatedAt: (map['statusUpdatedAt'] as num?)?.toInt() ??
+          int.tryParse((map['statusUpdatedAt'] ?? '').toString()) ??
+          0,
+      note: (map['note'] ?? '').toString(),
     );
   }
 

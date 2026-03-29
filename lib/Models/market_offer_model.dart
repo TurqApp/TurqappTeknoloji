@@ -41,9 +41,15 @@ class MarketOfferModel {
       offerPrice: (json['offerPrice'] as num?)?.toDouble() ?? 0,
       currency: (json['currency'] ?? 'TRY').toString(),
       status: (json['status'] ?? 'pending').toString(),
-      createdAt: (json['createdAt'] as num?)?.toInt() ?? 0,
-      updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
-      respondedAt: (json['respondedAt'] as num?)?.toInt() ?? 0,
+      createdAt: (json['createdAt'] as num?)?.toInt() ??
+          int.tryParse((json['createdAt'] ?? '').toString()) ??
+          0,
+      updatedAt: (json['updatedAt'] as num?)?.toInt() ??
+          int.tryParse((json['updatedAt'] ?? '').toString()) ??
+          0,
+      respondedAt: (json['respondedAt'] as num?)?.toInt() ??
+          int.tryParse((json['respondedAt'] ?? '').toString()) ??
+          0,
       message: (json['message'] ?? '').toString(),
       coverImageUrl: (json['coverImageUrl'] ?? '').toString(),
       locationText: (json['locationText'] ?? '').toString(),

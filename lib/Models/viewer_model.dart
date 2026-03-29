@@ -11,8 +11,10 @@ class ViewerModel {
 
   factory ViewerModel.fromMap(Map<String, dynamic> data) {
     return ViewerModel(
-      userID: data['userID'] ?? '',
-      timeStamp: (data['timeStamp'] ?? 0) as num,
+      userID: (data['userID'] ?? '').toString(),
+      timeStamp: (data['timeStamp'] as num?) ??
+          num.tryParse((data['timeStamp'] ?? '').toString()) ??
+          0,
     );
   }
 
