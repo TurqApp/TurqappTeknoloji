@@ -195,17 +195,27 @@ extension StoryRepositoryDeletedPart on StoryRepository {
     String uid,
   ) async {
     await _ensureInitialized();
+    final prefsKey = _deletedStoriesCacheKey(uid);
     try {
-      final raw = _prefs?.getString(_deletedStoriesCacheKey(uid));
+      final raw = _prefs?.getString(prefsKey);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return null;
+      if (decoded is! Map<String, dynamic>) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
       final savedAtMs = (decoded['savedAt'] as num?)?.toInt() ?? 0;
-      if (savedAtMs <= 0) return null;
+      if (savedAtMs <= 0) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
       final cacheAge = DateTime.now().difference(
         DateTime.fromMillisecondsSinceEpoch(savedAtMs),
       );
-      if (cacheAge > deletedStoriesCacheTtlInternal) return null;
+      if (cacheAge > deletedStoriesCacheTtlInternal) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
       final items = (decoded['items'] as List?) ?? const [];
       final restoredStories = <StoryModel>[];
       final restoredDeletedAt = <String, int>{};
@@ -223,13 +233,17 @@ extension StoryRepositoryDeletedPart on StoryRepository {
         final reason = (map['deleteReason'] ?? '').toString();
         if (reason.isNotEmpty) restoredReasons[story.id] = reason;
       }
-      if (restoredStories.isEmpty) return null;
+      if (restoredStories.isEmpty) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
       return DeletedStoryCachePayload(
         stories: restoredStories,
         deletedAtById: restoredDeletedAt,
         deleteReasonById: restoredReasons,
       );
     } catch (_) {
+      await _prefs?.remove(prefsKey);
       return null;
     }
   }
