@@ -8,12 +8,16 @@ extension ChatControllerLocalCachePart on ChatController {
   }
 
   Future<bool> _loadLocalConversationWindow() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = _localChatWindowKey;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_localChatWindowKey);
+      final raw = prefs.getString(cacheKey);
       if (raw == null || raw.isEmpty) return false;
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return false;
+      if (decoded is! List) {
+        await prefs.remove(cacheKey);
+        return false;
+      }
 
       final restored = <MessageModel>[];
       for (final item in decoded) {
@@ -21,11 +25,16 @@ extension ChatControllerLocalCachePart on ChatController {
         final m = _deserializeLocalMessage(Map<String, dynamic>.from(item));
         if (m != null) restored.add(m);
       }
-      if (restored.isEmpty) return false;
+      if (restored.isEmpty) {
+        await prefs.remove(cacheKey);
+        return false;
+      }
       restored.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
       messages.value = restored;
       return true;
-    } catch (_) {}
+    } catch (_) {
+      await prefs.remove(cacheKey);
+    }
     return false;
   }
 
