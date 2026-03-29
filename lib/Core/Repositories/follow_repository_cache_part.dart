@@ -1,6 +1,25 @@
 part of 'follow_repository.dart';
 
 extension FollowRepositoryCachePart on FollowRepository {
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
+  List<String> _sanitizeIds(dynamic raw) {
+    if (raw is! List) return const <String>[];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
   void _handleFollowRepositoryInit() {
     SharedPreferences.getInstance().then((prefs) {
       _prefs = prefs;
@@ -55,9 +74,8 @@ extension FollowRepositoryCachePart on FollowRepository {
       final decoded = Map<String, dynamic>.from(
         decodedRaw.cast<dynamic, dynamic>(),
       );
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
-      final list =
-          (decoded['ids'] as List?)?.cast<String>() ?? const <String>[];
+      final ts = _asInt(decoded['t']);
+      final list = _sanitizeIds(decoded['ids']);
       if (ts <= 0) {
         await prefs?.remove(prefsKey);
         return null;
