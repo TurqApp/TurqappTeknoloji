@@ -7,11 +7,42 @@ import 'package:shared_preferences/shared_preferences.dart';
 part 'typesense_post_service_cache_part.dart';
 part 'typesense_post_service_query_part.dart';
 
+dynamic _cloneCachedPostCardResultValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneCachedPostCardResultValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneCachedPostCardResultValue).toList(growable: false);
+  }
+  return value;
+}
+
+Map<String, dynamic> _cloneCachedPostCardResultCard(
+  Map<String, dynamic> source,
+) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneCachedPostCardResultValue(value)),
+  );
+}
+
+Map<String, Map<String, dynamic>> _cloneCachedPostCardResultCards(
+  Map<String, Map<String, dynamic>> source,
+) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneCachedPostCardResultCard(value)),
+  );
+}
+
 class _CachedPostCardsResult {
-  const _CachedPostCardsResult({
-    required this.cards,
+  _CachedPostCardsResult({
+    required Map<String, Map<String, dynamic>> cards,
     required this.cachedAt,
-  });
+  }) : cards = _cloneCachedPostCardResultCards(cards);
 
   final Map<String, Map<String, dynamic>> cards;
   final DateTime cachedAt;
