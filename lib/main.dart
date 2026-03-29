@@ -257,11 +257,6 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
 }
 
 Future<void> _activateAppCheck() async {
-  if (kDebugMode) {
-    debugPrint('[AppCheck] debug mode: activation skipped.');
-    return;
-  }
-
   try {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
