@@ -161,15 +161,29 @@ class IntegrationSmokeReporter {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
       return value.map(
-        (key, entry) => MapEntry(key.toString(), entry),
+        (key, entry) => MapEntry(key.toString(), _cloneValue(entry)),
       );
     }
     return const <String, dynamic>{};
   }
 
   static List<dynamic> _asList(dynamic value) {
-    if (value is List) return value;
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
     return const <dynamic>[];
+  }
+
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, entry) => MapEntry(key.toString(), _cloneValue(entry)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 
   static int _asInt(dynamic value) {
