@@ -1,5 +1,19 @@
 part of 'qa_lab_recorder.dart';
 
+bool _qaLabRemoteSyncAsBool(Object? value, {required bool fallback}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase() ?? '';
+  if (normalized.isEmpty) return fallback;
+  if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+    return true;
+  }
+  if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+    return false;
+  }
+  return fallback;
+}
+
 Map<String, dynamic> _qaLabCompactNativePlaybackSnapshot(
   QALabRecorder recorder,
   Map<String, dynamic> snapshot,
@@ -11,11 +25,20 @@ Map<String, dynamic> _qaLabCompactNativePlaybackSnapshot(
     'platform': (snapshot['platform'] ?? '').toString(),
     'status': (snapshot['status'] ?? '').toString(),
     'errors': recorder._nativePlaybackErrors(snapshot),
-    'active': snapshot['active'] == true,
-    'firstFrameRendered': snapshot['firstFrameRendered'] == true,
-    'isPlaybackExpected': snapshot['isPlaybackExpected'] == true,
-    'isPlaying': snapshot['isPlaying'] == true,
-    'isBuffering': snapshot['isBuffering'] == true,
+    'active': _qaLabRemoteSyncAsBool(snapshot['active'], fallback: false),
+    'firstFrameRendered': _qaLabRemoteSyncAsBool(
+      snapshot['firstFrameRendered'],
+      fallback: false,
+    ),
+    'isPlaybackExpected': _qaLabRemoteSyncAsBool(
+      snapshot['isPlaybackExpected'],
+      fallback: false,
+    ),
+    'isPlaying': _qaLabRemoteSyncAsBool(snapshot['isPlaying'], fallback: false),
+    'isBuffering': _qaLabRemoteSyncAsBool(
+      snapshot['isBuffering'],
+      fallback: false,
+    ),
     'stallCount': recorder._asInt(snapshot['stallCount']),
     'lastKnownPlaybackTime':
         recorder._asDouble(snapshot['lastKnownPlaybackTime']),
