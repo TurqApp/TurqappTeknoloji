@@ -39,8 +39,15 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
     await _ensurePrefs();
     await AccountSessionVault.instance.removeStoredPasswords();
     final raw = _prefs?.getString(_accountCenterAccountsStorageKey) ?? '';
-    final decodedAccounts =
-        StoredAccount.decodeList(raw).toList(growable: true);
+    List<StoredAccount> decodedAccounts;
+    try {
+      decodedAccounts = StoredAccount.decodeList(raw).toList(growable: true);
+    } catch (_) {
+      decodedAccounts = <StoredAccount>[];
+      if (raw.trim().isNotEmpty) {
+        await _prefs?.remove(_accountCenterAccountsStorageKey);
+      }
+    }
     final restored = _dedupeAccounts(
       decodedAccounts,
     )..sort(_compareAccounts);
