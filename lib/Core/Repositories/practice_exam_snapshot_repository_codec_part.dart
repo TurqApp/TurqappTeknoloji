@@ -1,5 +1,25 @@
 part of 'practice_exam_snapshot_repository.dart';
 
+num _asPracticeExamNum(Object? value) {
+  if (value is num) return value;
+  return num.tryParse((value ?? '0').toString()) ?? 0;
+}
+
+bool _asPracticeExamBool(Object? value, {required bool fallback}) {
+  if (value is bool) return value;
+  final raw = (value ?? '').toString().trim().toLowerCase();
+  if (raw == 'true' || raw == '1') return true;
+  if (raw == 'false' || raw == '0') return false;
+  return fallback;
+}
+
+List<String> _asPracticeExamStringList(Object? value) {
+  if (value is List) {
+    return value.map((item) => item.toString()).toList(growable: false);
+  }
+  return const <String>[];
+}
+
 Map<String, dynamic> _encodePracticeExamSnapshotItems(List<SinavModel> items) {
   return <String, dynamic>{
     'items': items
@@ -38,34 +58,18 @@ List<SinavModel> _decodePracticeExamSnapshotItems(Map<String, dynamic> json) {
           docID: (item['docID'] ?? '').toString(),
           cover: (item['cover'] ?? '').toString(),
           sinavTuru: (item['sinavTuru'] ?? '').toString(),
-          timeStamp: item['timeStamp'] is num
-              ? item['timeStamp'] as num
-              : num.tryParse((item['timeStamp'] ?? '0').toString()) ?? 0,
+          timeStamp: _asPracticeExamNum(item['timeStamp']),
           sinavAciklama: (item['sinavAciklama'] ?? '').toString(),
           sinavAdi: (item['sinavAdi'] ?? '').toString(),
           kpssSecilenLisans: (item['kpssSecilenLisans'] ?? '').toString(),
-          dersler: (item['dersler'] is List)
-              ? (item['dersler'] as List)
-                  .map((value) => value.toString())
-                  .toList(growable: false)
-              : const <String>[],
-          taslak: item['taslak'] == true,
-          public: item['public'] != false,
+          dersler: _asPracticeExamStringList(item['dersler']),
+          taslak: _asPracticeExamBool(item['taslak'], fallback: false),
+          public: _asPracticeExamBool(item['public'], fallback: true),
           userID: (item['userID'] ?? '').toString(),
-          soruSayilari: (item['soruSayilari'] is List)
-              ? (item['soruSayilari'] as List)
-                  .map((value) => value.toString())
-                  .toList(growable: false)
-              : const <String>[],
-          bitis: item['bitis'] is num
-              ? item['bitis'] as num
-              : num.tryParse((item['bitis'] ?? '0').toString()) ?? 0,
-          bitisDk: item['bitisDk'] is num
-              ? item['bitisDk'] as num
-              : num.tryParse((item['bitisDk'] ?? '0').toString()) ?? 0,
-          participantCount: item['participantCount'] is num
-              ? item['participantCount'] as num
-              : num.tryParse((item['participantCount'] ?? '0').toString()) ?? 0,
+          soruSayilari: _asPracticeExamStringList(item['soruSayilari']),
+          bitis: _asPracticeExamNum(item['bitis']),
+          bitisDk: _asPracticeExamNum(item['bitisDk']),
+          participantCount: _asPracticeExamNum(item['participantCount']),
           shortId: (item['shortId'] ?? '').toString(),
           shortUrl: (item['shortUrl'] ?? '').toString(),
         );
