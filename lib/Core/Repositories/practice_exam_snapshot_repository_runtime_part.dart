@@ -2,6 +2,29 @@ part of 'practice_exam_snapshot_repository.dart';
 
 const String _practiceExamHomeSurfaceKey = 'practice_exam_home_snapshot';
 const String _practiceExamSearchSurfaceKey = 'practice_exam_search_snapshot';
+const String _practiceExamOwnerSurfaceKey = 'practice_exam_owner_snapshot';
+
+class PracticeExamOwnerQuery {
+  const PracticeExamOwnerQuery({
+    required this.userId,
+  });
+
+  final String userId;
+
+  String buildScopeId({
+    required int schemaVersion,
+  }) {
+    return CacheScopeNamespace.buildQueryScope(
+      userId: userId,
+      limit: 0,
+      scopeTag: 'owner',
+      schemaVersion: schemaVersion,
+      qualifiers: <String, Object?>{
+        'owner': userId.trim(),
+      },
+    );
+  }
+}
 
 class PracticeExamSnapshotRepository extends GetxService {
   PracticeExamSnapshotRepository();
@@ -24,6 +47,26 @@ class PracticeExamSnapshotRepository extends GetxService {
     surfaceKey: _practiceExamSearchSurfaceKey,
     coordinator: _coordinator,
     repository: _practiceExamRepository,
+  );
+
+  late final CacheFirstQueryPipeline<PracticeExamOwnerQuery, List<SinavModel>,
+          List<SinavModel>> _ownerPipeline =
+      CacheFirstQueryPipeline<PracticeExamOwnerQuery, List<SinavModel>,
+          List<SinavModel>>(
+    surfaceKey: _practiceExamOwnerSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        _practiceExamOwnerSurfaceKey,
+      ),
+    ),
+    fetchRaw: _fetchPracticeExamOwnerItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _practiceExamOwnerSurfaceKey,
+    ),
   );
 }
 
@@ -86,4 +129,74 @@ Future<List<SinavModel>?> _loadPracticeExamWarmSnapshot(
     cacheOnly: true,
   );
   return items.isEmpty ? null : items;
+}
+
+num _practiceExamSnapshotAsNum(Object? value, {num fallback = 0}) {
+  if (value is num) return value;
+  final normalized = value?.toString().trim() ?? '';
+  if (normalized.isEmpty) return fallback;
+  return num.tryParse(normalized) ?? fallback;
+}
+
+bool _practiceExamSnapshotAsBool(Object? value, {required bool fallback}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase() ?? '';
+  if (normalized.isEmpty) return fallback;
+  if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+    return true;
+  }
+  if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+    return false;
+  }
+  return fallback;
+}
+
+SinavModel _practiceExamSnapshotFromDoc(
+  String docId,
+  Map<String, dynamic> data,
+) {
+  return SinavModel(
+    docID: docId,
+    cover: (data['cover'] ?? '').toString(),
+    sinavTuru: (data['sinavTuru'] ?? '').toString(),
+    timeStamp: _practiceExamSnapshotAsNum(data['timeStamp']),
+    sinavAciklama: (data['sinavAciklama'] ?? '').toString(),
+    sinavAdi: (data['sinavAdi'] ?? '').toString(),
+    kpssSecilenLisans: (data['kpssSecilenLisans'] ?? '').toString(),
+    dersler: (data['dersler'] is List)
+        ? (data['dersler'] as List).map((e) => e.toString()).toList()
+        : <String>[],
+    taslak: _practiceExamSnapshotAsBool(data['taslak'], fallback: false),
+    public: _practiceExamSnapshotAsBool(data['public'], fallback: true),
+    userID: (data['userID'] ?? '').toString(),
+    soruSayilari: (data['soruSayilari'] is List)
+        ? (data['soruSayilari'] as List).map((e) => e.toString()).toList()
+        : <String>[],
+    bitis: _practiceExamSnapshotAsNum(data['bitis']),
+    bitisDk: _practiceExamSnapshotAsNum(data['bitisDk']),
+    participantCount: _practiceExamSnapshotAsNum(data['participantCount']),
+    shortId: (data['shortId'] ?? '').toString(),
+    shortUrl: (data['shortUrl'] ?? '').toString(),
+  );
+}
+
+Future<List<SinavModel>> _fetchPracticeExamOwnerItems(
+  PracticeExamOwnerQuery query,
+) async {
+  final normalizedUserId = query.userId.trim();
+  if (normalizedUserId.isEmpty) return const <SinavModel>[];
+  final snap = await FirebaseFirestore.instance
+      .collection('practiceExams')
+      .where('userID', isEqualTo: normalizedUserId)
+      .get();
+  final docs = snap.docs.toList(growable: false)
+    ..sort((a, b) {
+      final aTs = _practiceExamSnapshotAsNum(a.data()['timeStamp']).toInt();
+      final bTs = _practiceExamSnapshotAsNum(b.data()['timeStamp']).toInt();
+      return bTs.compareTo(aTs);
+    });
+  return docs
+      .map((doc) => _practiceExamSnapshotFromDoc(doc.id, doc.data()))
+      .toList(growable: false);
 }

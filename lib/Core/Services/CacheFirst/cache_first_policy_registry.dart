@@ -59,6 +59,7 @@ class CacheFirstPolicyRegistry {
       case 'tutoring_search_snapshot':
       case 'practice_exam_home_snapshot':
       case 'practice_exam_search_snapshot':
+      case 'practice_exam_owner_snapshot':
       case 'workout_search_snapshot':
       case 'past_question_home_snapshot':
         return _listingSnapshotPolicy;
@@ -89,6 +90,7 @@ class CacheFirstPolicyRegistry {
       case 'tutoring_search_snapshot':
       case 'practice_exam_home_snapshot':
       case 'practice_exam_search_snapshot':
+      case 'practice_exam_owner_snapshot':
       case 'workout_search_snapshot':
       case 'past_question_home_snapshot':
         return listingSnapshotSchemaVersion;

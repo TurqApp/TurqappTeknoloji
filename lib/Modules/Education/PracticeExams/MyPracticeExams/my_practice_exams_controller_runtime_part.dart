@@ -52,7 +52,10 @@ extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
     }
 
     try {
-      final cached = await _practiceExamRepository.fetchByOwner(uid);
+      final cached = (await _practiceExamSnapshotRepository.loadOwner(
+        userId: uid,
+      ))
+          .data;
       if (cached.isNotEmpty) {
         if (!_sameExamEntries(exams, cached)) {
           exams.assignAll(cached);
@@ -87,11 +90,11 @@ extension MyPracticeExamsControllerRuntimePart on MyPracticeExamsController {
       isLoading.value = true;
     }
     try {
-      final items = await _practiceExamRepository.fetchByOwner(
-        uid,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final items = (await _practiceExamSnapshotRepository.loadOwner(
+        userId: uid,
+        forceSync: forceRefresh,
+      ))
+          .data;
       if (!_sameExamEntries(exams, items)) {
         exams.assignAll(items);
       }

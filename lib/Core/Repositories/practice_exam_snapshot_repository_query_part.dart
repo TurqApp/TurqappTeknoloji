@@ -2,6 +2,26 @@ part of 'practice_exam_snapshot_repository.dart';
 
 extension PracticeExamSnapshotRepositoryQueryPart
     on PracticeExamSnapshotRepository {
+  Stream<CachedResource<List<SinavModel>>> _openOwnerImpl({
+    required String userId,
+    required bool forceSync,
+  }) {
+    return _ownerPipeline.open(
+      PracticeExamOwnerQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<SinavModel>>> _loadOwnerImpl({
+    required String userId,
+    required bool forceSync,
+  }) {
+    return openOwner(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Stream<CachedResource<List<SinavModel>>> _openHomeImpl({
     required String userId,
     required int limit,

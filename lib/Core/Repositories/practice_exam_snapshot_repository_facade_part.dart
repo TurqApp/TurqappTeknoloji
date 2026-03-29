@@ -14,6 +14,24 @@ PracticeExamSnapshotRepository ensurePracticeExamSnapshotRepository() {
 
 extension PracticeExamSnapshotRepositoryFacadePart
     on PracticeExamSnapshotRepository {
+  Stream<CachedResource<List<SinavModel>>> openOwner({
+    required String userId,
+    bool forceSync = false,
+  }) =>
+      _openOwnerImpl(
+        userId: userId,
+        forceSync: forceSync,
+      );
+
+  Future<CachedResource<List<SinavModel>>> loadOwner({
+    required String userId,
+    bool forceSync = false,
+  }) =>
+      _loadOwnerImpl(
+        userId: userId,
+        forceSync: forceSync,
+      );
+
   Stream<CachedResource<List<SinavModel>>> openHome({
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamHomeInitialLimit,
