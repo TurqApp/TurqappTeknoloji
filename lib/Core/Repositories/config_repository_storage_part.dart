@@ -9,7 +9,7 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
     final key = _docKeyImpl(docId);
     final cachedAt = DateTime.now();
     _memory[key] = _CachedConfigDoc(
-      data: Map<String, dynamic>.from(data),
+      data: _cloneMapImpl(data),
       cachedAt: cachedAt,
     );
     _prefs ??= await SharedPreferences.getInstance();
@@ -37,7 +37,7 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
     final key = _legacyDocKeyImpl(collection, docId);
     final cachedAt = DateTime.now();
     _memory[key] = _CachedConfigDoc(
-      data: Map<String, dynamic>.from(data),
+      data: _cloneMapImpl(data),
       cachedAt: cachedAt,
     );
     _prefs ??= await SharedPreferences.getInstance();
@@ -60,7 +60,7 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
       _memory.remove(key);
       return null;
     }
-    return Map<String, dynamic>.from(entry.data);
+    return _cloneMapImpl(entry.data);
   }
 
   Future<Map<String, dynamic>?> _getFromPrefsImpl(
@@ -92,7 +92,7 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
         await prefs?.remove(prefsKey);
         return null;
       }
-      return Map<String, dynamic>.from(data);
+      return _cloneMapImpl(data);
     } catch (_) {
       await prefs?.remove(prefsKey);
       return null;
@@ -106,4 +106,20 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
 
   String _prefsKeyImpl(String key) =>
       '${ConfigRepository._prefsKeyPrefix}:$key';
+
+  Map<String, dynamic> _cloneMapImpl(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _cloneValueImpl(value)));
+  }
+
+  dynamic _cloneValueImpl(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _cloneValueImpl(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValueImpl).toList(growable: false);
+    }
+    return value;
+  }
 }
