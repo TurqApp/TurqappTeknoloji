@@ -6,6 +6,12 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 
 class StoredAccount {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   StoredAccount({
     required this.uid,
     required this.email,
@@ -113,14 +119,13 @@ class StoredAccount {
               .where((e) => e.trim().isNotEmpty)
               .toList(growable: false) ??
           const <String>[],
-      lastUsedAt: (json['lastUsedAt'] as num?)?.toInt() ?? 0,
+      lastUsedAt: _asInt(json['lastUsedAt']),
       isSessionValid: json['isSessionValid'] != false,
       requiresReauth: json['requiresReauth'] == true,
       accountState: (json['accountState'] ?? 'active').toString(),
       isPinned: json['isPinned'] == true,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-      lastSuccessfulSignInAt:
-          (json['lastSuccessfulSignInAt'] as num?)?.toInt() ?? 0,
+      sortOrder: _asInt(json['sortOrder']),
+      lastSuccessfulSignInAt: _asInt(json['lastSuccessfulSignInAt']),
     );
   }
 
@@ -129,9 +134,8 @@ class StoredAccount {
     required User firebaseUser,
   }) {
     final username = user.nickname.trim();
-    final displayName = user.fullName.trim().isNotEmpty
-        ? user.fullName.trim()
-        : username;
+    final displayName =
+        user.fullName.trim().isNotEmpty ? user.fullName.trim() : username;
     final providers = firebaseUser.providerData
         .map((e) => e.providerId.trim())
         .where((e) => e.isNotEmpty)
