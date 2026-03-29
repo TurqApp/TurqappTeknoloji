@@ -81,10 +81,12 @@ extension _OpticsAndBooksPublishedControllerRuntimeX
       return;
     }
     try {
-      final cachedBooks = (await _answerKeySnapshotRepository.loadCachedOwner(
-        userId: uid,
-      ))
-          .data;
+      final cachedBooks =
+          (await _answerKeySnapshotRepository.loadCachedOwner(
+                userId: uid,
+              ))
+                  .data ??
+              const <BookletModel>[];
       final cachedOptikler = await _opticalFormRepository.fetchByOwner(
         uid,
         preferCache: true,
@@ -134,11 +136,13 @@ extension _OpticsAndBooksPublishedControllerRuntimeX
   }
 
   Future<void> getData({bool forceRefresh = false}) async {
-    final tempList = (await _answerKeySnapshotRepository.loadOwner(
-      userId: CurrentUserService.instance.effectiveUserId,
-      forceSync: forceRefresh,
-    ))
-        .data;
+    final tempList =
+        (await _answerKeySnapshotRepository.loadOwner(
+              userId: CurrentUserService.instance.effectiveUserId,
+              forceSync: forceRefresh,
+            ))
+                .data ??
+            <BookletModel>[];
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     if (!_sameBookletEntries(list, tempList)) {
       list.assignAll(tempList);

@@ -52,11 +52,13 @@ extension CategoryBasedAnswerKeyControllerRuntimePart
 
   Future<void> _bootstrapData() async {
     try {
-      final cached = (await _answerKeySnapshotRepository.loadCachedExamType(
-        userId: _categoryCacheUserId,
-        examType: sinavTuru,
-      ))
-          .data;
+      final cached =
+          (await _answerKeySnapshotRepository.loadCachedExamType(
+                userId: _categoryCacheUserId,
+                examType: sinavTuru,
+              ))
+                  .data ??
+              const <BookletModel>[];
       if (cached.isNotEmpty) {
         if (!_sameBookletEntries(list, cached)) {
           list.assignAll(cached);
@@ -87,12 +89,14 @@ extension CategoryBasedAnswerKeyControllerRuntimePart
       isLoading.value = true;
     }
     try {
-      final items = (await _answerKeySnapshotRepository.loadExamType(
-        userId: _categoryCacheUserId,
-        examType: sinavTuru,
-        forceSync: forceRefresh,
-      ))
-          .data;
+      final items =
+          (await _answerKeySnapshotRepository.loadExamType(
+                userId: _categoryCacheUserId,
+                examType: sinavTuru,
+                forceSync: forceRefresh,
+              ))
+                  .data ??
+              const <BookletModel>[];
       if (!_sameBookletEntries(list, items)) {
         list.assignAll(items);
       }

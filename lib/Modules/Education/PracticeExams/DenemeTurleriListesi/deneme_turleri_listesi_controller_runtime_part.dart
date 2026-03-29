@@ -43,11 +43,13 @@ extension DenemeTurleriListesiControllerRuntimePart
       );
 
   Future<void> _bootstrapDataImpl() async {
-    final cached = (await _practiceExamSnapshotRepository.loadType(
-      userId: CurrentUserService.instance.effectiveUserId,
-      examType: sinavTuru,
-    ))
-        .data;
+    final cached =
+        (await _practiceExamSnapshotRepository.loadType(
+              userId: CurrentUserService.instance.effectiveUserId,
+              examType: sinavTuru,
+            ))
+                .data ??
+            const <SinavModel>[];
     if (cached.isNotEmpty) {
       if (!_sameExamEntries(list, cached)) {
         list.assignAll(cached);
@@ -73,12 +75,14 @@ extension DenemeTurleriListesiControllerRuntimePart
       isLoading.value = true;
     }
     try {
-      final items = (await _practiceExamSnapshotRepository.loadType(
-        userId: CurrentUserService.instance.effectiveUserId,
-        examType: sinavTuru,
-        forceSync: forceRefresh,
-      ))
-          .data;
+      final items =
+          (await _practiceExamSnapshotRepository.loadType(
+                userId: CurrentUserService.instance.effectiveUserId,
+                examType: sinavTuru,
+                forceSync: forceRefresh,
+              ))
+                  .data ??
+              const <SinavModel>[];
       if (!_sameExamEntries(list, items)) {
         list.assignAll(items);
       }
