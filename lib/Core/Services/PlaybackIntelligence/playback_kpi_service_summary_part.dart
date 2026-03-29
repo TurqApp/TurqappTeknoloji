@@ -1,6 +1,32 @@
 part of 'playback_kpi_service.dart';
 
 extension _PlaybackKpiServiceSummaryX on PlaybackKpiService {
+  bool _isStructuralBootstrapRenderPatch(Map<String, dynamic> payload) {
+    final previousCount = _asInt(payload['previousCount']);
+    final nextCount = _asInt(payload['nextCount']);
+    final operations = _asInt(payload['operations']);
+    final insertCount = _asInt(payload['insertCount']);
+    final updateCount = _asInt(payload['updateCount']);
+    final removeCount = _asInt(payload['removeCount']);
+    final moveCount = _asInt(payload['moveCount']);
+
+    final isPureInsertHydrate = previousCount == 0 &&
+        nextCount > 0 &&
+        operations == insertCount &&
+        updateCount == 0 &&
+        removeCount == 0 &&
+        moveCount == 0;
+    if (isPureInsertHydrate) return true;
+
+    final isPureRemoveReset = previousCount > 0 &&
+        nextCount == 0 &&
+        operations == removeCount &&
+        insertCount == 0 &&
+        updateCount == 0 &&
+        moveCount == 0;
+    return isPureRemoveReset;
+  }
+
   CacheFirstSurfaceSummary summarizeCacheFirst({
     required String surfaceKeyPrefix,
     int limit = 60,
@@ -63,6 +89,7 @@ extension _PlaybackKpiServiceSummaryX on PlaybackKpiService {
       eventCount += 1;
       final stage = (event.payload['stage'] ?? '').toString();
       if (stage != 'render_patch') continue;
+      if (_isStructuralBootstrapRenderPatch(event.payload)) continue;
       patchEventCount += 1;
       final operations = _asInt(event.payload['operations']);
       totalOperations += operations;
