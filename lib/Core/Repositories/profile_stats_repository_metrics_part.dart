@@ -1,6 +1,18 @@
 part of 'profile_stats_repository.dart';
 
 extension ProfileStatsRepositoryMetricsPart on ProfileStatsRepository {
+  bool _asProfileStatsBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
+  int _asProfileStatsInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Future<Map<String, int>> fetchFollowerGrowth(String uid) async {
     if (uid.isEmpty) {
       return const <String, int>{
@@ -50,17 +62,17 @@ extension ProfileStatsRepositoryMetricsPart on ProfileStatsRepository {
         .get();
     final postDocs = postsSnap.docs.where((d) {
       final data = d.data();
-      final arsiv = data['arsiv'] == true;
-      final deleted = data['deletedPost'] == true;
-      final ts = data['timeStamp'];
-      final tsOk = ts is int ? ts <= nowMs : true;
+      final arsiv = _asProfileStatsBool(data['arsiv']);
+      final deleted = _asProfileStatsBool(data['deletedPost']);
+      final ts = _asProfileStatsInt(data['timeStamp']);
+      final tsOk = ts <= 0 || ts <= nowMs;
       return !arsiv && !deleted && tsOk;
     }).toList(growable: false);
 
     var posts30d = 0;
     for (final d in postDocs) {
-      final t = d.data()['timeStamp'];
-      if (t is int && t >= ts30 && t <= nowMs) posts30d++;
+      final t = _asProfileStatsInt(d.data()['timeStamp']);
+      if (t >= ts30 && t <= nowMs) posts30d++;
     }
 
     var totalPostViews = 0;
@@ -70,8 +82,8 @@ extension ProfileStatsRepositoryMetricsPart on ProfileStatsRepository {
       final viewCount = _extractPostViewCount(data);
       totalPostViews += viewCount;
 
-      final ts = data['timeStamp'];
-      if (ts is int && ts >= ts30 && ts <= nowMs) {
+      final ts = _asProfileStatsInt(data['timeStamp']);
+      if (ts >= ts30 && ts <= nowMs) {
         postViews30d += viewCount;
       }
     }
