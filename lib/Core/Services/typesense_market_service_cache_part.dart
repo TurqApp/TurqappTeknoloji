@@ -106,11 +106,35 @@ extension TypesenseMarketSearchServiceCachePart
         await prefs?.remove(prefsKey);
         return null;
       }
-      final items = payload
-          .whereType<Map>()
-          .map(
-              (raw) => MarketItemModel.fromJson(Map<String, dynamic>.from(raw)))
-          .toList(growable: false);
+      var shouldPrune = false;
+      final items = <MarketItemModel>[];
+      for (final rawItem in payload) {
+        if (rawItem is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        final item = MarketItemModel.fromJson(
+          Map<String, dynamic>.from(rawItem),
+        );
+        if (item.id.trim().isEmpty) {
+          shouldPrune = true;
+          continue;
+        }
+        items.add(item);
+      }
+      if (shouldPrune) {
+        if (items.isEmpty) {
+          await prefs?.remove(prefsKey);
+          return null;
+        }
+        await prefs?.setString(
+          prefsKey,
+          jsonEncode(<String, dynamic>{
+            't': ts,
+            'd': items.map((item) => item.toJson()).toList(growable: false),
+          }),
+        );
+      }
       return _CachedMarketSearchResult(
         items: _cloneMarketItems(items),
         cachedAt: cachedAt,
