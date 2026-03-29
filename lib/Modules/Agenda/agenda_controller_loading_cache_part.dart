@@ -96,7 +96,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       return;
     }
     try {
-      if (ContentPolicy.isConnected && agendaList.isNotEmpty) {
+      final protectVisibleAgenda =
+          ContentPolicy.isConnected && agendaList.isNotEmpty;
+      if (protectVisibleAgenda) {
         try {
           await syncFeedHeadAfterSurfaceOpen();
         } catch (_) {}
@@ -110,6 +112,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           .map((post) => post.docID)
           .toSet();
       if (toRemove.isEmpty) return;
+
+      if (protectVisibleAgenda) return;
 
       agendaList.removeWhere((post) => toRemove.contains(post.docID));
     } catch (_) {}
