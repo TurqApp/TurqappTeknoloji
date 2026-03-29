@@ -1,6 +1,14 @@
 part of 'unread_messages_controller_library.dart';
 
 extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
+  String _conversationUnreadKey(String otherUid, String chatId) {
+    final normalizedChatId = chatId.trim();
+    if (normalizedChatId.isNotEmpty) {
+      return '__chat__:$normalizedChatId';
+    }
+    return otherUid.trim();
+  }
+
   void startListeners({bool force = false}) {
     final uid = _currentUid;
     if (uid.isEmpty) return;
@@ -21,11 +29,15 @@ extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
     String? chatId,
     int? seenAtMs,
   }) {
-    final key = otherUid.trim();
-    if (key.isEmpty) return;
     final normalizedChatId = (chatId ?? "").trim();
+    final normalizedOtherUid = otherUid.trim();
+    final key = _conversationUnreadKey(normalizedOtherUid, normalizedChatId);
+    if (key.isEmpty && normalizedOtherUid.isEmpty) return;
     if (unreadCount <= 0) {
       _conversationUnreadByUser.remove(key);
+      if (normalizedOtherUid.isNotEmpty) {
+        _conversationUnreadByUser.remove(normalizedOtherUid);
+      }
       if (normalizedChatId.isNotEmpty) {
         final cutoff = seenAtMs ?? DateTime.now().millisecondsSinceEpoch;
         _localReadCutoffByChatId[normalizedChatId] = cutoff;
@@ -34,6 +46,9 @@ extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
       }
     } else {
       _conversationUnreadByUser[key] = unreadCount;
+      if (normalizedOtherUid.isNotEmpty && key != normalizedOtherUid) {
+        _conversationUnreadByUser.remove(normalizedOtherUid);
+      }
       if (normalizedChatId.isNotEmpty) {
         _localReadCutoffByChatId.remove(normalizedChatId);
       }
@@ -116,7 +131,8 @@ extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
         (v) => v != uid,
         orElse: () => doc.id,
       );
-      _conversationUnreadByUser[otherUid] = unread;
+      _conversationUnreadByUser[_conversationUnreadKey(otherUid, doc.id)] =
+          unread;
     }
     _recomputeTotalUnread();
   }

@@ -552,7 +552,7 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
     final playbackKpi = maybeFindPlaybackKpiService();
     final kpiReport = playbackKpi != null
         ? TelemetryThresholdPolicyAdapter.evaluateKpiService(playbackKpi)
-        : const TelemetryThresholdReport(issues: <TelemetryThresholdIssue>[]);
+        : TelemetryThresholdReport(issues: <TelemetryThresholdIssue>[]);
 
     final alerts = <String>[];
     if (dataUsagePercent >= 85) {
