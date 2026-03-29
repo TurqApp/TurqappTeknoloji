@@ -32,6 +32,7 @@ abstract class _FeedSnapshotRepositoryBase extends GetxService {
 class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const String _homeSurfaceKey = 'feed_home_snapshot';
   static const int _defaultPersistLimit = 40;
+  static const int startupHomeLimit = _defaultPersistLimit;
   static const FeedHomeContract _homeContract =
       FeedHomeContract.primaryHybridV1;
   static final Set<String> _hybridBackfillRequested = <String>{};

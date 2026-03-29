@@ -157,8 +157,7 @@ class _SplashViewState extends State<SplashView> {
 
   Future<void> _initCacheProxy() async => _startupOrchestrator.initCacheProxy();
 
-  int _feedWarmPoolLimit() =>
-      ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
+  int _feedWarmPoolLimit() => FeedSnapshotRepository.startupHomeLimit;
 
   @override
   void dispose() {

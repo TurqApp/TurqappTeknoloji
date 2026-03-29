@@ -444,7 +444,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   Future<void> _performEnsureFeedSurfaceReady() async {
     if (agendaList.isEmpty && !isLoading.value) {
       await hydrateInitialFeedFromCache(
-        targetCount: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
+        targetCount: FeedSnapshotRepository.startupHomeLimit,
       );
     }
 

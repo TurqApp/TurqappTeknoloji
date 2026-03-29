@@ -12,10 +12,6 @@ typedef FirstLaunchCleanupRunner = Future<bool> Function(
   SharedPreferences prefs,
 );
 
-typedef SplashStartupPreparationRunner = Future<void> Function({
-  required bool isFirstLaunch,
-});
-
 typedef SessionAuthReadyRunner = Future<String?> Function({
   required Duration timeout,
 });
@@ -38,9 +34,6 @@ class SessionBootstrap {
     String Function()? readEffectiveUserId,
     SessionAuthReadyRunner? ensureAuthReady,
     Future<void> Function()? syncCurrentAccountToAccountCenter,
-    SplashStartupPreparationRunner? prepareSynchronizedStartupBeforeNav,
-    void Function(bool value)? markMinimumStartupPrepared,
-    bool Function()? deterministicStartup,
     bool Function()? isIOS,
     StartupSessionFailureReporter? failureReporter,
   })  : _initializeAccountCenter =
@@ -55,11 +48,6 @@ class SessionBootstrap {
         _syncCurrentAccountToAccountCenter =
             syncCurrentAccountToAccountCenter ??
                 _defaultSyncCurrentAccountToAccountCenter,
-        _prepareSynchronizedStartupBeforeNav =
-            prepareSynchronizedStartupBeforeNav,
-        _markMinimumStartupPrepared = markMinimumStartupPrepared,
-        _deterministicStartup = deterministicStartup ??
-            (() => IntegrationTestMode.deterministicStartup),
         _isIOS = isIOS ?? (() => Platform.isIOS),
         _failureReporter =
             failureReporter ?? StartupSessionFailureReporter.defaultReporter;
@@ -70,9 +58,6 @@ class SessionBootstrap {
   final String Function() _readEffectiveUserId;
   final SessionAuthReadyRunner _ensureAuthReady;
   final Future<void> Function() _syncCurrentAccountToAccountCenter;
-  final SplashStartupPreparationRunner? _prepareSynchronizedStartupBeforeNav;
-  final void Function(bool value)? _markMinimumStartupPrepared;
-  final bool Function() _deterministicStartup;
   final bool Function() _isIOS;
   final StartupSessionFailureReporter _failureReporter;
 
@@ -104,13 +89,6 @@ class SessionBootstrap {
     }
     if (loggedIn) {
       unawaited(_syncCurrentAccountToAccountCenter());
-      if (_deterministicStartup()) {
-        _markMinimumStartupPrepared?.call(true);
-      } else if (_prepareSynchronizedStartupBeforeNav != null) {
-        await _prepareSynchronizedStartupBeforeNav(
-          isFirstLaunch: isFirstLaunch,
-        );
-      }
     }
 
     return SessionBootstrapResult(

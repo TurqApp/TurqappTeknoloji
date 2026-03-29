@@ -49,7 +49,7 @@ void main() {
   });
 
   test(
-    'SessionBootstrap marks minimum startup prepared for deterministic logged-in flow',
+    'SessionBootstrap syncs account center for logged-in flow',
     () async {
       final events = <String>[];
       final prefs = await SharedPreferences.getInstance();
@@ -69,13 +69,6 @@ void main() {
         syncCurrentAccountToAccountCenter: () async {
           events.add('accountCenter.sync');
         },
-        prepareSynchronizedStartupBeforeNav: ({required isFirstLaunch}) async {
-          events.add('prepareSync:$isFirstLaunch');
-        },
-        markMinimumStartupPrepared: (value) {
-          events.add('markMin:$value');
-        },
-        deterministicStartup: () => true,
         isIOS: () => false,
       );
 
@@ -87,8 +80,6 @@ void main() {
       expect(events, contains('cleanup'));
       expect(events, contains('currentUser.init'));
       expect(events, contains('accountCenter.sync'));
-      expect(events, contains('markMin:true'));
-      expect(events, isNot(contains('prepareSync:true')));
     },
   );
 
@@ -119,7 +110,6 @@ void main() {
         syncCurrentAccountToAccountCenter: () async {
           events.add('accountCenter.sync');
         },
-        deterministicStartup: () => false,
         isIOS: () => false,
       );
 
@@ -152,6 +142,7 @@ void main() {
       runWarmStartLoads: ({required isFirstLaunch}) async {},
       markMinimumStartupPrepared: (_) {},
       isMinimumStartupPrepared: () => false,
+      hydrateStartupManifestContext: ({required loggedIn}) async {},
       startupBootstrap: StartupBootstrap(
         firebaseStartupWait: Duration.zero,
         waitForFirebaseBootstrap: () async {

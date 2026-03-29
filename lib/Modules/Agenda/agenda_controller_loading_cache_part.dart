@@ -28,8 +28,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }
 
   Future<void> _tryQuickFillFromCache({int? limit}) async {
-    final effectiveLimit =
-        limit ?? ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
+    final effectiveLimit = limit ?? FeedSnapshotRepository.startupHomeLimit;
     await _tryQuickFillFromPool(limit: effectiveLimit);
     if (agendaList.isNotEmpty) return;
 
@@ -69,8 +68,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   Future<bool> _tryQuickFillFromPool({int? limit}) async {
     final me = CurrentUserService.instance.effectiveUserId;
     if (me.isEmpty) return false;
-    final effectiveLimit =
-        limit ?? ContentPolicy.initialPoolLimit(ContentScreenKind.feed);
+    final effectiveLimit = limit ?? FeedSnapshotRepository.startupHomeLimit;
     final snapshot = await _feedSnapshotRepository.bootstrapHome(
       userId: me,
       limit: effectiveLimit,

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -36,12 +37,7 @@ class SplashStartupOrchestrator {
     StartupSessionFailureReporter? failureReporter,
   })  : _startupBootstrap = startupBootstrap ??
             StartupBootstrap(firebaseStartupWait: firebaseStartupWait),
-        _sessionBootstrap = sessionBootstrap ??
-            SessionBootstrap(
-              prepareSynchronizedStartupBeforeNav:
-                  prepareSynchronizedStartupBeforeNav,
-              markMinimumStartupPrepared: markMinimumStartupPrepared,
-            ),
+        _sessionBootstrap = sessionBootstrap ?? SessionBootstrap(),
         _dependencyRegistrar = dependencyRegistrar ?? DependencyRegistrar(),
         _postLoginWarmup = postLoginWarmup ??
             PostLoginWarmup(
@@ -72,10 +68,11 @@ class SplashStartupOrchestrator {
       final prefs = await _startupBootstrap.run();
       final sessionResult = await _bootstrapSession(prefs: prefs);
 
-      _dependencyRegistrar.register();
       await hydrateStartupManifestContext(
         loggedIn: sessionResult.loggedIn,
       );
+      _dependencyRegistrar.register();
+      await _prepareStartupBeforeNavigation(sessionResult);
       _postLoginWarmup.startNonBlockingStartupWork(
         isFirstLaunch: sessionResult.isFirstLaunch,
         effectiveUserId: CurrentUserService.instance.effectiveUserId,
@@ -106,5 +103,18 @@ class SplashStartupOrchestrator {
     required SharedPreferences prefs,
   }) {
     return _sessionBootstrap.run(prefs: prefs);
+  }
+
+  Future<void> _prepareStartupBeforeNavigation(
+    SessionBootstrapResult sessionResult,
+  ) async {
+    if (!sessionResult.loggedIn) return;
+    if (IntegrationTestMode.deterministicStartup) {
+      markMinimumStartupPrepared(true);
+      return;
+    }
+    await prepareSynchronizedStartupBeforeNav(
+      isFirstLaunch: sessionResult.isFirstLaunch,
+    );
   }
 }
