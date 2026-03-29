@@ -63,9 +63,9 @@ class UserSummary {
       followerCount: _toInt(raw['followerCount'] ?? raw['followersCount']),
       followingCount: _toInt(raw['followingCount']),
       postCount: _toInt(raw['postCount']),
-      isPrivate: (raw['isPrivate'] ?? scoped['isPrivate']) == true,
-      isDeleted: (raw['isDeleted'] ?? scoped['isDeleted']) == true,
-      isApproved: (raw['isApproved'] ?? scoped['isApproved']) == true,
+      isPrivate: _toBool(raw['isPrivate'] ?? scoped['isPrivate']),
+      isDeleted: _toBool(raw['isDeleted'] ?? scoped['isDeleted']),
+      isApproved: _toBool(raw['isApproved'] ?? scoped['isApproved']),
     );
   }
 
@@ -121,6 +121,30 @@ class UserSummary {
     if (raw is int) return raw;
     if (raw is num) return raw.toInt();
     return int.tryParse(raw?.toString() ?? '') ?? 0;
+  }
+
+  static bool _toBool(dynamic raw, {bool fallback = false}) {
+    if (raw is bool) return raw;
+    if (raw is num) return raw != 0;
+    if (raw is String) {
+      final normalized = raw.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
   }
 }
 
