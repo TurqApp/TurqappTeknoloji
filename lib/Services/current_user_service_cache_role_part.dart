@@ -153,7 +153,7 @@ class CurrentUserCacheStore {
   void storeRootUserData(String uid, Map<String, dynamic> data) {
     if (uid.isEmpty || data.isEmpty) return;
     _rootDocCache[uid] = _TimedValue<Map<String, dynamic>>(
-      value: Map<String, dynamic>.from(data),
+      value: _cloneCurrentUserDataMap(data),
       fetchedAt: DateTime.now(),
     );
   }
@@ -168,7 +168,7 @@ class CurrentUserCacheStore {
     if (!allowStale && !isFresh(cached.fetchedAt, _rootDocCacheTtl)) {
       return null;
     }
-    return Map<String, dynamic>.from(cached.value);
+    return _cloneCurrentUserDataMap(cached.value);
   }
 
   Future<Map<String, dynamic>> readRootUserData(
@@ -204,7 +204,7 @@ class CurrentUserCacheStore {
       );
       if (cached != null && cached.isNotEmpty) {
         storeRootUserData(uid, cached);
-        return Map<String, dynamic>.from(cached);
+        return _cloneCurrentUserDataMap(cached);
       }
     }
 
@@ -227,7 +227,7 @@ class CurrentUserCacheStore {
       storeRootUserData(uid, data);
       await userRepository.putUserRaw(uid, data);
     }
-    return Map<String, dynamic>.from(data);
+    return _cloneCurrentUserDataMap(data);
   }
 
   Future<Map<String, dynamic>> readCachedRootUserDataSilently(
@@ -253,7 +253,7 @@ class CurrentUserCacheStore {
           const <String, dynamic>{};
       if (cached.isNotEmpty) {
         storeRootUserData(uid, cached);
-        return Map<String, dynamic>.from(cached);
+        return _cloneCurrentUserDataMap(cached);
       }
     } catch (_) {}
 
@@ -262,6 +262,27 @@ class CurrentUserCacheStore {
           allowStale: true,
         ) ??
         const <String, dynamic>{};
+  }
+
+  Map<String, dynamic> _cloneCurrentUserDataMap(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneCurrentUserDataValue(value)),
+    );
+  }
+
+  dynamic _cloneCurrentUserDataValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneCurrentUserDataValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneCurrentUserDataValue).toList(growable: false);
+    }
+    return value;
   }
 
   void logSilently(String key, Object error, [StackTrace? stackTrace]) {
