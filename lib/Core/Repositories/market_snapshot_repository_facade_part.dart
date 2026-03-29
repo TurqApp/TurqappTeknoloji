@@ -67,4 +67,19 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
       forceSync: forceSync,
     ).last;
   }
+
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(
+        MarketSnapshotRepository._homeSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        MarketSnapshotRepository._searchSurfaceKey,
+        userId: normalized,
+      ),
+    ]);
+  }
 }

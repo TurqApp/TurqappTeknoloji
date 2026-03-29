@@ -31,6 +31,9 @@ extension MarketRepositoryActionPart on MarketRepository {
       docId: docId,
       userId: userId,
     );
+    await MarketSnapshotRepository.maybeFind()?.invalidateUserScopedSurfaces(
+          userId,
+        );
   }
 
   Future<void> invalidateItemCaches({

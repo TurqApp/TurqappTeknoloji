@@ -267,30 +267,36 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
                   onTap: () => Get.to(() => ChatListing()),
                 ),
               ),
-              const SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
               Expanded(
                 child: _secondaryButton(
                   label: 'pasaj.market.offers'.tr,
                   onTap: () => Get.to(() => const MarketOffersView()),
                 ),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: item.status == 'archived'
+                    ? const SizedBox.shrink()
+                    : _dangerButton(
+                        label: 'common.remove'.tr,
+                        onTap: () {
+                          noYesAlert(
+                            title: 'pasaj.job_finder.unpublish_title'.tr,
+                            message: 'pasaj.job_finder.unpublish_body'.tr,
+                            yesText: 'common.remove'.tr,
+                            cancelText: 'common.cancel'.tr,
+                            onYesPressed: _archiveItem,
+                          );
+                        },
+                      ),
+              ),
             ],
           ),
-          if (item.status != 'archived') ...[
-            const SizedBox(height: 8),
-            _dangerButton(
-              label: 'common.remove'.tr,
-              onTap: () {
-                noYesAlert(
-                  title: 'pasaj.job_finder.unpublish_title'.tr,
-                  message: 'pasaj.job_finder.unpublish_body'.tr,
-                  yesText: 'common.remove'.tr,
-                  cancelText: 'common.cancel'.tr,
-                  onYesPressed: _archiveItem,
-                );
-              },
-            ),
-          ],
         ],
       );
     }
