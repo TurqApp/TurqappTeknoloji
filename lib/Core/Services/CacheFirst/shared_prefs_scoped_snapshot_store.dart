@@ -36,6 +36,15 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
       }
       final payload =
           Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
+      final storedSurface = (payload['surfaceKey'] ?? '').toString().trim();
+      final storedUser = (payload['userId'] ?? '').toString().trim();
+      final storedScope = (payload['scopeId'] ?? '').toString().trim();
+      if (storedSurface != key.surfaceKey.trim() ||
+          storedUser != key.userId.trim() ||
+          storedScope != key.scopeId.trim()) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
       final snapshotAtMs = (payload['snapshotAt'] as num?)?.toInt() ?? 0;
       final schemaVersion = (payload['schemaVersion'] as num?)?.toInt() ?? 1;
       final generationId = (payload['generationId'] ?? '').toString().trim();
