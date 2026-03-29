@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
@@ -63,6 +64,7 @@ class PostLoginWarmup {
 
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
+  static bool _globalCacheProxyUnavailable = false;
 
   void startNonBlockingStartupWork({
     required bool isFirstLaunch,
@@ -139,7 +141,7 @@ class PostLoginWarmup {
   }
 
   Future<void> _initCacheProxy() async {
-    if (_globalCacheProxyReady) return;
+    if (_globalCacheProxyReady || _globalCacheProxyUnavailable) return;
     final inFlight = _globalCacheProxyInitFuture;
     if (inFlight != null) return inFlight;
 
@@ -155,18 +157,24 @@ class PostLoginWarmup {
         await remote.initialize();
       }
 
-      final server = ensureHlsProxyServer(permanent: true);
-      if (!server.isStarted) {
-        await server.start();
-      }
-
       final cache = SegmentCacheManager.ensure();
       await cache.init();
       await _applyGlobalMediaCacheQuota();
 
       ensurePrefetchScheduler(permanent: true);
+      final server = ensureHlsProxyServer(permanent: true);
+      if (!server.isStarted) {
+        await server.start();
+      }
       _globalCacheProxyReady = true;
+      _globalCacheProxyUnavailable = false;
     } catch (error, stackTrace) {
+      if (_shouldDisableCacheProxyForSession(error)) {
+        _globalCacheProxyUnavailable = true;
+        debugPrint(
+          '[cache-proxy] disabled for this session: $error',
+        );
+      }
       _failureReporter.record(
         kind: StartupSessionFailureKind.cacheProxyInitialization,
         operation: 'PostLoginWarmup.initCacheProxy',
@@ -177,6 +185,17 @@ class PostLoginWarmup {
     } finally {
       _globalCacheProxyInitFuture = null;
     }
+  }
+
+  bool _shouldDisableCacheProxyForSession(Object error) {
+    if (!_isIOS() || !kDebugMode) {
+      return false;
+    }
+    final text = error.toString().toLowerCase();
+    return text.contains('dobjc_initializeapi') ||
+        text.contains("objective_c.framework/objective_c") ||
+        text.contains('target native_assets required define sdkroot') ||
+        text.contains('failed to load dynamic library');
   }
 
   Future<void> _applyGlobalMediaCacheQuota() async {
