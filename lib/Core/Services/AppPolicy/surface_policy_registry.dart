@@ -53,8 +53,8 @@ class SurfacePolicyRegistry {
   static const int antremanCategoryPoolInitialLimit = 60;
   static const int antremanSavedQuestionInitialLimit = 60;
 
-  static const int feedHomeInitialLimit = 40;
-  static const int shortHomeInitialLimit = 20;
+  static const int feedHomeInitialLimit = 32;
+  static const int shortHomeInitialLimit = 18;
   static const int marketHomeInitialLimit = 40;
   static const int marketSearchInitialLimit = 40;
   static const int jobHomeInitialLimit = 40;
@@ -109,31 +109,31 @@ class SurfacePolicyRegistry {
   static const int explorePhotoTargetBatch = 30;
   static const int explorePhotoMaxPages = 5;
 
-  static const int mobileWarmWindow = 20;
-  static const int mobileNextWindow = 10;
-  static const int minGlobalCachedVideos = 50;
+  static const int mobileWarmWindow = 16;
+  static const int mobileNextWindow = 8;
+  static const int minGlobalCachedVideos = 40;
   static const int mobileInitialSegments = 2;
   static const int mobileAheadSegments = 3;
 
-  static const int startupListingWarmLimitOnWiFi = 18;
-  static const int startupListingWarmLimitOnCellular = 10;
-  static const int startupShortPrefetchDocLimit = 12;
-  static const int startupFeedPrefetchDocLimit = 15;
+  static const int startupListingWarmLimitOnWiFi = 14;
+  static const int startupListingWarmLimitOnCellular = 8;
+  static const int startupShortPrefetchDocLimit = 8;
+  static const int startupFeedPrefetchDocLimit = 12;
 
-  static const int startupUserMetaFeedTakeOnWiFi = 28;
-  static const int startupUserMetaFeedTakeOnCellular = 14;
-  static const int startupUserMetaStoryTakeOnWiFi = 18;
-  static const int startupUserMetaStoryTakeOnCellular = 10;
-  static const int startupUserMetaRecommendedTakeOnWiFi = 18;
-  static const int startupUserMetaRecommendedTakeOnCellular = 10;
-  static const int startupAvatarWarmCountOnWiFi = 36;
-  static const int startupAvatarWarmCountOnCellular = 12;
-  static const int startupProfileBucketTakeOnWiFi = 18;
-  static const int startupProfileBucketTakeOnCellular = 10;
-  static const int startupProfileUrlWarmCountOnWiFi = 40;
-  static const int startupProfileUrlWarmCountOnCellular = 20;
-  static const int startupSliderWarmRemoteLimitOnWiFi = 8;
-  static const int startupSliderWarmRemoteLimitOnCellular = 4;
+  static const int startupUserMetaFeedTakeOnWiFi = 24;
+  static const int startupUserMetaFeedTakeOnCellular = 12;
+  static const int startupUserMetaStoryTakeOnWiFi = 16;
+  static const int startupUserMetaStoryTakeOnCellular = 8;
+  static const int startupUserMetaRecommendedTakeOnWiFi = 16;
+  static const int startupUserMetaRecommendedTakeOnCellular = 8;
+  static const int startupAvatarWarmCountOnWiFi = 24;
+  static const int startupAvatarWarmCountOnCellular = 10;
+  static const int startupProfileBucketTakeOnWiFi = 14;
+  static const int startupProfileBucketTakeOnCellular = 8;
+  static const int startupProfileUrlWarmCountOnWiFi = 28;
+  static const int startupProfileUrlWarmCountOnCellular = 14;
+  static const int startupSliderWarmRemoteLimitOnWiFi = 6;
+  static const int startupSliderWarmRemoteLimitOnCellular = 3;
 
   static const SurfacePolicy defaultSurface = SurfacePolicy();
 
@@ -153,20 +153,20 @@ class SurfacePolicyRegistry {
     initialLimit: shortHomeInitialLimit,
     readyForNavCount: shortReadyForNavCount,
     initialPoolLimit: AdaptiveIntPolicy(
-      onWiFi: 30,
-      onCellular: 20,
+      onWiFi: 24,
+      onCellular: 18,
     ),
     startupShardLimit: AdaptiveIntPolicy(
-      onWiFi: 6,
+      onWiFi: 5,
       onCellular: 4,
     ),
     startupSnapshotLimit: LaunchAwareIntPolicy(
-      wifiFirstLaunch: 6,
-      wifiWarmLaunch: 8,
+      wifiFirstLaunch: 5,
+      wifiWarmLaunch: 6,
       cellularFirstLaunch: 3,
       cellularWarmLaunch: 4,
     ),
-    backgroundWarmTargetCount: 8,
+    backgroundWarmTargetCount: 6,
     backgroundWarmMaxPages: 2,
     startupPrefetchDocLimit: startupShortPrefetchDocLimit,
   );
@@ -185,14 +185,14 @@ class SurfacePolicyRegistry {
     readyForNavCount: storyReadyForNavCount,
     initialPoolLimit: AdaptiveIntPolicy.uniform(10),
     startupWarmLimit: LaunchAwareIntPolicy(
-      wifiFirstLaunch: 20,
-      wifiWarmLaunch: 30,
-      cellularFirstLaunch: 10,
-      cellularWarmLaunch: 16,
+      wifiFirstLaunch: 16,
+      wifiWarmLaunch: 24,
+      cellularFirstLaunch: 8,
+      cellularWarmLaunch: 12,
     ),
     warmReadyTarget: AdaptiveIntPolicy(
-      onWiFi: 30,
-      onCellular: 18,
+      onWiFi: 24,
+      onCellular: 14,
     ),
   );
 
