@@ -35,20 +35,6 @@ String timeAgoMetin(num timestamp) {
   final dateTime =
       DateTime.fromMillisecondsSinceEpoch(timestamp.toInt()).toLocal();
   final difference = now.difference(dateTime);
-  const monthKeys = [
-    'common.month_short.january',
-    'common.month_short.february',
-    'common.month_short.march',
-    'common.month_short.april',
-    'common.month_short.may',
-    'common.month_short.june',
-    'common.month_short.july',
-    'common.month_short.august',
-    'common.month_short.september',
-    'common.month_short.october',
-    'common.month_short.november',
-    'common.month_short.december',
-  ];
 
   if (difference.inSeconds < 60) {
     return '1${'common.minute_short'.tr}';
@@ -58,14 +44,11 @@ String timeAgoMetin(num timestamp) {
     return '${difference.inHours}${'common.hour_short'.tr}';
   } else if (difference.inDays < 7) {
     return '${difference.inDays}${'common.day_short'.tr}';
-  } else if (difference.inDays < 365) {
-    final months = max(1, (difference.inDays / 30).floor());
-    return '$months${'common.month_unit'.tr}';
   } else {
-    final day = dateTime.day.toString();
-    final month = monthKeys[dateTime.month - 1].tr;
-    final year = (dateTime.year % 100).toString().padLeft(2, '0');
-    return "$day $month $year";
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final month = dateTime.month.toString().padLeft(2, '0');
+    final year = dateTime.year.toString();
+    return "$day.$month.$year";
   }
 }
 
