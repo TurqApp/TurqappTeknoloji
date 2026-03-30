@@ -32,6 +32,7 @@ void _handleChatListingInit(ChatListingController controller) {
   controller._restoreCachedList();
   controller.getList(forceServer: false);
   controller.startConversationListener();
+  controller._listenCacheInvalidations();
 }
 
 void _handleChatListingClose(ChatListingController controller) {
@@ -39,6 +40,7 @@ void _handleChatListingClose(ChatListingController controller) {
   controller._syncTimer?.cancel();
   controller._realtimeRefreshDebounce?.cancel();
   controller._conversationsSub?.cancel();
+  controller._invalidationSub?.cancel();
   controller.search.removeListener(controller._onSearchChanged);
   controller.search.dispose();
 }

@@ -65,6 +65,7 @@ class _ChatControllerState {
   Timer? typingDebounce;
   Timer? recordingTimer;
   StreamSubscription<DocumentSnapshot>? typingStream;
+  StreamSubscription<CacheInvalidationEvent>? invalidationSubscription;
   bool typingActive = false;
   bool recipientMuted = false;
   int lastTypingHeartbeatMs = 0;
@@ -156,6 +157,12 @@ extension ChatControllerFieldsPart on ChatController {
       _state.typingStream;
   set _typingStream(StreamSubscription<DocumentSnapshot>? value) =>
       _state.typingStream = value;
+  StreamSubscription<CacheInvalidationEvent>? get _invalidationSubscription =>
+      _state.invalidationSubscription;
+  set _invalidationSubscription(
+    StreamSubscription<CacheInvalidationEvent>? value,
+  ) =>
+      _state.invalidationSubscription = value;
   bool get _typingActive => _state.typingActive;
   set _typingActive(bool value) => _state.typingActive = value;
   bool get _recipientMuted => _state.recipientMuted;

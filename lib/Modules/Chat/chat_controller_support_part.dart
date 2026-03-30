@@ -84,6 +84,8 @@ extension ChatControllerSupportPart on ChatController {
   void _listenTypingState() =>
       _ChatControllerConversationX(this)._listenTypingState();
 
+  void _bindCacheInvalidationListeners() => _listenCacheInvalidations();
+
   Future<void> getData() => _ChatControllerConversationX(this).getData();
 
   Future<void> loadChatBackgroundPreference() =>

@@ -45,6 +45,13 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
       "deletedFor": FieldValue.arrayUnion([currentUid]),
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
+    CacheInvalidationService.ensure().publish(
+      CacheInvalidationEvent.messageDeletedForUser(
+        chatId: chatId,
+        messageIds: <String>[messageId],
+        userId: currentUid,
+      ),
+    );
   }
 
   Future<void> deleteMessagesForUser({
@@ -66,6 +73,13 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
         "updatedDate": DateTime.now().millisecondsSinceEpoch,
       },
     );
+    CacheInvalidationService.ensure().publish(
+      CacheInvalidationEvent.messageDeletedForUser(
+        chatId: chatId,
+        messageIds: ids,
+        userId: currentUid,
+      ),
+    );
   }
 
   Future<void> unsendMessage({
@@ -86,6 +100,12 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
       "replyTo": FieldValue.delete(),
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     });
+    CacheInvalidationService.ensure().publish(
+      CacheInvalidationEvent.messageUnsent(
+        chatId: chatId,
+        messageId: messageId,
+      ),
+    );
   }
 
   Future<void> setMessageStar({

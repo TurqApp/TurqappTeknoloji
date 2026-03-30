@@ -18,7 +18,10 @@ extension ChatListingContentControllerRuntimePart
       if (latest == null) return;
       model = latest;
       notReadCounter.value = latest.unreadCount;
-      if (latest.lastMessage.trim().isEmpty) return;
+      if (latest.lastMessage.trim().isEmpty) {
+        lastMessage.clear();
+        return;
+      }
       lastMessage.assignAll([_buildPreviewMessage(latest)]);
     });
   }

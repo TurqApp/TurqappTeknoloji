@@ -11,6 +11,7 @@ class _ChatListingControllerState {
   Timer? syncTimer;
   Timer? realtimeRefreshDebounce;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? conversationsSub;
+  StreamSubscription<CacheInvalidationEvent>? invalidationSub;
   bool isRefreshing = false;
   bool cacheLoaded = false;
 }
@@ -38,6 +39,11 @@ extension ChatListingControllerFieldsPart on ChatListingController {
     StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? value,
   ) =>
       _state.conversationsSub = value;
+
+  StreamSubscription<CacheInvalidationEvent>? get _invalidationSub =>
+      _state.invalidationSub;
+  set _invalidationSub(StreamSubscription<CacheInvalidationEvent>? value) =>
+      _state.invalidationSub = value;
 
   bool get _isRefreshing => _state.isRefreshing;
   set _isRefreshing(bool value) => _state.isRefreshing = value;

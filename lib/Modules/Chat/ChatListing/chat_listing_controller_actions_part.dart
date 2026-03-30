@@ -70,6 +70,42 @@ extension ChatListingControllerActionsPart on ChatListingController {
     _saveCachedList(list.toList());
   }
 
+  void updateConversationPreviewLocal({
+    required String chatId,
+    required String previewText,
+    int timestampMs = 0,
+  }) {
+    var changed = false;
+    for (final item in list) {
+      if (item.chatID != chatId) continue;
+      if (item.lastMessage != previewText) {
+        item.lastMessage = previewText;
+        changed = true;
+      }
+      if (timestampMs > 0 && item.timeStamp != '$timestampMs') {
+        item.timeStamp = '$timestampMs';
+        changed = true;
+      }
+    }
+    if (!changed) return;
+
+    final sorted = [...list]..sort((a, b) {
+        if (a.isPinned != b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        final aTs = int.tryParse(a.timeStamp) ?? 0;
+        final bTs = int.tryParse(b.timeStamp) ?? 0;
+        return bTs.compareTo(aTs);
+      });
+    list.assignAll(sorted);
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _saveCachedList(list.toList());
+  }
+
   void setTab(String tab) {
     selectedTab.value = tab;
     if (search.text.trim().isEmpty) {
@@ -140,5 +176,20 @@ extension ChatListingControllerActionsPart on ChatListingController {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
     );
+  }
+
+  void _listenCacheInvalidations() {
+    _invalidationSub?.cancel();
+    _invalidationSub = CacheInvalidationService.ensure()
+        .watchType(
+      CacheInvalidationEventType.messageUnsent,
+    )
+        .listen((event) {
+      if (event.scopeId.trim().isEmpty) return;
+      updateConversationPreviewLocal(
+        chatId: event.scopeId,
+        previewText: 'chat.unsent_message'.tr,
+      );
+    });
   }
 }

@@ -9,6 +9,7 @@ extension ChatControllerRuntimePart on ChatController {
     unawaited(ChatControllerSupportPart(this)._clearConversationUnread());
     ChatControllerSupportPart(this)._syncUnreadIndicatorsLocal();
     unawaited(ChatControllerSupportPart(this)._markConversationOpenedNow());
+    ChatControllerSupportPart(this)._bindCacheInvalidationListeners();
     textEditingController.addListener(() {
       textMesage.value = textEditingController.text;
       ChatControllerSupportPart(this)._onTypingChanged();
@@ -54,6 +55,7 @@ extension ChatControllerRuntimePart on ChatController {
     _messageSyncTimer?.cancel();
     _messagesSubscription?.cancel();
     _realtimeHeadSignature = '';
+    _invalidationSubscription?.cancel();
     _typingStream?.cancel();
     _typingDebounce?.cancel();
     _recordingTimer?.cancel();
