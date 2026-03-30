@@ -499,7 +499,8 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         },
         "konum": post.location,
         "locationCity": locationCity,
-        "mainFlood": index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
+        "mainFlood":
+            index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
         "metin": post.text,
         "reshareMap": {
           "visibility": paylasimSelection.value,
@@ -593,7 +594,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           stats: PostStats(),
           konum: post.location,
           locationCity: locationCity,
-          mainFlood: index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
+          mainFlood: index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
           metin: post.text,
           paylasGizliligi: paylasimSelection.value,
           reshareMap: {
