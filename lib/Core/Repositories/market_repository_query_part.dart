@@ -109,35 +109,6 @@ extension MarketRepositoryQueryPart on MarketRepository {
         .toList(growable: false);
   }
 
-  Future<List<MarketItemModel>> fetchByOwner(
-    String uid, {
-    bool preferCache = true,
-    bool forceRefresh = false,
-  }) async {
-    if (uid.trim().isEmpty) return const <MarketItemModel>[];
-    final cacheKey = 'owner:$uid';
-    if (!forceRefresh && preferCache) {
-      final memory = _getFromMemory(cacheKey);
-      if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
-      if (disk != null) {
-        final cloned = _cloneItems(disk);
-        _memory[cacheKey] = _TimedMarketItems(
-          items: cloned,
-          cachedAt: DateTime.now(),
-        );
-        return _cloneItems(cloned);
-      }
-    }
-
-    final snapshot = await _fetchOwnerSnapshot(uid);
-    final items = snapshot.docs
-        .map((doc) => MarketItemModel.fromMap(doc.data(), doc.id))
-        .toList(growable: false);
-    await _store(cacheKey, items);
-    return items;
-  }
-
   Future<List<MarketItemModel>> fetchSaved(
     String uid, {
     bool preferCache = true,

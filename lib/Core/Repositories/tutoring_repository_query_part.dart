@@ -103,47 +103,6 @@ extension TutoringRepositoryQueryPart on TutoringRepository {
     return !allowExpired && _isExpired(model) ? null : model;
   }
 
-  Future<List<TutoringModel>> fetchByOwner(
-    String userId, {
-    int limit = 100,
-    bool preferCache = true,
-    bool forceRefresh = false,
-    bool cacheOnly = false,
-  }) async {
-    final cacheKey = 'owner:$userId:$limit';
-    if (!forceRefresh && preferCache) {
-      final cached = await _getCachedList(cacheKey);
-      if (cached != null) {
-        return cached
-            .map(
-              (e) => TutoringModel.fromJson(
-                Map<String, dynamic>.from((e['data'] as Map?) ?? const {}),
-                (e['id'] ?? '').toString(),
-              ),
-            )
-            .toList(growable: false);
-      }
-    }
-
-    if (cacheOnly) return const <TutoringModel>[];
-
-    final snapshot = await _firestore
-        .collection('educators')
-        .where('userID', isEqualTo: userId)
-        .limit(limit)
-        .get(const GetOptions(source: Source.serverAndCache));
-    final items = snapshot.docs
-        .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
-        .toList(growable: false);
-    await _storeValue(
-      cacheKey,
-      snapshot.docs
-          .map((doc) => <String, dynamic>{'id': doc.id, 'data': doc.data()})
-          .toList(growable: false),
-    );
-    return items;
-  }
-
   bool _isExpired(TutoringModel model) {
     if (model.ended == true) return true;
     final now = DateTime.now().millisecondsSinceEpoch;

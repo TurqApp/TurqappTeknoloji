@@ -1,50 +1,6 @@
 part of 'booklet_repository.dart';
 
 extension BookletRepositoryQueryPart on BookletRepository {
-  Future<List<BookletModel>> fetchAll({
-    bool preferCache = true,
-    bool forceRefresh = false,
-    bool cacheOnly = false,
-  }) =>
-      _fetch(
-        cacheKey: 'all',
-        queryBuilder: () => _firestore.collection('books'),
-        preferCache: preferCache,
-        forceRefresh: forceRefresh,
-        cacheOnly: cacheOnly,
-      );
-
-  Future<List<BookletModel>> fetchByExamType(
-    String sinavTuru, {
-    bool preferCache = true,
-    bool forceRefresh = false,
-    bool cacheOnly = false,
-  }) =>
-      _fetch(
-        cacheKey: 'type:${normalizeSearchText(sinavTuru)}',
-        queryBuilder: () => _firestore
-            .collection('books')
-            .where('sinavTuru', isEqualTo: sinavTuru),
-        preferCache: preferCache,
-        forceRefresh: forceRefresh,
-        cacheOnly: cacheOnly,
-      );
-
-  Future<List<BookletModel>> fetchByOwner(
-    String userId, {
-    bool preferCache = true,
-    bool forceRefresh = false,
-    bool cacheOnly = false,
-  }) =>
-      _fetch(
-        cacheKey: 'owner:${normalizeSearchText(userId)}',
-        queryBuilder: () =>
-            _firestore.collection('books').where('userID', isEqualTo: userId),
-        preferCache: preferCache,
-        forceRefresh: forceRefresh,
-        cacheOnly: cacheOnly,
-      );
-
   Future<BookletPage> fetchPage({
     DocumentSnapshot? startAfter,
     int limit = 30,
@@ -160,37 +116,6 @@ extension BookletRepositoryQueryPart on BookletRepository {
             })
         .toList(growable: false);
     await _storeRawList(key, items);
-    return items;
-  }
-
-  Future<List<BookletModel>> _fetch({
-    required String cacheKey,
-    required Query<Map<String, dynamic>> Function() queryBuilder,
-    required bool preferCache,
-    required bool forceRefresh,
-    required bool cacheOnly,
-  }) async {
-    if (!forceRefresh && preferCache) {
-      final memory = _getFromMemory(cacheKey);
-      if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
-      if (disk != null) {
-        final cloned = _cloneItems(disk);
-        _memory[cacheKey] = _TimedBooklets(
-          items: cloned,
-          cachedAt: DateTime.now(),
-        );
-        return _cloneItems(cloned);
-      }
-    }
-
-    if (cacheOnly) return const <BookletModel>[];
-
-    final snap = await queryBuilder().get();
-    final items = snap.docs
-        .map((doc) => BookletModel.fromMap(doc.data(), doc.id))
-        .toList(growable: false);
-    await _store(cacheKey, items);
     return items;
   }
 }
