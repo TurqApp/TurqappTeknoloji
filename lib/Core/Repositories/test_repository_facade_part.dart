@@ -7,18 +7,6 @@ class _TimedTests {
   final DateTime cachedAt;
 }
 
-class TestPageResult {
-  const TestPageResult({
-    required this.items,
-    required this.lastDocument,
-    required this.hasMore,
-  });
-
-  final List<TestsModel> items;
-  final DocumentSnapshot? lastDocument;
-  final bool hasMore;
-}
-
 class TestRepository extends GetxService {
   TestRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
