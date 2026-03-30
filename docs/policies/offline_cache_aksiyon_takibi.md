@@ -18,7 +18,7 @@ uygulama durumunu anayasa metninden ayri takip etmek icin tutulur.
 
 ### 1. Sadece Rozetli Hesaplar
 
-- Durum: `beklemede`
+- Durum: `tamamlandi`
 - Karar:
   - otomatik offline/cache adayi yalniz rozetli hesap videolari olacak
 - Not:
@@ -38,16 +38,16 @@ uygulama durumunu anayasa metninden ayri takip etmek icin tutulur.
 
 ### 3. Wi-Fi Doluluk Hedefi
 
-- Durum: `beklemede`
+- Durum: `tamamlandi`
 - Karar:
   - Wi-Fi varsa efektif cache kotasinin yaklasik `%70`ine kadar doldur
 - Not:
   - standart plan `3+1 GB` olarak dusunulur
-  - bu durumda pratik hedef yaklasik `4 GB * %70`
+  - runtime hedef stream cache hard-stop'un `%70`idir
 
 ### 4. Izlenen Video Silme Penceresi
 
-- Durum: `beklemede`
+- Durum: `tamamlandi`
 - Karar:
   - izlenen video `6 saat` sonra silme icin birinci aday olur
 - Not:
@@ -64,7 +64,7 @@ uygulama durumunu anayasa metninden ayri takip etmek icin tutulur.
 
 ### 6. Silme Sirasi
 
-- Durum: `devam ediyor`
+- Durum: `tamamlandi`
 - Karar:
   - once en eski izlenmis ve koruma suresi dolmus videolar silinecek
   - sonra gerekirse daha eski hazir/yarim icerikler silinecek
@@ -96,7 +96,6 @@ uygulama durumunu anayasa metninden ayri takip etmek icin tutulur.
 
 ## Siradaki Uygulama Paketi
 
-1. Rozetli hesap filtresini prefetch aday secimine bagla.
-2. Wi-Fi doluluk hedefini `%70` effective quota olarak sabitle.
-3. Izlenen video icin `6 saat` silme adayi kuralini bagla.
-4. Tam video + rozetli + `%70` + `6 saat` kombinasyonu icin yeniden smoke al.
+1. Tam video + rozetli + `%70` + `6 saat` kombinasyonu icin yeniden smoke al.
+2. Gerekirse ileride `yuksek begeni` sinifini ikinci aday havuz olarak ekle.
+3. Zamansal yayin akisini rozetli aday havuzuna bagla.

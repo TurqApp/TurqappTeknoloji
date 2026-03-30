@@ -1,6 +1,34 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerQueuePart on PrefetchScheduler {
+  Future<void> updateQueueForPosts(
+    List<PostsModel> posts,
+    int currentIndex, {
+    int? maxDocs,
+  }) async {
+    final resolved = _resolveOfflineCandidateQueue(
+      posts,
+      currentIndex: currentIndex,
+      maxDocs: maxDocs,
+    );
+    if (resolved == null) return;
+    await updateQueue(resolved.docIDs, resolved.currentIndex);
+  }
+
+  Future<void> updateFeedQueueForPosts(
+    List<PostsModel> posts,
+    int currentIndex, {
+    int? maxDocs,
+  }) async {
+    final resolved = _resolveOfflineCandidateQueue(
+      posts,
+      currentIndex: currentIndex,
+      maxDocs: maxDocs,
+    );
+    if (resolved == null) return;
+    await updateFeedQueue(resolved.docIDs, resolved.currentIndex);
+  }
+
   Future<void> updateQueue(List<String> docIDs, int currentIndex) async {
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
@@ -222,6 +250,40 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final scoreCompare = b.sortScore.compareTo(a.sortScore);
     if (scoreCompare != 0) return scoreCompare;
     return a.priority.compareTo(b.priority);
+  }
+
+  _ResolvedPrefetchQueue? _resolveOfflineCandidateQueue(
+    List<PostsModel> posts, {
+    required int currentIndex,
+    int? maxDocs,
+  }) {
+    if (posts.isEmpty) return null;
+    final safeCurrent = currentIndex.clamp(0, posts.length - 1);
+    final currentDocId = posts[safeCurrent].docID.trim();
+    final seenDocIds = <String>{};
+    final eligible = posts.where((post) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenDocIds.add(docId)) return false;
+      return _isEligibleOfflineCandidatePost(post);
+    }).toList(growable: false);
+    if (eligible.isEmpty) return null;
+
+    final limited =
+        maxDocs == null || maxDocs <= 0 || eligible.length <= maxDocs
+            ? eligible
+            : eligible.take(maxDocs).toList(growable: false);
+    if (limited.isEmpty) return null;
+
+    final remapped = limited.indexWhere((post) => post.docID == currentDocId);
+    return _ResolvedPrefetchQueue(
+      docIDs: limited.map((post) => post.docID).toList(growable: false),
+      currentIndex: remapped < 0 ? 0 : remapped,
+    );
+  }
+
+  bool _isEligibleOfflineCandidatePost(PostsModel post) {
+    if (!post.hasPlayableVideo) return false;
+    return normalizeRozetValue(post.rozet).isNotEmpty;
   }
 
   double _buildJobScore({

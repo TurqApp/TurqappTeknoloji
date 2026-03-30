@@ -504,8 +504,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
       }
       try {
-        maybeFindPrefetchScheduler()?.updateQueue(
-          _cachedShorts.map((s) => s.docID).toList(growable: false),
+        maybeFindPrefetchScheduler()?.updateQueueForPosts(
+          _cachedShorts,
           currentPage,
         );
       } catch (_) {}

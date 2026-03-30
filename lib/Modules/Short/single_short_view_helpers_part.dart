@@ -163,8 +163,8 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch != null) {
         try {
-          prefetch.updateQueue(
-            shorts.map((s) => s.docID).toList(growable: false),
+          prefetch.updateQueueForPosts(
+            shorts,
             currentPage,
           );
         } catch (_) {}

@@ -170,10 +170,11 @@ extension AgendaControllerFeedPart on AgendaController {
         safeCurrent = beforeCount.clamp(0, videoPosts.length - 1);
       }
     }
-    final docIds = videoPosts.map((p) => p.docID).toList();
-
     try {
-      maybeFindPrefetchScheduler()?.updateFeedQueue(docIds, safeCurrent);
+      maybeFindPrefetchScheduler()?.updateFeedQueueForPosts(
+        videoPosts,
+        safeCurrent,
+      );
     } catch (_) {}
   }
 

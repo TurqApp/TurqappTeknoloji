@@ -85,7 +85,9 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     if (!_isOnWiFi) return 0;
     final profile = _storageBudgetProfile;
     if (profile == null) return 0;
-    return profile.streamCacheSoftStopBytes;
+    return (profile.streamCacheHardStopBytes *
+            _prefetchSchedulerWifiQuotaFillRatio)
+        .round();
   }
 
   bool _hasReachedWifiQuotaFillTarget(SegmentCacheManager cacheManager) {

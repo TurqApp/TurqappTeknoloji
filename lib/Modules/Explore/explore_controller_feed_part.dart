@@ -919,15 +919,11 @@ extension ExploreControllerFeedPart on ExploreController {
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
 
-    final docIds = source
-        .where((post) => post.hasPlayableVideo)
-        .map((post) => post.docID)
-        .where((id) => id.isNotEmpty)
-        .take(ReadBudgetRegistry.explorePrefetchDocLimit)
-        .toList();
-    if (docIds.isEmpty) return;
-
-    unawaited(prefetch.updateQueue(docIds, 0));
+    unawaited(prefetch.updateQueueForPosts(
+      source,
+      0,
+      maxDocs: ReadBudgetRegistry.explorePrefetchDocLimit,
+    ));
   }
 
   void _performGoToPage(int index) {

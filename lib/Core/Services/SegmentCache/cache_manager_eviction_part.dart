@@ -1,11 +1,18 @@
 part of 'cache_manager.dart';
 
+const Duration _watchedEvictionGracePeriod = Duration(hours: 6);
+
 extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
   VideoCacheEntry? _findEvictionCandidate({bool preferLowQuality = false}) {
     VideoCacheEntry? worst;
     double worstScore = double.infinity;
+    final now = DateTime.now();
 
-    Iterable<VideoCacheEntry> candidates = _index.entries.values;
+    Iterable<VideoCacheEntry> candidates = _index.entries.values.where(
+      (entry) =>
+          entry.state != VideoCacheState.watched ||
+          now.difference(entry.lastAccessedAt) >= _watchedEvictionGracePeriod,
+    );
     if (preferLowQuality) {
       final lowQuality = candidates.where(_isLowQualityEntry).toList();
       if (lowQuality.isNotEmpty) {

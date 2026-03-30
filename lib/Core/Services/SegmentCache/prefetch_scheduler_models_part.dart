@@ -7,3 +7,13 @@ class _PrefetchJob {
   const _PrefetchJob(
       this.docID, this.maxSegments, this.priority, this.sortScore);
 }
+
+class _ResolvedPrefetchQueue {
+  final List<String> docIDs;
+  final int currentIndex;
+
+  const _ResolvedPrefetchQueue({
+    required this.docIDs,
+    required this.currentIndex,
+  });
+}

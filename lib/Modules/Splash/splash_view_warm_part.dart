@@ -207,14 +207,11 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
-      final docIds = shorts.shorts
-          .where((p) => p.hasPlayableVideo)
-          .map((p) => p.docID)
-          .where((id) => id.isNotEmpty)
-          .take(ReadBudgetRegistry.startupShortPrefetchDocLimit)
-          .toList();
-      if (docIds.isEmpty) return;
-      unawaited(prefetch.updateQueue(docIds, 0));
+      unawaited(prefetch.updateQueueForPosts(
+        shorts.shorts,
+        0,
+        maxDocs: ReadBudgetRegistry.startupShortPrefetchDocLimit,
+      ));
     } catch (_) {}
   }
 
@@ -222,14 +219,11 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
-      final docIds = agendaController.agendaList
-          .where((p) => p.hasPlayableVideo)
-          .map((p) => p.docID)
-          .where((id) => id.isNotEmpty)
-          .take(ReadBudgetRegistry.startupFeedPrefetchDocLimit)
-          .toList();
-      if (docIds.isEmpty) return;
-      unawaited(prefetch.updateFeedQueue(docIds, 0));
+      unawaited(prefetch.updateFeedQueueForPosts(
+        agendaController.agendaList,
+        0,
+        maxDocs: ReadBudgetRegistry.startupFeedPrefetchDocLimit,
+      ));
     } catch (_) {}
   }
 

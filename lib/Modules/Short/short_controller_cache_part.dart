@@ -127,8 +127,8 @@ extension ShortControllerCachePart on ShortController {
     _enforceMaxPlayers(currentIndex, window.maxAttachedPlayers);
 
     try {
-      maybeFindPrefetchScheduler()?.updateQueue(
-        shorts.map((s) => s.docID).toList(),
+      maybeFindPrefetchScheduler()?.updateQueueForPosts(
+        shorts,
         currentIndex,
       );
     } catch (_) {}
