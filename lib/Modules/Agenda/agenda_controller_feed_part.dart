@@ -364,7 +364,14 @@ extension AgendaControllerFeedPart on AgendaController {
   void _onScroll() {
     final currentOffset = scrollController.offset;
     final now = DateTime.now();
+    final scrollDelta = (currentOffset - lastOffset).abs();
+    final hasMeaningfulScrollMovement =
+        currentOffset.abs() > 1.0 || scrollDelta > 1.0;
     if (_qaScrollStartedAt == null) {
+      if (!hasMeaningfulScrollMovement) {
+        lastOffset = currentOffset;
+        return;
+      }
       _startupLockedFeedDocId = null;
       _qaScrollStartedAt = now;
       _qaScrollStartOffset = currentOffset;
