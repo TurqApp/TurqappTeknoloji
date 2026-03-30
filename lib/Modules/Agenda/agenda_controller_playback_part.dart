@@ -127,6 +127,25 @@ extension AgendaControllerPlaybackPart on AgendaController {
     );
 
     if (targetIndex >= 0 && targetIndex < agendaList.length) {
+      final now = DateTime.now();
+      if (GetPlatform.isIOS &&
+          current >= 0 &&
+          current < agendaList.length &&
+          current != targetIndex &&
+          _isPlaybackTargetCurrent(current)) {
+        final currentFraction = _visibleFractions[current] ?? 0.0;
+        final targetUpdatedAt = _visibleUpdatedAt[targetIndex];
+        final targetIsFresh = targetUpdatedAt != null &&
+            now.difference(targetUpdatedAt) <
+                FeedPlaybackSelectionPolicy.scrollSettleReassertDuration;
+        if (currentFraction >=
+                FeedPlaybackSelectionPolicy.switchRetentionThreshold &&
+            targetIsFresh) {
+          lastCenteredIndex = current;
+          _trackPlaybackWindow();
+          return;
+        }
+      }
       final centeredChanged = centeredIndex.value != targetIndex;
       if (centeredChanged) {
         centeredIndex.value = targetIndex;

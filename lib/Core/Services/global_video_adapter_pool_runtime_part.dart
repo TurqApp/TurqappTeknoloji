@@ -168,7 +168,12 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     );
   }
 
+  bool _shouldRestoreSavedState(String cacheKey) {
+    return !cacheKey.startsWith('feed:');
+  }
+
   void _restoreSavedPosition(String cacheKey, HLSVideoAdapter adapter) {
+    if (!_shouldRestoreSavedState(cacheKey)) return;
     final state = VideoStateManager.instance.getVideoState(cacheKey);
     if (state == null || state.position <= Duration.zero) return;
     unawaited(adapter.seekTo(state.position));
@@ -190,6 +195,10 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   }
 
   void _saveState(String cacheKey, HLSVideoAdapter adapter) {
+    if (!_shouldRestoreSavedState(cacheKey)) {
+      VideoStateManager.instance.clearVideoState(cacheKey);
+      return;
+    }
     try {
       VideoStateManager.instance.saveVideoState(
         cacheKey,
