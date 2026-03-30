@@ -75,6 +75,14 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     );
   }
 
+  Future<void> _removeDocCache(String docId) async {
+    final cleanId = docId.trim();
+    if (cleanId.isEmpty) return;
+    _memory.remove(cleanId);
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.remove('$_scholarshipRepositoryPrefsPrefix$cleanId');
+  }
+
   List<Map<String, dynamic>>? _readQueryMemory(String key) {
     final cached = _queryMemory[key];
     if (cached == null) return null;
@@ -138,6 +146,13 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
         'items': items,
       }),
     );
+  }
+
+  Future<void> _removeRawDoc(String cacheKey) async {
+    final normalized = cacheKey.trim();
+    if (normalized.isEmpty) return;
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.remove('$_scholarshipRepositoryPrefsPrefix:$normalized');
   }
 
   Future<void> _invalidateQueryPrefix(String prefix) async {
@@ -217,6 +232,14 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
         'value': value,
       }),
     );
+  }
+
+  Future<void> _removeApply(String key) async {
+    final normalized = key.trim();
+    if (normalized.isEmpty) return;
+    _applyMemory.remove(normalized);
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.remove('$_scholarshipRepositoryApplyPrefix$normalized');
   }
 
   Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) async {

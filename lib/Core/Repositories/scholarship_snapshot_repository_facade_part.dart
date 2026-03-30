@@ -97,4 +97,19 @@ extension ScholarshipSnapshotRepositoryFacadePart
         page: page,
         forceSync: forceSync,
       );
+
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(
+        ScholarshipSnapshotRepository._homeSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        ScholarshipSnapshotRepository._searchSurfaceKey,
+        userId: normalized,
+      ),
+    ]);
+  }
 }

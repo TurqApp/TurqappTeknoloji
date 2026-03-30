@@ -1,6 +1,15 @@
 part of 'scholarship_repository.dart';
 
 extension ScholarshipRepositoryActionPart on ScholarshipRepository {
+  List<String> _asNormalizedStringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
   Future<void> setUserAppliedCache(
     String scholarshipId,
     String userId,
@@ -63,5 +72,57 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
     }
     await _invalidateQueryPrefix('query:membership:$field:$cleanUserId:');
     return !contains;
+  }
+
+  Future<void> deleteScholarship({
+    required String scholarshipId,
+    required String actorUserId,
+  }) async {
+    final cleanId = scholarshipId.trim();
+    final cleanActorUserId = actorUserId.trim();
+    if (cleanId.isEmpty) return;
+
+    final docRef = ScholarshipFirestorePath.doc(cleanId);
+    final doc =
+        await docRef.get(const GetOptions(source: Source.serverAndCache));
+    if (!doc.exists) return;
+
+    final data = doc.data() ?? const <String, dynamic>{};
+    final ownerUserId = (data['userID'] ?? '').toString().trim();
+    final appliedUserIds = _asNormalizedStringList(data['basvurular']);
+    final likedUserIds = _asNormalizedStringList(data['begeniler']);
+    final savedUserIds = _asNormalizedStringList(data['kaydedenler']);
+
+    await docRef.delete();
+
+    await _removeDocCache(cleanId);
+    await _removeRawDoc(_scholarshipRepositoryCountKey);
+    await _removeRawDoc('applicants:$cleanId');
+
+    if (ownerUserId.isNotEmpty) {
+      await _invalidateQueryPrefix('query:owner:$ownerUserId:');
+    }
+
+    for (final userId in appliedUserIds) {
+      await _removeApply('$cleanId::$userId');
+      await _invalidateQueryPrefix('query:applied:$userId:');
+    }
+
+    for (final userId in likedUserIds) {
+      await _invalidateQueryPrefix('query:membership:begeniler:$userId:');
+    }
+
+    for (final userId in savedUserIds) {
+      await _invalidateQueryPrefix('query:membership:kaydedenler:$userId:');
+    }
+
+    if (cleanActorUserId.isNotEmpty) {
+      await maybeFindScholarshipSnapshotRepository()
+          ?.invalidateUserScopedSurfaces(cleanActorUserId);
+    }
+
+    await TypesenseEducationSearchService.instance.invalidateEntity(
+      EducationTypesenseEntity.scholarship,
+    );
   }
 }
