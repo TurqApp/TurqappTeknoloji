@@ -145,13 +145,10 @@ extension ApplicationsControllerRuntimeX on ApplicationsController {
         return;
       }
 
-      final batch = FirebaseFirestore.instance.batch();
-      final docRef = ScholarshipFirestorePath.doc(bursID);
-      batch.update(docRef, {
-        'basvurular': FieldValue.arrayRemove([userID]),
-      });
-      batch.delete(docRef.collection('Basvurular').doc(userID));
-      await batch.commit();
+      await _scholarshipRepository.cancelScholarshipApplication(
+        scholarshipId: bursID,
+        userId: userID,
+      );
 
       applications.removeWhere((app) => app['bursID'] == bursID);
       Get.back();
