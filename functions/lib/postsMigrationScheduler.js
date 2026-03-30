@@ -444,6 +444,25 @@ async function ensurePlaceholderPosts(group, docs, now) {
     await batch.commit();
     return true;
 }
+async function makeDuePlaceholdersVisible(group, docs, now) {
+    const batch = db().batch();
+    for (const doc of docs) {
+        batch.set(db().collection(POSTS_COLLECTION).doc(doc.docId), {
+            isUploading: false,
+            updatedAt: now,
+        }, { merge: true });
+    }
+    batch.set(db().collection(QUEUE_COLLECTION).doc(group.rootId), {
+        lastError: "",
+        lastErrorAt: 0,
+        leaseOwner: "",
+        leaseUntil: 0,
+        state: "visible_waiting_media",
+        updatedAt: now,
+        visibleAt: now,
+    }, { merge: true });
+    await batch.commit();
+}
 async function buildPayloads(group, docs) {
     const userCache = new Map();
     const payloads = [];
@@ -536,13 +555,14 @@ async function buildPayloads(group, docs) {
 async function publishGroup(group, docs, now) {
     const payloads = await buildPayloads(group, docs);
     if (!payloads.ok) {
+        await makeDuePlaceholdersVisible(group, docs, now);
         await updateGroup(group.rootId, {
             lastError: payloads.reason,
             lastErrorAt: now,
             leaseOwner: "",
             leaseUntil: 0,
             publishAttempts: firestore_1.FieldValue.increment(1),
-            state: "awaiting_media",
+            state: "visible_waiting_media",
             updatedAt: now,
         });
         return false;
