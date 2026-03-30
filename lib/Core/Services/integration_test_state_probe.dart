@@ -285,6 +285,7 @@ class IntegrationTestStateProbe {
     final items = controller.mergedPosts;
     return <String, dynamic>{
       'registered': true,
+      'selection': controller.postSelection.value,
       'count': items.length,
       'centeredIndex': index,
       'centeredDocId': index >= 0 && index < items.length

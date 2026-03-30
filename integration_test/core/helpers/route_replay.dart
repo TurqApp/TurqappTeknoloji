@@ -70,7 +70,10 @@ Future<void> replayFeedToProfileToFeed(
   expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
   final profileSnapshot = maybeReadSurfaceProbe('profile');
   final profileRegistered = profileSnapshot?['registered'] == true;
-  if (profileRegistered) {
+  final profileUsesSmokeShell =
+      ((profileSnapshot?['selection'] as num?)?.toInt() ?? 0) ==
+          kProfileIntegrationSmokeShellSelection;
+  if (profileRegistered && !profileUsesSmokeShell) {
     final profileCount = (profileSnapshot!['count'] as num?)?.toInt() ?? 0;
     final profileIndex =
         (profileSnapshot['centeredIndex'] as num?)?.toInt() ?? -1;
@@ -93,7 +96,9 @@ Future<void> replayFeedToProfileToFeed(
       after: feedSnapshot,
     );
   }
-  if (profileRegistered && profileAfterReplay?['registered'] == true) {
+  if (profileRegistered &&
+      !profileUsesSmokeShell &&
+      profileAfterReplay?['registered'] == true) {
     expectCountNeverDropsToZeroAfterReplay(
       'profile',
       before: profileSnapshot!,
