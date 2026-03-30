@@ -647,14 +647,20 @@ extension PostRepositoryQueryPart on PostRepository {
   }
 
   bool _performIsRenderableCard(PostsModel model) {
-    if (model.deletedPost || model.gizlendi || model.isUploading) {
+    if (model.deletedPost ||
+        model.gizlendi ||
+        model.shouldHideWhileUploading) {
       return false;
     }
     final hasVisual = model.thumbnail.trim().isNotEmpty || model.img.isNotEmpty;
     if (model.hasVideoSignal) {
       return model.hasRenderableVideoCard && hasVisual;
     }
-    return model.metin.trim().isNotEmpty || hasVisual || model.floodCount > 1;
+    return model.metin.trim().isNotEmpty ||
+        hasVisual ||
+        model.poll.isNotEmpty ||
+        model.quotedPost ||
+        model.quotedOriginalText.trim().isNotEmpty;
   }
 
   PostsModel _performNormalizeLikelyCompletedOwnPost(PostsModel model) {

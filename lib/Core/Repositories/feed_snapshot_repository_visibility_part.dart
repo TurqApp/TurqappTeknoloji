@@ -34,7 +34,10 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
       }
       if (post.deletedPost == true) reasons.add('deleted');
       if (post.gizlendi) reasons.add('gizlendi');
-      if (post.isUploading) reasons.add('uploading');
+      if (post.shouldHideWhileUploading) {
+        if (post.isUploading) reasons.add('uploading');
+        if (post.isCompletelyEmptyPost) reasons.add('empty_content');
+      }
       if (reasons.isNotEmpty) {
         if (kDebugMode && dropLogs.length < 12) {
           dropLogs.add('${post.docID}:${reasons.join('+')}');
@@ -114,6 +117,7 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
   }
 
   bool _isRenderablePost(PostsModel post) {
+    if (post.isCompletelyEmptyPost) return false;
     if (!post.hasVideoSignal) return true;
     return post.hasRenderableVideoCard;
   }

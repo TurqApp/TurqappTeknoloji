@@ -230,7 +230,25 @@ class PostsModel {
   bool get hasRenderableVideoCard =>
       hasPlayableVideo || (thumbnail.trim().isNotEmpty && hasVideoSignal);
 
-  bool get shouldHideWhileUploading => isUploading;
+  bool get hasTextContent => metin.trim().isNotEmpty;
+
+  bool get hasImageContent =>
+      img.isNotEmpty || thumbnail.trim().isNotEmpty;
+
+  bool get hasQuoteContent =>
+      quotedPost || quotedOriginalText.trim().isNotEmpty;
+
+  bool get hasPollContent => poll.isNotEmpty;
+
+  bool get isCompletelyEmptyPost =>
+      !hasTextContent &&
+      !hasImageContent &&
+      !hasVideoSignal &&
+      !hasQuoteContent &&
+      !hasPollContent;
+
+  bool get shouldHideWhileUploading =>
+      isUploading || isCompletelyEmptyPost;
 
   int get yorumVisibility {
     final v = yorumMap['visibility'];
@@ -270,6 +288,12 @@ class PostsModel {
   String get cdnThumbnailUrl => CdnUrlBuilder.toCdnUrl(thumbnail);
 
   List<String> get cdnImgUrls => img.map(CdnUrlBuilder.toCdnUrl).toList();
+
+  bool get isFloodMember => flood || mainFlood.trim().isNotEmpty;
+
+  bool get isFloodSeriesRoot => !isFloodMember && floodCount.toInt() > 1;
+
+  bool get isFloodSeriesContent => isFloodMember || isFloodSeriesRoot;
 
   factory PostsModel.fromMap(Map<String, dynamic> data, String docID) {
     List<String> parseList(dynamic field) {
