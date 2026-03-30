@@ -620,6 +620,14 @@ async function publishGroup(group, docs, now) {
     for (const item of payloads.payloads) {
         batch.set(db().collection(POSTS_COLLECTION).doc(item.docId), item.payload, { merge: true });
     }
+    for (const skipped of payloads.skipped) {
+        const sourceDoc = docs.find((item) => item.docId === skipped.docId);
+        if (!sourceDoc)
+            continue;
+        if (asString(sourceDoc.metin).length > 0)
+            continue;
+        batch.delete(db().collection(POSTS_COLLECTION).doc(skipped.docId));
+    }
     const hasSkipped = payloads.skipped.length > 0;
     batch.set(db().collection(QUEUE_COLLECTION).doc(group.rootId), {
         active: false,

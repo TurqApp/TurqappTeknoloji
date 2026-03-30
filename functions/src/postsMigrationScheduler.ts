@@ -777,6 +777,11 @@ async function publishGroup(group: QueueGroup, docs: QueueDoc[], now: number) {
       { merge: true },
     );
   }
+  for (const skipped of payloads.skipped) {
+    batch.delete(
+      db().collection(POSTS_COLLECTION).doc(skipped.docId),
+    );
+  }
   const hasSkipped = payloads.skipped.length > 0;
   batch.set(
     db().collection(QUEUE_COLLECTION).doc(group.rootId),
