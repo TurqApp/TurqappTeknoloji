@@ -9,6 +9,9 @@ Future<void> _qaLabSyncRemoteSummary(
   if (!QALabMode.enabled || !QALabMode.remoteUploadEnabled) {
     return;
   }
+  if (reason.trim() != 'manual_cloud_sync') {
+    return;
+  }
   if (Firebase.apps.isEmpty) {
     return;
   }
