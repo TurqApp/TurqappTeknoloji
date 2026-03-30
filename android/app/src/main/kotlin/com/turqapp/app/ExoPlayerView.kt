@@ -500,10 +500,15 @@ class ExoPlayerView(
         if (!shouldResumeAfterAppForeground) {
             return
         }
-        shouldResumeAfterAppForeground = false
         if (player == null || currentUrl.isNullOrEmpty()) {
+            shouldResumeAfterAppForeground = false
             return
         }
+        if (!container.isAttachedToWindow || !container.isShown || playerView.player !== player) {
+            shouldResumeAfterAppForeground = false
+            return
+        }
+        shouldResumeAfterAppForeground = false
         play()
     }
 
