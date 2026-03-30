@@ -639,29 +639,51 @@ async function rehideLeakedPlaceholders(docs: QueueDoc[], now: number) {
 async function buildPayloads(group: QueueGroup, docs: QueueDoc[]) {
   const userCache = new Map<string, UserProfile | null>();
   const payloads = [];
+  const skipped: Array<{ docId: string; reason: string }> = [];
 
   for (const doc of docs) {
     if (!doc.userID) {
-      return {
-        ok: false as const,
+      if (doc.index === 0) {
+        return {
+          ok: false as const,
+          reason: `missing_user_id:${doc.docId}`,
+        };
+      }
+      skipped.push({
+        docId: doc.docId,
         reason: `missing_user_id:${doc.docId}`,
-      };
+      });
+      continue;
     }
 
     const profile = await loadUserProfile(doc.userID, userCache);
     if (!profile) {
-      return {
-        ok: false as const,
+      if (doc.index === 0) {
+        return {
+          ok: false as const,
+          reason: `missing_target_user:${doc.userID}`,
+        };
+      }
+      skipped.push({
+        docId: doc.docId,
         reason: `missing_target_user:${doc.userID}`,
-      };
+      });
+      continue;
     }
 
     const media = await resolveTargetMedia(doc);
     if (!media.ok) {
-      return {
-        ok: false as const,
+      if (doc.index === 0) {
+        return {
+          ok: false as const,
+          reason: media.reason,
+        };
+      }
+      skipped.push({
+        docId: doc.docId,
         reason: media.reason,
-      };
+      });
+      continue;
     }
 
     payloads.push({
@@ -728,6 +750,7 @@ async function buildPayloads(group: QueueGroup, docs: QueueDoc[]) {
   return {
     ok: true as const,
     payloads,
+    skipped,
   };
 }
 
@@ -754,16 +777,17 @@ async function publishGroup(group: QueueGroup, docs: QueueDoc[], now: number) {
       { merge: true },
     );
   }
+  const hasSkipped = payloads.skipped.length > 0;
   batch.set(
     db().collection(QUEUE_COLLECTION).doc(group.rootId),
     {
       active: false,
-      lastError: "",
-      lastErrorAt: 0,
+      lastError: hasSkipped ? payloads.skipped[0].reason : "",
+      lastErrorAt: hasSkipped ? now : 0,
       leaseOwner: "",
       leaseUntil: 0,
       publishedAt: now,
-      state: "published",
+      state: hasSkipped ? "published_partial" : "published",
       updatedAt: now,
     },
     { merge: true },

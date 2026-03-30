@@ -493,26 +493,48 @@ async function rehideLeakedPlaceholders(docs, now) {
 async function buildPayloads(group, docs) {
     const userCache = new Map();
     const payloads = [];
+    const skipped = [];
     for (const doc of docs) {
         if (!doc.userID) {
-            return {
-                ok: false,
+            if (doc.index === 0) {
+                return {
+                    ok: false,
+                    reason: `missing_user_id:${doc.docId}`,
+                };
+            }
+            skipped.push({
+                docId: doc.docId,
                 reason: `missing_user_id:${doc.docId}`,
-            };
+            });
+            continue;
         }
         const profile = await loadUserProfile(doc.userID, userCache);
         if (!profile) {
-            return {
-                ok: false,
+            if (doc.index === 0) {
+                return {
+                    ok: false,
+                    reason: `missing_target_user:${doc.userID}`,
+                };
+            }
+            skipped.push({
+                docId: doc.docId,
                 reason: `missing_target_user:${doc.userID}`,
-            };
+            });
+            continue;
         }
         const media = await resolveTargetMedia(doc);
         if (!media.ok) {
-            return {
-                ok: false,
+            if (doc.index === 0) {
+                return {
+                    ok: false,
+                    reason: media.reason,
+                };
+            }
+            skipped.push({
+                docId: doc.docId,
                 reason: media.reason,
-            };
+            });
+            continue;
         }
         payloads.push({
             docId: doc.docId,
@@ -577,6 +599,7 @@ async function buildPayloads(group, docs) {
     return {
         ok: true,
         payloads,
+        skipped,
     };
 }
 async function publishGroup(group, docs, now) {
@@ -597,14 +620,15 @@ async function publishGroup(group, docs, now) {
     for (const item of payloads.payloads) {
         batch.set(db().collection(POSTS_COLLECTION).doc(item.docId), item.payload, { merge: true });
     }
+    const hasSkipped = payloads.skipped.length > 0;
     batch.set(db().collection(QUEUE_COLLECTION).doc(group.rootId), {
         active: false,
-        lastError: "",
-        lastErrorAt: 0,
+        lastError: hasSkipped ? payloads.skipped[0].reason : "",
+        lastErrorAt: hasSkipped ? now : 0,
         leaseOwner: "",
         leaseUntil: 0,
         publishedAt: now,
-        state: "published",
+        state: hasSkipped ? "published_partial" : "published",
         updatedAt: now,
     }, { merge: true });
     await batch.commit();
