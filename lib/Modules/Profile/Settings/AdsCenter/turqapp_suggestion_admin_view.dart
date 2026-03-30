@@ -1,12 +1,9 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.dart';
-import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 
 class TurqAppSuggestionAdminView extends StatefulWidget {
@@ -30,7 +27,6 @@ class _TurqAppSuggestionAdminViewState
   final Set<String> _removingPlacements = <String>{};
   final Map<String, ManagedAdInventoryItem> _inventoryById =
       <String, ManagedAdInventoryItem>{};
-  final SliderCacheService _sliderCacheService = SliderCacheService();
 
   bool _loading = true;
   String? _errorText;
@@ -229,32 +225,7 @@ class _TurqAppSuggestionAdminViewState
       _removingPlacements.add(placement.id);
     });
     try {
-      final sliderMeta = FirebaseFirestore.instance
-          .collection('sliders')
-          .doc(placement.sliderId);
-      final itemsSnapshot = await sliderMeta.collection('items').get();
-      final batch = FirebaseFirestore.instance.batch();
-      final storagePaths = <String>[];
-      for (final doc in itemsSnapshot.docs) {
-        batch.delete(doc.reference);
-        final storagePath = (doc.data()['storagePath'] ?? '').toString().trim();
-        if (storagePath.isNotEmpty) {
-          storagePaths.add(storagePath);
-        }
-      }
-      if (itemsSnapshot.docs.isNotEmpty) {
-        await batch.commit();
-      }
-      for (final storagePath in storagePaths) {
-        try {
-          await FirebaseStorage.instance.ref().child(storagePath).delete();
-        } catch (_) {}
-      }
-      await sliderMeta.set({
-        'hiddenDefaults': FieldValue.delete(),
-        'updatedDate': DateTime.now().millisecondsSinceEpoch,
-      }, SetOptions(merge: true));
-      await _sliderCacheService.clearResolvedItems(placement.sliderId);
+      await _service.removeManagedSlider(placement);
       await _refreshManagedInventory();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

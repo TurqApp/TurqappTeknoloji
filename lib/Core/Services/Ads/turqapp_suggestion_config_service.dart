@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
 
 class TurqAppSuggestionPlacement {
@@ -494,6 +496,8 @@ class TurqAppSuggestionConfigService {
   static const Duration _ttl = Duration(minutes: 10);
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final SliderCacheService _sliderCacheService = SliderCacheService();
   final Map<String, _CachedTurqAppSuggestionConfig> _cache =
       <String, _CachedTurqAppSuggestionConfig>{};
   final Map<String, Future<TurqAppSuggestionConfig>> _pendingReads =
@@ -595,6 +599,37 @@ class TurqAppSuggestionConfigService {
       config: config,
       fetchedAt: DateTime.now(),
     );
+  }
+
+  Future<void> removeManagedSlider(ManagedAdPlacement placement) async {
+    final sliderMeta = _firestore.collection('sliders').doc(placement.sliderId);
+    final itemsSnapshot = await sliderMeta.collection('items').get();
+    final batch = _firestore.batch();
+    final storagePaths = <String>[];
+
+    for (final doc in itemsSnapshot.docs) {
+      batch.delete(doc.reference);
+      final storagePath = (doc.data()['storagePath'] ?? '').toString().trim();
+      if (storagePath.isNotEmpty) {
+        storagePaths.add(storagePath);
+      }
+    }
+
+    if (itemsSnapshot.docs.isNotEmpty) {
+      await batch.commit();
+    }
+
+    for (final storagePath in storagePaths) {
+      try {
+        await _storage.ref().child(storagePath).delete();
+      } catch (_) {}
+    }
+
+    await sliderMeta.set({
+      'hiddenDefaults': FieldValue.delete(),
+      'updatedDate': DateTime.now().millisecondsSinceEpoch,
+    }, SetOptions(merge: true));
+    await _sliderCacheService.clearResolvedItems(placement.sliderId);
   }
 
   Future<bool> hasSliderItems(String sliderId) async {
