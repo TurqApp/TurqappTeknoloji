@@ -44,6 +44,7 @@ class _ChatControllerState {
   Timer? messageSyncTimer;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? messagesSubscription;
   DateTime? lastServerSyncAt;
+  int deltaFloorTimestampMs = 0;
   bool isMessageSyncing = false;
   String realtimeHeadSignature = '';
   bool isLoadingOlderInternal = false;
@@ -121,6 +122,8 @@ extension ChatControllerFieldsPart on ChatController {
       _state.messagesSubscription = value;
   DateTime? get _lastServerSyncAt => _state.lastServerSyncAt;
   set _lastServerSyncAt(DateTime? value) => _state.lastServerSyncAt = value;
+  int get _deltaFloorTimestampMs => _state.deltaFloorTimestampMs;
+  set _deltaFloorTimestampMs(int value) => _state.deltaFloorTimestampMs = value;
   bool get _isMessageSyncing => _state.isMessageSyncing;
   set _isMessageSyncing(bool value) => _state.isMessageSyncing = value;
   String get _realtimeHeadSignature => _state.realtimeHeadSignature;

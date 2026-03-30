@@ -45,27 +45,21 @@ extension _ChatControllerConversationSyncX on ChatController {
   }
 
   Future<void> _loadInitialMessages({required bool forceServer}) async {
-    final cacheOnly = _isOffline;
-    final shouldHitServer = !cacheOnly && forceServer;
+    final cacheOnly = true;
     try {
       final conversationSnapshot =
           await _conversationRepository.fetchLatestMessages(
         chatID,
         limit: _initialPageSize,
-        preferCache: !shouldHitServer,
+        preferCache: true,
         cacheOnly: cacheOnly,
       );
 
-      _applyConversationSnapshot(conversationSnapshot.docs, replace: true);
-      _conversationOldestCursor = conversationSnapshot.docs.isNotEmpty
-          ? conversationSnapshot.docs.last
-          : _conversationOldestCursor;
-
-      _conversationHasMore =
-          conversationSnapshot.docs.length >= _initialPageSize;
-      _updateHasMoreOlder();
-      _refreshMergedMessages();
-      _lastServerSyncAt = DateTime.now();
+      if (conversationSnapshot.docs.isNotEmpty) {
+        _applyConversationSnapshot(conversationSnapshot.docs, replace: true);
+        _conversationOldestCursor = conversationSnapshot.docs.last;
+        _refreshMergedMessages();
+      }
     } catch (_) {}
   }
 
@@ -79,20 +73,19 @@ extension _ChatControllerConversationSyncX on ChatController {
     _isMessageSyncing = true;
     try {
       final latestLoadedTs = _latestLoadedTimestampMs();
-      final conversationSnapshot = latestLoadedTs > 0
-          ? await _conversationRepository.fetchMessagesAfter(
-              chatID,
-              createdAfterMs: latestLoadedTs,
-              limit: _syncHeadSize,
-              preferCache: !shouldHitServer,
-              cacheOnly: cacheOnly,
-            )
-          : await _conversationRepository.fetchLatestMessages(
-              chatID,
-              limit: _syncHeadSize,
-              preferCache: !shouldHitServer,
-              cacheOnly: cacheOnly,
-            );
+      final lowerBoundTs =
+          latestLoadedTs > 0 ? latestLoadedTs : _deltaFloorTimestampMs;
+      if (lowerBoundTs <= 0) {
+        return;
+      }
+      final conversationSnapshot =
+          await _conversationRepository.fetchMessagesAfter(
+        chatID,
+        createdAfterMs: lowerBoundTs,
+        limit: _syncHeadSize,
+        preferCache: !shouldHitServer,
+        cacheOnly: cacheOnly,
+      );
 
       _applyConversationSnapshot(conversationSnapshot.docs, replace: false);
       _refreshMergedMessages();
@@ -107,34 +100,8 @@ extension _ChatControllerConversationSyncX on ChatController {
   }
 
   Future<void> loadOlderMessages() async {
-    if (_isLoadingOlder) return;
-    if (!_conversationHasMore) return;
-    _isLoadingOlder = true;
-    isLoadingOlder.value = true;
-    try {
-      final cacheOnly = _isOffline;
-      if (_conversationHasMore && _conversationOldestCursor != null) {
-        final convSnapshot = await _conversationRepository.fetchOlderMessages(
-          chatID,
-          startAfter: _conversationOldestCursor!,
-          limit: _olderPageSize,
-          preferCache: true,
-          cacheOnly: cacheOnly,
-        );
-        _applyConversationSnapshot(convSnapshot.docs, replace: false);
-        if (convSnapshot.docs.isNotEmpty) {
-          _conversationOldestCursor = convSnapshot.docs.last;
-        }
-        _conversationHasMore = convSnapshot.docs.length >= _olderPageSize;
-      }
-
-      _updateHasMoreOlder();
-      _refreshMergedMessages();
-    } catch (_) {
-    } finally {
-      _isLoadingOlder = false;
-      isLoadingOlder.value = false;
-    }
+    _conversationHasMore = false;
+    _updateHasMoreOlder();
   }
 
   Future<void> jumpToMessageByRawId(String rawId) async {

@@ -30,6 +30,11 @@ extension ChatControllerLocalCachePart on ChatController {
         return false;
       }
       restored.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+      _conversationMessages
+        ..clear()
+        ..addEntries(
+          restored.map((message) => MapEntry(message.rawDocID, message)),
+        );
       messages.value = restored;
       return true;
     } catch (_) {

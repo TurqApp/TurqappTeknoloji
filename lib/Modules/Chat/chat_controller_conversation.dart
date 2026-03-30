@@ -181,9 +181,13 @@ extension _ChatControllerConversationX on ChatController {
     _messageSyncTimer?.cancel();
     _messagesSubscription?.cancel();
     _realtimeHeadSignature = '';
+    _conversationHasMore = false;
+    _updateHasMoreOlder();
 
     final hasLocalWindow = await _loadLocalConversationWindow();
-    await _loadInitialMessages(forceServer: !hasLocalWindow);
+    _deltaFloorTimestampMs =
+        hasLocalWindow ? 0 : DateTime.now().millisecondsSinceEpoch;
+    await _loadInitialMessages(forceServer: false);
     _listenRealtimeMessages(cacheOnly: hasLocalWindow);
     if (_isOffline) {
       _messageSyncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
