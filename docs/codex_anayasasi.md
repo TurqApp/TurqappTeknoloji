@@ -82,6 +82,12 @@ Her zaman su formatta cevap ver:
 - Birden fazla ihtimal varsa belirt.
 - Risk varsa acikla.
 - Eksik context varsa uydurma.
+- Runtime, playback ve cihaz uzerinde yeniden uretilebilen hatalarda tahminle
+  ilerleme.
+- Bu tip hatalarda once canli log, telemetry, native event ve mevcut kod akisi
+  okunacak; kanit yoksa kok neden iddiasi kurulmayacak.
+- "Muhtemelen", "buyuk ihtimalle" gibi ifadelerle gecici hikaye kurup patch
+  yazmak yasak; once kanit, sonra mudahale.
 
 ## Genel Prensip
 
