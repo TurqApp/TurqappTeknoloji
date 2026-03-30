@@ -16,6 +16,7 @@ extension ExploreRepositoryPagePart on ExploreRepository {
     final items = postIds
         .map((id) => byId[id])
         .whereType<PostsModel>()
+        .where((item) => !item.shouldHideWhileUploading)
         .where((item) => !excludeSeriesRoots || item.floodCount <= 1)
         .take(pageLimit)
         .toList(growable: false);

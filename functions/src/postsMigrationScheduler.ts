@@ -700,14 +700,13 @@ async function buildPayloads(group: QueueGroup, docs: QueueDoc[]) {
 async function publishGroup(group: QueueGroup, docs: QueueDoc[], now: number) {
   const payloads = await buildPayloads(group, docs);
   if (!payloads.ok) {
-    await makeDuePlaceholdersVisible(group, docs, now);
     await updateGroup(group.rootId, {
       lastError: payloads.reason,
       lastErrorAt: now,
       leaseOwner: "",
       leaseUntil: 0,
       publishAttempts: FieldValue.increment(1),
-      state: "visible_waiting_media",
+      state: "awaiting_media",
       updatedAt: now,
     });
     return false;
