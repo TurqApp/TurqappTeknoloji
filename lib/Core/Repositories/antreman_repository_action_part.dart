@@ -1,6 +1,23 @@
 part of 'antreman_repository.dart';
 
 extension AntremanRepositoryActionPart on AntremanRepository {
+  Future<void> _deleteCollectionDocs(
+    CollectionReference<Map<String, dynamic>> collectionRef,
+  ) async {
+    final snapshot = await collectionRef.get(
+      const GetOptions(source: Source.serverAndCache),
+    );
+    if (snapshot.docs.isEmpty) return;
+    for (var i = 0; i < snapshot.docs.length; i += 200) {
+      final chunk = snapshot.docs.skip(i).take(200);
+      final batch = _firestore.batch();
+      for (final doc in chunk) {
+        batch.delete(collectionRef.doc(doc.id));
+      }
+      await batch.commit();
+    }
+  }
+
   Future<void> recordQuestionView({
     required String userId,
     required String questionId,
@@ -187,12 +204,13 @@ extension AntremanRepositoryActionPart on AntremanRepository {
     required String questionId,
     required String commentDocId,
   }) async {
-    await _firestore
+    final commentRef = _firestore
         .collection('questionBank')
         .doc(questionId)
         .collection('Yorumlar')
-        .doc(commentDocId)
-        .delete();
+        .doc(commentDocId);
+    await _deleteCollectionDocs(commentRef.collection('Yanitlar'));
+    await commentRef.delete();
     invalidateQuestionComments(questionId);
     invalidateReplies(questionId, commentDocId);
   }

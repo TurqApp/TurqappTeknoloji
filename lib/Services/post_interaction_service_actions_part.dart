@@ -285,6 +285,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
         } else {
           final postRef = _postRef(postId);
           final commentRef = postRef.collection('comments').doc(commentId);
+          await _deleteCollectionDocs(commentRef.collection('sub_comments'));
           await commentRef.delete();
           try {
             await postRef.set({
