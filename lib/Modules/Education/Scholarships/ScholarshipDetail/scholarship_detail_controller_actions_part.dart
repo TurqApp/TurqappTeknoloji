@@ -17,20 +17,9 @@ extension ScholarshipDetailControllerActionsPart
         return;
       }
 
-      final docRef = ScholarshipFirestorePath.doc(scholarshipId);
-      const field = 'basvurular';
-
-      await docRef.collection('Basvurular').doc(currentUserId).set({
-        'timeStamp': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      await docRef.update({
-        field: FieldValue.arrayUnion([currentUserId]),
-      });
-      await _scholarshipRepository.setUserAppliedCache(
-        scholarshipId,
-        currentUserId,
-        true,
+      await _scholarshipRepository.applyForScholarship(
+        scholarshipId: scholarshipId,
+        userId: currentUserId,
       );
 
       allreadyApplied.value = true;
@@ -106,14 +95,10 @@ extension ScholarshipDetailControllerActionsPart
 
     try {
       isLoading.value = true;
-      final docRef = ScholarshipFirestorePath.doc(scholarshipId);
-      const field = 'basvurular';
-
-      await docRef.collection('Basvurular').doc(currentUserId).delete();
-
-      await docRef.update({
-        field: FieldValue.arrayRemove([currentUserId]),
-      });
+      await _scholarshipRepository.cancelScholarshipApplication(
+        scholarshipId: scholarshipId,
+        userId: currentUserId,
+      );
 
       allreadyApplied.value = false;
       await checkUserApplicationReadiness();

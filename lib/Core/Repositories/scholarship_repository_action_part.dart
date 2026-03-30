@@ -10,6 +10,43 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
         .toList(growable: false);
   }
 
+  Future<List<String>> _updateApplicantCaches(
+    String scholarshipId,
+    String userId, {
+    required bool applied,
+  }) async {
+    final cleanId = scholarshipId.trim();
+    final cleanUserId = userId.trim();
+    if (cleanId.isEmpty || cleanUserId.isEmpty) return const <String>[];
+
+    final existingRaw = await fetchRawById(
+      cleanId,
+      preferCache: true,
+      forceRefresh: false,
+    );
+    final currentApplicants = _asNormalizedStringList(
+      existingRaw?['basvurular'],
+    );
+    final nextApplicants = applied
+        ? <String>{...currentApplicants, cleanUserId}.toList(growable: false)
+        : currentApplicants
+            .where((id) => id != cleanUserId)
+            .toList(growable: false);
+
+    if (existingRaw != null) {
+      final updated = Map<String, dynamic>.from(existingRaw)
+        ..['basvurular'] = nextApplicants;
+      await _store(cleanId, updated);
+    }
+    await _storeRawDoc(
+      'applicants:$cleanId',
+      <String, dynamic>{'ids': nextApplicants},
+    );
+    await _storeApply('$cleanId::$cleanUserId', applied);
+    await _invalidateQueryPrefix('query:applied:$cleanUserId:');
+    return nextApplicants;
+  }
+
   Future<void> setUserAppliedCache(
     String scholarshipId,
     String userId,
@@ -72,6 +109,54 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
     }
     await _invalidateQueryPrefix('query:membership:$field:$cleanUserId:');
     return !contains;
+  }
+
+  Future<void> applyForScholarship({
+    required String scholarshipId,
+    required String userId,
+  }) async {
+    final cleanId = scholarshipId.trim();
+    final cleanUserId = userId.trim();
+    if (cleanId.isEmpty || cleanUserId.isEmpty) return;
+    final docRef = ScholarshipFirestorePath.doc(cleanId);
+
+    await docRef.collection('Basvurular').doc(cleanUserId).set({
+      'timeStamp': DateTime.now().millisecondsSinceEpoch,
+    });
+    await docRef.update({
+      'basvurular': FieldValue.arrayUnion([cleanUserId]),
+    });
+
+    await _updateApplicantCaches(
+      cleanId,
+      cleanUserId,
+      applied: true,
+    );
+    await maybeFindScholarshipSnapshotRepository()
+        ?.invalidateUserScopedSurfaces(cleanUserId);
+  }
+
+  Future<void> cancelScholarshipApplication({
+    required String scholarshipId,
+    required String userId,
+  }) async {
+    final cleanId = scholarshipId.trim();
+    final cleanUserId = userId.trim();
+    if (cleanId.isEmpty || cleanUserId.isEmpty) return;
+    final docRef = ScholarshipFirestorePath.doc(cleanId);
+
+    await docRef.collection('Basvurular').doc(cleanUserId).delete();
+    await docRef.update({
+      'basvurular': FieldValue.arrayRemove([cleanUserId]),
+    });
+
+    await _updateApplicantCaches(
+      cleanId,
+      cleanUserId,
+      applied: false,
+    );
+    await maybeFindScholarshipSnapshotRepository()
+        ?.invalidateUserScopedSurfaces(cleanUserId);
   }
 
   Future<void> deleteScholarship({
