@@ -212,10 +212,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                     },
                                     child: Builder(builder: (_) {
                                       if (_shouldBlurIzBirakPost) {
-                                        return _buildVideoThumbnail();
+                                        return _buildVideoThumbnail(
+                                          aspectRatio: displayAspect,
+                                        );
                                       }
                                       if (videoController == null) {
-                                        return _buildVideoThumbnail();
+                                        return _buildVideoThumbnail(
+                                          aspectRatio: displayAspect,
+                                        );
                                       }
                                       return Stack(
                                         fit: StackFit.expand,

@@ -576,7 +576,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     },
                     child: AspectRatio(
                       aspectRatio: frameAspectRatio,
-                      child: _buildVideoThumbnail(),
+                      child: _buildVideoThumbnail(
+                        aspectRatio: frameAspectRatio,
+                      ),
                     ),
                   ),
                   Positioned(
