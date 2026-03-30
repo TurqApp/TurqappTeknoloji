@@ -81,7 +81,7 @@ class SurfacePolicyRegistry {
   static const int recommendedUsersWarmCount = 18;
   static const int recommendedUsersReadyCount = 60;
   static const int recommendedUsersFetchWarm = 80;
-  static const int recommendedUsersInitialLimit = 200;
+  static const int recommendedUsersInitialLimit = 250;
   static const int recommendedUsersFullLimit = 500;
 
   static const int feedReadyForNavCount = 3;
