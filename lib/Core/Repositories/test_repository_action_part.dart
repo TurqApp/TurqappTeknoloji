@@ -46,6 +46,22 @@ extension TestRepositoryActionPart on TestRepository {
     _memory.remove('answers:$testId');
   }
 
+  Future<void> deleteQuestion({
+    required String testId,
+    required String questionId,
+  }) async {
+    final normalizedTestId = testId.trim();
+    final normalizedQuestionId = questionId.trim();
+    if (normalizedTestId.isEmpty || normalizedQuestionId.isEmpty) return;
+    await _firestore
+        .collection('Testler')
+        .doc(normalizedTestId)
+        .collection('Sorular')
+        .doc(normalizedQuestionId)
+        .delete();
+    await _removeCacheKey('questions:$normalizedTestId');
+  }
+
   Future<bool> toggleFavorite(
     String testId, {
     required String userId,

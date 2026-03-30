@@ -57,13 +57,11 @@ extension AddTestQuestionControllerActionsPart on AddTestQuestionController {
     );
   }
 
-  void deleteQuestion(int index) {
-    FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(testID)
-        .collection("Sorular")
-        .doc(soruList[index].docID)
-        .delete();
+  Future<void> deleteQuestion(int index) async {
+    await _testRepository.deleteQuestion(
+      testId: testID,
+      questionId: soruList[index].docID,
+    );
     soruList.removeAt(index);
   }
 
