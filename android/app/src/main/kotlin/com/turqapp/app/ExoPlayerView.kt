@@ -64,6 +64,8 @@ class ExoPlayerView(
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
+    private var appBackgroundSoftHeld = false
+    private var shouldResumeAfterAppForeground = false
     private var didRenderFirstFrame = false
     private var isPlayerReady = false
     private var hasVideoSize = false
@@ -473,6 +475,38 @@ class ExoPlayerView(
         stopStallWatchdog()
     }
 
+    fun onAppBackgrounded() {
+        val p = player
+        if (p == null || currentUrl.isNullOrEmpty()) {
+            appBackgroundSoftHeld = false
+            shouldResumeAfterAppForeground = false
+            return
+        }
+        val shouldSoftHoldForBackground =
+            !isSoftHeld && (p.isPlaying || p.playWhenReady)
+        appBackgroundSoftHeld = shouldSoftHoldForBackground
+        shouldResumeAfterAppForeground = shouldSoftHoldForBackground
+        if (shouldSoftHoldForBackground) {
+            softHold()
+        }
+    }
+
+    fun onAppForegrounded() {
+        if (!appBackgroundSoftHeld) {
+            shouldResumeAfterAppForeground = false
+            return
+        }
+        appBackgroundSoftHeld = false
+        if (!shouldResumeAfterAppForeground) {
+            return
+        }
+        shouldResumeAfterAppForeground = false
+        if (player == null || currentUrl.isNullOrEmpty()) {
+            return
+        }
+        play()
+    }
+
     fun seek(seconds: Double) {
         val posMs = (seconds * 1000).toLong()
         player?.seekTo(posMs)
@@ -578,6 +612,8 @@ class ExoPlayerView(
         stopStartupRecoveryWatchdog()
         isSoftHeld = false
         heldVolume = 0f
+        appBackgroundSoftHeld = false
+        shouldResumeAfterAppForeground = false
         player?.let { p ->
             p.volume = 0f
             p.playWhenReady = false
@@ -896,6 +932,8 @@ class ExoPlayerView(
             player = null
             currentUrl = null
             isSoftHeld = false
+            appBackgroundSoftHeld = false
+            shouldResumeAfterAppForeground = false
         }
     }
 

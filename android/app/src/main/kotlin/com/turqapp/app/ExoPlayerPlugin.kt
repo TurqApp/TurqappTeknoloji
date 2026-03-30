@@ -40,10 +40,29 @@ class ExoPlayerPlugin private constructor(
         playerViews[viewId] = view
     }
 
+    fun handleAppBackgrounded() {
+        playerViews.values.toList().forEach { it.onAppBackgrounded() }
+    }
+
+    fun handleAppForegrounded() {
+        playerViews.values.toList().forEach { it.onAppForegrounded() }
+    }
+
+    private fun handleDisposeAllPlayers(result: MethodChannel.Result) {
+        val views = playerViews.values.toList()
+        playerViews.clear()
+        views.forEach { it.dispose() }
+        result.success(null)
+    }
+
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         val args = call.arguments as? Map<String, Any>
         if (call.method == "getActiveSmokeSnapshot") {
             result.success(ExoPlayerSmokeBridge.readActiveSnapshot())
+            return
+        }
+        if (call.method == "disposeAllPlayers") {
+            handleDisposeAllPlayers(result)
             return
         }
 
