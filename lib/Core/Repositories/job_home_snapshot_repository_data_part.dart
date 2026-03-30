@@ -1,6 +1,31 @@
 part of 'job_home_snapshot_repository.dart';
 
 extension _JobHomeSnapshotRepositoryDataX on JobHomeSnapshotRepository {
+  Future<List<JobModel>> _fetchOwnerJobs(JobOwnerQuery query) async {
+    final normalizedUserId = query.userId.trim();
+    if (normalizedUserId.isEmpty) return const <JobModel>[];
+    const options = GetOptions(source: Source.serverAndCache);
+    QuerySnapshot<Map<String, dynamic>> snapshot;
+    try {
+      snapshot = await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .where('userID', isEqualTo: normalizedUserId)
+          .orderBy('timeStamp', descending: true)
+          .get(options);
+    } on FirebaseException {
+      snapshot = await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .where('userID', isEqualTo: normalizedUserId)
+          .get(options);
+    }
+    final items = snapshot.docs
+        .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+        .where((job) => job.docID.isNotEmpty)
+        .toList(growable: false)
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    return items;
+  }
+
   Future<List<JobModel>?> _loadWarmEducationSnapshot(
     EducationTypesenseQuery query,
   ) async {

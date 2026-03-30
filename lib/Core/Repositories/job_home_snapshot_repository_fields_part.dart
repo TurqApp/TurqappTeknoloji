@@ -5,6 +5,8 @@ class _JobHomeSnapshotRepositoryState {
   late final CacheFirstCoordinator<List<JobModel>> coordinator;
   late final EducationTypesenseCacheFirstAdapter<List<JobModel>> homeAdapter;
   late final EducationTypesenseCacheFirstAdapter<List<JobModel>> searchAdapter;
+  late final CacheFirstQueryPipeline<JobOwnerQuery, List<JobModel>,
+      List<JobModel>> ownerPipeline;
 
   void initialize(JobHomeSnapshotRepository repository) {
     final homeSchemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
@@ -13,6 +15,9 @@ class _JobHomeSnapshotRepositoryState {
     final searchSchemaVersion =
         CacheFirstPolicyRegistry.schemaVersionForSurface(
       JobHomeSnapshotRepository._searchSurfaceKey,
+    );
+    final ownerSchemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      JobHomeSnapshotRepository._ownerSurfaceKey,
     );
     coordinator = CacheFirstCoordinator<List<JobModel>>(
       memoryStore: MemoryScopedSnapshotStore<List<JobModel>>(),
@@ -42,6 +47,19 @@ class _JobHomeSnapshotRepositoryState {
       isEmpty: (jobs) => jobs.isEmpty,
       schemaVersion: searchSchemaVersion,
     );
+    ownerPipeline =
+        CacheFirstQueryPipeline<JobOwnerQuery, List<JobModel>, List<JobModel>>(
+      surfaceKey: JobHomeSnapshotRepository._ownerSurfaceKey,
+      coordinator: coordinator,
+      userIdResolver: (query) => query.userId.trim(),
+      scopeIdBuilder: (query) => query.buildScopeId(
+        schemaVersion: ownerSchemaVersion,
+      ),
+      fetchRaw: repository._fetchOwnerJobs,
+      resolve: (jobs) => jobs,
+      isEmpty: (jobs) => jobs.isEmpty,
+      schemaVersion: ownerSchemaVersion,
+    );
   }
 }
 
@@ -52,4 +70,6 @@ extension JobHomeSnapshotRepositoryFieldsPart on JobHomeSnapshotRepository {
       _state.homeAdapter;
   EducationTypesenseCacheFirstAdapter<List<JobModel>> get _searchAdapter =>
       _state.searchAdapter;
+  CacheFirstQueryPipeline<JobOwnerQuery, List<JobModel>, List<JobModel>>
+      get _ownerPipeline => _state.ownerPipeline;
 }

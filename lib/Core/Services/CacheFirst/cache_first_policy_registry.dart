@@ -52,6 +52,7 @@ class CacheFirstPolicyRegistry {
       case 'market_owner_snapshot':
       case 'jobs_home_snapshot':
       case 'jobs_search_snapshot':
+      case 'jobs_owner_snapshot':
       case 'scholarship_home_snapshot':
       case 'scholarship_search_snapshot':
       case 'answer_key_home_snapshot':
@@ -97,6 +98,7 @@ class CacheFirstPolicyRegistry {
       case 'market_owner_snapshot':
       case 'jobs_home_snapshot':
       case 'jobs_search_snapshot':
+      case 'jobs_owner_snapshot':
       case 'scholarship_home_snapshot':
       case 'scholarship_search_snapshot':
       case 'answer_key_home_snapshot':

@@ -13,6 +13,45 @@ JobHomeSnapshotRepository ensureJobHomeSnapshotRepository() {
 }
 
 extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
+  Future<CachedResource<List<JobModel>>> loadCachedOwner({
+    required String userId,
+  }) {
+    final query = JobOwnerQuery(userId: userId);
+    final surfaceKey = JobHomeSnapshotRepository._ownerSurfaceKey;
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      surfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: surfaceKey,
+      userId: userId.trim(),
+      scopeId: query.buildScopeId(schemaVersion: schemaVersion),
+    );
+    return _coordinator.bootstrap(
+      key,
+      schemaVersion: schemaVersion,
+    );
+  }
+
+  Stream<CachedResource<List<JobModel>>> openOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _ownerPipeline.open(
+      JobOwnerQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<JobModel>>> loadOwner({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openOwner(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Stream<CachedResource<List<JobModel>>> openHome({
     required String userId,
     int limit = ReadBudgetRegistry.jobHomeInitialLimit,

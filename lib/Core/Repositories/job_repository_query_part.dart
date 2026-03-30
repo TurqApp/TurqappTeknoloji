@@ -135,42 +135,6 @@ extension JobRepositoryQueryPart on JobRepository {
         .toList(growable: false);
   }
 
-  Future<List<JobModel>> fetchByOwnerAndEnded(
-    String uid, {
-    required bool ended,
-    bool preferCache = true,
-    bool forceRefresh = false,
-    bool cacheOnly = false,
-  }) async {
-    final cacheKey = 'owner:$uid:ended:$ended';
-    if (!forceRefresh && preferCache) {
-      final memory = _getFromMemory(cacheKey);
-      if (memory != null) return memory;
-      final disk = await _getFromPrefsEntry(cacheKey);
-      if (disk != null) {
-        final cloned = _cloneJobs(disk.items);
-        _memory[cacheKey] = _TimedJobs(
-          items: cloned,
-          cachedAt: disk.cachedAt,
-        );
-        return _cloneJobs(cloned);
-      }
-    }
-
-    if (cacheOnly) return const <JobModel>[];
-
-    final snapshot = await _firestore
-        .collection(JobCollection.name)
-        .where('userID', isEqualTo: uid)
-        .where('ended', isEqualTo: ended)
-        .get(const GetOptions(source: Source.serverAndCache));
-    final items = snapshot.docs
-        .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-        .toList(growable: false);
-    await _store(cacheKey, items);
-    return items;
-  }
-
   Future<List<JobModel>> fetchSimilarByProfession(
     String meslek, {
     int limit = 15,

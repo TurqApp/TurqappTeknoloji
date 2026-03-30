@@ -3,7 +3,8 @@ part of 'my_job_ads_controller_library.dart';
 const Duration _myJobAdsSilentRefreshInterval = Duration(minutes: 5);
 
 abstract class _MyJobAdsControllerBase extends GetxController {
-  final JobRepository _jobRepository = ensureJobRepository();
+  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
+      ensureJobHomeSnapshotRepository();
   final pageController = PageController();
   final isLoadingActive = true.obs;
   final isLoadingDeactive = true.obs;
