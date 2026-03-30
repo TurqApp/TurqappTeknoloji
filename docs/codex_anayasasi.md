@@ -198,6 +198,40 @@ Beklenen kapanis:
 - `ContentPolicy` sadece ag/davranis karari verir; sayisal budget uretmez.
 - `CacheFirstPolicyRegistry` TTL/stale/sync politikasi icin kalir; sayisal
   budget kararlari `read_budget_registry.dart` icinde tutulur.
+- Kullaniciya gorunen listing/owner/search/answered/favorites/type/shared
+  surface'leri icin tek cache omurgasi sudur:
+  - `CacheFirstCoordinator`
+  - `CacheFirstQueryPipeline`
+  - `SharedPrefsScopedSnapshotStore`
+  - ilgili `*_snapshot_repository.dart`
+- Bir domain icin `*_snapshot_repository.dart` varsa controller ve view
+  katmani artik repo-local listing cache/query yoluna donmeyecek.
+- Surface ownership artik su backbone uzerindedir:
+  - `profile_posts_snapshot`
+  - `market_home/search/owner`
+  - `jobs_home/search/owner`
+  - `scholarship_home/search`
+  - `tutoring_home/search/owner`
+  - `practice_exam_home/search/owner/type/answered`
+  - `test_home/type/owner/answered/favorites/shared`
+  - `answer_key_home/search/owner/type`
+  - `optical_form_owner/answered`
+  - `past_question_home`
+- Ayni surface icin ikinci bir repo-local listing cache API'si tutmak yasak.
+  Su legacy pattern'ler geri getirilmeyecek:
+  - `fetchAnsweredByUser`
+  - `fetchFavorites`
+  - `fetchByOwner`
+  - `fetchAll`
+  - `fetchByType`
+  - `fetchByExamType`
+  - `fetchSharedPage`
+  - `fetchLatestRaw`
+  - `fetchByOwnerAndEnded`
+- Repo-local cache sadece su alanlarda kabul edilir:
+  - detail/doc cache
+  - kucuk metadata cache
+  - preference/runtime state
 - Ayni surface icin ikinci bir lokal budget kaynagi olusturma:
   - controller field icinde sabit
   - repo icinde ayri sabit
@@ -206,22 +240,13 @@ Beklenen kapanis:
 
 ### Acik Sonraki Plan
 
-Ana plan kapanmistir. Aktif blocker yoktur. Siradaki tek non-blocking mini
-lane sudur:
+Cache/backbone ana plan kapanmistir. Aktif blocker yoktur. Bundan sonraki
+lane'ler cache ownership ile karistirilmayacak; ozellikle `Agenda/Short/iOS
+playback` gibi lifecycle ve native playback diff'leri ayri lane olarak
+yurutulecek.
 
-- `render_diff_high` warning'inin kok nedenini dusurmek
-
-Bu lane icin sira:
-
-- `merged_feed_rebuild`
-- `filtered_feed_rebuild`
-- `render_feed_rebuild`
-
-zincirinde patch hacmini dusuren gereksiz rebuild/update noktalarini bul.
-
-Bu lane'in Definition of Done'u:
+Bir sonraki lane'e gecmeden once beklenen kapanis:
 
 - full smoke yesil kalacak
 - `blocking=0`
 - `failures=0`
-- mumkunse `render_diff_high` warning'i artifact'lardan kalkacak
