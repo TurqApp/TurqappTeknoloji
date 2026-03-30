@@ -3,6 +3,12 @@ part of 'agenda_controller.dart';
 extension AgendaControllerFeedPart on AgendaController {
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
+  bool _hasExternalPlaybackOwner(String? playbackHandleKey) {
+    final key = playbackHandleKey?.trim() ?? '';
+    if (key.isEmpty) return false;
+    return !key.startsWith('feed:');
+  }
+
   bool get _canRetainStartupPlaybackLock {
     if (!GetPlatform.isIOS) return false;
     if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
@@ -86,6 +92,9 @@ extension AgendaControllerFeedPart on AgendaController {
   void _bindCenteredIndexListener() {
     ever<int>(centeredIndex, (newIndex) {
       final videoManager = VideoStateManager.instance;
+      final preserveExternalPlayback = _hasExternalPlaybackOwner(
+        videoManager.currentPlayingDocID,
+      );
       _notifyPlaybackRowUpdates(newIndex);
 
       if (playbackSuspended.value) {
@@ -96,13 +105,17 @@ extension AgendaControllerFeedPart on AgendaController {
 
       if (!isPrimaryFeedRouteVisible) {
         _cancelPendingPlaybackReassert();
-        videoManager.pauseAllVideos(force: true);
+        if (!preserveExternalPlayback) {
+          videoManager.pauseAllVideos(force: true);
+        }
         return;
       }
 
       if (newIndex == -1) {
         _cancelPendingPlaybackReassert();
-        videoManager.pauseAllVideos();
+        if (!preserveExternalPlayback) {
+          videoManager.pauseAllVideos();
+        }
         return;
       }
 

@@ -74,6 +74,12 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
           _playbackHandleKeyForDoc(list[initial].docID),
         );
       } catch (_) {}
+      if (usesInjectedInitialPlayback) {
+        _requestExclusivePlayback(
+          list[initial].docID,
+          minSpacing: Duration.zero,
+        );
+      }
       if (!usesInjectedInitialPlayback) {
         _primePlaybackForIndex(initial);
       }
@@ -83,7 +89,18 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
         pageController.jumpToPage(initial);
       }
     });
-    if (list.isNotEmpty) _preloadRange(initial);
+    if (list.isNotEmpty) {
+      if (usesInjectedInitialPlayback) {
+        Future<void>.delayed(const Duration(milliseconds: 900), () {
+          if (!mounted) return;
+          if (currentPage != initial) return;
+          if (list.isEmpty || initial < 0 || initial >= list.length) return;
+          _preloadRange(initial);
+        });
+      } else {
+        _preloadRange(initial);
+      }
+    }
     _renderedShorts = List<PostsModel>.from(list);
   }
 
