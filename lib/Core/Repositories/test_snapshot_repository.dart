@@ -537,6 +537,30 @@ class TestSnapshotRepository extends GetxService {
     ).last;
   }
 
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(ownerSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(allSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(typeSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(answeredSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(favoritesSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(sharedSurfaceKey, userId: normalized),
+    ]);
+  }
+
+  Future<void> invalidateAllSurfaces() async {
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(ownerSurfaceKey),
+      _coordinator.clearSurface(allSurfaceKey),
+      _coordinator.clearSurface(typeSurfaceKey),
+      _coordinator.clearSurface(answeredSurfaceKey),
+      _coordinator.clearSurface(favoritesSurfaceKey),
+      _coordinator.clearSurface(sharedSurfaceKey),
+    ]);
+  }
+
   Map<String, dynamic> _encodeItems(List<TestsModel> items) {
     return <String, dynamic>{
       'items': items

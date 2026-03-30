@@ -46,10 +46,7 @@ extension CreateTestControllerActionsPart on CreateTestController {
   }
 
   Future<void> deleteTest() async {
-    await FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(testID.value.toString())
-        .delete();
+    await _testRepository.deleteTest(testID.value.toString());
     Get.back();
   }
 

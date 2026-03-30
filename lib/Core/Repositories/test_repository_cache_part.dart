@@ -65,6 +65,14 @@ extension _TestRepositoryCacheX on TestRepository {
     );
   }
 
+  Future<void> _removeCacheKey(String cacheKey) async {
+    final normalized = cacheKey.trim();
+    if (normalized.isEmpty) return;
+    _memory.remove(normalized);
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.remove('${TestRepository._prefsPrefix}:$normalized');
+  }
+
   Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.setString(
