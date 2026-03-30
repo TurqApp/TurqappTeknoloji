@@ -155,6 +155,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isProfileSurfaceInstance =>
       _surfaceInstanceTag.startsWith('profile_');
 
+  bool get _isFloodSurfaceInstance => _surfaceInstanceTag.startsWith('flood_');
+
   bool get _isProfileFamilySurfaceInstance =>
       _surfaceInstanceTag.startsWith('profile_') ||
       _surfaceInstanceTag.startsWith('archives_') ||
@@ -175,6 +177,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _controllerOwnsInlinePlayback =>
       !isStandalonePostInstance &&
+      !_isFloodSurfaceInstance &&
       (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
 
   bool get shouldAutoResumeInlinePlatformView {
@@ -194,6 +197,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   bool get _isSurfacePlaybackAllowed {
+    if (_isFloodSurfaceInstance) {
+      final route = ModalRoute.of(context);
+      return route?.isCurrent ?? false;
+    }
     if (isStandalonePostInstance) return true;
     if (_surfaceInstanceTag.startsWith('social_')) {
       final route = Get.currentRoute.trim();
@@ -216,6 +223,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   String get _qaSurfaceName {
     if (isStandalonePostInstance) return 'feed';
+    if (_isFloodSurfaceInstance) return 'flood';
     if (_isProfileFamilySurfaceInstance) return 'profile';
     return 'feed';
   }
