@@ -118,22 +118,23 @@ extension StoryMusicAdminViewActionsPart on _StoryMusicAdminViewState {
       final existingLastUsedAt = current?.lastUsedAt ?? 0;
       final existingCreatedAt = current?.createdAt ?? now;
 
-      await _collection.doc(docId).set({
-        'title': title,
-        'artist': artist,
-        'audioUrl': audioUrl,
-        'coverUrl': coverUrl,
-        'durationMs': current?.durationMs ?? 0,
-        'useCount': existingUseCount,
-        'shareCount': existingShareCount,
-        'storyCount': existingStoryCount,
-        'order': order,
-        'isActive': _isActive,
-        'category': category,
-        'lastUsedAt': existingLastUsedAt,
-        'createdAt': existingCreatedAt,
-        'updatedAt': now,
-      }, SetOptions(merge: true));
+      await _libraryService.saveAdminTrack(
+        docId: docId,
+        title: title,
+        artist: artist,
+        audioUrl: audioUrl,
+        coverUrl: coverUrl,
+        durationMs: current?.durationMs ?? 0,
+        useCount: existingUseCount,
+        shareCount: existingShareCount,
+        storyCount: existingStoryCount,
+        order: order,
+        isActive: _isActive,
+        category: category,
+        lastUsedAt: existingLastUsedAt,
+        createdAt: existingCreatedAt,
+        updatedAt: now,
+      );
 
       AppSnackbar(
         'post_creator.success_title'.tr,
@@ -158,7 +159,7 @@ extension StoryMusicAdminViewActionsPart on _StoryMusicAdminViewState {
   Future<void> _deleteTrack(MusicModel track) async {
     _updateViewState(() => _isBusy = true);
     try {
-      await _collection.doc(track.docID).delete();
+      await _libraryService.deleteAdminTrack(track.docID);
       if (_editingDocId == track.docID) {
         _resetForm();
       }

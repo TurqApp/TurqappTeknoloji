@@ -1,6 +1,85 @@
 part of 'story_music_library_service.dart';
 
 extension StoryMusicLibraryServiceActionPart on StoryMusicLibraryService {
+  Future<void> saveAdminTrack({
+    required String docId,
+    required String title,
+    required String artist,
+    required String audioUrl,
+    required String coverUrl,
+    required int durationMs,
+    required int useCount,
+    required int shareCount,
+    required int storyCount,
+    required int order,
+    required bool isActive,
+    required String category,
+    required int lastUsedAt,
+    required int createdAt,
+    required int updatedAt,
+  }) async {
+    final cleanId = docId.trim();
+    if (cleanId.isEmpty) return;
+
+    await _collection.doc(cleanId).set({
+      'title': title,
+      'artist': artist,
+      'audioUrl': audioUrl,
+      'coverUrl': coverUrl,
+      'durationMs': durationMs,
+      'useCount': useCount,
+      'shareCount': shareCount,
+      'storyCount': storyCount,
+      'order': order,
+      'isActive': isActive,
+      'category': category,
+      'lastUsedAt': lastUsedAt,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+    }, SetOptions(merge: true));
+
+    final cached = await _loadCache(ignoreTtl: true);
+    final nextTrack = MusicModel(
+      docID: cleanId,
+      title: title,
+      artist: artist,
+      audioUrl: audioUrl,
+      coverUrl: coverUrl,
+      durationMs: durationMs,
+      useCount: useCount,
+      shareCount: shareCount,
+      storyCount: storyCount,
+      order: order,
+      lastUsedAt: lastUsedAt,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      isActive: isActive,
+      category: category,
+    );
+    final next = cached.toList(growable: true)
+      ..removeWhere((track) => track.docID == cleanId)
+      ..add(nextTrack)
+      ..sort((a, b) {
+        final byOrder = a.order.compareTo(b.order);
+        if (byOrder != 0) return byOrder;
+        return compareNormalizedText(a.title, b.title);
+      });
+    await _persistCache(next);
+  }
+
+  Future<void> deleteAdminTrack(String docId) async {
+    final cleanId = docId.trim();
+    if (cleanId.isEmpty) return;
+
+    await _collection.doc(cleanId).delete();
+
+    final cached = await _loadCache(ignoreTtl: true);
+    if (cached.isEmpty) return;
+    final next =
+        cached.where((track) => track.docID != cleanId).toList(growable: false);
+    await _persistCache(next);
+  }
+
   Future<void> incrementUseCount(MusicModel track) async {
     if (track.docID.trim().isEmpty) return;
 
