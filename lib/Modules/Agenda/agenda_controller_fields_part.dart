@@ -66,6 +66,7 @@ class _AgendaControllerState {
   String? lastPlaybackCommandDocId;
   bool feedModeFallbackQueued = false;
   int feedModeFallbackEpoch = 0;
+  bool feedRefreshInFlight = false;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -204,4 +205,6 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.feedModeFallbackQueued = value;
   int get _feedModeFallbackEpoch => _state.feedModeFallbackEpoch;
   set _feedModeFallbackEpoch(int value) => _state.feedModeFallbackEpoch = value;
+  bool get _feedRefreshInFlight => _state.feedRefreshInFlight;
+  set _feedRefreshInFlight(bool value) => _state.feedRefreshInFlight = value;
 }

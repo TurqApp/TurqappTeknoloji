@@ -595,21 +595,11 @@ extension AgendaControllerLoadingPart on AgendaController {
     _feedMutationEpoch = refreshEpoch;
     try {
       _cancelDeferredInitialNetworkBootstrap();
-      // Refresh başlarken tüm oynatımları kesin durdur.
-      pauseAll.value = true;
+      _feedRefreshInFlight = true;
       _pendingCenteredDocId = null;
       _startupLockedFeedDocId = null;
       _lastPlaybackCommandDocId = null;
       _lastPlaybackCommandAt = null;
-      lastCenteredIndex = 0;
-      _visibleFractions.clear();
-      _visibleUpdatedAt.clear();
-      _lastPlaybackWindowSignature = null;
-      _lastPlaybackRowUpdateDocId = null;
-      centeredIndex.value = -1;
-      try {
-        VideoStateManager.instance.pauseAllVideos(force: true);
-      } catch (_) {}
 
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
@@ -619,20 +609,22 @@ extension AgendaControllerLoadingPart on AgendaController {
       final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
-      await _refreshAgendaFromLiveSource();
+      await _refreshAgendaFromLiveSource(refreshEpoch: refreshEpoch);
       await _fetchAndMergeReshareEvents(
         eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
       );
-      pauseAll.value = false;
+      _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
     } catch (e) {
       print("refreshAgenda error: $e");
-      pauseAll.value = false;
+      _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
     }
   }
 
-  Future<void> _refreshAgendaFromLiveSource() async {
+  Future<void> _refreshAgendaFromLiveSource({
+    required int refreshEpoch,
+  }) async {
     if (isLoading.value) return;
 
     isLoading.value = true;
@@ -667,6 +659,13 @@ extension AgendaControllerLoadingPart on AgendaController {
         ...page.items,
         ...previousAgenda.where((post) => !liveHeadIds.contains(post.docID)),
       ];
+      final refreshTargetIndex = mergedAgenda.indexWhere(
+        (post) => _canAutoplayVideoPost(post),
+      );
+      final refreshTargetDocId =
+          refreshTargetIndex >= 0 && refreshTargetIndex < mergedAgenda.length
+              ? mergedAgenda[refreshTargetIndex].docID
+              : (mergedAgenda.isNotEmpty ? mergedAgenda.first.docID : null);
 
       _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
       lastDoc = pageApplyPlan.lastDoc;
@@ -677,6 +676,18 @@ extension AgendaControllerLoadingPart on AgendaController {
       feedReshareEntries.clear();
       highlightDocIDs.clear();
       agendaList.assignAll(mergedAgenda);
+      if (refreshEpoch == _feedMutationEpoch) {
+        _pendingCenteredDocId = refreshTargetDocId;
+        _startupLockedFeedDocId = refreshTargetDocId;
+        _lastPlaybackCommandDocId = null;
+        _lastPlaybackCommandAt = null;
+        _visibleFractions.clear();
+        _visibleUpdatedAt.clear();
+        _lastPlaybackWindowSignature = null;
+        _lastPlaybackRowUpdateDocId = null;
+        lastCenteredIndex = refreshTargetIndex >= 0 ? refreshTargetIndex : 0;
+        centeredIndex.value = -1;
+      }
 
       if (pageApplyPlan.freshScheduledIds.isNotEmpty) {
         markHighlighted(
