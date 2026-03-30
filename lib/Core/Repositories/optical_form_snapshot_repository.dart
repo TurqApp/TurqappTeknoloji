@@ -23,6 +23,26 @@ class OpticalFormOwnerQuery {
       );
 }
 
+class OpticalFormAnsweredQuery {
+  const OpticalFormAnsweredQuery({
+    required this.userId,
+  });
+
+  final String userId;
+
+  String buildScopeId() => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: 0,
+        scopeTag: 'answered',
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          OpticalFormSnapshotRepository.answeredSurfaceKey,
+        ),
+        qualifiers: <String, Object?>{
+          'answered': userId.trim(),
+        },
+      );
+}
+
 OpticalFormSnapshotRepository? maybeFindOpticalFormSnapshotRepository() {
   final isRegistered = Get.isRegistered<OpticalFormSnapshotRepository>();
   if (!isRegistered) return null;
@@ -39,6 +59,7 @@ class OpticalFormSnapshotRepository extends GetxService {
   OpticalFormSnapshotRepository();
 
   static const String ownerSurfaceKey = 'optical_form_owner_snapshot';
+  static const String answeredSurfaceKey = 'optical_form_answered_snapshot';
 
   late final CacheFirstCoordinator<List<OpticalFormModel>> _coordinator =
       CacheFirstCoordinator<List<OpticalFormModel>>(
@@ -69,19 +90,59 @@ class OpticalFormSnapshotRepository extends GetxService {
     ),
   );
 
+  late final CacheFirstQueryPipeline<OpticalFormAnsweredQuery,
+          List<OpticalFormModel>, List<OpticalFormModel>> _answeredPipeline =
+      CacheFirstQueryPipeline<OpticalFormAnsweredQuery, List<OpticalFormModel>,
+          List<OpticalFormModel>>(
+    surfaceKey: answeredSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(),
+    fetchRaw: _fetchAnsweredItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      answeredSurfaceKey,
+    ),
+  );
+
   Future<CachedResource<List<OpticalFormModel>>> loadCachedOwner({
     required String userId,
   }) {
     final query = OpticalFormOwnerQuery(userId: userId);
-    final key = ScopedSnapshotKey(
+    return _bootstrap(
       surfaceKey: ownerSurfaceKey,
-      userId: userId.trim(),
+      userId: userId,
       scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<OpticalFormModel>>> loadCachedAnswered({
+    required String userId,
+  }) {
+    final query = OpticalFormAnsweredQuery(userId: userId);
+    return _bootstrap(
+      surfaceKey: answeredSurfaceKey,
+      userId: userId,
+      scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<OpticalFormModel>>> _bootstrap({
+    required String surfaceKey,
+    required String userId,
+    required String scopeId,
+  }) {
+    final key = ScopedSnapshotKey(
+      surfaceKey: surfaceKey,
+      userId: userId.trim(),
+      scopeId: scopeId,
     );
     return _coordinator.bootstrap(
       key,
       schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
-        ownerSurfaceKey,
+        surfaceKey,
       ),
     );
   }
@@ -101,6 +162,26 @@ class OpticalFormSnapshotRepository extends GetxService {
     bool forceSync = false,
   }) {
     return openOwner(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
+  Stream<CachedResource<List<OpticalFormModel>>> openAnswered({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return _answeredPipeline.open(
+      OpticalFormAnsweredQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<OpticalFormModel>>> loadAnswered({
+    required String userId,
+    bool forceSync = false,
+  }) {
+    return openAnswered(
       userId: userId,
       forceSync: forceSync,
     ).last;
@@ -170,5 +251,49 @@ class OpticalFormSnapshotRepository extends GetxService {
         .toList(growable: false)
       ..sort((a, b) => b.docID.compareTo(a.docID));
     return items;
+  }
+
+  Future<List<OpticalFormModel>> _fetchAnsweredItems(
+    OpticalFormAnsweredQuery query,
+  ) async {
+    final normalizedUserId = query.userId.trim();
+    if (normalizedUserId.isEmpty) return const <OpticalFormModel>[];
+    final answersSnap = await FirebaseFirestore.instance
+        .collectionGroup('Yanitlar')
+        .where(FieldPath.documentId, isEqualTo: normalizedUserId)
+        .get(const GetOptions(source: Source.serverAndCache));
+    final formIds = <String>{
+      for (final doc in answersSnap.docs)
+        if (doc.reference.parent.parent != null &&
+            doc.reference.parent.parent!.parent.id == 'optikForm')
+          doc.reference.parent.parent!.id,
+    }.toList(growable: false);
+    if (formIds.isEmpty) return const <OpticalFormModel>[];
+    final items = await _fetchByIds(formIds);
+    items.sort((a, b) => b.baslangic.compareTo(a.baslangic));
+    return items;
+  }
+
+  Future<List<OpticalFormModel>> _fetchByIds(List<String> docIds) async {
+    final ids = docIds
+        .where((id) => id.trim().isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return const <OpticalFormModel>[];
+    final byId = <String, OpticalFormModel>{};
+    for (var i = 0; i < ids.length; i += 10) {
+      final chunk = ids.skip(i).take(10).toList(growable: false);
+      final snap = await FirebaseFirestore.instance
+          .collection('optikForm')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get(const GetOptions(source: Source.serverAndCache));
+      for (final doc in snap.docs) {
+        byId[doc.id] = OpticalFormModel.fromMap(doc.data(), doc.id);
+      }
+    }
+    return ids
+        .map((id) => byId[id])
+        .whereType<OpticalFormModel>()
+        .toList(growable: false);
   }
 }

@@ -1,7 +1,7 @@
 part of 'my_booklet_results_controller.dart';
 
 class _MyBookletResultsControllerState {
-  final opticalFormRepository = ensureOpticalFormRepository();
+  final opticalFormSnapshotRepository = ensureOpticalFormSnapshotRepository();
   final userSubcollectionRepository = ensureUserSubcollectionRepository();
   final list = <BookletResultModel>[].obs;
   final optikSonuclari = <OpticalFormModel>[].obs;
@@ -10,8 +10,8 @@ class _MyBookletResultsControllerState {
 }
 
 extension MyBookletResultsControllerFieldsPart on MyBookletResultsController {
-  OpticalFormRepository get _opticalFormRepository =>
-      _state.opticalFormRepository;
+  OpticalFormSnapshotRepository get _opticalFormSnapshotRepository =>
+      _state.opticalFormSnapshotRepository;
   UserSubcollectionRepository get _userSubcollectionRepository =>
       _state.userSubcollectionRepository;
   RxList<BookletResultModel> get list => _state.list;

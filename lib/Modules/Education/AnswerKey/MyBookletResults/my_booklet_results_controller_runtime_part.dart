@@ -22,11 +22,11 @@ class MyBookletResultsControllerRuntimePart {
         cacheOnly: true,
       );
       final cachedOptikler =
-          await controller._opticalFormRepository.fetchAnsweredByUser(
-        uid,
-        preferCache: true,
-        cacheOnly: true,
-      );
+          (await controller._opticalFormSnapshotRepository.loadCachedAnswered(
+                userId: uid,
+              ))
+                  .data ??
+              const <OpticalFormModel>[];
       if (cachedEntries.isNotEmpty || cachedOptikler.isNotEmpty) {
         controller._assignBookletResults(cachedEntries);
         cachedOptikler.sort((a, b) => b.baslangic.compareTo(a.baslangic));
@@ -67,12 +67,24 @@ class MyBookletResultsControllerRuntimePart {
     final currentUserUID = CurrentUserService.instance.effectiveUserId;
 
     try {
-      final tempList =
-          await controller._opticalFormRepository.fetchAnsweredByUser(
-        currentUserUID,
-        preferCache: true,
-        forceRefresh: forceRefresh,
-      );
+      final tempList = forceRefresh
+          ? ((await controller._opticalFormSnapshotRepository.loadAnswered(
+                userId: currentUserUID,
+                forceSync: true,
+              ))
+                  .data ??
+              const <OpticalFormModel>[])
+          : ((await controller._opticalFormSnapshotRepository
+                      .loadCachedAnswered(
+                userId: currentUserUID,
+              ))
+                  .data ??
+              (await controller._opticalFormSnapshotRepository.loadAnswered(
+                userId: currentUserUID,
+                forceSync: true,
+              ))
+                  .data ??
+              const <OpticalFormModel>[]);
 
       tempList.sort((a, b) => b.baslangic.compareTo(a.baslangic));
       controller.optikSonuclari.assignAll(tempList);
