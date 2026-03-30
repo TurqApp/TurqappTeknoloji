@@ -535,10 +535,7 @@ export const onPostCreate = functions
     const authorId: string = data.userID || "";
     const timeStamp: number = data.timeStamp || Date.now();
     const isVideo: boolean = !!(data.videoHLSMasterUrl || data.hlsMasterUrl || data.video);
-    const arsiv: boolean = data.arsiv === true;
-    const deletedPost: boolean = data.deletedPost === true;
-
-    if (!authorId || arsiv || deletedPost) return;
+    if (!authorId || !isVisiblePostRecord(data) || timeStamp > Date.now()) return;
 
     try {
       await upsertPostIntoHybridFeed({

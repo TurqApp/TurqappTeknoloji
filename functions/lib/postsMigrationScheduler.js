@@ -369,6 +369,81 @@ async function loadUserProfile(uid, cache) {
     cache.set(uid, profile);
     return profile;
 }
+async function ensurePlaceholderPosts(group, docs, now) {
+    if (asNum(group.docSeededAt, 0) > 0)
+        return true;
+    const userCache = new Map();
+    const batch = db().batch();
+    for (const doc of docs) {
+        if (!doc.userID)
+            return false;
+        const profile = await loadUserProfile(doc.userID, userCache);
+        if (!profile)
+            return false;
+        batch.set(db().collection(POSTS_COLLECTION).doc(doc.docId), {
+            ad: doc.ad,
+            arsiv: false,
+            aspectRatio: doc.aspectRatio,
+            authorAvatarUrl: profile.avatarUrl,
+            authorDisplayName: profile.displayName,
+            authorNickname: profile.nickname,
+            avatarUrl: profile.avatarUrl,
+            debugMode: doc.debugMode,
+            deletedPost: false,
+            deletedPostTime: 0,
+            displayName: profile.displayName,
+            editTime: doc.editTime,
+            flood: doc.index !== 0,
+            floodCount: group.docCount,
+            fullName: profile.fullName,
+            gizlendi: false,
+            hlsMasterUrl: "",
+            hlsStatus: asString(doc.sourceVideoUrl).length > 0 ? "processing" : "none",
+            hlsUpdatedAt: 0,
+            img: [],
+            imgMap: [],
+            isAd: doc.isAd,
+            isUploading: true,
+            izBirakYayinTarihi: group.publishAt,
+            konum: doc.konum,
+            locationCity: doc.locationCity,
+            mainFlood: buildTargetMainFlood(doc.docId, doc.index),
+            metin: doc.metin,
+            nickname: profile.nickname,
+            originalPostID: doc.originalPostID,
+            originalUserID: doc.originalUserID,
+            paylasGizliligi: doc.paylasGizliligi,
+            reshareMap: buildReshareMap(doc),
+            rozet: profile.rozet,
+            scheduledAt: doc.scheduledAt,
+            sikayetEdildi: false,
+            stabilized: false,
+            stats: {
+                commentCount: 0,
+                likeCount: 0,
+                reportedCount: 0,
+                retryCount: 0,
+                savedCount: 0,
+                statsCount: 0,
+            },
+            tags: doc.tags,
+            thumbnail: "",
+            timeStamp: group.publishAt,
+            updatedAt: now,
+            userID: doc.userID,
+            username: profile.username,
+            video: "",
+            yorum: doc.yorum,
+            yorumMap: buildYorumMap(doc),
+        }, { merge: true });
+    }
+    batch.set(db().collection(QUEUE_COLLECTION).doc(group.rootId), {
+        docSeededAt: now,
+        updatedAt: now,
+    }, { merge: true });
+    await batch.commit();
+    return true;
+}
 async function buildPayloads(group, docs) {
     const userCache = new Map();
     const payloads = [];
@@ -508,6 +583,18 @@ async function processGroup(rootId, runId, now) {
         await updateGroup(rootId, {
             active: false,
             lastError: "missing_group_docs",
+            lastErrorAt: now,
+            leaseOwner: "",
+            leaseUntil: 0,
+            state: "failed",
+            updatedAt: now,
+        });
+        return "failed";
+    }
+    const seeded = await ensurePlaceholderPosts(group, docs, now);
+    if (!seeded) {
+        await updateGroup(rootId, {
+            lastError: "placeholder_seed_failed",
             lastErrorAt: now,
             leaseOwner: "",
             leaseUntil: 0,

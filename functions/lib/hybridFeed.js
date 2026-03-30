@@ -402,9 +402,7 @@ exports.onPostCreate = functions
     const authorId = data.userID || "";
     const timeStamp = data.timeStamp || Date.now();
     const isVideo = !!(data.videoHLSMasterUrl || data.hlsMasterUrl || data.video);
-    const arsiv = data.arsiv === true;
-    const deletedPost = data.deletedPost === true;
-    if (!authorId || arsiv || deletedPost)
+    if (!authorId || !isVisiblePostRecord(data) || timeStamp > Date.now())
         return;
     try {
         await upsertPostIntoHybridFeed({
