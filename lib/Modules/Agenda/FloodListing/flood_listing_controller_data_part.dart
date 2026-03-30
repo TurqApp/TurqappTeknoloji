@@ -7,7 +7,14 @@ extension FloodListingControllerDataPart on FloodListingController {
 
     final baseID = anyFloodID.replaceFirst(RegExp(r'_\d+$'), '');
     final ids = List<String>.generate(floodCount, (i) => '${baseID}_$i');
-    final fetched = await _postRepository.fetchPostCardsByIds(ids);
+    // Flood detail needs canonical post docs, not potentially stale search-card
+    // projections. Otherwise migrated HLS fields can lag behind and the inline
+    // player stays on the gray poster inside the flood route.
+    final fetched = await _postRepository.fetchPostsByIds(
+      ids,
+      preferCache: false,
+      cacheOnly: false,
+    );
 
     final rootID = '${baseID}_0';
     try {
