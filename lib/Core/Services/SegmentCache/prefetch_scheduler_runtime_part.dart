@@ -74,6 +74,34 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     return cache;
   }
 
+  StorageBudgetProfile? get _storageBudgetProfile {
+    final manager = StorageBudgetManager.maybeFind();
+    if (manager == null) return null;
+    final profile = manager.currentProfile;
+    return profile.isValid ? profile : null;
+  }
+
+  int get _wifiQuotaFillTargetBytes {
+    if (!_isOnWiFi) return 0;
+    final profile = _storageBudgetProfile;
+    if (profile == null) return 0;
+    return (profile.streamCacheHardStopBytes *
+            _prefetchSchedulerWifiQuotaFillTargetRatio)
+        .round();
+  }
+
+  bool _hasReachedWifiQuotaFillTarget(SegmentCacheManager cacheManager) {
+    final targetBytes = _wifiQuotaFillTargetBytes;
+    if (targetBytes <= 0) return false;
+    return cacheManager.totalSizeBytes >= targetBytes;
+  }
+
+  double _wifiQuotaFillRatio(SegmentCacheManager cacheManager) {
+    final targetBytes = _wifiQuotaFillTargetBytes;
+    if (targetBytes <= 0) return 0.0;
+    return (cacheManager.totalSizeBytes / targetBytes).clamp(0.0, 1.0);
+  }
+
   void _handlePrefetchSchedulerClose() {
     _watchdogTimer?.cancel();
     _workerSub?.cancel();

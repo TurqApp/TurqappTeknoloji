@@ -30,6 +30,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       pause();
       return;
     }
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+    if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+      _publishPrefetchHealthIfNeeded(force: true);
+      return;
+    }
     if (_paused || _queue.isEmpty) return;
     if (_activeDownloads >= _maxConcurrent) return;
 
@@ -40,6 +46,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     }
 
     while (_queue.isNotEmpty && _activeDownloads < _maxConcurrent && !_paused) {
+      if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+        _publishPrefetchHealthIfNeeded(force: true);
+        return;
+      }
       final job = _queue.removeAt(0);
       _trackQueueDispatchLatency(job.docID);
       await _processJob(job);
@@ -181,6 +191,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
       for (final segUri in toDownload) {
         if (_paused) break;
+        if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+          _publishPrefetchHealthIfNeeded(force: true);
+          break;
+        }
 
         final segmentCdnUrl =
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
@@ -338,6 +352,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   void _publishPrefetchHealthIfNeeded({bool force = false}) {
     final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
+    final cacheManager = _getCacheManager();
+    final quotaReached =
+        cacheManager != null && _hasReachedWifiQuotaFillTarget(cacheManager);
+    final quotaBucket = cacheManager == null
+        ? 0
+        : (_wifiQuotaFillRatio(cacheManager) * 10).floor().clamp(0, 10);
 
     final readyBucket = (_lastFeedReadyRatio * 10).floor().clamp(0, 10);
     final latencyBucket = (_avgQueueDispatchLatencyMs / 250).floor().clamp(
@@ -351,6 +371,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       'a$_activeDownloads',
       'r$readyBucket',
       'l$latencyBucket',
+      'quota${quotaReached ? 'stop' : 'ok'}',
+      'qb$quotaBucket',
     ].join('|');
 
     if (!force && signature == _lastPrefetchHealthSignature) {
@@ -370,6 +392,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         'feedReadyCount': _lastFeedReadyCount,
         'feedWindowCount': _lastFeedWindowCount,
         'avgQueueDispatchLatencyMs': _avgQueueDispatchLatencyMs,
+        'wifiQuotaFillRatio':
+            cacheManager == null ? 0.0 : _wifiQuotaFillRatio(cacheManager),
+        'wifiQuotaFillTargetBytes': _wifiQuotaFillTargetBytes,
+        'wifiQuotaFillTargetReached': quotaReached,
       },
     );
   }
