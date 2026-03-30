@@ -193,10 +193,23 @@ extension TutoringRepositoryActionPart on TutoringRepository {
   }
 
   Future<void> unpublish(String tutoringId) async {
-    await _firestore.collection('educators').doc(tutoringId).update({
+    final normalizedTutoringId = tutoringId.trim();
+    if (normalizedTutoringId.isEmpty) return;
+    final docRef = _firestore.collection('educators').doc(normalizedTutoringId);
+    final docSnap = await docRef.get(
+      const GetOptions(source: Source.serverAndCache),
+    );
+    final ownerUserId = (docSnap.data()?['userID'] ?? '').toString().trim();
+    await docRef.update({
       'ended': true,
       'endedAt': DateTime.now().millisecondsSinceEpoch,
     });
+    await TypesenseEducationSearchService.instance.invalidateEntity(
+      EducationTypesenseEntity.tutoring,
+    );
+    await maybeFindTutoringSnapshotRepository()?.invalidateUserScopedSurfaces(
+      ownerUserId,
+    );
   }
 
   Future<void> submitReview({

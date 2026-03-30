@@ -126,4 +126,23 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
       forceSync: forceSync,
     ).last;
   }
+
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(
+        JobHomeSnapshotRepository._ownerSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        JobHomeSnapshotRepository._homeSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        JobHomeSnapshotRepository._searchSurfaceKey,
+        userId: normalized,
+      ),
+    ]);
+  }
 }

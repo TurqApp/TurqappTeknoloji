@@ -62,6 +62,8 @@ extension RecommendedUsersRepositoryFacadePart on RecommendedUsersRepository {
     bool preferCache = true,
   }) =>
       _fetchCandidatesImpl(limit: limit, preferCache: preferCache);
+
+  Future<void> invalidate() => _invalidateImpl();
 }
 
 extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
@@ -167,6 +169,15 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
           'items': _memory.map((e) => e.toMap()).toList(),
         }),
       );
+    } catch (_) {}
+  }
+
+  Future<void> _invalidateImpl() async {
+    await _ensureInitialized();
+    _memory = const <RecommendedUserModel>[];
+    _cachedAt = null;
+    try {
+      await _prefs?.remove(_prefsKey);
     } catch (_) {}
   }
 

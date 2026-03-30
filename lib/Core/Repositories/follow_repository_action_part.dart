@@ -19,6 +19,7 @@ extension FollowRepositoryActionPart on FollowRepository {
       next.remove(otherUid);
     }
     await _persistRelation(_relationKey(currentUid, 'followings'), next);
+    await _invalidateViewerScopedSurfaces(currentUid);
   }
 
   Future<void> createRelationPair({
@@ -254,5 +255,26 @@ extension FollowRepositoryActionPart on FollowRepository {
     for (final relationKey in relationKeys) {
       await _prefs?.remove(_relationPrefsKey(relationKey));
     }
+  }
+
+  Future<void> _invalidateViewerScopedSurfaces(String uid) async {
+    final normalized = uid.trim();
+    if (normalized.isEmpty) return;
+    final futures = <Future<void>>[
+      maybeFindFeedSnapshotRepository()
+              ?.clearUserSnapshots(userId: normalized) ??
+          Future<void>.value(),
+      maybeFindShortSnapshotRepository()
+              ?.clearUserSnapshots(userId: normalized) ??
+          Future<void>.value(),
+      maybeFindRecommendedUsersRepository()?.invalidate() ??
+          Future<void>.value(),
+      StoryRepository.maybeFind()?.invalidateStoryCachesForUser(
+            normalized,
+            clearDeletedStories: false,
+          ) ??
+          Future<void>.value(),
+    ];
+    await Future.wait(futures);
   }
 }

@@ -116,4 +116,23 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
       forceSync: forceSync,
     ).last;
   }
+
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(
+        TutoringSnapshotRepository._ownerSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        TutoringSnapshotRepository._homeSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        TutoringSnapshotRepository._searchSurfaceKey,
+        userId: normalized,
+      ),
+    ]);
+  }
 }
