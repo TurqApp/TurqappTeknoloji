@@ -37,6 +37,21 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   VideoCacheEntry? getEntry(String docID) =>
       _SegmentCacheManagerRuntimeX(this).getEntry(docID);
 
+  List<String> getOfflineReadyDocIds({int limit = 0}) {
+    final entries = _index.entries.values
+        .where((entry) => entry.isFullyCached)
+        .toList(growable: false)
+      ..sort((a, b) => b.lastAccessedAt.compareTo(a.lastAccessedAt));
+    final docIds = entries
+        .map((entry) => entry.docID.trim())
+        .where((docId) => docId.isNotEmpty)
+        .toList(growable: false);
+    if (limit <= 0 || docIds.length <= limit) {
+      return docIds;
+    }
+    return docIds.take(limit).toList(growable: false);
+  }
+
   void markPlaying(String docID) =>
       _SegmentCacheManagerRuntimeX(this).markPlaying(docID);
 

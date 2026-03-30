@@ -97,41 +97,7 @@ extension ShortControllerLoadingPart on ShortController {
           .toList(growable: false);
 
       if (finalFiltered.isNotEmpty) {
-        final authorIds = finalFiltered.map((e) => e.userID).toSet().toList();
-        final userSummaries = await _fetchUserSummaries(authorIds);
-
-        final filtered = <PostsModel>[];
-        for (final p in finalFiltered) {
-          final summary = userSummaries[p.userID];
-          if (summary == null || summary.isDeleted) {
-            continue;
-          }
-          final include =
-              _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
-            authorUserId: p.userID,
-            followingIds: _followingIDs,
-            rozet: summary.rozet,
-            isApproved: summary.isApproved,
-            isDeleted: summary.isDeleted,
-          );
-          if (include) {
-            filtered.add(
-              p.copyWith(
-                authorNickname: p.authorNickname.isNotEmpty
-                    ? p.authorNickname
-                    : summary.nickname,
-                authorDisplayName: p.authorDisplayName.isNotEmpty
-                    ? p.authorDisplayName
-                    : summary.displayName,
-                authorAvatarUrl: p.authorAvatarUrl.isNotEmpty
-                    ? p.authorAvatarUrl
-                    : summary.avatarUrl,
-                rozet: p.rozet.isNotEmpty ? p.rozet : summary.rozet,
-              ),
-            );
-          }
-        }
-
+        final filtered = await _filterVisibleShortPosts(finalFiltered);
         if (filtered.isNotEmpty) {
           return _ShortPageResult(
             filtered,
@@ -152,6 +118,90 @@ extension ShortControllerLoadingPart on ShortController {
       lastDoc,
       hasMoreDocs,
     );
+  }
+
+  Future<List<PostsModel>> _filterVisibleShortPosts(
+    List<PostsModel> posts,
+  ) async {
+    if (posts.isEmpty) return const <PostsModel>[];
+    final authorIds =
+        posts.map((e) => e.userID).toSet().toList(growable: false);
+    final userSummaries = await _fetchUserSummaries(authorIds);
+
+    final filtered = <PostsModel>[];
+    for (final p in posts) {
+      final summary = userSummaries[p.userID];
+      if (summary == null || summary.isDeleted) {
+        continue;
+      }
+      final include = _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
+        authorUserId: p.userID,
+        followingIds: _followingIDs,
+        rozet: summary.rozet,
+        isApproved: summary.isApproved,
+        isDeleted: summary.isDeleted,
+      );
+      if (include) {
+        filtered.add(
+          p.copyWith(
+            authorNickname: p.authorNickname.isNotEmpty
+                ? p.authorNickname
+                : summary.nickname,
+            authorDisplayName: p.authorDisplayName.isNotEmpty
+                ? p.authorDisplayName
+                : summary.displayName,
+            authorAvatarUrl: p.authorAvatarUrl.isNotEmpty
+                ? p.authorAvatarUrl
+                : summary.avatarUrl,
+            rozet: p.rozet.isNotEmpty ? p.rozet : summary.rozet,
+          ),
+        );
+      }
+    }
+
+    return filtered;
+  }
+
+  Future<List<PostsModel>> _loadOfflineCachedShorts({
+    required int limit,
+    required String trigger,
+  }) async {
+    final cacheManager = SegmentCacheManager.maybeFind();
+    if (cacheManager == null || !cacheManager.isReady)
+      return const <PostsModel>[];
+
+    final docIds = cacheManager.getOfflineReadyDocIds(limit: limit);
+    if (docIds.isEmpty) {
+      _recordShortFetchEvent(
+        stage: 'offline_cache_empty',
+        trigger: trigger,
+      );
+      return const <PostsModel>[];
+    }
+
+    final byId = await _shortRepository.fetchByIds(
+      docIds,
+      preferCache: true,
+    );
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final ordered = docIds
+        .map((docId) => byId[docId])
+        .whereType<PostsModel>()
+        .where(_isEligibleShortPost)
+        .where((post) => post.timeStamp <= nowMs)
+        .where((post) => !post.arsiv && post.deletedPost != true)
+        .toList(growable: false);
+    final filtered = await _filterVisibleShortPosts(ordered);
+    _recordShortFetchEvent(
+      stage: filtered.isEmpty ? 'offline_cache_miss' : 'offline_cache_hit',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'candidateCount': docIds.length,
+        'resolvedCount': byId.length,
+        'returnedCount': filtered.length,
+      },
+    );
+    return filtered;
   }
 
   Future<void> backgroundPreload() async {
@@ -224,6 +274,22 @@ extension ShortControllerLoadingPart on ShortController {
         hasMore.value = true;
         _lastDoc = null;
         clearCache();
+      }
+      final offlineFallback = await _loadOfflineCachedShorts(
+        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+        trigger: 'initial_offline_cache_fallback',
+      );
+      if (offlineFallback.isNotEmpty) {
+        _log('[Shorts] Offline cache fallback ile liste kuruldu');
+        _replaceShorts(offlineFallback);
+        await _shortSnapshotRepository.persistHomeSnapshot(
+          userId: _currentUserId,
+          posts: offlineFallback,
+          limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+          source: CachedResourceSource.scopedDisk,
+        );
+        await preloadRange(0, range: 0);
+        return;
       }
       if (initialPlan.shouldBootstrapNextPage) {
         _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
@@ -437,6 +503,34 @@ extension ShortControllerLoadingPart on ShortController {
       );
 
       if (result.posts.isEmpty) {
+        if (shorts.isEmpty) {
+          final offlineFallback = await _loadOfflineCachedShorts(
+            limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+            trigger: '${trigger}_offline_cache_fallback',
+          );
+          if (offlineFallback.isNotEmpty) {
+            _replaceShorts(offlineFallback);
+            await _shortSnapshotRepository.persistHomeSnapshot(
+              userId: _currentUserId,
+              posts: offlineFallback,
+              limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+              source: CachedResourceSource.scopedDisk,
+            );
+            hasMore.value = result.hasMore;
+            _recordShortFetchEvent(
+              stage: 'completed',
+              trigger: trigger,
+              metadata: <String, dynamic>{
+                'returnedCount': 0,
+                'addedCount': offlineFallback.length,
+                'currentCount': shorts.length,
+                'hasMore': result.hasMore,
+                'source': 'offline_cache',
+              },
+            );
+            return;
+          }
+        }
         hasMore.value = result.hasMore;
         _recordShortFetchEvent(
           stage: 'completed',
