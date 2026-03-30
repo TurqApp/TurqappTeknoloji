@@ -54,6 +54,8 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.practiceExamTypeInitialLimit;
   static const int testSharedPageLimit =
       SurfacePolicyRegistry.testSharedPageLimit;
+  static const int testFavoritesInitialLimit =
+      SurfacePolicyRegistry.testFavoritesInitialLimit;
   static const int answerKeyHomeInitialLimit =
       SurfacePolicyRegistry.answerKeyHomeInitialLimit;
   static const int answerKeySearchInitialLimit =

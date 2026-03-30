@@ -67,6 +67,7 @@ class SurfacePolicyRegistry {
   static const int practiceExamSearchInitialLimit = 40;
   static const int practiceExamTypeInitialLimit = 30;
   static const int testSharedPageLimit = 30;
+  static const int testFavoritesInitialLimit = 50;
   static const int answerKeyHomeInitialLimit = 30;
   static const int answerKeySearchInitialLimit = 40;
   static const int tutoringHomeInitialLimit = 30;

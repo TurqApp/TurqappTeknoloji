@@ -89,19 +89,22 @@ class TestAnsweredQuery {
 class TestFavoritesQuery {
   const TestFavoritesQuery({
     required this.userId,
+    required this.limit,
   });
 
   final String userId;
+  final int limit;
 
   String buildScopeId() => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: 0,
+        limit: limit,
         scopeTag: 'favorites',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           TestSnapshotRepository.favoritesSurfaceKey,
         ),
         qualifiers: <String, Object?>{
           'favorites': userId.trim(),
+          'limit': limit,
         },
       );
 }
@@ -317,8 +320,12 @@ class TestSnapshotRepository extends GetxService {
 
   Future<CachedResource<List<TestsModel>>> loadCachedFavorites({
     required String userId,
+    int limit = ReadBudgetRegistry.testFavoritesInitialLimit,
   }) {
-    final query = TestFavoritesQuery(userId: userId);
+    final query = TestFavoritesQuery(
+      userId: userId,
+      limit: limit,
+    );
     return _bootstrap(
       surfaceKey: favoritesSurfaceKey,
       userId: userId,
@@ -449,20 +456,26 @@ class TestSnapshotRepository extends GetxService {
 
   Stream<CachedResource<List<TestsModel>>> openFavorites({
     required String userId,
+    int limit = ReadBudgetRegistry.testFavoritesInitialLimit,
     bool forceSync = false,
   }) {
     return _favoritesPipeline.open(
-      TestFavoritesQuery(userId: userId),
+      TestFavoritesQuery(
+        userId: userId,
+        limit: limit,
+      ),
       forceSync: forceSync,
     );
   }
 
   Future<CachedResource<List<TestsModel>>> loadFavorites({
     required String userId,
+    int limit = ReadBudgetRegistry.testFavoritesInitialLimit,
     bool forceSync = false,
   }) {
     return openFavorites(
       userId: userId,
+      limit: limit,
       forceSync: forceSync,
     ).last;
   }
@@ -635,14 +648,21 @@ class TestSnapshotRepository extends GetxService {
   Future<List<TestsModel>> _fetchFavoriteItems(TestFavoritesQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
+    final normalizedLimit = query.limit < 1
+        ? ReadBudgetRegistry.testFavoritesInitialLimit
+        : query.limit;
     final snapshot = await FirebaseFirestore.instance
         .collection('Testler')
         .where('favoriler', arrayContains: normalizedUserId)
         .get(const GetOptions(source: Source.serverAndCache));
-    return snapshot.docs
+    final items = snapshot.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
         .where((item) => item.docID.isNotEmpty)
         .toList(growable: false);
+    items.sort(
+      (a, b) => _asTimestamp(b.timeStamp).compareTo(_asTimestamp(a.timeStamp)),
+    );
+    return items.take(normalizedLimit).toList(growable: false);
   }
 
   Future<List<TestsModel>> _fetchSharedPageItems(
