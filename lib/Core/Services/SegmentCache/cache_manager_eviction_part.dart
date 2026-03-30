@@ -13,6 +13,18 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
       }
     }
 
+    final watchedCandidates = candidates
+        .where(
+          (entry) =>
+              entry.state == VideoCacheState.watched &&
+              !_recentlyPlayed.contains(entry.docID),
+        )
+        .toList()
+      ..sort((a, b) => a.lastAccessedAt.compareTo(b.lastAccessedAt));
+    if (watchedCandidates.isNotEmpty) {
+      return watchedCandidates.first;
+    }
+
     for (final entry in candidates) {
       final score = _evictionScore(entry);
       if (score < worstScore) {

@@ -339,6 +339,47 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     return ordered;
   }
 
+  Iterable<String> _pickOfflinePrioritySegments({
+    required String docID,
+    required List<String> segmentUris,
+    required String variantDir,
+    required SegmentCacheManager cacheManager,
+    required double watchProgress,
+  }) {
+    if (segmentUris.isEmpty) return const <String>[];
+
+    final total = segmentUris.length;
+    final startIndex = watchProgress <= 0.01
+        ? 0
+        : (_estimateWatchedSegment(
+                  watchProgress: watchProgress,
+                  totalSegments: total,
+                ) -
+                1)
+            .clamp(0, total - 1);
+
+    final ordered = <String>[];
+    final seen = <int>{};
+
+    void addIndex(int idx) {
+      if (!seen.add(idx)) return;
+      final uri = segmentUris[idx];
+      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
+      if (cacheManager.getSegmentFile(docID, key) == null) {
+        ordered.add(uri);
+      }
+    }
+
+    for (int idx = startIndex; idx < total; idx++) {
+      addIndex(idx);
+    }
+    for (int idx = 0; idx < startIndex; idx++) {
+      addIndex(idx);
+    }
+
+    return ordered;
+  }
+
   int _estimateWatchedSegment({
     required double watchProgress,
     required int totalSegments,

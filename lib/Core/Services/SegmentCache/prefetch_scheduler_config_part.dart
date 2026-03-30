@@ -16,4 +16,3 @@ const int _prefetchSchedulerWifiMinDepthCount = 7;
 const int _prefetchSchedulerWifiMinMaxConcurrent = 4;
 const int _prefetchSchedulerWifiMinFeedFullWindow = 15;
 const int _prefetchSchedulerWifiMinFeedPrepWindow = 20;
-const double _prefetchSchedulerWifiQuotaFillTargetRatio = 0.65;
