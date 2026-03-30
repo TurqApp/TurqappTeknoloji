@@ -10,6 +10,7 @@ class _PhotoShortsControllerState {
   PostInteractionService? interactionService;
   PostRepository? postRepository;
   AdminPushRepository? adminPushRepository;
+  UserSubcollectionRepository? userSubcollectionRepository;
   final avatarUrl = ''.obs;
   final nickname = ''.obs;
   final token = ''.obs;
@@ -61,6 +62,11 @@ extension PhotoShortsContentControllerFieldsPart
       _state.adminPushRepository ??= AdminPushRepository.ensure();
   set _adminPushRepository(AdminPushRepository value) =>
       _state.adminPushRepository = value;
+  UserSubcollectionRepository get _userSubcollectionRepository =>
+      _state.userSubcollectionRepository ??=
+          ensureUserSubcollectionRepository();
+  set _userSubcollectionRepository(UserSubcollectionRepository value) =>
+      _state.userSubcollectionRepository = value;
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
   RxInt get likeCount => countManager.getLikeCount(model.docID);
   RxInt get commentCount => countManager.getCommentCount(model.docID);

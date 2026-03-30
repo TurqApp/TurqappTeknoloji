@@ -232,20 +232,39 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
   Future<void> sikayetEt() async {
     try {
       final uid = _currentUserId;
+      if (uid.isEmpty) {
+        AppSnackbar('common.error'.tr, 'post.hide_failed'.tr);
+        return;
+      }
       final bool yeniDurum = !model.sikayetEdildi;
 
-      final hideRef = FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("HiddenPosts")
-          .doc(model.docID);
-
       if (yeniDurum) {
-        await hideRef.set({
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        });
+        await _userSubcollectionRepository.upsertEntry(
+          uid,
+          subcollection: 'HiddenPosts',
+          docId: model.docID,
+          data: {
+            'timeStamp': DateTime.now().millisecondsSinceEpoch,
+            'postID': model.docID,
+          },
+        );
+        if (!agendaController.hiddenPosts.contains(model.docID)) {
+          agendaController.hiddenPosts = <String>[
+            ...agendaController.hiddenPosts,
+            model.docID,
+          ];
+        }
       } else {
-        await hideRef.delete();
+        await _userSubcollectionRepository.deleteEntry(
+          uid,
+          subcollection: 'HiddenPosts',
+          docId: model.docID,
+        );
+        if (agendaController.hiddenPosts.contains(model.docID)) {
+          agendaController.hiddenPosts = agendaController.hiddenPosts
+              .where((id) => id != model.docID)
+              .toList(growable: false);
+        }
       }
 
       sikayetEdildi.value = yeniDurum;
