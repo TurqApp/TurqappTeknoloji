@@ -4,7 +4,7 @@ Stream<CachedResource<List<Map<String, dynamic>>>> openPastQuestionSearch(
   CikmisSorularSnapshotRepository repository, {
   required String query,
   required String userId,
-  int limit = 40,
+  int limit = ReadBudgetRegistry.pastQuestionSearchInitialLimit,
   bool forceSync = false,
 }) async* {
   final normalizedQuery = query.trim();

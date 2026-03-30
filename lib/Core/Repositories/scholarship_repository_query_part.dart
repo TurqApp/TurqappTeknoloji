@@ -87,7 +87,7 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> fetchLatestPage({
-    int limit = 30,
+    int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
     DocumentSnapshot? startAfter,
   }) {
     Query<Map<String, dynamic>> query = ScholarshipFirestorePath.collection()

@@ -3,7 +3,7 @@ part of 'practice_exam_repository.dart';
 extension PracticeExamRepositoryQueryPart on PracticeExamRepository {
   Future<PracticeExamPage> fetchPage({
     DocumentSnapshot? startAfter,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.practiceExamHomeInitialLimit,
     bool cacheOnly = false,
   }) async {
     Query<Map<String, dynamic>> query = _firestore

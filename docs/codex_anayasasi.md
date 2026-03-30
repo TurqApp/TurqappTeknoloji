@@ -250,3 +250,93 @@ Bir sonraki lane'e gecmeden once beklenen kapanis:
 - full smoke yesil kalacak
 - `blocking=0`
 - `failures=0`
+
+## 2026-03-30 Surface Policy ve Ayar Verme Modu
+
+Cache ownership omurgasi tamamlandiktan sonra surface davranisini etkileyen
+tum ayarlar tek merkez mantigi ile yonetilecektir. Bu baslik altindaki
+kurallar, "ayar verme modu"nda alinacak her karar icin baglayicidir.
+
+### Tek Merkez Ayar Sahipligi
+
+- Kullaniciya gorunen her surface icin su kararlar tek sahiplik altinda
+  tutulacak:
+  - `initialLimit`
+  - `pageLimit`
+  - `startupShardLimit`
+  - `readyForNavCount`
+  - `warmCount`
+  - `prefetchDocLimit`
+  - `bootstrapNetwork` davranisi
+  - `backgroundRefresh` davranisi
+  - `snapshotTtl`
+  - `minLiveSyncInterval`
+  - `preservePreviousOnEmptyLive`
+  - `treatWarmLaunchAsStale`
+- "Bir yerde 30, diger yerde 200" turu ayri ayar sahipligi anayasa ihlalidir.
+- Controller, repo, splash, warmup, navbar ve widget katmani surface'e ait
+  sayisal karar uretmeyecek; sadece merkezi policy kaydini tuketecek.
+
+### Merkezi Policy Omurgasi
+
+- Birincil sahiplik artik su dosyadadir:
+  - `lib/Core/Services/AppPolicy/surface_policy_registry.dart`
+- `read_budget_registry.dart` artik bagimsiz karar sahibi degil;
+  `SurfacePolicyRegistry` uzerine kurulu uyumluluk/adaptor katmanidir.
+- `cache_first_policy_registry.dart` artik bagimsiz karar sahibi degil;
+  schema ve snapshot policy bilgisini `SurfacePolicyRegistry` uzerinden okur.
+- `content_policy.dart` artik sayi sahibi degil;
+  yalniz runtime yorumlayici olarak `SurfacePolicyRegistry` kararlarini uygular.
+- Bundan sonra:
+  - yeni lokal sabit eklemek yasak
+  - mevcut lokal sabit gorulurse registry'ye tasimadan birakmak yasak
+  - ayni ayarin iki farkli dosyada yasamasi yasak
+
+### Ayar Verme Modu Kurali
+
+- Bu modda yapilan her degisiklik yeni ozellik degil, politika ayari
+  degisikligi olarak ele alinacak.
+- Ayar degisikligi su kategorilerden birine baglanmadan yapilmayacak:
+  - startup/splash hazirlik boyutu
+  - initial read/pool boyutu
+  - network bootstrap davranisi
+  - paging limiti
+  - warmup/prefetch boyutu
+  - stale/ttl/sync davranisi
+  - background refresh izni
+- Ayar degisikligi yapilirken "etki alani" mutlaka belirtilecek:
+  - feed
+  - short
+  - explore
+  - story
+  - profile
+  - market
+  - job
+  - scholarship
+  - practice exam
+  - test
+  - answer key
+  - optical form
+  - past questions
+
+### Yasaklar
+
+- Controller icinde `_pageSize = 30` tipi yeni sabit ekleme.
+- Repo icinde surface'e ozel `take`, `limit`, `page` sabitini yeniden
+  uretme.
+- Splash ve warmup tarafinda registry disi farkli hedef sayi tanimlama.
+- `ContentPolicy` icine yeni sayisal budget gommek.
+- Smoke yesil diye ayar daginikligini gormezden gelmek.
+
+### Ayar Degisikligi Sonrasi Zorunlu Dogrulama
+
+- `dart analyze`
+- etkilenen surface icin hedefli test veya smoke
+- `bash scripts/run_integration_smoke.sh`
+- `bash scripts/export_integration_smoke_report.sh`
+
+Beklenen kapanis:
+
+- `scenarios=5`
+- `blocking=0`
+- `failures=0`

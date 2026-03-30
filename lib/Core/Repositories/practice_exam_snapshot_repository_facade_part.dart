@@ -116,7 +116,7 @@ extension PracticeExamSnapshotRepositoryFacadePart
   Stream<CachedResource<List<SinavModel>>> openSearch({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.practiceExamSearchInitialLimit,
     bool forceSync = false,
   }) =>
       _openSearchImpl(
@@ -129,7 +129,7 @@ extension PracticeExamSnapshotRepositoryFacadePart
   Future<CachedResource<List<SinavModel>>> search({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.practiceExamSearchInitialLimit,
     bool forceSync = false,
   }) =>
       _searchImpl(

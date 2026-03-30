@@ -60,7 +60,7 @@ extension CikmisSorularSnapshotRepositoryFacadePart
   Stream<CachedResource<List<Map<String, dynamic>>>> openSearch({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.pastQuestionSearchInitialLimit,
     bool forceSync = false,
   }) =>
       openPastQuestionSearch(
@@ -74,7 +74,7 @@ extension CikmisSorularSnapshotRepositoryFacadePart
   Future<CachedResource<List<Map<String, dynamic>>>> search({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.pastQuestionSearchInitialLimit,
     bool forceSync = false,
   }) {
     return openSearch(

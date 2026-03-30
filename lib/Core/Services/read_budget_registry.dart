@@ -1,144 +1,237 @@
+import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_registry.dart';
+
 class ReadBudgetRegistry {
   const ReadBudgetRegistry._();
 
-  // Single source of truth for read, startup shard, and warmup budgets.
+  // Backward-compatible facade over SurfacePolicyRegistry.
 
-  static const int savedPostRefsInitialLimit = 20;
-  static const int savedMarketRefsInitialLimit = 20;
-  static const int followRelationPreviewInitialLimit = 30;
-  static const int notificationsInboxInitialLimit = 80;
-  static const int notificationsDeltaFetchLimit = 40;
-  static const int userReshareMapInitialLimit = 60;
-  static const int reshareUserPreviewInitialLimit = 30;
-  static const int reshareFeedWarmupInitialLimit = 60;
-  static const int antremanCategoryPoolInitialLimit = 60;
-  static const int antremanSavedQuestionInitialLimit = 60;
+  static const int savedPostRefsInitialLimit =
+      SurfacePolicyRegistry.savedPostRefsInitialLimit;
+  static const int savedMarketRefsInitialLimit =
+      SurfacePolicyRegistry.savedMarketRefsInitialLimit;
+  static const int followRelationPreviewInitialLimit =
+      SurfacePolicyRegistry.followRelationPreviewInitialLimit;
+  static const int notificationsInboxInitialLimit =
+      SurfacePolicyRegistry.notificationsInboxInitialLimit;
+  static const int notificationsDeltaFetchLimit =
+      SurfacePolicyRegistry.notificationsDeltaFetchLimit;
+  static const int userReshareMapInitialLimit =
+      SurfacePolicyRegistry.userReshareMapInitialLimit;
+  static const int reshareUserPreviewInitialLimit =
+      SurfacePolicyRegistry.reshareUserPreviewInitialLimit;
+  static const int reshareFeedWarmupInitialLimit =
+      SurfacePolicyRegistry.reshareFeedWarmupInitialLimit;
+  static const int antremanCategoryPoolInitialLimit =
+      SurfacePolicyRegistry.antremanCategoryPoolInitialLimit;
+  static const int antremanSavedQuestionInitialLimit =
+      SurfacePolicyRegistry.antremanSavedQuestionInitialLimit;
 
-  static const int feedHomeInitialLimit = 40;
-  static const int shortHomeInitialLimit = 20;
-  static const int marketHomeInitialLimit = 40;
-  static const int jobHomeInitialLimit = 40;
+  static const int feedHomeInitialLimit =
+      SurfacePolicyRegistry.feedHomeInitialLimit;
+  static const int shortHomeInitialLimit =
+      SurfacePolicyRegistry.shortHomeInitialLimit;
+  static const int marketHomeInitialLimit =
+      SurfacePolicyRegistry.marketHomeInitialLimit;
+  static const int marketSearchInitialLimit =
+      SurfacePolicyRegistry.marketSearchInitialLimit;
+  static const int jobHomeInitialLimit =
+      SurfacePolicyRegistry.jobHomeInitialLimit;
+  static const int jobSearchInitialLimit =
+      SurfacePolicyRegistry.jobSearchInitialLimit;
+  static const int scholarshipHomeInitialLimit =
+      SurfacePolicyRegistry.scholarshipHomeInitialLimit;
+  static const int scholarshipRepositoryLatestLimit =
+      SurfacePolicyRegistry.scholarshipRepositoryLatestLimit;
+  static const int scholarshipSearchInitialLimit =
+      SurfacePolicyRegistry.scholarshipSearchInitialLimit;
+  static const int scholarshipProviderSeedLimit =
+      SurfacePolicyRegistry.scholarshipProviderSeedLimit;
+  static const int practiceExamHomeInitialLimit =
+      SurfacePolicyRegistry.practiceExamHomeInitialLimit;
+  static const int practiceExamSearchInitialLimit =
+      SurfacePolicyRegistry.practiceExamSearchInitialLimit;
+  static const int practiceExamTypeInitialLimit =
+      SurfacePolicyRegistry.practiceExamTypeInitialLimit;
+  static const int testSharedPageLimit =
+      SurfacePolicyRegistry.testSharedPageLimit;
+  static const int answerKeyHomeInitialLimit =
+      SurfacePolicyRegistry.answerKeyHomeInitialLimit;
+  static const int answerKeySearchInitialLimit =
+      SurfacePolicyRegistry.answerKeySearchInitialLimit;
+  static const int tutoringHomeInitialLimit =
+      SurfacePolicyRegistry.tutoringHomeInitialLimit;
+  static const int tutoringSearchInitialLimit =
+      SurfacePolicyRegistry.tutoringSearchInitialLimit;
+  static const int pastQuestionSearchInitialLimit =
+      SurfacePolicyRegistry.pastQuestionSearchInitialLimit;
+  static const int questionBankSearchInitialLimit =
+      SurfacePolicyRegistry.questionBankSearchInitialLimit;
 
-  static const int scholarshipHomeInitialLimit = 30;
-  static const int scholarshipRepositoryLatestLimit = 40;
-  static const int scholarshipProviderSeedLimit = 80;
+  static const int storyInitialLimit = SurfacePolicyRegistry.storyInitialLimit;
+  static const int storyFullLimit = SurfacePolicyRegistry.storyFullLimit;
 
-  static const int practiceExamHomeInitialLimit = 30;
-  static const int practiceExamTypeInitialLimit = 30;
-  static const int testSharedPageLimit = 30;
+  static const int recommendedFollowingLimit =
+      SurfacePolicyRegistry.recommendedFollowingLimit;
+  static const int recommendedUsersWarmCount =
+      SurfacePolicyRegistry.recommendedUsersWarmCount;
+  static const int recommendedUsersReadyCount =
+      SurfacePolicyRegistry.recommendedUsersReadyCount;
+  static const int recommendedUsersFetchWarm =
+      SurfacePolicyRegistry.recommendedUsersFetchWarm;
+  static const int recommendedUsersInitialLimit =
+      SurfacePolicyRegistry.recommendedUsersInitialLimit;
+  static const int recommendedUsersFullLimit =
+      SurfacePolicyRegistry.recommendedUsersFullLimit;
 
-  static const int storyInitialLimit = 30;
-  static const int storyFullLimit = 100;
+  static const int feedReadyForNavCount =
+      SurfacePolicyRegistry.feedReadyForNavCount;
+  static const int storyReadyForNavCount =
+      SurfacePolicyRegistry.storyReadyForNavCount;
+  static const int shortReadyForNavCount =
+      SurfacePolicyRegistry.shortReadyForNavCount;
 
-  static const int recommendedFollowingLimit = 100;
-  static const int recommendedUsersWarmCount = 18;
-  static const int recommendedUsersReadyCount = 60;
-  static const int recommendedUsersFetchWarm = 80;
-  static const int recommendedUsersInitialLimit = 200;
-  static const int recommendedUsersFullLimit = 500;
+  static const int marketStartupShardLimit =
+      SurfacePolicyRegistry.marketStartupShardLimit;
+  static const int jobStartupShardLimit =
+      SurfacePolicyRegistry.jobStartupShardLimit;
+  static const int profileStartupShardLimit =
+      SurfacePolicyRegistry.profileStartupShardLimit;
+  static const int exploreStartupTagsShardLimit =
+      SurfacePolicyRegistry.exploreStartupTagsShardLimit;
+  static const int exploreStartupPostsShardLimit =
+      SurfacePolicyRegistry.exploreStartupPostsShardLimit;
+  static const int exploreStartupShardLimit =
+      SurfacePolicyRegistry.exploreStartupShardLimit;
 
-  static const int feedReadyForNavCount = 3;
-  static const int storyReadyForNavCount = 1;
-  static const int shortReadyForNavCount = 1;
-
-  static const int marketStartupShardLimit = 8;
-  static const int jobStartupShardLimit = 8;
-  static const int profileStartupShardLimit = 6;
-  static const int exploreStartupTagsShardLimit = 18;
-  static const int exploreStartupPostsShardLimit = 8;
-  static const int exploreStartupShardLimit = 26;
-
-  static const int exploreTrendingTagsLimit = 30;
-  static const int explorePostsPageLimit = 20;
-  static const int exploreVideoPageLimit = 30;
-  static const int explorePhotoPageLimit = 20;
-  static const int exploreFloodPageLimit = 60;
-  static const int explorePostsBootstrapTargetBatch = 12;
-  static const int explorePostsTargetBatch = 24;
-  static const int explorePostsBootstrapMaxPages = 4;
-  static const int explorePostsMaxPages = 10;
-  static const int exploreVideoTargetBatch = 24;
-  static const int exploreVideoMaxPages = 10;
-  static const int explorePhotoTargetBatch = 30;
-  static const int explorePhotoMaxPages = 5;
+  static const int exploreTrendingTagsLimit =
+      SurfacePolicyRegistry.exploreTrendingTagsLimit;
+  static const int explorePostsPageLimit =
+      SurfacePolicyRegistry.explorePostsPageLimit;
+  static const int exploreVideoPageLimit =
+      SurfacePolicyRegistry.exploreVideoPageLimit;
+  static const int explorePhotoPageLimit =
+      SurfacePolicyRegistry.explorePhotoPageLimit;
+  static const int exploreFloodPageLimit =
+      SurfacePolicyRegistry.exploreFloodPageLimit;
+  static const int explorePostsBootstrapTargetBatch =
+      SurfacePolicyRegistry.explorePostsBootstrapTargetBatch;
+  static const int explorePostsTargetBatch =
+      SurfacePolicyRegistry.explorePostsTargetBatch;
+  static const int explorePostsBootstrapMaxPages =
+      SurfacePolicyRegistry.explorePostsBootstrapMaxPages;
+  static const int explorePostsMaxPages =
+      SurfacePolicyRegistry.explorePostsMaxPages;
+  static const int exploreVideoTargetBatch =
+      SurfacePolicyRegistry.exploreVideoTargetBatch;
+  static const int exploreVideoMaxPages =
+      SurfacePolicyRegistry.exploreVideoMaxPages;
+  static const int explorePhotoTargetBatch =
+      SurfacePolicyRegistry.explorePhotoTargetBatch;
+  static const int explorePhotoMaxPages =
+      SurfacePolicyRegistry.explorePhotoMaxPages;
 
   static int feedInitialPoolLimit({required bool onWiFi}) =>
-      feedHomeInitialLimit;
+      SurfacePolicyRegistry.feedHomeSurface.initialPoolLimitFor(
+        onWiFi: onWiFi,
+      );
 
-  static int shortInitialPoolLimit({required bool onWiFi}) => onWiFi ? 30 : 20;
+  static int shortInitialPoolLimit({required bool onWiFi}) =>
+      SurfacePolicyRegistry.shortHomeSurface.initialPoolLimitFor(
+        onWiFi: onWiFi,
+      );
 
   static int exploreInitialPoolLimit({required bool onWiFi}) =>
-      onWiFi ? 30 : 20;
+      SurfacePolicyRegistry.exploreSurface.initialPoolLimitFor(
+        onWiFi: onWiFi,
+      );
 
   static int profileInitialPoolLimit({required bool onWiFi}) =>
-      onWiFi ? 30 : 20;
+      SurfacePolicyRegistry.profilePostsSurface.initialPoolLimitFor(
+        onWiFi: onWiFi,
+      );
 
-  static int storyInitialPoolLimit({required bool onWiFi}) => 10;
+  static int storyInitialPoolLimit({required bool onWiFi}) =>
+      SurfacePolicyRegistry.storySurface.initialPoolLimitFor(
+        onWiFi: onWiFi,
+      );
 
   static int shortStartupSnapshotLimit({
     required bool onWiFi,
     required bool isFirstLaunch,
-  }) {
-    if (onWiFi) {
-      return isFirstLaunch ? 6 : 8;
-    }
-    return isFirstLaunch ? 3 : 4;
-  }
+  }) =>
+      SurfacePolicyRegistry.shortHomeSurface.startupSnapshotLimitFor(
+        onWiFi: onWiFi,
+        isFirstLaunch: isFirstLaunch,
+      );
 
-  static int shortStartupShardLimit({required bool onWiFi}) => onWiFi ? 6 : 4;
+  static int shortStartupShardLimit({required bool onWiFi}) =>
+      SurfacePolicyRegistry.shortHomeSurface.startupShardLimitFor(
+        onWiFi: onWiFi,
+      );
 
   static List<int> shortStartupAdditionalLimits({required bool onWiFi}) =>
-      onWiFi ? const <int>[6, 8] : const <int>[3, 4];
+      SurfacePolicyRegistry.shortHomeSurface.startupSnapshotAdditionalLimits(
+        onWiFi: onWiFi,
+      );
 
   static int shortWarmTargetCount({
     required bool onWiFi,
     required bool isFirstLaunch,
   }) =>
-      shortStartupSnapshotLimit(
+      SurfacePolicyRegistry.shortHomeSurface.warmTargetCountFor(
         onWiFi: onWiFi,
         isFirstLaunch: isFirstLaunch,
       );
 
   static int shortWarmMaxPages({required bool onWiFi}) => onWiFi ? 2 : 1;
 
-  static int shortBackgroundWarmTargetCount = 8;
-  static int shortBackgroundWarmMaxPages = 2;
+  static int get shortBackgroundWarmTargetCount =>
+      SurfacePolicyRegistry.shortHomeSurface.backgroundWarmTargetCount ?? 0;
+
+  static int get shortBackgroundWarmMaxPages =>
+      SurfacePolicyRegistry.shortHomeSurface.backgroundWarmMaxPages ?? 0;
 
   static int storyStartupWarmLimit({
     required bool onWiFi,
     required bool isFirstLaunch,
-  }) {
-    if (onWiFi) {
-      return isFirstLaunch ? 20 : 30;
-    }
-    return isFirstLaunch ? 10 : 16;
-  }
+  }) =>
+      SurfacePolicyRegistry.storySurface.startupWarmLimitFor(
+        onWiFi: onWiFi,
+        isFirstLaunch: isFirstLaunch,
+      );
 
-  static int storyWarmReadyTarget({required bool onWiFi}) => onWiFi ? 30 : 18;
+  static int storyWarmReadyTarget({required bool onWiFi}) =>
+      SurfacePolicyRegistry.storySurface.warmReadyTargetFor(
+        onWiFi: onWiFi,
+      );
 
   static int startupListingWarmLimit({required bool onWiFi}) =>
-      onWiFi ? 18 : 10;
+      SurfacePolicyRegistry.startupListingWarmLimit(onWiFi: onWiFi);
 
-  static int startupShortPrefetchDocLimit = 12;
-  static int startupFeedPrefetchDocLimit = 15;
+  static int get startupShortPrefetchDocLimit =>
+      SurfacePolicyRegistry.startupShortPrefetchDocLimit;
+
+  static int get startupFeedPrefetchDocLimit =>
+      SurfacePolicyRegistry.startupFeedPrefetchDocLimit;
 
   static int startupUserMetaFeedTake({required bool onWiFi}) =>
-      onWiFi ? 28 : 14;
+      SurfacePolicyRegistry.startupUserMetaFeedTake(onWiFi: onWiFi);
 
   static int startupUserMetaStoryTake({required bool onWiFi}) =>
-      onWiFi ? 18 : 10;
+      SurfacePolicyRegistry.startupUserMetaStoryTake(onWiFi: onWiFi);
 
   static int startupUserMetaRecommendedTake({required bool onWiFi}) =>
-      onWiFi ? 18 : 10;
+      SurfacePolicyRegistry.startupUserMetaRecommendedTake(onWiFi: onWiFi);
 
-  static int startupAvatarWarmCount({required bool onWiFi}) => onWiFi ? 36 : 12;
+  static int startupAvatarWarmCount({required bool onWiFi}) =>
+      SurfacePolicyRegistry.startupAvatarWarmCount(onWiFi: onWiFi);
 
   static int startupProfileBucketTake({required bool onWiFi}) =>
-      onWiFi ? 18 : 10;
+      SurfacePolicyRegistry.startupProfileBucketTake(onWiFi: onWiFi);
 
   static int startupProfileUrlWarmCount({required bool onWiFi}) =>
-      onWiFi ? 40 : 20;
+      SurfacePolicyRegistry.startupProfileUrlWarmCount(onWiFi: onWiFi);
 
   static int startupSliderWarmRemoteLimit({required bool onWiFi}) =>
-      onWiFi ? 8 : 4;
+      SurfacePolicyRegistry.startupSliderWarmRemoteLimit(onWiFi: onWiFi);
 }

@@ -53,7 +53,7 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
 
   Stream<CachedResource<List<TutoringModel>>> openHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.tutoringHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) {
@@ -72,7 +72,7 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
 
   Future<CachedResource<List<TutoringModel>>> loadHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.tutoringHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) {
@@ -87,7 +87,7 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
   Stream<CachedResource<List<TutoringModel>>> openSearch({
     required String userId,
     required String query,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.tutoringSearchInitialLimit,
     bool forceSync = false,
   }) {
     return _searchAdapter.open(
@@ -106,7 +106,7 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
   Future<CachedResource<List<TutoringModel>>> search({
     required String userId,
     required String query,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.tutoringSearchInitialLimit,
     bool forceSync = false,
   }) {
     return openSearch(

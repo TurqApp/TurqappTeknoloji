@@ -3,7 +3,7 @@ part of 'booklet_repository.dart';
 extension BookletRepositoryQueryPart on BookletRepository {
   Future<BookletPage> fetchPage({
     DocumentSnapshot? startAfter,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.answerKeyHomeInitialLimit,
     bool cacheOnly = false,
   }) async {
     Query<Map<String, dynamic>> query = _firestore

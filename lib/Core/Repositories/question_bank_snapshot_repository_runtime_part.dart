@@ -4,7 +4,7 @@ Stream<CachedResource<List<QuestionBankModel>>> _openQuestionBankSearch(
   QuestionBankSnapshotRepository repository, {
   required String query,
   required String userId,
-  int limit = 40,
+  int limit = ReadBudgetRegistry.questionBankSearchInitialLimit,
   bool forceSync = false,
 }) {
   return repository._searchAdapter.open(
@@ -59,7 +59,7 @@ extension QuestionBankSnapshotRepositoryRuntimeX
   Stream<CachedResource<List<QuestionBankModel>>> openSearch({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.questionBankSearchInitialLimit,
     bool forceSync = false,
   }) {
     return _openQuestionBankSearch(
@@ -74,7 +74,7 @@ extension QuestionBankSnapshotRepositoryRuntimeX
   Future<CachedResource<List<QuestionBankModel>>> search({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.questionBankSearchInitialLimit,
     bool forceSync = false,
   }) {
     return openSearch(

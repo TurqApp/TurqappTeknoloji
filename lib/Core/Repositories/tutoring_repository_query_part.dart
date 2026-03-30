@@ -9,7 +9,7 @@ extension TutoringRepositoryQueryPart on TutoringRepository {
 
   Future<TutoringPage> fetchPage({
     DocumentSnapshot? startAfter,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.tutoringHomeInitialLimit,
   }) async {
     Query<Map<String, dynamic>> query = _firestore
         .collection('educators')

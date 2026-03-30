@@ -84,7 +84,7 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
   Stream<CachedResource<List<JobModel>>> openSearch({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.jobSearchInitialLimit,
     bool forceSync = false,
   }) {
     return _searchAdapter.open(
@@ -102,7 +102,7 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
   Future<CachedResource<List<JobModel>>> search({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.jobSearchInitialLimit,
     bool forceSync = false,
   }) {
     return openSearch(

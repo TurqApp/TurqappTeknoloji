@@ -74,7 +74,7 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
   Stream<CachedResource<List<MarketItemModel>>> openSearch({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.marketSearchInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) {
@@ -93,7 +93,7 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
   Future<CachedResource<List<MarketItemModel>>> search({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.marketSearchInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) {

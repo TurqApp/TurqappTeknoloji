@@ -21,7 +21,7 @@ extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
 
   Stream<CachedResource<List<BookletModel>>> openHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.answerKeyHomeInitialLimit,
     bool forceSync = false,
   }) {
     return _homeAdapter.open(
@@ -39,7 +39,7 @@ extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
 
   Future<CachedResource<List<BookletModel>>> loadHome({
     required String userId,
-    int limit = 30,
+    int limit = ReadBudgetRegistry.answerKeyHomeInitialLimit,
     bool forceSync = false,
   }) {
     return openHome(
@@ -52,7 +52,7 @@ extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
   Stream<CachedResource<List<BookletModel>>> openSearch({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.answerKeySearchInitialLimit,
     bool forceSync = false,
   }) {
     return _searchAdapter.open(
@@ -71,7 +71,7 @@ extension _AnswerKeySnapshotRepositoryRuntimeX on AnswerKeySnapshotRepository {
   Future<CachedResource<List<BookletModel>>> search({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.answerKeySearchInitialLimit,
     bool forceSync = false,
   }) {
     return openSearch(

@@ -71,7 +71,7 @@ extension ScholarshipSnapshotRepositoryFacadePart
   Stream<CachedResource<ScholarshipListingSnapshot>> openSearch({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.scholarshipSearchInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) =>
@@ -86,7 +86,7 @@ extension ScholarshipSnapshotRepositoryFacadePart
   Future<CachedResource<ScholarshipListingSnapshot>> search({
     required String query,
     required String userId,
-    int limit = 40,
+    int limit = ReadBudgetRegistry.scholarshipSearchInitialLimit,
     int page = 1,
     bool forceSync = false,
   }) =>
