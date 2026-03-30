@@ -26,6 +26,9 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     final dropLogs = <String>[];
     for (final post in normalized) {
       final reasons = <String>[];
+      if (post.isFloodMember) {
+        reasons.add('flood_child');
+      }
       if (hiddenPostIds.contains(post.docID)) {
         reasons.add('hidden');
       }

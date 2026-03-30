@@ -106,6 +106,9 @@ extension AgendaControllerSupportPart on AgendaController {
   }
 
   bool _isEligibleAgendaPost(PostsModel post, int nowMs) {
+    if (post.isFloodMember) {
+      return false;
+    }
     final ts = post.timeStamp.toInt();
     if (_agendaWindow != null && ts < _agendaCutoffMs(nowMs)) {
       return false;
