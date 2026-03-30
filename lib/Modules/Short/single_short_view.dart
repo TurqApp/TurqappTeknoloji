@@ -200,6 +200,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
 
+  String _playbackHandleKeyForDoc(String docId) =>
+      'single_short:${docId.trim()}';
+
   @override
   void initState() {
     super.initState();

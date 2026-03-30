@@ -36,6 +36,9 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildMergedFeedEntries() {
     if (agendaList.isEmpty && feedReshareEntries.isEmpty) {
+      if (isLoading.value && mergedFeedEntries.isNotEmpty) {
+        return;
+      }
       mergedFeedEntries.clear();
       return;
     }
@@ -55,6 +58,9 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildFilteredFeedEntries() {
     if (mergedFeedEntries.isEmpty) {
+      if (isLoading.value && filteredFeedEntries.isNotEmpty) {
+        return;
+      }
       _cancelQueuedFeedModeFallback();
       filteredFeedEntries.clear();
       return;
@@ -85,6 +91,9 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildRenderFeedEntries() {
     if (filteredFeedEntries.isEmpty) {
+      if (isLoading.value && renderFeedEntries.isNotEmpty) {
+        return;
+      }
       renderFeedEntries.clear();
       return;
     }

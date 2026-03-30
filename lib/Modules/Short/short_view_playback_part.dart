@@ -7,18 +7,19 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }) {
     final trimmed = docId.trim();
     if (trimmed.isEmpty) return;
+    final playbackHandleKey = controller.playbackHandleKeyForDoc(trimmed);
     final now = DateTime.now();
     final lastDocId = _lastExclusivePlayDocId;
     final lastAt = _lastExclusivePlayAt;
-    if (lastDocId == trimmed &&
+    if (lastDocId == playbackHandleKey &&
         lastAt != null &&
         now.difference(lastAt) < minSpacing) {
       return;
     }
-    _lastExclusivePlayDocId = trimmed;
+    _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      _playbackRuntimeService.playOnlyThis(trimmed);
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
     } catch (_) {}
   }
 
@@ -143,7 +144,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       try {
         _playbackRuntimeService.updateExclusiveModeDoc(
-          _cachedShorts[currentPage].docID,
+          controller.playbackHandleKeyForDoc(_cachedShorts[currentPage].docID),
         );
       } catch (_) {}
     }
@@ -175,7 +176,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) return;
     try {
       _playbackRuntimeService.savePlaybackState(
-        _cachedShorts[page].docID,
+        controller.playbackHandleKeyForDoc(_cachedShorts[page].docID),
         HLSAdapterPlaybackHandle(adapter),
       );
     } catch (_) {}
@@ -215,11 +216,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final hadActiveAdapter = controller.cache[currentPage] != null;
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       final docId = _cachedShorts[currentPage].docID;
+      final playbackHandleKey = controller.playbackHandleKeyForDoc(docId);
       try {
-        _playbackRuntimeService.updateExclusiveModeDoc(docId);
+        _playbackRuntimeService.updateExclusiveModeDoc(playbackHandleKey);
       } catch (_) {}
       try {
-        _playbackRuntimeService.enterExclusiveMode(docId);
+        _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
       } catch (_) {}
     }
 
@@ -343,7 +345,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (page < _cachedShorts.length) {
           final post = _cachedShorts[page];
           try {
-            _playbackRuntimeService.enterExclusiveMode(post.docID);
+            _playbackRuntimeService.enterExclusiveMode(
+              controller.playbackHandleKeyForDoc(post.docID),
+            );
           } catch (_) {}
           VideoTelemetryService.instance
               .startSession(post.docID, post.playbackUrl);

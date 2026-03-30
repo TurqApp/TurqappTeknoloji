@@ -80,18 +80,19 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
   }) {
     final trimmed = docId.trim();
     if (trimmed.isEmpty) return;
+    final playbackHandleKey = _playbackHandleKeyForDoc(trimmed);
     final now = DateTime.now();
     final lastDocId = _lastExclusivePlayDocId;
     final lastAt = _lastExclusivePlayAt;
-    if (lastDocId == trimmed &&
+    if (lastDocId == playbackHandleKey &&
         lastAt != null &&
         now.difference(lastAt) < minSpacing) {
       return;
     }
-    _lastExclusivePlayDocId = trimmed;
+    _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      _playbackRuntimeService.playOnlyThis(trimmed);
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
     } catch (_) {}
   }
 

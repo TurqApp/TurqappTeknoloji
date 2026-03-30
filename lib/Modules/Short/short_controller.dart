@@ -56,6 +56,8 @@ class ShortController extends _ShortControllerBase {
 
   bool _isEligibleShortPost(PostsModel post) =>
       _ShortControllerRuntimeX(this).isEligibleShortPost(post);
+
+  String playbackHandleKeyForDoc(String docId) => 'short:${docId.trim()}';
 }
 
 ShortController ensureShortController() => _ensureShortController();

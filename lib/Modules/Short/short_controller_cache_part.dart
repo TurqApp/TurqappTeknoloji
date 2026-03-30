@@ -7,7 +7,7 @@ extension ShortControllerCachePart on ShortController {
     if (docId.isEmpty) return;
     try {
       _playbackRuntimeService.registerPlaybackHandle(
-        docId,
+        playbackHandleKeyForDoc(docId),
         HLSAdapterPlaybackHandle(adapter),
       );
     } catch (_) {}
@@ -22,7 +22,9 @@ extension ShortControllerCachePart on ShortController {
         .trim();
     if (docId.isEmpty) return;
     try {
-      _playbackRuntimeService.unregisterPlaybackHandle(docId);
+      _playbackRuntimeService.unregisterPlaybackHandle(
+        playbackHandleKeyForDoc(docId),
+      );
     } catch (_) {}
   }
 
@@ -45,7 +47,7 @@ extension ShortControllerCachePart on ShortController {
       }
 
       final adapter = _videoPool.acquire(
-        cacheKey: short.docID,
+        cacheKey: playbackHandleKeyForDoc(short.docID),
         url: videoUrl,
         autoPlay: false,
         loop: true,
@@ -239,7 +241,7 @@ extension ShortControllerCachePart on ShortController {
     }
     if (post.playbackUrl.isNotEmpty) {
       final adapter = _videoPool.acquire(
-        cacheKey: post.docID,
+        cacheKey: playbackHandleKeyForDoc(post.docID),
         url: post.playbackUrl,
         autoPlay: false,
         loop: true,

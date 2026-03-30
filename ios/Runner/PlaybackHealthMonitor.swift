@@ -108,6 +108,18 @@ final class PlaybackHealthMonitor {
         publishState("playbackPaused")
     }
 
+    func onPlaybackCompleted() {
+        isPlaying = false
+        isPlaybackExpected = false
+        isBuffering = false
+        lastKnownPlaybackTime = 0
+        lastPlaybackProgressedAt = 0
+        lastFrameRenderedAt = 0
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        publishState("playbackCompleted")
+    }
+
     func onFirstFrameRendered() {
         let timestamp = now()
         if firstFrameRenderedAt == 0 {

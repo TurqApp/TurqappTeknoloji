@@ -129,7 +129,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     if (currentPage >= 0 && currentPage < shorts.length) {
       try {
         _playbackRuntimeService
-            .updateExclusiveModeDoc(shorts[currentPage].docID);
+            .updateExclusiveModeDoc(
+              _playbackHandleKeyForDoc(shorts[currentPage].docID),
+            );
       } catch (_) {}
     }
 
@@ -244,7 +246,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
         if (ctrl != null && ctrl.value.isInitialized) {
           _playbackRuntimeService.savePlaybackState(
-            currentModel.docID,
+            _playbackHandleKeyForDoc(currentModel.docID),
             HLSAdapterPlaybackHandle(ctrl),
           );
         }
@@ -272,7 +274,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     if (vp == null || vp.isDisposed) return;
 
     try {
-      _playbackRuntimeService.enterExclusiveMode(shorts[currentPage].docID);
+      _playbackRuntimeService.enterExclusiveMode(
+        _playbackHandleKeyForDoc(shorts[currentPage].docID),
+      );
     } catch (_) {}
     _primePlaybackForIndex(currentPage);
   }

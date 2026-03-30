@@ -40,6 +40,7 @@ class AgendaView extends StatelessWidget {
   AgendaView({super.key});
   static bool _androidVisibilityTuned = false;
   static bool _feedEntryWarmQueued = false;
+  static bool _primarySurfaceBootstrapQueued = false;
   static bool _unreadListenersStarted = false;
 
   AgendaController get controller {
@@ -65,10 +66,13 @@ class AgendaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (controller.isClosed) return;
-      unawaited(controller.onPrimarySurfaceVisible());
-    });
+    if (!_primarySurfaceBootstrapQueued) {
+      _primarySurfaceBootstrapQueued = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (controller.isClosed) return;
+        unawaited(controller.onPrimarySurfaceVisible());
+      });
+    }
     if (!_feedEntryWarmQueued) {
       _feedEntryWarmQueued = true;
       unawaited(ensureAdmobBannerWarmupService().warmForFeedEntry());

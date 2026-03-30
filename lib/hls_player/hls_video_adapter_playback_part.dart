@@ -182,7 +182,6 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     bool suppressLoadingOverlay = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
-    _refreshProxyUrlIfNeeded();
     return HLSPlayer(
       key: key,
       url: url,

@@ -194,7 +194,6 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playbackHealthMonitor.onPlaybackRequested()
         player?.play()
         scheduleVisualLayerStabilization(forceReattach: false)
-        sendEvent(["event": "play"])
     }
 
     func pause() {
@@ -202,7 +201,6 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         captureCurrentFrameSnapshot(showOverlay: false)
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()
-        sendEvent(["event": "pause"])
     }
 
     func seek(to seconds: Double) {
@@ -487,6 +485,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     private func handlePlaybackEnded() {
+        playbackHealthMonitor.onPlaybackCompleted()
         sendEvent(["event": "completed"])
 
         if isLooping {

@@ -4,10 +4,17 @@ extension AgendaControllerLoadingPart on AgendaController {
   static const int _initialHeadSyncLimit =
       ReadBudgetRegistry.feedHomeInitialLimit;
 
-  void _resumeFeedPlaybackAfterRefresh() {
+  void _resumeFeedPlaybackAfterRefresh({
+    required int expectedEpoch,
+  }) {
     if (agendaList.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (isClosed || pauseAll.value || agendaList.isEmpty) return;
+      if (isClosed ||
+          pauseAll.value ||
+          agendaList.isEmpty ||
+          _feedMutationEpoch != expectedEpoch) {
+        return;
+      }
       resumeFeedPlayback();
     });
   }
@@ -494,6 +501,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> _performSyncFeedHeadAfterSurfaceOpen() async {
+    final mutationEpoch = _feedMutationEpoch;
     final playbackAnchor = _agendaFeedApplicationService.capturePlaybackAnchor(
       agendaList: agendaList.toList(growable: false),
       centeredIndex: centeredIndex.value,
@@ -535,6 +543,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (visibleItems.isEmpty) {
       return;
     }
+    if (mutationEpoch != _feedMutationEpoch) {
+      return;
+    }
 
     final existingIds = agendaList.map((post) => post.docID).toSet();
     final added = visibleItems
@@ -559,7 +570,12 @@ extension AgendaControllerLoadingPart on AgendaController {
         playbackAnchor.isNotEmpty &&
         !pauseAll.value) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (isClosed || pauseAll.value || agendaList.isEmpty) return;
+        if (isClosed ||
+            pauseAll.value ||
+            agendaList.isEmpty ||
+            mutationEpoch != _feedMutationEpoch) {
+          return;
+        }
         resumeFeedPlayback();
       });
     }
@@ -572,6 +588,8 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> refreshAgenda() async {
+    final refreshEpoch = _feedMutationEpoch + 1;
+    _feedMutationEpoch = refreshEpoch;
     try {
       _cancelDeferredInitialNetworkBootstrap();
       // Refresh başlarken tüm oynatımları kesin durdur.
@@ -600,11 +618,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
       );
       pauseAll.value = false;
-      _resumeFeedPlaybackAfterRefresh();
+      _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
     } catch (e) {
       print("refreshAgenda error: $e");
       pauseAll.value = false;
-      _resumeFeedPlaybackAfterRefresh();
+      _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
     }
   }
 

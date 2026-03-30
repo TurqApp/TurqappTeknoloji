@@ -3,9 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 
-const bool _suppressPostsModelSmokeLogs =
-    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
-
 // Alt koleksiyonlar için model sınıfları
 class PostStats {
   num commentCount;
@@ -257,28 +254,11 @@ class PostsModel {
 
   String get playbackUrl {
     if (isHlsReady) {
-      final resolved = CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
-      if (kDebugMode && !_suppressPostsModelSmokeLogs) {
-        debugPrint(
-          '[PostsModel][$docID] playbackUrl=HLS ready status=$hlsStatus hlsMasterUrl=$hlsMasterUrl resolved=$resolved',
-        );
-      }
-      return resolved;
+      return CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
     }
     final v = video.trim();
     if (hlsStatus == 'ready' && isHlsPlaylistUrl(v)) {
-      final resolved = CdnUrlBuilder.toCdnUrl(v);
-      if (kDebugMode && !_suppressPostsModelSmokeLogs) {
-        debugPrint(
-          '[PostsModel][$docID] playbackUrl=legacy HLS status=$hlsStatus video=$v resolved=$resolved',
-        );
-      }
-      return resolved;
-    }
-    if (kDebugMode && !_suppressPostsModelSmokeLogs && v.isNotEmpty) {
-      debugPrint(
-        '[PostsModel][$docID] playbackUrl EMPTY status=$hlsStatus hlsMasterUrl=${hlsMasterUrl.trim()} video=$v thumbnail=${thumbnail.trim()}',
-      );
+      return CdnUrlBuilder.toCdnUrl(v);
     }
     return '';
   }

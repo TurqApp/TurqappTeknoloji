@@ -169,6 +169,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
 
+  bool get _controllerOwnsInlinePlayback =>
+      !isStandalonePostInstance &&
+      (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
+
   bool get shouldAutoResumeInlinePlatformView {
     if (isStandalonePostInstance) return widget.shouldPlay;
     if (_useLegacyIosFeedBehavior) return widget.shouldPlay;
@@ -291,6 +295,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         if (value == true) {
           _safePauseVideo();
         } else {
+          if (_controllerOwnsInlinePlayback) return;
           _resumePlaybackIfEligible(source: 'pause_all_released');
         }
       });
@@ -307,6 +312,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
             }
             _stopPlaybackForSurfaceLoss();
           } else {
+            if (_controllerOwnsInlinePlayback) return;
             _resumePlaybackIfEligible(source: 'playback_suspension_released');
           }
         },

@@ -52,6 +52,7 @@ class _AgendaControllerState {
   Future<void>? surfaceBootstrapFuture;
   Future<void>? startupPrepareFuture;
   Future<void>? headSyncFuture;
+  int feedMutationEpoch = 0;
   DateTime? lastEnsureInitialLoadAt;
   DateTime? lastHeadSyncAt;
   DateTime? lastDeferredInitialNetworkBootstrapAt;
@@ -167,6 +168,8 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.startupPrepareFuture = value;
   Future<void>? get _headSyncFuture => _state.headSyncFuture;
   set _headSyncFuture(Future<void>? value) => _state.headSyncFuture = value;
+  int get _feedMutationEpoch => _state.feedMutationEpoch;
+  set _feedMutationEpoch(int value) => _state.feedMutationEpoch = value;
   DateTime? get _lastEnsureInitialLoadAt => _state.lastEnsureInitialLoadAt;
   set _lastEnsureInitialLoadAt(DateTime? value) =>
       _state.lastEnsureInitialLoadAt = value;

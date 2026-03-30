@@ -47,6 +47,7 @@ extension AgendaControllerSupportPart on AgendaController {
   bool get canClaimPlaybackNow {
     final nav = maybeFindNavBarController();
     if (nav != null && nav.selectedIndex.value != 0) return false;
+    if (pauseAll.value) return false;
     if (playbackSuspended.value) return false;
     if (!isPrimaryFeedRouteVisible) return false;
     return true;

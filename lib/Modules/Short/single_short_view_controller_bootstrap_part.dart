@@ -22,7 +22,9 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
         (index >= 0 && index < shorts.length) ? shorts[index].docID : null;
     if (docId != null) {
       try {
-        _playbackRuntimeService.unregisterPlaybackHandle(docId);
+        _playbackRuntimeService.unregisterPlaybackHandle(
+          _playbackHandleKeyForDoc(docId),
+        );
       } catch (_) {}
     }
 
@@ -47,7 +49,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       _videoControllers[initial] = widget.injectedController!;
       _externallyOwned.add(initial);
       _playbackRuntimeService.registerPlaybackHandle(
-        list[initial].docID,
+        _playbackHandleKeyForDoc(list[initial].docID),
         HLSAdapterPlaybackHandle(widget.injectedController!),
       );
       final ctrl = widget.injectedController!;
@@ -66,7 +68,9 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     }
     if (list.isNotEmpty && initial >= 0 && initial < list.length) {
       try {
-        _playbackRuntimeService.enterExclusiveMode(list[initial].docID);
+        _playbackRuntimeService.enterExclusiveMode(
+          _playbackHandleKeyForDoc(list[initial].docID),
+        );
       } catch (_) {}
       _primePlaybackForIndex(initial);
     }
@@ -91,7 +95,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       if (index >= 0 && index < shorts.length) {
         try {
           _playbackRuntimeService.registerPlaybackHandle(
-            shorts[index].docID,
+            _playbackHandleKeyForDoc(shorts[index].docID),
             HLSAdapterPlaybackHandle(widget.injectedController!),
           );
         } catch (_) {}
@@ -104,7 +108,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     if (url.isEmpty) return;
 
     final ctrl = _videoPool.acquire(
-      cacheKey: shorts[index].docID,
+      cacheKey: _playbackHandleKeyForDoc(shorts[index].docID),
       url: url,
       autoPlay: false,
       loop: false,
@@ -112,7 +116,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     _videoControllers[index] = ctrl;
     try {
       _playbackRuntimeService.registerPlaybackHandle(
-        shorts[index].docID,
+        _playbackHandleKeyForDoc(shorts[index].docID),
         HLSAdapterPlaybackHandle(ctrl),
       );
     } catch (_) {}
