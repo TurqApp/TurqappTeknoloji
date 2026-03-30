@@ -463,6 +463,33 @@ async function makeDuePlaceholdersVisible(group, docs, now) {
     }, { merge: true });
     await batch.commit();
 }
+async function rehideLeakedPlaceholders(docs, now) {
+    if (docs.length === 0)
+        return;
+    const refs = docs.map((doc) => db().collection(POSTS_COLLECTION).doc(doc.docId));
+    const snaps = await db().getAll(...refs);
+    const batch = db().batch();
+    let touched = 0;
+    for (const snap of snaps) {
+        if (!snap.exists)
+            continue;
+        const data = snap.data() || {};
+        const hasMedia = asString(data.video).length > 0 ||
+            asString(data.hlsMasterUrl).length > 0 ||
+            asString(data.thumbnail).length > 0 ||
+            (Array.isArray(data.img) && data.img.length > 0);
+        if (data.isUploading === false && !hasMedia) {
+            batch.set(snap.ref, {
+                isUploading: true,
+                updatedAt: now,
+            }, { merge: true });
+            touched += 1;
+        }
+    }
+    if (touched > 0) {
+        await batch.commit();
+    }
+}
 async function buildPayloads(group, docs) {
     const userCache = new Map();
     const payloads = [];
@@ -555,14 +582,13 @@ async function buildPayloads(group, docs) {
 async function publishGroup(group, docs, now) {
     const payloads = await buildPayloads(group, docs);
     if (!payloads.ok) {
-        await makeDuePlaceholdersVisible(group, docs, now);
         await updateGroup(group.rootId, {
             lastError: payloads.reason,
             lastErrorAt: now,
             leaseOwner: "",
             leaseUntil: 0,
             publishAttempts: firestore_1.FieldValue.increment(1),
-            state: "visible_waiting_media",
+            state: "awaiting_media",
             updatedAt: now,
         });
         return false;
@@ -623,6 +649,7 @@ async function processGroup(rootId, runId, now) {
         });
         return "failed";
     }
+    await rehideLeakedPlaceholders(docs, now);
     const prep = await ensureGroupMedia(docs);
     if (!prep.ok) {
         await updateGroup(rootId, {

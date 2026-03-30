@@ -12,7 +12,12 @@ extension ExploreRepositoryPagePart on ExploreRepository {
       feedMode: feedMode,
     );
     final postIds = snap.docs.map((doc) => doc.id).toList(growable: false);
-    final byId = await fetchPostsByIds(postIds, preferCache: true);
+    final preferFreshPosts = feedMode == 'explore_flood';
+    final byId = await fetchPostsByIds(
+      postIds,
+      preferCache: !preferFreshPosts,
+      cacheOnly: false,
+    );
     final items = postIds
         .map((id) => byId[id])
         .whereType<PostsModel>()

@@ -602,6 +602,40 @@ async function makeDuePlaceholdersVisible(group: QueueGroup, docs: QueueDoc[], n
   await batch.commit();
 }
 
+async function rehideLeakedPlaceholders(docs: QueueDoc[], now: number) {
+  if (docs.length === 0) return;
+
+  const refs = docs.map((doc) => db().collection(POSTS_COLLECTION).doc(doc.docId));
+  const snaps = await db().getAll(...refs);
+  const batch = db().batch();
+  let touched = 0;
+
+  for (const snap of snaps) {
+    if (!snap.exists) continue;
+    const data = snap.data() || {};
+    const hasMedia =
+      asString(data.video).length > 0 ||
+      asString(data.hlsMasterUrl).length > 0 ||
+      asString(data.thumbnail).length > 0 ||
+      (Array.isArray(data.img) && data.img.length > 0);
+    if (data.isUploading === false && !hasMedia) {
+      batch.set(
+        snap.ref,
+        {
+          isUploading: true,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+      touched += 1;
+    }
+  }
+
+  if (touched > 0) {
+    await batch.commit();
+  }
+}
+
 async function buildPayloads(group: QueueGroup, docs: QueueDoc[]) {
   const userCache = new Map<string, UserProfile | null>();
   const payloads = [];
@@ -779,6 +813,8 @@ async function processGroup(rootId: string, runId: string, now: number) {
     });
     return "failed";
   }
+
+  await rehideLeakedPlaceholders(docs, now);
 
   const prep = await ensureGroupMedia(docs);
   if (!prep.ok) {

@@ -79,10 +79,12 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
   Future<Map<String, PostsModel>> fetchPostsByIds(
     List<String> postIds, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) {
-    return PostRepository.ensure().fetchPostCardsByIds(
+    return PostRepository.ensure().fetchPostsByIds(
       postIds,
       preferCache: preferCache,
+      cacheOnly: cacheOnly,
     );
   }
 }
