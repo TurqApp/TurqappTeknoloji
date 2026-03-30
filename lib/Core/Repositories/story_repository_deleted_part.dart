@@ -11,7 +11,26 @@ int _deletedStoryCacheAsInt(dynamic value, {int fallback = 0}) {
   return fallback;
 }
 
+bool _isStoryMediaElementType(String type) => type == 'image' || type == 'gif';
+
 extension StoryRepositoryDeletedPart on StoryRepository {
+  List<String> _collectStoryMediaUrls(Map<String, dynamic> raw) {
+    final urls = <String>{};
+    for (final element in _normalizeStoryElements(raw['elements'])) {
+      final type = (element['type'] ?? '').toString().trim().toLowerCase();
+      if (!_isStoryMediaElementType(type)) continue;
+      final url = (element['content'] ?? '').toString().trim();
+      if (url.isNotEmpty) urls.add(url);
+    }
+    return urls.toList(growable: false);
+  }
+
+  Future<void> _purgeStoryMediaUrls(Map<String, dynamic> raw) async {
+    final urls = _collectStoryMediaUrls(raw);
+    if (urls.isEmpty) return;
+    await TurqImageCacheManager.removeUrls(urls);
+  }
+
   Future<void> _performMarkExpiredStoriesDeleted(String uid) async {
     try {
       final expiry = DateTime.now().subtract(const Duration(hours: 24));
@@ -20,6 +39,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
           .where('userId', isEqualTo: uid)
           .get();
       var didMutate = false;
+      final mediaUrls = <String>{};
 
       for (final doc in expiredSnap.docs) {
         try {
@@ -33,10 +53,12 @@ extension StoryRepositoryDeletedPart on StoryRepository {
             'deletedAt': DateTime.now().millisecondsSinceEpoch,
             'deleteReason': 'expired',
           });
+          mediaUrls.addAll(_collectStoryMediaUrls(doc.data()));
           didMutate = true;
         } catch (_) {}
       }
       if (didMutate) {
+        await TurqImageCacheManager.removeUrls(mediaUrls);
         await invalidateStoryCachesForUser(uid);
       }
     } catch (_) {}
@@ -55,6 +77,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
       'deletedAt': DateTime.now().millisecondsSinceEpoch,
       'deleteReason': reason,
     });
+    await _purgeStoryMediaUrls(raw);
     if (uid.isNotEmpty) {
       await invalidateStoryCachesForUser(uid);
     }
@@ -87,6 +110,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
           .doc(storyId)
           .delete();
     } catch (_) {}
+    await _purgeStoryMediaUrls(raw);
 
     if (uid.isNotEmpty) {
       try {

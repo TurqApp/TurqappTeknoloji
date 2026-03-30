@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_servic
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
