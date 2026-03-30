@@ -10,6 +10,14 @@ extension _NotificationsRepositoryHelpersX on NotificationsRepository {
   CollectionReference<Map<String, dynamic>> _notificationsRef(String uid) =>
       _firestore.collection('users').doc(uid).collection('notifications');
 
+  CollectionReference<Map<String, dynamic>> _postNotificationSubscribersRef(
+    String authorId,
+  ) =>
+      _firestore
+          .collection('users')
+          .doc(authorId.trim())
+          .collection('postNotificationSubscribers');
+
   Map<String, dynamic> normalizeInboxPayload(
     String uid,
     Map<String, dynamic> payload,

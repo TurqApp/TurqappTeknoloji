@@ -1,16 +1,5 @@
 part of 'social_profile_controller.dart';
 
-DocumentReference<Map<String, dynamic>> _postNotificationSubscriberRef(
-  String authorId,
-  String subscriberUid,
-) {
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(authorId)
-      .collection('postNotificationSubscribers')
-      .doc(subscriberUid);
-}
-
 extension SocialProfileControllerProfilePart on SocialProfileController {
   Future<void> _performLogProfileVisitIfNeeded() async {
     try {
@@ -143,9 +132,8 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     }
 
     try {
-      final entry = await _postNotificationSubscriberRef(userID, currentUid)
-          .get(const GetOptions(source: Source.serverAndCache));
-      postNotificationsEnabled.value = entry.exists;
+      postNotificationsEnabled.value = await NotificationsRepository.ensure()
+          .hasAuthorPostSubscription(userID, currentUid);
     } catch (e) {
       postNotificationsEnabled.value = false;
       print('SocialProfile refreshPostNotificationSubscription error: $e');

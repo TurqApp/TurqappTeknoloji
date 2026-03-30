@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/viewer_surface_invalidation_service.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';

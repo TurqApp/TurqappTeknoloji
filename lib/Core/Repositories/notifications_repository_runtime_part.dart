@@ -1,6 +1,17 @@
 part of 'notifications_repository.dart';
 
 extension NotificationsRepositoryRuntimeX on NotificationsRepository {
+  DocumentReference<Map<String, dynamic>> postNotificationSubscriberDoc(
+    String authorId,
+    String subscriberUid,
+  ) {
+    final trimmedAuthorId = authorId.trim();
+    final trimmedSubscriberUid = subscriberUid.trim();
+    return _postNotificationSubscribersRef(trimmedAuthorId).doc(
+      trimmedSubscriberUid,
+    );
+  }
+
   DocumentReference<Map<String, dynamic>> inboxDoc(
     String uid, {
     String? docId,
@@ -38,6 +49,54 @@ extension NotificationsRepositoryRuntimeX on NotificationsRepository {
   ) async {
     if (uid.trim().isEmpty || payload.isEmpty) return;
     await inboxDoc(uid.trim()).set(normalizeInboxPayload(uid, payload));
+  }
+
+  Future<void> subscribeToAuthorPosts(
+    String authorId,
+    String subscriberUid,
+  ) async {
+    final trimmedAuthorId = authorId.trim();
+    final trimmedSubscriberUid = subscriberUid.trim();
+    if (trimmedAuthorId.isEmpty || trimmedSubscriberUid.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await postNotificationSubscriberDoc(
+      trimmedAuthorId,
+      trimmedSubscriberUid,
+    ).set({
+      'subscriberId': trimmedSubscriberUid,
+      'authorId': trimmedAuthorId,
+      'createdAt': now,
+      'updatedAt': now,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> unsubscribeFromAuthorPosts(
+    String authorId,
+    String subscriberUid,
+  ) async {
+    final trimmedAuthorId = authorId.trim();
+    final trimmedSubscriberUid = subscriberUid.trim();
+    if (trimmedAuthorId.isEmpty || trimmedSubscriberUid.isEmpty) return;
+    await postNotificationSubscriberDoc(
+      trimmedAuthorId,
+      trimmedSubscriberUid,
+    ).delete();
+  }
+
+  Future<bool> hasAuthorPostSubscription(
+    String authorId,
+    String subscriberUid,
+  ) async {
+    final trimmedAuthorId = authorId.trim();
+    final trimmedSubscriberUid = subscriberUid.trim();
+    if (trimmedAuthorId.isEmpty || trimmedSubscriberUid.isEmpty) {
+      return false;
+    }
+    final entry = await postNotificationSubscriberDoc(
+      trimmedAuthorId,
+      trimmedSubscriberUid,
+    ).get(const GetOptions(source: Source.serverAndCache));
+    return entry.exists;
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> watchSettings(String uid) {
