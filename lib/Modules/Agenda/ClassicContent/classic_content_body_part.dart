@@ -561,8 +561,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     builder: (_, v, child) {
                       final hasStableVideoFrame = v.hasRenderedFirstFrame &&
                           !v.isBuffering &&
-                          !v.isCompleted &&
                           (v.isPlaying ||
+                              v.isCompleted ||
                               v.position > const Duration(milliseconds: 180));
                       return IgnorePointer(
                         ignoring: true,
