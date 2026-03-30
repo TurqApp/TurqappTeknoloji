@@ -86,44 +86,6 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
     return items;
   }
 
-  Future<List<Map<String, dynamic>>> fetchLatestRaw({
-    int limit = ReadBudgetRegistry.scholarshipRepositoryLatestLimit,
-    bool preferCache = true,
-    bool forceRefresh = false,
-    bool cacheOnly = false,
-  }) async {
-    final cacheKey = 'query:latest:$limit';
-    if (!forceRefresh && preferCache) {
-      final memory = _readQueryMemory(cacheKey);
-      if (memory != null) return memory;
-      final disk = await _readQueryPrefs(cacheKey);
-      if (disk != null) {
-        final cloned = _cloneDocs(disk);
-        _queryMemory[cacheKey] = _TimedScholarshipList(
-          items: cloned,
-          cachedAt: DateTime.now(),
-        );
-        return _cloneDocs(cloned);
-      }
-    }
-
-    if (cacheOnly) return const <Map<String, dynamic>>[];
-
-    final snapshot = await ScholarshipFirestorePath.collection()
-        .orderBy('timeStamp', descending: true)
-        .limit(limit)
-        .get();
-
-    final items = snapshot.docs
-        .map((doc) => <String, dynamic>{
-              ...Map<String, dynamic>.from(doc.data()),
-              'docId': doc.id,
-            })
-        .toList(growable: false);
-    await _storeQueryDocs(cacheKey, items);
-    return items;
-  }
-
   Future<QuerySnapshot<Map<String, dynamic>>> fetchLatestPage({
     int limit = 30,
     DocumentSnapshot? startAfter,
