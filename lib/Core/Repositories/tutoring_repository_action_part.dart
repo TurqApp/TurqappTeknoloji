@@ -212,6 +212,26 @@ extension TutoringRepositoryActionPart on TutoringRepository {
     );
   }
 
+  Future<void> deleteTutoring(String tutoringId) async {
+    final normalizedTutoringId = tutoringId.trim();
+    if (normalizedTutoringId.isEmpty) return;
+    final docRef = _firestore.collection('educators').doc(normalizedTutoringId);
+    final docSnap = await docRef.get(
+      const GetOptions(source: Source.serverAndCache),
+    );
+    final ownerUserId = (docSnap.data()?['userID'] ?? '').toString().trim();
+    await docRef.delete();
+    await _removeCachedValue('doc:$normalizedTutoringId');
+    await _removeCachedValue('reviews:$normalizedTutoringId');
+    await _removeCachedValue('applications:$normalizedTutoringId');
+    await TypesenseEducationSearchService.instance.invalidateEntity(
+      EducationTypesenseEntity.tutoring,
+    );
+    await maybeFindTutoringSnapshotRepository()?.invalidateUserScopedSurfaces(
+      ownerUserId,
+    );
+  }
+
   Future<void> submitReview({
     required String tutoringId,
     required String userId,

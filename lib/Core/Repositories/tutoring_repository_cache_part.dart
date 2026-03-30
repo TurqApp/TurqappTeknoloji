@@ -75,6 +75,12 @@ extension TutoringRepositoryCachePart on TutoringRepository {
   Future<void> _storeMap(String key, Map<String, dynamic> value) =>
       _storeValue(key, value);
 
+  Future<void> _removeCachedValue(String key) async {
+    _memory.remove(key);
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.remove('${TutoringRepository._prefsPrefix}:$key');
+  }
+
   Future<void> _storeValue(String key, dynamic value) async {
     final now = DateTime.now();
     final cloned = _cloneValue(value);

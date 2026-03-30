@@ -25,7 +25,6 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/create_tutoring_view.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart'
     show getCurrentUserId;
 import 'package:url_launcher/url_launcher.dart';

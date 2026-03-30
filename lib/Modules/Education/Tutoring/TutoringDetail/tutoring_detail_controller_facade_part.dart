@@ -35,6 +35,9 @@ extension TutoringDetailControllerFacadePart on TutoringDetailController {
   Future<void> unpublishTutoring() =>
       _TutoringDetailControllerActionsX(this).unpublishTutoring();
 
+  Future<void> deleteTutoring() =>
+      _TutoringDetailControllerActionsX(this).deleteTutoring();
+
   Future<void> getSimilar(String brans, String currentDocID) =>
       _TutoringDetailControllerRuntimeX(this).getSimilar(brans, currentDocID);
 }

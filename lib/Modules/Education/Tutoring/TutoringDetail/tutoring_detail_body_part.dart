@@ -11,10 +11,8 @@ extension TutoringDetailBodyPart on TutoringDetail {
 
     Future<void> deleteTutoring(String docId) async {
       try {
-        await FirebaseFirestore.instance
-            .collection('educators')
-            .doc(docId)
-            .delete();
+        await controller.deleteTutoring();
+        savedController.removeSavedTutoring(docId);
         Get.back();
         AppSnackbar('common.success'.tr, 'tutoring.delete_success'.tr);
       } catch (_) {

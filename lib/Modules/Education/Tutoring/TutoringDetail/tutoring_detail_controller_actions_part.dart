@@ -54,4 +54,13 @@ class _TutoringDetailControllerActionsX {
       await controller._tutoringRepository.unpublish(docId);
     } catch (_) {}
   }
+
+  Future<void> deleteTutoring() async {
+    final docId = controller.tutoring.value.docID;
+    try {
+      await controller._tutoringRepository.deleteTutoring(docId);
+    } catch (_) {
+      rethrow;
+    }
+  }
 }
