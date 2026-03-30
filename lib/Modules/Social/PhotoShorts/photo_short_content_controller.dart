@@ -7,9 +7,7 @@ import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
-import 'package:uuid/uuid.dart';
 import '../../../Models/posts_model.dart';
-import '../../../Services/reshare_helper.dart';
 import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_interaction_service.dart';
 import '../../Agenda/agenda_controller.dart';
@@ -22,7 +20,6 @@ import '../../../Core/Services/admin_access_service.dart';
 import '../../../Core/Repositories/post_repository.dart';
 import '../../../Core/Repositories/admin_push_repository.dart';
 import '../../../Core/Services/user_summary_resolver.dart';
-import '../../../Core/Services/typesense_post_service.dart';
 import '../../../Services/current_user_service.dart';
 
 part 'photo_short_content_controller_post_part.dart';
