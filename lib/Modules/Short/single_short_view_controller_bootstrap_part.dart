@@ -35,6 +35,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
 
   void _configureInitialForList(List<PostsModel> list) {
     int initial = 0;
+    var usesInjectedInitialPlayback = false;
     if (widget.startModel != null) {
       final idx = list.indexWhere((p) => p.docID == widget.startModel!.docID);
       if (idx != -1) initial = idx;
@@ -46,6 +47,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     _initialIndexForSeek = initial;
     if (widget.injectedController != null &&
         widget.injectedController!.value.isInitialized) {
+      usesInjectedInitialPlayback = true;
       _videoControllers[initial] = widget.injectedController!;
       _externallyOwned.add(initial);
       _playbackRuntimeService.registerPlaybackHandle(
@@ -72,7 +74,9 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
           _playbackHandleKeyForDoc(list[initial].docID),
         );
       } catch (_) {}
-      _primePlaybackForIndex(initial);
+      if (!usesInjectedInitialPlayback) {
+        _primePlaybackForIndex(initial);
+      }
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (pageController.hasClients) {
