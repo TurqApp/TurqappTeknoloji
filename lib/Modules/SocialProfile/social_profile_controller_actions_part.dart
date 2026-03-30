@@ -259,6 +259,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
         );
 
         CurrentUserService.instance.forceRefresh();
+        await ViewerSurfaceInvalidationService.invalidateForViewer(currentUid);
         getUserData();
         isFollowingCheck();
       },
@@ -280,6 +281,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
           docId: userID,
         );
         CurrentUserService.instance.forceRefresh();
+        await ViewerSurfaceInvalidationService.invalidateForViewer(currentUid);
         getUserData();
         isFollowingCheck();
       },

@@ -258,23 +258,6 @@ extension FollowRepositoryActionPart on FollowRepository {
   }
 
   Future<void> _invalidateViewerScopedSurfaces(String uid) async {
-    final normalized = uid.trim();
-    if (normalized.isEmpty) return;
-    final futures = <Future<void>>[
-      maybeFindFeedSnapshotRepository()
-              ?.clearUserSnapshots(userId: normalized) ??
-          Future<void>.value(),
-      maybeFindShortSnapshotRepository()
-              ?.clearUserSnapshots(userId: normalized) ??
-          Future<void>.value(),
-      maybeFindRecommendedUsersRepository()?.invalidate() ??
-          Future<void>.value(),
-      StoryRepository.maybeFind()?.invalidateStoryCachesForUser(
-            normalized,
-            clearDeletedStories: false,
-          ) ??
-          Future<void>.value(),
-    ];
-    await Future.wait(futures);
+    await ViewerSurfaceInvalidationService.invalidateForViewer(uid);
   }
 }

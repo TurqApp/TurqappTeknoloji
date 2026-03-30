@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
+import 'package:turqappv2/Core/Services/viewer_surface_invalidation_service.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';

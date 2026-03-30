@@ -69,6 +69,8 @@ extension BlockedUsersControllerActionsPart on BlockedUsersController {
                           subcollection: 'blockedUsers',
                           docId: userID,
                         );
+                        await ViewerSurfaceInvalidationService
+                            .invalidateForViewer(uid);
 
                         blockedUsers.remove(userID);
                         blockedUserDetails
