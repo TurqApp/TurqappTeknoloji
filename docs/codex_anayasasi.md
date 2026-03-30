@@ -390,3 +390,82 @@ Beklenen kapanis:
   - commit
   - siradaki uygulama adimi
   alanlarini tasir.
+
+## 2026-03-30 Merkezi Purge ve Invalidation Omurgasi
+
+Kullanici aksiyonu ile silinen, geri alinan, gizlenen, yayindan kaldirilan
+veya gorunurlugu degisen icerikler cache'de yasamayacak. Bu baslik altindaki
+kurallar, cache omurgasinin tamamlayici "anlik purge" sozlesmesidir.
+
+### Tek Merkez Mutation Sahipligi
+
+- Kullaniciya gorunen bir icerigi etkileyen `delete`, `unsend`, `remove`,
+  `withdraw`, `unpublish`, `hide`, `block`, `private/public` mutasyonlari
+  controller veya view katmaninda dogrudan Firestore/Storage silme mantigi
+  tasimayacak.
+- Bu mutasyonlar yalniz alan sahibi repository veya alan sahibi service
+  uzerinden yurutulecek.
+- UI katmani sadece:
+  - intent baslatir
+  - optimistik local state uygular
+  - repository/service sonucunu tuketir
+- Firestore alt koleksiyon, snapshot surface, doc cache, media cache ve local
+  liste temizligi ayni ownership hattinda kapanacak.
+
+### Zorunlu Purge Davranisi
+
+- Bir icerik silinirse:
+  - ekrandan aninda dusecek
+  - ilgili snapshot/local liste cache'inden aninda dusecek
+  - app restart sonrasi geri gelmeyecek
+  - offline acilista geri gelmeyecek
+- Medya veya dosya baglantili bir icerikse:
+  - disk/cache temizligi de ayni mutation zincirinin parcasi olacak
+- Visibility degisimi ise:
+  - UI filtresi tek basina yeterli sayilmayacak
+  - ilgili surface invalidation'i da zorunlu olacak
+
+### Kabul Edilen Dogrudan Delete Istisnalari
+
+Asagidaki kategoriler mimari ihlal sayilmaz; bunlar bilincli cekirdek
+temizliklerdir:
+
+- canonical cekirdek servis transaction silmeleri
+  - `post_delete_service.dart`
+  - `post_interaction_service.dart`
+  - `offline_mode_service_action_part.dart`
+  - `user_post_link_service.dart`
+- temp veya lokal dosya temizligi
+  - ses kaydi gecici dosyasi
+  - avatar eski dosyalari
+  - upload temp klasorleri
+- secure storage / session / account vault temizligi
+- auth hesabini silme veya account lifecycle temizligi
+- repository'nin kendi icinde yaptigi alt koleksiyon batch purge'leri
+
+Bu alanlar disinda view/controller katmaninda dogrudan `.delete()` kullanimi
+anayasa ihlalidir.
+
+### User-Content Domain Kurali
+
+- Post, yorum, alt yorum, reshare, saved, liked, hidden, story, market, job,
+  tutoring, scholarship, test, practice exam, answer key ve optical form
+  mutasyonlari repository/service omurgasi disina cikmayacak.
+- Bildirim inbox, sohbet mesaji, sohbet preview ve bagli medya temizligi
+  lokal snapshot ile birlikte yurutulecek.
+- Admin ekranlari dahil olmak uzere kullaniciya gorunen veri degistiren
+  silme akislari once service/repository'ye alinacak, sonra UI'dan
+  cagrilacak.
+
+### Kapanis Kriteri
+
+- Residual taramada kalan `delete` cagrilari su siniflara dusuyorsa lane
+  kapanmis sayilir:
+  - canonical cekirdek servis
+  - temp/local file cleanup
+  - secure storage/session cleanup
+  - auth/account cleanup
+- Bunlar disinda yeni bir dogrudan delete gorulurse:
+  - once ownership hatti acilacak
+  - sonra mutation repository/service'e tasinacak
+  - en son UI call-site sadeleştirilecek
