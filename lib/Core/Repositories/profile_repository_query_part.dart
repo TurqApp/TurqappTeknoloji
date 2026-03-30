@@ -73,6 +73,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
           )
           .whereType<PostsModel>()
           .where((post) => post.deletedPost != true)
+          .where((post) => !post.shouldHideWhileUploading)
           .toList(growable: false),
     );
     return ProfilePageResult(
@@ -114,6 +115,10 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       ))[doc.id],
       snapshotData: doc.data(),
     );
+    if (post?.shouldHideWhileUploading == true) {
+      _latestPostMemory[uid] = null;
+      return null;
+    }
     _latestPostMemory[uid] = post;
     return post;
   }
@@ -189,6 +194,9 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     final scheduled = <PostsModel>[];
 
     for (final post in posts) {
+      if (post.shouldHideWhileUploading) {
+        continue;
+      }
       final isIzBirakPost = post.scheduledAt.toInt() > 0;
       if (isIzBirakPost) {
         scheduled.add(post);

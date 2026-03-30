@@ -65,6 +65,7 @@ extension ProfilePostsSnapshotRepositoryCodecPart
             }
           })
           .whereType<PostsModel>()
+          .where((post) => !post.shouldHideWhileUploading)
           .toList(growable: false);
     }
 
