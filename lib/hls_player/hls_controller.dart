@@ -105,6 +105,12 @@ class HLSController {
     return remaining <= 0.35;
   }
 
+  bool get _shouldPreserveResumeVisual {
+    if (_state == PlayerState.completed || _isAtPlaybackEnd) return false;
+    if (!_currentPosition.isFinite) return false;
+    return _currentPosition > 0.05;
+  }
+
   void cancelPendingResume() {
     _pendingReattachSeekSeconds = null;
     _pendingReattachShouldPlay = false;
@@ -144,8 +150,10 @@ class HLSController {
     // Rebind güvenliği: aynı controller yeni view'a bağlanıyorsa eski stream'i kapat.
     _eventSubscription?.cancel();
     _eventSubscription = null;
-    _hasRenderedFirstFrame = false;
-    _firstFrameController.add(false);
+    if (!_shouldPreserveResumeVisual) {
+      _hasRenderedFirstFrame = false;
+      _firstFrameController.add(false);
+    }
     _rendererStallCount = 0;
     _surfaceRebindCount = 0;
     _viewId = viewId;

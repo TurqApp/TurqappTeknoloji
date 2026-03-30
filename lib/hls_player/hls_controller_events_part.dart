@@ -46,8 +46,10 @@ extension HLSControllerEventsPart on HLSController {
             break;
 
           case 'surfaceDetached':
-            _hasRenderedFirstFrame = false;
-            _firstFrameController.add(false);
+            if (!_shouldPreserveResumeVisual) {
+              _hasRenderedFirstFrame = false;
+              _firstFrameController.add(false);
+            }
             break;
 
           case 'pause':
