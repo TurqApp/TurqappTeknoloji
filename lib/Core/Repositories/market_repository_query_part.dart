@@ -2,31 +2,15 @@ part of 'market_repository_library.dart';
 
 extension MarketRepositoryQueryPart on MarketRepository {
   Future<List<MarketItemModel>> fetchLatestItems({
-    int limit = 24,
+    int limit = ReadBudgetRegistry.marketHomeInitialLimit,
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
-    final cacheKey = 'latest:$limit';
-    if (!forceRefresh && preferCache) {
-      final memory = _getFromMemory(cacheKey);
-      if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
-      if (disk != null) {
-        final cloned = _cloneItems(disk);
-        _memory[cacheKey] = _TimedMarketItems(
-          items: cloned,
-          cachedAt: DateTime.now(),
-        );
-        return _cloneItems(cloned);
-      }
-    }
-
     final snapshot = await _fetchLatestSnapshot(limit);
     final items = snapshot.docs
         .map((doc) => MarketItemModel.fromMap(doc.data(), doc.id))
         .where((item) => item.status == 'active')
         .toList(growable: false);
-    await _store(cacheKey, items);
     return items;
   }
 
@@ -115,21 +99,6 @@ extension MarketRepositoryQueryPart on MarketRepository {
     bool forceRefresh = false,
   }) async {
     if (uid.trim().isEmpty) return const <MarketItemModel>[];
-    final cacheKey = 'saved:$uid';
-    if (!forceRefresh && preferCache) {
-      final memory = _getFromMemory(cacheKey);
-      if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
-      if (disk != null) {
-        final cloned = _cloneItems(disk);
-        _memory[cacheKey] = _TimedMarketItems(
-          items: cloned,
-          cachedAt: DateTime.now(),
-        );
-        return _cloneItems(cloned);
-      }
-    }
-
     final snapshot = await _fetchSavedRefs(uid);
     final ids = snapshot.docs
         .map((doc) => (doc.data()['itemId'] ?? doc.id).toString())
@@ -143,7 +112,6 @@ extension MarketRepositoryQueryPart on MarketRepository {
         .map((id) => byId[id])
         .whereType<MarketItemModel>()
         .toList(growable: false);
-    await _store(cacheKey, ordered);
     return ordered;
   }
 }

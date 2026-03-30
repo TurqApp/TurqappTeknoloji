@@ -218,6 +218,21 @@ Beklenen kapanis:
   - `optical_form_owner/answered`
   - `past_question_home`
 - Ayni surface icin ikinci bir repo-local listing cache API'si tutmak yasak.
+- Su sayilar merkezi surface policy omurgasina dahildir ve lokal
+  hardcode edilemez:
+  - home/search/owner/type/answered/favorites/saved/applied/shared limitleri
+  - related/similar surface fetch ve visible limitleri
+  - personalized/vitrin/bootstrap/home seed limitleri
+  - feed/short/explore prefetch ve candidate havuz limitleri
+- Su sayilar surface policy omurgasina dahil degildir; ancak sadece kendi
+  dar rolunde lokal kalabilir:
+  - diagnostic sample sayilari
+  - QA/export truncation sayilari
+  - user summary batch chunk sayilari
+  - detail ekraninda "daha fazla goster" oncesi preview satir/adet siniri
+- Bir lokal sayi startup, cache ownership, paging, warmup, prefetch veya
+  kullaniciya gorunen ana liste uzunlugunu etkiliyorsa anayasa geregi
+  `SurfacePolicyRegistry` veya `ReadBudgetRegistry` altina tasinmak zorundadir.
   Su legacy pattern'ler geri getirilmeyecek:
   - `fetchAnsweredByUser`
   - `fetchFavorites`

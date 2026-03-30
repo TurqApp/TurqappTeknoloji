@@ -15,6 +15,7 @@ import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
+import '../../Core/Services/read_budget_registry.dart';
 import '../../Core/Services/short_render_coordinator.dart';
 import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Widgets/app_header_action_button.dart';

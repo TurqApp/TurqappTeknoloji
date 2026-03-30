@@ -117,7 +117,9 @@ extension AgendaControllerResharePart on AgendaController {
     int perPostLimit = 1,
     Duration delay = const Duration(milliseconds: 1400),
   }) {
-    final targetPosts = posts.take(6).toList(growable: false);
+    final targetPosts = posts
+        .take(ReadBudgetRegistry.reshareTargetPostLimit)
+        .toList(growable: false);
     if (targetPosts.isEmpty) return;
     _resharePostsFetchTimer?.cancel();
     _resharePostsFetchTimer = Timer(delay, () {

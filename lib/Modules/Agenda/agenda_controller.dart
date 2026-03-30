@@ -90,7 +90,7 @@ AgendaController ensureAgendaController({bool permanent = false}) {
 }
 
 extension AgendaControllerFacadePart on AgendaController {
-  int get fetchLimit => 50;
+  int get fetchLimit => ReadBudgetRegistry.feedBufferedFetchLimit;
 
   AgendaShuffleCacheService get _shuffleCache =>
       ensureAgendaShuffleCacheService();

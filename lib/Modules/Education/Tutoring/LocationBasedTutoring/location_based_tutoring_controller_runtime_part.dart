@@ -41,7 +41,7 @@ extension _LocationBasedTutoringControllerRuntimeX
 
       final result = await _tutoringSnapshotRepository.loadHome(
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 250,
+        limit: ReadBudgetRegistry.tutoringLocationBasedFetchLimit,
         forceSync: !silent,
       );
       final tempList = (result.data ?? const <TutoringModel>[])

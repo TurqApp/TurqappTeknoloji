@@ -257,7 +257,7 @@ extension _MarketControllerFilterPart on MarketController {
       final fetched = await _marketSnapshotRepository.search(
         query: query,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.marketSearchInitialLimit,
         forceSync: true,
       );
       if (!_isLatestSearch(requestId, query)) return;

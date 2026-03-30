@@ -90,7 +90,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
       final docs = await _state.scholarshipRepository.fetchByArrayMembershipRaw(
         isLiked ? 'begeniler' : 'kaydedenler',
         userId,
-        limit: 50,
+        limit: ReadBudgetRegistry.scholarshipSavedInitialLimit,
         forceRefresh: forceRefresh,
         cacheOnly: cacheOnly,
       );

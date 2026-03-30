@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'top_tags_contoller.dart';
@@ -149,7 +150,9 @@ class _TopTagsState extends State<TopTags> {
 
   Widget header() {
     return Obx(() {
-      final items = controller.tags.take(30).toList();
+      final items = controller.tags
+          .take(ReadBudgetRegistry.topTagsTrendingResultLimit)
+          .toList();
       return Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[

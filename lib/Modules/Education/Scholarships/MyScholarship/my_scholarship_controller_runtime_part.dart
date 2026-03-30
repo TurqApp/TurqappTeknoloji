@@ -17,7 +17,7 @@ class MyScholarshipControllerRuntimePart {
       final cachedRaw =
           await controller._scholarshipRepository.fetchMyScholarshipsRaw(
         userId,
-        limit: 50,
+        limit: ReadBudgetRegistry.scholarshipMineInitialLimit,
         cacheOnly: true,
       );
       if (cachedRaw.isNotEmpty) {
@@ -65,7 +65,7 @@ class MyScholarshipControllerRuntimePart {
       final rawScholarships =
           await controller._scholarshipRepository.fetchMyScholarshipsRaw(
         userId,
-        limit: 50,
+        limit: ReadBudgetRegistry.scholarshipMineInitialLimit,
         forceRefresh: forceRefresh,
       );
       controller.myScholarships.value =

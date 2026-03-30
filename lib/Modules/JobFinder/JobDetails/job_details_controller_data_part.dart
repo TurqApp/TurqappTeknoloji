@@ -85,13 +85,13 @@ extension JobDetailsControllerDataPart on JobDetailsController {
       final result = await _jobHomeSnapshotRepository.search(
         query: query,
         userId: _currentUserId,
-        limit: 20,
+        limit: ReadBudgetRegistry.jobRelatedFetchLimit,
         forceSync: true,
       );
 
       final jobs = (result.data ?? const <JobModel>[])
           .where((job) => _isSimilarJob(current, job))
-          .take(8)
+          .take(ReadBudgetRegistry.jobRelatedVisibleLimit)
           .toList(growable: false);
       list.assignAll(jobs);
     } catch (_) {
@@ -114,13 +114,13 @@ extension JobDetailsControllerDataPart on JobDetailsController {
       final cached = await _jobHomeSnapshotRepository.search(
         query: query,
         userId: _currentUserId,
-        limit: 20,
+        limit: ReadBudgetRegistry.jobRelatedFetchLimit,
       );
       final cachedJobs = cached.data ?? const <JobModel>[];
       if (cachedJobs.isNotEmpty) {
         final jobs = cachedJobs
             .where((job) => _isSimilarJob(current, job))
-            .take(8)
+            .take(ReadBudgetRegistry.jobRelatedVisibleLimit)
             .toList(growable: false);
         if (jobs.isNotEmpty) {
           list.assignAll(jobs);

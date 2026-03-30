@@ -13,7 +13,7 @@ ShortRepository _ensureShortRepository() =>
 extension ShortRepositoryFacadePart on ShortRepository {
   Future<ShortPageResult> fetchReadyPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
-    int pageSize = 20,
+    int pageSize = ReadBudgetRegistry.shortHomeInitialLimit,
     int? nowMs,
   }) =>
       _fetchReadyPageImpl(

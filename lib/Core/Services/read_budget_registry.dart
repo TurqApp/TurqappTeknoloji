@@ -22,6 +22,10 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.reshareUserPreviewInitialLimit;
   static const int reshareFeedWarmupInitialLimit =
       SurfacePolicyRegistry.reshareFeedWarmupInitialLimit;
+  static const int reshareScanPostLimit =
+      SurfacePolicyRegistry.reshareScanPostLimit;
+  static const int reshareTargetPostLimit =
+      SurfacePolicyRegistry.reshareTargetPostLimit;
   static const int antremanCategoryPoolInitialLimit =
       SurfacePolicyRegistry.antremanCategoryPoolInitialLimit;
   static const int antremanSavedQuestionInitialLimit =
@@ -29,8 +33,23 @@ class ReadBudgetRegistry {
 
   static const int feedHomeInitialLimit =
       SurfacePolicyRegistry.feedHomeInitialLimit;
+  static const int feedLivePageLimit = SurfacePolicyRegistry.feedLivePageLimit;
+  static const int feedBufferedFetchLimit =
+      SurfacePolicyRegistry.feedBufferedFetchLimit;
+  static const int feedPersistSnapshotLimit =
+      SurfacePolicyRegistry.feedPersistSnapshotLimit;
+  static const int feedVisiblePublicFallbackMinLimit =
+      SurfacePolicyRegistry.feedVisiblePublicFallbackMinLimit;
+  static const int feedGlobalBadgeMinLimit =
+      SurfacePolicyRegistry.feedGlobalBadgeMinLimit;
+  static const int feedShuffleInitialFetchSize =
+      SurfacePolicyRegistry.feedShuffleInitialFetchSize;
+  static const int feedShuffleBackgroundFetchSize =
+      SurfacePolicyRegistry.feedShuffleBackgroundFetchSize;
   static const int shortHomeInitialLimit =
       SurfacePolicyRegistry.shortHomeInitialLimit;
+  static const int shortRandomReadyPoolLimit =
+      SurfacePolicyRegistry.shortRandomReadyPoolLimit;
   static const int marketHomeInitialLimit =
       SurfacePolicyRegistry.marketHomeInitialLimit;
   static const int marketSearchInitialLimit =
@@ -43,6 +62,10 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.jobSearchInitialLimit;
   static const int jobOwnerInitialLimit =
       SurfacePolicyRegistry.jobOwnerInitialLimit;
+  static const int jobRelatedFetchLimit =
+      SurfacePolicyRegistry.jobRelatedFetchLimit;
+  static const int jobRelatedVisibleLimit =
+      SurfacePolicyRegistry.jobRelatedVisibleLimit;
   static const int scholarshipHomeInitialLimit =
       SurfacePolicyRegistry.scholarshipHomeInitialLimit;
   static const int scholarshipRepositoryLatestLimit =
@@ -51,6 +74,16 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.scholarshipSearchInitialLimit;
   static const int scholarshipProviderSeedLimit =
       SurfacePolicyRegistry.scholarshipProviderSeedLimit;
+  static const int scholarshipMineInitialLimit =
+      SurfacePolicyRegistry.scholarshipMineInitialLimit;
+  static const int scholarshipAppliedInitialLimit =
+      SurfacePolicyRegistry.scholarshipAppliedInitialLimit;
+  static const int scholarshipSavedInitialLimit =
+      SurfacePolicyRegistry.scholarshipSavedInitialLimit;
+  static const int scholarshipPersonalizedInitialLimit =
+      SurfacePolicyRegistry.scholarshipPersonalizedInitialLimit;
+  static const int scholarshipPersonalizedShowcaseLimit =
+      SurfacePolicyRegistry.scholarshipPersonalizedShowcaseLimit;
   static const int practiceExamHomeInitialLimit =
       SurfacePolicyRegistry.practiceExamHomeInitialLimit;
   static const int practiceExamSearchInitialLimit =
@@ -75,10 +108,28 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.tutoringHomeInitialLimit;
   static const int tutoringSearchInitialLimit =
       SurfacePolicyRegistry.tutoringSearchInitialLimit;
+  static const int tutoringSearchBootstrapLimit =
+      SurfacePolicyRegistry.tutoringSearchBootstrapLimit;
+  static const int tutoringLocationBasedFetchLimit =
+      SurfacePolicyRegistry.tutoringLocationBasedFetchLimit;
   static const int pastQuestionSearchInitialLimit =
       SurfacePolicyRegistry.pastQuestionSearchInitialLimit;
   static const int questionBankSearchInitialLimit =
       SurfacePolicyRegistry.questionBankSearchInitialLimit;
+  static const int marketRelatedFetchLimit =
+      SurfacePolicyRegistry.marketRelatedFetchLimit;
+  static const int marketRelatedVisibleLimit =
+      SurfacePolicyRegistry.marketRelatedVisibleLimit;
+  static const int topTagsFeedPostLimit =
+      SurfacePolicyRegistry.topTagsFeedPostLimit;
+  static const int topTagsTrendingResultLimit =
+      SurfacePolicyRegistry.topTagsTrendingResultLimit;
+  static const int topTagsRepositoryFetchLimit =
+      SurfacePolicyRegistry.topTagsRepositoryFetchLimit;
+  static const int postLikeListingPageLimit =
+      SurfacePolicyRegistry.postLikeListingPageLimit;
+  static const int explorePrefetchDocLimit =
+      SurfacePolicyRegistry.explorePrefetchDocLimit;
 
   static const int storyInitialLimit = SurfacePolicyRegistry.storyInitialLimit;
   static const int storyFullLimit = SurfacePolicyRegistry.storyFullLimit;

@@ -116,7 +116,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       final result = await _scholarshipSnapshotRepository.search(
         query: normalized,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.scholarshipSearchInitialLimit,
         forceSync: true,
       );
       if (requestToken != _searchRequestToken ||

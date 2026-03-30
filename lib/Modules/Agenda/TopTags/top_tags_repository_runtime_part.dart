@@ -2,7 +2,7 @@ part of 'top_tags_repository_parts.dart';
 
 extension TopTagsRepositoryRuntimePart on TopTagsRepository {
   Future<List<HashtagModel>?> readTrendingTagsCache({
-    int resultLimit = 30,
+    int resultLimit = ReadBudgetRegistry.topTagsTrendingResultLimit,
   }) async {
     final memory = _readMemory(limit: resultLimit);
     if (memory != null) return memory;
@@ -16,7 +16,7 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
   }
 
   Future<List<HashtagModel>> fetchTrendingTags({
-    int resultLimit = 30,
+    int resultLimit = ReadBudgetRegistry.topTagsTrendingResultLimit,
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
@@ -37,7 +37,7 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
       final snap = await _db
           .collection("tags")
           .orderBy("count", descending: true)
-          .limit(200)
+          .limit(ReadBudgetRegistry.topTagsRepositoryFetchLimit)
           .get();
 
       final list = <HashtagModel>[];
@@ -112,7 +112,7 @@ TopTagsRepository ensureTopTagsRepository() =>
 
 extension TopTagsRepositoryFacadePart on TopTagsRepository {
   Future<List<PostsModel>> fetchImagePostsPage({
-    int limit = 15,
+    int limit = ReadBudgetRegistry.topTagsFeedPostLimit,
     bool reset = false,
   }) =>
       _TopTagsRepositoryCacheX(this).fetchImagePostsPage(

@@ -299,7 +299,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      final loadLimit = initial ? 30 : (pageLimit ?? fetchLimit);
+      final loadLimit = initial
+          ? ReadBudgetRegistry.feedLivePageLimit
+          : (pageLimit ?? fetchLimit);
       final liveConnected = ContentPolicy.isConnected;
       final shouldPreferCacheOnOpen =
           !liveConnected || (initial && agendaList.isEmpty);
@@ -584,7 +586,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     await _saveFeedPostsToPool(
-      _buildOrderedAgendaSnapshot(limit: 40),
+      _buildOrderedAgendaSnapshot(
+        limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+      ),
       const <String, Map<String, dynamic>>{},
       source: CachedResourceSource.server,
     );
@@ -632,7 +636,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       final previousAgenda = agendaList.toList(growable: false);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      const loadLimit = 30;
+      const loadLimit = ReadBudgetRegistry.feedLivePageLimit;
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
@@ -698,7 +702,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
 
       await _saveFeedPostsToPool(
-        _buildOrderedAgendaSnapshot(limit: 40),
+        _buildOrderedAgendaSnapshot(
+          limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+        ),
         const <String, Map<String, dynamic>>{},
         source: CachedResourceSource.server,
       );

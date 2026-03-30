@@ -79,7 +79,7 @@ extension ApplicationsControllerRuntimeX on ApplicationsController {
 
     final bursList = await _scholarshipRepository.fetchAppliedByUserRaw(
       userID,
-      limit: 50,
+      limit: ReadBudgetRegistry.scholarshipAppliedInitialLimit,
       preferCache: !forceRefresh,
       forceRefresh: forceRefresh,
       cacheOnly: cacheOnly,

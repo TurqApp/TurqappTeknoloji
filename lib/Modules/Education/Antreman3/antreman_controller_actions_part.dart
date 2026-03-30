@@ -58,7 +58,7 @@ extension AntremanControllerActionsPart on AntremanController {
       final result = await _questionBankSnapshotRepository.search(
         query: normalized,
         userId: _activeUid,
-        limit: 40,
+        limit: ReadBudgetRegistry.questionBankSearchInitialLimit,
         forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized) {

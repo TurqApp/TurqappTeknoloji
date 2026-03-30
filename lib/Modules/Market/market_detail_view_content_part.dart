@@ -334,7 +334,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
     return FutureBuilder<List<MarketItemModel>>(
       future: _MarketDetailViewState._typesense.searchItems(
         query: '*',
-        limit: 30,
+        limit: ReadBudgetRegistry.marketRelatedFetchLimit,
         categoryKey: item.categoryKey,
         preferCache: true,
       ),
@@ -348,7 +348,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
                       item.categoryPath.isNotEmpty &&
                       candidate.categoryPath.first == item.categoryPath.first),
             )
-            .take(8)
+            .take(ReadBudgetRegistry.marketRelatedVisibleLimit)
             .toList(growable: false);
 
         if (snapshot.connectionState == ConnectionState.waiting &&

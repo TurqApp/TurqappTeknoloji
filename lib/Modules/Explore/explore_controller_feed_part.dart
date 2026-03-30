@@ -923,7 +923,7 @@ extension ExploreControllerFeedPart on ExploreController {
         .where((post) => post.hasPlayableVideo)
         .map((post) => post.docID)
         .where((id) => id.isNotEmpty)
-        .take(20)
+        .take(ReadBudgetRegistry.explorePrefetchDocLimit)
         .toList();
     if (docIds.isEmpty) return;
 

@@ -42,7 +42,7 @@ extension SearchDenemeControllerRuntimePart on SearchDenemeController {
       final resource = await _practiceExamSnapshotRepository.search(
         query: normalized,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.practiceExamSearchInitialLimit,
         forceSync: true,
       );
       if (token != _searchToken) return;

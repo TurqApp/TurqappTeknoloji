@@ -146,7 +146,7 @@ extension DenemeSinavlariControllerSearchPart on DenemeSinavlariController {
       final resource = await _practiceExamSnapshotRepository.search(
         query: normalized,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.practiceExamSearchInitialLimit,
         forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized) {

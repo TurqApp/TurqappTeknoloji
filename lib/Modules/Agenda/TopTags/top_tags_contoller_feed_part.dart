@@ -19,7 +19,7 @@ extension TopTagsControllerFeedPart on _TopTagsControllerBase {
     try {
       final before = agendaList.length;
       final items = await _repo.fetchImagePostsPage(
-        limit: 15,
+        limit: ReadBudgetRegistry.topTagsFeedPostLimit,
         reset: initial,
       );
       agendaList.assignAll(items);
@@ -37,7 +37,7 @@ extension TopTagsControllerFeedPart on _TopTagsControllerBase {
   Future<void> getTags({bool forceRefresh = false}) async {
     try {
       final list = await _repo.fetchTrendingTags(
-        resultLimit: 15,
+        resultLimit: ReadBudgetRegistry.topTagsTrendingResultLimit,
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );

@@ -90,7 +90,9 @@ extension _ExploreViewTabsPart on _ExploreViewState {
 
   Widget _buildTrendingTab(BuildContext context) {
     return Obx(() {
-      final items = controller.trendingTags.take(30).toList();
+      final items = controller.trendingTags
+          .take(ReadBudgetRegistry.exploreTrendingTagsLimit)
+          .toList();
       return RefreshIndicator(
         backgroundColor: Colors.black,
         color: Colors.white,

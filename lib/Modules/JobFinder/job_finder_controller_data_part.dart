@@ -196,7 +196,7 @@ extension JobFinderControllerDataPart on JobFinderController {
       final resource = await _jobHomeSnapshotRepository.search(
         query: query,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.jobSearchInitialLimit,
         forceSync: true,
       );
       if (requestId != _searchRequestId || search.text.trim() != query) return;

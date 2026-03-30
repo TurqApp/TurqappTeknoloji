@@ -263,7 +263,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     await _feedSnapshotRepository.persistHomeSnapshot(
       userId: userId,
       posts: posts,
-      limit: 40,
+      limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
       source: source,
     );
   }
@@ -274,7 +274,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       final indexPool = IndexPoolStore.maybeFind();
       if (indexPool == null) return;
 
-      final posts = _buildOrderedAgendaSnapshot(limit: 40);
+      final posts = _buildOrderedAgendaSnapshot(
+        limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+      );
       if (posts.isEmpty) return;
 
       final userIds = <String>{

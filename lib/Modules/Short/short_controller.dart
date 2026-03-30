@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/lru_cache.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';

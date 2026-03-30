@@ -310,8 +310,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     if (candidate != null && identical(candidate, injected)) {
       return injected;
     }
-    final current =
-        currentPage >= 0 ? _videoControllers[currentPage] : null;
+    final current = currentPage >= 0 ? _videoControllers[currentPage] : null;
     if (current != null && identical(current, injected)) {
       return injected;
     }
@@ -427,7 +426,9 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     List<PostsModel> items = [];
 
     try {
-      items = await ensureShortRepository().fetchRandomReadyPosts(limit: 1000)
+      items = await ensureShortRepository().fetchRandomReadyPosts(
+        limit: ReadBudgetRegistry.shortRandomReadyPoolLimit,
+      )
         ..shuffle();
     } catch (_) {}
 

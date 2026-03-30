@@ -107,7 +107,7 @@ extension TutoringSearchControllerRuntimeX on TutoringSearchController {
     try {
       final resource = await _tutoringSnapshotRepository.loadHome(
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 60,
+        limit: ReadBudgetRegistry.tutoringSearchBootstrapLimit,
       );
       final cachedItems = resource.data ?? const <TutoringModel>[];
       if (cachedItems.isNotEmpty) {
@@ -135,7 +135,7 @@ extension TutoringSearchControllerRuntimeX on TutoringSearchController {
     try {
       final result = await _tutoringSnapshotRepository.loadHome(
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 60,
+        limit: ReadBudgetRegistry.tutoringSearchBootstrapLimit,
         forceSync: forceRefresh,
       );
       _initialTutorings = result.data ?? const <TutoringModel>[];
@@ -163,7 +163,7 @@ extension TutoringSearchControllerRuntimeX on TutoringSearchController {
       final result = await _tutoringSnapshotRepository.search(
         query: normalized,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 60,
+        limit: ReadBudgetRegistry.tutoringSearchInitialLimit,
         forceSync: true,
       );
       final items = result.data ?? const <TutoringModel>[];

@@ -190,7 +190,9 @@ extension AgendaControllerPublicApiPart on AgendaController {
   Future<void> persistStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
-    final ordered = _buildOrderedAgendaSnapshot(limit: 40);
+    final ordered = _buildOrderedAgendaSnapshot(
+      limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+    );
     await _persistFeedStartupShardOnly(
       userId: userId,
       ordered: ordered,
@@ -203,7 +205,9 @@ extension AgendaControllerPublicApiPart on AgendaController {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
     final snapshotAt = DateTime.now();
-    final ordered = _buildOrderedAgendaSnapshot(limit: 40);
+    final ordered = _buildOrderedAgendaSnapshot(
+      limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+    );
     if (ordered.isEmpty) {
       await _persistFeedStartupShardOnly(
         userId: userId,
@@ -216,7 +220,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     await _feedSnapshotRepository.persistHomeSnapshot(
       userId: userId,
       posts: ordered,
-      limit: 40,
+      limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
       source: CachedResourceSource.memory,
       snapshotAt: snapshotAt,
     );

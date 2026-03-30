@@ -104,7 +104,9 @@ extension PersonalizedControllerDataPart on PersonalizedController {
   }
 
   void _loadVitrinData() {
-    _loadLatestScholarshipDocs(limit: 10).then((items) {
+    _loadLatestScholarshipDocs(
+      limit: ReadBudgetRegistry.scholarshipPersonalizedShowcaseLimit,
+    ).then((items) {
       if (items.isNotEmpty) {
         final tempList = items
             .map((item) => IndividualScholarshipsModel.fromJson(item))
@@ -118,7 +120,9 @@ extension PersonalizedControllerDataPart on PersonalizedController {
     if (!isUserDataLoaded.value) return;
 
     try {
-      final items = await _loadLatestScholarshipDocs(limit: 50);
+      final items = await _loadLatestScholarshipDocs(
+        limit: ReadBudgetRegistry.scholarshipPersonalizedInitialLimit,
+      );
       _processScholarshipsData(items);
     } catch (_) {
       isLoading.value = false;

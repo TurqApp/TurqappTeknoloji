@@ -24,7 +24,7 @@ extension TutoringControllerSearchPart on TutoringController {
       final result = await _tutoringSnapshotRepository.search(
         userId: CurrentUserService.instance.effectiveUserId,
         query: normalized,
-        limit: 40,
+        limit: ReadBudgetRegistry.tutoringSearchInitialLimit,
         forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized) {

@@ -155,7 +155,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final publicScheduled = await _fetchVisiblePublicIzBirakPosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: limit < 20 ? 20 : limit,
+      limit: limit < ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
+          ? ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
+          : limit,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );
@@ -166,7 +168,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final globalBadgePosts = await _fetchVisibleGlobalBadgePosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: limit < 20 ? 24 : limit,
+      limit: limit < ReadBudgetRegistry.feedGlobalBadgeMinLimit
+          ? ReadBudgetRegistry.feedGlobalBadgeMinLimit
+          : limit,
       maxTimeExclusive: _resolveFeedPageMaxTime(startAfter),
       preferCache: preferCache,
       cacheOnly: cacheOnly,
@@ -354,7 +358,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final publicScheduled = await _fetchVisiblePublicIzBirakPosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: limit < 20 ? 20 : limit,
+      limit: limit < ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
+          ? ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
+          : limit,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );
@@ -365,7 +371,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final globalBadgePosts = await _fetchVisibleGlobalBadgePosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: limit < 20 ? 24 : limit,
+      limit: limit < ReadBudgetRegistry.feedGlobalBadgeMinLimit
+          ? ReadBudgetRegistry.feedGlobalBadgeMinLimit
+          : limit,
       maxTimeExclusive: null,
       preferCache: preferCache,
       cacheOnly: cacheOnly,

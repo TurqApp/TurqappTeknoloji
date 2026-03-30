@@ -36,7 +36,7 @@ extension SearchAnswerKeyControllerRuntimePart on SearchAnswerKeyController {
       final resource = await _answerKeySnapshotRepository.search(
         query: normalized,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.answerKeySearchInitialLimit,
         forceSync: true,
       );
       if (token != _searchToken) return;

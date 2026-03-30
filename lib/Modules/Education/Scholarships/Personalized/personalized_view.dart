@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
@@ -183,7 +184,9 @@ class _PersonalizedViewState extends State<PersonalizedView> {
   Widget _buildCarouselIndicators(PersonalizedController controller) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: controller.vitrin.take(30).map((item) {
+      children: controller.vitrin
+          .take(ReadBudgetRegistry.scholarshipPersonalizedShowcaseLimit)
+          .map((item) {
         int index = controller.vitrin.indexOf(item);
         return Obx(
           () => Container(
