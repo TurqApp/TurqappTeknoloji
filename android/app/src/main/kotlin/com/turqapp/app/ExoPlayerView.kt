@@ -183,11 +183,8 @@ class ExoPlayerView(
         })
         eventChannel.setStreamHandler(this)
 
-        val url = args?.get("url") as? String
-        if (url != null) {
-            val autoPlay = args?.get("autoPlay") as? Boolean ?: true
+        if (args?.get("url") as? String != null) {
             isLooping = args?.get("loop") as? Boolean ?: false
-            loadVideo(url, autoPlay, isLooping)
         }
     }
 
@@ -312,6 +309,7 @@ class ExoPlayerView(
                             isBufferingDispatched = false
                             sendEvent(mapOf("event" to "buffering", "isBuffering" to false))
                         }
+                        smokeMonitor.onPlaybackCompleted()
                         sendEvent(mapOf("event" to "completed"))
                         stopPositionUpdates()
                         stopStallWatchdog()

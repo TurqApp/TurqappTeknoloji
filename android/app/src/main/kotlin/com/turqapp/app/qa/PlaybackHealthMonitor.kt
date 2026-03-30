@@ -178,6 +178,18 @@ class PlaybackHealthMonitor(
         publish("playbackPaused")
     }
 
+    fun onPlaybackCompleted() {
+        isPlaying = false
+        isPlaybackExpected = false
+        isBuffering = false
+        lastKnownPlaybackPosition = 0L
+        lastKnownPlaybackAdvanceAt = 0L
+        lastFrameRenderedAt = 0L
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        publish("playbackCompleted")
+    }
+
     fun onFirstFrameRendered() {
         val timestamp = now()
         hasRenderedFirstFrame = true
