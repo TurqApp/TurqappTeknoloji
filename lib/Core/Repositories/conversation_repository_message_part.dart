@@ -1,6 +1,52 @@
 part of 'conversation_repository.dart';
 
 extension ConversationRepositoryMessagePart on ConversationRepository {
+  Future<List<String>> _collectMessageMediaUrls(
+    String chatId,
+    Iterable<String> messageIds,
+  ) async {
+    final normalizedIds = messageIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedIds.isEmpty) return const <String>[];
+
+    final urls = <String>{};
+    for (final messageId in normalizedIds) {
+      try {
+        final snap = await _messageRef(chatId, messageId).get(
+          const GetOptions(source: Source.serverAndCache),
+        );
+        final data = snap.data();
+        if (!snap.exists || data == null || data.isEmpty) continue;
+        final mediaUrls = data['mediaUrls'];
+        if (mediaUrls is Iterable) {
+          for (final value in mediaUrls) {
+            final url = value?.toString().trim() ?? '';
+            if (url.isNotEmpty) urls.add(url);
+          }
+        }
+        final videoUrl = (data['videoUrl'] ?? '').toString().trim();
+        final videoThumbnail = (data['videoThumbnail'] ?? '').toString().trim();
+        final audioUrl = (data['audioUrl'] ?? '').toString().trim();
+        if (videoUrl.isNotEmpty) urls.add(videoUrl);
+        if (videoThumbnail.isNotEmpty) urls.add(videoThumbnail);
+        if (audioUrl.isNotEmpty) urls.add(audioUrl);
+      } catch (_) {}
+    }
+    return urls.toList(growable: false);
+  }
+
+  Future<void> _purgeMessageMediaUrls(
+    String chatId,
+    Iterable<String> messageIds,
+  ) async {
+    final urls = await _collectMessageMediaUrls(chatId, messageIds);
+    if (urls.isEmpty) return;
+    await TurqImageCacheManager.removeUrls(urls);
+  }
+
   List<String> _sanitizeReactionUsers(dynamic raw) {
     if (raw is! List) return const <String>[];
     return raw
@@ -41,10 +87,12 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     required String messageId,
     required String currentUid,
   }) async {
+    final mediaPurge = _purgeMessageMediaUrls(chatId, <String>[messageId]);
     await _messageRef(chatId, messageId).set({
       "deletedFor": FieldValue.arrayUnion([currentUid]),
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
+    await mediaPurge;
     CacheInvalidationService.ensure().publish(
       CacheInvalidationEvent.messageDeletedForUser(
         chatId: chatId,
@@ -65,6 +113,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
         .toSet()
         .toList(growable: false);
     if (ids.isEmpty) return;
+    final mediaPurge = _purgeMessageMediaUrls(chatId, ids);
     await _commitMessageUpdatesInChunks(
       chatId,
       ids,
@@ -73,6 +122,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
         "updatedDate": DateTime.now().millisecondsSinceEpoch,
       },
     );
+    await mediaPurge;
     CacheInvalidationService.ensure().publish(
       CacheInvalidationEvent.messageDeletedForUser(
         chatId: chatId,
@@ -86,6 +136,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     required String chatId,
     required String messageId,
   }) async {
+    final mediaPurge = _purgeMessageMediaUrls(chatId, <String>[messageId]);
     await _messageRef(chatId, messageId).update({
       "unsent": true,
       "text": "",
@@ -100,6 +151,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
       "replyTo": FieldValue.delete(),
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     });
+    await mediaPurge;
     CacheInvalidationService.ensure().publish(
       CacheInvalidationEvent.messageUnsent(
         chatId: chatId,
@@ -184,6 +236,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     required String messageId,
     required String imgUrl,
   }) async {
+    await TurqImageCacheManager.removeUrl(imgUrl);
     await _messageRef(chatId, messageId).update({
       "mediaUrls": FieldValue.arrayRemove([imgUrl]),
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
