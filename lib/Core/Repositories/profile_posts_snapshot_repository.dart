@@ -8,7 +8,6 @@ part 'profile_posts_snapshot_repository_codec_part.dart';
 class ProfilePostsSnapshotRepository extends GetxService {
   static const String _surfaceKey = 'profile_posts_snapshot';
   static const int _defaultScopeLimit = 24;
-  static const List<int> _knownLocalLimits = <int>[10, _defaultScopeLimit];
 
   static ProfilePostsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfilePostsSnapshotRepository>();
@@ -229,7 +228,7 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     final normalizedDocId = docId.trim();
     if (normalizedUserId.isEmpty || normalizedDocId.isEmpty) return;
     final limits = <int>{
-      ...ProfilePostsSnapshotRepository._knownLocalLimits,
+      ProfilePostsSnapshotRepository._defaultScopeLimit,
       ...additionalLimits.where((value) => value > 0),
     };
     for (final limit in limits) {
@@ -265,7 +264,7 @@ extension ProfilePostsSnapshotRepositoryFacadePart
   }) async {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty) return;
-    final limits = <int>{...ProfilePostsSnapshotRepository._knownLocalLimits};
+    final limits = <int>{ProfilePostsSnapshotRepository._defaultScopeLimit};
     for (final limit in limits) {
       final key = _localScopeKey(
         userId: normalizedUserId,

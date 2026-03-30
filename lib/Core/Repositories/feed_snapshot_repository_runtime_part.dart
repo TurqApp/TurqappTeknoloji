@@ -104,12 +104,10 @@ Future<void> pruneFeedHomeSnapshots(
   if (normalizedUserId.isEmpty || removeIds.isEmpty) return;
 
   final scopeLimits = <int>{
-    12,
-    24,
-    30,
     ReadBudgetRegistry.feedHomeInitialLimitValue,
-    50,
-    ...additionalLimits.where((value) => value > 0),
+    ...additionalLimits
+        .where((value) => value > 0)
+        .map(ReadBudgetRegistry.resolveFeedHomeInitialLimit),
   };
 
   for (final scopeLimit in scopeLimits) {
