@@ -1,6 +1,8 @@
 /// HLS segment cache data modelleri.
 library;
 
+import 'package:turqappv2/Models/posts_model.dart';
+
 enum VideoCacheState {
   uncached,
   fetching,
@@ -51,6 +53,7 @@ class VideoCacheEntry {
   final String docID;
   final String masterPlaylistUrl;
   final Map<String, CachedSegment> segments; // segmentUri -> CachedSegment
+  Map<String, dynamic> cardData;
   int totalSegmentCount;
   int totalSizeBytes;
   DateTime lastAccessedAt;
@@ -68,16 +71,42 @@ class VideoCacheEntry {
     );
   }
 
+  static Map<String, dynamic> _cloneCardData(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneCardValue(value)),
+    );
+  }
+
+  static dynamic _cloneCardValue(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return _cloneCardData(value);
+    }
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneCardValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneCardValue).toList(growable: false);
+    }
+    return value;
+  }
+
   VideoCacheEntry({
     required this.docID,
     required this.masterPlaylistUrl,
     Map<String, CachedSegment>? segments,
+    Map<String, dynamic>? cardData,
     this.totalSegmentCount = 0,
     this.totalSizeBytes = 0,
     DateTime? lastAccessedAt,
     this.watchProgress = 0.0,
     this.state = VideoCacheState.uncached,
   })  : segments = _cloneSegments(segments ?? const <String, CachedSegment>{}),
+        cardData = _cloneCardData(cardData ?? const <String, dynamic>{}),
         lastAccessedAt = lastAccessedAt ?? DateTime.now();
 
   int get cachedSegmentCount => segments.length;
@@ -88,6 +117,7 @@ class VideoCacheEntry {
         'docID': docID,
         'masterPlaylistUrl': masterPlaylistUrl,
         'segments': segments.map((k, v) => MapEntry(k, v.toJson())),
+        'cardData': _cloneCardData(cardData),
         'totalSegmentCount': totalSegmentCount,
         'totalSizeBytes': totalSizeBytes,
         'lastAccessedAt': lastAccessedAt.millisecondsSinceEpoch,
@@ -113,6 +143,10 @@ class VideoCacheEntry {
       docID: (json['docID'] ?? '').toString(),
       masterPlaylistUrl: (json['masterPlaylistUrl'] ?? '').toString(),
       segments: segmentsMap,
+      cardData: _cloneCardData(
+        (json['cardData'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ),
       totalSegmentCount: _asInt(json['totalSegmentCount']),
       totalSizeBytes: _asInt(json['totalSizeBytes']),
       lastAccessedAt: json['lastAccessedAt'] != null
@@ -133,6 +167,11 @@ class VideoCacheEntry {
 
   bool get isValid =>
       docID.trim().isNotEmpty && masterPlaylistUrl.trim().isNotEmpty;
+
+  PostsModel? get cachedPostModel {
+    if (cardData.isEmpty) return null;
+    return PostsModel.fromMap(_cloneCardData(cardData), docID);
+  }
 }
 
 class CacheIndex {

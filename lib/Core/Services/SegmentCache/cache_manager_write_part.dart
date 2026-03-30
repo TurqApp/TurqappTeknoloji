@@ -105,6 +105,7 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
         docID: docID,
         masterPlaylistUrl: masterUrl,
         segments: entry.segments,
+        cardData: entry.cardData,
         totalSegmentCount: totalSegmentCount,
         totalSizeBytes: entry.totalSizeBytes,
         lastAccessedAt: entry.lastAccessedAt,

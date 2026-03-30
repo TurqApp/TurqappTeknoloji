@@ -179,10 +179,21 @@ extension ShortControllerLoadingPart on ShortController {
       return const <PostsModel>[];
     }
 
-    final byId = await _shortRepository.fetchByIds(
-      docIds,
-      preferCache: true,
-    );
+    final cachedPosts = cacheManager.getOfflineReadyPosts(limit: limit);
+    final byId = <String, PostsModel>{
+      for (final post in cachedPosts) post.docID: post,
+    };
+    final missingDocIds = docIds
+        .where((docId) => !byId.containsKey(docId))
+        .toList(growable: false);
+    if (missingDocIds.isNotEmpty) {
+      byId.addAll(
+        await _shortRepository.fetchByIds(
+          missingDocIds,
+          preferCache: true,
+        ),
+      );
+    }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final ordered = docIds
         .map((docId) => byId[docId])

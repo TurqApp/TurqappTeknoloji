@@ -10,10 +10,12 @@ class _PrefetchJob {
 
 class _ResolvedPrefetchQueue {
   final List<String> docIDs;
+  final List<PostsModel> posts;
   final int currentIndex;
 
   const _ResolvedPrefetchQueue({
     required this.docIDs,
+    required this.posts,
     required this.currentIndex,
   });
 }

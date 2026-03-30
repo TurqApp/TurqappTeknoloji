@@ -62,6 +62,47 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
 
   VideoCacheEntry? getEntry(String docID) => _index.entries[docID];
 
+  void cachePostCards(Iterable<PostsModel> posts) {
+    var changed = false;
+    for (final post in posts) {
+      final docId = post.docID.trim();
+      final playbackUrl = post.playbackUrl.trim();
+      if (docId.isEmpty || playbackUrl.isEmpty) {
+        continue;
+      }
+      final cardData = post.toMap();
+      final existing = _index.entries[docId];
+      if (existing == null) {
+        _index.entries[docId] = VideoCacheEntry(
+          docID: docId,
+          masterPlaylistUrl: playbackUrl,
+          cardData: cardData,
+        );
+        changed = true;
+        continue;
+      }
+      if (existing.masterPlaylistUrl.isEmpty) {
+        _index.entries[docId] = VideoCacheEntry(
+          docID: docId,
+          masterPlaylistUrl: playbackUrl,
+          segments: existing.segments,
+          cardData: cardData,
+          totalSegmentCount: existing.totalSegmentCount,
+          totalSizeBytes: existing.totalSizeBytes,
+          lastAccessedAt: existing.lastAccessedAt,
+          watchProgress: existing.watchProgress,
+          state: existing.state,
+        );
+      } else {
+        existing.cardData = cardData;
+      }
+      changed = true;
+    }
+    if (changed) {
+      _markDirty();
+    }
+  }
+
   void markPlaying(String docID) {
     final entry = _index.entries[docID];
     if (entry == null) return;

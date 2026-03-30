@@ -37,6 +37,9 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   VideoCacheEntry? getEntry(String docID) =>
       _SegmentCacheManagerRuntimeX(this).getEntry(docID);
 
+  void cachePostCards(Iterable<PostsModel> posts) =>
+      _SegmentCacheManagerRuntimeX(this).cachePostCards(posts);
+
   List<String> getOfflineReadyDocIds({int limit = 0}) {
     final entries = _index.entries.values
         .where((entry) => entry.isFullyCached)
@@ -50,6 +53,22 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
       return docIds;
     }
     return docIds.take(limit).toList(growable: false);
+  }
+
+  List<PostsModel> getOfflineReadyPosts({int limit = 0}) {
+    final entries = _index.entries.values
+        .where((entry) => entry.isFullyCached)
+        .toList(growable: false)
+      ..sort((a, b) => b.lastAccessedAt.compareTo(a.lastAccessedAt));
+    final posts = entries
+        .map((entry) => entry.cachedPostModel)
+        .whereType<PostsModel>()
+        .where((post) => post.docID.trim().isNotEmpty)
+        .toList(growable: false);
+    if (limit <= 0 || posts.length <= limit) {
+      return posts;
+    }
+    return posts.take(limit).toList(growable: false);
   }
 
   void markPlaying(String docID) =>

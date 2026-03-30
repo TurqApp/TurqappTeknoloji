@@ -12,6 +12,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       maxDocs: maxDocs,
     );
     if (resolved == null) return;
+    _getCacheManager()?.cachePostCards(resolved.posts);
     await updateQueue(resolved.docIDs, resolved.currentIndex);
   }
 
@@ -26,6 +27,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       maxDocs: maxDocs,
     );
     if (resolved == null) return;
+    _getCacheManager()?.cachePostCards(resolved.posts);
     await updateFeedQueue(resolved.docIDs, resolved.currentIndex);
   }
 
@@ -277,6 +279,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final remapped = limited.indexWhere((post) => post.docID == currentDocId);
     return _ResolvedPrefetchQueue(
       docIDs: limited.map((post) => post.docID).toList(growable: false),
+      posts: limited,
       currentIndex: remapped < 0 ? 0 : remapped,
     );
   }
