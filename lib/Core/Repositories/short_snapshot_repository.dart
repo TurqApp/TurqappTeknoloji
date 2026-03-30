@@ -24,6 +24,8 @@ class ShortSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'short_home_snapshot';
   static const int _defaultPersistLimit =
       ReadBudgetRegistry.shortHomeInitialLimit;
+  static int get homeLimitValue =>
+      ReadBudgetRegistry.shortHomeInitialLimitValue;
   static const int _maxPageSkips = 4;
 }
 
@@ -38,9 +40,12 @@ class ShortSnapshotQuery {
   final int limit;
   final String scopeTag;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolveShortHomeInitialLimit(limit);
+
   String get scopeId => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         scopeTag: scopeTag,
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           ShortSnapshotRepository._homeSurfaceKey,

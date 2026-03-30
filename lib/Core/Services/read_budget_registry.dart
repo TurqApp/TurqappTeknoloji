@@ -1,3 +1,4 @@
+import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_registry.dart';
 
 class ReadBudgetRegistry {
@@ -142,10 +143,151 @@ class ReadBudgetRegistry {
   static const int explorePhotoMaxPages =
       SurfacePolicyRegistry.explorePhotoMaxPages;
 
-  static int feedInitialPoolLimit({required bool onWiFi}) =>
-      SurfacePolicyRegistry.feedHomeSurface.initialPoolLimitFor(
-        onWiFi: onWiFi,
+  static int _readOverride(String key, int fallback) =>
+      maybeFindSurfacePolicyOverrideService()?.readInt(key, fallback) ??
+      fallback;
+
+  static int _resolveConfiguredValue(
+    int value, {
+    required int defaultValue,
+    required int configuredValue,
+  }) {
+    final normalized = value < 1 ? configuredValue : value;
+    return normalized == defaultValue ? configuredValue : normalized;
+  }
+
+  static int get feedHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.feedHomeInitialLimit,
+        feedHomeInitialLimit,
       );
+
+  static int get shortHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.shortHomeInitialLimit,
+        shortHomeInitialLimit,
+      );
+
+  static int get recommendedUsersInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.recommendedUsersInitialLimit,
+        recommendedUsersInitialLimit,
+      );
+
+  static int get marketOwnerInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.marketOwnerInitialLimit,
+        marketOwnerInitialLimit,
+      );
+
+  static int get jobOwnerInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.jobOwnerInitialLimit,
+        jobOwnerInitialLimit,
+      );
+
+  static int get testAnsweredInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.testAnsweredInitialLimit,
+        testAnsweredInitialLimit,
+      );
+
+  static int get testFavoritesInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.testFavoritesInitialLimit,
+        testFavoritesInitialLimit,
+      );
+
+  static int get practiceExamAnsweredInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.practiceExamAnsweredInitialLimit,
+        practiceExamAnsweredInitialLimit,
+      );
+
+  static int get opticalFormAnsweredInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.opticalFormAnsweredInitialLimit,
+        opticalFormAnsweredInitialLimit,
+      );
+
+  static int get mobileWarmWindow => _readOverride(
+        SurfacePolicyOverrideKeys.mobileWarmWindow,
+        SurfacePolicyRegistry.mobileWarmWindow,
+      );
+
+  static int get mobileNextWindow => _readOverride(
+        SurfacePolicyOverrideKeys.mobileNextWindow,
+        SurfacePolicyRegistry.mobileNextWindow,
+      );
+
+  static int get minGlobalCachedVideos => _readOverride(
+        SurfacePolicyOverrideKeys.minGlobalCachedVideos,
+        SurfacePolicyRegistry.minGlobalCachedVideos,
+      );
+
+  static int get mobileInitialSegments => _readOverride(
+        SurfacePolicyOverrideKeys.mobileInitialSegments,
+        SurfacePolicyRegistry.mobileInitialSegments,
+      );
+
+  static int get mobileAheadSegments => _readOverride(
+        SurfacePolicyOverrideKeys.mobileAheadSegments,
+        SurfacePolicyRegistry.mobileAheadSegments,
+      );
+
+  static int resolveFeedHomeInitialLimit(int value) => _resolveConfiguredValue(
+        value,
+        defaultValue: feedHomeInitialLimit,
+        configuredValue: feedHomeInitialLimitValue,
+      );
+
+  static int resolveShortHomeInitialLimit(int value) => _resolveConfiguredValue(
+        value,
+        defaultValue: shortHomeInitialLimit,
+        configuredValue: shortHomeInitialLimitValue,
+      );
+
+  static int resolveRecommendedUsersInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: recommendedUsersInitialLimit,
+        configuredValue: recommendedUsersInitialLimitValue,
+      );
+
+  static int resolveMarketOwnerInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: marketOwnerInitialLimit,
+        configuredValue: marketOwnerInitialLimitValue,
+      );
+
+  static int resolveJobOwnerInitialLimit(int value) => _resolveConfiguredValue(
+        value,
+        defaultValue: jobOwnerInitialLimit,
+        configuredValue: jobOwnerInitialLimitValue,
+      );
+
+  static int resolveTestAnsweredInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: testAnsweredInitialLimit,
+        configuredValue: testAnsweredInitialLimitValue,
+      );
+
+  static int resolveTestFavoritesInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: testFavoritesInitialLimit,
+        configuredValue: testFavoritesInitialLimitValue,
+      );
+
+  static int resolvePracticeExamAnsweredInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: practiceExamAnsweredInitialLimit,
+        configuredValue: practiceExamAnsweredInitialLimitValue,
+      );
+
+  static int resolveOpticalFormAnsweredInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: opticalFormAnsweredInitialLimit,
+        configuredValue: opticalFormAnsweredInitialLimitValue,
+      );
+
+  static int feedInitialPoolLimit({required bool onWiFi}) =>
+      feedHomeInitialLimitValue;
 
   static int shortInitialPoolLimit({required bool onWiFi}) =>
       SurfacePolicyRegistry.shortHomeSurface.initialPoolLimitFor(
@@ -217,14 +359,22 @@ class ReadBudgetRegistry {
         onWiFi: onWiFi,
       );
 
-  static int startupListingWarmLimit({required bool onWiFi}) =>
-      SurfacePolicyRegistry.startupListingWarmLimit(onWiFi: onWiFi);
+  static int startupListingWarmLimit({required bool onWiFi}) => _readOverride(
+        onWiFi
+            ? SurfacePolicyOverrideKeys.startupListingWarmLimitOnWiFi
+            : SurfacePolicyOverrideKeys.startupListingWarmLimitOnCellular,
+        SurfacePolicyRegistry.startupListingWarmLimit(onWiFi: onWiFi),
+      );
 
-  static int get startupShortPrefetchDocLimit =>
-      SurfacePolicyRegistry.startupShortPrefetchDocLimit;
+  static int get startupShortPrefetchDocLimit => _readOverride(
+        SurfacePolicyOverrideKeys.startupShortPrefetchDocLimit,
+        SurfacePolicyRegistry.startupShortPrefetchDocLimit,
+      );
 
-  static int get startupFeedPrefetchDocLimit =>
-      SurfacePolicyRegistry.startupFeedPrefetchDocLimit;
+  static int get startupFeedPrefetchDocLimit => _readOverride(
+        SurfacePolicyOverrideKeys.startupFeedPrefetchDocLimit,
+        SurfacePolicyRegistry.startupFeedPrefetchDocLimit,
+      );
 
   static int startupUserMetaFeedTake({required bool onWiFi}) =>
       SurfacePolicyRegistry.startupUserMetaFeedTake(onWiFi: onWiFi);

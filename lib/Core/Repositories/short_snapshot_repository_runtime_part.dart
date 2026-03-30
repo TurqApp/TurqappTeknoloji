@@ -46,7 +46,7 @@ extension ShortSnapshotRepositoryRuntimeX on ShortSnapshotRepository {
         this,
         userId: userId,
         posts: posts,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveShortHomeInitialLimit(limit),
         source: source,
         snapshotAt: snapshotAt,
       );
@@ -55,8 +55,10 @@ extension ShortSnapshotRepositoryRuntimeX on ShortSnapshotRepository {
     List<PostsModel> posts, {
     int limit = ShortSnapshotRepository._defaultPersistLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveShortHomeInitialLimit(limit);
     final normalized =
-        _normalizePosts(posts).take(limit).toList(growable: false);
+        _normalizePosts(posts).take(effectiveLimit).toList(growable: false);
     return _performEncodePosts(normalized);
   }
 
@@ -68,12 +70,14 @@ extension ShortSnapshotRepositoryRuntimeX on ShortSnapshotRepository {
     DateTime? snapshotAt,
     CachedResourceSource source = CachedResourceSource.scopedDisk,
   }) async {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveShortHomeInitialLimit(limit);
     final decoded = _performDecodePosts(payload);
     final normalized =
-        _normalizePosts(decoded).take(limit).toList(growable: false);
+        _normalizePosts(decoded).take(effectiveLimit).toList(growable: false);
     if (normalized.isEmpty) return false;
     final scopeLimits = <int>{
-      limit,
+      effectiveLimit,
       ...additionalLimits.where((value) => value > 0),
     };
     final record = ScopedSnapshotRecord<List<PostsModel>>(

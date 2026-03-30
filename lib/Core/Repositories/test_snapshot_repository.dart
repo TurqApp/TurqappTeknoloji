@@ -75,16 +75,19 @@ class TestAnsweredQuery {
   final String userId;
   final int limit;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolveTestAnsweredInitialLimit(limit);
+
   String buildScopeId() => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         scopeTag: 'answered',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           TestSnapshotRepository.answeredSurfaceKey,
         ),
         qualifiers: <String, Object?>{
           'answered': userId.trim(),
-          'limit': limit,
+          'limit': effectiveLimit,
         },
       );
 }
@@ -98,16 +101,19 @@ class TestFavoritesQuery {
   final String userId;
   final int limit;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolveTestFavoritesInitialLimit(limit);
+
   String buildScopeId() => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         scopeTag: 'favorites',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           TestSnapshotRepository.favoritesSurfaceKey,
         ),
         qualifiers: <String, Object?>{
           'favorites': userId.trim(),
-          'limit': limit,
+          'limit': effectiveLimit,
         },
       );
 }
@@ -314,9 +320,11 @@ class TestSnapshotRepository extends GetxService {
     required String userId,
     int limit = ReadBudgetRegistry.testAnsweredInitialLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveTestAnsweredInitialLimit(limit);
     final query = TestAnsweredQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     return _bootstrap(
       surfaceKey: answeredSurfaceKey,
@@ -329,9 +337,11 @@ class TestSnapshotRepository extends GetxService {
     required String userId,
     int limit = ReadBudgetRegistry.testFavoritesInitialLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveTestFavoritesInitialLimit(limit);
     final query = TestFavoritesQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     return _bootstrap(
       surfaceKey: favoritesSurfaceKey,
@@ -446,10 +456,12 @@ class TestSnapshotRepository extends GetxService {
     int limit = ReadBudgetRegistry.testAnsweredInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveTestAnsweredInitialLimit(limit);
     return _answeredPipeline.open(
       TestAnsweredQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );
@@ -472,10 +484,12 @@ class TestSnapshotRepository extends GetxService {
     int limit = ReadBudgetRegistry.testFavoritesInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveTestFavoritesInitialLimit(limit);
     return _favoritesPipeline.open(
       TestFavoritesQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );
@@ -639,9 +653,7 @@ class TestSnapshotRepository extends GetxService {
   Future<List<TestsModel>> _fetchAnsweredItems(TestAnsweredQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
-    final normalizedLimit = query.limit < 1
-        ? ReadBudgetRegistry.testAnsweredInitialLimit
-        : query.limit;
+    final normalizedLimit = query.effectiveLimit;
     final snapshot = await FirebaseFirestore.instance
         .collectionGroup('Yanitlar')
         .where('userID', isEqualTo: normalizedUserId)
@@ -664,9 +676,7 @@ class TestSnapshotRepository extends GetxService {
   Future<List<TestsModel>> _fetchFavoriteItems(TestFavoritesQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
-    final normalizedLimit = query.limit < 1
-        ? ReadBudgetRegistry.testFavoritesInitialLimit
-        : query.limit;
+    final normalizedLimit = query.effectiveLimit;
     final snapshot = await FirebaseFirestore.instance
         .collection('Testler')
         .where('favoriler', arrayContains: normalizedUserId)

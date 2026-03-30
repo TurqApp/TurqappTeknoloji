@@ -4,8 +4,7 @@ extension _JobHomeSnapshotRepositoryDataX on JobHomeSnapshotRepository {
   Future<List<JobModel>> _fetchOwnerJobs(JobOwnerQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <JobModel>[];
-    final normalizedLimit =
-        query.limit < 1 ? ReadBudgetRegistry.jobOwnerInitialLimit : query.limit;
+    final normalizedLimit = query.effectiveLimit;
     const options = GetOptions(source: Source.serverAndCache);
     QuerySnapshot<Map<String, dynamic>> snapshot;
     try {

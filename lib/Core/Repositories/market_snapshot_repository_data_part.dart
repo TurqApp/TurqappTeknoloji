@@ -41,9 +41,7 @@ extension _MarketSnapshotRepositoryDataX on MarketSnapshotRepository {
   Future<List<MarketItemModel>> _fetchOwnerItems(MarketOwnerQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <MarketItemModel>[];
-    final normalizedLimit = query.limit < 1
-        ? ReadBudgetRegistry.marketOwnerInitialLimit
-        : query.limit;
+    final normalizedLimit = query.effectiveLimit;
     const options = GetOptions(source: Source.serverAndCache);
     QuerySnapshot<Map<String, dynamic>> snapshot;
     try {

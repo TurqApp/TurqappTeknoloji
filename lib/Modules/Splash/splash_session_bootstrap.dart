@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
@@ -64,6 +65,7 @@ class SessionBootstrap {
   Future<SessionBootstrapResult> run({
     required SharedPreferences prefs,
   }) async {
+    await ensureSurfacePolicyOverrideService().ensureReady(prefs: prefs);
     await _initializeAccountCenter();
 
     late final bool isFirstLaunch;

@@ -5,9 +5,11 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     required String userId,
     int limit = ReadBudgetRegistry.marketOwnerInitialLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveMarketOwnerInitialLimit(limit);
     final query = MarketOwnerQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
       MarketSnapshotRepository._ownerSurfaceKey,
@@ -28,10 +30,12 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     int limit = ReadBudgetRegistry.marketOwnerInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveMarketOwnerInitialLimit(limit);
     return _ownerPipeline.open(
       MarketOwnerQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );

@@ -33,16 +33,19 @@ class OpticalFormAnsweredQuery {
   final String userId;
   final int limit;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolveOpticalFormAnsweredInitialLimit(limit);
+
   String buildScopeId() => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         scopeTag: 'answered',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           OpticalFormSnapshotRepository.answeredSurfaceKey,
         ),
         qualifiers: <String, Object?>{
           'answered': userId.trim(),
-          'limit': limit,
+          'limit': effectiveLimit,
         },
       );
 }
@@ -126,9 +129,11 @@ class OpticalFormSnapshotRepository extends GetxService {
     required String userId,
     int limit = ReadBudgetRegistry.opticalFormAnsweredInitialLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveOpticalFormAnsweredInitialLimit(limit);
     final query = OpticalFormAnsweredQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     return _bootstrap(
       surfaceKey: answeredSurfaceKey,
@@ -180,10 +185,12 @@ class OpticalFormSnapshotRepository extends GetxService {
     int limit = ReadBudgetRegistry.opticalFormAnsweredInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveOpticalFormAnsweredInitialLimit(limit);
     return _answeredPipeline.open(
       OpticalFormAnsweredQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );
@@ -272,9 +279,7 @@ class OpticalFormSnapshotRepository extends GetxService {
   ) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <OpticalFormModel>[];
-    final normalizedLimit = query.limit < 1
-        ? ReadBudgetRegistry.opticalFormAnsweredInitialLimit
-        : query.limit;
+    final normalizedLimit = query.effectiveLimit;
     final answersSnap = await FirebaseFirestore.instance
         .collectionGroup('Yanitlar')
         .where(FieldPath.documentId, isEqualTo: normalizedUserId)

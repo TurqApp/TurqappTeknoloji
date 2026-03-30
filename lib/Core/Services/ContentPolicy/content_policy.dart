@@ -1,6 +1,7 @@
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_registry.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 enum ContentScreenKind {
   feed,
@@ -12,15 +13,14 @@ enum ContentScreenKind {
 
 class ContentPolicy {
   static int get feedInitialFromPool =>
-      SurfacePolicyRegistry.feedHomeInitialLimit;
-  static int get mobileWarmWindow => SurfacePolicyRegistry.mobileWarmWindow;
-  static int get mobileNextWindow => SurfacePolicyRegistry.mobileNextWindow;
+      ReadBudgetRegistry.feedHomeInitialLimitValue;
+  static int get mobileWarmWindow => ReadBudgetRegistry.mobileWarmWindow;
+  static int get mobileNextWindow => ReadBudgetRegistry.mobileNextWindow;
   static int get minGlobalCachedVideos =>
-      SurfacePolicyRegistry.minGlobalCachedVideos;
+      ReadBudgetRegistry.minGlobalCachedVideos;
   static int get mobileInitialSegments =>
-      SurfacePolicyRegistry.mobileInitialSegments;
-  static int get mobileAheadSegments =>
-      SurfacePolicyRegistry.mobileAheadSegments;
+      ReadBudgetRegistry.mobileInitialSegments;
+  static int get mobileAheadSegments => ReadBudgetRegistry.mobileAheadSegments;
 
   static bool get isOnWiFi {
     return NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false;

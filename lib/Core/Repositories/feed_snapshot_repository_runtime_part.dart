@@ -5,9 +5,10 @@ Future<CachedResource<List<PostsModel>>> bootstrapFeedHome(
   required String userId,
   int limit = ReadBudgetRegistry.feedHomeInitialLimit,
 }) {
+  final effectiveLimit = ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
   final query = FeedSnapshotQuery(
     userId: userId,
-    limit: limit,
+    limit: effectiveLimit,
   );
   return repository._coordinator.bootstrap(
     repository._homeKey(query),
@@ -23,9 +24,10 @@ Future<CachedResource<List<PostsModel>>> inspectWarmFeedHome(
   required String userId,
   int limit = FeedSnapshotRepository.startupHomeLimit,
 }) async {
+  final effectiveLimit = ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
   final query = FeedSnapshotQuery(
     userId: userId,
-    limit: limit,
+    limit: effectiveLimit,
   );
   final warmData = await repository._loadWarmHomeSnapshot(query);
   if (warmData == null || warmData.isEmpty) {
@@ -50,11 +52,14 @@ Future<void> persistFeedHomeSnapshot(
   CachedResourceSource source = CachedResourceSource.server,
   DateTime? snapshotAt,
 }) async {
-  final normalized =
-      repository._normalizePosts(posts).take(limit).toList(growable: false);
+  final effectiveLimit = ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
+  final normalized = repository
+      ._normalizePosts(posts)
+      .take(effectiveLimit)
+      .toList(growable: false);
   final key = repository._homeKey(FeedSnapshotQuery(
     userId: userId,
-    limit: limit,
+    limit: effectiveLimit,
   ));
   if (normalized.isEmpty) {
     await Future.wait(<Future<void>>[
@@ -102,7 +107,7 @@ Future<void> pruneFeedHomeSnapshots(
     12,
     24,
     30,
-    FeedSnapshotRepository._defaultPersistLimit,
+    ReadBudgetRegistry.feedHomeInitialLimitValue,
     50,
     ...additionalLimits.where((value) => value > 0),
   };
@@ -178,7 +183,7 @@ Future<void> pruneFeedHomeStartupShard(
 
   final effectiveLimit = shard.limit > 0
       ? shard.limit
-      : FeedSnapshotRepository._defaultPersistLimit;
+      : ReadBudgetRegistry.feedHomeInitialLimitValue;
   final current = repository
       ._normalizePosts(repository._decodePosts(shard.payload))
       .take(effectiveLimit)
@@ -224,8 +229,10 @@ extension FeedSnapshotRepositoryStartupShardPart on FeedSnapshotRepository {
     List<PostsModel> posts, {
     int limit = FeedSnapshotRepository._defaultPersistLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
     final normalized =
-        _normalizePosts(posts).take(limit).toList(growable: false);
+        _normalizePosts(posts).take(effectiveLimit).toList(growable: false);
     return _encodePosts(normalized);
   }
 
@@ -236,9 +243,11 @@ extension FeedSnapshotRepositoryStartupShardPart on FeedSnapshotRepository {
     DateTime? snapshotAt,
     CachedResourceSource source = CachedResourceSource.scopedDisk,
   }) async {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
     final decoded = _decodePosts(payload);
     final normalized =
-        _normalizePosts(decoded).take(limit).toList(growable: false);
+        _normalizePosts(decoded).take(effectiveLimit).toList(growable: false);
     if (normalized.isEmpty) return false;
     final record = ScopedSnapshotRecord<List<PostsModel>>(
       data: normalized,
@@ -252,7 +261,7 @@ extension FeedSnapshotRepositoryStartupShardPart on FeedSnapshotRepository {
     await _memoryStore.write(
       _homeKey(FeedSnapshotQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       )),
       record,
     );

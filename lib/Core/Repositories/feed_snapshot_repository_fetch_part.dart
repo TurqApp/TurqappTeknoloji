@@ -451,7 +451,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       hiddenPostIds: const <String>{},
       nowMs: DateTime.now().millisecondsSinceEpoch,
       cutoffMs: 0,
-      limit: query.limit,
+      limit: query.effectiveLimit,
       preferCache: true,
       cacheOnly: false,
       usePrimaryFeedPaging: true,
@@ -464,7 +464,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   ) async {
     final posts = await _warmLaunchPool.loadPosts(
       IndexPoolKind.feed,
-      limit: query.limit,
+      limit: query.effectiveLimit,
       allowStale: true,
     );
     if (posts.isEmpty) return null;
@@ -475,7 +475,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       hiddenPostIds: const <String>{},
       nowMs: DateTime.now().millisecondsSinceEpoch,
       cutoffMs: 0,
-      limit: query.limit,
+      limit: query.effectiveLimit,
     );
     return visible.isEmpty ? null : visible;
   }

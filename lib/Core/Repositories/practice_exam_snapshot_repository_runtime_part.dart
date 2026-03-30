@@ -62,17 +62,20 @@ class PracticeExamAnsweredQuery {
   final String userId;
   final int limit;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolvePracticeExamAnsweredInitialLimit(limit);
+
   String buildScopeId({
     required int schemaVersion,
   }) {
     return CacheScopeNamespace.buildQueryScope(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
       scopeTag: 'answered',
       schemaVersion: schemaVersion,
       qualifiers: <String, Object?>{
         'answered': userId.trim(),
-        'limit': limit,
+        'limit': effectiveLimit,
       },
     );
   }
@@ -313,9 +316,7 @@ Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
 ) async {
   final normalizedUserId = query.userId.trim();
   if (normalizedUserId.isEmpty) return const <SinavModel>[];
-  final normalizedLimit = query.limit < 1
-      ? ReadBudgetRegistry.practiceExamAnsweredInitialLimit
-      : query.limit;
+  final normalizedLimit = query.effectiveLimit;
   final yanitlarSnap = await FirebaseFirestore.instance
       .collectionGroup('Yanitlar')
       .where('userID', isEqualTo: normalizedUserId)

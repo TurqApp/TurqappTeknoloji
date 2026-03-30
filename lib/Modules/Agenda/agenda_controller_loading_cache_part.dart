@@ -31,7 +31,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     if (agendaList.isEmpty && centeredIndex.value != -1) {
       centeredIndex.value = -1;
     }
-    final effectiveLimit = limit ?? FeedSnapshotRepository.startupHomeLimit;
+    final effectiveLimit =
+        limit ?? FeedSnapshotRepository.startupHomeLimitValue;
     await _tryQuickFillFromPool(limit: effectiveLimit);
     if (agendaList.isNotEmpty) return;
 
@@ -45,6 +46,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: effectiveLimit,
+      useStoredCursor: false,
       preferCache: true,
       cacheOnly: true,
     );
@@ -71,7 +73,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   Future<bool> _tryQuickFillFromPool({int? limit}) async {
     final me = CurrentUserService.instance.effectiveUserId;
     if (me.isEmpty) return false;
-    final effectiveLimit = limit ?? FeedSnapshotRepository.startupHomeLimit;
+    final effectiveLimit =
+        limit ?? FeedSnapshotRepository.startupHomeLimitValue;
     final snapshot = await _feedSnapshotRepository.bootstrapHome(
       userId: me,
       limit: effectiveLimit,
@@ -304,6 +307,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int cutoffMs,
     required int limit,
     DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    bool useStoredCursor = true,
     bool preferCache = true,
     bool cacheOnly = false,
     bool? usePrimaryFeedPaging,
@@ -333,7 +337,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       cutoffMs: cutoffMs,
       limit: limit,
       startAfter: startAfter ??
-          (lastDoc is DocumentSnapshot<Map<String, dynamic>>
+          (useStoredCursor && lastDoc is DocumentSnapshot<Map<String, dynamic>>
               ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
               : null),
       preferCache: preferCache,
@@ -352,6 +356,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int cutoffMs,
     required int limit,
     DocumentSnapshot? startAfter,
+    bool useStoredCursor = true,
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
@@ -359,7 +364,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       cutoffMs: cutoffMs,
       nowMs: nowMs,
       limit: limit,
-      startAfter: startAfter ?? lastDoc,
+      startAfter: startAfter ?? (useStoredCursor ? lastDoc : null),
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );

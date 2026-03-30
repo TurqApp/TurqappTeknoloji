@@ -42,7 +42,8 @@ extension RecommendedUserListControllerFieldsPart
   int get usersWarmCount => _state.usersWarmCount;
   int get usersReadyCount => _state.usersReadyCount;
   int get usersFetchWarm => _state.usersFetchWarm;
-  int get usersLimitInitial => _state.usersLimitInitial;
+  int get usersLimitInitial =>
+      ReadBudgetRegistry.recommendedUsersInitialLimitValue;
   int get usersLimitFull => _state.usersLimitFull;
   bool get _bgScheduled => _state.bgScheduled;
   set _bgScheduled(bool value) => _state.bgScheduled = value;

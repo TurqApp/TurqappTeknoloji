@@ -35,6 +35,8 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const int _defaultPersistLimit =
       ReadBudgetRegistry.feedHomeInitialLimit;
   static const int startupHomeLimit = _defaultPersistLimit;
+  static int get startupHomeLimitValue =>
+      ReadBudgetRegistry.feedHomeInitialLimitValue;
   static const FeedHomeContract _homeContract =
       FeedHomeContract.primaryHybridV1;
   static final Set<String> _hybridBackfillRequested = <String>{};
@@ -124,10 +126,12 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
     int limit = ReadBudgetRegistry.feedHomeInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
     return _homePipeline.open(
       FeedSnapshotQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );
@@ -152,7 +156,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
       bootstrapFeedHome(
         this,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit),
       );
 
   Future<CachedResource<List<PostsModel>>> inspectWarmHome({
@@ -162,7 +166,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
       inspectWarmFeedHome(
         this,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit),
       );
 
   Future<void> persistHomeSnapshot({
@@ -176,7 +180,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         this,
         userId: userId,
         posts: posts,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit),
         source: source,
         snapshotAt: snapshotAt,
       );
@@ -223,9 +227,12 @@ class FeedSnapshotQuery {
   final int limit;
   final String scopeTag;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
+
   String get scopeId => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         scopeTag: scopeTag,
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           FeedSnapshotRepository._homeSurfaceKey,

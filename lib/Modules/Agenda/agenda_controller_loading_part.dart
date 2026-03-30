@@ -1,8 +1,7 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
-  static const int _initialHeadSyncLimit =
-      ReadBudgetRegistry.feedHomeInitialLimit;
+  int get _initialHeadSyncLimit => ReadBudgetRegistry.feedHomeInitialLimitValue;
 
   void _resumeFeedPlaybackAfterRefresh({
     required int expectedEpoch,
@@ -100,7 +99,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
         unawaited(
           fetchAgendaBigData(
-            pageLimit: ReadBudgetRegistry.feedHomeInitialLimit,
+            pageLimit: ReadBudgetRegistry.feedHomeInitialLimitValue,
             trigger: 'deferred_initial_bootstrap',
           ),
         );
@@ -455,7 +454,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   Future<void> _performEnsureFeedSurfaceReady() async {
     if (agendaList.isEmpty && !isLoading.value) {
       await hydrateInitialFeedFromCache(
-        targetCount: FeedSnapshotRepository.startupHomeLimit,
+        targetCount: FeedSnapshotRepository.startupHomeLimitValue,
       );
     }
 
@@ -519,6 +518,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         cutoffMs: cutoffMs,
         limit: _initialHeadSyncLimit,
         startAfter: null,
+        useStoredCursor: false,
         preferCache: false,
         cacheOnly: false,
       );
@@ -638,6 +638,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         cutoffMs: cutoffMs,
         limit: loadLimit,
         startAfter: null,
+        useStoredCursor: false,
         preferCache: false,
         cacheOnly: false,
         usePrimaryFeedPaging: true,

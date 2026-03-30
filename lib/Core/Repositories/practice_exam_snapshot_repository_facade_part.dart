@@ -18,9 +18,11 @@ extension PracticeExamSnapshotRepositoryFacadePart
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamAnsweredInitialLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolvePracticeExamAnsweredInitialLimit(limit);
     final query = PracticeExamAnsweredQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     final surfaceKey = _practiceExamAnsweredSurfaceKey;
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
@@ -44,7 +46,8 @@ extension PracticeExamSnapshotRepositoryFacadePart
   }) =>
       _openAnsweredImpl(
         userId: userId,
-        limit: limit,
+        limit:
+            ReadBudgetRegistry.resolvePracticeExamAnsweredInitialLimit(limit),
         forceSync: forceSync,
       );
 

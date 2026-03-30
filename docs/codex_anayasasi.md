@@ -340,3 +340,18 @@ Beklenen kapanis:
 - `scenarios=5`
 - `blocking=0`
 - `failures=0`
+
+### Manuel Ayar Menusu Kurali
+
+- Uygulama ici manuel surface tuning menusu yerel cihaz ayari olarak
+  calisacak; remote config veya server source-of-truth gibi davranmayacak.
+- Bu menunun tek runtime kaynagi sudur:
+  - `lib/Core/Services/AppPolicy/surface_policy_override_service.dart`
+- Kullaniciya gorunen menu metinlerinde Turkce karakter kullanilabilir.
+- Dart dosya adlari, class adlari, method adlari ve key sabitleri Ingilizce
+  ve ASCII kalacak.
+- Manuel ayar ekrani yeni bir ikinci policy kaynagi olusturmayacak;
+  yalniz merkezi registry'nin uzerine local override yazacak.
+- Repo, controller, splash veya widget katmani manuel ayarlari dogrudan
+  `SharedPreferences` icinden okumayacak; tum okumalar
+  `read_budget_registry.dart` uzerinden gececek.

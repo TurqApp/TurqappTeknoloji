@@ -38,16 +38,19 @@ class MarketOwnerQuery {
   final String userId;
   final int limit;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolveMarketOwnerInitialLimit(limit);
+
   String buildScopeId(String surfaceKey) => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         scopeTag: 'owner',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           surfaceKey,
         ),
         qualifiers: <String, Object?>{
           'owner': userId.trim(),
-          'limit': limit,
+          'limit': effectiveLimit,
         },
       );
 }

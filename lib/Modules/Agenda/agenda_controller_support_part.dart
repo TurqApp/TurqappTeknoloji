@@ -306,7 +306,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     required DateTime snapshotAt,
     required String source,
   }) async {
-    final limit = FeedSnapshotRepository.startupHomeLimit;
+    final limit = FeedSnapshotRepository.startupHomeLimitValue;
     if (ordered.isEmpty) {
       await ensureStartupSnapshotShardStore().clear(
         surface: 'feed',

@@ -17,9 +17,11 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
     required String userId,
     int limit = ReadBudgetRegistry.jobOwnerInitialLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveJobOwnerInitialLimit(limit);
     final query = JobOwnerQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     final surfaceKey = JobHomeSnapshotRepository._ownerSurfaceKey;
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
@@ -41,10 +43,12 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
     int limit = ReadBudgetRegistry.jobOwnerInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveJobOwnerInitialLimit(limit);
     return _ownerPipeline.open(
       JobOwnerQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );

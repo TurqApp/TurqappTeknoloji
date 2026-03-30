@@ -9,17 +9,20 @@ class JobOwnerQuery {
   final String userId;
   final int limit;
 
+  int get effectiveLimit =>
+      ReadBudgetRegistry.resolveJobOwnerInitialLimit(limit);
+
   String buildScopeId({
     required int schemaVersion,
   }) {
     return CacheScopeNamespace.buildQueryScope(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
       scopeTag: 'owner',
       schemaVersion: schemaVersion,
       qualifiers: <String, Object?>{
         'owner': userId.trim(),
-        'limit': limit,
+        'limit': effectiveLimit,
       },
     );
   }

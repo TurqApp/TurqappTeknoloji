@@ -6,10 +6,11 @@ Stream<CachedResource<List<PostsModel>>> _openHome(
   required int limit,
   required bool forceSync,
 }) {
+  final effectiveLimit = ReadBudgetRegistry.resolveShortHomeInitialLimit(limit);
   return repository._homePipeline.open(
     ShortSnapshotQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     ),
     forceSync: forceSync,
   );
@@ -20,9 +21,10 @@ Future<CachedResource<List<PostsModel>>> _bootstrapHome(
   required String userId,
   required int limit,
 }) {
+  final effectiveLimit = ReadBudgetRegistry.resolveShortHomeInitialLimit(limit);
   final query = ShortSnapshotQuery(
     userId: userId,
-    limit: limit,
+    limit: effectiveLimit,
   );
   return repository._coordinator.bootstrap(
     ScopedSnapshotKey(
@@ -60,14 +62,17 @@ Future<void> _persistHomeSnapshot(
   required CachedResourceSource source,
   DateTime? snapshotAt,
 }) async {
-  final normalized =
-      repository._normalizePosts(posts).take(limit).toList(growable: false);
+  final effectiveLimit = ReadBudgetRegistry.resolveShortHomeInitialLimit(limit);
+  final normalized = repository
+      ._normalizePosts(posts)
+      .take(effectiveLimit)
+      .toList(growable: false);
   final key = ScopedSnapshotKey(
     surfaceKey: ShortSnapshotRepository._homeSurfaceKey,
     userId: userId.trim(),
     scopeId: ShortSnapshotQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     ).scopeId,
   );
   if (normalized.isEmpty) {
@@ -111,7 +116,7 @@ Future<List<PostsModel>> _performFetchEligibleSnapshot(
       attempt++) {
     final page = await repository._shortRepository.fetchReadyPage(
       startAfter: cursor,
-      pageSize: query.limit,
+      pageSize: query.effectiveLimit,
       nowMs: nowMs,
     );
     if (page.posts.isEmpty) break;
@@ -126,12 +131,12 @@ Future<List<PostsModel>> _performFetchEligibleSnapshot(
         collected.add(post);
       }
     }
-    if (collected.length >= query.limit) break;
+    if (collected.length >= query.effectiveLimit) break;
     if (!page.hasMore || page.lastDoc == null) break;
     cursor = page.lastDoc;
   }
 
-  return collected.take(query.limit).toList(growable: false);
+  return collected.take(query.effectiveLimit).toList(growable: false);
 }
 
 Future<List<PostsModel>?> _performLoadWarmSnapshot(
@@ -140,7 +145,7 @@ Future<List<PostsModel>?> _performLoadWarmSnapshot(
 ) async {
   final posts = await repository._warmLaunchPool.loadPosts(
     IndexPoolKind.shortFullscreen,
-    limit: query.limit,
+    limit: query.effectiveLimit,
     allowStale: false,
   );
   if (posts.isEmpty) return null;
@@ -149,7 +154,8 @@ Future<List<PostsModel>?> _performLoadWarmSnapshot(
     currentUserId: query.userId.trim(),
     followingIds: await repository._loadFollowingIds(query.userId),
   );
-  final normalized = eligible.take(query.limit).toList(growable: false);
+  final normalized =
+      eligible.take(query.effectiveLimit).toList(growable: false);
   if (normalized.length != posts.length) {
     final validIds = normalized.map((post) => post.docID).toSet();
     final invalidIds = posts

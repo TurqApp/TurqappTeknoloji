@@ -73,6 +73,12 @@ extension _SettingsViewSectionsAccountPart on _SettingsViewState {
         () => Get.to(() => PasajSettingsView()),
         usePasajIcon: true,
       ),
+      if (kDebugMode || QALabMode.enabled)
+        buildRow(
+          'Akış ve Önbellek Ayarları',
+          CupertinoIcons.slider_horizontal_3,
+          () => Get.to(() => const SurfacePolicySettingsView()),
+        ),
       buildSectionTitle('settings.security_support'.tr),
       buildRow(
         'settings.about'.tr,
