@@ -17,10 +17,12 @@ const DEFAULT_TARGET_COLLECTION = 'Posts';
 const DEFAULT_USERS_COLLECTION = 'users';
 const DEFAULT_START_TIMESTAMP = 1774857600000;
 const DEFAULT_INTERVAL_MINUTES = 60;
+const DEFAULT_TRIGGER_LEAD_MINUTES = 10;
 const DEFAULT_DAILY_START_HOUR = 11;
 const DEFAULT_DAILY_END_HOUR = 23;
 const DEFAULT_DAILY_END_MINUTE = 59;
 const DEFAULT_PAGE_SIZE = 1000;
+const DEFAULT_LIMIT_DAYS = 0;
 const DEFAULT_REPORT_DIR = path.resolve(
   __dirname,
   '..',
@@ -115,10 +117,14 @@ function buildOptions() {
     usersCollection: arg('users-collection', DEFAULT_USERS_COLLECTION),
     startTimestamp: Number(arg('start-timestamp', DEFAULT_START_TIMESTAMP)),
     intervalMinutes: Number(arg('interval-minutes', DEFAULT_INTERVAL_MINUTES)),
+    triggerLeadMinutes: Number(
+      arg('trigger-lead-minutes', DEFAULT_TRIGGER_LEAD_MINUTES),
+    ),
     dailyStartHour: Number(arg('daily-start-hour', DEFAULT_DAILY_START_HOUR)),
     dailyEndHour: Number(arg('daily-end-hour', DEFAULT_DAILY_END_HOUR)),
     dailyEndMinute: Number(arg('daily-end-minute', DEFAULT_DAILY_END_MINUTE)),
     pageSize: Number(arg('page-size', DEFAULT_PAGE_SIZE)),
+    limitDays: Number(arg('limit-days', DEFAULT_LIMIT_DAYS)),
     reportDir: arg('report-dir', DEFAULT_REPORT_DIR),
     limitGroups: Number(arg('limit-groups', '0')),
     apply: hasFlag('apply'),
@@ -202,7 +208,19 @@ function getWindowBounds(options) {
   };
 }
 
-function alignStartTimestamp(timestamp, options) {
+function getTriggerLeadMs(options) {
+  return Math.max(0, asNum(options.triggerLeadMinutes, 0)) * 60 * 1000;
+}
+
+function diffTrCalendarDays(fromTimestamp, toTimestamp) {
+  const from = getTrParts(fromTimestamp);
+  const to = getTrParts(toTimestamp);
+  const fromDay = Date.UTC(from.year, from.month, from.day);
+  const toDay = Date.UTC(to.year, to.month, to.day);
+  return Math.floor((toDay - fromDay) / (24 * 60 * 60 * 1000));
+}
+
+function alignAnchorTimestamp(timestamp, options) {
   let aligned = floorToInterval(timestamp, options.intervalMinutes);
   let parts = getTrParts(aligned);
   const bounds = getWindowBounds(options);
@@ -234,7 +252,7 @@ function alignStartTimestamp(timestamp, options) {
   return aligned;
 }
 
-function nextScheduleTimestamp(timestamp, options) {
+function nextAnchorTimestamp(timestamp, options) {
   const next = timestamp + options.intervalMinutes * 60 * 1000;
   const parts = getTrParts(next);
   const bounds = getWindowBounds(options);
@@ -262,6 +280,27 @@ function nextScheduleTimestamp(timestamp, options) {
     });
   }
   return next;
+}
+
+function alignStartTimestamp(timestamp, options) {
+  const anchor = alignAnchorTimestamp(timestamp, options);
+  return anchor - getTriggerLeadMs(options);
+}
+
+function nextScheduleTimestamp(timestamp, options) {
+  const anchor = timestamp + getTriggerLeadMs(options);
+  return nextAnchorTimestamp(anchor, options) - getTriggerLeadMs(options);
+}
+
+function limitGroupsByScheduleWindow(groups, firstScheduleTimestamp, options) {
+  if (asNum(options.limitDays, 0) <= 0) return groups;
+  return groups.filter((_, index) => {
+    let scheduleTimestamp = firstScheduleTimestamp;
+    for (let i = 0; i < index; i += 1) {
+      scheduleTimestamp = nextScheduleTimestamp(scheduleTimestamp, options);
+    }
+    return diffTrCalendarDays(firstScheduleTimestamp, scheduleTimestamp) < options.limitDays;
+  });
 }
 
 function formatTrTimestamp(timestamp) {
@@ -584,10 +623,18 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
   }
 
   const docs = [];
+  const skipped = [];
   for (const item of group.docs) {
     const sourceData = item.data || {};
     const userId = asString(sourceData.userID);
     if (!userId) {
+      if (item.index !== 0) {
+        skipped.push({
+          docId: item.id,
+          reason: `missing_user_id:${item.id}`,
+        });
+        continue;
+      }
       return {
         baseId: group.baseId,
         rootId: group.rootId,
@@ -608,6 +655,13 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
       userId,
     );
     if (!profile) {
+      if (item.index !== 0) {
+        skipped.push({
+          docId: item.id,
+          reason: `missing_target_user:${userId}`,
+        });
+        continue;
+      }
       return {
         baseId: group.baseId,
         rootId: group.rootId,
@@ -623,6 +677,13 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
 
     const media = await resolveTargetMedia(sourceData, item.id, targetBucket, options);
     if (!media.ok) {
+      if (item.index !== 0) {
+        skipped.push({
+          docId: item.id,
+          reason: `${media.reason}:${item.id}`,
+        });
+        continue;
+      }
       return {
         baseId: group.baseId,
         rootId: group.rootId,
@@ -710,6 +771,8 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
     scheduleLabel: formatTrTimestamp(scheduleTimestamp),
     docCount: group.docCount,
     kind: group.kind,
+    partial: skipped.length > 0,
+    skipped,
     docs,
   };
 }
@@ -730,10 +793,12 @@ function summarizePlans(plans) {
   const summary = {
     totalGroups: plans.length,
     readyGroups: 0,
+    partialGroups: 0,
     skippedGroups: 0,
     failedGroups: 0,
     totalDocs: 0,
     readyDocs: 0,
+    partialDocs: 0,
     skippedDocs: 0,
     failedDocs: 0,
   };
@@ -743,6 +808,10 @@ function summarizePlans(plans) {
     if (plan.status === 'ready') {
       summary.readyGroups += 1;
       summary.readyDocs += plan.docCount || 0;
+      if (Array.isArray(plan.skipped) && plan.skipped.length > 0) {
+        summary.partialGroups += 1;
+        summary.partialDocs += plan.skipped.length;
+      }
     } else if (plan.status === 'skipped') {
       summary.skippedGroups += 1;
       summary.skippedDocs += plan.docCount || 0;
@@ -767,6 +836,7 @@ module.exports = {
   formatTrTimestamp,
   initializeApps,
   loadSourceFloodGroups,
+  limitGroupsByScheduleWindow,
   nextScheduleTimestamp,
   alignStartTimestamp,
   prepareGroupPlan,

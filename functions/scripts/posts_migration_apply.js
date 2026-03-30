@@ -6,6 +6,7 @@ const {
   deleteApps,
   formatTrTimestamp,
   initializeApps,
+  limitGroupsByScheduleWindow,
   loadSourceFloodGroups,
   nextScheduleTimestamp,
   prepareGroupPlan,
@@ -20,7 +21,12 @@ async function run() {
 
   try {
     console.log(`Mod             : ${options.apply ? 'APPLY' : 'DRY-RUN'}`);
-    console.log(`Baslangic slotu : ${formatTrTimestamp(options.startTimestamp)}`);
+    const firstPublishAt = alignStartTimestamp(options.startTimestamp, options);
+    console.log(`Baslangic anchor: ${formatTrTimestamp(options.startTimestamp)}`);
+    console.log(`Ilk tetik       : ${formatTrTimestamp(firstPublishAt)}`);
+    if (options.limitDays > 0) {
+      console.log(`Gun limiti      : ${options.limitDays}`);
+    }
 
     const loaded = await loadSourceFloodGroups(apps.sourceDb, options);
     const eligibleGroups = loaded.groups
@@ -36,10 +42,15 @@ async function run() {
       options.limitGroups > 0
         ? eligibleGroups.slice(0, options.limitGroups)
         : eligibleGroups;
+    const scheduledGroups = limitGroupsByScheduleWindow(
+      limitedGroups,
+      firstPublishAt,
+      options,
+    );
 
     const plans = [];
-    let scheduleTimestamp = alignStartTimestamp(options.startTimestamp, options);
-    for (const group of limitedGroups) {
+    let scheduleTimestamp = firstPublishAt;
+    for (const group of scheduledGroups) {
       const plan = await prepareGroupPlan(
         group,
         scheduleTimestamp,
@@ -59,13 +70,18 @@ async function run() {
       for (const plan of plans) {
         if (plan.status !== 'ready') continue;
         const batch = apps.targetDb.batch();
-        for (const doc of plan.docs) {
-          const ref = apps.targetDb
-            .collection(options.targetCollection)
-            .doc(doc.docId);
-          batch.set(ref, doc.payload, { merge: true });
-          writtenDocs += 1;
-        }
+      for (const doc of plan.docs) {
+        const ref = apps.targetDb
+          .collection(options.targetCollection)
+          .doc(doc.docId);
+        batch.set(ref, doc.payload, { merge: true });
+        writtenDocs += 1;
+      }
+      for (const skipped of plan.skipped || []) {
+        batch.delete(
+          apps.targetDb.collection(options.targetCollection).doc(skipped.docId),
+        );
+      }
         await batch.commit();
         writtenGroups += 1;
       }
@@ -78,11 +94,15 @@ async function run() {
         sourceCollection: options.sourceCollection,
         targetCollection: options.targetCollection,
         startTimestamp: options.startTimestamp,
-        startLabel: formatTrTimestamp(options.startTimestamp),
+        anchorLabel: formatTrTimestamp(options.startTimestamp),
+        firstTriggerAt: firstPublishAt,
+        firstTriggerLabel: formatTrTimestamp(firstPublishAt),
         intervalMinutes: options.intervalMinutes,
+        triggerLeadMinutes: options.triggerLeadMinutes,
         dailyStartHour: options.dailyStartHour,
         dailyEndHour: options.dailyEndHour,
         dailyEndMinute: options.dailyEndMinute,
+        limitDays: options.limitDays,
         limitGroups: options.limitGroups,
       },
       source: {
@@ -105,6 +125,7 @@ async function run() {
     );
 
     console.log(`Hazir grup      : ${report.summary.readyGroups}`);
+    console.log(`Parsiyel grup   : ${report.summary.partialGroups}`);
     console.log(`Yazilan grup    : ${writtenGroups}`);
     console.log(`Yazilan doc     : ${writtenDocs}`);
     console.log(`Basarisiz grup  : ${report.summary.failedGroups}`);

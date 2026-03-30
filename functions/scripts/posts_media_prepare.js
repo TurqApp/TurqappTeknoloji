@@ -4,9 +4,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const {
+  alignStartTimestamp,
   buildOptions,
   deleteApps,
+  formatTrTimestamp,
   initializeApps,
+  limitGroupsByScheduleWindow,
   loadSourceFloodGroups,
   writeReport,
 } = require('./posts_migration_shared');
@@ -135,6 +138,12 @@ async function run() {
   try {
     console.log(`Mod             : ${options.apply ? 'APPLY' : 'DRY-RUN'}`);
     console.log('Hazirlik        : source media -> target storage');
+    const firstPublishAt = alignStartTimestamp(options.startTimestamp, options);
+    console.log(`Baslangic anchor: ${formatTrTimestamp(options.startTimestamp)}`);
+    console.log(`Ilk tetik       : ${formatTrTimestamp(firstPublishAt)}`);
+    if (options.limitDays > 0) {
+      console.log(`Gun limiti      : ${options.limitDays}`);
+    }
 
     const loaded = await loadSourceFloodGroups(apps.sourceDb, options);
     const groups = loaded.groups
@@ -148,17 +157,36 @@ async function run() {
 
     const limitedGroups =
       options.limitGroups > 0 ? groups.slice(0, options.limitGroups) : groups;
+    const scheduledGroups = limitGroupsByScheduleWindow(
+      limitedGroups,
+      firstPublishAt,
+      options,
+    );
 
     const report = {
       generatedAt: new Date().toISOString(),
       mode: options.apply ? 'apply' : 'dry-run',
+      options: {
+        startTimestamp: options.startTimestamp,
+        anchorLabel: formatTrTimestamp(options.startTimestamp),
+        firstTriggerAt: firstPublishAt,
+        firstTriggerLabel: formatTrTimestamp(firstPublishAt),
+        intervalMinutes: options.intervalMinutes,
+        triggerLeadMinutes: options.triggerLeadMinutes,
+        dailyStartHour: options.dailyStartHour,
+        dailyEndHour: options.dailyEndHour,
+        dailyEndMinute: options.dailyEndMinute,
+        limitDays: options.limitDays,
+        limitGroups: options.limitGroups,
+      },
       source: {
         scannedDocs: loaded.scannedDocs,
         scannedFloodDocs: loaded.scannedFloodDocs,
         totalFloodGroups: loaded.groups.length,
       },
       summary: {
-        totalGroups: limitedGroups.length,
+        totalGroups: scheduledGroups.length,
+        totalEligibleGroups: limitedGroups.length,
         readyGroups: 0,
         failedGroups: 0,
         skippedGroups: 0,
@@ -168,7 +196,7 @@ async function run() {
       groups: [],
     };
 
-    for (const group of limitedGroups) {
+    for (const group of scheduledGroups) {
       const groupReport = {
         rootId: group.rootId,
         docCount: group.docCount,

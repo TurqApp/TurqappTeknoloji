@@ -6,6 +6,7 @@ const {
   deleteApps,
   formatTrTimestamp,
   initializeApps,
+  limitGroupsByScheduleWindow,
   loadSourceFloodGroups,
   nextScheduleTimestamp,
   prepareGroupPlan,
@@ -22,7 +23,12 @@ async function run() {
     console.log('Mod             : AUDIT');
     console.log(`Kaynak          : ${options.sourceCollection}`);
     console.log(`Hedef           : ${options.targetCollection}`);
-    console.log(`Baslangic slotu : ${formatTrTimestamp(options.startTimestamp)}`);
+    const firstPublishAt = alignStartTimestamp(options.startTimestamp, options);
+    console.log(`Baslangic anchor: ${formatTrTimestamp(options.startTimestamp)}`);
+    console.log(`Ilk tetik       : ${formatTrTimestamp(firstPublishAt)}`);
+    if (options.limitDays > 0) {
+      console.log(`Gun limiti      : ${options.limitDays}`);
+    }
 
     const loaded = await loadSourceFloodGroups(apps.sourceDb, options);
     const eligibleGroups = loaded.groups.filter((group) => group.hasRoot);
@@ -37,6 +43,11 @@ async function run() {
       options.limitGroups > 0
         ? sortedGroups.slice(0, options.limitGroups)
         : sortedGroups;
+    const scheduledGroups = limitGroupsByScheduleWindow(
+      limitedGroups,
+      firstPublishAt,
+      options,
+    );
 
     const skippedRootPlans = loaded.groups
       .filter((group) => !group.hasRoot)
@@ -53,8 +64,8 @@ async function run() {
       }));
 
     const plans = [];
-    let scheduleTimestamp = alignStartTimestamp(options.startTimestamp, options);
-    for (const group of limitedGroups) {
+    let scheduleTimestamp = firstPublishAt;
+    for (const group of scheduledGroups) {
       const plan = await prepareGroupPlan(
         group,
         scheduleTimestamp,
@@ -74,11 +85,15 @@ async function run() {
         sourceCollection: options.sourceCollection,
         targetCollection: options.targetCollection,
         startTimestamp: options.startTimestamp,
-        startLabel: formatTrTimestamp(options.startTimestamp),
+        anchorLabel: formatTrTimestamp(options.startTimestamp),
+        firstTriggerAt: firstPublishAt,
+        firstTriggerLabel: formatTrTimestamp(firstPublishAt),
         intervalMinutes: options.intervalMinutes,
+        triggerLeadMinutes: options.triggerLeadMinutes,
         dailyStartHour: options.dailyStartHour,
         dailyEndHour: options.dailyEndHour,
         dailyEndMinute: options.dailyEndMinute,
+        limitDays: options.limitDays,
         limitGroups: options.limitGroups,
       },
       source: {
@@ -94,6 +109,7 @@ async function run() {
 
     const reportPath = writeReport(options.reportDir, 'posts_migration_audit', report);
     console.log(`Hazir grup      : ${report.summary.readyGroups}`);
+    console.log(`Parsiyel grup   : ${report.summary.partialGroups}`);
     console.log(`Atlanan grup    : ${report.summary.skippedGroups}`);
     console.log(`Basarisiz grup  : ${report.summary.failedGroups}`);
     console.log(`Rapor           : ${reportPath}`);

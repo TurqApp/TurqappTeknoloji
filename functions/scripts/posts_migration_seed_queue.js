@@ -9,6 +9,7 @@ const {
   deleteApps,
   formatTrTimestamp,
   initializeApps,
+  limitGroupsByScheduleWindow,
   loadSourceFloodGroups,
   nextScheduleTimestamp,
   writeReport,
@@ -79,7 +80,12 @@ async function run() {
   try {
     console.log(`Mod             : ${options.apply ? 'APPLY' : 'DRY-RUN'}`);
     console.log(`Queue koleksiyon : ${QUEUE_COLLECTION}`);
-    console.log(`Baslangic slotu : ${formatTrTimestamp(options.startTimestamp)}`);
+    const firstPublishAt = alignStartTimestamp(options.startTimestamp, options);
+    console.log(`Baslangic anchor: ${formatTrTimestamp(options.startTimestamp)}`);
+    console.log(`Ilk tetik       : ${formatTrTimestamp(firstPublishAt)}`);
+    if (options.limitDays > 0) {
+      console.log(`Gun limiti      : ${options.limitDays}`);
+    }
 
     const loaded = await loadSourceFloodGroups(apps.sourceDb, options);
     const eligibleGroups = loaded.groups
@@ -95,6 +101,11 @@ async function run() {
       options.limitGroups > 0
         ? eligibleGroups.slice(0, options.limitGroups)
         : eligibleGroups;
+    const scheduledGroups = limitGroupsByScheduleWindow(
+      limitedGroups,
+      firstPublishAt,
+      options,
+    );
 
     const report = {
       generatedAt: new Date().toISOString(),
@@ -107,6 +118,7 @@ async function run() {
       },
       summary: {
         totalEligibleGroups: limitedGroups.length,
+        totalScheduledGroups: scheduledGroups.length,
         seededGroups: 0,
         existingGroups: 0,
         seededDocs: 0,
@@ -114,9 +126,9 @@ async function run() {
       groups: [],
     };
 
-    let scheduleTimestamp = alignStartTimestamp(options.startTimestamp, options);
+    let scheduleTimestamp = firstPublishAt;
 
-    for (const group of limitedGroups) {
+    for (const group of scheduledGroups) {
       const queueRef = apps.targetDb.collection(QUEUE_COLLECTION).doc(group.rootId);
       const existing = await queueRef.get();
       const groupReport = {
@@ -184,6 +196,7 @@ async function run() {
 
     console.log(`Seed grup       : ${report.summary.seededGroups}`);
     console.log(`Var olan grup   : ${report.summary.existingGroups}`);
+    console.log(`Planli grup     : ${report.summary.totalScheduledGroups}`);
     console.log(`Seed doc        : ${report.summary.seededDocs}`);
     console.log(`Rapor           : ${reportPath}`);
   } finally {
