@@ -186,8 +186,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         final idx = _uploadQueueProcessingAsInt(idxStr);
         flood = idx != 0;
         if (flood) {
-          final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-          mainFlood = '${base}_0';
+          mainFlood = '${upload.id}_0';
         }
       } catch (_) {}
 

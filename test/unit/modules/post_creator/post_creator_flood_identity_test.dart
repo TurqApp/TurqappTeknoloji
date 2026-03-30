@@ -12,19 +12,19 @@ void main() {
       );
     });
 
-    test('normalizes child doc ids back to shared root', () {
+    test('keeps child doc id and appends legacy flood suffix', () {
       expect(
         resolvePostCreatorFloodRootDocId(
           '12c93618-5cea-4155-9416-875d429198fd_7',
         ),
-        '12c93618-5cea-4155-9416-875d429198fd_0',
+        '12c93618-5cea-4155-9416-875d429198fd_7_0',
       );
     });
 
-    test('uses the last underscore as the index separator', () {
+    test('keeps the full child doc id before adding the legacy suffix', () {
       expect(
         resolvePostCreatorFloodRootDocId('series_part_name_3'),
-        'series_part_name_0',
+        'series_part_name_3_0',
       );
     });
   });

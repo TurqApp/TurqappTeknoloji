@@ -104,8 +104,7 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
       final idx = int.tryParse(idxStr) ?? 0;
       flood = idx != 0;
       if (flood) {
-        final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-        mainFlood = '${base}_0';
+        mainFlood = '${upload.id}_0';
       }
     } catch (_) {}
 
