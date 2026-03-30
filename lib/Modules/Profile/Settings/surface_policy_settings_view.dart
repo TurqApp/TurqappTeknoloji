@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
+import 'package:turqappv2/Modules/Short/short_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SurfacePolicySettingsView extends StatefulWidget {
   const SurfacePolicySettingsView({super.key});
@@ -57,33 +63,7 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
   }
 
   Future<void> _save() async {
-    FocusScope.of(context).unfocus();
-    if (_isSaving) return;
-    final values = <String, int>{};
-    for (final field in _allFields) {
-      final raw = _controllers[field.key]?.text.trim() ?? '';
-      final parsed = int.tryParse(raw);
-      if (parsed == null || parsed < 1) {
-        AppSnackbar(
-          'Geçersiz değer',
-          '${field.title} için 1 veya daha büyük bir sayı gir.',
-        );
-        return;
-      }
-      values[field.key] = parsed;
-    }
-    setState(() => _isSaving = true);
-    try {
-      await _overrideService.replaceAll(values);
-      AppSnackbar(
-        'Ayarlar kaydedildi',
-        'Bu ayarlar bu cihazda saklandı. Bazı değişiklikler ilgili ekran yeniden açıldığında etkili olur.',
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
-    }
+    await _persistOverrides();
   }
 
   Future<void> _reset() async {
@@ -99,6 +79,69 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
         'Varsayılanlara dönüldü',
         'Bu cihazdaki yerel akış ve önbellek ayarları sıfırlandı.',
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _reloadNow() async {
+    final saved = await _persistOverrides(showSuccessMessage: false);
+    if (!saved) return;
+
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isNotEmpty) {
+      await Future.wait(<Future<void>>[
+        ensureFeedSnapshotRepository().clearUserSnapshots(userId: userId),
+        ensureShortSnapshotRepository().clearUserSnapshots(userId: userId),
+      ]);
+    }
+
+    final agendaController = maybeFindAgendaController();
+    final shortController = maybeFindShortController();
+    final recommendedController = maybeFindRecommendedUserListController();
+
+    await Future.wait(<Future<void>>[
+      if (agendaController != null) agendaController.refreshAgenda(),
+      if (shortController != null) shortController.refreshShorts(),
+      if (recommendedController != null) recommendedController.refreshUsers(),
+    ]);
+
+    AppSnackbar(
+      'Ayarlar uygulandı',
+      'Aktif yüzeyler yeniden yüklendi. Başlangıç ayarları ise bir sonraki açılışta etkili olur.',
+    );
+  }
+
+  Future<bool> _persistOverrides({
+    bool showSuccessMessage = true,
+  }) async {
+    FocusScope.of(context).unfocus();
+    if (_isSaving) return false;
+    final values = <String, int>{};
+    for (final field in _allFields) {
+      final raw = _controllers[field.key]?.text.trim() ?? '';
+      final parsed = int.tryParse(raw);
+      if (parsed == null || parsed < 1) {
+        AppSnackbar(
+          'Geçersiz değer',
+          '${field.title} için 1 veya daha büyük bir sayı gir.',
+        );
+        return false;
+      }
+      values[field.key] = parsed;
+    }
+    setState(() => _isSaving = true);
+    try {
+      await _overrideService.replaceAll(values);
+      if (showSuccessMessage) {
+        AppSnackbar(
+          'Ayarlar kaydedildi',
+          'Bu ayarlar bu cihazda saklandı. Bazı değişiklikler ilgili ekran yeniden açıldığında etkili olur.',
+        );
+      }
+      return true;
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -342,43 +385,71 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
   }
 
   Widget _buildActions() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: _isSaving ? null : _reset,
-            style: OutlinedButton.styleFrom(
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _isSaving ? null : _reset,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: Colors.black12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Varsayılanlara Dön',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontFamily: 'MontserratBold',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  _isSaving ? 'Kaydediliyor...' : 'Kaydet',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontFamily: 'MontserratBold',
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isSaving ? null : _reloadNow,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF1F1F1),
+              foregroundColor: Colors.black,
+              elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              side: const BorderSide(color: Colors.black12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
             child: const Text(
-              'Varsayılanlara Dön',
+              'Şimdi Yeniden Yükle',
               style: TextStyle(
                 color: Colors.black,
-                fontSize: 15,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isSaving ? null : _save,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: Text(
-              _isSaving ? 'Kaydediliyor...' : 'Kaydet',
-              style: const TextStyle(
                 fontSize: 15,
                 fontFamily: 'MontserratBold',
               ),
