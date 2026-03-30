@@ -17,6 +17,11 @@ extension _SettingsViewSectionsAdminPart on _SettingsViewState {
           children: [
             buildSectionTitle('settings.system_diagnostics'.tr),
             buildRow(
+              'Akış ve Önbellek Ayarları',
+              CupertinoIcons.slider_horizontal_3,
+              () => Get.to(() => const SurfacePolicySettingsView()),
+            ),
+            buildRow(
               'settings.admin_ads'.tr,
               CupertinoIcons.volume_up,
               () => Get.to(() => const AdsCenterHomeView()),
