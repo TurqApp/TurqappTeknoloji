@@ -172,6 +172,13 @@ extension AgendaControllerPlaybackPart on AgendaController {
     final activeDocId = centered >= 0 && centered < agendaList.length
         ? agendaList[centered].docID
         : '';
+    final currentPlayingDocId = VideoStateManager.instance.currentPlayingDocID;
+    final externalOwnerActive = _hasExternalPlaybackOwner(currentPlayingDocId);
+    final ownershipExpected = isPrimaryFeedRouteVisible &&
+        canClaimPlaybackNow &&
+        !playbackSuspended.value &&
+        !pauseAll.value &&
+        !externalOwnerActive;
     final visibleCount = _visibleFractions.length;
     var strongestIndex = -1;
     var strongestFraction = 0.0;
@@ -197,6 +204,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
         'activeIndex': centered,
         'activeDocId': activeDocId,
         'visibleCount': visibleCount,
+        'ownershipExpected': ownershipExpected,
+        'externalOwnerActive': externalOwnerActive,
+        'currentPlayingDocId': currentPlayingDocId ?? '',
         'strongestIndex': strongestIndex,
         'strongestFraction': strongestFraction,
       },

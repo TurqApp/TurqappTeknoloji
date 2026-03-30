@@ -157,4 +157,35 @@ void main() {
     expect(summary.averageVisibleCount, closeTo(2 / 3, 0.0001));
     expect(summary.activeLostCount, 1);
   });
+
+  test('ignores feed playback loss while external owner is active', () async {
+    final service = PlaybackKpiService();
+
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 1,
+        'ownershipExpected': false,
+        'externalOwnerActive': true,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 1,
+        'ownershipExpected': true,
+      },
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    final summary = service.summarizePlaybackWindow(surface: 'feed');
+    expect(summary.eventCount, 2);
+    expect(summary.averageVisibleCount, closeTo(1, 0.0001));
+    expect(summary.activeLostCount, 1);
+  });
 }

@@ -35,7 +35,7 @@ void main() {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             await _waitForCenteredPlayableFeedItem(
               tester,
               controller: controller,

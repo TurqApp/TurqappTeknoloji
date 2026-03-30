@@ -34,12 +34,10 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
         now.difference(lastCommandAt) > minInterval;
     if (!shouldIssueCommand) return null;
     if (_currentPlayingDocID == docID) {
-      if (!canResumePlaybackFor(docID)) return null;
       if (isPlaybackTargetActive(docID)) return null;
-      reassertOnlyThis(docID);
+      playOnlyThis(docID);
       return now;
     }
-    if (!canResumePlaybackFor(docID)) return null;
     playOnlyThis(docID);
     return now;
   }
@@ -56,7 +54,6 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
         lastCommandAt == null ||
         now.difference(lastCommandAt) > minInterval;
     if (!shouldIssueCommand) return null;
-    if (!canResumePlaybackFor(docID)) return null;
     playOnlyThis(docID);
     return now;
   }

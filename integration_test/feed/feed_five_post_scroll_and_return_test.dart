@@ -22,7 +22,7 @@ void main() {
           await launchTurqApp(tester);
           await expectFeedScreen(tester);
 
-          final controller = AgendaController.ensure();
+          final controller = ensureAgendaController();
           final targetIndices =
               await _waitForFiveFeedPosts(tester, controller: controller);
 

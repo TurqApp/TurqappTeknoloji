@@ -35,7 +35,7 @@ void main() {
             await expectFeedScreen(tester);
 
             final network = NetworkAwarenessService.ensure();
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
 
             final baseline = await _captureCurrentFeedVideo(
               tester,

@@ -127,10 +127,18 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _handleDidPopNext() {
-    if (widget.shouldPlay && _videoAdapter != null) {
-      if (isStandalonePostInstance) {
-        _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
-      }
+    if (!widget.shouldPlay) return;
+    if (isStandalonePostInstance) {
+      if (_videoAdapter == null) return;
+      _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
+      _resumePlaybackIfEligible(source: 'route_did_pop_next');
+      return;
+    }
+    if (_controllerOwnsInlinePlayback) {
+      agendaController.resumeFeedPlayback();
+      return;
+    }
+    if (_videoAdapter != null) {
       _resumePlaybackIfEligible(source: 'route_did_pop_next');
     }
   }

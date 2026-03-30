@@ -38,7 +38,7 @@ void main() {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             final network = NetworkAwarenessService.ensure();
             final probe = HlsDataUsageProbe.ensure()
               ..resetSession(label: 'feed_hls_data_usage');

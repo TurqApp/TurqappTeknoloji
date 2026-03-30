@@ -1,6 +1,6 @@
 part of 'video_state_manager.dart';
 
-const int _videoStateManagerMaxPendingPlayRetries = 6;
+const int _videoStateManagerMaxPendingPlayRetries = 28;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
   void _silenceSupersededHandle(
@@ -180,7 +180,15 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (requestSeq != _playRequestSeq) return;
       if (_currentPlayingDocID != docID) return;
       final handle = _allVideoControllers[docID];
-      if (handle == null) return;
+      if (handle == null) {
+        if (attempt >= _videoStateManagerMaxPendingPlayRetries) return;
+        _schedulePendingPlayResume(
+          docID,
+          requestSeq,
+          attempt: attempt + 1,
+        );
+        return;
+      }
       if (!handle.isInitialized) {
         if (attempt >= _videoStateManagerMaxPendingPlayRetries) return;
         _schedulePendingPlayResume(

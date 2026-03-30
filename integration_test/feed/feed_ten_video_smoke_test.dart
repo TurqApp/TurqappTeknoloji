@@ -33,7 +33,7 @@ void main() {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             final seenDocIds = <String>{};
             var swipeAttempts = 0;
 
@@ -143,7 +143,8 @@ Future<void> _assertFeedVideoHealthy(
 
   final mutedAfterAdvance = await adapter.isMutedNative();
   if (mutedAfterAdvance) {
-    throw TestFailure('$label became muted after advance (doc=${sample.docId}).');
+    throw TestFailure(
+        '$label became muted after advance (doc=${sample.docId}).');
   }
 }
 
@@ -210,10 +211,10 @@ Future<void> _waitForPlaybackAdvance(
     final duration = value.duration;
     final remaining =
         duration > Duration.zero ? duration - baseline : Duration.zero;
-    final targetAdvance =
-        remaining < minimumAdvance && remaining > const Duration(milliseconds: 400)
-            ? remaining - const Duration(milliseconds: 250)
-            : minimumAdvance;
+    final targetAdvance = remaining < minimumAdvance &&
+            remaining > const Duration(milliseconds: 400)
+        ? remaining - const Duration(milliseconds: 250)
+        : minimumAdvance;
 
     if (position - baseline >= targetAdvance) {
       return;

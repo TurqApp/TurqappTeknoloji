@@ -34,7 +34,7 @@ void main() {
             await expectFeedScreen(tester);
             final deadline = DateTime.now().add(const Duration(minutes: 3));
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             final seenDocIds = <String>{};
             var swipeAttempts = 0;
 
@@ -95,10 +95,9 @@ void main() {
                 .map((post) => post.docID.trim())
                 .where((docId) => docId.isNotEmpty)
                 .toSet();
-            final requiredValidationCount =
-                availableAutoplayDocIds.length >= 10
-                    ? 10
-                    : availableAutoplayDocIds.length;
+            final requiredValidationCount = availableAutoplayDocIds.length >= 10
+                ? 10
+                : availableAutoplayDocIds.length;
             expect(
               seenDocIds.length,
               greaterThanOrEqualTo(requiredValidationCount),

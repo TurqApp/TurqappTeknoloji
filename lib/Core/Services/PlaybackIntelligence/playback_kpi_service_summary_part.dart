@@ -128,7 +128,15 @@ extension _PlaybackKpiServiceSummaryX on PlaybackKpiService {
           ? _asDouble(event.payload['visibleCount'])
           : _asDouble(event.payload['hotCount']);
       final activeIndex = _asInt(event.payload['activeIndex']);
-      if (activeIndex < 0 && countValue > 0) {
+      final ownershipExpected = _asBool(
+        event.payload['ownershipExpected'],
+        defaultValue: true,
+      );
+      final externalOwnerActive = _asBool(event.payload['externalOwnerActive']);
+      if (activeIndex < 0 &&
+          countValue > 0 &&
+          ownershipExpected &&
+          !externalOwnerActive) {
         activeLostCount += 1;
       }
       visibleOrHotTotal += countValue;
@@ -161,5 +169,25 @@ extension _PlaybackKpiServiceSummaryX on PlaybackKpiService {
     if (value is double) return value;
     if (value is num) return value.toDouble();
     return double.tryParse('$value') ?? 0;
+  }
+
+  bool _asBool(dynamic value, {bool defaultValue = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return defaultValue;
+    if (normalized == 'true' ||
+        normalized == '1' ||
+        normalized == 'yes' ||
+        normalized == 'y') {
+      return true;
+    }
+    if (normalized == 'false' ||
+        normalized == '0' ||
+        normalized == 'no' ||
+        normalized == 'n') {
+      return false;
+    }
+    return defaultValue;
   }
 }

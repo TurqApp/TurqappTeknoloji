@@ -47,16 +47,20 @@ extension AgendaControllerFeedPart on AgendaController {
     final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
     final manager = VideoStateManager.instance;
     final now = DateTime.now();
-    final needsCurrentRecovery = manager.currentPlayingDocID == playbackKey &&
+    final pendingPlay = manager.hasPendingPlayFor(playbackKey);
+    final needsCurrentRecovery = !pendingPlay &&
+        manager.currentPlayingDocID == playbackKey &&
         !manager.isPlaybackTargetActive(playbackKey);
     final shouldIssueImmediateCommand = needsCurrentRecovery ||
-        (manager.currentPlayingDocID != playbackKey &&
+        (!pendingPlay &&
+            manager.currentPlayingDocID != playbackKey &&
             (_lastPlaybackCommandDocId != playbackKey ||
                 _lastPlaybackCommandAt == null ||
                 now.difference(_lastPlaybackCommandAt!) >
                     const Duration(milliseconds: 180)));
     if (shouldIssueImmediateCommand) {
-      final readyForImmediateHandoff = manager.canResumePlaybackFor(playbackKey);
+      final readyForImmediateHandoff =
+          manager.canResumePlaybackFor(playbackKey);
       recordQALabPlaybackDispatch(
         surface: 'feed',
         stage: needsCurrentRecovery
@@ -70,6 +74,7 @@ extension AgendaControllerFeedPart on AgendaController {
           'currentPlayingDocID': manager.currentPlayingDocID ?? '',
           'readyForImmediateHandoff': readyForImmediateHandoff,
           'needsCurrentRecovery': needsCurrentRecovery,
+          'pendingPlay': pendingPlay,
         },
       );
       final issuedAt = manager.activatePlaybackTargetIfReady(
@@ -308,6 +313,18 @@ extension AgendaControllerFeedPart on AgendaController {
         if (agendaList[index].docID != docId) return;
         final playbackKey = _feedPlaybackHandleKeyForDoc(docId);
         if (manager.isPlaybackTargetActive(playbackKey)) return;
+        final pendingPlay = manager.hasPendingPlayFor(playbackKey);
+        if (pendingPlay) {
+          if (attempt < 3) {
+            _schedulePlaybackReassert(
+              index: index,
+              docId: docId,
+              manager: manager,
+              attempt: attempt + 1,
+            );
+          }
+          return;
+        }
         final issuedAt = manager.activatePlaybackTargetIfReady(
           playbackKey,
           lastCommandDocId: _lastPlaybackCommandDocId,
@@ -323,7 +340,8 @@ extension AgendaControllerFeedPart on AgendaController {
         }
         final shouldRetry = attempt < 3 &&
             (manager.currentPlayingDocID == playbackKey ||
-                !manager.canResumePlaybackFor(playbackKey));
+                !manager.canResumePlaybackFor(playbackKey) ||
+                manager.hasPendingPlayFor(playbackKey));
         if (shouldRetry) {
           _schedulePlaybackReassert(
             index: index,

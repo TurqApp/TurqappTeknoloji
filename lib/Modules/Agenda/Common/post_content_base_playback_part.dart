@@ -248,11 +248,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
 
-    final controllerOwnedListPlayback = !isStandalonePostInstance &&
-        (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
-    if (controllerOwnedListPlayback) {
+    if (_controllerOwnsInlinePlayback) {
       _recordPlaybackDispatch(
-        'feed_card_wait_for_init_pending_play',
+        'feed_card_wait_for_init_controller_owned',
         source: source,
         dispatchIssued: false,
         metadata: <String, dynamic>{
@@ -260,7 +258,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
               _playbackRuntimeService.currentPlayingDocId ?? '',
         },
       );
-      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
     }
     _recordPlaybackDispatch(
       'feed_card_wait_for_init',
@@ -326,14 +323,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     );
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
-    final controllerOwnedListPlayback = !isStandalonePostInstance &&
-        (_qaSurfaceName == 'feed' ||
-            _qaSurfaceName == 'profile' ||
-            _qaSurfaceName == 'social_profile');
-    if (controllerOwnedListPlayback) {
-      if (_playbackRuntimeService.currentPlayingDocId != playbackHandleKey) {
-        _playbackRuntimeService.playOnlyThis(playbackHandleKey);
-      }
+    if (_controllerOwnsInlinePlayback) {
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
