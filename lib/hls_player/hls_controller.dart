@@ -106,7 +106,7 @@ class HLSController {
   }
 
   bool get _shouldPreserveResumeVisual {
-    if (_state == PlayerState.completed || _isAtPlaybackEnd) return false;
+    if (!_hasRenderedFirstFrame) return false;
     if (!_currentPosition.isFinite) return false;
     return _currentPosition > 0.05;
   }

@@ -251,13 +251,14 @@ extension AgendaControllerFeedPart on AgendaController {
   void _prefetchUpcomingImages() {
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
     final end = (current + 4).clamp(0, agendaList.length);
-    for (int i = current + 1; i < end; i++) {
+    for (int i = current; i < end; i++) {
       final post = agendaList[i];
       if (post.img.isNotEmpty) {
         TurqImageCacheManager.instance.getSingleFile(post.img.first).ignore();
       }
-      if (post.thumbnail.isNotEmpty) {
-        TurqImageCacheManager.instance.getSingleFile(post.thumbnail).ignore();
+      final posterUrl = post.preferredVideoPosterUrl.trim();
+      if (posterUrl.isNotEmpty) {
+        TurqImageCacheManager.instance.getSingleFile(posterUrl).ignore();
       }
     }
   }
@@ -270,9 +271,7 @@ extension AgendaControllerFeedPart on AgendaController {
 
     for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {
       final post = agendaList[i];
-      final thumbnail = post.thumbnail.trim();
-      final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
-      final previewUrl = thumbnail.isNotEmpty ? thumbnail : fallbackImage;
+      final previewUrl = post.preferredVideoPosterUrl.trim();
       if (previewUrl.isEmpty) continue;
       TurqImageCacheManager.instance.getSingleFile(previewUrl).ignore();
     }

@@ -21,9 +21,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
   }
 
   Widget _buildVideoThumbnail({double? aspectRatio}) {
-    final thumb = widget.model.thumbnail.trim().isNotEmpty
-        ? widget.model.thumbnail.trim()
-        : (widget.model.img.isNotEmpty ? widget.model.img.first.trim() : '');
+    final thumb = widget.model.preferredVideoPosterUrl.trim();
     final fallback = _buildVideoPosterFallback(aspectRatio: aspectRatio);
     final cacheHeight = aspectRatio != null
         ? _feedCacheHeightForAspectRatio(aspectRatio)

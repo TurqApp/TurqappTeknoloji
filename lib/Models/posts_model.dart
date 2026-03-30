@@ -289,6 +289,19 @@ class PostsModel {
 
   List<String> get cdnImgUrls => img.map(CdnUrlBuilder.toCdnUrl).toList();
 
+  String get preferredVideoPosterUrl {
+    final explicitThumbnail = cdnThumbnailUrl.trim();
+    if (explicitThumbnail.isNotEmpty) return explicitThumbnail;
+    if (img.isNotEmpty) {
+      final firstImage = img.first.trim();
+      if (firstImage.isNotEmpty) return CdnUrlBuilder.toCdnUrl(firstImage);
+    }
+    if (hasVideoSignal) {
+      return CdnUrlBuilder.buildThumbnailUrl(docID);
+    }
+    return '';
+  }
+
   bool get isFloodMember => flood || mainFlood.trim().isNotEmpty;
 
   bool get isFloodSeriesRoot => !isFloodMember && floodCount.toInt() > 1;

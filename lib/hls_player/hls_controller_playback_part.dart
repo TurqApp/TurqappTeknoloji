@@ -29,12 +29,15 @@ extension HLSControllerPlaybackPart on HLSController {
       throw Exception('Controller not initialized. Call initialize() first.');
     }
 
+    final sameVideoReload = _currentUrl == url && _shouldPreserveResumeVisual;
     _currentUrl = url;
     _isLooping = loop;
     _updateState(PlayerState.loading);
     _firstFrameEmitted = false;
-    _hasRenderedFirstFrame = false;
-    _firstFrameController.add(false);
+    if (!sameVideoReload) {
+      _hasRenderedFirstFrame = false;
+      _firstFrameController.add(false);
+    }
     _rendererStallCount = 0;
     _surfaceRebindCount = 0;
     if (_telemetryVideoId != null) {
