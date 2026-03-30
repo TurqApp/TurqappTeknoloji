@@ -386,6 +386,13 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       if (!_validatePollRequirements()) return;
       var addedCount = 0;
       final queueUuid = const Uuid().v4();
+      final batchCreatedAt = DateTime.now();
+      final normalizedScheduledAt =
+          _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0;
+      final batchTimeStamp =
+          normalizedScheduledAt != 0
+              ? normalizedScheduledAt
+              : batchCreatedAt.millisecondsSinceEpoch;
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
         final controller = ensureComposerControllerFor(postModel.index);
@@ -447,8 +454,8 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUsername : '',
           'quotedSourceAvatarUrl':
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceAvatarUrl : '',
-          'scheduledAt':
-              _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0,
+          'scheduledAt': normalizedScheduledAt,
+          'timeStamp': batchTimeStamp,
         };
 
         final imagePaths = <String>[];
@@ -476,9 +483,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final pollPayload = (poll.isNotEmpty)
             ? _normalizePollForSave(
                 poll,
-                scheduledAt > 0
-                    ? scheduledAt
-                    : DateTime.now().millisecondsSinceEpoch,
+                scheduledAt > 0 ? scheduledAt : batchTimeStamp,
               )
             : null;
         if (pollPayload != null) {
@@ -490,7 +495,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           postData: jsonEncode(postData),
           imagePaths: imagePaths,
           videoPath: controller.selectedVideo.value?.path,
-          createdAt: DateTime.now(),
+          createdAt: batchCreatedAt,
         );
 
         final added = await _uploadQueueRuntimeService.addToQueue(

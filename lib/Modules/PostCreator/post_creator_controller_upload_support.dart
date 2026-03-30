@@ -83,12 +83,12 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
   Future<void> _preparePostShellForStorageUpload({
     required String docID,
     required String uid,
-    required int nowMs,
+    required int timeStamp,
   }) async {
     final ref = FirebaseFirestore.instance.collection("Posts").doc(docID);
     await ref.set({
       "userID": uid,
-      "timeStamp": nowMs,
+      "timeStamp": timeStamp,
       "isUploading": true,
       "hlsStatus": "none",
     }, SetOptions(merge: true));

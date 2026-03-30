@@ -264,6 +264,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
     }
 
     final allHashtags = <String>{};
+    final scheduledDate = _normalizedIzBirakDateTime();
+    final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
+    final batchTimeStamp =
+        scheduledMs != 0 ? scheduledMs : DateTime.now().millisecondsSinceEpoch;
 
     for (int index = 0; index < allPosts.length; index++) {
       final post = allPosts[index];
@@ -275,7 +279,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       await _preparePostShellForStorageUpload(
         docID: docID,
         uid: uid,
-        nowMs: nowMs,
+        timeStamp: batchTimeStamp,
       );
 
       // Update progress
@@ -465,9 +469,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         statusText: 'post_creator.saving_to_database'.tr,
       );
 
-      final scheduledDate = _normalizedIzBirakDateTime();
-      final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
-      final publishTime = scheduledMs != 0 ? scheduledMs : nowMs;
+      final publishTime = batchTimeStamp;
       final locationCity =
           post.location.trim().isNotEmpty ? _resolvePostLocationCity() : '';
 
@@ -510,7 +512,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         "stabilized": false,
         "tags": index == 0 ? allHashtags.toList() : [],
         "thumbnail": thumbnailUrl,
-        "timeStamp": nowMs + index,
+        "timeStamp": batchTimeStamp,
         "userID": uid,
         "video": videoUrl,
         "hlsStatus": isReusedVideoPost ? "ready" : "none",
@@ -605,7 +607,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           stabilized: false,
           tags: index == 0 ? allHashtags.toList() : [],
           thumbnail: thumbnailUrl,
-          timeStamp: nowMs + index,
+          timeStamp: batchTimeStamp,
           userID: uid,
           video: videoUrl,
           hlsStatus: isReusedVideoPost ? "ready" : "none",

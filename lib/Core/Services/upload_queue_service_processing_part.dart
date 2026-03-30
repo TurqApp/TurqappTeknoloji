@@ -175,6 +175,9 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       final int scheduledAt = _uploadQueueProcessingAsInt(
         postDataMap['scheduledAt'],
       );
+      final int postTimeStamp = _uploadQueueProcessingAsInt(
+        postDataMap['timeStamp'],
+      );
 
       bool flood = false;
       String mainFlood = '';
@@ -196,7 +199,9 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       } catch (_) {}
 
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final publishTime = scheduledAt != 0 ? scheduledAt : nowMs;
+      final publishTime = scheduledAt != 0
+          ? scheduledAt
+          : (postTimeStamp != 0 ? postTimeStamp : nowMs);
 
       for (final imagePath in upload.imagePaths) {
         final file = File(imagePath);
@@ -323,7 +328,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         },
         "tags": const <String>[],
         "thumbnail": "",
-        "timeStamp": nowMs,
+        "timeStamp": postTimeStamp != 0 ? postTimeStamp : publishTime,
         "userID": userID,
         "authorNickname": authorNickname,
         "authorDisplayName": authorDisplayName,
@@ -558,7 +563,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         },
         "tags": flood ? [] : allTags,
         "thumbnail": thumbnailUrl,
-        "timeStamp": nowMs,
+        "timeStamp": postTimeStamp != 0 ? postTimeStamp : publishTime,
         "userID": userID,
         "video": videoUrl,
         "isUploading": false,

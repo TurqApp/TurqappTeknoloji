@@ -121,6 +121,10 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
     final authorDisplayName = authorSummary.displayName;
     final authorAvatarUrl = authorSummary.avatarUrl;
     final authorRozet = authorSummary.rozet;
+    final scheduledDate = _normalizedIzBirakDateTime();
+    final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
+    final batchTimeStamp =
+        scheduledMs != 0 ? scheduledMs : DateTime.now().millisecondsSinceEpoch;
 
     try {
       // Prepare all posts
@@ -195,7 +199,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           await _preparePostShellForStorageUpload(
             docID: docID,
             uid: uid,
-            nowMs: nowMs,
+            timeStamp: batchTimeStamp,
           );
 
           // Update progress
@@ -337,8 +341,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           }
 
           // Calculate timing
-          final scheduledDate = _normalizedIzBirakDateTime();
-          final publishTime = scheduledDate?.millisecondsSinceEpoch ?? nowMs;
+          final publishTime = batchTimeStamp;
 
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
@@ -438,12 +441,12 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               "reshareMap": {
                 "visibility": paylasimSelection.value,
               },
-              "scheduledAt": scheduledDate?.millisecondsSinceEpoch ?? 0,
+              "scheduledAt": scheduledMs,
               "sikayetEdildi": false,
               "stabilized": false,
               "tags": index == 0 ? allHashtags.toList() : [],
               "thumbnail": thumbnailUrl,
-              "timeStamp": nowMs + index,
+              "timeStamp": batchTimeStamp,
               "userID": uid,
               "authorNickname": authorNickname,
               "authorDisplayName": authorDisplayName,
@@ -556,12 +559,12 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 reshareMap: {
                   "visibility": paylasimSelection.value,
                 },
-                scheduledAt: scheduledDate?.millisecondsSinceEpoch ?? 0,
+                scheduledAt: scheduledMs,
                 sikayetEdildi: false,
                 stabilized: false,
                 tags: index == 0 ? allHashtags.toList() : [],
                 thumbnail: thumbnailUrl,
-                timeStamp: nowMs + index,
+                timeStamp: batchTimeStamp,
                 userID: uid,
                 authorNickname: authorNickname,
                 authorAvatarUrl: authorAvatarUrl,

@@ -94,6 +94,8 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
     ]);
     final int scheduledAt =
         int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
+    final int postTimeStamp =
+        int.tryParse('${postDataMap['timeStamp'] ?? 0}') ?? 0;
 
     bool flood = false;
     String mainFlood = '';
@@ -115,7 +117,9 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
     } catch (_) {}
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final publishTime = scheduledAt != 0 ? scheduledAt : nowMs;
+    final publishTime = scheduledAt != 0
+        ? scheduledAt
+        : (postTimeStamp != 0 ? postTimeStamp : nowMs);
 
     await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
       "arsiv": true,
@@ -146,7 +150,7 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
       },
       "tags": const <String>[],
       "thumbnail": "",
-      "timeStamp": nowMs,
+      "timeStamp": postTimeStamp != 0 ? postTimeStamp : publishTime,
       "userID": userID,
       "authorNickname": authorNickname,
       "authorDisplayName": authorDisplayName,
