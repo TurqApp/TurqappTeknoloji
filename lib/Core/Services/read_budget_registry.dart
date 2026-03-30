@@ -25,6 +25,7 @@ class ReadBudgetRegistry {
 
   static const int practiceExamHomeInitialLimit = 30;
   static const int practiceExamTypeInitialLimit = 30;
+  static const int testSharedPageLimit = 30;
 
   static const int storyInitialLimit = 30;
   static const int storyFullLimit = 100;

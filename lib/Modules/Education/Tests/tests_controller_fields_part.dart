@@ -1,7 +1,8 @@
 part of 'tests_controller_library.dart';
 
 class _TestsControllerState {
-  final TestRepository testRepository = ensureTestRepository();
+  final TestSnapshotRepository testSnapshotRepository =
+      ensureTestSnapshotRepository();
   final RxList<TestsModel> list = <TestsModel>[].obs;
   final RxBool showButtons = false.obs;
   final RxBool ustBar = true.obs;
@@ -11,11 +12,12 @@ class _TestsControllerState {
   final RxBool isLoadingMore = false.obs;
   final RxBool hasMore = true.obs;
   final RxDouble scrollOffset = 0.0.obs;
-  DocumentSnapshot? lastDocument;
+  int currentPage = 1;
 }
 
 extension TestsControllerFieldsPart on TestsController {
-  TestRepository get _testRepository => _state.testRepository;
+  TestSnapshotRepository get _testSnapshotRepository =>
+      _state.testSnapshotRepository;
   RxList<TestsModel> get list => _state.list;
   RxBool get showButtons => _state.showButtons;
   RxBool get ustBar => _state.ustBar;
@@ -25,6 +27,6 @@ extension TestsControllerFieldsPart on TestsController {
   RxBool get isLoadingMore => _state.isLoadingMore;
   RxBool get hasMore => _state.hasMore;
   RxDouble get scrollOffset => _state.scrollOffset;
-  DocumentSnapshot? get _lastDocument => _state.lastDocument;
-  set _lastDocument(DocumentSnapshot? value) => _state.lastDocument = value;
+  int get _currentPage => _state.currentPage;
+  set _currentPage(int value) => _state.currentPage = value;
 }

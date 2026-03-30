@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class TestOwnerQuery {
@@ -105,6 +106,32 @@ class TestFavoritesQuery {
       );
 }
 
+class TestSharedPageQuery {
+  const TestSharedPageQuery({
+    required this.userId,
+    required this.page,
+    required this.limit,
+  });
+
+  final String userId;
+  final int page;
+  final int limit;
+
+  String buildScopeId() => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: limit,
+        scopeTag: page <= 1 ? 'shared' : 'shared_page_$page',
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          TestSnapshotRepository.sharedSurfaceKey,
+        ),
+        qualifiers: <String, Object?>{
+          'shared': true,
+          'page': page,
+          'limit': limit,
+        },
+      );
+}
+
 TestSnapshotRepository? maybeFindTestSnapshotRepository() {
   final isRegistered = Get.isRegistered<TestSnapshotRepository>();
   if (!isRegistered) return null;
@@ -125,6 +152,7 @@ class TestSnapshotRepository extends GetxService {
   static const String typeSurfaceKey = 'test_type_snapshot';
   static const String answeredSurfaceKey = 'test_answered_snapshot';
   static const String favoritesSurfaceKey = 'test_favorites_snapshot';
+  static const String sharedSurfaceKey = 'test_shared_snapshot';
 
   late final CacheFirstCoordinator<List<TestsModel>> _coordinator =
       CacheFirstCoordinator<List<TestsModel>>(
@@ -222,6 +250,23 @@ class TestSnapshotRepository extends GetxService {
     ),
   );
 
+  late final CacheFirstQueryPipeline<TestSharedPageQuery, List<TestsModel>,
+          List<TestsModel>> _sharedPipeline =
+      CacheFirstQueryPipeline<TestSharedPageQuery, List<TestsModel>,
+          List<TestsModel>>(
+    surfaceKey: sharedSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(),
+    fetchRaw: _fetchSharedPageItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      sharedSurfaceKey,
+    ),
+  );
+
   Future<CachedResource<List<TestsModel>>> loadCachedOwner({
     required String userId,
   }) {
@@ -276,6 +321,23 @@ class TestSnapshotRepository extends GetxService {
     final query = TestFavoritesQuery(userId: userId);
     return _bootstrap(
       surfaceKey: favoritesSurfaceKey,
+      userId: userId,
+      scopeId: query.buildScopeId(),
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadCachedSharedPage({
+    required String userId,
+    int page = 1,
+    int limit = ReadBudgetRegistry.testSharedPageLimit,
+  }) {
+    final query = TestSharedPageQuery(
+      userId: userId,
+      page: page,
+      limit: limit,
+    );
+    return _bootstrap(
+      surfaceKey: sharedSurfaceKey,
       userId: userId,
       scopeId: query.buildScopeId(),
     );
@@ -401,6 +463,36 @@ class TestSnapshotRepository extends GetxService {
   }) {
     return openFavorites(
       userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
+  Stream<CachedResource<List<TestsModel>>> openSharedPage({
+    required String userId,
+    int page = 1,
+    int limit = ReadBudgetRegistry.testSharedPageLimit,
+    bool forceSync = false,
+  }) {
+    return _sharedPipeline.open(
+      TestSharedPageQuery(
+        userId: userId,
+        page: page,
+        limit: limit,
+      ),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<TestsModel>>> loadSharedPage({
+    required String userId,
+    int page = 1,
+    int limit = ReadBudgetRegistry.testSharedPageLimit,
+    bool forceSync = false,
+  }) {
+    return openSharedPage(
+      userId: userId,
+      page: page,
+      limit: limit,
       forceSync: forceSync,
     ).last;
   }
@@ -546,6 +638,39 @@ class TestSnapshotRepository extends GetxService {
     final snapshot = await FirebaseFirestore.instance
         .collection('Testler')
         .where('favoriler', arrayContains: normalizedUserId)
+        .get(const GetOptions(source: Source.serverAndCache));
+    return snapshot.docs
+        .map((doc) => _fromDoc(doc.id, doc.data()))
+        .where((item) => item.docID.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<TestsModel>> _fetchSharedPageItems(
+      TestSharedPageQuery query) async {
+    final normalizedPage = query.page < 1 ? 1 : query.page;
+    final normalizedLimit =
+        query.limit < 1 ? ReadBudgetRegistry.testSharedPageLimit : query.limit;
+    Query<Map<String, dynamic>> firestoreQuery = FirebaseFirestore.instance
+        .collection('Testler')
+        .where('paylasilabilir', isEqualTo: true)
+        .orderBy('timeStamp', descending: true)
+        .limit(normalizedLimit);
+
+    DocumentSnapshot<Map<String, dynamic>>? cursor;
+    for (var currentPage = 1; currentPage < normalizedPage; currentPage++) {
+      final snapshot = await (cursor == null
+              ? firestoreQuery
+              : firestoreQuery.startAfterDocument(cursor))
+          .get(const GetOptions(source: Source.serverAndCache));
+      if (snapshot.docs.isEmpty || snapshot.docs.length < normalizedLimit) {
+        return const <TestsModel>[];
+      }
+      cursor = snapshot.docs.last;
+    }
+
+    final snapshot = await (cursor == null
+            ? firestoreQuery
+            : firestoreQuery.startAfterDocument(cursor))
         .get(const GetOptions(source: Source.serverAndCache));
     return snapshot.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))

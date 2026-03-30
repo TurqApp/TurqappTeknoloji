@@ -18,7 +18,7 @@ abstract class _TestsControllerBase extends GetxController {
 
 class TestsController extends _TestsControllerBase {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  static const int _pageSize = 30;
+  static const int _pageSize = ReadBudgetRegistry.testSharedPageLimit;
 }
 
 TestsController ensureTestsController({

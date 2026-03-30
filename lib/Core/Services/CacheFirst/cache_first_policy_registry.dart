@@ -60,6 +60,7 @@ class CacheFirstPolicyRegistry {
       case 'answer_key_type_snapshot':
       case 'optical_form_answered_snapshot':
       case 'optical_form_owner_snapshot':
+      case 'test_shared_snapshot':
       case 'test_answered_snapshot':
       case 'test_favorites_snapshot':
       case 'test_home_snapshot':
@@ -104,6 +105,7 @@ class CacheFirstPolicyRegistry {
       case 'answer_key_type_snapshot':
       case 'optical_form_answered_snapshot':
       case 'optical_form_owner_snapshot':
+      case 'test_shared_snapshot':
       case 'test_answered_snapshot':
       case 'test_favorites_snapshot':
       case 'test_home_snapshot':
