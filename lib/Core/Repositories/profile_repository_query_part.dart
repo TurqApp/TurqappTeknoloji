@@ -58,9 +58,10 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     final snapshotDataById = <String, Map<String, dynamic>>{
       for (final doc in snapshot.docs) doc.id: doc.data(),
     };
-    final byId = await _postRepository.fetchPostCardsByIds(
+    final byId = await _postRepository.fetchPostsByIds(
       postIds,
-      preferCache: true,
+      preferCache: false,
+      cacheOnly: false,
     );
     final buckets = buildBucketsFromPosts(
       postIds
@@ -109,9 +110,10 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     final doc = snapshot.docs.first;
     final post = _mergeSnapshotCard(
       postId: doc.id,
-      card: (await _postRepository.fetchPostCardsByIds(
+      card: (await _postRepository.fetchPostsByIds(
         [doc.id],
-        preferCache: true,
+        preferCache: false,
+        cacheOnly: false,
       ))[doc.id],
       snapshotData: doc.data(),
     );
@@ -148,9 +150,10 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       return null;
     }
 
-    final post = (await _postRepository.fetchPostCardsByIds(
+    final post = (await _postRepository.fetchPostsByIds(
       [postId],
-      preferCache: true,
+      preferCache: false,
+      cacheOnly: false,
     ))[postId];
     _latestResharePostMemory[uid] = post;
     return post;
@@ -168,9 +171,10 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     final snapshotDataById = <String, Map<String, dynamic>>{
       for (final doc in snapshot.docs) doc.id: doc.data(),
     };
-    final byId = await _postRepository.fetchPostCardsByIds(
+    final byId = await _postRepository.fetchPostsByIds(
       postIds,
-      preferCache: true,
+      preferCache: false,
+      cacheOnly: false,
     );
     final posts = postIds
         .map(
