@@ -370,3 +370,17 @@ Beklenen kapanis:
 - Repo, controller, splash veya widget katmani manuel ayarlari dogrudan
   `SharedPreferences` icinden okumayacak; tum okumalar
   `read_budget_registry.dart` uzerinden gececek.
+
+### Ayri Aksiyon Takibi
+
+- Offline/media cache urun kararlari anayasa icinde daginik not olarak
+  tutulmayacak.
+- Bu kararlar ve uygulama durumlari ayri takip dosyasinda yasayacak:
+  - `docs/policies/offline_cache_aksiyon_takibi.md`
+- Anayasa kalici ownership ve mimari kurallari tasir.
+- Aksiyon dosyasi ise:
+  - karar
+  - durum
+  - commit
+  - siradaki uygulama adimi
+  alanlarini tasir.
