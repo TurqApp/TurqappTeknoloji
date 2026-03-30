@@ -12,6 +12,9 @@ Future<void> _qaLabSyncRemoteSummary(
   if (reason.trim() != 'manual_cloud_sync') {
     return;
   }
+  if (!await AdminAccessService.isPrimaryAdmin()) {
+    return;
+  }
   if (Firebase.apps.isEmpty) {
     return;
   }

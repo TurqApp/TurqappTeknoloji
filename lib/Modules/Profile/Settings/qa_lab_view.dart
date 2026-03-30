@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/telemetry_threshold_policy_adapter.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_catalog.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Services/qa_lab_recorder.dart';
@@ -320,6 +321,14 @@ class _QALabViewState extends State<QALabView> {
             FilledButton.tonal(
               onPressed: () async {
                 try {
+                  final allowed = await AdminAccessService.isPrimaryAdmin();
+                  if (!allowed) {
+                    AppSnackbar(
+                      'common.error'.tr,
+                      'admin.no_access'.tr,
+                    );
+                    return;
+                  }
                   await _recorder.syncRemoteSummary(
                     reason: 'manual_cloud_sync',
                     immediate: true,
