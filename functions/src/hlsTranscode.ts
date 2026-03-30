@@ -210,14 +210,22 @@ export const onVideoUpload = functions
     if (!target) return;
 
     const bucket = storage.bucket(object.bucket);
+    const migrationMode =
+      target.type === "post" &&
+      String(object.metadata?.migrationMode || "").toLowerCase() === "true";
 
     console.log(`[HLS] Processing video for ${target.type}`);
+    if (migrationMode) {
+      console.log("[HLS] Migration mode enabled: Firestore writes disabled");
+    }
 
     // Firestore'da processing durumunu set et.
-    await db.doc(target.firestoreDoc).set(
-      target.buildProcessingData(),
-      { merge: true }
-    );
+    if (!migrationMode) {
+      await db.doc(target.firestoreDoc).set(
+        target.buildProcessingData(),
+        { merge: true }
+      );
+    }
 
     const tempDir = path.join(os.tmpdir(), `hls_${target.id}`);
 
@@ -450,7 +458,7 @@ export const onVideoUpload = functions
             }).catch((e: unknown) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
           ]);
 
-          thumbnailUrl = `https://${CDN_DOMAIN}/${target.thumbnailStoragePath}`;
+          thumbnailUrl = `https://${CDN_DOMAIN}/${thumbnailWebpStoragePath}`;
           console.log(`[HLS] Thumbnails uploaded: JPEG + WebP`);
         } catch (thumbErr) {
           console.warn(`[HLS] Thumbnail generation failed: ${thumbErr}`);
@@ -460,14 +468,21 @@ export const onVideoUpload = functions
       // Firestore güncelle
       const hlsUrl = `https://${CDN_DOMAIN}/${target.hlsOutputPrefix}/master.m3u8`;
 
-      await db.doc(target.firestoreDoc).set(
-        target.buildSuccessData(hlsUrl, hlsSegmentCount, thumbnailUrl),
-        { merge: true }
-      );
+      if (!migrationMode) {
+        await db.doc(target.firestoreDoc).set(
+          target.buildSuccessData(hlsUrl, hlsSegmentCount, thumbnailUrl),
+          { merge: true }
+        );
+      }
 
       // Story'de ilgili video element URL'sini HLS master URL'e çevir.
       // Böylece dokümanda MP4 URL kalmaz.
-      if (target.type === "story" && target.storyUid && target.storyId) {
+      if (
+        !migrationMode &&
+        target.type === "story" &&
+        target.storyUid &&
+        target.storyId
+      ) {
         try {
           const sourceFileName = path.posix.basename(filePath).toLowerCase();
           const storyPathNeedle =
@@ -528,10 +543,12 @@ export const onVideoUpload = functions
         error,
       });
 
-      await db.doc(target.firestoreDoc).set(
-        target.buildFailData(),
-        { merge: true }
-      );
+      if (!migrationMode) {
+        await db.doc(target.firestoreDoc).set(
+          target.buildFailData(),
+          { merge: true }
+        );
+      }
 
       // Temp temizle
       if (fs.existsSync(tempDir)) {
