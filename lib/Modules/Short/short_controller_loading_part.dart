@@ -131,7 +131,22 @@ extension ShortControllerLoadingPart on ShortController {
     final filtered = <PostsModel>[];
     for (final p in posts) {
       final summary = userSummaries[p.userID];
-      if (summary == null || summary.isDeleted) {
+      if (summary == null) {
+        final includeFromPost =
+            _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
+          authorUserId: p.userID,
+          followingIds: _followingIDs,
+          rozet: p.rozet,
+          isApproved: false,
+          isDeleted: false,
+        );
+        if (!includeFromPost) {
+          continue;
+        }
+        filtered.add(p);
+        continue;
+      }
+      if (summary.isDeleted) {
         continue;
       }
       final include = _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
