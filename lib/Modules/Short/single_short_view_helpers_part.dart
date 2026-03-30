@@ -294,8 +294,54 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     } catch (_) {}
   }
 
-  Future<void> _pauseAllControllers() async {
+  HLSVideoAdapter? _resolveFullscreenReturnPreservedController({
+    int? preferredIndex,
+    HLSVideoAdapter? preferredController,
+  }) {
+    final injected = widget.injectedController;
+    if (injected == null ||
+        injected.isDisposed ||
+        !injected.value.isInitialized) {
+      return null;
+    }
+    final idx = preferredIndex ?? currentPage;
+    final candidate =
+        preferredController ?? (idx >= 0 ? _videoControllers[idx] : null);
+    if (candidate != null && identical(candidate, injected)) {
+      return injected;
+    }
+    final current =
+        currentPage >= 0 ? _videoControllers[currentPage] : null;
+    if (current != null && identical(current, injected)) {
+      return injected;
+    }
+    return null;
+  }
+
+  void _unregisterShortHandlesForController(HLSVideoAdapter controller) {
+    for (final entry in _videoControllers.entries) {
+      if (!identical(entry.value, controller)) continue;
+      if (entry.key < 0 || entry.key >= shorts.length) continue;
+      try {
+        _playbackRuntimeService.unregisterPlaybackHandle(
+          _playbackHandleKeyForDoc(shorts[entry.key].docID),
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _pauseAllControllers({
+    HLSVideoAdapter? preserveController,
+  }) async {
+    final preserved = preserveController != null &&
+            !preserveController.isDisposed &&
+            preserveController.value.isInitialized
+        ? preserveController
+        : null;
+    final seen = <HLSVideoAdapter>{};
     for (final vp in _videoControllers.values) {
+      if (!seen.add(vp)) continue;
+      if (preserved != null && identical(vp, preserved)) continue;
       try {
         if (vp.isDisposed) continue;
         if (vp.value.isInitialized) {
@@ -304,16 +350,24 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       } catch (_) {}
     }
     final injected = widget.injectedController;
-    if (injected != null) {
+    if (injected != null && seen.add(injected)) {
+      if (preserved != null && identical(injected, preserved)) {
+        _unregisterShortHandlesForController(injected);
+      } else {
+        try {
+          if (!injected.isDisposed && injected.value.isInitialized) {
+            await _releasePlayback(injected);
+          }
+        } catch (_) {}
+      }
+    } else if (preserved != null) {
+      _unregisterShortHandlesForController(preserved);
+    }
+    if (preserved == null) {
       try {
-        if (!injected.isDisposed && injected.value.isInitialized) {
-          await _releasePlayback(injected);
-        }
+        _playbackRuntimeService.pauseAll(force: true);
       } catch (_) {}
     }
-    try {
-      _playbackRuntimeService.pauseAll(force: true);
-    } catch (_) {}
     try {
       _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}

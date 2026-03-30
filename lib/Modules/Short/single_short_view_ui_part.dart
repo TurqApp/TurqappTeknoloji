@@ -392,10 +392,15 @@ extension SingleShortViewUiPart on _SingleShortViewState {
     int? preferredIndex,
     HLSVideoAdapter? preferredController,
   }) async {
+    final preserveController = _resolveFullscreenReturnPreservedController(
+      preferredIndex: preferredIndex,
+      preferredController: preferredController,
+    );
+    _fullscreenReturnPreservedController = preserveController;
     try {
       _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
-    await _pauseAllControllers();
+    await _pauseAllControllers(preserveController: preserveController);
     if (!mounted) return;
     Navigator.of(context).pop(
       _buildPopResult(

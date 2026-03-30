@@ -199,6 +199,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   String? _activeTelemetryVideoId;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
+  HLSVideoAdapter? _fullscreenReturnPreservedController;
 
   String _playbackHandleKeyForDoc(String docId) =>
       'single_short:${docId.trim()}';

@@ -232,6 +232,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     _fullscreenPlaybackGuardTimer?.cancel();
     _autoplaySegmentGateTimer?.cancel();
     _fullscreenPlaybackGuardTimer = null;
+    _fullscreenReturnPreservedController = null;
     _clearAllControllers();
     try {
       _playbackRuntimeService.exitExclusiveMode();
@@ -239,6 +240,8 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _handleDidPop() {
+    final preserved = _fullscreenReturnPreservedController;
+    _fullscreenReturnPreservedController = null;
     try {
       if (currentPage >= 0 && currentPage < shorts.length) {
         final currentModel = shorts[currentPage];
@@ -254,7 +257,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     } catch (_) {}
 
     unawaited(_endActiveTelemetrySession());
-    _pauseAllControllers();
+    _pauseAllControllers(preserveController: preserved);
     try {
       _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
