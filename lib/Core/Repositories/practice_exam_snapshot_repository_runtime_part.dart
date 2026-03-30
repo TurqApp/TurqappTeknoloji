@@ -4,6 +4,8 @@ const String _practiceExamHomeSurfaceKey = 'practice_exam_home_snapshot';
 const String _practiceExamSearchSurfaceKey = 'practice_exam_search_snapshot';
 const String _practiceExamOwnerSurfaceKey = 'practice_exam_owner_snapshot';
 const String _practiceExamTypeSurfaceKey = 'practice_exam_type_snapshot';
+const String _practiceExamAnsweredSurfaceKey =
+    'practice_exam_answered_snapshot';
 
 class PracticeExamOwnerQuery {
   const PracticeExamOwnerQuery({
@@ -46,6 +48,28 @@ class PracticeExamTypeQuery {
       schemaVersion: schemaVersion,
       qualifiers: <String, Object?>{
         'examType': examType.trim(),
+      },
+    );
+  }
+}
+
+class PracticeExamAnsweredQuery {
+  const PracticeExamAnsweredQuery({
+    required this.userId,
+  });
+
+  final String userId;
+
+  String buildScopeId({
+    required int schemaVersion,
+  }) {
+    return CacheScopeNamespace.buildQueryScope(
+      userId: userId,
+      limit: 0,
+      scopeTag: 'answered',
+      schemaVersion: schemaVersion,
+      qualifiers: <String, Object?>{
+        'answered': userId.trim(),
       },
     );
   }
@@ -111,6 +135,26 @@ class PracticeExamSnapshotRepository extends GetxService {
     isEmpty: (items) => items.isEmpty,
     schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
       _practiceExamTypeSurfaceKey,
+    ),
+  );
+
+  late final CacheFirstQueryPipeline<PracticeExamAnsweredQuery,
+          List<SinavModel>, List<SinavModel>> _answeredPipeline =
+      CacheFirstQueryPipeline<PracticeExamAnsweredQuery, List<SinavModel>,
+          List<SinavModel>>(
+    surfaceKey: _practiceExamAnsweredSurfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.buildScopeId(
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        _practiceExamAnsweredSurfaceKey,
+      ),
+    ),
+    fetchRaw: _fetchPracticeExamAnsweredItems,
+    resolve: (items) => items,
+    isEmpty: (items) => items.isEmpty,
+    schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+      _practiceExamAnsweredSurfaceKey,
     ),
   );
 }
@@ -259,4 +303,34 @@ Future<List<SinavModel>> _fetchPracticeExamTypeItems(
   return snap.docs
       .map((doc) => _practiceExamSnapshotFromDoc(doc.id, doc.data()))
       .toList(growable: false);
+}
+
+Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
+  PracticeExamAnsweredQuery query,
+) async {
+  final normalizedUserId = query.userId.trim();
+  if (normalizedUserId.isEmpty) return const <SinavModel>[];
+  final yanitlarSnap = await FirebaseFirestore.instance
+      .collectionGroup('Yanitlar')
+      .where('userID', isEqualTo: normalizedUserId)
+      .get(const GetOptions(source: Source.serverAndCache));
+
+  final examDocIds = <String>{};
+  for (final yanitDoc in yanitlarSnap.docs) {
+    final parentRef = yanitDoc.reference.parent.parent;
+    if (parentRef != null && parentRef.parent.id == 'practiceExams') {
+      examDocIds.add(parentRef.id);
+    }
+  }
+
+  if (examDocIds.isEmpty) return const <SinavModel>[];
+
+  final models = await ensurePracticeExamRepository().fetchByIds(
+    examDocIds.toList(growable: false),
+    preferCache: true,
+    cacheOnly: false,
+  );
+  final sorted = models.toList(growable: false)
+    ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+  return sorted;
 }

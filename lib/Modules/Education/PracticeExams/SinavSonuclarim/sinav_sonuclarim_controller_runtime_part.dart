@@ -47,10 +47,11 @@ extension _SinavSonuclarimControllerRuntimeX on SinavSonuclarimController {
   Future<void> bootstrapData() async {
     final currentUserID = CurrentUserService.instance.effectiveUserId;
     if (currentUserID.isEmpty) return;
-    final cached = await _practiceExamRepository.fetchAnsweredByUser(
-      currentUserID,
-      cacheOnly: true,
-    );
+    final cached = (await _practiceExamSnapshotRepository.loadCachedAnswered(
+          userId: currentUserID,
+        ))
+            .data ??
+        const <SinavModel>[];
     if (cached.isNotEmpty) {
       if (!_sameExamEntries(cached)) {
         list.assignAll(cached);
@@ -79,11 +80,23 @@ extension _SinavSonuclarimControllerRuntimeX on SinavSonuclarimController {
     }
     try {
       final currentUserID = CurrentUserService.instance.effectiveUserId;
-      final exams = await _practiceExamRepository.fetchAnsweredByUser(
-        currentUserID,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
+      final exams = forceRefresh
+          ? ((await _practiceExamSnapshotRepository.loadAnswered(
+                userId: currentUserID,
+                forceSync: true,
+              ))
+                  .data ??
+              const <SinavModel>[])
+          : ((await _practiceExamSnapshotRepository.loadCachedAnswered(
+                userId: currentUserID,
+              ))
+                  .data ??
+              (await _practiceExamSnapshotRepository.loadAnswered(
+                userId: currentUserID,
+                forceSync: true,
+              ))
+                  .data ??
+              const <SinavModel>[]);
       if (!_sameExamEntries(exams)) {
         list.assignAll(exams);
       }

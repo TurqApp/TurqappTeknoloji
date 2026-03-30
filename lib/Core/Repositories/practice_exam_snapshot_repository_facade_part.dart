@@ -14,6 +14,43 @@ PracticeExamSnapshotRepository ensurePracticeExamSnapshotRepository() {
 
 extension PracticeExamSnapshotRepositoryFacadePart
     on PracticeExamSnapshotRepository {
+  Future<CachedResource<List<SinavModel>>> loadCachedAnswered({
+    required String userId,
+  }) {
+    final query = PracticeExamAnsweredQuery(userId: userId);
+    final surfaceKey = _practiceExamAnsweredSurfaceKey;
+    final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
+      surfaceKey,
+    );
+    final key = ScopedSnapshotKey(
+      surfaceKey: surfaceKey,
+      userId: userId.trim(),
+      scopeId: query.buildScopeId(schemaVersion: schemaVersion),
+    );
+    return _coordinator.bootstrap(
+      key,
+      schemaVersion: schemaVersion,
+    );
+  }
+
+  Stream<CachedResource<List<SinavModel>>> openAnswered({
+    required String userId,
+    bool forceSync = false,
+  }) =>
+      _openAnsweredImpl(
+        userId: userId,
+        forceSync: forceSync,
+      );
+
+  Future<CachedResource<List<SinavModel>>> loadAnswered({
+    required String userId,
+    bool forceSync = false,
+  }) =>
+      _loadAnsweredImpl(
+        userId: userId,
+        forceSync: forceSync,
+      );
+
   Stream<CachedResource<List<SinavModel>>> openType({
     required String userId,
     required String examType,

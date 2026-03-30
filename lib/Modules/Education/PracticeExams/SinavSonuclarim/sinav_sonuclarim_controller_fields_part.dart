@@ -3,8 +3,8 @@ part of 'sinav_sonuclarim_controller_library.dart';
 const Duration _sinavSonuclarimSilentRefreshInterval = Duration(minutes: 5);
 
 class _SinavSonuclarimControllerState {
-  final PracticeExamRepository practiceExamRepository =
-      ensurePracticeExamRepository();
+  final PracticeExamSnapshotRepository practiceExamSnapshotRepository =
+      ensurePracticeExamSnapshotRepository();
   final RxList<SinavModel> list = <SinavModel>[].obs;
   final RxBool ustBar = true.obs;
   final RxBool isLoading = true.obs;
@@ -13,8 +13,8 @@ class _SinavSonuclarimControllerState {
 }
 
 extension SinavSonuclarimControllerFieldsPart on SinavSonuclarimController {
-  PracticeExamRepository get _practiceExamRepository =>
-      _state.practiceExamRepository;
+  PracticeExamSnapshotRepository get _practiceExamSnapshotRepository =>
+      _state.practiceExamSnapshotRepository;
   RxList<SinavModel> get list => _state.list;
   RxBool get ustBar => _state.ustBar;
   RxBool get isLoading => _state.isLoading;

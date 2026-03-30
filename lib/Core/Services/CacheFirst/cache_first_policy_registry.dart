@@ -70,6 +70,7 @@ class CacheFirstPolicyRegistry {
       case 'practice_exam_home_snapshot':
       case 'practice_exam_search_snapshot':
       case 'practice_exam_owner_snapshot':
+      case 'practice_exam_answered_snapshot':
       case 'practice_exam_type_snapshot':
       case 'workout_search_snapshot':
       case 'past_question_home_snapshot':
@@ -112,6 +113,7 @@ class CacheFirstPolicyRegistry {
       case 'practice_exam_home_snapshot':
       case 'practice_exam_search_snapshot':
       case 'practice_exam_owner_snapshot':
+      case 'practice_exam_answered_snapshot':
       case 'practice_exam_type_snapshot':
       case 'workout_search_snapshot':
       case 'past_question_home_snapshot':

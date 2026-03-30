@@ -2,6 +2,26 @@ part of 'practice_exam_snapshot_repository.dart';
 
 extension PracticeExamSnapshotRepositoryQueryPart
     on PracticeExamSnapshotRepository {
+  Stream<CachedResource<List<SinavModel>>> _openAnsweredImpl({
+    required String userId,
+    required bool forceSync,
+  }) {
+    return _answeredPipeline.open(
+      PracticeExamAnsweredQuery(userId: userId),
+      forceSync: forceSync,
+    );
+  }
+
+  Future<CachedResource<List<SinavModel>>> _loadAnsweredImpl({
+    required String userId,
+    required bool forceSync,
+  }) {
+    return openAnswered(
+      userId: userId,
+      forceSync: forceSync,
+    ).last;
+  }
+
   Stream<CachedResource<List<SinavModel>>> _openTypeImpl({
     required String userId,
     required String examType,
