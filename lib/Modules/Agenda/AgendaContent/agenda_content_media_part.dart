@@ -76,7 +76,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
     }
 
     final savedState =
-        playbackRuntimeService.getSavedPlaybackState(widget.model.docID);
+        playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     return savedState?.position ?? Duration.zero;
   }
 

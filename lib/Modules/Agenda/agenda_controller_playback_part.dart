@@ -72,6 +72,25 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double playThreshold,
     required double stopThreshold,
   }) {
+    if (_canRetainStartupPlaybackLock) {
+      final lockedDocId = _startupLockedFeedDocId?.trim() ?? '';
+      final lockedIndex =
+          agendaList.indexWhere((post) => post.docID == lockedDocId);
+      if (lockedIndex >= 0 &&
+          lockedIndex < agendaList.length &&
+          _canAutoplayVideoPost(agendaList[lockedIndex])) {
+        final centeredChanged = centeredIndex.value != lockedIndex;
+        if (centeredChanged) {
+          centeredIndex.value = lockedIndex;
+        }
+        lastCenteredIndex = lockedIndex;
+        if (!centeredChanged && !_isPlaybackTargetCurrent(lockedIndex)) {
+          _ensureFeedPlaybackForIndex(lockedIndex);
+        }
+        _trackPlaybackWindow();
+        return;
+      }
+    }
     final current = centeredIndex.value;
     if (_shouldRetainStartupPlaybackTarget(
       current: current,
@@ -83,11 +102,12 @@ extension AgendaControllerPlaybackPart on AgendaController {
     }
     if (current >= 0 && current < agendaList.length) {
       final currentDocId = agendaList[current].docID;
+      final currentPlaybackKey = _feedPlaybackHandleKeyForDoc(currentDocId);
       final currentFraction = _visibleFractions[current] ?? 0.0;
       if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
         lastCommandAt: _lastPlaybackCommandAt,
         lastCommandDocId: _lastPlaybackCommandDocId,
-        currentDocId: currentDocId,
+        currentDocId: currentPlaybackKey,
         isCurrentTargetActive: _isPlaybackTargetCurrent(current),
         currentFraction: currentFraction,
         stopThreshold: stopThreshold,

@@ -192,7 +192,10 @@ Future<void> _waitForPlayingDoc(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    if (manager.currentPlayingDocID == expectedDocId) {
+    if (_matchesExpectedFeedPlaybackKey(
+      manager.currentPlayingDocID,
+      expectedDocId,
+    )) {
       return;
     }
   }
@@ -201,6 +204,15 @@ Future<void> _waitForPlayingDoc(
     'Feed did not play expected doc '
     '(expected=$expectedDocId, current=${manager.currentPlayingDocID}).',
   );
+}
+
+bool _matchesExpectedFeedPlaybackKey(
+  String? currentPlayingDocId,
+  String expectedDocId,
+) {
+  final current = currentPlayingDocId?.trim() ?? '';
+  final expected = expectedDocId.trim();
+  return current == expected || current == 'feed:$expected';
 }
 
 Future<void> _openSinglePostAndReturn(

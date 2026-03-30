@@ -1,6 +1,24 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
+  bool _matchesPlaybackTargetForSurface({
+    required String surface,
+    required String expectedDocId,
+    required String currentPlayingDocId,
+  }) {
+    final expected = expectedDocId.trim();
+    final current = currentPlayingDocId.trim();
+    if (expected.isEmpty || current.isEmpty) return false;
+    if (current == expected) return true;
+    if (surface == 'feed') {
+      return current == 'feed:$expected';
+    }
+    if (surface == 'short') {
+      return current == 'short:$expected';
+    }
+    return false;
+  }
+
   QALabPinpointFinding? _buildAutoplaySurfaceFinding({
     required String surface,
     required List<QALabCheckpoint> surfaceCheckpoints,
@@ -77,7 +95,11 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
             const <String, dynamic>{};
     final currentPlayingDocId =
         (playbackProbe['currentPlayingDocID'] ?? '').toString();
-    if (currentPlayingDocId == expectedDocId) {
+    if (_matchesPlaybackTargetForSurface(
+      surface: surface,
+      expectedDocId: expectedDocId,
+      currentPlayingDocId: currentPlayingDocId,
+    )) {
       return null;
     }
     final registeredHandleCount =

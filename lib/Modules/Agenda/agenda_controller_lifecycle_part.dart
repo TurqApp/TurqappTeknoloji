@@ -14,9 +14,6 @@ extension AgendaControllerLifecyclePart on AgendaController {
   void _handleLifecycleReady() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (playbackSuspended.value) return;
-      if (agendaList.isNotEmpty && centeredIndex.value == 0) {
-        _ensureFeedPlaybackForIndex(0);
-      }
       _scheduleFeedPrefetch();
     });
   }

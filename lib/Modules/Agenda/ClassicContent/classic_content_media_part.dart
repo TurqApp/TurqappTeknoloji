@@ -125,7 +125,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
     }
 
     final savedState =
-        playbackRuntimeService.getSavedPlaybackState(widget.model.docID);
+        playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     return savedState?.position ?? Duration.zero;
   }
 

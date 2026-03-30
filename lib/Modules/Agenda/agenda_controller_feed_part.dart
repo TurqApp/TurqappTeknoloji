@@ -1,6 +1,26 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerFeedPart on AgendaController {
+  String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
+
+  bool get _canRetainStartupPlaybackLock {
+    if (!GetPlatform.isIOS) return false;
+    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+      return false;
+    }
+    final lockedDocId = _startupLockedFeedDocId?.trim() ?? '';
+    return lockedDocId.isNotEmpty;
+  }
+
+  void _lockStartupPlaybackTargetForIndex(int index) {
+    if (!GetPlatform.isIOS) return;
+    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+      return;
+    }
+    if (index < 0 || index >= agendaList.length) return;
+    _startupLockedFeedDocId = agendaList[index].docID;
+  }
+
   int _resolveInitialAutoplayIndexFromFilteredEntries() {
     if (filteredFeedEntries.isEmpty || agendaList.isEmpty) return -1;
     for (final entry in filteredFeedEntries) {
@@ -18,18 +38,19 @@ extension AgendaControllerFeedPart on AgendaController {
     if (index < 0 || index >= agendaList.length) return;
     final post = agendaList[index];
     if (!_canAutoplayVideoPost(post)) return;
+    final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
     final manager = VideoStateManager.instance;
     final now = DateTime.now();
-    final needsCurrentRecovery = manager.currentPlayingDocID == post.docID &&
-        !manager.isPlaybackTargetActive(post.docID);
+    final needsCurrentRecovery = manager.currentPlayingDocID == playbackKey &&
+        !manager.isPlaybackTargetActive(playbackKey);
     final shouldIssueImmediateCommand = needsCurrentRecovery ||
-        (manager.currentPlayingDocID != post.docID &&
-            (_lastPlaybackCommandDocId != post.docID ||
+        (manager.currentPlayingDocID != playbackKey &&
+            (_lastPlaybackCommandDocId != playbackKey ||
                 _lastPlaybackCommandAt == null ||
                 now.difference(_lastPlaybackCommandAt!) >
                     const Duration(milliseconds: 180)));
     if (shouldIssueImmediateCommand) {
-      final readyForImmediateHandoff = manager.canResumePlaybackFor(post.docID);
+      final readyForImmediateHandoff = manager.canResumePlaybackFor(playbackKey);
       recordQALabPlaybackDispatch(
         surface: 'feed',
         stage: needsCurrentRecovery
@@ -46,12 +67,12 @@ extension AgendaControllerFeedPart on AgendaController {
         },
       );
       final issuedAt = manager.activatePlaybackTargetIfReady(
-        post.docID,
+        playbackKey,
         lastCommandDocId: _lastPlaybackCommandDocId,
         lastCommandAt: _lastPlaybackCommandAt,
       );
       if (issuedAt != null) {
-        _lastPlaybackCommandDocId = post.docID;
+        _lastPlaybackCommandDocId = playbackKey;
         _lastPlaybackCommandAt = issuedAt;
       }
     }
@@ -156,6 +177,7 @@ extension AgendaControllerFeedPart on AgendaController {
     final expectedDocId = _pendingCenteredDocId;
     centeredIndex.value = target;
     lastCenteredIndex = target;
+    _lockStartupPlaybackTargetForIndex(target);
     _pendingCenteredDocId = null;
     _invariantGuard.assertCenteredSelection(
       surface: 'feed',
@@ -191,6 +213,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (centeredIndex.value != target) {
       centeredIndex.value = target;
     }
+    _lockStartupPlaybackTargetForIndex(target);
     _pendingCenteredDocId = null;
     _invariantGuard.assertCenteredSelection(
       surface: 'feed',
@@ -270,9 +293,10 @@ extension AgendaControllerFeedPart on AgendaController {
         if (centeredIndex.value != index) return;
         if (index < 0 || index >= agendaList.length) return;
         if (agendaList[index].docID != docId) return;
-        if (manager.isPlaybackTargetActive(docId)) return;
+        final playbackKey = _feedPlaybackHandleKeyForDoc(docId);
+        if (manager.isPlaybackTargetActive(playbackKey)) return;
         final issuedAt = manager.activatePlaybackTargetIfReady(
-          docId,
+          playbackKey,
           lastCommandDocId: _lastPlaybackCommandDocId,
           lastCommandAt: _lastPlaybackCommandAt,
           minInterval: attempt == 0
@@ -280,13 +304,13 @@ extension AgendaControllerFeedPart on AgendaController {
               : const Duration(milliseconds: 120),
         );
         if (issuedAt != null) {
-          _lastPlaybackCommandDocId = docId;
+          _lastPlaybackCommandDocId = playbackKey;
           _lastPlaybackCommandAt = issuedAt;
           return;
         }
         final shouldRetry = attempt < 3 &&
-            (manager.currentPlayingDocID == docId ||
-                !manager.canResumePlaybackFor(docId));
+            (manager.currentPlayingDocID == playbackKey ||
+                !manager.canResumePlaybackFor(playbackKey));
         if (shouldRetry) {
           _schedulePlaybackReassert(
             index: index,
@@ -326,7 +350,7 @@ extension AgendaControllerFeedPart on AgendaController {
   bool _isPlaybackTargetCurrent(int index) {
     if (index < 0 || index >= agendaList.length) return false;
     return VideoStateManager.instance.isPlaybackTargetActive(
-      agendaList[index].docID,
+      _feedPlaybackHandleKeyForDoc(agendaList[index].docID),
     );
   }
 
@@ -341,6 +365,7 @@ extension AgendaControllerFeedPart on AgendaController {
     final currentOffset = scrollController.offset;
     final now = DateTime.now();
     if (_qaScrollStartedAt == null) {
+      _startupLockedFeedDocId = null;
       _qaScrollStartedAt = now;
       _qaScrollStartOffset = currentOffset;
       _qaActiveScrollToken =

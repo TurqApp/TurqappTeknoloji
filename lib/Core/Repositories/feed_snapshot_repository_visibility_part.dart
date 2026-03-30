@@ -131,10 +131,19 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     return true;
   }
 
+  bool _shouldDropIntegrationSeedPost(PostsModel post) {
+    if (IntegrationTestMode.enabled) return false;
+    final docId = post.docID.trim();
+    if (docId.startsWith('it_seed_')) return true;
+    final userId = post.userID.trim();
+    return userId.startsWith('it_seed_');
+  }
+
   List<PostsModel> _normalizePosts(List<PostsModel> posts) {
     final seen = <String>{};
     final normalized = <PostsModel>[];
     for (final post in posts) {
+      if (_shouldDropIntegrationSeedPost(post)) continue;
       if (post.docID.isEmpty || !seen.add(post.docID)) continue;
       normalized.add(post);
     }

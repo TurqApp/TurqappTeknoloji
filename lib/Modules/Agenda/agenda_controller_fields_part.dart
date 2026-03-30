@@ -62,6 +62,7 @@ class _AgendaControllerState {
   int qaScrollSequence = 0;
   String qaActiveScrollToken = '';
   String qaLatestScrollToken = '';
+  String? startupLockedFeedDocId;
   String? lastPlaybackCommandDocId;
   bool feedModeFallbackQueued = false;
   int feedModeFallbackEpoch = 0;
@@ -192,6 +193,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   set _qaActiveScrollToken(String value) => _state.qaActiveScrollToken = value;
   String get _qaLatestScrollToken => _state.qaLatestScrollToken;
   set _qaLatestScrollToken(String value) => _state.qaLatestScrollToken = value;
+  String? get _startupLockedFeedDocId => _state.startupLockedFeedDocId;
+  set _startupLockedFeedDocId(String? value) =>
+      _state.startupLockedFeedDocId = value;
   String? get _lastPlaybackCommandDocId => _state.lastPlaybackCommandDocId;
   set _lastPlaybackCommandDocId(String? value) =>
       _state.lastPlaybackCommandDocId = value;

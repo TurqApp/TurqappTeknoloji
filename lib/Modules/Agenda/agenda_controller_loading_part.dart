@@ -44,6 +44,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
     _pendingCenteredDocId = null;
+    _startupLockedFeedDocId = null;
+    _lastPlaybackCommandDocId = null;
+    _lastPlaybackCommandAt = null;
     lastCenteredIndex = agendaList.isEmpty ? null : 0;
     centeredIndex.value = -1;
     _visibleFractions.clear();
@@ -595,6 +598,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       // Refresh başlarken tüm oynatımları kesin durdur.
       pauseAll.value = true;
       _pendingCenteredDocId = null;
+      _startupLockedFeedDocId = null;
+      _lastPlaybackCommandDocId = null;
+      _lastPlaybackCommandAt = null;
       lastCenteredIndex = 0;
       _visibleFractions.clear();
       _visibleUpdatedAt.clear();

@@ -22,7 +22,7 @@ extension _FeedSnapshotRepositoryCodecX on FeedSnapshotRepository {
 
   List<PostsModel> _decodePosts(Map<String, dynamic> json) {
     final rawItems = (json['items'] as List<dynamic>?) ?? const <dynamic>[];
-    return rawItems
+    final decoded = rawItems
         .whereType<Map>()
         .map((raw) {
           final item = Map<String, dynamic>.from(raw.cast<dynamic, dynamic>());
@@ -31,5 +31,6 @@ extension _FeedSnapshotRepositoryCodecX on FeedSnapshotRepository {
         })
         .where((post) => post.docID.isNotEmpty)
         .toList(growable: false);
+    return _normalizePosts(decoded);
   }
 }

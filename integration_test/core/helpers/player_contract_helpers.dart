@@ -256,7 +256,16 @@ List<String> _resolvePlaybackCacheKeyCandidates(String cacheKey) {
 bool _matchesPlaybackKey(String cacheKey, String candidate) {
   if (candidate.isEmpty) return false;
   if (candidate == cacheKey) return true;
-  return candidate.startsWith('${cacheKey}_');
+  if (candidate.startsWith('${cacheKey}_')) return true;
+  return _stripPlaybackNamespace(candidate) == _stripPlaybackNamespace(cacheKey);
+}
+
+String _stripPlaybackNamespace(String value) {
+  final colonIndex = value.indexOf(':');
+  if (colonIndex <= 0 || colonIndex >= value.length - 1) {
+    return value;
+  }
+  return value.substring(colonIndex + 1);
 }
 
 HLSVideoAdapter? _adapterForCandidates(List<String> candidates) {

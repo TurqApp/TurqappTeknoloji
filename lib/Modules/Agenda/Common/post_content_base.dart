@@ -141,7 +141,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   /// Playback handle identity must be unique per mounted video surface.
   /// Otherwise feed card and SinglePost can fight over the same player slot.
-  String get playbackHandleKey => widget.instanceTag ?? widget.model.docID;
+  String get playbackHandleKey {
+    final instanceTag = widget.instanceTag?.trim() ?? '';
+    if (instanceTag.isNotEmpty) return instanceTag;
+    return 'feed:${widget.model.docID.trim()}';
+  }
 
   bool get isStandalonePostInstance =>
       (widget.instanceTag ?? '').startsWith('single_');

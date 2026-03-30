@@ -81,7 +81,10 @@ Future<void> _waitForCurrentPlayingDoc(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    if (manager.currentPlayingDocID == expectedDocId) {
+    if (_matchesExpectedFeedPlaybackKey(
+      manager.currentPlayingDocID,
+      expectedDocId,
+    )) {
       return;
     }
   }
@@ -91,4 +94,13 @@ Future<void> _waitForCurrentPlayingDoc(
     '(expected=$expectedDocId, current=${manager.currentPlayingDocID}, '
     'probe=${readIntegrationProbe()}).',
   );
+}
+
+bool _matchesExpectedFeedPlaybackKey(
+  String? currentPlayingDocId,
+  String expectedDocId,
+) {
+  final current = currentPlayingDocId?.trim() ?? '';
+  final expected = expectedDocId.trim();
+  return current == expected || current == 'feed:$expected';
 }

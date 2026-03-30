@@ -28,6 +28,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }
 
   Future<void> _tryQuickFillFromCache({int? limit}) async {
+    if (agendaList.isEmpty && centeredIndex.value != -1) {
+      centeredIndex.value = -1;
+    }
     final effectiveLimit = limit ?? FeedSnapshotRepository.startupHomeLimit;
     await _tryQuickFillFromPool(limit: effectiveLimit);
     if (agendaList.isNotEmpty) return;
