@@ -198,6 +198,7 @@ export { generateThumbnails } from "./thumbnails";
 // 🎬 HLS VIDEO TRANSCODE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export { onVideoUpload } from "./hlsTranscode";
+export { processPostsMigrationQueue } from "./postsMigrationScheduler";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📊 AGGREGATION COUNTER SHARDING (A9)
