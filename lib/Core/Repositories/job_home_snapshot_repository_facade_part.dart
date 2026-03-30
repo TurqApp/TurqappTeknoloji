@@ -15,8 +15,12 @@ JobHomeSnapshotRepository ensureJobHomeSnapshotRepository() {
 extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
   Future<CachedResource<List<JobModel>>> loadCachedOwner({
     required String userId,
+    int limit = ReadBudgetRegistry.jobOwnerInitialLimit,
   }) {
-    final query = JobOwnerQuery(userId: userId);
+    final query = JobOwnerQuery(
+      userId: userId,
+      limit: limit,
+    );
     final surfaceKey = JobHomeSnapshotRepository._ownerSurfaceKey;
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
       surfaceKey,
@@ -34,20 +38,26 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
 
   Stream<CachedResource<List<JobModel>>> openOwner({
     required String userId,
+    int limit = ReadBudgetRegistry.jobOwnerInitialLimit,
     bool forceSync = false,
   }) {
     return _ownerPipeline.open(
-      JobOwnerQuery(userId: userId),
+      JobOwnerQuery(
+        userId: userId,
+        limit: limit,
+      ),
       forceSync: forceSync,
     );
   }
 
   Future<CachedResource<List<JobModel>>> loadOwner({
     required String userId,
+    int limit = ReadBudgetRegistry.jobOwnerInitialLimit,
     bool forceSync = false,
   }) {
     return openOwner(
       userId: userId,
+      limit: limit,
       forceSync: forceSync,
     ).last;
   }

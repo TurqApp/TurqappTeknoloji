@@ -32,19 +32,22 @@ class MarketListingQuery {
 class MarketOwnerQuery {
   const MarketOwnerQuery({
     required this.userId,
+    required this.limit,
   });
 
   final String userId;
+  final int limit;
 
   String buildScopeId(String surfaceKey) => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: 0,
+        limit: limit,
         scopeTag: 'owner',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           surfaceKey,
         ),
         qualifiers: <String, Object?>{
           'owner': userId.trim(),
+          'limit': limit,
         },
       );
 }

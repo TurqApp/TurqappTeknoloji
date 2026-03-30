@@ -56,20 +56,23 @@ class PracticeExamTypeQuery {
 class PracticeExamAnsweredQuery {
   const PracticeExamAnsweredQuery({
     required this.userId,
+    required this.limit,
   });
 
   final String userId;
+  final int limit;
 
   String buildScopeId({
     required int schemaVersion,
   }) {
     return CacheScopeNamespace.buildQueryScope(
       userId: userId,
-      limit: 0,
+      limit: limit,
       scopeTag: 'answered',
       schemaVersion: schemaVersion,
       qualifiers: <String, Object?>{
         'answered': userId.trim(),
+        'limit': limit,
       },
     );
   }
@@ -310,6 +313,9 @@ Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
 ) async {
   final normalizedUserId = query.userId.trim();
   if (normalizedUserId.isEmpty) return const <SinavModel>[];
+  final normalizedLimit = query.limit < 1
+      ? ReadBudgetRegistry.practiceExamAnsweredInitialLimit
+      : query.limit;
   final yanitlarSnap = await FirebaseFirestore.instance
       .collectionGroup('Yanitlar')
       .where('userID', isEqualTo: normalizedUserId)
@@ -332,5 +338,5 @@ Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
   );
   final sorted = models.toList(growable: false)
     ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-  return sorted;
+  return sorted.take(normalizedLimit).toList(growable: false);
 }

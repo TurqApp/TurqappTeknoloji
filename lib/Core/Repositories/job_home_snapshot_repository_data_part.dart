@@ -4,6 +4,8 @@ extension _JobHomeSnapshotRepositoryDataX on JobHomeSnapshotRepository {
   Future<List<JobModel>> _fetchOwnerJobs(JobOwnerQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <JobModel>[];
+    final normalizedLimit =
+        query.limit < 1 ? ReadBudgetRegistry.jobOwnerInitialLimit : query.limit;
     const options = GetOptions(source: Source.serverAndCache);
     QuerySnapshot<Map<String, dynamic>> snapshot;
     try {
@@ -11,11 +13,13 @@ extension _JobHomeSnapshotRepositoryDataX on JobHomeSnapshotRepository {
           .collection(JobCollection.name)
           .where('userID', isEqualTo: normalizedUserId)
           .orderBy('timeStamp', descending: true)
+          .limit(normalizedLimit)
           .get(options);
     } on FirebaseException {
       snapshot = await FirebaseFirestore.instance
           .collection(JobCollection.name)
           .where('userID', isEqualTo: normalizedUserId)
+          .limit(normalizedLimit)
           .get(options);
     }
     final items = snapshot.docs
@@ -23,7 +27,7 @@ extension _JobHomeSnapshotRepositoryDataX on JobHomeSnapshotRepository {
         .where((job) => job.docID.isNotEmpty)
         .toList(growable: false)
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    return items;
+    return items.take(normalizedLimit).toList(growable: false);
   }
 
   Future<List<JobModel>?> _loadWarmEducationSnapshot(

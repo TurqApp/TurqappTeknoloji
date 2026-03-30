@@ -69,19 +69,22 @@ class TestTypeQuery {
 class TestAnsweredQuery {
   const TestAnsweredQuery({
     required this.userId,
+    required this.limit,
   });
 
   final String userId;
+  final int limit;
 
   String buildScopeId() => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: 0,
+        limit: limit,
         scopeTag: 'answered',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           TestSnapshotRepository.answeredSurfaceKey,
         ),
         qualifiers: <String, Object?>{
           'answered': userId.trim(),
+          'limit': limit,
         },
       );
 }
@@ -309,8 +312,12 @@ class TestSnapshotRepository extends GetxService {
 
   Future<CachedResource<List<TestsModel>>> loadCachedAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.testAnsweredInitialLimit,
   }) {
-    final query = TestAnsweredQuery(userId: userId);
+    final query = TestAnsweredQuery(
+      userId: userId,
+      limit: limit,
+    );
     return _bootstrap(
       surfaceKey: answeredSurfaceKey,
       userId: userId,
@@ -436,20 +443,26 @@ class TestSnapshotRepository extends GetxService {
 
   Stream<CachedResource<List<TestsModel>>> openAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.testAnsweredInitialLimit,
     bool forceSync = false,
   }) {
     return _answeredPipeline.open(
-      TestAnsweredQuery(userId: userId),
+      TestAnsweredQuery(
+        userId: userId,
+        limit: limit,
+      ),
       forceSync: forceSync,
     );
   }
 
   Future<CachedResource<List<TestsModel>>> loadAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.testAnsweredInitialLimit,
     bool forceSync = false,
   }) {
     return openAnswered(
       userId: userId,
+      limit: limit,
       forceSync: forceSync,
     ).last;
   }
@@ -626,6 +639,9 @@ class TestSnapshotRepository extends GetxService {
   Future<List<TestsModel>> _fetchAnsweredItems(TestAnsweredQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
+    final normalizedLimit = query.limit < 1
+        ? ReadBudgetRegistry.testAnsweredInitialLimit
+        : query.limit;
     final snapshot = await FirebaseFirestore.instance
         .collectionGroup('Yanitlar')
         .where('userID', isEqualTo: normalizedUserId)
@@ -642,7 +658,7 @@ class TestSnapshotRepository extends GetxService {
     items.sort(
       (a, b) => _asTimestamp(b.timeStamp).compareTo(_asTimestamp(a.timeStamp)),
     );
-    return items;
+    return items.take(normalizedLimit).toList(growable: false);
   }
 
   Future<List<TestsModel>> _fetchFavoriteItems(TestFavoritesQuery query) async {

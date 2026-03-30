@@ -4,20 +4,26 @@ extension PracticeExamSnapshotRepositoryQueryPart
     on PracticeExamSnapshotRepository {
   Stream<CachedResource<List<SinavModel>>> _openAnsweredImpl({
     required String userId,
+    required int limit,
     required bool forceSync,
   }) {
     return _answeredPipeline.open(
-      PracticeExamAnsweredQuery(userId: userId),
+      PracticeExamAnsweredQuery(
+        userId: userId,
+        limit: limit,
+      ),
       forceSync: forceSync,
     );
   }
 
   Future<CachedResource<List<SinavModel>>> _loadAnsweredImpl({
     required String userId,
+    required int limit,
     required bool forceSync,
   }) {
     return openAnswered(
       userId: userId,
+      limit: limit,
       forceSync: forceSync,
     ).last;
   }

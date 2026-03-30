@@ -57,8 +57,10 @@ class SurfacePolicyRegistry {
   static const int shortHomeInitialLimit = 18;
   static const int marketHomeInitialLimit = 40;
   static const int marketSearchInitialLimit = 40;
+  static const int marketOwnerInitialLimit = 30;
   static const int jobHomeInitialLimit = 40;
   static const int jobSearchInitialLimit = 40;
+  static const int jobOwnerInitialLimit = 30;
   static const int scholarshipHomeInitialLimit = 30;
   static const int scholarshipRepositoryLatestLimit = 40;
   static const int scholarshipSearchInitialLimit = 40;
@@ -66,10 +68,13 @@ class SurfacePolicyRegistry {
   static const int practiceExamHomeInitialLimit = 30;
   static const int practiceExamSearchInitialLimit = 40;
   static const int practiceExamTypeInitialLimit = 30;
+  static const int practiceExamAnsweredInitialLimit = 30;
   static const int testSharedPageLimit = 30;
-  static const int testFavoritesInitialLimit = 50;
+  static const int testAnsweredInitialLimit = 30;
+  static const int testFavoritesInitialLimit = 30;
   static const int answerKeyHomeInitialLimit = 30;
   static const int answerKeySearchInitialLimit = 40;
+  static const int opticalFormAnsweredInitialLimit = 30;
   static const int tutoringHomeInitialLimit = 30;
   static const int tutoringSearchInitialLimit = 40;
   static const int pastQuestionSearchInitialLimit = 40;

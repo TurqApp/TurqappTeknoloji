@@ -34,10 +34,14 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.marketHomeInitialLimit;
   static const int marketSearchInitialLimit =
       SurfacePolicyRegistry.marketSearchInitialLimit;
+  static const int marketOwnerInitialLimit =
+      SurfacePolicyRegistry.marketOwnerInitialLimit;
   static const int jobHomeInitialLimit =
       SurfacePolicyRegistry.jobHomeInitialLimit;
   static const int jobSearchInitialLimit =
       SurfacePolicyRegistry.jobSearchInitialLimit;
+  static const int jobOwnerInitialLimit =
+      SurfacePolicyRegistry.jobOwnerInitialLimit;
   static const int scholarshipHomeInitialLimit =
       SurfacePolicyRegistry.scholarshipHomeInitialLimit;
   static const int scholarshipRepositoryLatestLimit =
@@ -52,14 +56,20 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.practiceExamSearchInitialLimit;
   static const int practiceExamTypeInitialLimit =
       SurfacePolicyRegistry.practiceExamTypeInitialLimit;
+  static const int practiceExamAnsweredInitialLimit =
+      SurfacePolicyRegistry.practiceExamAnsweredInitialLimit;
   static const int testSharedPageLimit =
       SurfacePolicyRegistry.testSharedPageLimit;
+  static const int testAnsweredInitialLimit =
+      SurfacePolicyRegistry.testAnsweredInitialLimit;
   static const int testFavoritesInitialLimit =
       SurfacePolicyRegistry.testFavoritesInitialLimit;
   static const int answerKeyHomeInitialLimit =
       SurfacePolicyRegistry.answerKeyHomeInitialLimit;
   static const int answerKeySearchInitialLimit =
       SurfacePolicyRegistry.answerKeySearchInitialLimit;
+  static const int opticalFormAnsweredInitialLimit =
+      SurfacePolicyRegistry.opticalFormAnsweredInitialLimit;
   static const int tutoringHomeInitialLimit =
       SurfacePolicyRegistry.tutoringHomeInitialLimit;
   static const int tutoringSearchInitialLimit =

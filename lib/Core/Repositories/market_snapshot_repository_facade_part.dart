@@ -3,8 +3,12 @@ part of 'market_snapshot_repository.dart';
 extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
   Future<CachedResource<List<MarketItemModel>>> loadCachedOwner({
     required String userId,
+    int limit = ReadBudgetRegistry.marketOwnerInitialLimit,
   }) {
-    final query = MarketOwnerQuery(userId: userId);
+    final query = MarketOwnerQuery(
+      userId: userId,
+      limit: limit,
+    );
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
       MarketSnapshotRepository._ownerSurfaceKey,
     );
@@ -21,20 +25,26 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
 
   Stream<CachedResource<List<MarketItemModel>>> openOwner({
     required String userId,
+    int limit = ReadBudgetRegistry.marketOwnerInitialLimit,
     bool forceSync = false,
   }) {
     return _ownerPipeline.open(
-      MarketOwnerQuery(userId: userId),
+      MarketOwnerQuery(
+        userId: userId,
+        limit: limit,
+      ),
       forceSync: forceSync,
     );
   }
 
   Future<CachedResource<List<MarketItemModel>>> loadOwner({
     required String userId,
+    int limit = ReadBudgetRegistry.marketOwnerInitialLimit,
     bool forceSync = false,
   }) {
     return openOwner(
       userId: userId,
+      limit: limit,
       forceSync: forceSync,
     ).last;
   }

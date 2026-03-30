@@ -41,6 +41,9 @@ extension _MarketSnapshotRepositoryDataX on MarketSnapshotRepository {
   Future<List<MarketItemModel>> _fetchOwnerItems(MarketOwnerQuery query) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <MarketItemModel>[];
+    final normalizedLimit = query.limit < 1
+        ? ReadBudgetRegistry.marketOwnerInitialLimit
+        : query.limit;
     const options = GetOptions(source: Source.serverAndCache);
     QuerySnapshot<Map<String, dynamic>> snapshot;
     try {
@@ -48,11 +51,13 @@ extension _MarketSnapshotRepositoryDataX on MarketSnapshotRepository {
           .collection('marketStore')
           .where('userId', isEqualTo: normalizedUserId)
           .orderBy('createdAt', descending: true)
+          .limit(normalizedLimit)
           .get(options);
     } on FirebaseException {
       snapshot = await FirebaseFirestore.instance
           .collection('marketStore')
           .where('userId', isEqualTo: normalizedUserId)
+          .limit(normalizedLimit)
           .get(options);
     }
     final items = snapshot.docs
@@ -60,6 +65,6 @@ extension _MarketSnapshotRepositoryDataX on MarketSnapshotRepository {
         .where((item) => item.id.isNotEmpty)
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return items;
+    return items.take(normalizedLimit).toList(growable: false);
   }
 }

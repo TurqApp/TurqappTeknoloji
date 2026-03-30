@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
 class OpticalFormOwnerQuery {
@@ -26,19 +27,22 @@ class OpticalFormOwnerQuery {
 class OpticalFormAnsweredQuery {
   const OpticalFormAnsweredQuery({
     required this.userId,
+    required this.limit,
   });
 
   final String userId;
+  final int limit;
 
   String buildScopeId() => CacheScopeNamespace.buildQueryScope(
         userId: userId,
-        limit: 0,
+        limit: limit,
         scopeTag: 'answered',
         schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
           OpticalFormSnapshotRepository.answeredSurfaceKey,
         ),
         qualifiers: <String, Object?>{
           'answered': userId.trim(),
+          'limit': limit,
         },
       );
 }
@@ -120,8 +124,12 @@ class OpticalFormSnapshotRepository extends GetxService {
 
   Future<CachedResource<List<OpticalFormModel>>> loadCachedAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.opticalFormAnsweredInitialLimit,
   }) {
-    final query = OpticalFormAnsweredQuery(userId: userId);
+    final query = OpticalFormAnsweredQuery(
+      userId: userId,
+      limit: limit,
+    );
     return _bootstrap(
       surfaceKey: answeredSurfaceKey,
       userId: userId,
@@ -169,20 +177,26 @@ class OpticalFormSnapshotRepository extends GetxService {
 
   Stream<CachedResource<List<OpticalFormModel>>> openAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.opticalFormAnsweredInitialLimit,
     bool forceSync = false,
   }) {
     return _answeredPipeline.open(
-      OpticalFormAnsweredQuery(userId: userId),
+      OpticalFormAnsweredQuery(
+        userId: userId,
+        limit: limit,
+      ),
       forceSync: forceSync,
     );
   }
 
   Future<CachedResource<List<OpticalFormModel>>> loadAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.opticalFormAnsweredInitialLimit,
     bool forceSync = false,
   }) {
     return openAnswered(
       userId: userId,
+      limit: limit,
       forceSync: forceSync,
     ).last;
   }
@@ -258,6 +272,9 @@ class OpticalFormSnapshotRepository extends GetxService {
   ) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <OpticalFormModel>[];
+    final normalizedLimit = query.limit < 1
+        ? ReadBudgetRegistry.opticalFormAnsweredInitialLimit
+        : query.limit;
     final answersSnap = await FirebaseFirestore.instance
         .collectionGroup('Yanitlar')
         .where(FieldPath.documentId, isEqualTo: normalizedUserId)
@@ -271,7 +288,7 @@ class OpticalFormSnapshotRepository extends GetxService {
     if (formIds.isEmpty) return const <OpticalFormModel>[];
     final items = await _fetchByIds(formIds);
     items.sort((a, b) => b.baslangic.compareTo(a.baslangic));
-    return items;
+    return items.take(normalizedLimit).toList(growable: false);
   }
 
   Future<List<OpticalFormModel>> _fetchByIds(List<String> docIds) async {

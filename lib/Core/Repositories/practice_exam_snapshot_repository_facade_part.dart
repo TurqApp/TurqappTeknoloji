@@ -16,8 +16,12 @@ extension PracticeExamSnapshotRepositoryFacadePart
     on PracticeExamSnapshotRepository {
   Future<CachedResource<List<SinavModel>>> loadCachedAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.practiceExamAnsweredInitialLimit,
   }) {
-    final query = PracticeExamAnsweredQuery(userId: userId);
+    final query = PracticeExamAnsweredQuery(
+      userId: userId,
+      limit: limit,
+    );
     final surfaceKey = _practiceExamAnsweredSurfaceKey;
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
       surfaceKey,
@@ -35,19 +39,23 @@ extension PracticeExamSnapshotRepositoryFacadePart
 
   Stream<CachedResource<List<SinavModel>>> openAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.practiceExamAnsweredInitialLimit,
     bool forceSync = false,
   }) =>
       _openAnsweredImpl(
         userId: userId,
+        limit: limit,
         forceSync: forceSync,
       );
 
   Future<CachedResource<List<SinavModel>>> loadAnswered({
     required String userId,
+    int limit = ReadBudgetRegistry.practiceExamAnsweredInitialLimit,
     bool forceSync = false,
   }) =>
       _loadAnsweredImpl(
         userId: userId,
+        limit: limit,
         forceSync: forceSync,
       );
 
