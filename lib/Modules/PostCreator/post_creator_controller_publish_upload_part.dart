@@ -602,7 +602,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             );
 
             // Update counter for root post
-            if (index == 0 && publishTime == nowMs) {
+            if (index == 0 && scheduledMs == 0) {
               try {
                 await CurrentUserService.instance.applyLocalCounterDelta(
                   postsDelta: 1,

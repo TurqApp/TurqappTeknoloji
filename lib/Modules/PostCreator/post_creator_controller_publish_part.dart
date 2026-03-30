@@ -636,7 +636,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       );
 
       // Sayaç güncelle: kök post (index==0) ve hemen yayınlanıyorsa
-      if (index == 0 && publishTime == nowMs) {
+      if (index == 0 && scheduledMs == 0) {
         try {
           await CurrentUserService.instance.applyLocalCounterDelta(
             postsDelta: 1,
