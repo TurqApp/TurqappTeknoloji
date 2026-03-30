@@ -286,10 +286,7 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
       yesText: 'common.delete'.tr,
       onYesPressed: () async {
         try {
-          await FirebaseFirestore.instance
-              .collection('books')
-              .doc(model.docID)
-              .delete();
+          await ensureBookletRepository().deleteBooklet(model.docID);
           onUpdate(true);
         } catch (e) {
           log('Kitapcik silme hatasi: $e');

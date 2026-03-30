@@ -64,10 +64,9 @@ extension _DenemeGridActionsPart on DenemeGrid {
                     cancelText: 'common.cancel'.tr,
                     yesText: 'common.delete'.tr,
                     onYesPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('practiceExams')
-                          .doc(model.docID)
-                          .delete();
+                      await ensurePracticeExamRepository().deletePracticeExam(
+                        model.docID,
+                      );
                       await getData();
                     },
                   );

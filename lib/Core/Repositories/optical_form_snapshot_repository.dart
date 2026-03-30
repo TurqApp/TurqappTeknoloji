@@ -319,3 +319,30 @@ class OpticalFormSnapshotRepository extends GetxService {
         .toList(growable: false);
   }
 }
+
+extension OpticalFormSnapshotRepositoryInvalidationPart
+    on OpticalFormSnapshotRepository {
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(
+        OpticalFormSnapshotRepository.ownerSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        OpticalFormSnapshotRepository.answeredSurfaceKey,
+        userId: normalized,
+      ),
+    ]);
+  }
+
+  Future<void> invalidateAllSurfaces() async {
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(OpticalFormSnapshotRepository.ownerSurfaceKey),
+      _coordinator.clearSurface(
+        OpticalFormSnapshotRepository.answeredSurfaceKey,
+      ),
+    ]);
+  }
+}

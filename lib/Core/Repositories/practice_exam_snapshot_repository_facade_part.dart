@@ -149,4 +149,37 @@ extension PracticeExamSnapshotRepositoryFacadePart
         limit: limit,
         forceSync: forceSync,
       );
+
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(_practiceExamHomeSurfaceKey,
+          userId: normalized),
+      _coordinator.clearSurface(
+        _practiceExamSearchSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(
+        _practiceExamOwnerSurfaceKey,
+        userId: normalized,
+      ),
+      _coordinator.clearSurface(_practiceExamTypeSurfaceKey,
+          userId: normalized),
+      _coordinator.clearSurface(
+        _practiceExamAnsweredSurfaceKey,
+        userId: normalized,
+      ),
+    ]);
+  }
+
+  Future<void> invalidateAllSurfaces() async {
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(_practiceExamHomeSurfaceKey),
+      _coordinator.clearSurface(_practiceExamSearchSurfaceKey),
+      _coordinator.clearSurface(_practiceExamOwnerSurfaceKey),
+      _coordinator.clearSurface(_practiceExamTypeSurfaceKey),
+      _coordinator.clearSurface(_practiceExamAnsweredSurfaceKey),
+    ]);
+  }
 }

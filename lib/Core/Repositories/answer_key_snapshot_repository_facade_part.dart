@@ -140,4 +140,24 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
         limit: limit,
         forceSync: forceSync,
       );
+
+  Future<void> invalidateUserScopedSurfaces(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(_answerKeyHomeSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(_answerKeySearchSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(_answerKeyOwnerSurfaceKey, userId: normalized),
+      _coordinator.clearSurface(_answerKeyTypeSurfaceKey, userId: normalized),
+    ]);
+  }
+
+  Future<void> invalidateAllSurfaces() async {
+    await Future.wait(<Future<void>>[
+      _coordinator.clearSurface(_answerKeyHomeSurfaceKey),
+      _coordinator.clearSurface(_answerKeySearchSurfaceKey),
+      _coordinator.clearSurface(_answerKeyOwnerSurfaceKey),
+      _coordinator.clearSurface(_answerKeyTypeSurfaceKey),
+    ]);
+  }
 }
