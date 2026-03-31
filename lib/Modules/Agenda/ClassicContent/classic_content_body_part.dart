@@ -564,12 +564,13 @@ extension ClassicContentBodyPart on _ClassicContentState {
                               v.position >=
                                   (v.duration -
                                       const Duration(milliseconds: 350)));
+                      final reachedStablePlaybackPosition =
+                          v.position > const Duration(milliseconds: 450);
                       final hasStableVideoFrame = atPlaybackEnd ||
                           (v.hasRenderedFirstFrame &&
                               !v.isBuffering &&
-                              (v.isPlaying ||
-                                  v.position >
-                                      const Duration(milliseconds: 180)));
+                              (v.isPlaying || reachedStablePlaybackPosition) &&
+                              reachedStablePlaybackPosition);
                       return IgnorePointer(
                         ignoring: true,
                         child: AnimatedOpacity(

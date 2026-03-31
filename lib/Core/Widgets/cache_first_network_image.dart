@@ -188,11 +188,11 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       gaplessPlayback: true,
       frameBuilder: (_, child, frame, wasSynchronouslyLoaded) {
         if (wasSynchronouslyLoaded || frame != null) return child;
-        return const SizedBox.expand();
+        return widget.fallback;
       },
       errorBuilder: (_, __, ___) {
         _scheduleAdvanceCandidate();
-        return const SizedBox.expand();
+        return widget.fallback;
       },
     );
   }

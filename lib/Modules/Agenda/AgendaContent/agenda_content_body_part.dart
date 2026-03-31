@@ -256,15 +256,18 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                                   const Duration(
                                                                       milliseconds:
                                                                           350)));
+                                              final reachedStablePlaybackPosition =
+                                                  v.position >
+                                                  const Duration(
+                                                    milliseconds: 450,
+                                                  );
                                               final hasStableVideoFrame =
                                                   atPlaybackEnd ||
                                                       (v.hasRenderedFirstFrame &&
                                                           !v.isBuffering &&
                                                           (v.isPlaying ||
-                                                              v.position >
-                                                                  const Duration(
-                                                                      milliseconds:
-                                                                          180)));
+                                                              reachedStablePlaybackPosition) &&
+                                                          reachedStablePlaybackPosition);
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(
