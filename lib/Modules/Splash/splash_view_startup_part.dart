@@ -202,7 +202,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     if (ageMs > _SplashViewState._startupManifestFreshWindow.inMilliseconds) {
       return 'unknown';
     }
-    return _previousStartupRouteHint;
+    return 'nav_feed';
   }
 
   String _effectiveStartupRouteHint() {
@@ -664,18 +664,8 @@ extension _SplashViewStartupPart on _SplashViewState {
   }
 
   int? _preferredStartupNavIndex() {
-    final storedIndex = _previousStartupNavIndex;
     final hasEducation =
         maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-    if (storedIndex != null && storedIndex >= 0 && storedIndex <= 4) {
-      final normalizedIndex = storedIndex == 2 ? 0 : storedIndex;
-      if (_isStartupNavIndexWarm(
-        normalizedIndex,
-        hasEducation: hasEducation,
-      )) {
-        return normalizedIndex;
-      }
-    }
     final profileIndex = hasEducation ? 4 : 3;
     switch (_effectiveStartupRouteHint()) {
       case 'nav_feed':

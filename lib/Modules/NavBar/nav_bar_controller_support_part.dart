@@ -26,21 +26,15 @@ class _NavBarControllerSupportPart {
   Future<void> restorePersistedIndex() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
-    final initialIndex = _controller.selectedIndex.value;
+    final initialIndex =
+        normalizeSelectedIndex(_controller.selectedIndex.value);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(selectedIndexKeyFor(uid));
-      if (stored == null) return;
       if (_controller.selectedIndex.value != initialIndex) {
-        await persistStartupRouteHint(_controller.selectedIndex.value);
-        return;
+        _controller.selectedIndex.value = initialIndex;
       }
       if (initialIndex != 0) {
         await persistStartupRouteHint(initialIndex);
-        return;
       }
-      _controller.selectedIndex.value = normalizeSelectedIndex(stored);
-      await persistStartupRouteHint(_controller.selectedIndex.value);
     } catch (_) {}
   }
 
