@@ -662,23 +662,32 @@ export const adsAggregateDailyStats = functions
   .region("europe-west3")
   .pubsub.schedule("every 60 minutes")
   .onRun(async () => {
+    const flags = await getFlags();
+    if (!flags.adsInfrastructureEnabled || !flags.adsDeliveryEnabled) {
+      return null;
+    }
+
     const now = new Date();
     const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const dayEnd = new Date(dayStart.getTime());
     dayEnd.setDate(dayEnd.getDate() + 1);
 
-    const [impSnap, clickSnap] = await Promise.all([
-      db
-        .collection("ads_impressions")
-        .where("createdAt", ">=", dayStart.getTime())
-        .where("createdAt", "<", dayEnd.getTime())
-        .get(),
-      db
-        .collection("ads_clicks")
-        .where("createdAt", ">=", dayStart.getTime())
-        .where("createdAt", "<", dayEnd.getTime())
-        .get(),
-    ]);
+    const campaignSnap = await db
+      .collection("ads_campaigns")
+      .where("campaignStatus", "==", "active")
+      .where("moderationStatus", "==", "approved")
+      .get();
+
+    if (campaignSnap.empty) {
+      return null;
+    }
+
+    const campaignIds = campaignSnap.docs
+      .map((doc) => normalizeString(doc.id))
+      .filter((id) => id.length > 0);
+    if (campaignIds.length === 0) {
+      return null;
+    }
 
     type Stat = {
       impressions: number;
@@ -690,6 +699,7 @@ export const adsAggregateDailyStats = functions
     };
 
     const byCampaign = new Map<string, Stat>();
+    const spentByCampaign = new Map<string, number>();
 
     const ensure = (campaignId: string) => {
       if (!byCampaign.has(campaignId)) {
@@ -705,47 +715,78 @@ export const adsAggregateDailyStats = functions
       return byCampaign.get(campaignId)!;
     };
 
-    for (const d of impSnap.docs) {
-      const data = d.data();
-      const campaignId = normalizeString(data.campaignId);
-      if (!campaignId) continue;
-      const st = ensure(campaignId);
-      st.impressions += 1;
-      const uid = normalizeString(data.userId);
-      if (uid) st.uniqueUsers.add(uid);
-    }
-
-    for (const d of clickSnap.docs) {
-      const data = d.data();
-      const campaignId = normalizeString(data.campaignId);
-      if (!campaignId) continue;
-      const st = ensure(campaignId);
-      st.clicks += 1;
-      const uid = normalizeString(data.userId);
-      if (uid) st.uniqueUsers.add(uid);
-    }
-
-    const eventSnap = await db
-      .collection("ads_delivery_logs")
-      .where("createdAt", ">=", dayStart.getTime())
-      .where("createdAt", "<", dayEnd.getTime())
-      .get();
-
-    for (const d of eventSnap.docs) {
-      const data = d.data();
-      const campaignId = normalizeString(data.campaignId || data.selectedCampaignId);
-      if (!campaignId) continue;
-      const event = normalizeString(data.event);
-      const st = ensure(campaignId);
-      if (event === "videoStart") st.videoStarts += 1;
-      if (event === "video100" || event === "complete") st.videoCompletes += 1;
-    }
-
-    const campaignSpendSnap = await db.collection("ads_campaigns").get();
-    const spentByCampaign = new Map<string, number>();
-    for (const c of campaignSpendSnap.docs) {
+    for (const c of campaignSnap.docs) {
       const spent = Number(c.data().spentAmount ?? 0) || 0;
       spentByCampaign.set(c.id, spent);
+    }
+
+    for (let i = 0; i < campaignIds.length; i += 10) {
+      const chunk = campaignIds.slice(i, i + 10);
+      const [impSnap, clickSnap, eventSnap, selectedEventSnap] = await Promise.all([
+        db
+          .collection("ads_impressions")
+          .where("campaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+        db
+          .collection("ads_clicks")
+          .where("campaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+        db
+          .collection("ads_delivery_logs")
+          .where("campaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+        db
+          .collection("ads_delivery_logs")
+          .where("selectedCampaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+      ]);
+
+      for (const d of impSnap.docs) {
+        const data = d.data();
+        const campaignId = normalizeString(data.campaignId);
+        if (!campaignId) continue;
+        const st = ensure(campaignId);
+        st.impressions += 1;
+        const uid = normalizeString(data.userId);
+        if (uid) st.uniqueUsers.add(uid);
+      }
+
+      for (const d of clickSnap.docs) {
+        const data = d.data();
+        const campaignId = normalizeString(data.campaignId);
+        if (!campaignId) continue;
+        const st = ensure(campaignId);
+        st.clicks += 1;
+        const uid = normalizeString(data.userId);
+        if (uid) st.uniqueUsers.add(uid);
+      }
+
+      const seenEventDocIds = new Set<string>();
+      for (const snap of [eventSnap, selectedEventSnap]) {
+        for (const d of snap.docs) {
+          if (seenEventDocIds.has(d.id)) continue;
+          seenEventDocIds.add(d.id);
+          const data = d.data();
+          const campaignId = normalizeString(
+            data.campaignId || data.selectedCampaignId
+          );
+          if (!campaignId) continue;
+          const event = normalizeString(data.event);
+          const st = ensure(campaignId);
+          if (event === "videoStart") st.videoStarts += 1;
+          if (event === "video100" || event === "complete") {
+            st.videoCompletes += 1;
+          }
+        }
+      }
     }
 
     const batch = db.batch();
