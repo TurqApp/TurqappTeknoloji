@@ -98,6 +98,16 @@ void main() {
     expect(await kufurKontrolEt('h a s s i k t i r'), isTrue);
   });
 
+  test('matched blocked word is returned for quoted warning copy', () async {
+    BlockWordConfigService.instance.setTestOverride(enabled: false);
+
+    final suffixMatch = await kufurEslesmesiniBul('götünü sikeyim');
+    final spacedMatch = await kufurEslesmesiniBul('g 0 t');
+
+    expect(suffixMatch?.displayValue, 'götünü');
+    expect(spacedMatch?.displayValue, 'g 0 t');
+  });
+
   test('adminConfig allowList can suppress custom false positives', () async {
     BlockWordConfigService.instance.setTestOverride(
       enabled: true,

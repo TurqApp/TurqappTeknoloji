@@ -24,10 +24,15 @@ extension ChatControllerSendPart on ChatController {
     }
     final text = (textOverride ?? textEditingController.text).trim();
 
-    if (text.isNotEmpty && await kufurKontrolEt(text)) {
+    final blockedMatch =
+        text.isNotEmpty ? await kufurEslesmesiniBul(text) : null;
+    if (blockedMatch != null) {
+      final blockedWord = blockedMatch.displayValue.replaceAll('"', "'");
       AppSnackbar(
         'comments.community_violation_title'.tr,
-        'comments.community_violation_body'.tr,
+        'comments.community_violation_body_with_word'.trParams({
+          'word': blockedWord,
+        }),
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
       return;

@@ -111,9 +111,35 @@ const List<String> _turkishSuffixes = <String>[
   'e',
 ];
 
+class BlockedTextMatch {
+  const BlockedTextMatch({
+    required this.displayValue,
+    required this.normalizedValue,
+  });
+
+  final String displayValue;
+  final String normalizedValue;
+}
+
+class _RawTokenProbe {
+  const _RawTokenProbe({
+    required this.rawToken,
+    required this.normalizedPieces,
+    required this.collapsedPieces,
+  });
+
+  final String rawToken;
+  final List<String> normalizedPieces;
+  final List<String> collapsedPieces;
+}
+
 Future<bool> kufurKontrolEt(String text) async {
+  return (await kufurEslesmesiniBul(text)) != null;
+}
+
+Future<BlockedTextMatch?> kufurEslesmesiniBul(String text) async {
   final normalizedText = BlockWordConfigService.normalizeForPhraseMatch(text);
-  if (normalizedText.isEmpty) return false;
+  if (normalizedText.isEmpty) return null;
   final collapsedText = BlockWordConfigService.normalizeForPhraseMatch(
     text,
     collapseRepeats: true,
@@ -128,7 +154,7 @@ Future<bool> kufurKontrolEt(String text) async {
       .map((word) => word.trim())
       .where((word) => word.isNotEmpty)
       .toList(growable: false);
-  if (normalizedTokens.isEmpty) return false;
+  if (normalizedTokens.isEmpty) return null;
 
   await BlockWordConfigService.instance.ensureLoaded();
   final blockedWords = <String>{
@@ -162,46 +188,66 @@ Future<bool> kufurKontrolEt(String text) async {
     allowPhrases: allowPhrases,
   );
 
-  if (_containsPhraseMatch(sanitizedNormalized, blockedPhrases) ||
-      _containsPhraseMatch(sanitizedCollapsed, blockedPhrases)) {
-    return true;
+  final phraseMatch = _firstPhraseMatch(sanitizedNormalized, blockedPhrases) ??
+      _firstPhraseMatch(sanitizedCollapsed, blockedPhrases);
+  if (phraseMatch != null) {
+    return BlockedTextMatch(
+      displayValue: phraseMatch,
+      normalizedValue: phraseMatch,
+    );
   }
-  if (_containsPatternMatch(sanitizedNormalized, patterns) ||
-      _containsPatternMatch(sanitizedCollapsed, patterns)) {
-    return true;
+  final patternMatch = _firstPatternMatch(sanitizedNormalized, patterns) ??
+      _firstPatternMatch(sanitizedCollapsed, patterns);
+  if (patternMatch != null) {
+    return BlockedTextMatch(
+      displayValue: patternMatch,
+      normalizedValue: patternMatch,
+    );
   }
+
+  final tokenMatch = _findBlockedTokenMatch(
+    text,
+    blockedWords: blockedWords,
+    allowWords: allowWords,
+  );
+  if (tokenMatch != null) return tokenMatch;
 
   final candidates = <String>{
     ..._buildTokenCandidates(normalizedTokens),
     ..._buildTokenCandidates(collapsedTokens),
   };
-
   for (final word in candidates) {
     if (allowWords.contains(word)) continue;
     if (blockedWords.contains(word)) {
-      return true;
+      return BlockedTextMatch(
+        displayValue: word,
+        normalizedValue: word,
+      );
     }
   }
-  return false;
+  return null;
 }
 
-bool _containsPhraseMatch(String text, Set<String> phrases) {
-  if (text.isEmpty || phrases.isEmpty) return false;
+String? _firstPhraseMatch(String text, Set<String> phrases) {
+  if (text.isEmpty || phrases.isEmpty) return null;
   final padded = ' $text ';
-  for (final phrase in phrases) {
+  final sorted = phrases.toList()..sort((a, b) => b.length.compareTo(a.length));
+  for (final phrase in sorted) {
     if (padded.contains(' $phrase ')) {
-      return true;
+      return phrase;
     }
   }
-  return false;
+  return null;
 }
 
-bool _containsPatternMatch(String text, List<RegExp> patterns) {
-  if (text.isEmpty || patterns.isEmpty) return false;
+String? _firstPatternMatch(String text, List<RegExp> patterns) {
+  if (text.isEmpty || patterns.isEmpty) return null;
   for (final pattern in patterns) {
-    if (pattern.hasMatch(text)) return true;
+    final match = pattern.firstMatch(text);
+    final value = match?.group(0)?.trim() ?? '';
+    if (value.isNotEmpty) return value;
   }
-  return false;
+  return null;
 }
 
 String _maskAllowList(
@@ -222,6 +268,181 @@ String _maskAllowList(
     masked = masked.replaceAll(' $word ', ' ');
   }
   return masked.replaceAll(RegExp(r'\s+'), ' ').trim();
+}
+
+BlockedTextMatch? _findBlockedTokenMatch(
+  String text, {
+  required Set<String> blockedWords,
+  required Set<String> allowWords,
+}) {
+  final probes = _buildRawTokenProbes(text);
+  for (final probe in probes) {
+    final directMatch = _matchBlockedPieces(
+          probe.rawToken,
+          probe.normalizedPieces,
+          blockedWords: blockedWords,
+          allowWords: allowWords,
+        ) ??
+        _matchBlockedPieces(
+          probe.rawToken,
+          probe.collapsedPieces,
+          blockedWords: blockedWords,
+          allowWords: allowWords,
+        );
+    if (directMatch != null) return directMatch;
+  }
+  return _matchJoinedShortTokenProbes(
+    probes,
+    blockedWords: blockedWords,
+    allowWords: allowWords,
+  );
+}
+
+List<_RawTokenProbe> _buildRawTokenProbes(String text) {
+  return text
+      .split(RegExp(r'\s+'))
+      .map((token) => token.trim())
+      .where((token) => token.isNotEmpty)
+      .map(
+        (rawToken) => _RawTokenProbe(
+          rawToken: rawToken,
+          normalizedPieces: BlockWordConfigService.normalizeForPhraseMatch(
+            rawToken,
+          ).split(RegExp(r'\s+')).where((piece) => piece.isNotEmpty).toList(),
+          collapsedPieces: BlockWordConfigService.normalizeForPhraseMatch(
+            rawToken,
+            collapseRepeats: true,
+          ).split(RegExp(r'\s+')).where((piece) => piece.isNotEmpty).toList(),
+        ),
+      )
+      .toList(growable: false);
+}
+
+BlockedTextMatch? _matchBlockedPieces(
+  String rawToken,
+  List<String> pieces, {
+  required Set<String> blockedWords,
+  required Set<String> allowWords,
+}) {
+  for (final piece in pieces) {
+    final matched = _firstBlockedCandidate(
+      piece,
+      blockedWords: blockedWords,
+      allowWords: allowWords,
+    );
+    if (matched == null) continue;
+    return BlockedTextMatch(
+      displayValue: _cleanBlockedDisplay(rawToken),
+      normalizedValue: matched,
+    );
+  }
+  final joinedMatch = _firstJoinedShortMatch(
+    pieces,
+    blockedWords: blockedWords,
+    allowWords: allowWords,
+  );
+  if (joinedMatch == null) return null;
+  return BlockedTextMatch(
+    displayValue: _cleanBlockedDisplay(rawToken),
+    normalizedValue: joinedMatch,
+  );
+}
+
+String? _firstBlockedCandidate(
+  String token, {
+  required Set<String> blockedWords,
+  required Set<String> allowWords,
+}) {
+  if (token.isEmpty || allowWords.contains(token)) return null;
+  if (blockedWords.contains(token)) return token;
+  for (final stem in _expandStemCandidates(token)) {
+    if (allowWords.contains(stem)) continue;
+    if (blockedWords.contains(stem)) return stem;
+  }
+  return null;
+}
+
+String? _firstJoinedShortMatch(
+  List<String> pieces, {
+  required Set<String> blockedWords,
+  required Set<String> allowWords,
+}) {
+  if (pieces.length < 2) return null;
+  for (var start = 0; start < pieces.length; start++) {
+    if (pieces[start].length > 2) continue;
+    final buffer = StringBuffer();
+    for (var end = start; end < pieces.length && end < start + 6; end++) {
+      final piece = pieces[end];
+      if (piece.length > 2) break;
+      buffer.write(piece);
+      final joined = buffer.toString();
+      if (joined.length < 3) continue;
+      final matched = _firstBlockedCandidate(
+        joined,
+        blockedWords: blockedWords,
+        allowWords: allowWords,
+      );
+      if (matched != null) return matched;
+    }
+  }
+  return null;
+}
+
+BlockedTextMatch? _matchJoinedShortTokenProbes(
+  List<_RawTokenProbe> probes, {
+  required Set<String> blockedWords,
+  required Set<String> allowWords,
+}) {
+  for (var start = 0; start < probes.length; start++) {
+    final normalizedPieces = probes[start].normalizedPieces;
+    final collapsedPieces = probes[start].collapsedPieces;
+    if (normalizedPieces.length != 1 && collapsedPieces.length != 1) continue;
+    final startToken = normalizedPieces.length == 1
+        ? normalizedPieces.first
+        : collapsedPieces.first;
+    if (startToken.length > 2) continue;
+    final normalizedBuffer = StringBuffer();
+    final collapsedBuffer = StringBuffer();
+    for (var end = start; end < probes.length && end < start + 6; end++) {
+      final normalizedEndPieces = probes[end].normalizedPieces;
+      final collapsedEndPieces = probes[end].collapsedPieces;
+      if (normalizedEndPieces.length != 1 ||
+          normalizedEndPieces.first.length > 2) {
+        break;
+      }
+      if (collapsedEndPieces.length != 1 ||
+          collapsedEndPieces.first.length > 2) {
+        break;
+      }
+      normalizedBuffer.write(normalizedEndPieces.first);
+      collapsedBuffer.write(collapsedEndPieces.first);
+      final normalizedJoined = normalizedBuffer.toString();
+      final collapsedJoined = collapsedBuffer.toString();
+      final matched = _firstBlockedCandidate(
+            normalizedJoined,
+            blockedWords: blockedWords,
+            allowWords: allowWords,
+          ) ??
+          _firstBlockedCandidate(
+            collapsedJoined,
+            blockedWords: blockedWords,
+            allowWords: allowWords,
+          );
+      if (matched == null) continue;
+      return BlockedTextMatch(
+        displayValue: probes
+            .sublist(start, end + 1)
+            .map((probe) => _cleanBlockedDisplay(probe.rawToken))
+            .join(' '),
+        normalizedValue: matched,
+      );
+    }
+  }
+  return null;
+}
+
+String _cleanBlockedDisplay(String value) {
+  return value.replaceAll(RegExp(r'\s+'), ' ').trim();
 }
 
 Set<String> _buildTokenCandidates(List<String> tokens) {

@@ -7,11 +7,14 @@ extension PostCommentControllerActions on PostCommentController {
     VoidCallback? onComplete,
   }) async {
     final gifUrl = selectedGifUrl.value.trim();
-    if (await kufurKontrolEt(text)) {
-      showAlertDialog(
-        context,
+    final blockedMatch = await kufurEslesmesiniBul(text);
+    if (blockedMatch != null) {
+      final blockedWord = blockedMatch.displayValue.replaceAll('"', "'");
+      AppSnackbar(
         'comments.community_violation_title'.tr,
-        'comments.community_violation_body'.tr,
+        'comments.community_violation_body_with_word'.trParams({
+          'word': blockedWord,
+        }),
       );
       return;
     }

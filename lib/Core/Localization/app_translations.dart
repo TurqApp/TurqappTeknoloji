@@ -887,6 +887,8 @@ class AppTranslations extends Translations {
         'comments.community_violation_title': 'Topluluk Kurallarına Aykırı',
         'comments.community_violation_body':
             'Kullandığınız dil, topluluk kurallarımıza uymamaktadır. Lütfen saygılı bir dil kullanınız.',
+        'comments.community_violation_body_with_word':
+            'Kullandığınız "@word" kelimesi topluluk kurallarına aykırıdır. Lütfen düzeltip devam edin.',
         'post_sharers.empty': 'Henüz kimse bu gönderiyi paylaşmamış',
         'notifications.post_activity': 'Gönderi etkileşimleri',
         'notifications.post_activity_desc':
@@ -4740,6 +4742,8 @@ class AppTranslations extends Translations {
         'comments.community_violation_title': 'Against Community Rules',
         'comments.community_violation_body':
             'The language you used does not comply with our community rules. Please use respectful language.',
+        'comments.community_violation_body_with_word':
+            'The word "@word" you used is against our community rules. Please correct it and continue.',
         'post_sharers.empty': 'No one has shared this post yet',
         'notifications.post_activity': 'Post activity',
         'notifications.post_activity_desc': 'Likes, reshares, and post pushes.',
@@ -8670,6 +8674,8 @@ class AppTranslations extends Translations {
             'Verstoss gegen die Community-Regeln',
         'comments.community_violation_body':
             'Die von dir verwendete Sprache entspricht nicht unseren Community-Regeln. Bitte verwende eine respektvolle Sprache.',
+        'comments.community_violation_body_with_word':
+            'Das von dir verwendete Wort "@word" verstosst gegen unsere Community-Regeln. Bitte korrigiere es und fahre fort.',
         'post_sharers.empty': 'Noch hat niemand diesen Beitrag geteilt',
         'notifications.post_activity': 'Beitragsaktivität',
         'notifications.post_activity_desc':
@@ -13881,6 +13887,8 @@ class AppTranslations extends Translations {
             'Contraire aux regles de la communaute',
         'comments.community_violation_body':
             'Le langage utilise ne respecte pas nos regles de la communaute. Merci d utiliser un langage respectueux.',
+        'comments.community_violation_body_with_word':
+            'Le mot "@word" que vous avez utilise enfreint les regles de la communaute. Merci de le corriger puis de continuer.',
         'post_sharers.empty': 'Personne n a encore partage cette publication',
         'notifications.follows': 'Abonnements',
         'notifications.direct_messages': 'Messages directs',
@@ -16576,6 +16584,8 @@ class AppTranslations extends Translations {
             'Contrario alle regole della community',
         'comments.community_violation_body':
             'Il linguaggio usato non rispetta le nostre regole della community. Usa un linguaggio rispettoso.',
+        'comments.community_violation_body_with_word':
+            'La parola "@word" che hai usato viola le regole della community. Correggila e continua.',
         'post_sharers.empty': 'Nessuno ha ancora condiviso questo post',
         'notifications.follows': 'Seguiti',
         'notifications.direct_messages': 'Messaggi diretti',
@@ -19215,6 +19225,8 @@ class AppTranslations extends Translations {
         'comments.community_violation_title': 'Нарушение правил сообщества',
         'comments.community_violation_body':
             'Использованный язык не соответствует нашим правилам сообщества. Пожалуйста, используйте уважительный тон.',
+        'comments.community_violation_body_with_word':
+            'Использованное слово "@word" нарушает правила сообщества. Исправьте его и продолжайте.',
         'post_sharers.empty': 'Этот пост еще никто не поделился',
         'notifications.follows': 'Подписки',
         'notifications.direct_messages': 'Личные сообщения',
