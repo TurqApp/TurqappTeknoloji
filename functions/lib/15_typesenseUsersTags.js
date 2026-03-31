@@ -186,14 +186,9 @@ async function ensureUsersCollection() {
             const fields = Array.isArray(existing.data?.fields) ? existing.data.fields : [];
             const required = [
                 { name: "nickname", type: "string", optional: true },
-                { name: "firstName", type: "string", optional: true },
-                { name: "lastName", type: "string", optional: true },
                 { name: "displayName", type: "string", optional: true },
                 { name: "avatarUrl", type: "string", optional: true },
                 { name: "rozet", type: "string", optional: true },
-                { name: "bio", type: "string", optional: true },
-                { name: "adres", type: "string", optional: true },
-                { name: "meslekKategori", type: "string", optional: true },
                 { name: "isPrivate", type: "bool", optional: true },
                 { name: "isDeleted", type: "bool", optional: true },
                 { name: "isApproved", type: "bool", optional: true },
@@ -214,14 +209,9 @@ async function ensureUsersCollection() {
             fields: [
                 { name: "id", type: "string" },
                 { name: "nickname", type: "string", optional: true },
-                { name: "firstName", type: "string", optional: true },
-                { name: "lastName", type: "string", optional: true },
                 { name: "displayName", type: "string", optional: true },
                 { name: "avatarUrl", type: "string", optional: true },
                 { name: "rozet", type: "string", optional: true },
-                { name: "bio", type: "string", optional: true },
-                { name: "adres", type: "string", optional: true },
-                { name: "meslekKategori", type: "string", optional: true },
                 { name: "isPrivate", type: "bool", optional: true },
                 { name: "isDeleted", type: "bool", optional: true },
                 { name: "isApproved", type: "bool", optional: true },
@@ -371,6 +361,9 @@ async function deleteDoc(postId) {
 }
 function buildUserSearchDoc(userId, data) {
     const profile = data.profile || {};
+    const firstName = asString(data.firstName) || asString(profile.firstName);
+    const lastName = asString(data.lastName) || asString(profile.lastName);
+    const joinedName = [firstName, lastName].filter((value) => value.trim().length > 0).join(" ").trim();
     const createdDateRaw = Number(data.createdDate || 0);
     const createdDateTs = Number.isFinite(createdDateRaw) && createdDateRaw > 0
         ? Math.floor(createdDateRaw / 1000)
@@ -380,16 +373,12 @@ function buildUserSearchDoc(userId, data) {
     return {
         id: userId,
         nickname: asString(data.nickname),
-        firstName: asString(data.firstName) || asString(profile.firstName),
-        lastName: asString(data.lastName) || asString(profile.lastName),
         displayName: asString(data.displayName) ||
             asString(profile.displayName) ||
-            asString(data.fullName),
+            asString(data.fullName) ||
+            joinedName,
         avatarUrl: asString(data.avatarUrl) || asString(profile.avatarUrl),
         rozet: asString(data.rozet) || asString(profile.rozet),
-        bio: asString(data.bio) || asString(profile.bio),
-        adres: asString(data.adres) || asString(profile.adres),
-        meslekKategori: asString(data.meslekKategori) || asString(profile.meslekKategori),
         isPrivate: asBool(data.isPrivate),
         isDeleted: asBool(data.isDeleted) ||
             isPendingOrDeleted,
@@ -531,12 +520,12 @@ async function searchUsersFromTypesense(q, limit, page) {
         timeout: 10000,
         params: {
             q,
-            query_by: "nickname,displayName,firstName,lastName,meslekKategori",
+            query_by: "nickname,displayName",
             per_page: limit,
             page,
             sort_by: "updatedAtTs:desc",
             filter_by: "isDeleted:=false && isPrivate:=false",
-            prefix: "true,true,true,true,true",
+            prefix: "true,true",
             typo_tokens_threshold: 1,
         },
     });
@@ -554,14 +543,9 @@ async function searchUsersFromTypesense(q, limit, page) {
             .map((h) => ({
             id: h?.document?.id,
             nickname: h?.document?.nickname || "",
-            firstName: h?.document?.firstName || "",
-            lastName: h?.document?.lastName || "",
             displayName: h?.document?.displayName || "",
             avatarUrl: h?.document?.avatarUrl || "",
             rozet: h?.document?.rozet || "",
-            bio: h?.document?.bio || "",
-            adres: h?.document?.adres || "",
-            meslekKategori: h?.document?.meslekKategori || "",
             isPrivate: h?.document?.isPrivate === true,
             isDeleted: h?.document?.isDeleted === true,
             isApproved: h?.document?.isApproved === true,
@@ -1096,7 +1080,7 @@ exports.f15_reindexUsersToTypesenseScheduled = (0, scheduler_1.onSchedule)({
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    schedule: "every 5 minutes",
+    schedule: "every 60 minutes",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async () => {
     ensureAdmin();
@@ -1108,6 +1092,11 @@ exports.f15_reindexUsersToTypesenseScheduled = (0, scheduler_1.onSchedule)({
     const stateRef = db.collection("adminConfig").doc("typesenseUsersReindex");
     const stateSnap = await stateRef.get();
     const state = (stateSnap.data() || {});
+    const enabled = state.enabled === true;
+    if (!enabled) {
+        console.log("typesense_users_reindex_scheduled_disabled");
+        return;
+    }
     const cursor = String(state.cursor || "").trim();
     const batchSize = 300;
     let q = db.collection("users").orderBy(firestore_2.FieldPath.documentId()).limit(batchSize);
@@ -1119,6 +1108,7 @@ exports.f15_reindexUsersToTypesenseScheduled = (0, scheduler_1.onSchedule)({
             cursor: "",
             doneAt: Date.now(),
             done: true,
+            enabled: false,
         }, { merge: true });
         console.log("typesense_users_reindex_scheduled_done");
         return;
@@ -1142,6 +1132,7 @@ exports.f15_reindexUsersToTypesenseScheduled = (0, scheduler_1.onSchedule)({
         cursor: done ? "" : (last?.id || ""),
         lastRunAt: Date.now(),
         done,
+        enabled: done ? false : true,
         scanned,
         upserted,
         skipped,

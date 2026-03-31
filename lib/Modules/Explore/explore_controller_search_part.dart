@@ -174,8 +174,11 @@ extension ExploreControllerSearchPart on ExploreController {
           OgrenciModel(
             userID: uid,
             nickname: (row['nickname'] ?? '').toString(),
-            firstName: (row['firstName'] ?? '').toString(),
-            lastName: (row['lastName'] ?? '').toString(),
+            firstName: ((row['displayName'] ?? '').toString().trim().isNotEmpty
+                    ? row['displayName']
+                    : row['nickname'] ?? '')
+                .toString(),
+            lastName: '',
             avatarUrl: (row['avatarUrl'] ?? '').toString(),
           ),
         );
