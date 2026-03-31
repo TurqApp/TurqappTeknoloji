@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.decrementOwnerLikesOnLikeDelete = exports.incrementOwnerLikesOnLikeCreate = exports.decrementFollowCountersOnFollowingDelete = exports.incrementFollowCountersOnFollowingCreate = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.backfillHybridFeedForUser = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.toggleLikeBatch = exports.recordViewBatch = exports.processPostsMigrationQueue = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.decrementOwnerLikesOnLikeDelete = exports.incrementOwnerLikesOnLikeCreate = exports.decrementFollowCountersOnFollowingDelete = exports.incrementFollowCountersOnFollowingCreate = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.backfillHybridFeedForUser = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.processPostsMigrationQueue = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -155,14 +155,6 @@ var hlsTranscode_1 = require("./hlsTranscode");
 Object.defineProperty(exports, "onVideoUpload", { enumerable: true, get: function () { return hlsTranscode_1.onVideoUpload; } });
 var postsMigrationScheduler_1 = require("./postsMigrationScheduler");
 Object.defineProperty(exports, "processPostsMigrationQueue", { enumerable: true, get: function () { return postsMigrationScheduler_1.processPostsMigrationQueue; } });
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 📊 AGGREGATION COUNTER SHARDING (A9)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-var counterShards_1 = require("./counterShards");
-Object.defineProperty(exports, "recordViewBatch", { enumerable: true, get: function () { return counterShards_1.recordViewBatch; } });
-Object.defineProperty(exports, "toggleLikeBatch", { enumerable: true, get: function () { return counterShards_1.toggleLikeBatch; } });
-Object.defineProperty(exports, "aggregateCounterShards", { enumerable: true, get: function () { return counterShards_1.aggregateCounterShards; } });
-Object.defineProperty(exports, "initCounterShards", { enumerable: true, get: function () { return counterShards_1.initCounterShards; } });
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

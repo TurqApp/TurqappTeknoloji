@@ -206,11 +206,6 @@ export { onVideoUpload } from "./hlsTranscode";
 export { processPostsMigrationQueue } from "./postsMigrationScheduler";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 📊 AGGREGATION COUNTER SHARDING (A9)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export { recordViewBatch, toggleLikeBatch, aggregateCounterShards, initCounterShards } from "./counterShards";
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export {
