@@ -39,6 +39,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../Core/Camera/chat_camera_capture_view.dart';
 import '../../Core/blocked_texts.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
+import '../../Models/chat_listing_model.dart';
 import '../../Models/message_model.dart';
 
 part 'chat_controller_conversation.dart';

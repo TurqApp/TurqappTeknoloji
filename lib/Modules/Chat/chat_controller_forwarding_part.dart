@@ -1,6 +1,48 @@
 part of 'chat_controller.dart';
 
 extension ChatControllerForwardingPart on ChatController {
+  String _chatListingCacheKey(String uid) =>
+      uid.trim().isEmpty ? '' : 'chat_listing_cache_${uid.trim()}';
+
+  List<ChatListingModel> _sortForwardCandidates(
+      Iterable<ChatListingModel> items) {
+    final sorted = items
+        .map((item) => ChatListingModel.fromJson(item.toJson()))
+        .toList(growable: false);
+    sorted.sort((a, b) {
+      final aTs = int.tryParse(a.timeStamp) ?? 0;
+      final bTs = int.tryParse(b.timeStamp) ?? 0;
+      return bTs.compareTo(aTs);
+    });
+    return sorted;
+  }
+
+  Future<List<ChatListingModel>> _loadForwardCandidatesFromCache(
+    String currentUID,
+  ) async {
+    final controller = ChatListingController.maybeFind();
+    if (controller != null && controller.list.isNotEmpty) {
+      return _sortForwardCandidates(controller.list);
+    }
+
+    final key = _chatListingCacheKey(currentUID);
+    if (key.isEmpty) return const <ChatListingModel>[];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) return const <ChatListingModel>[];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const <ChatListingModel>[];
+      final restored = decoded
+          .whereType<Map<String, dynamic>>()
+          .map(ChatListingModel.fromJson)
+          .toList(growable: false);
+      return _sortForwardCandidates(restored);
+    } catch (_) {
+      return const <ChatListingModel>[];
+    }
+  }
+
   Future<String> _resolvedWriteUserId() async {
     final ensured = await CurrentUserService.instance.ensureAuthReady(
       waitForAuthState: true,
@@ -67,43 +109,75 @@ extension ChatControllerForwardingPart on ChatController {
   Future<void> openForwardPicker(MessageModel model) async {
     final currentUID = await _resolvedWriteUserId();
     if (currentUID.isEmpty) return;
-    final docs = await _conversationRepository.fetchUserConversations(
-      currentUID,
-      preferCache: true,
-      cacheOnly: false,
-    );
-    final sortedDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
-      docs,
-    )..sort((a, b) {
-        final aTs = ((a.data()["lastMessageAt"] ?? 0) as num).toInt();
-        final bTs = ((b.data()["lastMessageAt"] ?? 0) as num).toInt();
-        return bTs.compareTo(aTs);
-      });
-    final snapDocs = sortedDocs.take(30).toList(growable: false);
-
     final items = <Map<String, String>>[];
-    final otherIds = <String>[];
-    for (final doc in snapDocs) {
-      if (doc.id == chatID) continue;
-      final participants = List<String>.from(doc.data()["participants"] ?? []);
-      final other = participants.firstWhereOrNull((v) => v != currentUID);
-      if (other == null || other.isEmpty) continue;
-      otherIds.add(other);
-    }
+    final cachedChats = (await _loadForwardCandidatesFromCache(currentUID))
+        .where((item) => item.chatID != chatID && item.userID.trim().isNotEmpty)
+        .take(30)
+        .toList(growable: false);
+    if (cachedChats.isNotEmpty) {
+      final unresolvedIds = cachedChats
+          .where((item) =>
+              item.nickname.trim().isEmpty && item.fullName.trim().isEmpty)
+          .map((item) => item.userID.trim())
+          .where((item) => item.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+      final userMap = unresolvedIds.isEmpty
+          ? <String, dynamic>{}
+          : await _userSummaryResolver.resolveMany(unresolvedIds);
+      for (final item in cachedChats) {
+        final cachedName = item.nickname.trim().isNotEmpty
+            ? item.nickname.trim()
+            : item.fullName.trim();
+        final fallbackName = userMap[item.userID]?.preferredName ?? '';
+        final displayName = cachedName.isNotEmpty ? cachedName : fallbackName;
+        if (displayName.isEmpty) continue;
+        items.add({
+          "chatID": item.chatID,
+          "userID": item.userID,
+          "nickname": displayName,
+        });
+      }
+    } else {
+      final docs = await _conversationRepository.fetchUserConversations(
+        currentUID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      final sortedDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+        docs,
+      )..sort((a, b) {
+          final aTs = ((a.data()["lastMessageAt"] ?? 0) as num).toInt();
+          final bTs = ((b.data()["lastMessageAt"] ?? 0) as num).toInt();
+          return bTs.compareTo(aTs);
+        });
+      final snapDocs = sortedDocs.take(30).toList(growable: false);
 
-    final userMap = await _userSummaryResolver.resolveMany(otherIds);
-    for (final doc in snapDocs) {
-      if (doc.id == chatID) continue;
-      final participants = List<String>.from(doc.data()["participants"] ?? []);
-      final other = participants.firstWhereOrNull((v) => v != currentUID);
-      if (other == null || other.isEmpty) continue;
-      final userData = userMap[other];
-      if (userData == null) continue;
-      items.add({
-        "chatID": doc.id,
-        "userID": other,
-        "nickname": userData.preferredName,
-      });
+      final otherIds = <String>[];
+      for (final doc in snapDocs) {
+        if (doc.id == chatID) continue;
+        final participants =
+            List<String>.from(doc.data()["participants"] ?? []);
+        final other = participants.firstWhereOrNull((v) => v != currentUID);
+        if (other == null || other.isEmpty) continue;
+        otherIds.add(other);
+      }
+
+      final userMap = await _userSummaryResolver.resolveMany(otherIds);
+      for (final doc in snapDocs) {
+        if (doc.id == chatID) continue;
+        final participants =
+            List<String>.from(doc.data()["participants"] ?? []);
+        final other = participants.firstWhereOrNull((v) => v != currentUID);
+        if (other == null || other.isEmpty) continue;
+        final userData = userMap[other];
+        if (userData == null) continue;
+        items.add({
+          "chatID": doc.id,
+          "userID": other,
+          "nickname": userData.preferredName,
+        });
+      }
     }
 
     if (items.isEmpty) {
