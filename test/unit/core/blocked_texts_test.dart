@@ -47,6 +47,19 @@ void main() {
     expect(await kufurKontrolEt('gavat'), isFalse);
     expect(await kufurKontrolEt('hure'), isFalse);
     expect(await kufurKontrolEt('şerefsiz'), isFalse);
+    expect(await kufurKontrolEt('manyak'), isFalse);
+    expect(await kufurKontrolEt('öl geber'), isFalse);
+  });
+
+  test('effective blocked list is deduplicated and filtered', () {
+    final lowered = kufurler.map((value) => value.toLowerCase()).toList();
+
+    expect(lowered.length, lowered.toSet().length);
+    expect(lowered.contains('aptal'), isFalse);
+    expect(lowered.contains('gavur'), isFalse);
+    expect(lowered.contains('manyak'), isFalse);
+    expect(lowered.contains('orospu'), isTrue);
+    expect(lowered.contains('hassiktir'), isTrue);
   });
 
   test('turkish suffix variations are detected', () async {
