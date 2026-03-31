@@ -615,7 +615,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       final safeRemaining =
                           remaining.isNegative ? Duration.zero : remaining;
                       return Positioned(
-                        top: 60,
+                        top: 62,
                         right: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
