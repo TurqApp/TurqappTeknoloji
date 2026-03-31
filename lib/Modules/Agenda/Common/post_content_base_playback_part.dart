@@ -478,109 +478,121 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     final showReplayButton = _replayButtonVisible;
     final showAdPanel = _replayAdVisible;
+    const headerClearance = 72.0;
+    final overlayColor = showAdPanel
+        ? Colors.transparent
+        : Colors.black.withValues(alpha: showReplayButton ? 0.28 : 0.18);
     return Positioned.fill(
       child: IgnorePointer(
         ignoring: false,
-        child: ColoredBox(
-          color: Colors.black.withValues(alpha: showReplayButton ? 0.28 : 0.18),
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 320),
-                child: AspectRatio(
-                  aspectRatio: 9 / 16,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (showAdPanel) ...[
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          children: [
+            const SizedBox(height: headerClearance),
+            Expanded(
+              child: ColoredBox(
+                color: overlayColor,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: AspectRatio(
+                        aspectRatio: 9 / 16,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              Container(
-                                width: 300,
-                                height: 250,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: AdmobKare(
-                                  showChrome: false,
-                                  onImpression: _onReplayAdImpression,
-                                ),
-                              ),
-                              if (showReplayButton) const SizedBox(height: 16),
-                              if (showReplayButton)
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () =>
-                                      unawaited(replayVideoFromStart()),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 30,
-                                      vertical: 17,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(34),
-                                    ),
-                                    child: const Text(
-                                      'Tekrar izle',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
+                              if (showAdPanel) ...[
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 300,
+                                      height: 250,
+                                      decoration: BoxDecoration(
                                         color: Colors.white,
-                                        fontSize: 18,
-                                        fontFamily: 'MontserratSemiBold',
-                                        height: 1.0,
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: AdmobKare(
+                                        showChrome: false,
+                                        onImpression: _onReplayAdImpression,
+                                      ),
+                                    ),
+                                    if (showReplayButton)
+                                      const SizedBox(height: 16),
+                                    if (showReplayButton)
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () =>
+                                            unawaited(replayVideoFromStart()),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 30,
+                                            vertical: 17,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black54,
+                                            borderRadius:
+                                                BorderRadius.circular(34),
+                                          ),
+                                          child: const Text(
+                                            'Tekrar izle',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontFamily: 'MontserratSemiBold',
+                                              height: 1.0,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                              if (showReplayButton && !showAdPanel)
+                                Center(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () =>
+                                        unawaited(replayVideoFromStart()),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 30,
+                                        vertical: 17,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius:
+                                            BorderRadius.circular(34),
+                                      ),
+                                      child: const Text(
+                                        'Tekrar izle',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontFamily: 'MontserratSemiBold',
+                                          height: 1.0,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                             ],
                           ),
-                          ColoredBox(
-                            color: Colors.black.withValues(alpha: 0.10),
-                          ),
-                        ],
-                        if (showReplayButton && !showAdPanel)
-                          Center(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => unawaited(replayVideoFromStart()),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 30,
-                                  vertical: 17,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(34),
-                                ),
-                                child: const Text(
-                                  'Tekrar izle',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontFamily: 'MontserratSemiBold',
-                                    height: 1.0,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
