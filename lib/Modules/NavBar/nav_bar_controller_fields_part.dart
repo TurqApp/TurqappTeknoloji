@@ -3,6 +3,7 @@ part of 'nav_bar_controller.dart';
 class _NavBarControllerState {
   final selectedIndex = 0.obs;
   final showBar = true.obs;
+  final mediaOverlayDepth = 0.obs;
   ShortController? shortCtrl;
   final fullText = 'TurqApp';
   late Rx<AnimationController> typingController;
@@ -33,6 +34,7 @@ class _NavBarControllerState {
 extension NavBarControllerFieldsPart on NavBarController {
   RxInt get selectedIndex => _state.selectedIndex;
   RxBool get showBar => _state.showBar;
+  RxInt get _mediaOverlayDepth => _state.mediaOverlayDepth;
   ShortController get shortCtrl => _state.shortCtrl ??= ensureShortController();
   String get fullText => _state.fullText;
   Rx<AnimationController> get typingController => _state.typingController;
@@ -87,4 +89,6 @@ extension NavBarControllerFieldsPart on NavBarController {
       _state.uploadIndicatorTimer = value;
   Timer? get _ratingPromptTimer => _state.ratingPromptTimer;
   set _ratingPromptTimer(Timer? value) => _state.ratingPromptTimer = value;
+
+  bool get mediaOverlayActive => _mediaOverlayDepth.value > 0;
 }

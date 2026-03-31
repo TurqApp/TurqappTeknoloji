@@ -24,4 +24,8 @@ extension NavBarControllerFacadePart on NavBarController {
   void suspendFeedForTabExit() => _suspendFeedForTabExitImpl();
 
   void resumeFeedIfNeeded() => _resumeFeedIfNeededImpl();
+
+  void pushMediaOverlayLock() => _pushMediaOverlayLockImpl();
+
+  void popMediaOverlayLock() => _popMediaOverlayLockImpl();
 }

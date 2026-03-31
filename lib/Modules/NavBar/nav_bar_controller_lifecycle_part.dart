@@ -213,9 +213,23 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   }
 
   void _resumeFeedIfNeededImpl() {
+    if (mediaOverlayActive) return;
     try {
       maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     } catch (_) {}
+  }
+
+  void _pushMediaOverlayLockImpl() {
+    _mediaOverlayDepth.value = _mediaOverlayDepth.value + 1;
+    _suspendFeedForTabExitImpl();
+    _pauseGlobalTabMediaImpl();
+  }
+
+  void _popMediaOverlayLockImpl() {
+    final next = _mediaOverlayDepth.value - 1;
+    _mediaOverlayDepth.value = next < 0 ? 0 : next;
+    if (mediaOverlayActive) return;
+    _resumeFeedIfNeededImpl();
   }
 
   void _primeVisibleSurfaceAfterTabChangeImpl({

@@ -79,6 +79,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _initializeSingleShortView() {
+    try {
+      maybeFindNavBarController()?.pushMediaOverlayLock();
+    } catch (_) {}
     final hasInjectedPlayingController = widget.injectedController != null &&
         !widget.injectedController!.isDisposed &&
         widget.injectedController!.value.isInitialized;
@@ -188,6 +191,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     _fullscreenPlaybackGuardTimer = null;
     _fullscreenReturnPreservedController = null;
     _clearAllControllers();
+    try {
+      maybeFindNavBarController()?.popMediaOverlayLock();
+    } catch (_) {}
     try {
       _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}

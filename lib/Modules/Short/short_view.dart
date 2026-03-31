@@ -269,6 +269,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     unawaited(
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
     try {
+      maybeFindNavBarController()?.pushMediaOverlayLock();
       maybeFindNavBarController()?.suspendFeedForTabExit();
       maybeFindNavBarController()?.pauseGlobalTabMedia();
     } catch (_) {}
@@ -361,10 +362,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
           .endSession(_cachedShorts[currentPage].docID);
     }
     try {
+      maybeFindNavBarController()?.popMediaOverlayLock();
       _playbackRuntimeService.exitExclusiveMode();
-    } catch (_) {}
-    try {
-      maybeFindNavBarController()?.resumeFeedIfNeeded();
     } catch (_) {}
 
     super.dispose();

@@ -23,6 +23,7 @@ import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Themes/app_tokens.dart';
 import 'short_content.dart';
+import '../NavBar/nav_bar_controller.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
 import '../PlaybackRuntime/playback_cache_runtime_service.dart';
 
