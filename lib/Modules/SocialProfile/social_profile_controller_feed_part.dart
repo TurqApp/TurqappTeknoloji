@@ -117,6 +117,7 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
           all: allPosts,
           photos: photos,
           videos: allPosts.where((post) => post.hasPlayableVideo).toList(),
+          reshares: const <PostsModel>[],
           scheduled: scheduledPosts,
         ),
       );

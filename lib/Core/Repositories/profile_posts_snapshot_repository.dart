@@ -10,6 +10,7 @@ class ProfilePostsSnapshotRepository extends GetxService {
   static const String _surfaceKey = 'profile_posts_snapshot';
   static const int _defaultScopeLimit =
       ReadBudgetRegistry.profilePostsInitialLimit;
+  static const int _secondaryBucketLimit = 10;
 
   static ProfilePostsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfilePostsSnapshotRepository>();
@@ -67,6 +68,7 @@ class _ProfilePostsSnapshotRepositoryState {
           buckets.all.isEmpty &&
           buckets.photos.isEmpty &&
           buckets.videos.isEmpty &&
+          buckets.reshares.isEmpty &&
           buckets.scheduled.isEmpty,
       liveSource: CachedResourceSource.server,
       schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
@@ -197,11 +199,16 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
       limit,
     );
+    final secondaryLimit =
+        effectiveLimit < ProfilePostsSnapshotRepository._secondaryBucketLimit
+            ? effectiveLimit
+            : ProfilePostsSnapshotRepository._secondaryBucketLimit;
     final normalized = ProfileBuckets(
       all: buckets.all.take(effectiveLimit).toList(growable: false),
-      photos: buckets.photos.take(effectiveLimit).toList(growable: false),
-      videos: buckets.videos.take(effectiveLimit).toList(growable: false),
-      scheduled: buckets.scheduled.take(effectiveLimit).toList(growable: false),
+      photos: buckets.photos.take(secondaryLimit).toList(growable: false),
+      videos: buckets.videos.take(secondaryLimit).toList(growable: false),
+      reshares: buckets.reshares.take(secondaryLimit).toList(growable: false),
+      scheduled: buckets.scheduled.take(secondaryLimit).toList(growable: false),
     );
     final key = _localScopeKey(
       userId: normalizedUserId,
@@ -210,6 +217,7 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     final isEmptyBuckets = normalized.all.isEmpty &&
         normalized.photos.isEmpty &&
         normalized.videos.isEmpty &&
+        normalized.reshares.isEmpty &&
         normalized.scheduled.isEmpty;
     if (isEmptyBuckets) {
       await Future.wait(<Future<void>>[
@@ -259,6 +267,9 @@ extension ProfilePostsSnapshotRepositoryFacadePart
             .where((post) => post.docID != normalizedDocId)
             .toList(growable: false),
         videos: existing.videos
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        reshares: existing.reshares
             .where((post) => post.docID != normalizedDocId)
             .toList(growable: false),
         scheduled: existing.scheduled

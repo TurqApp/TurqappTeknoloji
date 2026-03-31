@@ -17,6 +17,7 @@ extension ProfileControllerCachePart on ProfileController {
         all: allPosts,
         photos: photos,
         videos: videos,
+        reshares: reshares,
         scheduled: scheduledPosts,
       ),
       limit: postLimit,
@@ -61,6 +62,7 @@ extension ProfileControllerCachePart on ProfileController {
     collectFrom(allPosts);
     collectFrom(photos);
     collectFrom(videos);
+    collectFrom(reshares);
     collectFrom(scheduledPosts);
 
     for (final url in urls.where((e) => e.isNotEmpty).take(32)) {
@@ -114,12 +116,14 @@ extension ProfileControllerCachePart on ProfileController {
     if (buckets.all.isEmpty &&
         buckets.photos.isEmpty &&
         buckets.videos.isEmpty &&
+        buckets.reshares.isEmpty &&
         buckets.scheduled.isEmpty) {
       return false;
     }
     if (buckets.all.isNotEmpty) allPosts.assignAll(buckets.all);
     if (buckets.photos.isNotEmpty) photos.assignAll(buckets.photos);
     if (buckets.videos.isNotEmpty) videos.assignAll(buckets.videos);
+    if (buckets.reshares.isNotEmpty) reshares.assignAll(buckets.reshares);
     if (buckets.scheduled.isNotEmpty) {
       scheduledPosts.assignAll(buckets.scheduled);
     }

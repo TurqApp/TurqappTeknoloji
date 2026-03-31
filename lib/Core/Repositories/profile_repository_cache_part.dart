@@ -161,6 +161,7 @@ extension ProfileRepositoryCachePart on ProfileRepository {
       all: List<PostsModel>.from(buckets.all),
       photos: List<PostsModel>.from(buckets.photos),
       videos: List<PostsModel>.from(buckets.videos),
+      reshares: List<PostsModel>.from(buckets.reshares),
       scheduled: List<PostsModel>.from(buckets.scheduled),
     );
     await ProfilePostsSnapshotRepository.ensure().writeLocalBuckets(
@@ -182,6 +183,8 @@ extension ProfileRepositoryCachePart on ProfileRepository {
         all: buckets.all.where((post) => post.docID != docId).toList(),
         photos: buckets.photos.where((post) => post.docID != docId).toList(),
         videos: buckets.videos.where((post) => post.docID != docId).toList(),
+        reshares:
+            buckets.reshares.where((post) => post.docID != docId).toList(),
         scheduled:
             buckets.scheduled.where((post) => post.docID != docId).toList(),
       );

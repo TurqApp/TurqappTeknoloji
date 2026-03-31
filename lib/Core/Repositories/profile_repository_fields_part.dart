@@ -23,12 +23,14 @@ class ProfileBuckets {
     required this.all,
     required this.photos,
     required this.videos,
+    required this.reshares,
     required this.scheduled,
   });
 
   final List<PostsModel> all;
   final List<PostsModel> photos;
   final List<PostsModel> videos;
+  final List<PostsModel> reshares;
   final List<PostsModel> scheduled;
 }
 
@@ -37,6 +39,7 @@ class ProfilePageResult extends ProfileBuckets {
     required super.all,
     required super.photos,
     required super.videos,
+    required super.reshares,
     required super.scheduled,
     required this.lastDoc,
     required this.hasMore,

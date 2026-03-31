@@ -122,7 +122,7 @@ class SurfacePolicyRegistry {
 
   static const int marketStartupShardLimit = 8;
   static const int jobStartupShardLimit = 8;
-  static const int profileStartupShardLimit = 6;
+  static const int profileStartupShardLimit = 10;
   static const int exploreStartupTagsShardLimit = 18;
   static const int exploreStartupPostsShardLimit = 8;
   static const int exploreStartupShardLimit = 26;
@@ -152,7 +152,7 @@ class SurfacePolicyRegistry {
   static const int segmentCacheSoftLimitMb = 700;
   static const int segmentCacheHardLimitMb = 900;
   static const int segmentCacheRecentProtectCount = 3;
-  static const int profilePostsInitialLimit = 24;
+  static const int profilePostsInitialLimit = 20;
 
   static const int startupListingWarmLimitOnWiFi = 14;
   static const int startupListingWarmLimitOnCellular = 8;

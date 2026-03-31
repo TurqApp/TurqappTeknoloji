@@ -11,6 +11,7 @@ extension ProfilePostsSnapshotRepositoryCodecPart
       all: page.all,
       photos: page.photos,
       videos: page.videos,
+      reshares: page.reshares,
       scheduled: page.scheduled,
     );
   }
@@ -40,6 +41,7 @@ extension ProfilePostsSnapshotRepositoryCodecPart
       'all': encodePosts(buckets.all),
       'photos': encodePosts(buckets.photos),
       'videos': encodePosts(buckets.videos),
+      'reshares': encodePosts(buckets.reshares),
       'scheduled': encodePosts(buckets.scheduled),
     };
   }
@@ -73,6 +75,7 @@ extension ProfilePostsSnapshotRepositoryCodecPart
       all: decodePosts(json['all']),
       photos: decodePosts(json['photos']),
       videos: decodePosts(json['videos']),
+      reshares: decodePosts(json['reshares']),
       scheduled: decodePosts(json['scheduled']),
     );
   }

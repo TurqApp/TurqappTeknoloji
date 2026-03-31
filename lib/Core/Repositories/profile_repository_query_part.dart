@@ -99,6 +99,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       all: buckets.all,
       photos: buckets.photos,
       videos: buckets.videos,
+      reshares: buckets.reshares,
       scheduled: buckets.scheduled,
       lastDoc: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
       hasMore: snapshot.docs.length >= limit,
@@ -244,6 +245,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       all: all,
       photos: photos,
       videos: videos,
+      reshares: const <PostsModel>[],
       scheduled: scheduled,
     );
   }
