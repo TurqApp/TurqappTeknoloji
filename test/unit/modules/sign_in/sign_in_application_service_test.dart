@@ -7,7 +7,7 @@ import 'package:turqappv2/Services/account_session_vault.dart';
 
 void main() {
   group('SignInApplicationService', () {
-    const passwordAccount = StoredAccount(
+    final passwordAccount = StoredAccount(
       uid: 'user-1',
       email: '',
       username: 'osman',

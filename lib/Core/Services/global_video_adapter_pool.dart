@@ -13,6 +13,11 @@ part 'global_video_adapter_pool_runtime_part.dart';
 const int _globalVideoAdapterPoolMaxWarmAdapters = 10;
 
 class GlobalVideoAdapterPool extends GetxService {
+  static GlobalVideoAdapterPool ensure() => ensureGlobalVideoAdapterPool();
+
+  static GlobalVideoAdapterPool? maybeFind() =>
+      maybeFindGlobalVideoAdapterPool();
+
   final _state = _GlobalVideoAdapterPoolState();
 
   @override

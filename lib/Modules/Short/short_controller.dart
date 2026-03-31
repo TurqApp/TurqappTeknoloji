@@ -54,6 +54,10 @@ abstract class _ShortControllerBase extends GetxController {
 /// range bazlı (±7 etrafında) preload & prune desteği sunan controller
 /// + AKILLI DİNAMİK KARIŞTIRMA SİSTEMİ
 class ShortController extends _ShortControllerBase {
+  static ShortController ensure() => ensureShortController();
+
+  static ShortController? maybeFind() => maybeFindShortController();
+
   void _log(String message) => _ShortControllerRuntimeX(this).log(message);
 
   bool _isEligibleShortPost(PostsModel post) =>

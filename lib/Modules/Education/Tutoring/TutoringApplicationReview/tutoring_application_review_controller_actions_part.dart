@@ -2,7 +2,7 @@ part of 'tutoring_application_review_controller.dart';
 
 extension _TutoringApplicationReviewControllerActionsX
     on TutoringApplicationReviewController {
-  Future<void> loadApplicants() async {
+  Future<void> _loadApplicants() async {
     isLoading.value = true;
     try {
       applicants.value = await _tutoringRepository.fetchApplications(
@@ -15,7 +15,7 @@ extension _TutoringApplicationReviewControllerActionsX
     }
   }
 
-  Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
+  Future<Map<String, dynamic>?> _getApplicantProfile(String userID) async {
     try {
       final summary = await _userSummaryResolver.resolve(
         userID,
@@ -26,7 +26,7 @@ extension _TutoringApplicationReviewControllerActionsX
     return null;
   }
 
-  Future<void> updateStatus(String userID, String newStatus) async {
+  Future<void> _updateStatus(String userID, String newStatus) async {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
       await _tutoringRepository.updateApplicationStatus(

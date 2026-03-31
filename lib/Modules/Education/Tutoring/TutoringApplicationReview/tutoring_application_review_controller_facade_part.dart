@@ -1,7 +1,7 @@
 part of 'tutoring_application_review_controller.dart';
 
 class TutoringApplicationReviewController extends GetxController {
-  final _state;
+  final _TutoringApplicationReviewControllerState _state;
 
   TutoringApplicationReviewController({required String tutoringDocID})
       : _state = _buildTutoringApplicationReviewState(tutoringDocID);
@@ -9,7 +9,7 @@ class TutoringApplicationReviewController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadApplicants();
+    _TutoringApplicationReviewControllerActionsX(this)._loadApplicants();
   }
 }
 
@@ -40,13 +40,13 @@ TutoringApplicationReviewController?
 extension TutoringApplicationReviewControllerFacadePart
     on TutoringApplicationReviewController {
   Future<void> loadApplicants() =>
-      _TutoringApplicationReviewControllerActionsX(this).loadApplicants();
+      _TutoringApplicationReviewControllerActionsX(this)._loadApplicants();
 
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) =>
       _TutoringApplicationReviewControllerActionsX(this)
-          .getApplicantProfile(userID);
+          ._getApplicantProfile(userID);
 
   Future<void> updateStatus(String userID, String newStatus) =>
       _TutoringApplicationReviewControllerActionsX(this)
-          .updateStatus(userID, newStatus);
+          ._updateStatus(userID, newStatus);
 }

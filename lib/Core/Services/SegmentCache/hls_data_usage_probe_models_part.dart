@@ -39,7 +39,7 @@ class HlsTransferEvent {
 }
 
 class HlsDocUsageSummary {
-  HlsDocUsageSummary({
+  const HlsDocUsageSummary({
     required this.docId,
     required this.downloadedBytes,
     required this.cacheServedBytes,
@@ -47,13 +47,13 @@ class HlsDocUsageSummary {
     required this.repeatedSegmentDownloads,
     required this.playlistDownloads,
     required this.playlistCacheHits,
-    required List<String> variantKeys,
+    required this.variantKeys,
     required this.avgSegmentDurationSec,
     required this.maxSegmentDurationSec,
     required this.minSegmentDurationSec,
     required this.avgSegmentSizeKb,
     required this.maxSegmentSizeKb,
-  }) : variantKeys = List<String>.from(variantKeys, growable: false);
+  });
 
   final String docId;
   final int downloadedBytes;

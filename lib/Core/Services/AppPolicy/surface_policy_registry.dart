@@ -146,6 +146,13 @@ class SurfacePolicyRegistry {
   static const int minGlobalCachedVideos = 40;
   static const int mobileInitialSegments = 2;
   static const int mobileAheadSegments = 3;
+  static const int segmentPrefetchBreadthCount = 4;
+  static const int segmentPrefetchDepthCount = 2;
+  static const int segmentPrefetchMaxConcurrent = 2;
+  static const int segmentCacheSoftLimitMb = 700;
+  static const int segmentCacheHardLimitMb = 900;
+  static const int segmentCacheRecentProtectCount = 3;
+  static const int profilePostsInitialLimit = 24;
 
   static const int startupListingWarmLimitOnWiFi = 14;
   static const int startupListingWarmLimitOnCellular = 8;

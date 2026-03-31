@@ -22,8 +22,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   int get _breadthCount {
-    final base =
-        _remote?.prefetchBreadthCount ?? _prefetchSchedulerFallbackBreadthCount;
+    final base = ReadBudgetRegistry.segmentPrefetchBreadthCount;
     return _isOnWiFi
         ? base < _prefetchSchedulerWifiMinBreadthCount
             ? _prefetchSchedulerWifiMinBreadthCount
@@ -32,8 +31,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   int get _depthCount {
-    final base =
-        _remote?.prefetchDepthCount ?? _prefetchSchedulerFallbackDepthCount;
+    final base = ReadBudgetRegistry.segmentPrefetchDepthCount;
     return _isOnWiFi
         ? base < _prefetchSchedulerWifiMinDepthCount
             ? _prefetchSchedulerWifiMinDepthCount
@@ -43,8 +41,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   int get _maxConcurrent {
     if (_mobileSeedMode) return 1;
-    final base = _remote?.prefetchMaxConcurrent ??
-        _prefetchSchedulerFallbackMaxConcurrent;
+    final base = ReadBudgetRegistry.segmentPrefetchMaxConcurrent;
     return _isOnWiFi
         ? base < _prefetchSchedulerWifiMinMaxConcurrent
             ? _prefetchSchedulerWifiMinMaxConcurrent
@@ -65,8 +62,6 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
           ? _prefetchSchedulerWifiMinFeedPrepWindow
           : _prefetchSchedulerFallbackFeedPrepWindow)
       : _prefetchSchedulerFallbackFeedPrepWindow;
-
-  VideoRemoteConfigService? get _remote => maybeFindVideoRemoteConfigService();
 
   SegmentCacheManager? _getCacheManager() {
     final cache = SegmentCacheManager.maybeFind();

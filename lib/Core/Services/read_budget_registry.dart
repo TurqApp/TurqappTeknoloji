@@ -277,6 +277,27 @@ class ReadBudgetRegistry {
         SurfacePolicyRegistry.mobileAheadSegments,
       );
 
+  static const int segmentPrefetchBreadthCount =
+      SurfacePolicyRegistry.segmentPrefetchBreadthCount;
+
+  static const int segmentPrefetchDepthCount =
+      SurfacePolicyRegistry.segmentPrefetchDepthCount;
+
+  static const int segmentPrefetchMaxConcurrent =
+      SurfacePolicyRegistry.segmentPrefetchMaxConcurrent;
+
+  static const int segmentCacheSoftLimitMb =
+      SurfacePolicyRegistry.segmentCacheSoftLimitMb;
+
+  static const int segmentCacheHardLimitMb =
+      SurfacePolicyRegistry.segmentCacheHardLimitMb;
+
+  static const int segmentCacheRecentProtectCount =
+      SurfacePolicyRegistry.segmentCacheRecentProtectCount;
+
+  static const int profilePostsInitialLimit =
+      SurfacePolicyRegistry.profilePostsInitialLimit;
+
   static int resolveFeedHomeInitialLimit(int value) => _resolveConfiguredValue(
         value,
         defaultValue: feedHomeInitialLimit,
@@ -426,6 +447,12 @@ class ReadBudgetRegistry {
         SurfacePolicyOverrideKeys.startupFeedPrefetchDocLimit,
         SurfacePolicyRegistry.startupFeedPrefetchDocLimit,
       );
+
+  static int get segmentCacheSoftLimitBytes =>
+      segmentCacheSoftLimitMb * 1024 * 1024;
+
+  static int get segmentCacheHardLimitBytes =>
+      segmentCacheHardLimitMb * 1024 * 1024;
 
   static int startupUserMetaFeedTake({required bool onWiFi}) =>
       SurfacePolicyRegistry.startupUserMetaFeedTake(onWiFi: onWiFi);

@@ -50,4 +50,28 @@ extension ExploreControllerPublicPart on ExploreController {
       _ExploreControllerSupportX(this).resolveFloodSeriesFocusIndex();
 
   void goToPage(int index) => _handleGoToPage(index);
+
+  Future<void> invalidateViewerScopedContent({
+    required String viewerUserId,
+  }) async {
+    followingIDs.clear();
+    explorePosts.clear();
+    exploreVideos.clear();
+    explorePhotos.clear();
+    exploreFloods.clear();
+    lastExploreDoc = null;
+    lastVideoDoc = null;
+    lastPhotoDoc = null;
+    lastFloodsDoc = null;
+    exploreHasMore.value = true;
+    videoHasMore.value = true;
+    photoHasMore.value = true;
+    floodsHasMore.value = true;
+    _exploreEmptyScans = 0;
+    _videoEmptyScans = 0;
+    _photoEmptyScans = 0;
+    _floodsEmptyScans = 0;
+    if (viewerUserId.trim().isEmpty) return;
+    await _performFetchFollowingIDs(viewerUserId.trim());
+  }
 }

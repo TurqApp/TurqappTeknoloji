@@ -23,6 +23,6 @@ abstract class _PostControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handlePostControllerInit(this);
+    _handlePostControllerInit(this as PostController);
   }
 }

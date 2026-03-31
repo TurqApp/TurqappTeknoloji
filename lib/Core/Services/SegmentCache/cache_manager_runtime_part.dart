@@ -27,16 +27,12 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   int get softLimitBytes => _softLimitBytes;
   int get hardLimitBytes => _hardLimitBytes;
   int get _softLimitBytes =>
-      _userSoftLimitBytes ??
-      _remote?.cacheSoftLimitBytes ??
-      CacheIndex.softLimitBytes;
+      _userSoftLimitBytes ?? ReadBudgetRegistry.segmentCacheSoftLimitBytes;
   int get _hardLimitBytes =>
-      _userHardLimitBytes ??
-      _remote?.cacheHardLimitBytes ??
-      CacheIndex.maxSizeBytes;
+      _userHardLimitBytes ?? ReadBudgetRegistry.segmentCacheHardLimitBytes;
 
   int get _recentPlayCount {
-    final remoteFloor = _remote?.cacheRecentProtectCount ?? 3;
+    final remoteFloor = ReadBudgetRegistry.segmentCacheRecentProtectCount;
     final budgetManager = StorageBudgetManager.maybeFind();
     if (budgetManager == null) return remoteFloor;
     return budgetManager.recentProtectionWindow(
@@ -44,8 +40,6 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
       remoteFloor: remoteFloor,
     );
   }
-
-  VideoRemoteConfigService? get _remote => maybeFindVideoRemoteConfigService();
 
   File? getSegmentFile(String docID, String segmentKey) {
     final entry = _index.entries[docID];

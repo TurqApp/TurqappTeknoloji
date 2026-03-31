@@ -6,12 +6,12 @@ abstract class _TestsControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _handleControllerInit();
+    (this as TestsController)._handleControllerInit();
   }
 
   @override
   void onClose() {
-    _handleControllerClose();
+    (this as TestsController)._handleControllerClose();
     super.onClose();
   }
 }

@@ -6,9 +6,6 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
   'Referer': '$_prefetchSchedulerCdnOrigin/',
 };
 const int _prefetchSchedulerTargetReadySegments = 2;
-const int _prefetchSchedulerFallbackBreadthCount = 5;
-const int _prefetchSchedulerFallbackDepthCount = 3;
-const int _prefetchSchedulerFallbackMaxConcurrent = 2;
 const int _prefetchSchedulerFallbackFeedFullWindow = 15;
 const int _prefetchSchedulerFallbackFeedPrepWindow = 8;
 const int _prefetchSchedulerWifiMinBreadthCount = 12;

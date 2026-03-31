@@ -65,7 +65,7 @@ void main() {
       (
     tester,
   ) async {
-    const account = StoredAccount(
+    final account = StoredAccount(
       uid: 'stored-1',
       email: 'osman@example.com',
       username: 'osman',

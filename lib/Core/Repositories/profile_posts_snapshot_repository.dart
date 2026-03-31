@@ -1,13 +1,15 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 part 'profile_posts_snapshot_repository_codec_part.dart';
 
 class ProfilePostsSnapshotRepository extends GetxService {
   static const String _surfaceKey = 'profile_posts_snapshot';
-  static const int _defaultScopeLimit = 24;
+  static const int _defaultScopeLimit =
+      ReadBudgetRegistry.profilePostsInitialLimit;
 
   static ProfilePostsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfilePostsSnapshotRepository>();
@@ -90,7 +92,7 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     on ProfilePostsSnapshotRepository {
   Stream<CachedResource<ProfileBuckets>> openProfile({
     required String userId,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     bool forceSync = false,
   }) {
     return _pipeline.open(
@@ -104,7 +106,7 @@ extension ProfilePostsSnapshotRepositoryFacadePart
 
   Future<CachedResource<ProfileBuckets>> loadProfile({
     required String userId,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     bool forceSync = false,
   }) {
     return openProfile(
@@ -116,7 +118,7 @@ extension ProfilePostsSnapshotRepositoryFacadePart
 
   Future<CachedResource<ProfileBuckets>> bootstrapProfile({
     required String userId,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
   }) {
     final query = ProfilePostsSnapshotQuery(
       userId: userId,
