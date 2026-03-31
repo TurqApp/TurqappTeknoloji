@@ -62,7 +62,10 @@ class CacheInvalidationEvent {
     required String userId,
     bool rollbackLike = false,
     bool rollbackSaved = false,
+    bool rollbackComment = false,
+    String commentId = '',
   }) {
+    final normalizedCommentId = commentId.trim();
     return CacheInvalidationEvent(
       type: CacheInvalidationEventType.postInteractionRollback,
       scopeId: postId.trim(),
@@ -71,6 +74,8 @@ class CacheInvalidationEvent {
       payload: <String, Object?>{
         'rollbackLike': rollbackLike,
         'rollbackSaved': rollbackSaved,
+        'rollbackComment': rollbackComment,
+        if (normalizedCommentId.isNotEmpty) 'commentId': normalizedCommentId,
       },
     );
   }

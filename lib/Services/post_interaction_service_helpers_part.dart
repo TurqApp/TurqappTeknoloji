@@ -14,6 +14,18 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
     return uid.isEmpty ? null : uid;
   }
 
+  Future<String?> _resolveCurrentUserId({
+    bool waitForAuthState = true,
+  }) async {
+    final cached = currentUserID;
+    if (cached != null) return cached;
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: waitForAuthState,
+    );
+    final normalized = (ensured ?? '').trim();
+    return normalized.isEmpty ? null : normalized;
+  }
+
   bool get _isOffline =>
       !(maybeFindOfflineModeService()?.isOnline.value ?? true);
 
@@ -180,10 +192,12 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
     if (postId.isEmpty) return;
     final rollbackLike = event.payload['rollbackLike'] == true;
     final rollbackSaved = event.payload['rollbackSaved'] == true;
+    final rollbackComment = event.payload['rollbackComment'] == true;
     _updateInteractionCache(
       postId,
       like: rollbackLike ? false : null,
       saved: rollbackSaved ? false : null,
+      comment: rollbackComment ? false : null,
     );
   }
 
@@ -206,6 +220,7 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
     if (saved != null) updated['saved'] = saved;
     if (reshared != null) updated['reshared'] = reshared;
     if (reported != null) updated['reported'] = reported;
+    if (comment != null) updated['commented'] = comment;
     _interactionStatusCache[key] =
         _InteractionCacheEntry(status: updated, fetchedAt: DateTime.now());
   }

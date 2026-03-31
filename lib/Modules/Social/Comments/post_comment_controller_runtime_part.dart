@@ -2,6 +2,7 @@ part of 'post_comment_controller_library.dart';
 
 void _handlePostCommentControllerInit(PostCommentController controller) {
   _bindPostComments(controller);
+  _bindPostCommentInvalidation(controller);
   unawaited(_loadPostOwnerNickname(controller));
 }
 
@@ -33,6 +34,23 @@ void _bindPostComments(PostCommentController controller) {
   });
 }
 
+void _bindPostCommentInvalidation(PostCommentController controller) {
+  controller._invalidationSub?.cancel();
+  controller._invalidationSub = CacheInvalidationService.ensure()
+      .watchType(CacheInvalidationEventType.postInteractionRollback)
+      .listen((event) {
+    if (event.scopeId.trim() != controller.postID.trim()) return;
+    final currentUid = controller.userService.effectiveUserId.trim();
+    if (currentUid.isEmpty || event.actorUserId.trim() != currentUid) return;
+    if (event.payload['rollbackComment'] != true) return;
+    final commentId = (event.payload['commentId'] ?? '').toString().trim();
+    if (commentId.isEmpty) return;
+    controller.pendingCommentIds.remove(commentId);
+    controller._pendingLocalComments.remove(commentId);
+    controller.list.removeWhere((comment) => comment.docID == commentId);
+  });
+}
+
 Future<void> _loadPostOwnerNickname(PostCommentController controller) async {
   try {
     final data = await controller._userSummaryResolver.resolve(
@@ -50,4 +68,5 @@ Future<void> _loadPostOwnerNickname(PostCommentController controller) async {
 
 void _handlePostCommentControllerClose(PostCommentController controller) {
   controller._commentSub?.cancel();
+  controller._invalidationSub?.cancel();
 }

@@ -29,6 +29,7 @@ class _PostCommentControllerState {
   final lastDeletedCommentText = ''.obs;
   final pendingLocalComments = <String, PostCommentModel>{};
   StreamSubscription<List<PostCommentModel>>? commentSub;
+  StreamSubscription<CacheInvalidationEvent>? invalidationSub;
 }
 
 extension PostCommentControllerFieldsPart on PostCommentController {
@@ -59,4 +60,8 @@ extension PostCommentControllerFieldsPart on PostCommentController {
       _state.commentSub;
   set _commentSub(StreamSubscription<List<PostCommentModel>>? value) =>
       _state.commentSub = value;
+  StreamSubscription<CacheInvalidationEvent>? get _invalidationSub =>
+      _state.invalidationSub;
+  set _invalidationSub(StreamSubscription<CacheInvalidationEvent>? value) =>
+      _state.invalidationSub = value;
 }

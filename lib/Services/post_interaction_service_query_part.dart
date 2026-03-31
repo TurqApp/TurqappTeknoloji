@@ -61,12 +61,20 @@ extension PostInteractionServiceQueryPart on PostInteractionService {
           preferCache: true,
           forceRefresh: false,
         ),
+        _userSubcollectionRepository.getEntry(
+          userId,
+          subcollection: 'commented_posts',
+          docId: postId,
+          preferCache: true,
+          forceRefresh: false,
+        ),
       ]);
 
       final status = <String, bool>{
         'liked': futures[0] != null,
         'saved': futures[1] != null,
         'reshared': futures[2] != null,
+        'commented': futures[3] != null,
         'reported': _reportedByMe.contains(postId),
       };
 
@@ -150,5 +158,6 @@ const Map<String, bool> _emptyInteractionStatus = {
   'liked': false,
   'saved': false,
   'reshared': false,
+  'commented': false,
   'reported': false,
 };

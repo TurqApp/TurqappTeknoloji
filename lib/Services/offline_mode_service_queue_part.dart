@@ -203,7 +203,8 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
     final rollbackLike =
         action.type == 'like_post' || action.type == 'set_like_post';
     final rollbackSaved = action.type == 'set_save_post';
-    if (!rollbackLike && !rollbackSaved) return;
+    final rollbackComment = action.type == 'add_comment_post';
+    if (!rollbackLike && !rollbackSaved && !rollbackComment) return;
 
     CacheInvalidationService.ensure().publish(
       CacheInvalidationEvent.postInteractionRollback(
@@ -211,6 +212,10 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
         userId: userId,
         rollbackLike: rollbackLike,
         rollbackSaved: rollbackSaved,
+        rollbackComment: rollbackComment,
+        commentId: rollbackComment
+            ? (action.data['clientCommentId'] ?? '').toString()
+            : '',
       ),
     );
   }

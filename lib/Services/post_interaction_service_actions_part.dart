@@ -3,8 +3,10 @@ part of 'post_interaction_service.dart';
 extension PostInteractionServiceActionsPart on PostInteractionService {
   /// Post'u beğenir veya beğeniyi kaldırır. İşlem sonucunu döndürür.
   Future<bool> toggleLike(String postId) async {
-    final userId = currentUserID;
-    if (userId == null) return false;
+    final userId = await _resolveCurrentUserId();
+    if (userId == null) {
+      throw StateError('auth_not_ready');
+    }
 
     if (_isOffline) {
       final currentLiked = await _isLikedFromLocal(postId, userId);
@@ -76,7 +78,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
       return null;
     }
-    final userId = currentUserID;
+    final userId = await _resolveCurrentUserId();
     if (userId == null) return null;
     final safeImgs = imgs ?? const <String>[];
     final safeVideos = videos ?? const <String>[];
@@ -153,7 +155,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
       return null;
     }
-    final userId = currentUserID;
+    final userId = await _resolveCurrentUserId();
     if (userId == null) return null;
     final safeImgs = imgs ?? const <String>[];
     final safeVideos = videos ?? const <String>[];
@@ -310,7 +312,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
 
   /// Yorum beğenisini aç/kapa yapar.
   Future<void> toggleCommentLike(String postId, String commentId) async {
-    final userId = currentUserID;
+    final userId = await _resolveCurrentUserId();
     if (userId == null) return;
 
     final commentRef = _postRef(postId).collection('comments').doc(commentId);
@@ -320,7 +322,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   /// Alt yorum beğenisini aç/kapa yapar.
   Future<void> toggleSubCommentLike(
       String postId, String commentId, String subCommentId) async {
-    final userId = currentUserID;
+    final userId = await _resolveCurrentUserId();
     if (userId == null) return;
 
     final subCommentRef = _postRef(postId)
@@ -339,8 +341,10 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.savePost)) {
       return false;
     }
-    final userId = currentUserID;
-    if (userId == null) return false;
+    final userId = await _resolveCurrentUserId();
+    if (userId == null) {
+      throw StateError('auth_not_ready');
+    }
 
     if (_isOffline) {
       final currentSaved = await _isSavedFromLocal(postId, userId);
@@ -399,8 +403,10 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   // ---------------------------------------------------------------------------
 
   Future<bool> toggleReshare(String postId) async {
-    final userId = currentUserID;
-    if (userId == null) return false;
+    final userId = await _resolveCurrentUserId();
+    if (userId == null) {
+      throw StateError('auth_not_ready');
+    }
 
     final postRef = _postRef(postId);
     final reshareDocRef = postRef.collection('reshares').doc(userId);

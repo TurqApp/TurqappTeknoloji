@@ -214,15 +214,16 @@ extension PendingActionExecutionPart on PendingAction {
     final postId = data['postId'] as String?;
     final userId = data['userId'] as String?;
     final text = (data['text'] ?? '').toString();
-    if (postId == null || userId == null || text.trim().isEmpty) {
-      return PendingActionExecutionResult.skipped('invalid_comment_payload');
-    }
-
     final imgs = (data['imgs'] as List?)?.map((e) => e.toString()).toList() ??
         const <String>[];
     final videos =
         (data['videos'] as List?)?.map((e) => e.toString()).toList() ??
             const <String>[];
+    if (postId == null ||
+        userId == null ||
+        (text.trim().isEmpty && imgs.isEmpty && videos.isEmpty)) {
+      return PendingActionExecutionResult.skipped('invalid_comment_payload');
+    }
     final firestore = FirebaseFirestore.instance;
     final postRef = firestore.collection('Posts').doc(postId);
     final commentIdRaw = (data['clientCommentId'] ?? '').toString().trim();

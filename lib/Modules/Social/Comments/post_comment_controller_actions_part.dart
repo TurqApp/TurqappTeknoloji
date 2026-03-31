@@ -28,12 +28,23 @@ extension PostCommentControllerActions on PostCommentController {
         trimmed,
         imgs: gifUrl.isEmpty ? null : <String>[gifUrl],
       );
+      if (commentId == null) {
+        AppSnackbar('common.error'.tr, 'post_controller.reply_add_failed'.tr);
+        return;
+      }
     } else {
       commentId = await _interactionService.addComment(
         postID,
         trimmed,
         imgs: gifUrl.isEmpty ? null : <String>[gifUrl],
       );
+      if (commentId == null) {
+        AppSnackbar(
+          'common.error'.tr,
+          'post_controller.comment_add_failed'.tr,
+        );
+        return;
+      }
       if (commentId != null && commentId.startsWith('offline_')) {
         final currentUid = userService.effectiveUserId;
         if (currentUid.isNotEmpty) {

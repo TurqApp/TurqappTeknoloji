@@ -44,8 +44,17 @@ extension ChatControllerSendPart on ChatController {
     }
 
     final now = DateTime.now();
+    final currentUid = (await CurrentUserService.instance.ensureAuthReady(
+          waitForAuthState: true,
+        ))
+            ?.trim() ??
+        CurrentUserService.instance.effectiveUserId.trim();
+    if (currentUid.isEmpty) {
+      AppSnackbar('common.error'.tr, 'chat.message_send_failed'.tr);
+      return;
+    }
     final sendPlan = await conversationApplicationService.prepareSendPlan(
-      currentUid: CurrentUserService.instance.effectiveUserId,
+      currentUid: currentUid,
       routeUserId: userID,
       chatId: chatID,
       now: now,
@@ -68,12 +77,16 @@ extension ChatControllerSendPart on ChatController {
       replyingTo: replyingTo.value,
     );
     if (sendPlan == null) return;
+    if (sendPlan.targetUidForConversation.trim().isEmpty) {
+      AppSnackbar('common.error'.tr, 'chat.message_send_failed'.tr);
+      return;
+    }
 
+    var sent = false;
     try {
-      final currentUid = sendPlan.currentUid;
       await conversationApplicationService.ensureConversationReady(
         chatId: chatID,
-        currentUid: currentUid,
+        currentUid: sendPlan.currentUid,
         targetUserId: sendPlan.targetUidForConversation,
         previewText: sendPlan.previewText,
         nowMs: now.millisecondsSinceEpoch,
@@ -91,6 +104,7 @@ extension ChatControllerSendPart on ChatController {
           : (gif?.trim() ?? '');
       lastSentVideoUrl.value = videoUrl?.trim() ?? '';
       lastSentAudioUrl.value = audioUrl?.trim() ?? '';
+      sent = true;
 
       try {
         final optimistic = MessageModel.fromConversationData(
@@ -106,7 +120,7 @@ extension ChatControllerSendPart on ChatController {
       if (!_recipientMuted &&
           sendPlan.resolvedTargetUid != null &&
           sendPlan.resolvedTargetUid!.isNotEmpty &&
-          sendPlan.resolvedTargetUid != currentUid) {
+          sendPlan.resolvedTargetUid != sendPlan.currentUid) {
         try {
           final convMeta = await _conversationRepository.getConversation(
             chatID,
@@ -143,6 +157,8 @@ extension ChatControllerSendPart on ChatController {
     } catch (_) {
       AppSnackbar('common.error'.tr, 'chat.message_send_failed'.tr);
     }
+
+    if (!sent) return;
 
     if (textOverride == null) {
       textEditingController.clear();
