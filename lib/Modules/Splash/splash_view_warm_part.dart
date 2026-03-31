@@ -246,6 +246,7 @@ extension _SplashViewWarmPart on _SplashViewState {
         maxDocs: ReadBudgetRegistry.startupFeedPrefetchDocLimit,
       ));
       _primeFeedFloodSeriesRoots(agendaController, prefetch);
+      _primeFeedFloodSeriesMembers(agendaController, prefetch);
     } catch (_) {}
   }
 
@@ -272,15 +273,28 @@ extension _SplashViewWarmPart on _SplashViewState {
     } catch (_) {}
   }
 
+  void _primeFeedFloodSeriesMembers(
+    AgendaController agendaController,
+    PrefetchScheduler prefetch,
+  ) {
+    try {
+      final members = agendaController.agendaList
+          .take(ReadBudgetRegistry.startupFeedPrefetchDocLimit)
+          .where((post) => post.hasPlayableVideo && post.isFloodMember)
+          .toList(growable: false);
+      for (final member in members) {
+        prefetch.boostDoc(
+          member.docID,
+          readySegments: 1,
+        );
+      }
+    } catch (_) {}
+  }
+
   Future<void> _performRunWarmStartLoads({required bool isFirstLaunch}) async {
     try {
       final onWiFi = _isOnWiFiNow();
       final storyController = maybeFindStoryRowController();
-      final prioritizeEducationWarmups = _shouldPrioritizeEducationWarmups();
-      final prioritizeEducationMarketWarmups =
-          _shouldPrioritizeEducationMarketWarmups();
-      final prioritizeEducationJobWarmups =
-          _shouldPrioritizeEducationJobWarmups();
       final shortTarget = ReadBudgetRegistry.shortWarmTargetCount(
         onWiFi: onWiFi,
         isFirstLaunch: isFirstLaunch,
@@ -314,61 +328,42 @@ extension _SplashViewWarmPart on _SplashViewState {
       await Future.wait([
         (() async {
           try {
-            final exploreController =
-                maybeFindExploreController() ?? ensureExploreController();
-            await exploreController
-                .prepareStartupSurface(
-                  allowBackgroundRefresh: ContentPolicy.allowBackgroundRefresh(
-                    ContentScreenKind.explore,
-                  ),
-                )
-                .timeout(
-                  Duration(milliseconds: onWiFi ? 1200 : 800),
-                  onTimeout: () {},
-                );
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
             await _warmMarketListings(
               onWiFi: onWiFi,
-              allowLiveSync: prioritizeEducationWarmups &&
-                  prioritizeEducationMarketWarmups,
             ).timeout(
               const Duration(milliseconds: 1400),
               onTimeout: () {},
             );
-            if (prioritizeEducationWarmups &&
-                prioritizeEducationMarketWarmups) {
-              await prepareMarketStartupSurface(
-                maybeFindMarketController() ?? ensureMarketController(),
-                allowBackgroundRefresh: onWiFi,
-              ).timeout(
-                Duration(milliseconds: onWiFi ? 1200 : 900),
-                onTimeout: () {},
-              );
-            }
           } catch (_) {}
         })(),
         (() async {
           try {
             await _warmJobListings(
               onWiFi: onWiFi,
-              allowLiveSync:
-                  prioritizeEducationWarmups && prioritizeEducationJobWarmups,
             ).timeout(
               const Duration(milliseconds: 1400),
               onTimeout: () {},
             );
-            if (prioritizeEducationWarmups && prioritizeEducationJobWarmups) {
-              await prepareJobFinderStartupSurface(
-                maybeFindJobFinderController() ?? ensureJobFinderController(),
-                allowBackgroundRefresh: onWiFi,
-              ).timeout(
-                Duration(milliseconds: onWiFi ? 1200 : 900),
-                onTimeout: () {},
-              );
-            }
+          } catch (_) {}
+        })(),
+        (() async {
+          try {
+            await _warmScholarshipListings(
+              onWiFi: onWiFi,
+            ).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+        (() async {
+          try {
+            await _warmTutoringListings(
+              onWiFi: onWiFi,
+            ).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
           } catch (_) {}
         })(),
       ]);
@@ -526,7 +521,6 @@ extension _SplashViewWarmPart on _SplashViewState {
 
   Future<void> _warmMarketListings({
     required bool onWiFi,
-    required bool allowLiveSync,
   }) async {
     try {
       if (!await isPasajTabEnabled(PasajTabIds.market)) {
@@ -547,11 +541,9 @@ extension _SplashViewWarmPart on _SplashViewState {
         itemCount: (cached.data ?? const <MarketItemModel>[]).length,
       );
       final cachedItems = cached.data ?? const <MarketItemModel>[];
-
-      if (cachedItems.where((item) => item.status == 'active').length >= 10) {
-        return;
-      }
-      if (!allowLiveSync) {
+      final activeCount =
+          cachedItems.where((item) => item.status == 'active').length;
+      if (activeCount >= warmLimit && !cached.isStale) {
         return;
       }
 
@@ -565,7 +557,6 @@ extension _SplashViewWarmPart on _SplashViewState {
 
   Future<void> _warmJobListings({
     required bool onWiFi,
-    required bool allowLiveSync,
   }) async {
     try {
       if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
@@ -586,15 +577,79 @@ extension _SplashViewWarmPart on _SplashViewState {
         itemCount: (cached.data ?? const <dynamic>[]).length,
       );
       final cachedItems = cached.data ?? const <dynamic>[];
-
-      if (cachedItems.length >= 10) {
-        return;
-      }
-      if (!allowLiveSync) {
+      if (cachedItems.length >= warmLimit && !cached.isStale) {
         return;
       }
 
       await ensureJobHomeSnapshotRepository().loadHome(
+        userId: userId,
+        limit: warmLimit,
+        forceSync: true,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _warmScholarshipListings({
+    required bool onWiFi,
+  }) async {
+    try {
+      if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+        return;
+      }
+      final warmLimit =
+          ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
+      final userId = CurrentUserService.instance.effectiveUserId;
+      final cached = await ensureScholarshipSnapshotRepository()
+          .openHome(
+            userId: userId,
+            limit: warmLimit,
+          )
+          .first;
+      _trackStartupSnapshot(
+        surface: 'scholarships',
+        resource: cached,
+        itemCount: cached.data?.items.length ?? 0,
+      );
+      final cachedItems = cached.data?.items ?? const <Map<String, dynamic>>[];
+      if (cachedItems.length >= warmLimit && !cached.isStale) {
+        return;
+      }
+
+      await ensureScholarshipSnapshotRepository().loadHome(
+        userId: userId,
+        limit: warmLimit,
+        forceSync: true,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _warmTutoringListings({
+    required bool onWiFi,
+  }) async {
+    try {
+      if (!await isPasajTabEnabled(PasajTabIds.tutoring)) {
+        return;
+      }
+      final warmLimit =
+          ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
+      final userId = CurrentUserService.instance.effectiveUserId;
+      final cached = await ensureTutoringSnapshotRepository()
+          .openHome(
+            userId: userId,
+            limit: warmLimit,
+          )
+          .first;
+      _trackStartupSnapshot(
+        surface: 'tutoring',
+        resource: cached,
+        itemCount: (cached.data ?? const <dynamic>[]).length,
+      );
+      final cachedItems = cached.data ?? const <dynamic>[];
+      if (cachedItems.length >= warmLimit && !cached.isStale) {
+        return;
+      }
+
+      await ensureTutoringSnapshotRepository().loadHome(
         userId: userId,
         limit: warmLimit,
         forceSync: true,

@@ -22,6 +22,7 @@ extension StoryRowContentPart on _StoryRowState {
                   scrollDirection: Axis.horizontal,
                   itemCount: controller.users.length,
                   itemBuilder: (context, index) {
+                    controller.maybeLoadMoreStories(visibleIndex: index);
                     final user = controller.users[index];
                     return Padding(
                       padding: EdgeInsets.only(

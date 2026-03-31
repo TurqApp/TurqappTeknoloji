@@ -40,7 +40,8 @@ extension StoryRowControllerLoadPart on StoryRowController {
         await _loadStoriesFromMiniCache(allowExpired: true);
         return;
       }
-      final lim = limit ?? initialLimit;
+      final lim = max(initialLimit, limit ?? _currentLimit);
+      _currentLimit = max(_currentLimit, lim);
 
       if (myUid.isNotEmpty) {
         final now = DateTime.now();
@@ -143,23 +144,29 @@ extension StoryRowControllerLoadPart on StoryRowController {
     }
   }
 
-  void _scheduleBackgroundFullLoad() {
-    if (_backgroundScheduled) return;
-    if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.story)) return;
-    _backgroundScheduled = true;
-    _backgroundFullLoadTimer?.cancel();
-    _backgroundFullLoadTimer = Timer(const Duration(seconds: 12), () async {
-      _backgroundFullLoadTimer = null;
-      try {
-        if (isClosed ||
-            !ContentPolicy.allowBackgroundRefresh(ContentScreenKind.story)) {
-          return;
-        }
-        await loadStories(limit: fullLimit, silentLoad: true);
-      } catch (_) {}
-      if (!isClosed) {
-        _backgroundScheduled = false;
-      }
-    });
+  Future<void> maybeLoadMoreStories({
+    required int visibleIndex,
+  }) async {
+    if (_isLoadingMore || isLoading.value || users.isEmpty) return;
+    if (!ContentPolicy.isConnected) return;
+    if (visibleIndex < users.length - _storyRowLoadMoreThreshold) return;
+
+    final nextLimit = min(
+      fullLimit,
+      max(_currentLimit, users.length) + _storyRowIncrementLimit,
+    );
+    if (nextLimit <= _currentLimit) return;
+
+    _isLoadingMore = true;
+    try {
+      await loadStories(
+        limit: nextLimit,
+        cacheFirst: true,
+        silentLoad: true,
+      );
+    } catch (_) {
+    } finally {
+      _isLoadingMore = false;
+    }
   }
 }

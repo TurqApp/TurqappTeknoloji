@@ -36,7 +36,7 @@ class AdmobKare extends StatefulWidget {
   final String? suggestionPlacementId;
 
   static Future<void> warmupPool({
-    int targetCount = 5,
+    int targetCount = 10,
     int maxRequestCount = 1,
     bool bypassMinInterval = false,
   }) {
@@ -67,8 +67,11 @@ class _AdmobKareState extends State<AdmobKare> {
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
   static int _globalFailureBurstCount = 0;
-  static const int _defaultWarmupCount = 5;
-  static const int _maxPoolSize = 8;
+  static const int _poolTargetCount = 10;
+  static const int _poolLowWaterMark = 5;
+  static const int _poolTopUpBatchCount = 5;
+  static const int _defaultWarmupCount = _poolTargetCount;
+  static const int _maxPoolSize = 12;
   static const Duration _warmupAttemptMinInterval = Duration(seconds: 8);
   static const int _failureBurstBeforeCooldown = 5;
   static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
@@ -350,9 +353,13 @@ class _AdmobKareState extends State<AdmobKare> {
       _fallbackGateTimer?.cancel();
       _notifySharedAdAvailabilityChanged();
       if (_supportsSharedPool) {
-        unawaited(warmupPool(
-          bypassMinInterval: true,
-        ));
+        if (_readyPool.length <= _poolLowWaterMark) {
+          unawaited(warmupPool(
+            targetCount: _poolTargetCount,
+            maxRequestCount: _poolTopUpBatchCount,
+            bypassMinInterval: true,
+          ));
+        }
       }
       if (mounted && !_isDisposed) {
         setState(() {});

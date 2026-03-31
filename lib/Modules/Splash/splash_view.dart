@@ -22,7 +22,9 @@ import 'package:turqappv2/Modules/Splash/splash_startup_orchestrator.dart';
 
 import '../../Core/Repositories/feed_snapshot_repository.dart';
 import '../../Core/Repositories/job_home_snapshot_repository.dart';
+import '../../Core/Repositories/scholarship_snapshot_repository.dart';
 import '../../Core/Repositories/short_snapshot_repository.dart';
+import '../../Core/Repositories/tutoring_snapshot_repository.dart';
 import '../../Core/Services/CacheFirst/cache_first.dart';
 import '../../Modules/Agenda/agenda_controller.dart';
 import '../../Modules/NavBar/nav_bar_controller.dart';

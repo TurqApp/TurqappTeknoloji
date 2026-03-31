@@ -32,13 +32,13 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
       maxRequestCount: target,
       bypassMinInterval: true,
     );
-    if (target >= 3) {
+    if (target >= AdmobBannerWarmupService.lowWaterMark) {
       Future<void>.delayed(AdmobBannerWarmupService._secondaryTopUpDelay,
           () async {
         try {
           await AdmobKare.warmupPool(
             targetCount: target,
-            maxRequestCount: target,
+            maxRequestCount: AdmobBannerWarmupService.topUpBatchSize,
             bypassMinInterval: true,
           );
         } catch (_) {}

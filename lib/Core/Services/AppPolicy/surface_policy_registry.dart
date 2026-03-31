@@ -55,25 +55,25 @@ class SurfacePolicyRegistry {
   static const int antremanCategoryPoolInitialLimit = 60;
   static const int antremanSavedQuestionInitialLimit = 60;
 
-  static const int feedHomeInitialLimit = 32;
-  static const int feedLivePageLimit = 30;
-  static const int feedBufferedFetchLimit = 50;
+  static const int feedHomeInitialLimit = 20;
+  static const int feedLivePageLimit = 20;
+  static const int feedBufferedFetchLimit = 10;
   static const int feedPersistSnapshotLimit = 40;
   static const int feedVisiblePublicFallbackMinLimit = 20;
   static const int feedGlobalBadgeMinLimit = 24;
   static const int feedShuffleInitialFetchSize = 60;
   static const int feedShuffleBackgroundFetchSize = 300;
-  static const int shortHomeInitialLimit = 18;
+  static const int shortHomeInitialLimit = 30;
   static const int shortRandomReadyPoolLimit = 1000;
-  static const int marketHomeInitialLimit = 40;
+  static const int marketHomeInitialLimit = 10;
   static const int marketSearchInitialLimit = 40;
   static const int marketOwnerInitialLimit = 30;
-  static const int jobHomeInitialLimit = 40;
+  static const int jobHomeInitialLimit = 10;
   static const int jobSearchInitialLimit = 40;
   static const int jobOwnerInitialLimit = 30;
   static const int jobRelatedFetchLimit = 20;
   static const int jobRelatedVisibleLimit = 8;
-  static const int scholarshipHomeInitialLimit = 30;
+  static const int scholarshipHomeInitialLimit = 10;
   static const int scholarshipRepositoryLatestLimit = 40;
   static const int scholarshipSearchInitialLimit = 40;
   static const int scholarshipProviderSeedLimit = 80;
@@ -92,7 +92,7 @@ class SurfacePolicyRegistry {
   static const int answerKeyHomeInitialLimit = 30;
   static const int answerKeySearchInitialLimit = 40;
   static const int opticalFormAnsweredInitialLimit = 30;
-  static const int tutoringHomeInitialLimit = 30;
+  static const int tutoringHomeInitialLimit = 10;
   static const int tutoringSearchInitialLimit = 40;
   static const int tutoringSearchBootstrapLimit = 60;
   static const int tutoringLocationBasedFetchLimit = 250;
@@ -106,7 +106,7 @@ class SurfacePolicyRegistry {
   static const int postLikeListingPageLimit = 20;
   static const int explorePrefetchDocLimit = 20;
 
-  static const int storyInitialLimit = 30;
+  static const int storyInitialLimit = 10;
   static const int storyFullLimit = 100;
 
   static const int recommendedFollowingLimit = 100;
@@ -120,8 +120,8 @@ class SurfacePolicyRegistry {
   static const int storyReadyForNavCount = 1;
   static const int shortReadyForNavCount = 1;
 
-  static const int marketStartupShardLimit = 8;
-  static const int jobStartupShardLimit = 8;
+  static const int marketStartupShardLimit = 4;
+  static const int jobStartupShardLimit = 4;
   static const int profileStartupShardLimit = 10;
   static const int exploreStartupTagsShardLimit = 18;
   static const int exploreStartupPostsShardLimit = 8;
@@ -154,10 +154,10 @@ class SurfacePolicyRegistry {
   static const int segmentCacheRecentProtectCount = 3;
   static const int profilePostsInitialLimit = 20;
 
-  static const int startupListingWarmLimitOnWiFi = 14;
-  static const int startupListingWarmLimitOnCellular = 8;
-  static const int startupShortPrefetchDocLimit = 8;
-  static const int startupFeedPrefetchDocLimit = 12;
+  static const int startupListingWarmLimitOnWiFi = 4;
+  static const int startupListingWarmLimitOnCellular = 4;
+  static const int startupShortPrefetchDocLimit = 30;
+  static const int startupFeedPrefetchDocLimit = 20;
 
   static const int startupUserMetaFeedTakeOnWiFi = 24;
   static const int startupUserMetaFeedTakeOnCellular = 12;
@@ -191,21 +191,18 @@ class SurfacePolicyRegistry {
     cachePolicy: _shortTimelineSnapshotCachePolicy,
     initialLimit: shortHomeInitialLimit,
     readyForNavCount: shortReadyForNavCount,
-    initialPoolLimit: AdaptiveIntPolicy(
-      onWiFi: 24,
-      onCellular: 18,
-    ),
+    initialPoolLimit: AdaptiveIntPolicy.uniform(shortHomeInitialLimit),
     startupShardLimit: AdaptiveIntPolicy(
       onWiFi: 5,
       onCellular: 4,
     ),
     startupSnapshotLimit: LaunchAwareIntPolicy(
-      wifiFirstLaunch: 5,
-      wifiWarmLaunch: 6,
-      cellularFirstLaunch: 3,
-      cellularWarmLaunch: 4,
+      wifiFirstLaunch: shortHomeInitialLimit,
+      wifiWarmLaunch: shortHomeInitialLimit,
+      cellularFirstLaunch: shortHomeInitialLimit,
+      cellularWarmLaunch: shortHomeInitialLimit,
     ),
-    backgroundWarmTargetCount: 6,
+    backgroundWarmTargetCount: shortHomeInitialLimit,
     backgroundWarmMaxPages: 2,
     startupPrefetchDocLimit: startupShortPrefetchDocLimit,
   );
@@ -224,15 +221,12 @@ class SurfacePolicyRegistry {
     readyForNavCount: storyReadyForNavCount,
     initialPoolLimit: AdaptiveIntPolicy.uniform(10),
     startupWarmLimit: LaunchAwareIntPolicy(
-      wifiFirstLaunch: 16,
-      wifiWarmLaunch: 24,
-      cellularFirstLaunch: 8,
-      cellularWarmLaunch: 12,
+      wifiFirstLaunch: storyInitialLimit,
+      wifiWarmLaunch: storyInitialLimit,
+      cellularFirstLaunch: storyInitialLimit,
+      cellularWarmLaunch: storyInitialLimit,
     ),
-    warmReadyTarget: AdaptiveIntPolicy(
-      onWiFi: 24,
-      onCellular: 14,
-    ),
+    warmReadyTarget: AdaptiveIntPolicy.uniform(storyInitialLimit),
   );
 
   static const SurfacePolicy profilePostsSurface = SurfacePolicy(

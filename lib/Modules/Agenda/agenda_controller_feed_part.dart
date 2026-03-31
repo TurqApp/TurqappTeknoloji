@@ -293,12 +293,20 @@ extension AgendaControllerFeedPart on AgendaController {
   void _prefetchThumbnailBatches() {
     if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
-    final targetCount =
-        min(max(18, ((current ~/ 8) + 1) * 8), agendaList.length);
+    final targetCount = min(
+      max(
+        ReadBudgetRegistry.startupFeedPrefetchDocLimit,
+        ((current ~/ 8) + 1) * 8,
+      ),
+      agendaList.length,
+    );
     if (targetCount <= _prefetchedThumbnailPostCount) return;
 
     for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {
       final post = agendaList[i];
+      if (post.img.isNotEmpty) {
+        TurqImageCacheManager.warmUrl(post.img.first).ignore();
+      }
       for (final previewUrl in post.preferredVideoPosterUrls) {
         TurqImageCacheManager.warmUrl(previewUrl).ignore();
       }
@@ -422,14 +430,14 @@ extension AgendaControllerFeedPart on AgendaController {
     final currentOffset = scrollController.offset;
     final now = DateTime.now();
     final scrollDelta = (currentOffset - lastOffset).abs();
-    final startupLockActive =
-        GetPlatform.isIOS && (_startupLockedFeedDocId?.trim().isNotEmpty ?? false);
+    final startupLockActive = GetPlatform.isIOS &&
+        (_startupLockedFeedDocId?.trim().isNotEmpty ?? false);
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
     final startupUnlockThreshold = startupLockActive ? 12.0 : 1.0;
-    final hasMeaningfulScrollMovement = currentOffset.abs() >
-            startupUnlockThreshold ||
-        scrollDelta > startupUnlockThreshold;
+    final hasMeaningfulScrollMovement =
+        currentOffset.abs() > startupUnlockThreshold ||
+            scrollDelta > startupUnlockThreshold;
     if (_qaScrollStartedAt == null) {
       if (!hasMeaningfulScrollMovement) {
         lastOffset = currentOffset;
@@ -473,10 +481,16 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     lastOffset = currentOffset;
 
+    final centered = centeredIndex.value;
+    final remainingAfterCentered = centered >= 0 && centered < agendaList.length
+        ? agendaList.length - centered - 1
+        : agendaList.length;
+
     if (agendaList.isNotEmpty &&
         scrollController.position.hasContentDimensions &&
-        scrollController.position.pixels >=
-            scrollController.position.maxScrollExtent - 300) {
+        (scrollController.position.pixels >=
+                scrollController.position.maxScrollExtent - 300 ||
+            remainingAfterCentered <= 3)) {
       recordQALabScrollEvent(
         surface: 'feed',
         phase: 'near_end',
@@ -485,9 +499,13 @@ extension AgendaControllerFeedPart on AgendaController {
           'offset': currentOffset,
           'maxScrollExtent': scrollController.position.maxScrollExtent,
           'count': agendaList.length,
+          'remainingAfterCentered': remainingAfterCentered,
         },
       );
-      fetchAgendaBigData(trigger: 'scroll_near_end');
+      fetchAgendaBigData(
+        pageLimit: ReadBudgetRegistry.feedBufferedFetchLimit,
+        trigger: 'scroll_near_end',
+      );
     }
 
     final shouldShowFab = currentOffset <= 1000;

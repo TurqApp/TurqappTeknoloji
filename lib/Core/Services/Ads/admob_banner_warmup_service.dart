@@ -13,9 +13,9 @@ part 'admob_banner_warmup_service_facade_part.dart';
 /// We treat banner inventory as an app-wide warm pool instead of creating
 /// independent speculative warmups on every page.
 class AdmobBannerWarmupService extends GetxService {
-  static const int steadyStateTarget = 5;
-  // Shared pool upper bound is 8, so keeping 5 renderable banners ready leaves
-  // headroom while still rotating through all configured square ad units.
+  static const int steadyStateTarget = 10;
+  static const int lowWaterMark = 5;
+  static const int topUpBatchSize = 5;
   static const int splashFirstLaunchTarget = steadyStateTarget;
   static const int splashDefaultTarget = steadyStateTarget;
   static const int feedEntryTarget = steadyStateTarget;

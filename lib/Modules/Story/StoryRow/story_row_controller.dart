@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
@@ -28,12 +29,5 @@ class StoryRowController extends GetxController {
   void onInit() {
     super.onInit();
     _handleStoryRowInit(this);
-  }
-
-  @override
-  void onClose() {
-    _backgroundFullLoadTimer?.cancel();
-    _backgroundFullLoadTimer = null;
-    super.onClose();
   }
 }

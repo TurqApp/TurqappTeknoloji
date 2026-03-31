@@ -62,7 +62,8 @@ extension StoryRowControllerCachePart on StoryRowController {
   Future<void> clearSessionCache() async {
     final ownerUid = _currentUid;
     users.clear();
-    _backgroundScheduled = false;
+    _currentLimit = initialLimit;
+    _isLoadingMore = false;
     if (ownerUid.isEmpty) return;
     try {
       await _storyRepository.invalidateStoryCachesForUser(

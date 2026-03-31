@@ -27,7 +27,6 @@ Future<void> _refreshStoryRowGlobally() async {
 void _handleStoryRowInit(StoryRowController controller) {
   controller._ensureMyUserPlaceholder();
   unawaited(controller._bootstrapStoryRow());
-  controller._scheduleBackgroundFullLoad();
 }
 
 extension StoryRowControllerSupportPart on StoryRowController {

@@ -2,6 +2,8 @@ part of 'story_row_controller.dart';
 
 const Duration _storyRowSilentRefreshInterval = Duration(minutes: 5);
 const Duration _storyRowExpireCleanupInterval = Duration(minutes: 15);
+const int _storyRowIncrementLimit = 5;
+const int _storyRowLoadMoreThreshold = 5;
 
 class _StoryRowControllerState {
   final users = <StoryUserModel>[].obs;
@@ -11,8 +13,8 @@ class _StoryRowControllerState {
   final UserProfileCacheService userCache = ensureUserProfileCacheService();
   final int initialLimit = ReadBudgetRegistry.storyInitialLimit;
   final int fullLimit = ReadBudgetRegistry.storyFullLimit;
-  bool backgroundScheduled = false;
-  Timer? backgroundFullLoadTimer;
+  int currentLimit = ReadBudgetRegistry.storyInitialLimit;
+  bool isLoadingMore = false;
   final RxBool isLoading = false.obs;
   DateTime? lastExpireCleanupAt;
   final StoryRepository storyRepository = StoryRepository.ensure();
@@ -27,11 +29,10 @@ extension StoryRowControllerFieldsPart on StoryRowController {
   UserProfileCacheService get _userCache => _state.userCache;
   int get initialLimit => _state.initialLimit;
   int get fullLimit => _state.fullLimit;
-  bool get _backgroundScheduled => _state.backgroundScheduled;
-  set _backgroundScheduled(bool value) => _state.backgroundScheduled = value;
-  Timer? get _backgroundFullLoadTimer => _state.backgroundFullLoadTimer;
-  set _backgroundFullLoadTimer(Timer? value) =>
-      _state.backgroundFullLoadTimer = value;
+  int get _currentLimit => _state.currentLimit;
+  set _currentLimit(int value) => _state.currentLimit = value;
+  bool get _isLoadingMore => _state.isLoadingMore;
+  set _isLoadingMore(bool value) => _state.isLoadingMore = value;
   RxBool get isLoading => _state.isLoading;
   DateTime? get _lastExpireCleanupAt => _state.lastExpireCleanupAt;
   set _lastExpireCleanupAt(DateTime? value) =>
