@@ -1,6 +1,11 @@
 part of 'post_interaction_service.dart';
 
 extension PostInteractionServiceHelpersPart on PostInteractionService {
+  bool _isValidDocId(String value) {
+    final normalized = value.trim();
+    return normalized.isNotEmpty && !normalized.contains('/');
+  }
+
   List<String> _asStringList(dynamic value) {
     if (value is! List) return const <String>[];
     return value

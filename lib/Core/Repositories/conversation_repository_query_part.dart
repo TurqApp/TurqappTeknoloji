@@ -94,7 +94,7 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
       _firestore.collection("conversations").where(
             "participants",
             arrayContains: uid,
-          ),
+          ).limit(200),
     );
 
     if (includeLegacy) {
@@ -102,13 +102,13 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
         _firestore.collection("conversations").where(
               "userID1",
               isEqualTo: uid,
-            ),
+            ).limit(200),
       );
       await mergeQuery(
         _firestore.collection("conversations").where(
               "userID2",
               isEqualTo: uid,
-            ),
+            ).limit(200),
       );
     }
 
@@ -126,6 +126,7 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
             Filter("userID2", isEqualTo: uid),
           ),
         )
+        .limit(200)
         .snapshots();
   }
 

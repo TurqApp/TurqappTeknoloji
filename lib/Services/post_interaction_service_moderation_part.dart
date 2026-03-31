@@ -2,6 +2,7 @@ part of 'post_interaction_service.dart';
 
 extension PostInteractionServiceModerationPart on PostInteractionService {
   Future<bool> reportPost(String postId) async {
+    if (!_isValidDocId(postId)) return false;
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
       return false;
     }

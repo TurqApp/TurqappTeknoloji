@@ -2,6 +2,16 @@ part of 'post_interaction_service.dart';
 
 extension PostInteractionServiceQueryPart on PostInteractionService {
   Future<Map<String, int>> getPostInteractionCounts(String postId) async {
+    if (!_isValidDocId(postId)) {
+      return const {
+        'likes': 0,
+        'comments': 0,
+        'saves': 0,
+        'reshares': 0,
+        'views': 0,
+        'reports': 0,
+      };
+    }
     try {
       final snap = await _postRef(postId).get();
       final stats = _statsFromSnapshot(snap);
@@ -27,6 +37,9 @@ extension PostInteractionServiceQueryPart on PostInteractionService {
   }
 
   Future<Map<String, bool>> getUserInteractionStatus(String postId) async {
+    if (!_isValidDocId(postId)) {
+      return _emptyInteractionStatus;
+    }
     final userId = currentUserID;
     if (userId == null) {
       return _emptyInteractionStatus;
@@ -99,6 +112,7 @@ extension PostInteractionServiceQueryPart on PostInteractionService {
   }
 
   Future<bool> isPostLiked(String postId) async {
+    if (!_isValidDocId(postId)) return false;
     final userId = currentUserID;
     if (userId == null) return false;
     final entry = await _userSubcollectionRepository.getEntry(
@@ -112,6 +126,7 @@ extension PostInteractionServiceQueryPart on PostInteractionService {
   }
 
   Future<bool> isPostSaved(String postId) async {
+    if (!_isValidDocId(postId)) return false;
     final userId = currentUserID;
     if (userId == null) return false;
     final entry = await _userSubcollectionRepository.getEntry(
@@ -126,6 +141,9 @@ extension PostInteractionServiceQueryPart on PostInteractionService {
 
   Stream<List<PostCommentModel>> listenComments(String postId,
       {int limit = 50}) {
+    if (!_isValidDocId(postId)) {
+      return Stream<List<PostCommentModel>>.value(const <PostCommentModel>[]);
+    }
     return _postRef(postId)
         .collection('comments')
         .orderBy('timeStamp', descending: true)
@@ -140,6 +158,9 @@ extension PostInteractionServiceQueryPart on PostInteractionService {
   Stream<List<SubCommentModel>> listenSubComments(
       String postId, String commentId,
       {int limit = 50}) {
+    if (!_isValidDocId(postId) || !_isValidDocId(commentId)) {
+      return Stream<List<SubCommentModel>>.value(const <SubCommentModel>[]);
+    }
     return _postRef(postId)
         .collection('comments')
         .doc(commentId)

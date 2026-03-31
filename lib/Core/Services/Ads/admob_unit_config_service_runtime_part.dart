@@ -9,7 +9,7 @@ Future<void> _initInternalAdmobConfig(AdmobUnitConfigService service) async {
     );
     if (currentData != null && currentData.isNotEmpty) {
       service._config = _AdmobUnitConfig.fromMap(currentData);
-      await _writeRemoteAdmobConfig(service, service._config.toMap());
+      await _persistResolvedAdmobConfig(service, service._config.toMap());
     } else {
       final legacyData = await ensureConfigRepository().getAdminConfigDoc(
         _legacyDocId,
@@ -18,9 +18,9 @@ Future<void> _initInternalAdmobConfig(AdmobUnitConfigService service) async {
       );
       if (legacyData != null && legacyData.isNotEmpty) {
         service._config = _AdmobUnitConfig.fromMap(legacyData);
-        await _writeRemoteAdmobConfig(service, service._config.toMap());
+        await _persistResolvedAdmobConfig(service, service._config.toMap());
       } else {
-        await _writeRemoteAdmobConfig(service, service._config.toMap());
+        await _persistResolvedAdmobConfig(service, service._config.toMap());
       }
     }
   } catch (_) {
@@ -40,15 +40,11 @@ Future<void> _initInternalAdmobConfig(AdmobUnitConfigService service) async {
   service._initialized = true;
 }
 
-Future<void> _writeRemoteAdmobConfig(
+Future<void> _persistResolvedAdmobConfig(
   AdmobUnitConfigService service,
   Map<String, dynamic> data,
 ) async {
   try {
-    await FirebaseFirestore.instance
-        .collection(AdsCollections.adminConfig)
-        .doc(AdsCollections.admobUnitsDoc)
-        .set(data, SetOptions(merge: true));
     await ensureConfigRepository().putAdminConfigDoc(
       AdsCollections.admobUnitsDoc,
       data,

@@ -13,14 +13,28 @@ let collection;
 let doc;
 let deleteDoc;
 let getDoc;
+let getDocs;
+let query;
 let setDoc;
 let updateDoc;
+let where;
 
 test.before(async () => {
   ({ initializeTestEnvironment, assertFails, assertSucceeds } = await import(
     "@firebase/rules-unit-testing"
   ));
-  ({ addDoc, collection, doc, deleteDoc, getDoc, setDoc, updateDoc } = await import("firebase/firestore"));
+  ({
+    addDoc,
+    collection,
+    doc,
+    deleteDoc,
+    getDoc,
+    getDocs,
+    query,
+    setDoc,
+    updateDoc,
+    where,
+  } = await import("firebase/firestore"));
   testEnv = await initializeTestEnvironment({
     projectId: "demo-turqapp",
     firestore: {
@@ -1296,6 +1310,36 @@ test("conversations allow participant preview and cutoff updates", async () => {
       [`previewAt.${uid1}`]: Date.now(),
       [`deletedAt.${uid1}`]: Date.now(),
     }),
+  );
+});
+
+test("conversations allow legacy participant list queries", async () => {
+  const uid1 = "conv-legacy-user-1";
+  const uid2 = "conv-legacy-user-2";
+  const conversationId = "conv-legacy-user-1_conv-legacy-user-2";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `conversations/${conversationId}`), {
+      userID1: uid1,
+      userID2: uid2,
+      lastMessage: "",
+      lastMessageAt: 0,
+      unread: {},
+      archived: {},
+      muted: {},
+      pinned: {},
+      typing: {},
+    });
+  });
+
+  const user1Ctx = testEnv.authenticatedContext(uid1);
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(user1Ctx.firestore(), "conversations"),
+        where("userID1", "==", uid1),
+      ),
+    ),
   );
 });
 

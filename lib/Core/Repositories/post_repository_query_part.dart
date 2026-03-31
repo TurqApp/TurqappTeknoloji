@@ -4,6 +4,11 @@ extension PostRepositoryQueryPart on PostRepository {
   static const String _pollSelectionPrefKeyPrefix =
       'post_repository_poll_selection_v1';
 
+  bool _isValidRepositoryDocId(String value) {
+    final trimmed = value.trim();
+    return trimmed.isNotEmpty && !trimmed.contains('/');
+  }
+
   int _feedRefAsInt(Object? value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -24,7 +29,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = postIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <String, PostsModel>{};
@@ -78,7 +83,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = postIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <String, PostsModel>{};
@@ -256,7 +261,7 @@ extension PostRepositoryQueryPart on PostRepository {
             expiresAt: _feedRefAsInt(data['expiresAt']),
           );
         })
-        .where((item) => item.postId.isNotEmpty)
+        .where((item) => _isValidRepositoryDocId(item.postId))
         .toList(growable: false);
 
     if (_shouldLogDiagnostics) {
@@ -280,7 +285,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = authorIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <String>[];
@@ -314,7 +319,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = authorIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <PostsModel>[];

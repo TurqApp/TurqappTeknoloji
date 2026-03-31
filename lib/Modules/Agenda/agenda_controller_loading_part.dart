@@ -32,6 +32,15 @@ extension AgendaControllerLoadingPart on AgendaController {
           primeInitialCenteredPost();
         }
       });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed || agendaList.isEmpty) return;
+        final target = centeredIndex.value;
+        if (target < 0 || target >= agendaList.length) return;
+        if (!_canAutoplayVideoPost(agendaList[target])) return;
+        if (_isPlaybackTargetCurrent(target)) return;
+        _ensureFeedPlaybackForIndex(target);
+      });
     }
 
     if (IntegrationTestMode.skipBackgroundStartupWork) {

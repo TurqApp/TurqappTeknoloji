@@ -73,7 +73,12 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
     required bool forceRefresh,
     required bool cacheOnly,
   }) async {
-    if (uid.isEmpty || subcollection.isEmpty || docId.isEmpty) return null;
+    if (uid.isEmpty ||
+        subcollection.isEmpty ||
+        docId.isEmpty ||
+        docId.contains('/')) {
+      return null;
+    }
     if (!forceRefresh && preferCache) {
       final cached = await getEntries(
         uid,

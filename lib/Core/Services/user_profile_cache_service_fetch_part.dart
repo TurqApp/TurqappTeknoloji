@@ -1,6 +1,11 @@
 part of 'user_profile_cache_service.dart';
 
 extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
+  bool _isValidProfileUid(String uid) {
+    final trimmed = uid.trim();
+    return trimmed.isNotEmpty && !trimmed.contains('/');
+  }
+
   Future<Map<String, dynamic>?> getProfile(
     String uid, {
     bool preferCache = true,
@@ -84,7 +89,11 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
     bool cacheOnly = false,
   }) async {
     final out = <String, Map<String, dynamic>>{};
-    final unique = uids.where((e) => e.isNotEmpty).toSet().toList();
+    final unique = uids
+        .map((e) => e.trim())
+        .where(_isValidProfileUid)
+        .toSet()
+        .toList();
     if (unique.isEmpty) return out;
 
     final missing = <String>[];
@@ -127,6 +136,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
           final cacheSnap = await FirebaseFirestore.instance
               .collection('users')
               .where(FieldPath.documentId, whereIn: chunk)
+              .limit(chunk.length)
               .get(const GetOptions(source: Source.cache));
           for (final doc in cacheSnap.docs) {
             final map = _sanitizeProfile(doc.data());
@@ -144,6 +154,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
         final serverSnap = await FirebaseFirestore.instance
             .collection('users')
             .where(FieldPath.documentId, whereIn: unresolved)
+            .limit(unresolved.length)
             .get();
         for (final doc in serverSnap.docs) {
           final map = _sanitizeProfile(doc.data());

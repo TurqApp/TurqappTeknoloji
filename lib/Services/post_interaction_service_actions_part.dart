@@ -3,6 +3,7 @@ part of 'post_interaction_service.dart';
 extension PostInteractionServiceActionsPart on PostInteractionService {
   /// Post'u beğenir veya beğeniyi kaldırır. İşlem sonucunu döndürür.
   Future<bool> toggleLike(String postId) async {
+    if (!_isValidDocId(postId)) return false;
     final userId = await _resolveCurrentUserId();
     if (userId == null) {
       throw StateError('auth_not_ready');
@@ -75,6 +76,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     List<String>? imgs,
     List<String>? videos,
   }) async {
+    if (!_isValidDocId(postId)) return null;
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
       return null;
     }
@@ -152,6 +154,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     List<String>? imgs,
     List<String>? videos,
   }) async {
+    if (!_isValidDocId(postId) || !_isValidDocId(commentId)) return null;
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
       return null;
     }
@@ -206,6 +209,11 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     bool isSubComment = false,
     String? parentCommentId,
   }) async {
+    if (!_isValidDocId(postId) || !_isValidDocId(commentId)) return false;
+    if (isSubComment &&
+        (parentCommentId == null || !_isValidDocId(parentCommentId))) {
+      return false;
+    }
     final timestamp = _nowMs();
     bool success = false;
 
@@ -312,6 +320,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
 
   /// Yorum beğenisini aç/kapa yapar.
   Future<void> toggleCommentLike(String postId, String commentId) async {
+    if (!_isValidDocId(postId) || !_isValidDocId(commentId)) return;
     final userId = await _resolveCurrentUserId();
     if (userId == null) return;
 
@@ -322,6 +331,11 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   /// Alt yorum beğenisini aç/kapa yapar.
   Future<void> toggleSubCommentLike(
       String postId, String commentId, String subCommentId) async {
+    if (!_isValidDocId(postId) ||
+        !_isValidDocId(commentId) ||
+        !_isValidDocId(subCommentId)) {
+      return;
+    }
     final userId = await _resolveCurrentUserId();
     if (userId == null) return;
 
@@ -338,6 +352,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   // ---------------------------------------------------------------------------
 
   Future<bool> toggleSave(String postId) async {
+    if (!_isValidDocId(postId)) return false;
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.savePost)) {
       return false;
     }
@@ -403,6 +418,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   // ---------------------------------------------------------------------------
 
   Future<bool> toggleReshare(String postId) async {
+    if (!_isValidDocId(postId)) return false;
     final userId = await _resolveCurrentUserId();
     if (userId == null) {
       throw StateError('auth_not_ready');
@@ -495,6 +511,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   // ---------------------------------------------------------------------------
 
   Future<void> recordView(String postId) async {
+    if (!_isValidDocId(postId)) return;
     final userId = currentUserID;
     if (userId == null) return;
 

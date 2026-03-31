@@ -1502,7 +1502,7 @@ service cloud.firestore {
       }
 
       allow create: if isParticipantFromRequest();
-      allow list: if isParticipantFromResource();
+      allow list: if isParticipantFromResourceOrLegacy();
       allow get: if isParticipantFromResourceOrLegacy();
       allow delete: if false;
       allow update: if isParticipantFromResourceOrLegacy()
@@ -1510,6 +1510,7 @@ service cloud.firestore {
           'lastMessage', 'lastMessageAt', 'lastMessageAtMs', 'lastSenderId',
           'unread', 'typing', 'archived', 'muted', 'pinned', 'chatBg',
           'participants', 'userID1', 'userID2', 'previewText', 'previewAt',
+          'updatedDate',
           'deletedAt', 'marketContext'
         ])
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSenderId'])
@@ -1522,6 +1523,8 @@ service cloud.firestore {
           || request.resource.data.previewText is map)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['previewAt'])
           || request.resource.data.previewAt is map)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedDate'])
+          || request.resource.data.updatedDate is int)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedAt'])
           || request.resource.data.deletedAt is map)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['marketContext'])
