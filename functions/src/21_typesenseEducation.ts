@@ -1226,6 +1226,83 @@ function buildSearchDoc(entity: EducationEntity, docId: string, data: Record<str
   }
 }
 
+function buildComparableIndexedDoc(
+  entity: EducationEntity,
+  docId: string,
+  data: Record<string, unknown>
+): EducationSearchDoc {
+  const doc = buildSearchDoc(entity, docId, data);
+  if (entity === "scholarship") {
+    const nickname =
+      doc.nickname ||
+      asString((data as any).nickname) ||
+      asString((data as any).authorNickname);
+    const displayName =
+      doc.displayName ||
+      asString((data as any).displayName) ||
+      asString((data as any).authorDisplayName) ||
+      nickname;
+    const avatarUrl =
+      doc.avatarUrl ||
+      asString((data as any).avatarUrl) ||
+      asString((data as any).authorAvatarUrl);
+    const rozet = doc.rozet || asString((data as any).rozet);
+    return {
+      ...doc,
+      nickname,
+      displayName,
+      avatarUrl,
+      rozet,
+    };
+  }
+
+  if (entity === "tutoring") {
+    const nickname = doc.nickname || asString((data as any).nickname);
+    const displayName =
+      doc.displayName ||
+      asString((data as any).displayName) ||
+      nickname;
+    const avatarUrl =
+      asString((data as any).avatarUrl) ||
+      doc.avatarUrl;
+    const rozet = doc.rozet || asString((data as any).rozet);
+    return {
+      ...doc,
+      nickname,
+      displayName,
+      avatarUrl,
+      rozet,
+    };
+  }
+
+  if (entity !== "job") return doc;
+
+  const nickname = doc.nickname || asString((data as any).nickname);
+  const displayName =
+    doc.displayName ||
+    asString((data as any).displayName) ||
+    nickname;
+  const avatarUrl =
+    asString((data as any).avatarUrl) ||
+    doc.avatarUrl;
+  const rozet = doc.rozet || asString((data as any).rozet);
+  return {
+    ...doc,
+    nickname,
+    displayName,
+    avatarUrl,
+    rozet,
+  };
+}
+
+function educationDocsEqual(
+  left: EducationSearchDoc | null | undefined,
+  right: EducationSearchDoc | null | undefined
+): boolean {
+  if (!left || !right) return false;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 async function buildSearchDocForIndexing(
   entity: EducationEntity,
   docId: string,
@@ -1358,10 +1435,35 @@ function shouldIndex(doc: EducationSearchDoc): boolean {
 async function syncEducationDoc(
   entity: EducationEntity,
   rawDocId: string,
+  beforeData: Record<string, unknown> | undefined,
   afterData: Record<string, unknown> | undefined
 ) {
+  const beforeComparable = beforeData
+    ? buildComparableIndexedDoc(entity, rawDocId, beforeData)
+    : null;
+  const afterComparable = afterData
+    ? buildComparableIndexedDoc(entity, rawDocId, afterData)
+    : null;
+  const beforeIndexed = !!beforeComparable && shouldIndex(beforeComparable);
+  const afterIndexed = !!afterComparable && shouldIndex(afterComparable);
+
   if (!afterData) {
+    if (!beforeIndexed) {
+      return;
+    }
     await deleteDoc(entity, rawDocId);
+    return;
+  }
+
+  if (!afterIndexed) {
+    if (!beforeIndexed) {
+      return;
+    }
+    await deleteDoc(entity, rawDocId);
+    return;
+  }
+
+  if (beforeIndexed && educationDocsEqual(beforeComparable, afterComparable)) {
     return;
   }
 
@@ -1637,8 +1739,9 @@ export const f21_syncScholarshipsToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncEducationDoc("scholarship", docId, afterData);
+    await syncEducationDoc("scholarship", docId, beforeData, afterData);
   }
 );
 
@@ -1654,8 +1757,9 @@ export const f21_syncPracticeExamsToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncEducationDoc("practice_exam", docId, afterData);
+    await syncEducationDoc("practice_exam", docId, beforeData, afterData);
   }
 );
 
@@ -1671,8 +1775,9 @@ export const f21_syncAnswerKeysToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncEducationDoc("answer_key", docId, afterData);
+    await syncEducationDoc("answer_key", docId, beforeData, afterData);
   }
 );
 
@@ -1688,8 +1793,9 @@ export const f21_syncTutoringsToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncEducationDoc("tutoring", docId, afterData);
+    await syncEducationDoc("tutoring", docId, beforeData, afterData);
   }
 );
 
@@ -1705,8 +1811,9 @@ export const f21_syncJobsToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncEducationDoc("job", docId, afterData);
+    await syncEducationDoc("job", docId, beforeData, afterData);
   }
 );
 
@@ -1722,8 +1829,9 @@ export const f21_syncWorkoutsToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncEducationDoc("workout", docId, afterData);
+    await syncEducationDoc("workout", docId, beforeData, afterData);
   }
 );
 
@@ -1739,8 +1847,9 @@ export const f21_syncPastQuestionsToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncEducationDoc("past_question", docId, afterData);
+    await syncEducationDoc("past_question", docId, beforeData, afterData);
   }
 );
 
