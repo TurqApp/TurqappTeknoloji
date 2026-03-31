@@ -104,6 +104,21 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
     }
   }
 
+  Future<void> applyLocalFields(Map<String, dynamic> fields) async {
+    if (fields.isEmpty) return;
+    final normalizedFields = _normalizeUserWriteFields(fields);
+    final requestedViewSelection =
+        _extractRequestedViewSelection(normalizedFields);
+    final firebaseUser = currentAuthUser;
+    if (requestedViewSelection != null && firebaseUser != null) {
+      await _persistViewSelection(
+        firebaseUser.uid,
+        requestedViewSelection,
+      );
+    }
+    await _applyOptimisticLocalPatch(normalizedFields);
+  }
+
   Future<void> applyLocalCounterDelta({
     int postsDelta = 0,
     int likesDelta = 0,

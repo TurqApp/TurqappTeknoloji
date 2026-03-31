@@ -136,9 +136,7 @@ extension _EditProfileHeaderPart on _EditProfileState {
           padding: const EdgeInsets.only(bottom: 12),
           child: GestureDetector(
             onTap: () {
-              Get.to(() => EditorNickname())?.then((_) {
-                currentUserService.forceRefresh();
-              });
+              Get.to(() => EditorNickname());
             },
             child: _buildInfoTile(
               child: Row(
@@ -238,9 +236,7 @@ extension _EditProfileHeaderPart on _EditProfileState {
             final displayPhone = _formatDisplayPhone(resolvedPhone);
             return GestureDetector(
               onTap: () {
-                Get.to(() => EditorPhoneNumber())?.then((_) {
-                  currentUserService.forceRefresh();
-                });
+                Get.to(() => EditorPhoneNumber());
               },
               child: _buildInfoTile(
                 child: Row(

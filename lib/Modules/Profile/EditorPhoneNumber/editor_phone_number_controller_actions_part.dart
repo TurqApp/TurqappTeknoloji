@@ -114,6 +114,9 @@ extension EditorPhoneNumberControllerActionsPart
         return;
       }
 
+      await CurrentUserService.instance.applyLocalFields(<String, dynamic>{
+        'phoneNumber': phoneController.text.trim(),
+      });
       await ensureAccountCenterService().refreshCurrentAccountMetadata();
       Get.back();
       AppSnackbar('common.success'.tr, 'editor_phone.updated'.tr);

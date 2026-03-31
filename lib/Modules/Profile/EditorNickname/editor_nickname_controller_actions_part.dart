@@ -27,6 +27,10 @@ extension EditorNicknameControllerActionsPart on EditorNicknameController {
           .call(<String, dynamic>{'nickname': normalized});
 
       _originalNickname = normalized;
+      await CurrentUserService.instance.applyLocalFields(<String, dynamic>{
+        'nickname': normalized,
+        'displayName': normalized,
+      });
       await _refreshNicknameSurfaces();
       await ensureAccountCenterService().refreshCurrentAccountMetadata();
       await fetchAndSetUserData();
@@ -69,7 +73,6 @@ extension EditorNicknameControllerActionsPart on EditorNicknameController {
   Future<void> _refreshNicknameSurfaces() async {
     await invalidateUserProfileCacheIfRegistered(uid);
     invalidatePostContentUserProfileCache(uid);
-    await CurrentUserService.instance.forceRefresh();
     await refreshStoryRowGlobally();
   }
 }

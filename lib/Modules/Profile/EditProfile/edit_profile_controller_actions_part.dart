@@ -178,7 +178,6 @@ extension EditProfileControllerActionsPart on EditProfileController {
   Future<void> _refreshAvatarNicknameSurfaces(String uid) async {
     await invalidateUserProfileCacheIfRegistered(uid);
     invalidatePostContentUserProfileCache(uid);
-    await userService.forceRefresh();
     await refreshStoryRowGlobally();
   }
 

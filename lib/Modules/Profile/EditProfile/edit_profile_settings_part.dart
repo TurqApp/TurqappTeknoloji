@@ -74,9 +74,7 @@ extension _EditProfileSettingsPart on _EditProfileState {
           icon: CupertinoIcons.bag,
           label: 'job_selector.title'.tr,
           onTap: () {
-            Get.to(() => JobSelector())?.then((_) {
-              currentUserService.forceRefresh();
-            });
+            Get.to(() => JobSelector());
           },
         ),
         _buildChevronTile(
