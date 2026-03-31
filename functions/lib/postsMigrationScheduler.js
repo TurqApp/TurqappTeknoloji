@@ -370,11 +370,15 @@ async function loadUserProfile(uid, cache) {
     return profile;
 }
 async function ensurePlaceholderPosts(group, docs, now) {
-    if (asNum(group.docSeededAt, 0) > 0)
-        return true;
     const userCache = new Map();
+    const refs = docs.map((doc) => db().collection(POSTS_COLLECTION).doc(doc.docId));
+    const snaps = refs.length > 0 ? await db().getAll(...refs) : [];
+    const existingDocIds = new Set(snaps.filter((snap) => snap.exists).map((snap) => snap.id));
     const batch = db().batch();
+    let seededCount = 0;
     for (const doc of docs) {
+        if (existingDocIds.has(doc.docId))
+            continue;
         if (!doc.userID)
             return false;
         const profile = await loadUserProfile(doc.userID, userCache);
@@ -436,9 +440,12 @@ async function ensurePlaceholderPosts(group, docs, now) {
             yorum: doc.yorum,
             yorumMap: buildYorumMap(doc),
         }, { merge: true });
+        seededCount += 1;
     }
+    if (seededCount === 0)
+        return true;
     batch.set(db().collection(QUEUE_COLLECTION).doc(group.rootId), {
-        docSeededAt: now,
+        docSeededAt: asNum(group.docSeededAt, 0) > 0 ? group.docSeededAt : now,
         updatedAt: now,
     }, { merge: true });
     await batch.commit();
@@ -619,9 +626,6 @@ async function publishGroup(group, docs, now) {
     const batch = db().batch();
     for (const item of payloads.payloads) {
         batch.set(db().collection(POSTS_COLLECTION).doc(item.docId), item.payload, { merge: true });
-    }
-    for (const skipped of payloads.skipped) {
-        batch.delete(db().collection(POSTS_COLLECTION).doc(skipped.docId));
     }
     const hasSkipped = payloads.skipped.length > 0;
     batch.set(db().collection(QUEUE_COLLECTION).doc(group.rootId), {
