@@ -19,8 +19,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     for (final url in post.preferredVideoPosterUrls) {
       if (url.trim().isEmpty) continue;
       try {
-        await TurqImageCacheManager.instance
-            .getSingleFile(url)
+        await TurqImageCacheManager.warmUrl(url)
             .timeout(const Duration(seconds: 2));
         return;
       } catch (_) {}

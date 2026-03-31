@@ -162,10 +162,10 @@ extension AgendaControllerFeedPart on AgendaController {
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
     final post = agendaList[current];
     for (final posterUrl in post.preferredVideoPosterUrls) {
-      TurqImageCacheManager.instance.getSingleFile(posterUrl).ignore();
+      TurqImageCacheManager.warmUrl(posterUrl).ignore();
     }
     if (post.img.isNotEmpty) {
-      TurqImageCacheManager.instance.getSingleFile(post.img.first).ignore();
+      TurqImageCacheManager.warmUrl(post.img.first).ignore();
     }
   }
 
@@ -278,10 +278,10 @@ extension AgendaControllerFeedPart on AgendaController {
     for (int i = current; i < end; i++) {
       final post = agendaList[i];
       if (post.img.isNotEmpty) {
-        TurqImageCacheManager.instance.getSingleFile(post.img.first).ignore();
+        TurqImageCacheManager.warmUrl(post.img.first).ignore();
       }
       for (final posterUrl in post.preferredVideoPosterUrls) {
-        TurqImageCacheManager.instance.getSingleFile(posterUrl).ignore();
+        TurqImageCacheManager.warmUrl(posterUrl).ignore();
       }
     }
   }
@@ -295,7 +295,7 @@ extension AgendaControllerFeedPart on AgendaController {
     for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {
       final post = agendaList[i];
       for (final previewUrl in post.preferredVideoPosterUrls) {
-        TurqImageCacheManager.instance.getSingleFile(previewUrl).ignore();
+        TurqImageCacheManager.warmUrl(previewUrl).ignore();
       }
     }
 

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 
 class CacheFirstNetworkImage extends StatefulWidget {
   final String imageUrl;
@@ -36,6 +37,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
   int _loadSeq = 0;
   bool _exhaustedCandidates = false;
   bool _advanceScheduled = false;
+  String _lastRememberRequestedUrl = '';
 
   @override
   void initState() {
@@ -71,11 +73,14 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
 
   void _syncCandidates() {
     final candidates = _normalizedCandidates();
-    _resolvedFilePath = '';
+    final rememberedPath =
+        TurqImageCacheManager.rememberedResolvedFilePathForUrls(candidates);
+    _resolvedFilePath = rememberedPath;
     _activeIndex = 0;
     _activeImageUrl = candidates.isEmpty ? '' : candidates.first;
     _exhaustedCandidates = candidates.isEmpty;
     _advanceScheduled = false;
+    _lastRememberRequestedUrl = '';
     if (mounted) {
       setState(() {});
     }
@@ -108,6 +113,9 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       if (!mounted || requestId != _loadSeq) return;
       if (nextPath != _resolvedFilePath || nextUrl != _activeImageUrl) {
         final absoluteIndex = _normalizedCandidates().indexOf(nextUrl);
+        if (nextPath.isNotEmpty) {
+          TurqImageCacheManager.rememberResolvedFile(nextUrl, nextPath);
+        }
         setState(() {
           _resolvedFilePath = nextPath;
           _activeImageUrl = nextUrl;
@@ -130,6 +138,23 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
         });
       }
     }
+  }
+
+  void _rememberRenderedCandidate(String url) {
+    final normalized = url.trim();
+    if (normalized.isEmpty || _lastRememberRequestedUrl == normalized) {
+      return;
+    }
+    _lastRememberRequestedUrl = normalized;
+    unawaited(() async {
+      try {
+        final cached = await widget.cacheManager.getFileFromCache(normalized);
+        final file = cached?.file;
+        if (file != null && file.existsSync()) {
+          TurqImageCacheManager.rememberResolvedFile(normalized, file.path);
+        }
+      } catch (_) {}
+    }());
   }
 
   void _scheduleAdvanceCandidate() {
@@ -187,7 +212,10 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       fit: widget.fit,
       gaplessPlayback: true,
       frameBuilder: (_, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded || frame != null) return child;
+        if (wasSynchronouslyLoaded || frame != null) {
+          _rememberRenderedCandidate(activeUrl);
+          return child;
+        }
         return widget.fallback;
       },
       errorBuilder: (_, __, ___) {
