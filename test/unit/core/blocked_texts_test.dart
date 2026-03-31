@@ -32,4 +32,39 @@ void main() {
     expect(await kufurKontrolEt('sadeceadmin'), isFalse);
     expect(await kufurKontrolEt('aptal'), isTrue);
   });
+
+  test('turkish suffix variations are detected', () async {
+    BlockWordConfigService.instance.setTestOverride(enabled: false);
+
+    expect(await kufurKontrolEt('götünü'), isTrue);
+    expect(await kufurKontrolEt('götüne'), isTrue);
+    expect(await kufurKontrolEt('götünü sikeyim'), isTrue);
+  });
+
+  test('separated and leetspeak variants are detected', () async {
+    BlockWordConfigService.instance.setTestOverride(enabled: false);
+
+    expect(await kufurKontrolEt('g 0 t'), isTrue);
+    expect(await kufurKontrolEt('h a s s i k t i r'), isTrue);
+  });
+
+  test('adminConfig allowList can suppress custom false positives', () async {
+    BlockWordConfigService.instance.setTestOverride(
+      enabled: true,
+      words: const <String>['anal'],
+      allowWords: const <String>['analiz'],
+    );
+
+    expect(await kufurKontrolEt('anal'), isTrue);
+    expect(await kufurKontrolEt('analiz'), isFalse);
+  });
+
+  test('adminConfig regex patterns are applied on normalized text', () async {
+    BlockWordConfigService.instance.setTestOverride(
+      enabled: true,
+      patterns: const <String>[r'\bg[oö0]+t(?:unu|une|une|un|e|u)?\b'],
+    );
+
+    expect(await kufurKontrolEt('g0tunu'), isTrue);
+  });
 }
