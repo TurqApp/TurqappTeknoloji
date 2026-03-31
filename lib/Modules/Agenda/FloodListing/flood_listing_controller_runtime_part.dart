@@ -6,6 +6,8 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   }
 
   void _handleOnClose() {
+    _visibilityDebounce?.cancel();
+    _visibleFractions.clear();
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
   }
@@ -22,31 +24,71 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   void _onScroll() {
     if (!scrollController.hasClients || floods.isEmpty) return;
     final position = scrollController.position;
-    if (position.pixels <= 0) {
-      centeredIndex.value = 0;
+    if (position.pixels <= 0 && _visibleFractions.isEmpty) {
       currentVisibleIndex.value = 0;
-      lastCenteredIndex = 0;
       capturePendingCenteredEntry(preferredIndex: 0);
+    }
+  }
+
+  bool _canAutoplayFloodPost(PostsModel post) => post.hasPlayableVideo;
+
+  void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
+    if (modelIndex < 0 || modelIndex >= floods.length) return;
+    final previousFraction = _visibleFractions[modelIndex];
+    if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
+      previousFraction: previousFraction,
+      visibleFraction: visibleFraction,
+    )) {
       return;
     }
-    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
-      320.0,
-      680.0,
-    );
-    final nextIndex = (((position.pixels + position.viewportDimension * 0.25) /
-                estimatedItemExtent)
-            .floor())
-        .clamp(0, floods.length - 1);
-    if (centeredIndex.value != nextIndex) {
-      if (lastCenteredIndex != null && lastCenteredIndex != nextIndex) {
-        final prevModel = floods[lastCenteredIndex!];
-        disposeAgendaContentController(prevModel.docID);
-      }
-      centeredIndex.value = nextIndex;
-      currentVisibleIndex.value = nextIndex;
-      lastCenteredIndex = nextIndex;
-      capturePendingCenteredEntry(preferredIndex: nextIndex);
+
+    if (visibleFraction <= 0.01) {
+      _visibleFractions.remove(modelIndex);
+    } else {
+      _visibleFractions[modelIndex] = visibleFraction;
+      currentVisibleIndex.value = modelIndex;
+      capturePendingCenteredEntry(preferredIndex: modelIndex);
     }
+
+    _visibilityDebounce?.cancel();
+    _visibilityDebounce = Timer(
+      FeedPlaybackSelectionPolicy.evaluationDebounceDuration,
+      _evaluateCenteredPlayback,
+    );
+  }
+
+  void _evaluateCenteredPlayback() {
+    if (floods.isEmpty) {
+      centeredIndex.value = -1;
+      return;
+    }
+
+    final nextIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+      visibleFractions: _visibleFractions,
+      currentIndex: centeredIndex.value,
+      lastCenteredIndex: lastCenteredIndex,
+      itemCount: floods.length,
+      canAutoplayIndex: (index) => _canAutoplayFloodPost(floods[index]),
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+    );
+
+    if (nextIndex < 0 || nextIndex >= floods.length) {
+      centeredIndex.value = -1;
+      return;
+    }
+
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex != nextIndex &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < floods.length) {
+      final prevModel = floods[lastCenteredIndex!];
+      disposeAgendaContentController(prevModel.docID);
+    }
+
+    centeredIndex.value = nextIndex;
+    currentVisibleIndex.value = nextIndex;
+    lastCenteredIndex = nextIndex;
+    capturePendingCenteredEntry(preferredIndex: nextIndex);
   }
 
   void disposeAgendaContentController(String docID) {
@@ -81,6 +123,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     centeredIndex.value = target;
     currentVisibleIndex.value = target;
     lastCenteredIndex = target;
+    capturePendingCenteredEntry(preferredIndex: target);
   }
 
   void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Modules/Agenda/Common/agenda_spacing.dart';
@@ -98,6 +99,10 @@ class _FloodListingState extends State<FloodListing> {
                   final model = controller.floods[index];
                   final itemKey = controller.getFloodKey(docId: model.docID);
                   final isCentered = centeredIndex == index;
+                  final shouldPlay =
+                      FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+                    isCentered: isCentered,
+                  );
                   final isLastItem = index == controller.floods.length - 1;
 
                   final contentWidget = AgendaContent(
@@ -105,7 +110,7 @@ class _FloodListingState extends State<FloodListing> {
                     model: model,
                     isPreview: true,
                     instanceTag: controller.floodInstanceTag(model.docID),
-                    shouldPlay: isCentered,
+                    shouldPlay: shouldPlay,
                     suppressFloodBadge: true,
                   );
 

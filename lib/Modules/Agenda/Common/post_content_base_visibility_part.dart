@@ -3,13 +3,24 @@ part of 'post_content_base.dart';
 extension PostContentBaseVisibilityPart<T extends PostContentBase>
     on PostContentBaseState<T> {
   void reportMediaVisibility(double visibleFraction) {
+    final surfaceTag = widget.instanceTag ?? '';
+    if (surfaceTag.startsWith('flood_')) {
+      final floodController = maybeFindFloodListingController();
+      if (floodController == null) return;
+      final floodIndex = floodController.floods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (floodIndex >= 0) {
+        floodController.onPostVisibilityChanged(floodIndex, visibleFraction);
+      }
+      return;
+    }
+
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
     if (modelIndex >= 0) {
       agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
     }
 
-    final surfaceTag = widget.instanceTag ?? '';
     if (visibleFraction < 0.55) return;
 
     final profileController = ProfileController.maybeFind();
@@ -105,22 +116,6 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
         }
       }
     }
-
-    if (surfaceTag.startsWith('flood_')) {
-      final floodController = maybeFindFloodListingController();
-      if (floodController == null) return;
-      final floodIndex = floodController.floods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (floodIndex >= 0) {
-        floodController.currentVisibleIndex.value = floodIndex;
-        floodController.capturePendingCenteredEntry(preferredIndex: floodIndex);
-        if (visibleFraction >= 0.72) {
-          floodController.centeredIndex.value = floodIndex;
-          floodController.lastCenteredIndex = floodIndex;
-        }
-      }
-    }
-
     final exploreController = maybeFindExploreController();
     if (surfaceTag.startsWith('explore_series_') && exploreController != null) {
       final exploreIndex = exploreController.exploreFloods
