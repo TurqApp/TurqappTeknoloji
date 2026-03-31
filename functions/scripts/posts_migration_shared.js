@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 const admin = require('firebase-admin');
+const { randomUUID } = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -133,6 +134,40 @@ function buildOptions() {
 
 function buildCdnUrl(cdnDomain, storagePath) {
   return `https://${cdnDomain}/${storagePath}`;
+}
+
+function buildTokenizedCdnUrl(cdnDomain, bucketName, storagePath, token) {
+  return `https://${cdnDomain}/v0/b/${bucketName}/o/${encodeURIComponent(
+    storagePath,
+  )}?alt=media&token=${encodeURIComponent(token)}`;
+}
+
+function extractDownloadToken(metadata) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return '';
+  }
+  const raw = asString(metadata.firebaseStorageDownloadTokens);
+  if (!raw) return '';
+  return raw
+    .split(',')
+    .map((item) => item.trim())
+    .find(Boolean) || '';
+}
+
+async function buildProtectedAssetUrl(targetBucket, cdnDomain, storagePath) {
+  const file = targetBucket.file(storagePath);
+  const [metadata] = await file.getMetadata();
+  let token = extractDownloadToken(metadata.metadata);
+  if (!token) {
+    token = randomUUID();
+    await file.setMetadata({
+      metadata: {
+        ...(metadata.metadata || {}),
+        firebaseStorageDownloadTokens: token,
+      },
+    });
+  }
+  return buildTokenizedCdnUrl(cdnDomain, targetBucket.name, storagePath, token);
 }
 
 function buildHlsUrl(cdnDomain, docId) {
@@ -518,7 +553,11 @@ async function resolveTargetMedia(sourceData, docId, targetBucket, options) {
           reason: `missing_image_${index}`,
         };
       }
-      const url = buildCdnUrl(options.cdnDomain, storagePath);
+      const url = await buildProtectedAssetUrl(
+        targetBucket,
+        options.cdnDomain,
+        storagePath,
+      );
       result.img.push(url);
       result.imgMap.push({
         url,
@@ -552,14 +591,22 @@ async function resolveTargetMedia(sourceData, docId, targetBucket, options) {
     result.video = buildHlsUrl(options.cdnDomain, docId);
     result.hlsMasterUrl = result.video;
     result.hlsStatus = 'ready';
-    result.thumbnail = buildThumbUrl(options.cdnDomain, thumbnailStoragePath);
+    result.thumbnail = await buildProtectedAssetUrl(
+      targetBucket,
+      options.cdnDomain,
+      thumbnailStoragePath,
+    );
   } else if (asString(sourceData.thumbnail).length > 0) {
     const thumbnailStoragePath = await pickExistingStoragePath(
       targetBucket,
       THUMB_EXT_CANDIDATES.map((ext) => `Posts/${docId}/thumbnail.${ext}`),
     );
     if (thumbnailStoragePath) {
-      result.thumbnail = buildThumbUrl(options.cdnDomain, thumbnailStoragePath);
+      result.thumbnail = await buildProtectedAssetUrl(
+        targetBucket,
+        options.cdnDomain,
+        thumbnailStoragePath,
+      );
     }
   }
 
@@ -826,11 +873,13 @@ function summarizePlans(plans) {
 
 module.exports = {
   arg,
+  asMapList,
   asBool,
   asNum,
   asString,
   asStringList,
   buildOptions,
+  buildProtectedAssetUrl,
   buildTargetMainFlood,
   deleteApps,
   formatTrTimestamp,
@@ -838,6 +887,7 @@ module.exports = {
   loadSourceFloodGroups,
   limitGroupsByScheduleWindow,
   nextScheduleTimestamp,
+  pickExistingStoragePath,
   alignStartTimestamp,
   prepareGroupPlan,
   summarizePlans,

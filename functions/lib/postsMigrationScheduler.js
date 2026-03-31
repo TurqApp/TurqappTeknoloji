@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processPostsMigrationQueue = void 0;
 const axios_1 = require("axios");
+const crypto_1 = require("crypto");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
@@ -86,6 +87,37 @@ function asMapList(value) {
 }
 function buildCdnUrl(storagePath) {
     return `https://${CDN_DOMAIN}/${storagePath}`;
+}
+function buildTokenizedCdnUrl(storagePath, token) {
+    return `https://${CDN_DOMAIN}/v0/b/${bucket().name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${encodeURIComponent(token)}`;
+}
+function extractDownloadToken(metadata) {
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+        return "";
+    }
+    const raw = asString(metadata
+        .firebaseStorageDownloadTokens);
+    if (!raw)
+        return "";
+    return raw
+        .split(",")
+        .map((item) => item.trim())
+        .find(Boolean) || "";
+}
+async function buildProtectedAssetUrl(storagePath) {
+    const file = bucket().file(storagePath);
+    const [metadata] = await file.getMetadata();
+    let token = extractDownloadToken(metadata.metadata);
+    if (!token) {
+        token = (0, crypto_1.randomUUID)();
+        await file.setMetadata({
+            metadata: {
+                ...(metadata.metadata || {}),
+                firebaseStorageDownloadTokens: token,
+            },
+        });
+    }
+    return buildTokenizedCdnUrl(storagePath, token);
 }
 function buildHlsUrl(docId) {
     return buildCdnUrl(`Posts/${docId}/hls/master.m3u8`);
@@ -308,7 +340,7 @@ async function resolveTargetMedia(sourceDoc) {
                     reason: `missing_image_${index}:${sourceDoc.docId}`,
                 };
             }
-            const url = buildCdnUrl(storagePath);
+            const url = await buildProtectedAssetUrl(storagePath);
             result.img.push(url);
             result.imgMap.push({
                 url,
@@ -337,12 +369,12 @@ async function resolveTargetMedia(sourceDoc) {
         result.video = buildHlsUrl(sourceDoc.docId);
         result.hlsMasterUrl = result.video;
         result.hlsStatus = "ready";
-        result.thumbnail = buildCdnUrl(thumbPath);
+        result.thumbnail = await buildProtectedAssetUrl(thumbPath);
     }
     else if (asString(sourceDoc.sourceThumbnailUrl).length > 0) {
         const thumbPath = await pickExistingStoragePath(THUMB_EXT_CANDIDATES.map((ext) => `Posts/${sourceDoc.docId}/thumbnail.${ext}`));
         if (thumbPath) {
-            result.thumbnail = buildCdnUrl(thumbPath);
+            result.thumbnail = await buildProtectedAssetUrl(thumbPath);
         }
     }
     return result;

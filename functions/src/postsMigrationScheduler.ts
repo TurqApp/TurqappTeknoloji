@@ -1,4 +1,5 @@
 import axios from "axios";
+import { randomUUID } from "crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,
@@ -151,6 +152,43 @@ function asMapList(value: unknown): Array<{ url: string; aspectRatio: number }> 
 
 function buildCdnUrl(storagePath: string): string {
   return `https://${CDN_DOMAIN}/${storagePath}`;
+}
+
+function buildTokenizedCdnUrl(storagePath: string, token: string): string {
+  return `https://${CDN_DOMAIN}/v0/b/${bucket().name}/o/${encodeURIComponent(
+    storagePath,
+  )}?alt=media&token=${encodeURIComponent(token)}`;
+}
+
+function extractDownloadToken(metadata: unknown): string {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return "";
+  }
+  const raw = asString(
+    (metadata as { firebaseStorageDownloadTokens?: unknown })
+      .firebaseStorageDownloadTokens,
+  );
+  if (!raw) return "";
+  return raw
+    .split(",")
+    .map((item) => item.trim())
+    .find(Boolean) || "";
+}
+
+async function buildProtectedAssetUrl(storagePath: string): Promise<string> {
+  const file = bucket().file(storagePath);
+  const [metadata] = await file.getMetadata();
+  let token = extractDownloadToken(metadata.metadata);
+  if (!token) {
+    token = randomUUID();
+    await file.setMetadata({
+      metadata: {
+        ...(metadata.metadata || {}),
+        firebaseStorageDownloadTokens: token,
+      },
+    });
+  }
+  return buildTokenizedCdnUrl(storagePath, token);
 }
 
 function buildHlsUrl(docId: string): string {
@@ -410,7 +448,7 @@ async function resolveTargetMedia(sourceDoc: QueueDoc): Promise<MediaResolution>
           reason: `missing_image_${index}:${sourceDoc.docId}`,
         };
       }
-      const url = buildCdnUrl(storagePath);
+      const url = await buildProtectedAssetUrl(storagePath);
       result.img.push(url);
       result.imgMap.push({
         url,
@@ -444,13 +482,13 @@ async function resolveTargetMedia(sourceDoc: QueueDoc): Promise<MediaResolution>
     result.video = buildHlsUrl(sourceDoc.docId);
     result.hlsMasterUrl = result.video;
     result.hlsStatus = "ready";
-    result.thumbnail = buildCdnUrl(thumbPath);
+    result.thumbnail = await buildProtectedAssetUrl(thumbPath);
   } else if (asString(sourceDoc.sourceThumbnailUrl).length > 0) {
     const thumbPath = await pickExistingStoragePath(
       THUMB_EXT_CANDIDATES.map((ext) => `Posts/${sourceDoc.docId}/thumbnail.${ext}`),
     );
     if (thumbPath) {
-      result.thumbnail = buildCdnUrl(thumbPath);
+      result.thumbnail = await buildProtectedAssetUrl(thumbPath);
     }
   }
 
