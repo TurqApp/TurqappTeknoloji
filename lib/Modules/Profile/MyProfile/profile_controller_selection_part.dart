@@ -1,6 +1,29 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerSelectionPart on ProfileController {
+  bool get _canRetainStartupPlaybackLock {
+    if (!GetPlatform.isIOS) return false;
+    if (postSelection.value != 0) return false;
+    if (_startupScrollStartedAt != null) return false;
+    final lockedIdentity = _startupLockedIdentity?.trim() ?? '';
+    return lockedIdentity.isNotEmpty;
+  }
+
+  void _lockStartupPlaybackIdentityForIndex(int index) {
+    if (!GetPlatform.isIOS) return;
+    if (postSelection.value != 0) return;
+    if (index < 0 || index >= mergedPosts.length) return;
+    final entry = mergedPosts[index];
+    if (!_performCanAutoplayMergedEntry(entry)) return;
+    final docId = ((entry['docID'] as String?) ?? '').trim();
+    if (docId.isEmpty) return;
+    _startupLockedIdentity = mergedEntryIdentity(
+      docId: docId,
+      isReshare: entry['isReshare'] == true,
+    );
+    _startupScrollStartedAt = null;
+  }
+
   void _performBootstrapFeedPlaybackAfterDataChange() {
     if (postSelection.value != 0) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -18,6 +41,7 @@ extension ProfileControllerSelectionPart on ProfileController {
       currentVisibleIndex.value = target;
       lastCenteredIndex = target;
       capturePendingCenteredEntry(preferredIndex: target);
+      _lockStartupPlaybackIdentityForIndex(target);
       if (_performCanAutoplayMergedEntry(activeEntries[target])) {
         _performEnsureCenteredPlaybackForIndex(target);
       } else {
@@ -66,6 +90,7 @@ extension ProfileControllerSelectionPart on ProfileController {
     centeredIndex.value = target;
     currentVisibleIndex.value = target;
     capturePendingCenteredEntry(preferredIndex: target);
+    _lockStartupPlaybackIdentityForIndex(target);
     pausetheall.value = false;
     _invariantGuard.assertCenteredSelection(
       surface: 'profile',
@@ -215,6 +240,31 @@ extension ProfileControllerSelectionPart on ProfileController {
 
   void _performEvaluateCenteredPlayback() {
     if (mergedPosts.isEmpty) return;
+    if (_canRetainStartupPlaybackLock) {
+      final lockedIdentity = _startupLockedIdentity?.trim() ?? '';
+      final lockedIndex = mergedPosts.indexWhere((entry) {
+        final entryDocId = ((entry['docID'] as String?) ?? '').trim();
+        if (entryDocId.isEmpty) return false;
+        return mergedEntryIdentity(
+              docId: entryDocId,
+              isReshare: entry['isReshare'] == true,
+            ) ==
+            lockedIdentity;
+      });
+      if (lockedIndex >= 0 &&
+          lockedIndex < mergedPosts.length &&
+          _performCanAutoplayMergedEntry(mergedPosts[lockedIndex])) {
+        if (centeredIndex.value != lockedIndex) {
+          centeredIndex.value = lockedIndex;
+        }
+        currentVisibleIndex.value = lockedIndex;
+        lastCenteredIndex = lockedIndex;
+        if (!_performIsPlaybackTargetCurrent(lockedIndex)) {
+          _performEnsureCenteredPlaybackForIndex(lockedIndex);
+        }
+        return;
+      }
+    }
     final current = centeredIndex.value;
     if (current >= 0 && current < mergedPosts.length) {
       final currentEntry = mergedPosts[current];

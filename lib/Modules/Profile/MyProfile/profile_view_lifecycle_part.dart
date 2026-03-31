@@ -181,6 +181,18 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     if (!mounted) return;
     final position = controller.currentScrollPosition;
     if (position == null) return;
+    final currentOffset = position.pixels;
+    final scrollDelta = (currentOffset - controller.lastObservedScrollOffset).abs();
+    final startupLockActive =
+        GetPlatform.isIOS && controller.hasStartupPlaybackLock;
+    final startupUnlockThreshold = startupLockActive ? 12.0 : 1.0;
+    final hasMeaningfulScrollMovement = currentOffset.abs() >
+            startupUnlockThreshold ||
+        scrollDelta > startupUnlockThreshold;
+    if (!controller.hasStartupScrollStarted && hasMeaningfulScrollMovement) {
+      controller.markStartupScrollBegan();
+    }
+    controller.lastObservedScrollOffset = currentOffset;
     if (position.pixels >= position.maxScrollExtent - 300) {
       controller.fetchPosts();
       controller.fetchPhotos();
@@ -192,6 +204,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
         FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
         () {
           if (!mounted || controller.postSelection.value != 0) return;
+          controller.clearStartupScrollTracking();
           final centered = controller.centeredIndex.value;
           if (centered >= 0 && centered < controller.mergedPosts.length) {
             controller.ensureCenteredPlaybackForCurrentSelection();

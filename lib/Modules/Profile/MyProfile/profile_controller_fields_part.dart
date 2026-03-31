@@ -25,6 +25,9 @@ class _ProfileScrollState {
   String? lastPlaybackCommandDocId;
   DateTime? lastPlaybackCommandAt;
   String? pendingCenteredIdentity;
+  String? startupLockedIdentity;
+  DateTime? startupScrollStartedAt;
+  double lastObservedOffset = 0.0;
   final Map<int, double> visibleFractions = <int, double>{};
   Timer? visibilityDebounce;
   final pausetheall = false.obs;
@@ -131,6 +134,14 @@ extension ProfileControllerFieldsPart on ProfileController {
   String? get _pendingCenteredIdentity => _scrollState.pendingCenteredIdentity;
   set _pendingCenteredIdentity(String? value) =>
       _scrollState.pendingCenteredIdentity = value;
+  String? get _startupLockedIdentity => _scrollState.startupLockedIdentity;
+  set _startupLockedIdentity(String? value) =>
+      _scrollState.startupLockedIdentity = value;
+  DateTime? get _startupScrollStartedAt => _scrollState.startupScrollStartedAt;
+  set _startupScrollStartedAt(DateTime? value) =>
+      _scrollState.startupScrollStartedAt = value;
+  double get _lastObservedOffset => _scrollState.lastObservedOffset;
+  set _lastObservedOffset(double value) => _scrollState.lastObservedOffset = value;
   Map<int, double> get _visibleFractions => _scrollState.visibleFractions;
   Timer? get _visibilityDebounce => _scrollState.visibilityDebounce;
   set _visibilityDebounce(Timer? value) =>

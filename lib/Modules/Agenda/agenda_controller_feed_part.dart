@@ -408,8 +408,14 @@ extension AgendaControllerFeedPart on AgendaController {
     final currentOffset = scrollController.offset;
     final now = DateTime.now();
     final scrollDelta = (currentOffset - lastOffset).abs();
-    final hasMeaningfulScrollMovement =
-        currentOffset.abs() > 1.0 || scrollDelta > 1.0;
+    final startupLockActive =
+        GetPlatform.isIOS && (_startupLockedFeedDocId?.trim().isNotEmpty ?? false);
+    // Ignore small cold-start layout/inset jitters on iOS while the initial
+    // autoplay target is locked. A real user scroll quickly exceeds this.
+    final startupUnlockThreshold = startupLockActive ? 12.0 : 1.0;
+    final hasMeaningfulScrollMovement = currentOffset.abs() >
+            startupUnlockThreshold ||
+        scrollDelta > startupUnlockThreshold;
     if (_qaScrollStartedAt == null) {
       if (!hasMeaningfulScrollMovement) {
         lastOffset = currentOffset;

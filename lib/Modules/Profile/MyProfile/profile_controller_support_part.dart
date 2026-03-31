@@ -47,6 +47,23 @@ extension ProfileControllerSupportPart on ProfileController {
 
   double get currentScrollOffset => _performCurrentScrollOffset();
 
+  double get lastObservedScrollOffset => _lastObservedOffset;
+  set lastObservedScrollOffset(double value) => _lastObservedOffset = value;
+
+  bool get hasStartupPlaybackLock =>
+      (_startupLockedIdentity?.trim().isNotEmpty ?? false);
+
+  bool get hasStartupScrollStarted => _startupScrollStartedAt != null;
+
+  void markStartupScrollBegan() {
+    _startupLockedIdentity = null;
+    _startupScrollStartedAt = DateTime.now();
+  }
+
+  void clearStartupScrollTracking() {
+    _startupScrollStartedAt = null;
+  }
+
   Future<void> animateCurrentSelectionToTop() =>
       _performAnimateCurrentSelectionToTop();
 
