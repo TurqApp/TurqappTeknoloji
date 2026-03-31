@@ -157,11 +157,20 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isFloodSurfaceInstance => _surfaceInstanceTag.startsWith('flood_');
 
+  bool get _isExploreSeriesSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('explore_series_');
+
   bool get _isProfileFamilySurfaceInstance =>
       _surfaceInstanceTag.startsWith('profile_') ||
       _surfaceInstanceTag.startsWith('archives_') ||
       _surfaceInstanceTag.startsWith('liked_post_') ||
       _surfaceInstanceTag.startsWith('social_');
+
+  bool get _isFeedStyleInlineSurfaceInstance =>
+      _isPrimaryFeedSurfaceInstance ||
+      _isProfileFamilySurfaceInstance ||
+      _isFloodSurfaceInstance ||
+      _isExploreSeriesSurfaceInstance;
 
   bool get _isPrimaryFeedSurfaceInstance =>
       !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
@@ -169,8 +178,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _useLegacyIosFeedBehavior =>
       defaultTargetPlatform == TargetPlatform.iOS &&
       !isStandalonePostInstance &&
-      !_isPrimaryFeedSurfaceInstance &&
-      !_isProfileFamilySurfaceInstance;
+      !_isFeedStyleInlineSurfaceInstance;
 
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
@@ -200,6 +208,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (_isFloodSurfaceInstance) {
       final route = ModalRoute.of(context);
       return route?.isCurrent ?? false;
+    }
+    if (_isExploreSeriesSurfaceInstance) {
+      final nav = maybeFindNavBarController();
+      if (nav != null) {
+        return nav.selectedIndex.value == 1;
+      }
+      final route = Get.currentRoute.trim();
+      return route == '/ExploreView' ||
+          route == 'ExploreView' ||
+          route == '/NavBarView' ||
+          route == 'NavBarView';
     }
     if (isStandalonePostInstance) return true;
     if (_surfaceInstanceTag.startsWith('social_')) {

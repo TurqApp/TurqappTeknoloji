@@ -326,6 +326,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
   Widget _buildSeriesTab() {
     return Obx(() {
       final list = controller.exploreFloods;
+      final focusedIndex = controller.resolveFloodSeriesFocusIndex();
       final showLoader =
           controller.floodsHasMore.value && controller.floodsIsLoading.value;
       if (list.isEmpty && !controller.floodsIsLoading.value) {
@@ -355,6 +356,10 @@ extension _ExploreViewTabsPart on _ExploreViewState {
               );
             }
             final p = list[i];
+            final shouldPlay =
+                FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+              isCentered: focusedIndex == i,
+            );
             return RepaintBoundary(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -366,7 +371,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                   model: p,
                   isPreview: true,
                   instanceTag: 'explore_series_${p.docID}',
-                  shouldPlay: false,
+                  shouldPlay: shouldPlay,
                   floodHostSurface: FloodListingHostSurface.exploreSeries,
                 ),
               ),

@@ -46,5 +46,8 @@ extension ExploreControllerPublicPart on ExploreController {
   void resumeExplorePreview() =>
       _ExploreControllerSupportX(this).resumeExplorePreview();
 
+  int resolveFloodSeriesFocusIndex() =>
+      _ExploreControllerSupportX(this).resolveFloodSeriesFocusIndex();
+
   void goToPage(int index) => _handleGoToPage(index);
 }

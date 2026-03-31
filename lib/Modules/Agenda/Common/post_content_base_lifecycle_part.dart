@@ -14,8 +14,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
 
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       final prefersImmediateVideoInit = isStandalonePostInstance ||
-          _isPrimaryFeedSurfaceInstance ||
-          _isProfileFamilySurfaceInstance;
+          _isFeedStyleInlineSurfaceInstance;
       final delay = isStandalonePostInstance
           ? Duration.zero
           : (prefersImmediateVideoInit
