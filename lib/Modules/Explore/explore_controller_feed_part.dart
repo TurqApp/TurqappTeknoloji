@@ -66,7 +66,7 @@ extension ExploreControllerFeedPart on ExploreController {
   }
 
   void _performRestoreFloodSeriesFocus() {
-    final target = resolveFloodSeriesFocusIndex();
+    final target = _performResolveFloodSeriesFocusIndex();
     if (target < 0 || target >= exploreFloods.length) return;
     floodsVisibleIndex.value = target;
     lastFloodVisibleIndex = target;
