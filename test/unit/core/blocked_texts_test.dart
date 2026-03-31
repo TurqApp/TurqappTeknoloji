@@ -44,6 +44,9 @@ void main() {
     expect(await kufurKontrolEt('gavur'), isFalse);
     expect(await kufurKontrolEt('sürtük'), isFalse);
     expect(await kufurKontrolEt('kime veriyorsun'), isFalse);
+    expect(await kufurKontrolEt('gavat'), isFalse);
+    expect(await kufurKontrolEt('hure'), isFalse);
+    expect(await kufurKontrolEt('şerefsiz'), isFalse);
   });
 
   test('turkish suffix variations are detected', () async {
