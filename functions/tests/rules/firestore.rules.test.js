@@ -1266,6 +1266,39 @@ test("conversations block non-participant read", async () => {
   );
 });
 
+test("conversations allow participant preview and cutoff updates", async () => {
+  const uid1 = "conv-preview-user-1";
+  const uid2 = "conv-preview-user-2";
+  const conversationId = "conv-preview-user-1_conv-preview-user-2";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `conversations/${conversationId}`), {
+      participants: [uid1, uid2],
+      userID1: uid1,
+      userID2: uid2,
+      lastMessage: "ilk",
+      lastMessageAt: 1,
+      lastMessageAtMs: 1,
+      lastSenderId: uid1,
+      unread: { [uid1]: 0, [uid2]: 1 },
+      archived: { [uid1]: false, [uid2]: false },
+      muted: { [uid1]: false, [uid2]: false },
+      pinned: { [uid1]: false, [uid2]: false },
+      typing: { [uid1]: 0, [uid2]: 0 },
+      chatBg: { [uid1]: 0, [uid2]: 0 },
+    });
+  });
+
+  const user1Ctx = testEnv.authenticatedContext(uid1);
+  await assertSucceeds(
+    updateDoc(doc(user1Ctx.firestore(), `conversations/${conversationId}`), {
+      [`previewText.${uid1}`]: "guncel onizleme",
+      [`previewAt.${uid1}`]: Date.now(),
+      [`deletedAt.${uid1}`]: Date.now(),
+    }),
+  );
+});
+
 test("conversation messages allow participant self-sent payload", async () => {
   const uid1 = "msg-user-1";
   const uid2 = "msg-user-2";
@@ -1330,6 +1363,31 @@ test("conversation messages block spoofed sender payload", async () => {
         text: "spoof",
       },
     ),
+  );
+});
+
+test("users interaction subcollections allow owner write", { concurrency: false }, async () => {
+  const uid = "user-interaction-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+  const db = ctx.firestore();
+
+  await assertSucceeds(
+    setDoc(doc(db, `users/${uid}/liked_posts/post-1`), {
+      post_docID: "post-1",
+      timeStamp: Date.now(),
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(db, `users/${uid}/saved_posts/post-1`), {
+      post_docID: "post-1",
+      timeStamp: Date.now(),
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(db, `users/${uid}/commented_posts/comment-1`), {
+      post_docID: "post-1",
+      timeStamp: Date.now(),
+    }),
   );
 });
 

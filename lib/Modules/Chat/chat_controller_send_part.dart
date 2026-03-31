@@ -48,7 +48,7 @@ extension ChatControllerSendPart on ChatController {
           waitForAuthState: true,
         ))
             ?.trim() ??
-        CurrentUserService.instance.effectiveUserId.trim();
+        CurrentUserService.instance.authUserId.trim();
     if (currentUid.isEmpty) {
       AppSnackbar('common.error'.tr, 'chat.message_send_failed'.tr);
       return;

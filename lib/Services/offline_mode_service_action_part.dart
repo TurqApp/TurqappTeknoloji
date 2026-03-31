@@ -259,7 +259,6 @@ extension PendingActionExecutionPart on PendingAction {
         'videos': videos,
         'timeStamp': nowMs,
         'userID': userId,
-        'docID': commentRef.id,
         'edited': false,
         'editTimestamp': 0,
         'deleted': false,

@@ -1,6 +1,15 @@
 part of 'chat_controller.dart';
 
 extension ChatControllerForwardingPart on ChatController {
+  Future<String> _resolvedWriteUserId() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+    );
+    final authUid = (ensured ?? '').trim();
+    if (authUid.isNotEmpty) return authUid;
+    return CurrentUserService.instance.authUserId.trim();
+  }
+
   Future<void> sendExternalText(String text) async {
     final clean = text.trim();
     if (clean.isEmpty) return;
@@ -19,13 +28,13 @@ extension ChatControllerForwardingPart on ChatController {
       textOverride: clean,
       replyTextOverride: replyText,
       replyTypeOverride: replyType,
-      replySenderIdOverride: CurrentUserService.instance.effectiveUserId,
+      replySenderIdOverride: await _resolvedWriteUserId(),
       replyMessageIdOverride: replyTarget,
     );
   }
 
   Future<void> toggleReaction(MessageModel model, String emoji) async {
-    final uid = CurrentUserService.instance.effectiveUserId;
+    final uid = await _resolvedWriteUserId();
     if (uid.isEmpty || emoji.trim().isEmpty) return;
     await _conversationRepository.toggleMessageReaction(
       chatId: chatID,
@@ -36,7 +45,7 @@ extension ChatControllerForwardingPart on ChatController {
   }
 
   Future<void> unsendMessage(MessageModel model) async {
-    final currentUID = CurrentUserService.instance.effectiveUserId;
+    final currentUID = await _resolvedWriteUserId();
     if (model.userID != currentUID) return;
 
     await _conversationRepository.unsendMessage(
@@ -54,7 +63,7 @@ extension ChatControllerForwardingPart on ChatController {
   }
 
   Future<void> openForwardPicker(MessageModel model) async {
-    final currentUID = CurrentUserService.instance.effectiveUserId;
+    final currentUID = await _resolvedWriteUserId();
     if (currentUID.isEmpty) return;
     final docs = await _conversationRepository.fetchUserConversations(
       currentUID,
@@ -133,7 +142,7 @@ extension ChatControllerForwardingPart on ChatController {
 
   Future<void> forwardMessage(
       MessageModel model, String targetChatId, String targetUserId) async {
-    final currentUID = CurrentUserService.instance.effectiveUserId;
+    final currentUID = await _resolvedWriteUserId();
     if (currentUID.isEmpty) return;
 
     final convMessage = {

@@ -10,20 +10,21 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
   }
 
   String? get currentUserID {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    return uid.isEmpty ? null : uid;
+    final authUid = CurrentUserService.instance.authUserId.trim();
+    if (authUid.isNotEmpty) return authUid;
+    return null;
   }
 
   Future<String?> _resolveCurrentUserId({
     bool waitForAuthState = true,
   }) async {
-    final cached = currentUserID;
-    if (cached != null) return cached;
     final ensured = await CurrentUserService.instance.ensureAuthReady(
       waitForAuthState: waitForAuthState,
     );
-    final normalized = (ensured ?? '').trim();
-    return normalized.isEmpty ? null : normalized;
+    final normalizedEnsured = (ensured ?? '').trim();
+    if (normalizedEnsured.isNotEmpty) return normalizedEnsured;
+    final authUid = CurrentUserService.instance.authUserId.trim();
+    return authUid.isEmpty ? null : authUid;
   }
 
   bool get _isOffline =>

@@ -12,7 +12,15 @@ extension ShareGridControllerRuntimePart on ShareGridController {
   }
 
   Future<void> getFolowers() async {
-    final currentUid = CurrentUserService.instance.effectiveUserId;
+    final currentUid = ((await CurrentUserService.instance.ensureAuthReady(
+              waitForAuthState: true,
+            )) ??
+            CurrentUserService.instance.authUserId)
+        .trim();
+    if (currentUid.isEmpty) {
+      followings.clear();
+      return;
+    }
     final ids = await _visibilityPolicy.loadViewerFollowingIds(
       viewerUserId: currentUid,
     );
@@ -43,7 +51,15 @@ extension ShareGridControllerRuntimePart on ShareGridController {
     final sohbet = chatListingController.list.firstWhereOrNull(
       (val) => val.userID == userID,
     );
-    final currentUID = CurrentUserService.instance.effectiveUserId;
+    final currentUID = ((await CurrentUserService.instance.ensureAuthReady(
+              waitForAuthState: true,
+            )) ??
+            CurrentUserService.instance.authUserId)
+        .trim();
+    if (currentUID.isEmpty) {
+      AppSnackbar('common.error'.tr, 'chat.message_send_failed'.tr);
+      return;
+    }
     final chatId = sohbet?.chatID ?? buildConversationId(currentUID, userID);
 
     try {

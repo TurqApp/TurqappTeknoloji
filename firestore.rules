@@ -1509,14 +1509,23 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'lastMessage', 'lastMessageAt', 'lastMessageAtMs', 'lastSenderId',
           'unread', 'typing', 'archived', 'muted', 'pinned', 'chatBg',
-          'participants', 'userID1', 'userID2'
+          'participants', 'userID1', 'userID2', 'previewText', 'previewAt',
+          'deletedAt', 'marketContext'
         ])
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSenderId'])
           || request.resource.data.lastSenderId == request.auth.uid)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userID1'])
           || request.resource.data.userID1 is string)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userID2'])
-          || request.resource.data.userID2 is string);
+          || request.resource.data.userID2 is string)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['previewText'])
+          || request.resource.data.previewText is map)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['previewAt'])
+          || request.resource.data.previewAt is map)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedAt'])
+          || request.resource.data.deletedAt is map)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['marketContext'])
+          || request.resource.data.marketContext is map);
 
       match /messages/{messageId} {
         function isSender() {
@@ -1534,18 +1543,23 @@ service cloud.firestore {
           return [
             'text', 'isEdited', 'unsent', 'mediaUrls', 'location', 'contact',
             'postRef', 'videoUrl', 'videoThumbnail', 'audioUrl', 'audioDurationMs',
-            'replyTo', 'status', 'isDeleted'
+            'replyTo', 'status', 'isDeleted', 'updatedDate'
           ];
         }
         function participantEditableKeys() {
-          return ['seenBy', 'status', 'reactions', 'likes', 'deletedFor', 'isStarred'];
+          return [
+            'seenBy', 'status', 'reactions', 'likes', 'deletedFor',
+            'isStarred', 'updatedDate'
+          ];
         }
         allow read: if isParticipantFromConversationDoc();
         allow create: if isParticipantFromConversationDoc() && validMessageCreate();
         allow update: if isParticipantFromConversationDoc() && (
           (isSender() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(senderEditableKeys()))
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(participantEditableKeys())
-        );
+        )
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedDate'])
+          || request.resource.data.updatedDate is int);
         allow delete: if false;
       }
     }
