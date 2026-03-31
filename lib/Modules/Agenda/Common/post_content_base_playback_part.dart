@@ -328,7 +328,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
         _recordPlaybackDispatch(
-          'feed_card_start_skipped',
+          'feed_card_manager_reclaim',
           source: source,
           dispatchIssued: false,
           skipReason:
@@ -336,14 +336,23 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                   ? 'manager_not_ready'
                   : 'manager_not_current',
         );
-        return;
+        _playbackRuntimeService.requestPlay(
+          playbackHandleKey,
+          HLSAdapterPlaybackHandle(adapter),
+        );
+        _recordPlaybackDispatch(
+          'feed_card_adapter_play',
+          source: '$source:manager_reclaim',
+        );
+        unawaited(adapter.play());
+      } else {
+        _recordPlaybackDispatch(
+          'feed_card_manager_resume_current',
+          source: source,
+          dispatchIssued: false,
+        );
       }
       _hasAutoPlayed = true;
-      _recordPlaybackDispatch(
-        'feed_card_manager_resume_current',
-        source: source,
-        dispatchIssued: false,
-      );
       _syncRuntimeHints(
         isAudible: _currentIsAudible(),
         hasStableFocus: true,
@@ -461,6 +470,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _replayAdImpressionReceived = false;
     _replayAdHideTimer?.cancel();
     _manualPauseRequested = false;
+    _hasAutoPlayed = false;
     await adapter.setLooping(shouldLoopVideo);
     await adapter.seekTo(Duration.zero);
     _startPlaybackWhenReady(source: 'replay_button');
@@ -479,121 +489,74 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final showReplayButton = _replayButtonVisible;
     final showAdPanel = _replayAdVisible;
     const headerClearance = 72.0;
-    final overlayColor = showAdPanel
-        ? Colors.transparent
-        : Colors.black.withValues(alpha: showReplayButton ? 0.28 : 0.18);
+    final replayButton = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => unawaited(replayVideoFromStart()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 30,
+          vertical: 17,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          borderRadius: BorderRadius.circular(34),
+        ),
+        child: const Text(
+          'Tekrar izle',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontFamily: 'MontserratSemiBold',
+            height: 1.0,
+          ),
+        ),
+      ),
+    );
     return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: false,
-        child: Column(
-          children: [
-            const SizedBox(height: headerClearance),
-            Expanded(
-              child: ColoredBox(
-                color: overlayColor,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320),
-                      child: AspectRatio(
-                        aspectRatio: 9 / 16,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              if (showAdPanel) ...[
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 300,
-                                      height: 250,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(18),
-                                      ),
-                                      clipBehavior: Clip.antiAlias,
-                                      child: AdmobKare(
-                                        showChrome: false,
-                                        onImpression: _onReplayAdImpression,
-                                      ),
-                                    ),
-                                    if (showReplayButton)
-                                      const SizedBox(height: 16),
-                                    if (showReplayButton)
-                                      GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () =>
-                                            unawaited(replayVideoFromStart()),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 30,
-                                            vertical: 17,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            borderRadius:
-                                                BorderRadius.circular(34),
-                                          ),
-                                          child: const Text(
-                                            'Tekrar izle',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontFamily: 'MontserratSemiBold',
-                                              height: 1.0,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                              if (showReplayButton && !showAdPanel)
-                                Center(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: () =>
-                                        unawaited(replayVideoFromStart()),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 30,
-                                        vertical: 17,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius:
-                                            BorderRadius.circular(34),
-                                      ),
-                                      child: const Text(
-                                        'Tekrar izle',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontFamily: 'MontserratSemiBold',
-                                          height: 1.0,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
+      child: Column(
+        children: [
+          const SizedBox(height: headerClearance),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: showReplayButton && !showAdPanel
+                  ? () => unawaited(replayVideoFromStart())
+                  : () {},
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (showAdPanel)
+                          Container(
+                            width: 300,
+                            height: 250,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: AdmobKare(
+                              showChrome: false,
+                              onImpression: _onReplayAdImpression,
+                            ),
                           ),
-                        ),
-                      ),
+                        if (showAdPanel && showReplayButton)
+                          const SizedBox(height: 16),
+                        if (showReplayButton) replayButton,
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

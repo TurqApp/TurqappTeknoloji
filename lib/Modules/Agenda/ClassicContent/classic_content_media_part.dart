@@ -231,11 +231,14 @@ extension _ClassicContentMediaPart on _ClassicContentState {
     VoidCallback? onDoubleTap,
   }) {
     return Positioned.fill(
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: onTap,
-        onDoubleTap: onDoubleTap,
-        child: const SizedBox.expand(),
+      child: IgnorePointer(
+        ignoring: isReplayOverlayBlockingTap,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: onTap,
+          onDoubleTap: onDoubleTap,
+          child: const SizedBox.expand(),
+        ),
       ),
     );
   }
