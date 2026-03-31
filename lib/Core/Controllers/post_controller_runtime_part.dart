@@ -1,6 +1,11 @@
 part of 'post_controller.dart';
 
 extension PostControllerRuntimePart on PostController {
+  Future<bool> _readInteractionFlag(String postId, String key) async {
+    final status = await _interactionService.getUserInteractionStatus(postId);
+    return status[key] ?? false;
+  }
+
   Future<void> handleLike(String postId, PostsModel post) async {
     try {
       final isLiked = await _interactionService.toggleLike(postId);
@@ -26,10 +31,10 @@ extension PostControllerRuntimePart on PostController {
   }
 
   Future<bool> checkLikeStatus(String postId) =>
-      _interactionService.isPostLiked(postId);
+      _readInteractionFlag(postId, 'liked');
 
   Future<bool> checkSaveStatus(String postId) =>
-      _interactionService.isPostSaved(postId);
+      _readInteractionFlag(postId, 'saved');
 
   Future<bool> checkReshareStatus(String postId) async {
     final status = await _interactionService.getUserInteractionStatus(postId);

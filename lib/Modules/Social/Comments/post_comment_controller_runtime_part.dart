@@ -45,9 +45,15 @@ void _bindPostCommentInvalidation(PostCommentController controller) {
     if (event.payload['rollbackComment'] != true) return;
     final commentId = (event.payload['commentId'] ?? '').toString().trim();
     if (commentId.isEmpty) return;
+    final existed =
+        controller.list.any((comment) => comment.docID == commentId) ||
+            controller._pendingLocalComments.containsKey(commentId);
     controller.pendingCommentIds.remove(commentId);
     controller._pendingLocalComments.remove(commentId);
     controller.list.removeWhere((comment) => comment.docID == commentId);
+    if (existed && controller.onCommentCountChange != null) {
+      controller.onCommentCountChange!(false);
+    }
   });
 }
 

@@ -1,6 +1,64 @@
 part of 'post_repository.dart';
 
 extension PostRepositoryInteractionPart on PostRepository {
+  void _applyPostInteractionRollbackEvent(CacheInvalidationEvent event) {
+    final postId = event.scopeId.trim();
+    if (postId.isEmpty) return;
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
+    if (currentUid.isEmpty || event.actorUserId.trim() != currentUid) return;
+
+    final state = _states[postId];
+    final rollbackLike = event.payload['rollbackLike'] == true;
+    final rollbackSaved = event.payload['rollbackSaved'] == true;
+    final rollbackComment = event.payload['rollbackComment'] == true;
+
+    if (rollbackLike && state != null && state.liked.value) {
+      state.liked.value = false;
+      final likeRx = _countManager.getLikeCount(postId);
+      if (likeRx.value > 0) likeRx.value--;
+      _patchLatestPostCount(state, field: 'likeCount', value: likeRx.value);
+    }
+
+    if (rollbackSaved && state != null && state.saved.value) {
+      state.saved.value = false;
+      final savedRx = _countManager.getSavedCount(postId);
+      if (savedRx.value > 0) savedRx.value--;
+      _patchLatestPostCount(state, field: 'savedCount', value: savedRx.value);
+    }
+
+    if (rollbackComment) {
+      if (state != null) {
+        state.commented.value = false;
+      }
+      final commentRx = _countManager.getCommentCount(postId);
+      if (commentRx.value > 0) commentRx.value--;
+      if (state != null) {
+        _patchLatestPostCount(
+          state,
+          field: 'commentCount',
+          value: commentRx.value,
+        );
+      }
+    }
+  }
+
+  void _patchLatestPostCount(
+    PostRepositoryState state, {
+    required String field,
+    required int value,
+  }) {
+    final latest = state.latestPostData.value;
+    if (latest == null) return;
+    final next = Map<String, dynamic>.from(latest);
+    final stats = Map<String, dynamic>.from(
+      (next['stats'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+    );
+    stats[field] = value;
+    next['stats'] = stats;
+    next[field] = value;
+    state.latestPostData.value = next;
+  }
+
   PostRepositoryState _performAttachPost(
     PostsModel model, {
     required bool loadInteraction,
@@ -369,6 +427,7 @@ extension PostRepositoryInteractionPart on PostRepository {
       state.liked.value = status['liked'] ?? false;
       state.saved.value = status['saved'] ?? false;
       state.reshared.value = status['reshared'] ?? false;
+      state.commented.value = status['commented'] ?? false;
       state.reported.value = status['reported'] ?? false;
       state.interactionFetchedAt = DateTime.now();
     } finally {

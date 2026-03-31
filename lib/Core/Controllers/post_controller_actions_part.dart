@@ -9,7 +9,9 @@ extension PostControllerActionsPart on PostController {
     List<String>? videos,
   }) async {
     try {
-      if (text.trim().isEmpty) {
+      final safeImgs = imgs ?? const <String>[];
+      final safeVideos = videos ?? const <String>[];
+      if (text.trim().isEmpty && safeImgs.isEmpty && safeVideos.isEmpty) {
         AppSnackbar('common.error'.tr, 'post_controller.comment_empty'.tr);
         return;
       }
@@ -17,8 +19,8 @@ extension PostControllerActionsPart on PostController {
       final commentId = await _interactionService.addComment(
         postId,
         text,
-        imgs: imgs,
-        videos: videos,
+        imgs: safeImgs,
+        videos: safeVideos,
       );
 
       if (commentId != null) {
@@ -68,7 +70,9 @@ extension PostControllerActionsPart on PostController {
     List<String>? videos,
   }) async {
     try {
-      if (text.trim().isEmpty) {
+      final safeImgs = imgs ?? const <String>[];
+      final safeVideos = videos ?? const <String>[];
+      if (text.trim().isEmpty && safeImgs.isEmpty && safeVideos.isEmpty) {
         AppSnackbar('common.error'.tr, 'post_controller.comment_empty'.tr);
         return;
       }
@@ -77,8 +81,8 @@ extension PostControllerActionsPart on PostController {
         postId,
         commentId,
         text,
-        imgs: imgs,
-        videos: videos,
+        imgs: safeImgs,
+        videos: safeVideos,
       );
 
       if (subCommentId != null) {

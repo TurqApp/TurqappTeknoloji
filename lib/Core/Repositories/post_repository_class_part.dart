@@ -13,6 +13,19 @@ class PostRepository extends _PostRepositoryBase {
               _resolvePostRepositoryInteractionService(interactionService),
           countManager: _resolvePostRepositoryCountManager(countManager),
         );
+
+  @override
+  void onInit() {
+    super.onInit();
+    _bindInvalidationEvents();
+  }
+
+  @override
+  void onClose() {
+    _disposeInvalidationEvents();
+    super.onClose();
+  }
+
   static PostRepository? maybeFind() => _maybeFindPostRepository();
   static PostRepository ensure() => _ensurePostRepository();
 }

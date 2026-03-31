@@ -10,6 +10,7 @@ class _PostRepositoryFieldsState {
   final UserSubcollectionRepository userSubcollectionRepository =
       ensureUserSubcollectionRepository();
   SharedPreferences? prefs;
+  StreamSubscription<CacheInvalidationEvent>? invalidationSubscription;
 }
 
 extension PostRepositoryFieldsPart on PostRepository {
@@ -21,4 +22,10 @@ extension PostRepositoryFieldsPart on PostRepository {
       _state.userSubcollectionRepository;
   SharedPreferences? get _prefs => _state.prefs;
   set _prefs(SharedPreferences? value) => _state.prefs = value;
+  StreamSubscription<CacheInvalidationEvent>? get _invalidationSubscription =>
+      _state.invalidationSubscription;
+  set _invalidationSubscription(
+    StreamSubscription<CacheInvalidationEvent>? value,
+  ) =>
+      _state.invalidationSubscription = value;
 }

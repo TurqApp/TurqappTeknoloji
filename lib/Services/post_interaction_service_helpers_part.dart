@@ -213,9 +213,9 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
     if (userId == null) return;
     final key = _cacheKey(userId, postId);
     final existing = _interactionStatusCache[key];
-    if (existing == null) return;
-
-    final updated = Map<String, bool>.from(existing.status);
+    final updated = Map<String, bool>.from(
+      existing?.status ?? _emptyInteractionStatus,
+    );
     if (like != null) updated['liked'] = like;
     if (saved != null) updated['saved'] = saved;
     if (reshared != null) updated['reshared'] = reshared;

@@ -40,6 +40,17 @@ bool _shouldLogPostRepositoryDiagnostics() =>
 extension PostRepositorySupportPart on PostRepository {
   bool get _shouldLogDiagnostics => _shouldLogPostRepositoryDiagnostics();
 
+  void _bindInvalidationEvents() {
+    _invalidationSubscription ??= CacheInvalidationService.ensure()
+        .watchType(CacheInvalidationEventType.postInteractionRollback)
+        .listen(_applyPostInteractionRollbackEvent);
+  }
+
+  void _disposeInvalidationEvents() {
+    _invalidationSubscription?.cancel();
+    _invalidationSubscription = null;
+  }
+
   void _seedCounts(PostRepositoryState state, PostsModel model) =>
       _performSeedCounts(state, model);
 
