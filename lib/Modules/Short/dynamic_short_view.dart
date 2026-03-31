@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Models/posts_model.dart';
 
@@ -111,14 +113,43 @@ class DynamicShortViewState extends State<DynamicShortView> {
     setState(() {});
   }
 
+  Widget _buildThumb(PostsModel post) {
+    final thumb = post.thumbnail.trim();
+    if (thumb.isEmpty) {
+      return const ColoredBox(color: Colors.black);
+    }
+    final modelAr = post.aspectRatio > 0 ? post.aspectRatio.toDouble() : 9 / 16;
+    final image = CacheFirstNetworkImage(
+      imageUrl: thumb,
+      cacheManager: TurqImageCacheManager.instance,
+      fit: BoxFit.cover,
+      fallback: const ColoredBox(color: Colors.black),
+    );
+    if (modelAr > 1.2) {
+      return Center(
+        child: AspectRatio(
+          aspectRatio: modelAr,
+          child: image,
+        ),
+      );
+    }
+    return SizedBox.expand(child: image);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Aktif controller henüz oluşturulmadıysa loading göster
     final controller = controllers[currentPage];
     if (controller == null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CupertinoActivityIndicator()),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildThumb(widget.startList[currentPage]),
+            const Center(child: CupertinoActivityIndicator(color: Colors.white)),
+          ],
+        ),
       );
     }
 
@@ -161,7 +192,9 @@ class DynamicShortViewState extends State<DynamicShortView> {
           // Controller yoksa henüz preload edilmemiş — loading göster
           if (ctrl == null) {
             return Stack(
+              fit: StackFit.expand,
               children: [
+                _buildThumb(widget.startList[idx]),
                 const Center(
                     child: CupertinoActivityIndicator(color: Colors.white)),
                 preloadLabel,
@@ -177,6 +210,25 @@ class DynamicShortViewState extends State<DynamicShortView> {
               // Native video player — her zaman render et
               SizedBox.expand(
                 child: ctrl.buildPlayer(),
+              ),
+              AnimatedBuilder(
+                animation: ctrl,
+                builder: (_, __) {
+                  final value = ctrl.value;
+                  final hasStableVideoFrame = value.hasRenderedFirstFrame &&
+                      !value.isBuffering &&
+                      (value.isPlaying ||
+                          value.position > const Duration(milliseconds: 180));
+                  return IgnorePointer(
+                    ignoring: true,
+                    child: AnimatedOpacity(
+                      opacity: hasStableVideoFrame ? 0 : 1,
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      child: _buildThumb(widget.startList[idx]),
+                    ),
+                  );
+                },
               ),
               // Henüz hazır değilse loading overlay
               if (!isReady)

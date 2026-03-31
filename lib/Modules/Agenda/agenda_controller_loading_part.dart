@@ -3,6 +3,17 @@ part of 'agenda_controller.dart';
 extension AgendaControllerLoadingPart on AgendaController {
   int get _initialHeadSyncLimit => ReadBudgetRegistry.feedHomeInitialLimitValue;
 
+  List<PostsModel> _initialVisibleVideoWarmupWindow(
+    List<PostsModel> posts, {
+    int limit = 4,
+  }) {
+    if (posts.isEmpty || limit <= 0) return const <PostsModel>[];
+    return posts
+        .where((post) => post.hasRenderableVideoCard)
+        .take(limit)
+        .toList(growable: false);
+  }
+
   Future<void> _warmInitialFeedVideoPosters(List<PostsModel> posts) async {
     final videoPosts = posts
         .where((post) => post.hasRenderableVideoCard)
@@ -374,6 +385,9 @@ extension AgendaControllerLoadingPart on AgendaController {
               keepFor: const Duration(milliseconds: 900));
         }
         if (pageApplyPlan.itemsToAdd.isNotEmpty) {
+          await _warmInitialFeedVideoPosters(
+            _initialVisibleVideoWarmupWindow(pageApplyPlan.itemsToAdd),
+          );
           _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
           _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
           _scheduleReshareFetchForPosts(
@@ -699,6 +713,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         usesPrimaryFeed: page.usesPrimaryFeed,
       );
       final liveHeadIds = page.items.map((post) => post.docID).toSet();
+      await _warmInitialFeedVideoPosters(
+        _initialVisibleVideoWarmupWindow(page.items),
+      );
       final mergedAgenda = <PostsModel>[
         ...page.items,
         ...previousAgenda.where((post) => !liveHeadIds.contains(post.docID)),

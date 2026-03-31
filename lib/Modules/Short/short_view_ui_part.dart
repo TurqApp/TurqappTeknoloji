@@ -72,14 +72,11 @@ extension ShortViewUiPart on _ShortViewState {
   }
 
   Widget _cachedThumb(String url) {
-    return CachedNetworkImage(
+    return CacheFirstNetworkImage(
       imageUrl: url,
+      cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
-      fadeInDuration: Duration.zero,
-      fadeOutDuration: Duration.zero,
-      placeholderFadeInDuration: Duration.zero,
-      placeholder: (_, __) => const SizedBox.shrink(),
-      errorWidget: (_, __, ___) => const SizedBox.shrink(),
+      fallback: const ColoredBox(color: Colors.black),
     );
   }
 
