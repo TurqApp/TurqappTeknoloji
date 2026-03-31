@@ -97,9 +97,15 @@ class FeedPlaybackSelectionPolicy {
     var bestFraction = 0.0;
     var fallbackIndex = -1;
     var fallbackFraction = 0.0;
+    var strongestOverallIndex = -1;
+    var strongestOverallFraction = 0.0;
 
     visibleFractions.forEach((index, fraction) {
       if (index < 0 || index >= itemCount) return;
+      if (fraction > strongestOverallFraction) {
+        strongestOverallFraction = fraction;
+        strongestOverallIndex = index;
+      }
       if (!canAutoplayIndex(index)) return;
       if (fraction > fallbackFraction) {
         fallbackFraction = fraction;
@@ -128,6 +134,15 @@ class FeedPlaybackSelectionPolicy {
           currentFraction < playThreshold ||
           bestFraction >= currentFraction + hysteresis;
       return shouldSwitch ? bestIndex : currentIndex;
+    }
+
+    final dominantVisibleIndex = strongestOverallIndex;
+    final dominantVisibleIsNonPlayable = dominantVisibleIndex >= 0 &&
+        dominantVisibleIndex < itemCount &&
+        !canAutoplayIndex(dominantVisibleIndex) &&
+        strongestOverallFraction >= playThreshold;
+    if (dominantVisibleIsNonPlayable) {
+      return -1;
     }
 
     if (fallbackIndex >= 0 && fallbackFraction >= secondaryThreshold) {
