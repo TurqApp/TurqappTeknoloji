@@ -70,14 +70,23 @@ const EDUCATION_COLLECTIONS = {
     past_question: "education_past_questions_search",
 };
 const JOB_TYPESENSE_REDUCED_FIELDS = new Set([
+    "authorNickname",
+    "authorDisplayName",
+    "authorAvatarUrl",
     "detailsJson",
     "logo",
 ]);
 const SCHOLARSHIP_TYPESENSE_REDUCED_FIELDS = new Set([
+    "authorNickname",
+    "authorDisplayName",
+    "authorAvatarUrl",
     "detailsJson",
     "img",
 ]);
 const TUTORING_TYPESENSE_REDUCED_FIELDS = new Set([
+    "authorNickname",
+    "authorDisplayName",
+    "authorAvatarUrl",
     "shortDescription",
     "img2",
     "baslangicTarihi",
@@ -374,9 +383,6 @@ function requiredFields(entity) {
         { name: "nickname", type: "string", optional: true },
         { name: "displayName", type: "string", optional: true },
         { name: "avatarUrl", type: "string", optional: true },
-        { name: "authorNickname", type: "string", optional: true },
-        { name: "authorDisplayName", type: "string", optional: true },
-        { name: "authorAvatarUrl", type: "string", optional: true },
         { name: "rozet", type: "string", optional: true },
         { name: "shortDescription", type: "string", optional: true },
         { name: "aciklama", type: "string", optional: true },
@@ -892,9 +898,6 @@ function buildComparableIndexedDoc(entity, docId, data) {
             nickname,
             displayName,
             avatarUrl,
-            authorNickname: nickname,
-            authorDisplayName: displayName,
-            authorAvatarUrl: avatarUrl,
             rozet,
         };
     }
@@ -911,9 +914,6 @@ function buildComparableIndexedDoc(entity, docId, data) {
             nickname,
             displayName,
             avatarUrl,
-            authorNickname: nickname,
-            authorDisplayName: displayName,
-            authorAvatarUrl: avatarUrl,
             rozet,
         };
     }
@@ -931,9 +931,6 @@ function buildComparableIndexedDoc(entity, docId, data) {
         nickname,
         displayName,
         avatarUrl,
-        authorNickname: nickname,
-        authorDisplayName: displayName,
-        authorAvatarUrl: avatarUrl,
         rozet,
     };
 }
@@ -967,9 +964,6 @@ async function buildSearchDocForIndexing(entity, docId, data) {
             nickname,
             displayName,
             avatarUrl,
-            authorNickname: nickname,
-            authorDisplayName: displayName,
-            authorAvatarUrl: avatarUrl,
             rozet,
         };
     }
@@ -991,9 +985,6 @@ async function buildSearchDocForIndexing(entity, docId, data) {
             nickname,
             displayName,
             avatarUrl,
-            authorNickname: nickname,
-            authorDisplayName: displayName,
-            authorAvatarUrl: avatarUrl,
             rozet,
             aciklama: asString(data.aciklama),
             dersYeri: asStringArray(data.dersYeri),
@@ -1028,9 +1019,6 @@ async function buildSearchDocForIndexing(entity, docId, data) {
         nickname,
         displayName,
         avatarUrl,
-        authorNickname: nickname,
-        authorDisplayName: displayName,
-        authorAvatarUrl: avatarUrl,
         rozet,
         brand: asString(data.brand),
         yanHaklar: asStringArray(data.yanHaklar),
@@ -1116,9 +1104,6 @@ function toHitOutput(hitRaw, collection) {
         nickname: String(doc.nickname || ""),
         displayName: String(doc.displayName || ""),
         avatarUrl: String(doc.avatarUrl || ""),
-        authorNickname: String(doc.authorNickname || doc.nickname || ""),
-        authorDisplayName: String(doc.authorDisplayName || doc.displayName || ""),
-        authorAvatarUrl: String(doc.authorAvatarUrl || doc.avatarUrl || ""),
         tags,
         rozet: String(doc.rozet || ""),
         shortDescription: String(doc.shortDescription || ""),

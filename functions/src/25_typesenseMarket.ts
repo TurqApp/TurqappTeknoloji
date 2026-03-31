@@ -29,10 +29,6 @@ type MarketSearchDoc = {
   sellerUsername: string;
   sellerPhotoUrl: string;
   sellerRozet: string;
-  authorDisplayName: string;
-  authorNickname: string;
-  authorAvatarUrl: string;
-  rozet: string;
   sellerPhoneNumber: string;
   showPhone: boolean;
   cover: string;
@@ -95,10 +91,6 @@ type TypesenseMarketHitOutput = {
   sellerUsername: string;
   sellerPhotoUrl: string;
   sellerRozet: string;
-  authorDisplayName: string;
-  authorNickname: string;
-  authorAvatarUrl: string;
-  rozet: string;
   sellerPhoneNumber: string;
   showPhone: boolean;
   cover: string;
@@ -312,10 +304,6 @@ function requiredFields() {
     { name: "sellerUsername", type: "string", optional: true },
     { name: "sellerPhotoUrl", type: "string", optional: true },
     { name: "sellerRozet", type: "string", optional: true },
-    { name: "authorDisplayName", type: "string", optional: true },
-    { name: "authorNickname", type: "string", optional: true },
-    { name: "authorAvatarUrl", type: "string", optional: true },
-    { name: "rozet", type: "string", optional: true },
     { name: "sellerPhoneNumber", type: "string", optional: true },
     { name: "showPhone", type: "bool", optional: true },
     { name: "cover", type: "string", optional: true },
@@ -453,10 +441,6 @@ function buildSearchDoc(docId: string, data: Record<string, unknown>): MarketSea
     sellerUsername,
     sellerPhotoUrl,
     sellerRozet,
-    authorDisplayName: sellerName,
-    authorNickname: sellerUsername,
-    authorAvatarUrl: sellerPhotoUrl,
-    rozet: sellerRozet,
     sellerPhoneNumber,
     showPhone,
     cover,
@@ -583,10 +567,6 @@ function toHitOutput(hitRaw: unknown): TypesenseMarketHitOutput {
     sellerUsername: String(doc.sellerUsername || ""),
     sellerPhotoUrl: String(doc.sellerPhotoUrl || ""),
     sellerRozet: String(doc.sellerRozet || ""),
-    authorDisplayName: String(doc.authorDisplayName || doc.sellerName || ""),
-    authorNickname: String(doc.authorNickname || doc.sellerUsername || ""),
-    authorAvatarUrl: String(doc.authorAvatarUrl || doc.sellerPhotoUrl || ""),
-    rozet: String(doc.rozet || doc.sellerRozet || ""),
     sellerPhoneNumber: String(doc.sellerPhoneNumber || ""),
     showPhone: doc.showPhone === true,
     cover: String(doc.cover || ""),
