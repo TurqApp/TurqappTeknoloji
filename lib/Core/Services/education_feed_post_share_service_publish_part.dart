@@ -2,27 +2,6 @@ part of 'education_feed_post_share_service.dart';
 
 extension EducationFeedPostShareServicePublishPart
     on EducationFeedPostShareService {
-  ({
-    String nickname,
-    String displayName,
-    String avatarUrl,
-    String rozet,
-  }) _resolveAuthorSummary() {
-    final current = CurrentUserService.instance;
-    final nickname = current.nickname.trim();
-    final effectiveDisplayName = current.effectiveDisplayName.trim();
-    final fullName = current.fullName.trim();
-    final displayName = effectiveDisplayName.isNotEmpty
-        ? effectiveDisplayName
-        : (fullName.isNotEmpty ? fullName : nickname);
-    return (
-      nickname: nickname,
-      displayName: displayName,
-      avatarUrl: current.avatarUrl.trim(),
-      rozet: current.rozet.trim(),
-    );
-  }
-
   Future<void> _shareDirectly({
     required String text,
     required String imageUrl,
@@ -58,7 +37,6 @@ extension EducationFeedPostShareServicePublishPart
       try {
         final postId = const Uuid().v4();
         final now = DateTime.now().millisecondsSinceEpoch;
-        final authorSummary = _resolveAuthorSummary();
         final normalizedAspectRatio = double.parse(
           aspectRatio.toStringAsFixed(4),
         );
@@ -110,14 +88,6 @@ extension EducationFeedPostShareServicePublishPart
           'thumbnail': imageUrl.trim(),
           'timeStamp': now,
           'userID': currentUid,
-          'authorNickname': authorSummary.nickname,
-          'authorDisplayName': authorSummary.displayName,
-          'authorAvatarUrl': authorSummary.avatarUrl,
-          'nickname': authorSummary.nickname,
-          'fullName': authorSummary.displayName,
-          'displayName': authorSummary.displayName,
-          'avatarUrl': authorSummary.avatarUrl,
-          'rozet': authorSummary.rozet,
           'video': '',
           'hlsStatus': 'none',
           'hlsMasterUrl': '',
@@ -169,10 +139,6 @@ extension EducationFeedPostShareServicePublishPart
           thumbnail: imageUrl.trim(),
           timeStamp: now,
           userID: currentUid,
-          authorNickname: authorSummary.nickname,
-          authorDisplayName: authorSummary.displayName,
-          authorAvatarUrl: authorSummary.avatarUrl,
-          rozet: authorSummary.rozet,
           video: '',
           hlsStatus: 'none',
           hlsMasterUrl: '',

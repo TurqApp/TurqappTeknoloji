@@ -5,27 +5,6 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
     return CurrentUserService.instance.preferredLocationCity;
   }
 
-  ({
-    String nickname,
-    String displayName,
-    String avatarUrl,
-    String rozet,
-  }) _resolvePostAuthorSummary() {
-    final current = CurrentUserService.instance;
-    final nickname = current.nickname.trim();
-    final effectiveDisplayName = current.effectiveDisplayName.trim();
-    final fullName = current.fullName.trim();
-    final displayName = effectiveDisplayName.isNotEmpty
-        ? effectiveDisplayName
-        : (fullName.isNotEmpty ? fullName : nickname);
-    return (
-      nickname: nickname,
-      displayName: displayName,
-      avatarUrl: current.avatarUrl.trim(),
-      rozet: current.rozet.trim(),
-    );
-  }
-
   Future<void> getReadyVideoPlayer(String url) async {
     final ctrl = HLSVideoAdapter(url: url, autoPlay: false, loop: false);
     ctrl.addListener(() {
@@ -58,7 +37,6 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
       final uuid = Uuid().v4();
       final currentUserId = CurrentUserService.instance.effectiveUserId;
       final normalizedAR = double.parse(aspectRatio.toStringAsFixed(4));
-      final authorSummary = _resolvePostAuthorSummary();
       final imageUrls =
           imgs.map((url) => url.trim()).where((url) => url.isNotEmpty).toList();
       final imgMap = imageUrls
@@ -119,14 +97,6 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
         'thumbnail': thumbnail,
         'timeStamp': DateTime.now().millisecondsSinceEpoch,
         'userID': currentUserId,
-        'authorNickname': authorSummary.nickname,
-        'authorDisplayName': authorSummary.displayName,
-        'authorAvatarUrl': authorSummary.avatarUrl,
-        'nickname': authorSummary.nickname,
-        'fullName': authorSummary.displayName,
-        'displayName': authorSummary.displayName,
-        'avatarUrl': authorSummary.avatarUrl,
-        'rozet': authorSummary.rozet,
         'video': video,
         'hlsStatus': 'none',
         'hlsMasterUrl': '',
@@ -204,10 +174,6 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
         thumbnail: thumbnail,
         timeStamp: DateTime.now().millisecondsSinceEpoch,
         userID: currentUserId,
-        authorNickname: authorSummary.nickname,
-        authorDisplayName: authorSummary.displayName,
-        authorAvatarUrl: authorSummary.avatarUrl,
-        rozet: authorSummary.rozet,
         video: video,
         hlsStatus: 'none',
         hlsMasterUrl: '',

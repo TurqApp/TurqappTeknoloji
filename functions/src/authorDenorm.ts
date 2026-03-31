@@ -5,8 +5,8 @@
  *          100 post feed = 100 ekstra okuma → $300/ay gereksiz maliyet
  *
  * Çözüm: Post belgelerine authorNickname + authorDisplayName + authorAvatarUrl + rozet inline yaz.
- *   - Post oluşturulduğunda (onPostWrite) author alanları safety-net olarak post'a eklenir
- *   - Ana write path'ler bu alanları zaten inline üretir; profile-update bulk sync burada tutulmaz
+ *   - Post oluşturulduğunda (onPostWrite) author alanları post'a eklenir
+ *   - Kullanıcı profili güncellendiğinde (onUserProfileUpdate) son 500 post senkronize edilir
  *
  * Flutter tarafı: PostsModel.fromMap() zaten authorNickname/authorDisplayName/authorAvatarUrl okuyor.
  *   Feed widget'larında: post.authorNickname.isNotEmpty → direkt kullan, empty → users fetch.
@@ -65,5 +65,78 @@ export const denormAuthorOnPostWrite = functions
       console.log("[AuthorDenorm] Post author alanları güncellendi");
     } catch (e) {
       console.error(`[AuthorDenorm] denormAuthorOnPostWrite error:`, e);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────
+// 👤 TRIGGER: Kullanıcı profili güncellendiğinde son postları senkronize et
+// ─────────────────────────────────────────────────────────────────
+
+export const syncAuthorFieldsOnProfileUpdate = functions
+  .region("europe-west1")
+  .firestore.document("users/{uid}")
+  .onUpdate(async (change, context) => {
+    const uid = context.params.uid;
+    const before = change.before.data();
+    const after = change.after.data();
+
+    const nicknameChanged = before?.nickname !== after?.nickname;
+    const displayNameChanged =
+      before?.displayName !== after?.displayName ||
+      before?.fullName !== after?.fullName ||
+      before?.firstName !== after?.firstName ||
+      before?.lastName !== after?.lastName;
+    const avatarChanged = before?.avatarUrl !== after?.avatarUrl;
+    const rozetChanged = before?.rozet !== after?.rozet;
+
+    if (!nicknameChanged && !displayNameChanged && !avatarChanged && !rozetChanged) return;
+
+    const newNickname = String(after?.nickname || "").trim();
+    const newDisplayName = String(
+      after?.displayName ||
+        after?.fullName ||
+        [after?.firstName, after?.lastName].filter(Boolean).join(" ") ||
+        newNickname ||
+        ""
+    ).trim();
+    const newAvatarUrl = String(after?.avatarUrl || "");
+    const newRozet = String(after?.rozet || "");
+
+    try {
+      // Son 200 postu güncelle (maliyet/latency kontrolü için)
+      const postsSnap = await db
+        .collection("Posts")
+        .where("userID", "==", uid)
+        .orderBy("timeStamp", "desc")
+        .limit(200)
+        .get();
+
+      if (postsSnap.empty) return;
+
+      // Batch güncelle (500 limit göz önünde bulundurularak)
+      const BATCH_SIZE = 450;
+      const chunks: admin.firestore.QueryDocumentSnapshot[][] = [];
+      for (let i = 0; i < postsSnap.docs.length; i += BATCH_SIZE) {
+        chunks.push(postsSnap.docs.slice(i, i + BATCH_SIZE));
+      }
+
+      for (const chunk of chunks) {
+        const wb = db.batch();
+        for (const doc of chunk) {
+          const update: Record<string, string> = {};
+          if (nicknameChanged) update.authorNickname = newNickname;
+          if (displayNameChanged) update.authorDisplayName = newDisplayName;
+          if (avatarChanged) update.authorAvatarUrl = newAvatarUrl;
+          if (rozetChanged) update.rozet = newRozet;
+          wb.update(doc.ref, update);
+        }
+        await wb.commit();
+      }
+
+      console.log(
+        `[AuthorDenorm] Profil değişikliği işlendi → ${postsSnap.size} post güncellendi`
+      );
+    } catch (e) {
+      console.error(`[AuthorDenorm] syncAuthorFieldsOnProfileUpdate error:`, e);
     }
   });

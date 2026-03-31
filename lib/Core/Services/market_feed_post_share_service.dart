@@ -21,27 +21,6 @@ import 'package:uuid/uuid.dart';
 class MarketFeedPostShareService {
   const MarketFeedPostShareService();
 
-  ({
-    String nickname,
-    String displayName,
-    String avatarUrl,
-    String rozet,
-  }) _resolveAuthorSummary() {
-    final current = CurrentUserService.instance;
-    final nickname = current.nickname.trim();
-    final effectiveDisplayName = current.effectiveDisplayName.trim();
-    final fullName = current.fullName.trim();
-    final displayName = effectiveDisplayName.isNotEmpty
-        ? effectiveDisplayName
-        : (fullName.isNotEmpty ? fullName : nickname);
-    return (
-      nickname: nickname,
-      displayName: displayName,
-      avatarUrl: current.avatarUrl.trim(),
-      rozet: current.rozet.trim(),
-    );
-  }
-
   Future<String> _resolveCurrentUid() async {
     final ensured = await CurrentUserService.instance.ensureAuthReady(
       waitForAuthState: true,
@@ -70,7 +49,6 @@ class MarketFeedPostShareService {
       try {
         final postId = const Uuid().v4();
         final now = DateTime.now().millisecondsSinceEpoch;
-        final authorSummary = _resolveAuthorSummary();
         final imageUrls = [item.coverImageUrl.trim()];
         final locationText = item.locationText.trim();
         final locationCity = item.city.trim();
@@ -119,14 +97,6 @@ class MarketFeedPostShareService {
           'thumbnail': item.coverImageUrl.trim(),
           'timeStamp': now,
           'userID': currentUid,
-          'authorNickname': authorSummary.nickname,
-          'authorDisplayName': authorSummary.displayName,
-          'authorAvatarUrl': authorSummary.avatarUrl,
-          'nickname': authorSummary.nickname,
-          'fullName': authorSummary.displayName,
-          'displayName': authorSummary.displayName,
-          'avatarUrl': authorSummary.avatarUrl,
-          'rozet': authorSummary.rozet,
           'video': '',
           'hlsStatus': 'none',
           'hlsMasterUrl': '',
@@ -173,10 +143,6 @@ class MarketFeedPostShareService {
           thumbnail: item.coverImageUrl.trim(),
           timeStamp: now,
           userID: currentUid,
-          authorNickname: authorSummary.nickname,
-          authorDisplayName: authorSummary.displayName,
-          authorAvatarUrl: authorSummary.avatarUrl,
-          rozet: authorSummary.rozet,
           video: '',
           hlsStatus: 'none',
           hlsMasterUrl: '',
