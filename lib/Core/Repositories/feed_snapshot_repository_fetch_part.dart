@@ -1,6 +1,50 @@
 part of 'feed_snapshot_repository.dart';
 
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
+  Future<Map<String, PostsModel>> _rehydrateHomeFeedVideoCards(
+    Map<String, PostsModel> postsById, {
+    required bool cacheOnly,
+  }) async {
+    if (cacheOnly || postsById.isEmpty) return postsById;
+    final videoIds = postsById.values
+        .where((post) => post.hasVideoSignal)
+        .map((post) => post.docID)
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (videoIds.isEmpty) return postsById;
+
+    final canonicalById = await _postRepository.fetchPostsByIds(
+      videoIds,
+      preferCache: false,
+      cacheOnly: false,
+    );
+    if (canonicalById.isEmpty) return postsById;
+
+    final merged = Map<String, PostsModel>.from(postsById);
+    for (final docId in videoIds) {
+      final current = postsById[docId];
+      final canonical = canonicalById[docId];
+      if (current == null || canonical == null) continue;
+      merged[docId] = current.copyWith(
+        aspectRatio: canonical.aspectRatio,
+        deletedPost: canonical.deletedPost,
+        flood: canonical.flood,
+        floodCount: canonical.floodCount,
+        gizlendi: canonical.gizlendi,
+        img: canonical.img,
+        isUploading: canonical.isUploading,
+        mainFlood: canonical.mainFlood,
+        thumbnail: canonical.thumbnail,
+        video: canonical.video,
+        hlsMasterUrl: canonical.hlsMasterUrl,
+        hlsStatus: canonical.hlsStatus,
+        hlsUpdatedAt: canonical.hlsUpdatedAt,
+      );
+    }
+    return merged;
+  }
+
   int? _asNullableFeedInt(Object? value) {
     if (value == null) return null;
     if (value is num) return value.toInt();
@@ -102,13 +146,17 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     }
 
     final postIds = refs.map((item) => item.postId).toList(growable: false);
-    final postsById = postIds.isEmpty
+    final rawPostsById = postIds.isEmpty
         ? const <String, PostsModel>{}
         : await _postRepository.fetchPostCardsByIds(
             postIds,
             preferCache: preferCache,
             cacheOnly: cacheOnly,
           );
+    final postsById = await _rehydrateHomeFeedVideoCards(
+      rawPostsById,
+      cacheOnly: cacheOnly,
+    );
 
     final merged = <String, PostsModel>{};
     for (final ref in refs) {

@@ -52,6 +52,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     );
     final filtered = page.items;
     if (filtered.isEmpty) return;
+    await _warmInitialFeedVideoPosters(filtered);
     final existingIDs = agendaList.map((e) => e.docID).toSet();
     final toAdd =
         filtered.where((p) => !existingIDs.contains(p.docID)).toList();
@@ -83,6 +84,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final quickFiltered = snapshot.data ?? const <PostsModel>[];
     if (quickFiltered.isEmpty) return hadWarmSnapshot;
 
+    await _warmInitialFeedVideoPosters(quickFiltered);
     _addUniqueToAgenda(quickFiltered);
     unawaited(_revalidateQuickFilledAgenda(quickFiltered));
 

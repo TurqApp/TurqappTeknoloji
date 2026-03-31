@@ -3,6 +3,30 @@ part of 'agenda_controller.dart';
 extension AgendaControllerLoadingPart on AgendaController {
   int get _initialHeadSyncLimit => ReadBudgetRegistry.feedHomeInitialLimitValue;
 
+  Future<void> _warmInitialFeedVideoPosters(List<PostsModel> posts) async {
+    final videoPosts = posts
+        .where((post) => post.hasRenderableVideoCard)
+        .toList(growable: false);
+    if (videoPosts.isEmpty) return;
+
+    await Future.wait(
+      videoPosts.map(_warmFeedPosterForPost),
+      eagerError: false,
+    );
+  }
+
+  Future<void> _warmFeedPosterForPost(PostsModel post) async {
+    for (final url in post.preferredVideoPosterUrls) {
+      if (url.trim().isEmpty) continue;
+      try {
+        await TurqImageCacheManager.instance
+            .getSingleFile(url)
+            .timeout(const Duration(seconds: 2));
+        return;
+      } catch (_) {}
+    }
+  }
+
   void _resumeFeedPlaybackAfterRefresh({
     required int expectedEpoch,
   }) {
@@ -321,10 +345,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         preferCache: shouldPreferCacheOnOpen,
         cacheOnly: !liveConnected,
       );
-      final visibleItems = page.items;
-      final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
-        currentItems: agendaList.toList(growable: false),
-        pageItems: visibleItems,
+    final visibleItems = page.items;
+    await _warmInitialFeedVideoPosters(visibleItems);
+    final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
+      currentItems: agendaList.toList(growable: false),
+      pageItems: visibleItems,
         nowMs: nowMs,
         loadLimit: loadLimit,
         lastDoc: page.lastDoc,
@@ -545,6 +570,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       rethrow;
     }
     final visibleItems = page.items;
+    await _warmInitialFeedVideoPosters(visibleItems);
 
     _usePrimaryFeedPaging = page.usesPrimaryFeed;
     if (page.lastDoc != null) {

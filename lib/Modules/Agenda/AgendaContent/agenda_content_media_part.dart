@@ -2,20 +2,7 @@ part of 'agenda_content.dart';
 
 extension _AgendaContentMediaPart on _AgendaContentState {
   Widget _buildVideoPosterFallback({double? aspectRatio}) {
-    final fallback = DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            Color(0xFFE8ECF1),
-            Color(0xFFDCE2E8),
-            Color(0xFFCDD5DD),
-          ],
-        ),
-      ),
-      child: const SizedBox.expand(),
-    );
+    const fallback = SizedBox.expand();
     if (aspectRatio == null) return fallback;
     return AspectRatio(aspectRatio: aspectRatio, child: fallback);
   }
