@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
-import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_manifest_store.dart';

@@ -1,7 +1,6 @@
 part of 'my_practice_exams_controller_library.dart';
 
 class _MyPracticeExamsControllerState {
-  final practiceExamRepository = ensurePracticeExamRepository();
   final practiceExamSnapshotRepository = ensurePracticeExamSnapshotRepository();
   final exams = <SinavModel>[].obs;
   final isLoading = true.obs;
@@ -14,8 +13,6 @@ extension MyPracticeExamsControllerFieldsPart on MyPracticeExamsController {
   _MyPracticeExamsControllerState get _state =>
       _stateExpando[this] ??= _MyPracticeExamsControllerState();
 
-  PracticeExamRepository get _practiceExamRepository =>
-      _state.practiceExamRepository;
   PracticeExamSnapshotRepository get _practiceExamSnapshotRepository =>
       _state.practiceExamSnapshotRepository;
   RxList<SinavModel> get exams => _state.exams;

@@ -15,12 +15,9 @@ class _VideoStateManagerState {
 
 extension VideoStateManagerFieldsPart on VideoStateManager {
   Map<String, VideoState> get _videoStates => _state.videoStates;
-  set _videoStates(Map<String, VideoState> value) => _state.videoStates = value;
 
   Map<String, PlaybackHandle> get _allVideoControllers =>
       _state.allVideoControllers;
-  set _allVideoControllers(Map<String, PlaybackHandle> value) =>
-      _state.allVideoControllers = value;
 
   String? get _currentPlayingDocID => _state.currentPlayingDocID;
   set _currentPlayingDocID(String? value) => _state.currentPlayingDocID = value;

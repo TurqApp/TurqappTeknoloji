@@ -116,68 +116,6 @@ extension ScholarshipDetailViewHelpersPart on ScholarshipDetailView {
     );
   }
 
-  Widget _buildWidgetInfoRow(
-    String label,
-    Widget child, {
-    bool singleLine = false,
-  }) {
-    if (singleLine) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: SizedBox(
-                height: 20,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: child,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 128,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
-          ),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSectionTitle(String title) {
     return Text(
       title,

@@ -47,13 +47,6 @@ AnswerKeyContentController? _maybeFindAnswerKeyContentController({
 String _resolveAnswerKeyContentCurrentUidFacade() =>
     _resolveAnswerKeyContentCurrentUid();
 
-void _syncAnswerKeyContentModel(
-  AnswerKeyContentController controller,
-  BookletModel nextModel,
-) {
-  controller.model = nextModel;
-}
-
 void _handleAnswerKeyContentInit(AnswerKeyContentController controller) {
   controller._initialize();
 }

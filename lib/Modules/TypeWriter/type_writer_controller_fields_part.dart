@@ -10,6 +10,4 @@ class _TypewriterControllerState {
 extension TypewriterControllerFieldsPart on TypewriterController {
   String get fullText => _state.fullText;
   RxString get displayedText => _state.displayedText;
-  int get _currentIndex => _state.currentIndex;
-  set _currentIndex(int value) => _state.currentIndex = value;
 }

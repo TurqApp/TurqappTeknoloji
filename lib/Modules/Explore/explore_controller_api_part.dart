@@ -12,9 +12,6 @@ extension ExploreControllerApiX on ExploreController {
 
   Future<void> fetchExplorePosts() => _performFetchExplorePosts();
 
-  Future<void> _quickFillExploreFromPoolAndBootstrap() =>
-      _performQuickFillExploreFromPoolAndBootstrap();
-
   Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
       _performPrepareStartupSurface(
         allowBackgroundRefresh: allowBackgroundRefresh,

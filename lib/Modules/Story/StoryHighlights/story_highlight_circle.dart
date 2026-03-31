@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
@@ -41,7 +39,8 @@ class StoryHighlightCircle extends StatelessWidget {
                   border: Border.all(color: Colors.grey.withAlpha(50)),
                 ),
                 padding: const EdgeInsets.all(4),
-                child: ClipOval(child: _HighlightCoverImage(highlight: highlight)),
+                child:
+                    ClipOval(child: _HighlightCoverImage(highlight: highlight)),
               ),
               const SizedBox(height: 4),
               Text(
@@ -212,9 +211,8 @@ class _HighlightCoverImageState extends State<_HighlightCoverImage> {
   }
 
   String _extractVideoUrl(Map<String, dynamic> data) {
-    final topLevelVideo = (data['videoUrl'] ?? data['video'] ?? '')
-        .toString()
-        .trim();
+    final topLevelVideo =
+        (data['videoUrl'] ?? data['video'] ?? '').toString().trim();
     if (_looksLikeVideoUrl(topLevelVideo)) return topLevelVideo;
 
     final elements = data['elements'];

@@ -21,8 +21,6 @@ extension MarketControllerSupportPart on MarketController {
 
   bool get hasAdvancedFilters => _computeHasAdvancedFilters();
 
-  Future<void> _restoreListingSelection() => _performRestoreListingSelection();
-
   Future<void> _persistListingSelection() => _performPersistListingSelection();
 
   bool _sameStringList(Iterable<String> left, Iterable<String> right) {

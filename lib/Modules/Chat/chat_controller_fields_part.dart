@@ -129,12 +129,8 @@ extension ChatControllerFieldsPart on ChatController {
   String get _realtimeHeadSignature => _state.realtimeHeadSignature;
   set _realtimeHeadSignature(String value) =>
       _state.realtimeHeadSignature = value;
-  bool get _isLoadingOlder => _state.isLoadingOlderInternal;
-  set _isLoadingOlder(bool value) => _state.isLoadingOlderInternal = value;
   bool get _conversationHasMore => _state.conversationHasMore;
   set _conversationHasMore(bool value) => _state.conversationHasMore = value;
-  DocumentSnapshot<Map<String, dynamic>>? get _conversationOldestCursor =>
-      _state.conversationOldestCursor;
   set _conversationOldestCursor(
           DocumentSnapshot<Map<String, dynamic>>? value) =>
       _state.conversationOldestCursor = value;

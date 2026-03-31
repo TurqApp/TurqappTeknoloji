@@ -32,16 +32,6 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
     return null;
   }
 
-  Future<List<Map<String, dynamic>>?> _getCachedList(String key) async {
-    final cached = await _getCachedValue(key);
-    if (cached is List) {
-      return cached
-          .map((e) => _cloneMap(Map<String, dynamic>.from((e as Map))))
-          .toList(growable: false);
-    }
-    return null;
-  }
-
   Future<dynamic> _getCachedValue(String key) async {
     final memory = _memory[key];
     if (memory != null &&

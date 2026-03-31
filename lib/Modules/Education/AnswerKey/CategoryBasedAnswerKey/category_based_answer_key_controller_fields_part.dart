@@ -10,7 +10,6 @@ class _CategoryBasedAnswerKeyControllerState {
   final RxBool isLoading = true.obs;
   final AnswerKeySnapshotRepository answerKeySnapshotRepository =
       ensureAnswerKeySnapshotRepository();
-  final BookletRepository bookletRepository = ensureBookletRepository();
 }
 
 extension CategoryBasedAnswerKeyControllerFieldsPart
@@ -22,5 +21,4 @@ extension CategoryBasedAnswerKeyControllerFieldsPart
   RxBool get isLoading => _state.isLoading;
   AnswerKeySnapshotRepository get _answerKeySnapshotRepository =>
       _state.answerKeySnapshotRepository;
-  BookletRepository get _bookletRepository => _state.bookletRepository;
 }

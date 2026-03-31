@@ -11,9 +11,6 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
       return const <Map<String, dynamic>>[];
     }
 
-    final agendaIndexByDoc = <String, int>{
-      for (int i = 0; i < agendaList.length; i++) agendaList[i].docID: i,
-    };
     final displayByDoc = <String, Map<String, dynamic>>{};
 
     for (int i = 0; i < agendaList.length; i++) {

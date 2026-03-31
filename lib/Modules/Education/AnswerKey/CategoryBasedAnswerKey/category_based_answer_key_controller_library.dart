@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
-import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';

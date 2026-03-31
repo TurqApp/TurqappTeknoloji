@@ -24,20 +24,6 @@ extension MarketRepositoryCachePart on MarketRepository {
     }
   }
 
-  Future<QuerySnapshot<Map<String, dynamic>>> _fetchOwnerSnapshot(
-    String uid,
-  ) async {
-    const options = GetOptions(source: Source.serverAndCache);
-    try {
-      return await _itemsRef
-          .where('userId', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
-          .get(options);
-    } on FirebaseException {
-      return _itemsRef.where('userId', isEqualTo: uid).get(options);
-    }
-  }
-
   Future<QuerySnapshot<Map<String, dynamic>>> _fetchSavedRefs(
       String uid) async {
     const options = GetOptions(source: Source.serverAndCache);
@@ -93,8 +79,7 @@ extension MarketRepositoryCachePart on MarketRepository {
     final prefs = _prefs;
     final dataKey = '${MarketRepository._prefsPrefix}::$key';
     final tsKey = '${MarketRepository._prefsPrefix}::$key::ts';
-    final ts =
-        prefs?.getInt(tsKey) ?? 0;
+    final ts = prefs?.getInt(tsKey) ?? 0;
     if (ts <= 0) {
       await prefs?.remove(dataKey);
       await prefs?.remove(tsKey);

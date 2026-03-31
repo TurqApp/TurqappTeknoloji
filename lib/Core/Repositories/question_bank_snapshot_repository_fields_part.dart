@@ -36,9 +36,6 @@ class _QuestionBankSnapshotRepositoryState {
 
 extension QuestionBankSnapshotRepositoryFieldsPart
     on QuestionBankSnapshotRepository {
-  CacheFirstCoordinator<List<QuestionBankModel>> get _coordinator =>
-      _state.coordinator;
-
   EducationTypesenseCacheFirstAdapter<List<QuestionBankModel>>
       get _searchAdapter => _state.searchAdapter;
 }

@@ -5,7 +5,6 @@ class _OpticsAndBooksPublishedControllerState {
       ensureAnswerKeySnapshotRepository();
   final OpticalFormSnapshotRepository opticalFormSnapshotRepository =
       ensureOpticalFormSnapshotRepository();
-  final BookletRepository bookletRepository = ensureBookletRepository();
   final RxList<BookletModel> list = <BookletModel>[].obs;
   final RxList<OpticalFormModel> optikler = <OpticalFormModel>[].obs;
   final RxInt selection = 0.obs;
@@ -20,7 +19,6 @@ extension OpticsAndBooksPublishedControllerFieldsPart
       _state.answerKeySnapshotRepository;
   OpticalFormSnapshotRepository get _opticalFormSnapshotRepository =>
       _state.opticalFormSnapshotRepository;
-  BookletRepository get _bookletRepository => _state.bookletRepository;
   RxList<BookletModel> get list => _state.list;
   RxList<OpticalFormModel> get optikler => _state.optikler;
   RxInt get selection => _state.selection;

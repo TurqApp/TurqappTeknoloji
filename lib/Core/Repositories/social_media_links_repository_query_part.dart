@@ -41,7 +41,7 @@ extension SocialMediaLinksRepositoryQueryPart on SocialMediaLinksRepository {
         .orderBy('sira')
         .get();
     final list = snap.docs.map(SocialMediaModel.fromFirestore).toList();
-    await this.setLinks(uid, list);
+    await setLinks(uid, list);
     return list;
   }
 }

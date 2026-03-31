@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';

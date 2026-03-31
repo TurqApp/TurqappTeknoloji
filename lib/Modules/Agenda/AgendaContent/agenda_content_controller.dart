@@ -12,7 +12,6 @@ class AgendaContentController extends PostContentController {
 
   AgendaContentController({required super.model});
 
-  @override
   Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
     if (uid == null) return;
     try {

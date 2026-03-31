@@ -55,12 +55,8 @@ extension QALabRemoteUploaderFieldsPart on QALabRemoteUploader {
 
   Map<String, Map<String, dynamic>> get _pendingOccurrences =>
       _state.pendingOccurrences;
-  set _pendingOccurrences(Map<String, Map<String, dynamic>> value) =>
-      _state.pendingOccurrences = value;
 
   Set<String> get _uploadedOccurrenceIds => _state.uploadedOccurrenceIds;
-  set _uploadedOccurrenceIds(Set<String> value) =>
-      _state.uploadedOccurrenceIds = value;
 
   String get _activeSessionId => _state.activeSessionId;
   set _activeSessionId(String value) => _state.activeSessionId = value;

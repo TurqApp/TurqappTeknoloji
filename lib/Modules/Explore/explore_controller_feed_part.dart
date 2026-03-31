@@ -200,23 +200,6 @@ extension ExploreControllerFeedPart on ExploreController {
     exploreIsLoading.value = false;
   }
 
-  Future<void> _performQuickFillExploreFromPoolAndBootstrap() async {
-    await _tryQuickFillExploreFromPool();
-    _scheduleExplorePrefetchFromPosts(explorePosts);
-    if (explorePosts.isEmpty) {
-      if (ContentPolicy.shouldBootstrapNetwork(
-        ContentScreenKind.explore,
-        hasLocalContent: false,
-      )) {
-        await fetchExplorePosts();
-      }
-    } else if (ContentPolicy.allowBackgroundRefresh(
-      ContentScreenKind.explore,
-    )) {
-      unawaited(fetchExplorePosts());
-    }
-  }
-
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) {

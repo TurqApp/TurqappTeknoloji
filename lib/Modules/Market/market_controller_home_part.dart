@@ -209,40 +209,6 @@ extension _MarketControllerHomePart on MarketController {
     } catch (_) {}
   }
 
-  Future<void> _performBootstrapHomeData() async {
-    try {
-      await _schemaService.loadSchema();
-      final loadedCategories = _schemaService
-          .categories()
-          .where(_isVisibleCategory)
-          .toList(growable: true)
-        ..sort(
-          (a, b) => _compareCategoryPriority(
-            (a['label'] ?? '').toString(),
-            (b['label'] ?? '').toString(),
-          ),
-        );
-      final roundMenu = _schemaService.roundMenuItems();
-      if (!_sameMapList(categories, loadedCategories)) {
-        categories.assignAll(loadedCategories);
-      }
-      if (!_sameMapList(roundMenuItems, roundMenu)) {
-        roundMenuItems.assignAll(roundMenu);
-      }
-    } catch (_) {}
-    await _loadSavedItems();
-    final userId = CurrentUserService.instance.effectiveUserId;
-    _homeSnapshotSub?.cancel();
-    _homeSnapshotSub = _marketSnapshotRepository
-        .openHome(
-      userId: userId,
-      limit: ReadBudgetRegistry.marketHomeInitialLimit,
-    )
-        .listen((resource) {
-      unawaited(_applyHomeSnapshotResource(resource));
-    });
-  }
-
   Future<void> _performLoadHomeData({
     required bool forceRefresh,
     required bool silent,

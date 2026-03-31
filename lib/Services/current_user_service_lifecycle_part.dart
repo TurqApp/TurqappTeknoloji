@@ -37,13 +37,6 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     }
   }
 
-  Future<bool> _performHandleExclusiveSessionIfNeeded(
-    String uid,
-    Map<String, dynamic> data,
-  ) =>
-      CurrentUserAccountCenterRole(this)
-          .handleExclusiveSessionIfNeeded(uid, data);
-
   bool _performPublishResolvedUser(CurrentUserModel user) {
     viewSelectionRx.value = user.viewSelection;
     final nextSignature = jsonEncode(user.toJson());

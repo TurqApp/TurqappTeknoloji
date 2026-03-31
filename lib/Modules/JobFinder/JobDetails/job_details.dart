@@ -13,7 +13,6 @@ import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
-import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/redirection_link.dart';

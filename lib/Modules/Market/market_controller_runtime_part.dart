@@ -1,8 +1,6 @@
 part of 'market_controller.dart';
 
 extension MarketControllerRuntimePart on MarketController {
-  Future<void> _bootstrapHomeData() => _performBootstrapHomeData();
-
   void primePrimarySurfaceOnce() {
     if (_primarySurfacePrimedOnce) return;
     _primarySurfacePrimedOnce = true;

@@ -159,44 +159,10 @@ extension _SplashViewStartupPart on _SplashViewState {
         DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
   }
 
-  int _feedStartupShardLimit() {
-    return _feedWarmPoolLimit();
-  }
-
   int _shortStartupShardLimit({
     required bool onWiFi,
   }) {
     return ReadBudgetRegistry.shortStartupShardLimit(onWiFi: onWiFi);
-  }
-
-  Future<void> _persistFeedStartupShard(
-    CachedResource<List<PostsModel>> resource,
-  ) async {
-    final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty) return;
-    final shardStore = ensureStartupSnapshotShardStore();
-    final posts = resource.data ?? const <PostsModel>[];
-    if (posts.isEmpty) {
-      await shardStore.clear(
-        surface: 'feed',
-        userId: userId,
-      );
-      return;
-    }
-    final limit = _feedStartupShardLimit();
-    if (limit <= 0) return;
-    await shardStore.save(
-      surface: 'feed',
-      userId: userId,
-      itemCount: posts.length < limit ? posts.length : limit,
-      limit: limit,
-      source: resource.source.name,
-      snapshotAt: resource.snapshotAt,
-      payload: ensureFeedSnapshotRepository().encodeHomeStartupPayload(
-        posts,
-        limit: limit,
-      ),
-    );
   }
 
   Future<void> _persistShortStartupShard(

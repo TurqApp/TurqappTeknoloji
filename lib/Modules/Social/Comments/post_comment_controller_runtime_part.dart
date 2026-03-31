@@ -1,42 +1,5 @@
 part of 'post_comment_controller_library.dart';
 
-PostCommentController _ensurePostCommentController({
-  required String postID,
-  required String userID,
-  required String collection,
-  required Function(bool increment)? onCommentCountChange,
-  required String? tag,
-  required bool permanent,
-}) {
-  final existing = _maybeFindPostCommentController(tag: tag);
-  if (existing != null) {
-    _postCommentControllerActiveTag = tag;
-    return existing;
-  }
-  final created = Get.put(
-    PostCommentController(
-      postID: postID,
-      userID: userID,
-      collection: collection,
-      onCommentCountChange: onCommentCountChange,
-    ),
-    tag: tag,
-    permanent: permanent,
-  );
-  created.controllerTag = tag;
-  _postCommentControllerActiveTag = tag;
-  return created;
-}
-
-PostCommentController? _maybeFindPostCommentController({String? tag}) {
-  final resolvedTag = (tag ?? _postCommentControllerActiveTag)?.trim();
-  final normalizedTag = resolvedTag?.isEmpty == true ? null : resolvedTag;
-  final isRegistered =
-      Get.isRegistered<PostCommentController>(tag: normalizedTag);
-  if (!isRegistered) return null;
-  return Get.find<PostCommentController>(tag: normalizedTag);
-}
-
 void _handlePostCommentControllerInit(PostCommentController controller) {
   _bindPostComments(controller);
   unawaited(_loadPostOwnerNickname(controller));

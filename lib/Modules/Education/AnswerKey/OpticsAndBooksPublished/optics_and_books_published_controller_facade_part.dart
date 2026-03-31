@@ -84,8 +84,6 @@ extension OpticsAndBooksPublishedControllerFacadePart
 
   void refreshOnOpen() => _refreshOpticsAndBooksOnOpen(this);
 
-  Future<void> _bootstrapData() => _bootstrapOpticsAndBooksData(this);
-
   Future<void> loadData({
     bool silent = false,
     bool forceRefresh = false,
