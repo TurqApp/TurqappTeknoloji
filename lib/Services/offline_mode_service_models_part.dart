@@ -1,5 +1,31 @@
 part of 'offline_mode_service.dart';
 
+enum PendingActionExecutionStatus {
+  applied,
+  skipped,
+}
+
+class PendingActionExecutionResult {
+  const PendingActionExecutionResult._({
+    required this.status,
+    this.reason = '',
+  });
+
+  const PendingActionExecutionResult.applied()
+      : this._(status: PendingActionExecutionStatus.applied);
+
+  const PendingActionExecutionResult.skipped([String reason = ''])
+      : this._(
+          status: PendingActionExecutionStatus.skipped,
+          reason: reason,
+        );
+
+  final PendingActionExecutionStatus status;
+  final String reason;
+
+  bool get isApplied => status == PendingActionExecutionStatus.applied;
+}
+
 class PendingAction {
   final String type;
   final Map<String, dynamic> data;

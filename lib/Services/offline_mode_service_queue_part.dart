@@ -133,7 +133,18 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
         }
 
         try {
-          await action.execute();
+          final result = await action.execute();
+          if (!result.isApplied) {
+            print('⚪️ Skipped ${action.type}: ${result.reason}');
+            failedCount.value++;
+            deadLetterActions.add(action.copyWith(
+              attemptCount: action.attemptCount + 1,
+              lastError: result.reason.isEmpty ? 'skipped' : result.reason,
+              lastTriedAtMs: nowMs,
+              nextAttemptAtMs: 0,
+            ));
+            continue;
+          }
           print('✅ Processed: ${action.type}');
           succeeded++;
           processedCount.value++;

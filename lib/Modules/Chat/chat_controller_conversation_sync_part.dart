@@ -26,6 +26,11 @@ extension _ChatControllerConversationSyncX on ChatController {
       final previousHeadSignature = _realtimeHeadSignature;
       final nextHeadSignature = _buildHeadSignature(snapshot.docs);
       _realtimeHeadSignature = nextHeadSignature;
+      final headChanged = previousHeadSignature != nextHeadSignature;
+      if (headChanged) {
+        _applyConversationSnapshot(snapshot.docs, replace: false);
+        _refreshMergedMessages();
+      }
       final latestRemoteTs = _extractCreatedDateMs(snapshot.docs.first.data());
       final shouldSync = ChatRealtimeSyncPolicy.shouldTriggerSync(
         previousHeadSignature: previousHeadSignature,

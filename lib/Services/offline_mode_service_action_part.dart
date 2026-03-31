@@ -37,59 +37,66 @@ extension PendingActionExecutionPart on PendingAction {
     return fallback;
   }
 
-  Future<void> execute() async {
+  Future<PendingActionExecutionResult> execute() async {
     switch (type) {
       case 'update_profile':
-        await _executeUpdateProfile();
-        break;
+        return _executeUpdateProfile();
       case 'like_post':
-        await _executeLikePost();
-        break;
+        return _executeLikePost();
       case 'set_like_post':
-        await _executeSetLikePost();
-        break;
+        return _executeSetLikePost();
       case 'follow_user':
-        await _executeFollowUser();
-        break;
+        return _executeFollowUser();
       case 'set_save_post':
-        await _executeSetSavePost();
-        break;
+        return _executeSetSavePost();
       case 'add_comment_post':
-        await _executeAddCommentPost();
-        break;
+        return _executeAddCommentPost();
       default:
         print('Unknown pending action type: $type');
+        return PendingActionExecutionResult.skipped('unknown_type:$type');
     }
   }
 
-  Future<void> _executeUpdateProfile() async {
+  Future<PendingActionExecutionResult> _executeUpdateProfile() async {
     final uid = data['uid'] as String?;
     final fields = data['fields'] as Map<String, dynamic>?;
-    if (uid == null || fields == null) return;
+    if (uid == null || fields == null) {
+      return PendingActionExecutionResult.skipped('invalid_profile_payload');
+    }
 
     final firestore = FirebaseFirestore.instance;
     await firestore.collection('users').doc(uid).update(fields);
+    return const PendingActionExecutionResult.applied();
   }
 
-  Future<void> _executeLikePost() async {
+  Future<PendingActionExecutionResult> _executeLikePost() async {
     final postId = data['postId'] as String?;
     final userId = data['userId'] as String?;
-    if (postId == null || userId == null) return;
+    if (postId == null || userId == null) {
+      return PendingActionExecutionResult.skipped('invalid_like_payload');
+    }
 
     final firestore = FirebaseFirestore.instance;
+    final postSnap = await firestore.collection('Posts').doc(postId).get();
+    if (!postSnap.exists) {
+      return PendingActionExecutionResult.skipped('post_missing');
+    }
     await firestore
         .collection('Posts')
         .doc(postId)
         .collection('likes')
         .doc(userId)
         .set({'timeStamp': DateTime.now().millisecondsSinceEpoch});
+    return const PendingActionExecutionResult.applied();
   }
 
-  Future<void> _executeSetLikePost() async {
+  Future<PendingActionExecutionResult> _executeSetLikePost() async {
     final postId = data['postId'] as String?;
     final userId = data['userId'] as String?;
     final shouldLike = _asBool(data['value']);
-    if (postId == null || userId == null) return;
+    if (postId == null || userId == null) {
+      return PendingActionExecutionResult.skipped('invalid_like_payload');
+    }
 
     final firestore = FirebaseFirestore.instance;
     final postRef = firestore.collection('Posts').doc(postId);
@@ -100,10 +107,12 @@ extension PendingActionExecutionPart on PendingAction {
         .collection('liked_posts')
         .doc(postId);
 
-    await firestore.runTransaction((tx) async {
+    return firestore.runTransaction((tx) async {
       final likeSnap = await tx.get(likeRef);
       final postSnap = await tx.get(postRef);
-      if (!postSnap.exists) return;
+      if (!postSnap.exists) {
+        return PendingActionExecutionResult.skipped('post_missing');
+      }
 
       final postData = postSnap.data() ?? <String, dynamic>{};
       final stats = (postData['stats'] as Map?)?.cast<String, dynamic>() ??
@@ -130,7 +139,10 @@ extension PendingActionExecutionPart on PendingAction {
               },
               SetOptions(merge: true));
         }
-      } else if (!shouldLike && likeSnap.exists) {
+        return const PendingActionExecutionResult.applied();
+      }
+
+      if (!shouldLike && likeSnap.exists) {
         tx.delete(likeRef);
         tx.delete(userLikeRef);
         final next = currentLikeCount > 0 ? currentLikeCount - 1 : 0;
@@ -144,15 +156,19 @@ extension PendingActionExecutionPart on PendingAction {
               },
               SetOptions(merge: true));
         }
+        return const PendingActionExecutionResult.applied();
       }
+      return const PendingActionExecutionResult.applied();
     });
   }
 
-  Future<void> _executeSetSavePost() async {
+  Future<PendingActionExecutionResult> _executeSetSavePost() async {
     final postId = data['postId'] as String?;
     final userId = data['userId'] as String?;
     final shouldSave = _asBool(data['value']);
-    if (postId == null || userId == null) return;
+    if (postId == null || userId == null) {
+      return PendingActionExecutionResult.skipped('invalid_save_payload');
+    }
 
     final firestore = FirebaseFirestore.instance;
     final postRef = firestore.collection('Posts').doc(postId);
@@ -163,10 +179,12 @@ extension PendingActionExecutionPart on PendingAction {
         .collection('saved_posts')
         .doc(postId);
 
-    await firestore.runTransaction((tx) async {
+    return firestore.runTransaction((tx) async {
       final saveSnap = await tx.get(saveRef);
       final postSnap = await tx.get(postRef);
-      if (!postSnap.exists) return;
+      if (!postSnap.exists) {
+        return PendingActionExecutionResult.skipped('post_missing');
+      }
 
       final postData = postSnap.data() ?? <String, dynamic>{};
       final stats = (postData['stats'] as Map?)?.cast<String, dynamic>() ??
@@ -178,20 +196,27 @@ extension PendingActionExecutionPart on PendingAction {
         tx.set(saveRef, {'userID': userId, 'timeStamp': nowMs});
         tx.set(userSaveRef, {'postDocID': postId, 'timeStamp': nowMs});
         tx.update(postRef, {'stats.savedCount': currentSavedCount + 1});
-      } else if (!shouldSave && saveSnap.exists) {
+        return const PendingActionExecutionResult.applied();
+      }
+
+      if (!shouldSave && saveSnap.exists) {
         tx.delete(saveRef);
         tx.delete(userSaveRef);
         final next = currentSavedCount > 0 ? currentSavedCount - 1 : 0;
         tx.update(postRef, {'stats.savedCount': next});
+        return const PendingActionExecutionResult.applied();
       }
+      return const PendingActionExecutionResult.applied();
     });
   }
 
-  Future<void> _executeAddCommentPost() async {
+  Future<PendingActionExecutionResult> _executeAddCommentPost() async {
     final postId = data['postId'] as String?;
     final userId = data['userId'] as String?;
     final text = (data['text'] ?? '').toString();
-    if (postId == null || userId == null || text.trim().isEmpty) return;
+    if (postId == null || userId == null || text.trim().isEmpty) {
+      return PendingActionExecutionResult.skipped('invalid_comment_payload');
+    }
 
     final imgs = (data['imgs'] as List?)?.map((e) => e.toString()).toList() ??
         const <String>[];
@@ -211,11 +236,15 @@ extension PendingActionExecutionPart on PendingAction {
         .doc(commentRef.id);
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-    await firestore.runTransaction((tx) async {
+    return firestore.runTransaction((tx) async {
       final postSnap = await tx.get(postRef);
-      if (!postSnap.exists) return;
+      if (!postSnap.exists) {
+        return PendingActionExecutionResult.skipped('post_missing');
+      }
       final existingComment = await tx.get(commentRef);
-      if (existingComment.exists) return;
+      if (existingComment.exists) {
+        return const PendingActionExecutionResult.applied();
+      }
 
       final postData = postSnap.data() ?? <String, dynamic>{};
       final stats = (postData['stats'] as Map?)?.cast<String, dynamic>() ??
@@ -239,17 +268,21 @@ extension PendingActionExecutionPart on PendingAction {
       });
       tx.set(userCommentRef, {'postDocID': postId, 'timeStamp': nowMs});
       tx.update(postRef, {'stats.commentCount': currentCommentCount + 1});
+      return const PendingActionExecutionResult.applied();
     });
   }
 
-  Future<void> _executeFollowUser() async {
+  Future<PendingActionExecutionResult> _executeFollowUser() async {
     final targetUid = data['targetUid'] as String?;
     final currentUid = data['currentUid'] as String?;
-    if (targetUid == null || currentUid == null) return;
+    if (targetUid == null || currentUid == null) {
+      return PendingActionExecutionResult.skipped('invalid_follow_payload');
+    }
     await FollowService.createRelationPair(
       targetUid,
       currentUid: currentUid,
       enforceModerationGuard: false,
     );
+    return const PendingActionExecutionResult.applied();
   }
 }

@@ -14,6 +14,30 @@ int _deletedStoryCacheAsInt(dynamic value, {int fallback = 0}) {
 bool _isStoryMediaElementType(String type) => type == 'image' || type == 'gif';
 
 extension StoryRepositoryDeletedPart on StoryRepository {
+  Future<void> _deleteStoryStorageRefRecursively(Reference ref) async {
+    try {
+      final children = await ref.listAll();
+      for (final prefix in children.prefixes) {
+        await _deleteStoryStorageRefRecursively(prefix);
+      }
+      for (final item in children.items) {
+        try {
+          await item.delete();
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _purgeStoryStorageDirectory(String uid, String storyId) async {
+    final normalizedUid = uid.trim();
+    final normalizedStoryId = storyId.trim();
+    if (normalizedUid.isEmpty || normalizedStoryId.isEmpty) return;
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('stories/$normalizedUid/$normalizedStoryId');
+    await _deleteStoryStorageRefRecursively(ref);
+  }
+
   List<String> _collectStoryMediaUrls(Map<String, dynamic> raw) {
     final urls = <String>{};
     for (final element in _normalizeStoryElements(raw['elements'])) {
@@ -111,6 +135,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
           .delete();
     } catch (_) {}
     await _purgeStoryMediaUrls(raw);
+    await _purgeStoryStorageDirectory(uid, storyId);
 
     if (uid.isNotEmpty) {
       try {

@@ -180,16 +180,104 @@ extension ChatListingControllerActionsPart on ChatListingController {
 
   void _listenCacheInvalidations() {
     _invalidationSub?.cancel();
-    _invalidationSub = CacheInvalidationService.ensure()
-        .watchType(
-      CacheInvalidationEventType.messageUnsent,
-    )
-        .listen((event) {
-      if (event.scopeId.trim().isEmpty) return;
-      updateConversationPreviewLocal(
-        chatId: event.scopeId,
-        previewText: 'chat.unsent_message'.tr,
-      );
+    _invalidationSub = CacheInvalidationService.ensure().events.listen((event) {
+      switch (event.type) {
+        case CacheInvalidationEventType.messageDeletedForUser:
+        case CacheInvalidationEventType.messageUnsent:
+          if (event.scopeId.trim().isEmpty) return;
+          unawaited(_refreshConversationPreviewFromHead(event.scopeId));
+          return;
+        default:
+          return;
+      }
     });
+  }
+
+  Future<void> _refreshConversationPreviewFromHead(String chatId) async {
+    final normalizedChatId = chatId.trim();
+    final uid = _uid.trim();
+    if (normalizedChatId.isEmpty || uid.isEmpty) return;
+    try {
+      final snapshot = await _conversationRepository.fetchLatestMessages(
+        normalizedChatId,
+        limit: 12,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      Map<String, dynamic>? latestVisible;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final deletedFor = (data['deletedFor'] as List?)
+                ?.map((item) => item.toString().trim())
+                .where((item) => item.isNotEmpty)
+                .toList(growable: false) ??
+            const <String>[];
+        if (deletedFor.contains(uid)) continue;
+        latestVisible = data;
+        break;
+      }
+      updateConversationPreviewLocal(
+        chatId: normalizedChatId,
+        previewText: latestVisible == null
+            ? ''
+            : _buildConversationPreviewFromData(latestVisible),
+        timestampMs: latestVisible == null
+            ? 0
+            : _extractConversationPreviewTimestampMs(latestVisible),
+      );
+    } catch (_) {}
+  }
+
+  int _extractConversationPreviewTimestampMs(Map<String, dynamic> data) {
+    final raw = data['createdDate'];
+    if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+    if (raw is num) return raw.toInt();
+    return int.tryParse('$raw') ?? 0;
+  }
+
+  num _conversationPreviewAsNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse('${value ?? ''}') ?? 0;
+  }
+
+  String _buildConversationPreviewFromData(Map<String, dynamic> data) {
+    if (data['unsent'] == true) return 'chat.unsent_message'.tr;
+
+    final text = (data['text'] ?? '').toString().trim();
+    if (text.isNotEmpty) return text;
+
+    final videoUrl = (data['videoUrl'] ?? '').toString().trim();
+    if (videoUrl.isNotEmpty) return 'chat.video'.tr;
+
+    final audioUrl = (data['audioUrl'] ?? '').toString().trim();
+    if (audioUrl.isNotEmpty) return 'chat.audio'.tr;
+
+    final mediaUrls = data['mediaUrls'];
+    if (mediaUrls is Iterable && mediaUrls.isNotEmpty) {
+      return 'chat.photo'.tr;
+    }
+
+    final postRef = data['postRef'];
+    if (postRef is Map &&
+        (postRef['postId'] ?? '').toString().trim().isNotEmpty) {
+      return 'chat.post'.tr;
+    }
+
+    final contact = data['contact'];
+    if (contact is Map &&
+        (contact['name'] ?? '').toString().trim().isNotEmpty) {
+      return 'chat.person'.tr;
+    }
+
+    final location = data['location'];
+    if (location is Map) {
+      final lat = _conversationPreviewAsNum(location['lat']);
+      final lng = _conversationPreviewAsNum(location['lng']);
+      if (lat != 0 || lng != 0) {
+        return 'chat.location'.tr;
+      }
+    }
+
+    return '';
   }
 }
