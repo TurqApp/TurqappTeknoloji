@@ -290,7 +290,11 @@ extension ExploreControllerFeedPart on ExploreController {
         final decodedPosts =
             _decodeExploreStartupPosts(shard.payload['explorePosts']);
         if (decodedPosts.isNotEmpty) {
-          explorePosts.assignAll(decodedPosts);
+          final startupPosts = List<PostsModel>.from(decodedPosts);
+          if (startupPosts.length > 1) {
+            startupPosts.shuffle();
+          }
+          explorePosts.assignAll(startupPosts);
           _scheduleExplorePrefetchFromPosts(explorePosts);
           didHydrate = true;
         }
@@ -486,7 +490,11 @@ extension ExploreControllerFeedPart on ExploreController {
     if (filtered.isEmpty) return;
     final valid = _dedupeExplorePosts(filtered);
     if (valid.isEmpty) return;
-    explorePosts.assignAll(valid);
+    final startupPosts = List<PostsModel>.from(valid);
+    if (startupPosts.length > 1) {
+      startupPosts.shuffle();
+    }
+    explorePosts.assignAll(startupPosts);
     _scheduleExplorePrefetchFromPosts(explorePosts);
     if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore)) {
       unawaited(_cleanupExplorePoolFill(valid));

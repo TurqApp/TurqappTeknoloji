@@ -3,6 +3,11 @@ part of 'explore_controller.dart';
 extension ExploreControllerSearchPart on ExploreController {
   void _performResetSurfaceForTabTransition() {
     _performResetSearchToDefault();
+    if (explorePosts.length > 1) {
+      final shuffled = List<PostsModel>.from(explorePosts);
+      shuffled.shuffle();
+      explorePosts.assignAll(shuffled);
+    }
     if (exploreFloods.length > 1) {
       final shuffled = List<PostsModel>.from(exploreFloods);
       shuffled.shuffle();
