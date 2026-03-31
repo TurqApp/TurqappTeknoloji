@@ -241,6 +241,7 @@ class UserPostLinkService {
         userId,
         'reshared_posts',
         refs,
+        removeMissing: false,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
