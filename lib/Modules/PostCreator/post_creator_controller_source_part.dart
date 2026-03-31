@@ -1,6 +1,32 @@
 part of 'post_creator_controller.dart';
 
 extension PostCreatorControllerSourcePart on PostCreatorController {
+  Future<String> _normalizeSharedOriginalPostId({
+    required String originalPostId,
+    required String sourcePostId,
+  }) async {
+    final original = originalPostId.trim();
+    final source = sourcePostId.trim();
+    final candidate = source.isNotEmpty ? source : original;
+    if (candidate.isEmpty) return original;
+
+    final raw = await _postRepository.fetchPostRawById(
+          candidate,
+          preferCache: true,
+        ) ??
+        const <String, dynamic>{};
+    if (raw.isEmpty) {
+      return original;
+    }
+
+    final mainFlood = (raw['mainFlood'] ?? '').toString().trim();
+    final isFlood = raw['flood'] == true;
+    if (isFlood && mainFlood.isNotEmpty) {
+      return mainFlood;
+    }
+    return original.isNotEmpty ? original : candidate;
+  }
+
   Future<String> resolveQuoteCounterTargetPostId() async {
     final sourcePostId = _sharedSourcePostID.trim();
     final originalPostId = _sharedOriginalPostID.trim();
@@ -86,9 +112,14 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     _sharedSourceApplied = true;
     _sharedSourceFingerprint = fingerprint;
 
+    final normalizedOriginalPostId = await _normalizeSharedOriginalPostId(
+      originalPostId: (originalPostID ?? '').trim(),
+      sourcePostId: (sourcePostID ?? '').trim(),
+    );
+
     _isSharedAsPost = true;
     _sharedOriginalUserID = (originalUserID ?? '').trim();
-    _sharedOriginalPostID = (originalPostID ?? '').trim();
+    _sharedOriginalPostID = normalizedOriginalPostId;
     _sharedSourcePostID = (sourcePostID ?? '').trim();
     _isQuotedPost = quotedPost;
     _quotedOriginalText = (quotedOriginalText ?? '').trim();
