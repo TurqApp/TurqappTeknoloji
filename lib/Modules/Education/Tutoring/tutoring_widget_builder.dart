@@ -1,13 +1,14 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';

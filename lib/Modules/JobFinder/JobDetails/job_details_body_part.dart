@@ -285,10 +285,13 @@ extension JobDetailsBodyPart on _JobDetailsState {
       child: AspectRatio(
         aspectRatio: 1.18,
         child: imageUrl.trim().isNotEmpty
-            ? CachedNetworkImage(
+            ? CacheFirstNetworkImage(
                 imageUrl: imageUrl,
+                cacheManager: TurqImageCacheManager.instance,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => _imageFallback(),
+                memCacheWidth: 960,
+                memCacheHeight: 960,
+                fallback: _imageFallback(),
               )
             : _imageFallback(),
       ),

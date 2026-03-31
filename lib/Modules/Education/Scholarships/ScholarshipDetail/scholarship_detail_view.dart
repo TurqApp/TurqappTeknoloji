@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -12,8 +11,10 @@ import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_owner_card.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';

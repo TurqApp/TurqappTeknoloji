@@ -46,10 +46,13 @@ extension JobDetailsMetaPart on _JobDetailsState {
               height: (MediaQuery.of(context).size.height * 0.28)
                   .clamp(180.0, 220.0),
               child: hasLocation
-                  ? CachedNetworkImage(
+                  ? CacheFirstNetworkImage(
                       imageUrl: _buildStaticMapUrl(controller.model.value),
+                      cacheManager: TurqImageCacheManager.instance,
                       fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
+                      memCacheWidth: 1300,
+                      memCacheHeight: 720,
+                      fallback: Container(
                         color: const Color(0xFFF3F5F7),
                         alignment: Alignment.center,
                         child: Text(

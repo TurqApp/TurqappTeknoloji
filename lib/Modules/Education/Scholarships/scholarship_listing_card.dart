@@ -1,8 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
@@ -239,17 +240,14 @@ class _ScholarshipListLogo extends StatelessWidget {
                 CupertinoIcons.building_2_fill,
                 color: Colors.grey,
               )
-            : CachedNetworkImage(
+            : CacheFirstNetworkImage(
                 imageUrl: clean,
-                width: width,
-                height: height,
+                cacheManager: TurqImageCacheManager.instance,
                 fit: BoxFit.contain,
-                placeholder: (_, __) => const Center(
+                memCacheWidth: (width * 2).round(),
+                memCacheHeight: (height * 2).round(),
+                fallback: const Center(
                   child: CupertinoActivityIndicator(),
-                ),
-                errorWidget: (_, __, ___) => const Icon(
-                  CupertinoIcons.building_2_fill,
-                  color: Colors.grey,
                 ),
               ),
       ),

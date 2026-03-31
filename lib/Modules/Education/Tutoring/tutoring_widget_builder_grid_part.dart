@@ -23,10 +23,13 @@ extension _TutoringWidgetBuilderGridPart on TutoringWidgetBuilder {
             media: ClipRRect(
               borderRadius: const BorderRadius.all(Radius.circular(12)),
               child: imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
+                  ? CacheFirstNetworkImage(
                       imageUrl: imageUrl,
+                      cacheManager: TurqImageCacheManager.instance,
                       fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _fallbackImage(),
+                      memCacheWidth: 520,
+                      memCacheHeight: 520,
+                      fallback: _fallbackImage(),
                     )
                   : _fallbackImage(),
             ),

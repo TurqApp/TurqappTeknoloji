@@ -128,18 +128,13 @@ extension ScholarshipDetailViewHelpersPart on ScholarshipDetailView {
   }
 
   Widget _buildGalleryImage(String imageUrl) {
-    return CachedNetworkImage(
-      memCacheHeight: 1000,
+    return CacheFirstNetworkImage(
       imageUrl: imageUrl,
-      width: double.infinity,
+      cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
-      placeholder: (context, url) => const Center(
+      memCacheHeight: 1000,
+      fallback: const Center(
         child: CupertinoActivityIndicator(),
-      ),
-      errorWidget: (context, url, error) => const Icon(
-        Icons.error,
-        color: Colors.red,
-        size: 40,
       ),
     );
   }

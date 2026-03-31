@@ -1,8 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
@@ -117,13 +118,17 @@ class _JobContentState extends State<JobContent> {
           : ClipRRect(borderRadius: borderRadius, child: fallback);
     }
 
-    final image = CachedNetworkImage(
-      imageUrl: normalizedUrl,
+    final image = SizedBox(
       width: width,
       height: height,
-      fit: BoxFit.cover,
-      placeholder: (_, __) => fallback,
-      errorWidget: (_, __, ___) => fallback,
+      child: CacheFirstNetworkImage(
+        imageUrl: normalizedUrl,
+        cacheManager: TurqImageCacheManager.instance,
+        fit: BoxFit.cover,
+        memCacheWidth: width == null ? null : (width * 2).round(),
+        memCacheHeight: height == null ? null : (height * 2).round(),
+        fallback: fallback,
+      ),
     );
     return borderRadius == null
         ? image

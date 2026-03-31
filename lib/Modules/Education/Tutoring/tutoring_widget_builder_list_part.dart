@@ -39,10 +39,14 @@ extension _TutoringWidgetBuilderListPart on TutoringWidgetBuilder {
                         width: metrics.mediaSize,
                         height: metrics.railHeight,
                         child: imageUrl.isNotEmpty
-                            ? CachedNetworkImage(
+                            ? CacheFirstNetworkImage(
                                 imageUrl: imageUrl,
+                                cacheManager: TurqImageCacheManager.instance,
                                 fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => _fallbackImage(),
+                                memCacheWidth: (metrics.mediaSize * 2).round(),
+                                memCacheHeight:
+                                    (metrics.railHeight * 2).round(),
+                                fallback: _fallbackImage(),
                               )
                             : _fallbackImage(),
                       ),
