@@ -139,10 +139,24 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _scheduleFeedPrefetch() {
+    _prefetchCurrentPoster();
     _feedPrefetchDebounce?.cancel();
     _feedPrefetchDebounce = Timer(const Duration(milliseconds: 1400), () {
       _updateFeedPrefetchQueue();
     });
+  }
+
+  void _prefetchCurrentPoster() {
+    if (agendaList.isEmpty) return;
+    final current = centeredIndex.value.clamp(0, agendaList.length - 1);
+    final post = agendaList[current];
+    final posterUrl = post.preferredVideoPosterUrl.trim();
+    if (posterUrl.isNotEmpty) {
+      TurqImageCacheManager.instance.getSingleFile(posterUrl).ignore();
+    }
+    if (post.img.isNotEmpty) {
+      TurqImageCacheManager.instance.getSingleFile(post.img.first).ignore();
+    }
   }
 
   void _updateFeedPrefetchQueue() {

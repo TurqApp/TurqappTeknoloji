@@ -27,17 +27,13 @@ extension _ClassicContentMediaPart on _ClassicContentState {
         ? _feedCacheHeightForAspectRatio(aspectRatio)
         : (_feedCacheWidth * 1.4).round();
     final image = thumb.isNotEmpty
-        ? CachedNetworkImage(
+        ? CacheFirstNetworkImage(
             imageUrl: thumb,
             cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
+            fallback: fallback,
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
-            fadeInDuration: Duration.zero,
-            fadeOutDuration: Duration.zero,
-            placeholderFadeInDuration: Duration.zero,
-            placeholder: (_, __) => fallback,
-            errorWidget: (_, __, ___) => fallback,
           )
         : fallback;
     if (aspectRatio == null) return image;

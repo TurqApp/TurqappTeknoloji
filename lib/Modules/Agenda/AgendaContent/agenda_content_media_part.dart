@@ -27,17 +27,13 @@ extension _AgendaContentMediaPart on _AgendaContentState {
         ? _feedCacheHeightForAspectRatio(aspectRatio)
         : (_feedCacheWidth * 1.4).round();
     final image = thumb.isNotEmpty
-        ? CachedNetworkImage(
+        ? CacheFirstNetworkImage(
             imageUrl: thumb,
             cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
+            fallback: fallback,
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
-            fadeInDuration: Duration.zero,
-            fadeOutDuration: Duration.zero,
-            placeholderFadeInDuration: Duration.zero,
-            placeholder: (_, __) => fallback,
-            errorWidget: (_, __, ___) => fallback,
           )
         : fallback;
     if (aspectRatio == null) return image;
@@ -125,6 +121,30 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       await _AgendaContentState._ctaNavigationService.openFromPostMeta(
         widget.model.reshareMap,
       );
+      return;
+    }
+
+    final floodController = maybeFindFloodListingController();
+    final isFloodSurface =
+        floodController != null &&
+        (widget.instanceTag?.startsWith('flood_') ?? false);
+
+    if (isFloodSurface) {
+      floodController.capturePendingCenteredEntry(model: widget.model);
+      _pauseFeedBeforeFullscreen();
+      final visibleList = floodController.floods
+          .where((val) =>
+              val.deletedPost == false &&
+              val.arsiv == false &&
+              val.gizlendi == false &&
+              val.img.isNotEmpty)
+          .toList();
+
+      await Get.to(() => PhotoShorts(
+            fetchedList: visibleList.isNotEmpty ? visibleList : [widget.model],
+            startModel: widget.model,
+          ));
+      floodController.resumeCenteredPost();
       return;
     }
 
