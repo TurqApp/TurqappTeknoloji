@@ -173,6 +173,15 @@ extension PracticeExamSnapshotRepositoryFacadePart
     ]);
   }
 
+  Future<void> invalidateAnsweredSurface(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await _coordinator.clearSurface(
+      _practiceExamAnsweredSurfaceKey,
+      userId: normalized,
+    );
+  }
+
   Future<void> invalidateAllSurfaces() async {
     await Future.wait(<Future<void>>[
       _coordinator.clearSurface(_practiceExamHomeSurfaceKey),

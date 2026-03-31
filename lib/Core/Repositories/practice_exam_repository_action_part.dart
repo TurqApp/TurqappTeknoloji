@@ -96,6 +96,25 @@ extension PracticeExamRepositoryActionPart on PracticeExamRepository {
       }
     }
 
+    if (answeredUserIds.isNotEmpty) {
+      final answeredUserIdList =
+          answeredUserIds.where((id) => id.isNotEmpty).toList(growable: false);
+      for (var index = 0; index < answeredUserIdList.length; index += 200) {
+        final batch = _firestore.batch();
+        final chunk = answeredUserIdList.skip(index).take(200);
+        for (final answeredUserId in chunk) {
+          batch.delete(
+            _firestore
+                .collection('users')
+                .doc(answeredUserId)
+                .collection('answered_practice_exams')
+                .doc(normalizedExamId),
+          );
+        }
+        await batch.commit();
+      }
+    }
+
     await TypesenseEducationSearchService.instance.invalidateEntity(
       EducationTypesenseEntity.practiceExam,
     );

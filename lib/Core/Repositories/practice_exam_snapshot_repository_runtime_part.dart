@@ -317,16 +317,44 @@ Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
   final normalizedUserId = query.userId.trim();
   if (normalizedUserId.isEmpty) return const <SinavModel>[];
   final normalizedLimit = query.effectiveLimit;
-  final yanitlarSnap = await FirebaseFirestore.instance
-      .collectionGroup('Yanitlar')
-      .where('userID', isEqualTo: normalizedUserId)
+  final answeredRefsSnap = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(normalizedUserId)
+      .collection('answered_practice_exams')
       .get(const GetOptions(source: Source.serverAndCache));
 
-  final examDocIds = <String>{};
-  for (final yanitDoc in yanitlarSnap.docs) {
-    final parentRef = yanitDoc.reference.parent.parent;
-    if (parentRef != null && parentRef.parent.id == 'practiceExams') {
-      examDocIds.add(parentRef.id);
+  final examDocIds = <String>{
+    for (final refDoc in answeredRefsSnap.docs)
+      if (refDoc.id.trim().isNotEmpty) refDoc.id.trim(),
+  };
+
+  if (examDocIds.isEmpty) {
+    final yanitlarSnap = await FirebaseFirestore.instance
+        .collectionGroup('Yanitlar')
+        .where('userID', isEqualTo: normalizedUserId)
+        .get(const GetOptions(source: Source.serverAndCache));
+
+    final backfillEntries = <String, int>{};
+    for (final yanitDoc in yanitlarSnap.docs) {
+      final parentRef = yanitDoc.reference.parent.parent;
+      if (parentRef == null || parentRef.parent.id != 'practiceExams') {
+        continue;
+      }
+      final examDocId = parentRef.id.trim();
+      if (examDocId.isEmpty) continue;
+      examDocIds.add(examDocId);
+      final rawTimestamp = yanitDoc.data()['timeStamp'];
+      final timestamp = rawTimestamp is num ? rawTimestamp.toInt() : 0;
+      final previous = backfillEntries[examDocId] ?? 0;
+      if (timestamp > previous) {
+        backfillEntries[examDocId] = timestamp;
+      }
+    }
+    if (backfillEntries.isNotEmpty) {
+      await _backfillAnsweredPracticeExamRefs(
+        normalizedUserId,
+        backfillEntries,
+      );
     }
   }
 
@@ -340,4 +368,37 @@ Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
   final sorted = models.toList(growable: false)
     ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
   return sorted.take(normalizedLimit).toList(growable: false);
+}
+
+Future<void> _backfillAnsweredPracticeExamRefs(
+  String userId,
+  Map<String, int> examTimestamps,
+) async {
+  final normalizedUserId = userId.trim();
+  if (normalizedUserId.isEmpty || examTimestamps.isEmpty) return;
+
+  final firestore = FirebaseFirestore.instance;
+  final entries = examTimestamps.entries.toList(growable: false);
+  for (var index = 0; index < entries.length; index += 200) {
+    final batch = firestore.batch();
+    final chunk = entries.skip(index).take(200);
+    for (final entry in chunk) {
+      final timestamp =
+          entry.value > 0 ? entry.value : DateTime.now().millisecondsSinceEpoch;
+      final ref = firestore
+          .collection('users')
+          .doc(normalizedUserId)
+          .collection('answered_practice_exams')
+          .doc(entry.key);
+      batch.set(
+          ref,
+          <String, dynamic>{
+            'practiceExamId': entry.key,
+            'updatedDate': timestamp,
+            'timeStamp': timestamp,
+          },
+          SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
 }

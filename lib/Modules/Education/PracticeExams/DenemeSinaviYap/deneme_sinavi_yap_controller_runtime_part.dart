@@ -98,6 +98,7 @@ class _DenemeSinaviYapControllerRuntimePart {
 
   Future<void> setData() async {
     final docID = DateTime.now().millisecondsSinceEpoch.toString();
+    final now = DateTime.now().millisecondsSinceEpoch.toInt();
     try {
       await FirebaseFirestore.instance
           .collection('practiceExams')
@@ -107,7 +108,7 @@ class _DenemeSinaviYapControllerRuntimePart {
           .set({
         'yanitlar': _controller.selectedAnswers,
         'userID': _controller._currentUserId,
-        'timeStamp': DateTime.now().millisecondsSinceEpoch.toInt(),
+        'timeStamp': now,
       });
 
       final yeniSonuclar = <DersVeSonuclar>[];
@@ -153,6 +154,20 @@ class _DenemeSinaviYapControllerRuntimePart {
           'net': sonuc.dogru - (0.25 * sonuc.yanlis),
         });
       }
+
+      await ensureUserSubcollectionRepository().upsertEntry(
+        _controller._currentUserId,
+        subcollection: 'answered_practice_exams',
+        docId: _controller.model.docID,
+        data: {
+          'practiceExamId': _controller.model.docID,
+          'answerDocId': docID,
+          'updatedDate': now,
+          'timeStamp': now,
+        },
+      );
+      await maybeFindPracticeExamSnapshotRepository()
+          ?.invalidateAnsweredSurface(_controller._currentUserId);
 
       Get.back();
       _controller.sinaviBitir();
