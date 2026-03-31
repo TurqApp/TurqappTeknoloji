@@ -105,28 +105,49 @@ extension ProfileControllerPrimaryPart on ProfileController {
     final uid = _resolvedActiveUid;
     if (uid == null) return;
 
+    _profileRepository.invalidateLatestProfilePost(uid);
     final lastPost = await _profileRepository.fetchLatestProfilePost(uid);
     if (lastPost == null) return;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (lastPost.timeStamp > nowMs || lastPost.deletedPost == true) {
+    final isScheduled = lastPost.scheduledAt.toInt() > 0;
+    if (lastPost.deletedPost == true) {
       return;
     }
     if (lastPost.video.trim().isNotEmpty && !lastPost.hasPlayableVideo) {
       return;
     }
 
-    final existsIndex = allPosts.indexWhere((p) => p.docID == lastPost.docID);
-    if (existsIndex == -1) {
-      final currentPosts = List<PostsModel>.from(allPosts);
-      currentPosts.insert(0, lastPost);
-      allPosts.value = currentPosts;
-    } else if (existsIndex > 0) {
-      final currentPosts = List<PostsModel>.from(allPosts);
-      final existing = currentPosts.removeAt(existsIndex);
-      currentPosts.insert(0, existing);
-      allPosts.value = currentPosts;
+    void upsertBucket(RxList<PostsModel> bucket) {
+      final existsIndex = bucket.indexWhere((p) => p.docID == lastPost.docID);
+      if (existsIndex == -1) {
+        final current = List<PostsModel>.from(bucket);
+        current.insert(0, lastPost);
+        bucket.value = current;
+      } else if (existsIndex > 0) {
+        final current = List<PostsModel>.from(bucket);
+        final existing = current.removeAt(existsIndex);
+        current.insert(0, existing);
+        bucket.value = current;
+      }
     }
+
+    if (isScheduled) {
+      upsertBucket(scheduledPosts);
+    }
+
+    if (lastPost.timeStamp <= nowMs) {
+      upsertBucket(allPosts);
+      if (lastPost.video.trim().isEmpty) {
+        upsertBucket(photos);
+      }
+      if (lastPost.hasPlayableVideo) {
+        upsertBucket(videos);
+      }
+      bootstrapFeedPlaybackAfterDataChange();
+    }
+
+    _performSchedulePersistPostCaches();
   }
 
   Future<void> _performFetchPrimaryBuckets({

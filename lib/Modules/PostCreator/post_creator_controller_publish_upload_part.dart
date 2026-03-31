@@ -78,6 +78,13 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               agendaController: agendaController,
             ),
           );
+          final uploaderUid = userService.effectiveUserId.trim();
+          if (uploaderUid.isNotEmpty) {
+            _profileRepository.invalidateLatestProfilePost(uploaderUid);
+            await _profileSnapshotRepository.clearUserSnapshots(
+              userId: uploaderUid,
+            );
+          }
           ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
           progressController.complete('post_creator.upload_success'.tr);
         } else {

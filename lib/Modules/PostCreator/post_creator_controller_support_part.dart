@@ -6,6 +6,9 @@ const int _maxScheduledWindowDays = 90;
 int _lastModerationSnackbarAtMs = 0;
 
 final PostRepository _postRepository = PostRepository.ensure();
+final ProfileRepository _profileRepository = ensureProfileRepository();
+final ProfilePostsSnapshotRepository _profileSnapshotRepository =
+    ProfilePostsSnapshotRepository.ensure();
 final agendaController = ensureAgendaController();
 final ErrorHandlingService _errorService = ensureErrorHandlingService();
 const NetworkRuntimeService _networkRuntimeService = NetworkRuntimeService();

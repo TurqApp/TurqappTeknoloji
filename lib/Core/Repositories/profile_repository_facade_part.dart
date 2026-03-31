@@ -33,6 +33,11 @@ extension ProfileRepositoryFacadePart on ProfileRepository {
   Future<PostsModel?> fetchLatestProfilePost(String uid) =>
       _fetchLatestProfilePostImpl(uid);
 
+  void invalidateLatestProfilePost(String uid) {
+    if (uid.isEmpty) return;
+    _latestPostMemory.remove(uid);
+  }
+
   Future<PostsModel?> fetchLatestResharePost(String uid) =>
       _fetchLatestResharePostImpl(uid);
 
