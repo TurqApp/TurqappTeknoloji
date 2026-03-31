@@ -376,12 +376,16 @@ function quoteFilterValue(value) {
 function buildFilterBy(input) {
     const filters = ["active:=true"];
     const docId = asString(input.docId);
+    const docIds = asStringArray(input.docIds);
     const userId = asString(input.userId);
     const categoryKey = asString(input.categoryKey);
     const city = asString(input.city);
     const district = asString(input.district);
     if (docId)
         filters.push(`docId:=${quoteFilterValue(docId)}`);
+    if (!docId && docIds.length) {
+        filters.push(`docId:=[${docIds.map(quoteFilterValue).join(",")}]`);
+    }
     if (userId)
         filters.push(`userId:=${quoteFilterValue(userId)}`);
     if (categoryKey)
@@ -537,6 +541,7 @@ exports.f25_searchMarketCallable = (0, https_1.onCall)({
             limit,
             page,
             docId: request.data?.docId,
+            docIds: Array.isArray(request.data?.docIds) ? request.data?.docIds : undefined,
             userId: request.data?.userId,
             categoryKey: request.data?.categoryKey,
             city: request.data?.city,
