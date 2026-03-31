@@ -3,6 +3,17 @@ part of 'agenda_controller.dart';
 extension AgendaControllerFeedPart on AgendaController {
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
+  Duration _playbackReassertDelayForAttempt(int attempt) {
+    if (!GetPlatform.isAndroid) {
+      return attempt == 0
+          ? const Duration(milliseconds: 480)
+          : const Duration(milliseconds: 220);
+    }
+    return attempt == 0
+        ? const Duration(milliseconds: 320)
+        : const Duration(milliseconds: 180);
+  }
+
   bool _hasExternalPlaybackOwner(String? playbackHandleKey) {
     final key = playbackHandleKey?.trim() ?? '';
     if (key.isEmpty) return false;
@@ -315,9 +326,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }) {
     _playbackReassertTimer?.cancel();
     _playbackReassertTimer = Timer(
-      attempt == 0
-          ? const Duration(milliseconds: 480)
-          : const Duration(milliseconds: 220),
+      _playbackReassertDelayForAttempt(attempt),
       () {
         if (!canClaimPlaybackNow) return;
         if (centeredIndex.value != index) return;
