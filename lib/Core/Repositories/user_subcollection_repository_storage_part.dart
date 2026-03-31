@@ -115,6 +115,80 @@ extension UserSubcollectionRepositoryStoragePart
     }
   }
 
+  Future<List<UserSubcollectionEntry>?> _getCachedEntriesImpl(
+    String uid, {
+    required String subcollection,
+    required bool allowStale,
+  }) async {
+    if (uid.isEmpty || subcollection.isEmpty) return null;
+    final key = _cacheKeyImpl(uid, subcollection);
+    final memory = _getFromMemoryImpl(key, allowStale: allowStale);
+    if (memory != null) {
+      return memory;
+    }
+    final disk = await _getFromPrefsImpl(key, allowStale: allowStale);
+    if (disk == null) return null;
+    final cloned = _cloneEntriesImpl(disk);
+    _memory[key] = _CachedUserSubcollection(
+      items: cloned,
+      cachedAt: DateTime.now(),
+    );
+    return _cloneEntriesImpl(cloned);
+  }
+
+  UserSubcollectionEntry? _findEntryInEntriesImpl(
+    List<UserSubcollectionEntry> items, {
+    required String docId,
+  }) {
+    for (final entry in items) {
+      if (entry.id == docId) {
+        return UserSubcollectionEntry(
+          id: entry.id,
+          data: _cloneUserSubcollectionMap(entry.data),
+        );
+      }
+    }
+    return null;
+  }
+
+  Future<void> _mergeEntryIntoExistingCacheImpl(
+    String uid, {
+    required String subcollection,
+    required UserSubcollectionEntry entry,
+  }) async {
+    final current = await _getCachedEntriesImpl(
+      uid,
+      subcollection: subcollection,
+      allowStale: false,
+    );
+    if (current == null) return;
+    final next = List<UserSubcollectionEntry>.from(current)
+      ..removeWhere((item) => item.id == entry.id)
+      ..add(
+        UserSubcollectionEntry(
+          id: entry.id,
+          data: _cloneUserSubcollectionMap(entry.data),
+        ),
+      );
+    await _setEntriesImpl(uid, subcollection: subcollection, items: next);
+  }
+
+  Future<void> _removeEntryFromExistingCacheImpl(
+    String uid, {
+    required String subcollection,
+    required String docId,
+  }) async {
+    final current = await _getCachedEntriesImpl(
+      uid,
+      subcollection: subcollection,
+      allowStale: false,
+    );
+    if (current == null) return;
+    final next =
+        current.where((entry) => entry.id != docId).toList(growable: false);
+    await _setEntriesImpl(uid, subcollection: subcollection, items: next);
+  }
+
   String _cacheKeyImpl(String uid, String subcollection) =>
       '$uid:$subcollection';
 

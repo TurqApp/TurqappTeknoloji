@@ -80,15 +80,13 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
       return null;
     }
     if (!forceRefresh && preferCache) {
-      final cached = await getEntries(
+      final cached = await _getCachedEntriesImpl(
         uid,
         subcollection: subcollection,
-        preferCache: true,
-        forceRefresh: false,
-        cacheOnly: cacheOnly,
+        allowStale: false,
       );
-      for (final entry in cached) {
-        if (entry.id == docId) return entry;
+      if (cached != null) {
+        return _findEntryInEntriesImpl(cached, docId: docId);
       }
     }
 
@@ -108,17 +106,11 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
         doc.data() ?? const <String, dynamic>{},
       ),
     );
-
-    final current = await getEntries(
+    await _mergeEntryIntoExistingCacheImpl(
       uid,
       subcollection: subcollection,
-      preferCache: true,
-      forceRefresh: false,
+      entry: entry,
     );
-    final next = List<UserSubcollectionEntry>.from(current)
-      ..removeWhere((e) => e.id == docId)
-      ..add(entry);
-    await setEntries(uid, subcollection: subcollection, items: next);
     return entry;
   }
 }

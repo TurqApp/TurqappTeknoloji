@@ -14,22 +14,14 @@ extension UserSubcollectionRepositoryActionPart on UserSubcollectionRepository {
         .collection(subcollection)
         .doc(docId)
         .set(data, SetOptions(merge: true));
-
-    final current = await getEntries(
+    await _mergeEntryIntoExistingCacheImpl(
       uid,
       subcollection: subcollection,
-      preferCache: true,
-      forceRefresh: false,
+      entry: UserSubcollectionEntry(
+        id: docId,
+        data: _cloneUserSubcollectionMap(data),
+      ),
     );
-    final next = List<UserSubcollectionEntry>.from(current)
-      ..removeWhere((e) => e.id == docId)
-      ..add(
-        UserSubcollectionEntry(
-          id: docId,
-          data: _cloneUserSubcollectionMap(data),
-        ),
-      );
-    await setEntries(uid, subcollection: subcollection, items: next);
   }
 
   Future<void> _deleteEntryImpl(
@@ -44,15 +36,10 @@ extension UserSubcollectionRepositoryActionPart on UserSubcollectionRepository {
         .collection(subcollection)
         .doc(docId)
         .delete();
-
-    final current = await getEntries(
+    await _removeEntryFromExistingCacheImpl(
       uid,
       subcollection: subcollection,
-      preferCache: true,
-      forceRefresh: false,
+      docId: docId,
     );
-    final next =
-        current.where((entry) => entry.id != docId).toList(growable: false);
-    await setEntries(uid, subcollection: subcollection, items: next);
   }
 }
