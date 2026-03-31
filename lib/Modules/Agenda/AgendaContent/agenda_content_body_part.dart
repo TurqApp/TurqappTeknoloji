@@ -72,11 +72,12 @@ extension AgendaContentBodyPart on _AgendaContentState {
                               fit: StackFit.expand,
                               children: [
                                 SizedBox.expand(
-                                  child: IgnorePointer(
-                                    ignoring: isReplayOverlayBlockingTap,
-                                    child: GestureDetector(
+                                  child: GestureDetector(
                                     onDoubleTap: controller.like,
                                     onTap: () async {
+                                      if (isReplayOverlayBlockingTap) {
+                                        return;
+                                      }
                                       if (_shouldBlurIzBirakPost) {
                                         videoController?.pause();
                                         return;
@@ -294,7 +295,6 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         ],
                                       );
                                     }),
-                                    ),
                                   ),
                                 ),
                                 if (videoController != null &&
