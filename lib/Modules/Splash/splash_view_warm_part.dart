@@ -224,6 +224,30 @@ extension _SplashViewWarmPart on _SplashViewState {
         0,
         maxDocs: ReadBudgetRegistry.startupFeedPrefetchDocLimit,
       ));
+      _primeFeedFloodSeriesRoots(agendaController, prefetch);
+    } catch (_) {}
+  }
+
+  void _primeFeedFloodSeriesRoots(
+    AgendaController agendaController,
+    PrefetchScheduler prefetch,
+  ) {
+    try {
+      final roots = agendaController.agendaList
+          .take(ReadBudgetRegistry.startupFeedPrefetchDocLimit)
+          .where(
+            (post) =>
+                post.hasPlayableVideo &&
+                post.isFloodSeriesRoot &&
+                post.docID.trim().endsWith('_0'),
+          )
+          .toList(growable: false);
+      for (final root in roots) {
+        prefetch.boostDoc(
+          root.docID,
+          readySegments: 2,
+        );
+      }
     } catch (_) {}
   }
 

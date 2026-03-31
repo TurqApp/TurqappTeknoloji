@@ -11,11 +11,13 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   bool get _hasReadyAutoplaySegment => cachedSegmentCountForCurrentVideo >= 1;
 
-  void _boostAutoplaySegments({int readySegments = 2}) {
+  void _boostAutoplaySegments({int? readySegments}) {
     try {
+      final resolvedReadySegments =
+          readySegments ?? (_isFloodSurfaceInstance ? 1 : 2);
       ensurePrefetchScheduler().boostDoc(
         widget.model.docID,
-        readySegments: readySegments,
+        readySegments: resolvedReadySegments,
       );
     } catch (_) {}
   }
