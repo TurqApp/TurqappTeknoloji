@@ -151,6 +151,8 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _scheduleFeedPrefetch() {
     _prefetchCurrentPoster();
+    _prefetchUpcomingImages();
+    _prefetchThumbnailBatches();
     _feedPrefetchDebounce?.cancel();
     _feedPrefetchDebounce = Timer(const Duration(milliseconds: 1400), () {
       _updateFeedPrefetchQueue();
@@ -273,9 +275,11 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _prefetchUpcomingImages() {
+    if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
+    final start = max(0, current - 1);
     final end = (current + 4).clamp(0, agendaList.length);
-    for (int i = current; i < end; i++) {
+    for (int i = start; i < end; i++) {
       final post = agendaList[i];
       if (post.img.isNotEmpty) {
         TurqImageCacheManager.warmUrl(post.img.first).ignore();
@@ -287,6 +291,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _prefetchThumbnailBatches() {
+    if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
     final targetCount =
         min(max(18, ((current ~/ 8) + 1) * 8), agendaList.length);

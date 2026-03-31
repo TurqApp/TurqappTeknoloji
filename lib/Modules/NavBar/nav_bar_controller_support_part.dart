@@ -119,6 +119,21 @@ class _NavBarControllerSupportPart {
 
     unawaited(restorePersistedIndex().then((_) async {
       await persistStartupRouteHint(_controller.selectedIndex.value);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_controller._isDisposed) return;
+        final hasEducation =
+            maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+        final educationIndex = hasEducation ? 3 : -1;
+        final profileIndex = hasEducation ? 4 : 3;
+        _controller._primeVisibleSurfaceAfterTabChangeImpl(
+          index: _controller.selectedIndex.value,
+          educationIndex: educationIndex,
+          profileIndex: profileIndex,
+        );
+        if (_controller.selectedIndex.value == 0) {
+          _controller._resumeFeedIfNeededImpl();
+        }
+      });
     }));
     _controller._runAcilisAnimationImpl();
     Future.delayed(const Duration(seconds: 2), () {
