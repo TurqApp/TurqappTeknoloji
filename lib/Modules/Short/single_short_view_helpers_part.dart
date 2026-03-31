@@ -444,10 +444,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     List<PostsModel> items = [];
 
     try {
-      items = await ensureShortRepository().fetchRandomReadyPosts(
-        limit: ReadBudgetRegistry.shortRandomReadyPoolLimit,
-      )
-        ..shuffle();
+      items = (await ensureShortRepository().fetchReadyPage(
+        pageSize: ReadBudgetRegistry.shortRandomReadyPoolLimit,
+      ))
+          .posts;
     } catch (_) {}
 
     final merged = <PostsModel>[];
