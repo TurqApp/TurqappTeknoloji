@@ -514,6 +514,34 @@ async function buildSearchDocForIndexing(postId, data) {
         rozet: doc.rozet || summary.rozet,
     };
 }
+function postDocsEqual(left, right) {
+    if (!left || !right)
+        return false;
+    return JSON.stringify(left) === JSON.stringify(right);
+}
+function normalizeTagEntries(entries) {
+    return entries
+        .map((entry) => ({
+        tag: normalizeTag(entry.tag),
+        hasHashtag: entry.hasHashtag === true,
+    }))
+        .filter((entry) => entry.tag.length > 0)
+        .sort((a, b) => a.tag.localeCompare(b.tag, "tr-TR"));
+}
+function tagEntriesEqual(left, right) {
+    const normalizedLeft = normalizeTagEntries(left);
+    const normalizedRight = normalizeTagEntries(right);
+    if (normalizedLeft.length !== normalizedRight.length)
+        return false;
+    for (let i = 0; i < normalizedLeft.length; i += 1) {
+        if (normalizedLeft[i].tag !== normalizedRight[i].tag)
+            return false;
+        if (normalizedLeft[i].hasHashtag !== normalizedRight[i].hasHashtag) {
+            return false;
+        }
+    }
+    return true;
+}
 function shouldIndex(doc) {
     if (!doc.id || !doc.userID)
         return false;
@@ -909,59 +937,81 @@ exports.f14_syncPostsToTypesense = (0, firestore_1.onDocumentWritten)({
     const postId = event.params.postId;
     const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    const beforeDoc = beforeData ? await buildSearchDocForIndexing(postId, beforeData) : null;
-    const afterDoc = afterData ? await buildSearchDocForIndexing(postId, afterData) : null;
-    const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
-    const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
+    const beforeComparable = beforeData ? buildSearchDoc(postId, beforeData) : null;
+    const afterComparable = afterData ? buildSearchDoc(postId, afterData) : null;
+    const beforeIndexed = !!beforeComparable && shouldIndex(beforeComparable);
+    const afterIndexed = !!afterComparable && shouldIndex(afterComparable);
     const beforeTagEntries = beforeIndexed && beforeData ? extractPostTags(beforeData) : [];
     const afterTagEntries = afterIndexed && afterData ? extractPostTags(afterData) : [];
     const beforeTags = beforeTagEntries.map((x) => x.tag);
     const afterTags = afterTagEntries.map((x) => x.tag);
-    if (!afterData || !afterIndexed || !afterDoc) {
+    if (!afterData || !afterIndexed) {
         if (!afterData) {
+            if (!beforeIndexed) {
+                return;
+            }
             console.log("post_sync_delete", { postId });
         }
-        else if (afterDoc) {
+        else if (afterComparable) {
             console.log("post_sync_skip", {
                 postId,
-                reasons: collectSkipReasons(afterDoc),
-                hlsStatus: afterDoc.hlsStatus,
-                hasPlayableVideo: afterDoc.hasPlayableVideo,
-                thumbnail: !!afterDoc.thumbnail,
-                imgCount: afterDoc.img.length,
-                video: !!afterDoc.video,
-                hlsMasterUrl: !!afterDoc.hlsMasterUrl,
-                arsiv: afterDoc.arsiv,
-                deletedPost: afterDoc.deletedPost,
-                gizlendi: afterDoc.gizlendi,
-                isUploading: afterDoc.isUploading,
+                reasons: collectSkipReasons(afterComparable),
+                hlsStatus: afterComparable.hlsStatus,
+                hasPlayableVideo: afterComparable.hasPlayableVideo,
+                thumbnail: !!afterComparable.thumbnail,
+                imgCount: afterComparable.img.length,
+                video: !!afterComparable.video,
+                hlsMasterUrl: !!afterComparable.hlsMasterUrl,
+                arsiv: afterComparable.arsiv,
+                deletedPost: afterComparable.deletedPost,
+                gizlendi: afterComparable.gizlendi,
+                isUploading: afterComparable.isUploading,
             });
+            if (!beforeIndexed) {
+                return;
+            }
+        }
+        else if (!beforeIndexed) {
+            return;
         }
         await deleteDoc(postId);
         if (beforeTags.length)
             await deleteTagDocs(postId, beforeTags);
         return;
     }
-    await upsertDoc(afterDoc);
-    console.log("post_sync_upsert", {
-        postId,
-        hlsStatus: afterDoc.hlsStatus,
-        hasPlayableVideo: afterDoc.hasPlayableVideo,
-        thumbnail: !!afterDoc.thumbnail,
-        imgCount: afterDoc.img.length,
-        video: !!afterDoc.video,
-        hlsMasterUrl: !!afterDoc.hlsMasterUrl,
-        flood: afterDoc.flood,
-        floodCount: afterDoc.floodCount,
-    });
-    const beforeSet = new Set(beforeTags);
-    const afterSet = new Set(afterTags);
-    const toDelete = beforeTags.filter((t) => !afterSet.has(t));
-    const beforeHashtagMap = new Map(beforeTagEntries.map((x) => [x.tag, x.hasHashtag]));
+    const hasDocChanges = !beforeIndexed || !postDocsEqual(beforeComparable, afterComparable);
+    const hasTagChanges = !tagEntriesEqual(beforeTagEntries, afterTagEntries);
+    if (beforeIndexed &&
+        postDocsEqual(beforeComparable, afterComparable) &&
+        !hasTagChanges) {
+        return;
+    }
+    const afterDoc = hasDocChanges
+        ? await buildSearchDocForIndexing(postId, afterData)
+        : afterComparable;
+    if (hasDocChanges) {
+        await upsertDoc(afterDoc);
+        console.log("post_sync_upsert", {
+            postId,
+            hlsStatus: afterDoc.hlsStatus,
+            hasPlayableVideo: afterDoc.hasPlayableVideo,
+            thumbnail: !!afterDoc.thumbnail,
+            imgCount: afterDoc.img.length,
+            video: !!afterDoc.video,
+            hlsMasterUrl: !!afterDoc.hlsMasterUrl,
+            flood: afterDoc.flood,
+            floodCount: afterDoc.floodCount,
+        });
+    }
+    const beforeSet = new Set(beforeTags.map(normalizeTag).filter(Boolean));
+    const afterSet = new Set(afterTags.map(normalizeTag).filter(Boolean));
+    const toDelete = beforeTags.filter((t) => !afterSet.has(normalizeTag(t)));
+    const beforeHashtagMap = new Map(beforeTagEntries.map((x) => [normalizeTag(x.tag), x.hasHashtag]));
     const toUpsertEntries = afterTagEntries.filter((entry) => {
-        if (!beforeSet.has(entry.tag))
+        const normalizedTag = normalizeTag(entry.tag);
+        if (!beforeSet.has(normalizedTag))
             return true;
-        return beforeHashtagMap.get(entry.tag) !== entry.hasHashtag;
+        return beforeHashtagMap.get(normalizedTag) !== entry.hasHashtag;
     });
     if (toDelete.length)
         await deleteTagDocs(postId, toDelete);
