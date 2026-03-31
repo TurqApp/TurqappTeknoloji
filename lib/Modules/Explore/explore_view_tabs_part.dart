@@ -238,7 +238,11 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                         );
                         if (model.floodCount > 1) {
                           await VideoControllerPool.pauseAll();
-                          await Get.to(() => FloodListing(mainModel: model));
+                          await Get.to(() => FloodListing(
+                                mainModel: model,
+                                hostSurface:
+                                    FloodListingHostSurface.exploreSeries,
+                              ));
                           controller.resumeExplorePreview();
                           return;
                         }
@@ -363,6 +367,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                   isPreview: true,
                   instanceTag: 'explore_series_${p.docID}',
                   shouldPlay: false,
+                  floodHostSurface: FloodListingHostSurface.exploreSeries,
                 ),
               ),
             );

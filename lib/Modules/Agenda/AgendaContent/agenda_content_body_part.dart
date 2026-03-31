@@ -83,6 +83,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         _suspendAgendaFeedForRoute();
                                         await Get.to(() => FloodListing(
                                               mainModel: widget.model,
+                                              hostSurface:
+                                                  widget.floodHostSurface,
                                             ));
                                         if (!mounted) return;
                                         _restoreAgendaFeedCenter();
@@ -377,7 +379,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       onTap: () {
                                         _suspendAgendaFeedForRoute();
                                         Get.to(() => FloodListing(
-                                                mainModel: widget.model))
+                                              mainModel: widget.model,
+                                              hostSurface:
+                                                  widget.floodHostSurface,
+                                            ))
                                             ?.then((_) {
                                           if (!mounted) return;
                                           _restoreAgendaFeedCenter();

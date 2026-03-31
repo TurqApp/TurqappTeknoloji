@@ -436,7 +436,10 @@ extension _AgendaContentQuotePart on _AgendaContentState {
 
       if (model.floodCount > 1) {
         _suspendAgendaFeedForRoute();
-        await Get.to(() => FloodListing(mainModel: model));
+        await Get.to(() => FloodListing(
+              mainModel: model,
+              hostSurface: widget.floodHostSurface,
+            ));
         _restoreAgendaFeedCenter();
         return;
       }

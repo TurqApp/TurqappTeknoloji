@@ -150,14 +150,12 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                     pulldownmenu(),
                   ],
                 ),
-                if ((widget.model.hasPlayableVideo ||
-                        widget.model.img.isNotEmpty) &&
-                    _AgendaContentState._ctaNavigationService
-                        .sanitizeCaptionText(
-                          widget.model.metin,
-                          meta: widget.model.reshareMap,
-                        )
-                        .isNotEmpty)
+                if (_AgendaContentState._ctaNavigationService
+                    .sanitizeCaptionText(
+                      widget.model.metin,
+                      meta: widget.model.reshareMap,
+                    )
+                    .isNotEmpty)
                   _buildFeedCaption(
                     text: widget.model.metin.trim(),
                     color: Colors.black,
@@ -202,7 +200,10 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             GestureDetector(
               onTap: () {
                 _suspendAgendaFeedForRoute();
-                Get.to(() => FloodListing(mainModel: widget.model))?.then((_) {
+                Get.to(() => FloodListing(
+                      mainModel: widget.model,
+                      hostSurface: widget.floodHostSurface,
+                    ))?.then((_) {
                   _restoreAgendaFeedCenter();
                 });
               },

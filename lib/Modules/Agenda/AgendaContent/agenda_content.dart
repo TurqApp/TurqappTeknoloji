@@ -21,7 +21,6 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
-import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
@@ -83,6 +82,7 @@ part 'agenda_content_body_widgets_part.dart';
 class AgendaContent extends PostContentBase {
   final bool hideVideoPoster;
   final bool suppressFloodBadge;
+  final FloodListingHostSurface floodHostSurface;
   const AgendaContent({
     super.key,
     required super.model,
@@ -91,6 +91,7 @@ class AgendaContent extends PostContentBase {
     super.instanceTag,
     this.hideVideoPoster = false,
     this.suppressFloodBadge = false,
+    this.floodHostSurface = FloodListingHostSurface.generic,
     bool isYenidenPaylasilanPost = false,
     super.reshareUserID,
     bool? showComments = false,

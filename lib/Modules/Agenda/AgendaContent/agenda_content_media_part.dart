@@ -158,7 +158,10 @@ extension _AgendaContentMediaPart on _AgendaContentState {
 
     if (widget.model.floodCount > 1) {
       _pauseFeedBeforeFullscreen();
-      await Get.to(() => FloodListing(mainModel: widget.model));
+      await Get.to(() => FloodListing(
+            mainModel: widget.model,
+            hostSurface: widget.floodHostSurface,
+          ));
       _restoreAgendaFeedCenter();
       return;
     }
