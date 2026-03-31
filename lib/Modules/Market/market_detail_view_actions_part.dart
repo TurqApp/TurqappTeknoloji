@@ -1,6 +1,98 @@
 part of 'market_detail_view.dart';
 
 extension _MarketDetailViewActionsPart on _MarketDetailViewState {
+  Future<void> _performLoadSavedState() async {
+    if (_isOwner) {
+      if (_isSaved) {
+        _updateViewState(() {
+          _isSaved = false;
+        });
+      }
+      return;
+    }
+
+    final uid = _currentUserId.trim();
+    if (uid.isEmpty) {
+      if (_isSaved) {
+        _updateViewState(() {
+          _isSaved = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final nextSaved = await MarketSavedStore.isSaved(uid, item.id);
+      if (!mounted) return;
+      _updateViewState(() {
+        _isSaved = nextSaved;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _performToggleSaved() async {
+    if (_isOwner || _isTogglingSaved) return;
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveMarket)) {
+      return;
+    }
+
+    final uid = _currentUserId.trim();
+    if (uid.isEmpty) {
+      AppSnackbar(
+        'pasaj.market.sign_in_required_title'.tr,
+        'pasaj.market.sign_in_to_save'.tr,
+      );
+      return;
+    }
+
+    final currentlySaved = _isSaved;
+    final delta = currentlySaved ? -1 : 1;
+    _updateViewState(() {
+      _isTogglingSaved = true;
+      _isSaved = !currentlySaved;
+      final nextCount = item.favoriteCount + delta;
+      _item = item.copyWith(
+        favoriteCount: nextCount < 0 ? 0 : nextCount,
+      );
+    });
+
+    try {
+      if (currentlySaved) {
+        await MarketSavedStore.unsave(uid, item.id);
+      } else {
+        await MarketSavedStore.save(uid, item.id);
+      }
+      if (!mounted) return;
+      AppSnackbar(
+        'common.success'.tr,
+        currentlySaved
+            ? 'pasaj.market.unsaved'.tr
+            : 'pasaj.market.saved_success'.tr,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _updateViewState(() {
+        _isSaved = currentlySaved;
+        final rollbackCount = item.favoriteCount - delta;
+        _item = item.copyWith(
+          favoriteCount: rollbackCount < 0 ? 0 : rollbackCount,
+        );
+      });
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.market.save_failed'.tr,
+      );
+    } finally {
+      if (mounted) {
+        _updateViewState(() {
+          _isTogglingSaved = false;
+        });
+      } else {
+        _isTogglingSaved = false;
+      }
+    }
+  }
+
   Future<void> _performArchiveItem() async {
     if (_isUpdatingStatus || item.id.trim().isEmpty || item.userId.trim().isEmpty) {
       return;
@@ -347,15 +439,24 @@ extension _MarketDetailViewActionsPart on _MarketDetailViewState {
       _isRefreshing = true;
     }
     try {
-      final latest = await _MarketDetailViewState._repository.fetchById(
-        item.id,
-        preferCache: false,
-        forceRefresh: true,
-      );
+      final results = await Future.wait<Object?>([
+        _MarketDetailViewState._repository.fetchById(
+          item.id,
+          preferCache: false,
+          forceRefresh: true,
+        ),
+        if (!_isOwner) _currentUserId.trim().isNotEmpty
+            ? MarketSavedStore.isSaved(_currentUserId.trim(), item.id)
+            : Future<bool>.value(false),
+      ]);
+      final latest = results[0] as MarketItemModel?;
       if (latest != null && mounted) {
         final preserved = _preserveProtectedFields(latest, _item);
         _updateViewState(() {
           _item = preserved;
+          if (!_isOwner && results.length > 1) {
+            _isSaved = results[1] == true;
+          }
         });
       }
     } finally {

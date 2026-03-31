@@ -9,11 +9,13 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
+import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/market_review_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -67,6 +69,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   bool _isLoadingReviews = false;
   bool _isSubmittingReport = false;
   bool _isUpdatingStatus = false;
+  bool _isSaved = false;
+  bool _isTogglingSaved = false;
   List<MarketReviewModel> _reviews = const <MarketReviewModel>[];
   Map<String, Map<String, dynamic>> _reviewUsers =
       const <String, Map<String, dynamic>>{};
@@ -97,6 +101,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     _pageController = PageController();
     _incrementViewCount();
     _refreshItem(silent: true);
+    _loadSavedState();
     _loadReviews();
   }
 
@@ -200,4 +205,6 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   Future<void> _incrementViewCount() => _performIncrementViewCount();
 
   Future<void> _openEdit() => _performOpenEdit();
+
+  Future<void> _loadSavedState() => _performLoadSavedState();
 }

@@ -29,6 +29,17 @@ extension MarketDetailViewShellContentPart on _MarketDetailViewState {
                     iconSize: 18,
                   ),
                   const SizedBox(width: 6),
+                  AppHeaderActionButton(
+                    onTap: _isTogglingSaved ? null : _performToggleSaved,
+                    size: 36,
+                    opacity: _isTogglingSaved ? 0.6 : 1,
+                    child: Icon(
+                      _isSaved ? AppIcons.saved : AppIcons.save,
+                      color: _isSaved ? Colors.orange : Colors.black54,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                 ],
                 EducationFeedShareIconButton(
                   onTap: () => const MarketFeedPostShareService().shareItem(item),
