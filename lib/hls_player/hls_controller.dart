@@ -124,6 +124,12 @@ class HLSController {
   Stream<String> get onError => _errorController.stream;
   Stream<bool> get onFirstFrameChanged => _firstFrameController.stream;
 
+  void resetSurfaceVisualStateForReuse() {
+    if (!_hasRenderedFirstFrame) return;
+    _hasRenderedFirstFrame = false;
+    _firstFrameController.add(false);
+  }
+
   // Initialize controller with view ID
   void initialize(int viewId) {
     final previousViewId = _viewId;

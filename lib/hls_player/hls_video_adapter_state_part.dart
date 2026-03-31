@@ -13,8 +13,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
     if (_disposed) return;
     _viewReady = false;
     _isStopped = false;
-    final preserveInlineFrame =
-        _value.hasRenderedFirstFrame && _value.position > const Duration(milliseconds: 50);
+    _hls.resetSurfaceVisualStateForReuse();
     // Warm pool'dan dönen adapter'da stale play/pause/volume/seek komutlarını
     // bırakmazsak sonraki kart eski sessize alma veya pause isteğini devralıyor.
     _wantPlay = false;
@@ -29,7 +28,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
       isPlaying: false,
       isBuffering: false,
       isCompleted: false,
-      hasRenderedFirstFrame: preserveInlineFrame,
+      hasRenderedFirstFrame: false,
       position: _value.position,
       duration: _value.duration,
       size: _value.size,
