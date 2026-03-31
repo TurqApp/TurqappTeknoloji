@@ -2,7 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
@@ -107,6 +110,26 @@ class _NotificationContentState extends State<NotificationContent> {
   }
 
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
+  List<String> get _mediaPreviewUrls {
+    final urls = <String>[];
+
+    void addUrl(String rawUrl) {
+      final normalized = CdnUrlBuilder.toCdnUrl(rawUrl.trim());
+      if (normalized.isEmpty || urls.contains(normalized)) return;
+      urls.add(normalized);
+    }
+
+    addUrl(model.thumbnail);
+    for (final url in controller.model.value.preferredVideoPosterUrls) {
+      addUrl(url);
+    }
+    for (final url in controller.model.value.img) {
+      addUrl(url);
+    }
+
+    return urls;
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -175,10 +175,14 @@ extension NotificationContentBodyPart on _NotificationContentState {
   }
 
   bool get _hasMediaPreview =>
-      controller.model.value.img.isNotEmpty ||
-      controller.model.value.hasPlayableVideo;
+      _mediaPreviewUrls.isNotEmpty;
 
   Widget _buildMediaPreview() {
+    final previewUrls = _mediaPreviewUrls;
+    if (previewUrls.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return GestureDetector(
       onTap: _handleNotificationTap,
       child: ClipRRect(
@@ -186,13 +190,15 @@ extension NotificationContentBodyPart on _NotificationContentState {
         child: SizedBox(
           width: 44,
           height: 56,
-          child: CachedNetworkImage(
-            imageUrl: controller.model.value.thumbnail != ""
-                ? controller.model.value.thumbnail
-                : controller.model.value.img.first,
+          child: CacheFirstNetworkImage(
+            imageUrl: previewUrls.first,
+            candidateUrls: previewUrls.skip(1).toList(growable: false),
+            cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            key: ValueKey(controller.model.value.thumbnail),
+            fallback: const ColoredBox(color: Color(0xFFF5F6F8)),
+            memCacheWidth: 88,
+            memCacheHeight: 112,
+            key: ValueKey(previewUrls.join('|')),
           ),
         ),
       ),
