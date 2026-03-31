@@ -56,6 +56,8 @@ class AdmobKare extends StatefulWidget {
 
 class _AdmobKareState extends State<AdmobKare> {
   static final List<BannerAd> _readyPool = <BannerAd>[];
+  static final ValueNotifier<int> _sharedAdAvailabilityRevision =
+      ValueNotifier<int>(0);
   static final Map<String, DateTime> _unitCooldownUntilById =
       <String, DateTime>{};
   static final Map<String, int> _managedSuggestionNextIndexByPlacement =
@@ -102,6 +104,11 @@ class _AdmobKareState extends State<AdmobKare> {
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
+  }
+
+  static void _notifySharedAdAvailabilityChanged() {
+    _sharedAdAvailabilityRevision.value =
+        _sharedAdAvailabilityRevision.value + 1;
   }
 
   static bool get _supportsSharedPool => true;
@@ -225,6 +232,7 @@ class _AdmobKareState extends State<AdmobKare> {
               'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
           if (_readyPool.length < _maxPoolSize) {
             _readyPool.add(loadedAd as BannerAd);
+            _notifySharedAdAvailabilityChanged();
           } else {
             loadedAd.dispose();
           }
@@ -272,6 +280,7 @@ class _AdmobKareState extends State<AdmobKare> {
   void initState() {
     super.initState();
     _visibilityKey = ValueKey<String>('admob-kare-${identityHashCode(this)}');
+    _sharedAdAvailabilityRevision.addListener(_handleSharedAdAvailability);
     if (_usePlaceholderOnly) return;
     if (_usesManagedSuggestion) {
       _fallbackSuggestionConfig =
@@ -302,16 +311,26 @@ class _AdmobKareState extends State<AdmobKare> {
     }
   }
 
-  void _attachBannerOrLoad() {
-    if (!_canStartOrRetryLoad()) {
+  void _handleSharedAdAvailability() {
+    if (_isDisposed || _usePlaceholderOnly || !_isVisible) {
       return;
     }
-    final cooldownRemaining = _globalCooldownRemaining();
-    if (cooldownRemaining > Duration.zero) {
-      _scheduleRetry(
-        delay: cooldownRemaining,
-        resetRetryCount: true,
-      );
+    if (_canRenderAd(_bannerAd)) {
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+    if (_bannerAd != null && !_isAdLoaded) {
+      return;
+    }
+    if (hasReadyBanner || hasRenderableBanner) {
+      _attachBannerOrLoad();
+    }
+  }
+
+  void _attachBannerOrLoad() {
+    if (!_canStartOrRetryLoad()) {
       return;
     }
     final pooled = _takePreloadedBanner();
@@ -326,7 +345,10 @@ class _AdmobKareState extends State<AdmobKare> {
       _bannerAd = pooled;
       _isAdLoaded = true;
       _loadFailed = false;
+      _allowFallbackSurface = false;
       _impressionReported = false;
+      _fallbackGateTimer?.cancel();
+      _notifySharedAdAvailabilityChanged();
       if (_supportsSharedPool) {
         unawaited(warmupPool(
           bypassMinInterval: true,
@@ -335,6 +357,14 @@ class _AdmobKareState extends State<AdmobKare> {
       if (mounted && !_isDisposed) {
         setState(() {});
       }
+      return;
+    }
+    final cooldownRemaining = _globalCooldownRemaining();
+    if (cooldownRemaining > Duration.zero) {
+      _scheduleRetry(
+        delay: cooldownRemaining,
+        resetRetryCount: true,
+      );
       return;
     }
     _loadBanner();
@@ -575,6 +605,7 @@ class _AdmobKareState extends State<AdmobKare> {
             });
           }
           _fallbackGateTimer?.cancel();
+          _notifySharedAdAvailabilityChanged();
           if (_supportsSharedPool) {
             unawaited(warmupPool(
               bypassMinInterval: true,
@@ -693,6 +724,7 @@ class _AdmobKareState extends State<AdmobKare> {
   @override
   void dispose() {
     _isDisposed = true;
+    _sharedAdAvailabilityRevision.removeListener(_handleSharedAdAvailability);
     _retryTimer?.cancel();
     _fallbackGateTimer?.cancel();
     final ad = _bannerAd;
