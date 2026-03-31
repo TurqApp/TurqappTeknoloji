@@ -31,6 +31,11 @@ const db = admin.firestore();
 const DEFAULT_SIGNUP_FOLLOW_UID = "fzP4AVdMugTi5oe11UTj6ljnfCj2";
 const PUSH_TOKEN_FIELDS = ["fcmToken", "pushToken", "token", "fcm_token"] as const;
 
+type NotificationPushConfig = {
+  enabled: boolean;
+  types: PushTypeMap;
+};
+
 function _firstNonEmptyString(...values: unknown[]): string {
   for (const value of values) {
     if (typeof value === "string" && value.trim().length > 0) {
@@ -624,45 +629,54 @@ export const onUserDocUpdate = functions.firestore
 export const onUserNotificationCreate = functions.firestore
   .document("users/{uid}/notifications/{notificationId}")
   .onCreate(async (snap, context) => {
+    let resolvedUserData: Record<string, unknown> | undefined;
     try {
       const uid = context.params.uid as string;
-      const data = await _resolveNotificationPushPayload(
-        (snap.data() || {}) as Record<string, unknown>,
+      const rawData = (snap.data() || {}) as Record<string, unknown>;
+      const initialType = String(rawData.type || "Posts");
+      const initialFromUserID = String(rawData.fromUserID || "");
+      const initialTargetDocID = String(
+        rawData.postID || rawData.chatID || rawData.userID || ""
       );
-      const type = String(data.type || "Posts");
-      const fromUserID = String(data.fromUserID || "");
-      const targetDocID = String(
-        data.postID || data.chatID || data.userID || ""
-      );
-      const cfg = await _loadNotificationPushConfig();
-      const userPrefs = await _loadUserNotificationPreferences(uid);
-      const isAdminPush = data.adminPush === true;
+      const isAdminPush = rawData.adminPush === true;
 
       // Self-notification push göndermeyelim.
-      if (fromUserID && fromUserID === uid) return;
+      if (initialFromUserID && initialFromUserID === uid) return;
+      const [cfg, userPrefs] = await Promise.all([
+        _loadNotificationPushConfig(),
+        _loadUserNotificationPreferences(uid),
+      ]);
       // Global veya tür bazlı kapalıysa push gönderme.
-      if (!cfg.enabled || !isNotificationTypeEnabled(type, cfg.types)) return;
-      if (!isUserNotificationTypeEnabled(type, userPrefs)) {
+      if (!cfg.enabled || !isNotificationTypeEnabled(initialType, cfg.types)) return;
+      if (!isUserNotificationTypeEnabled(initialType, userPrefs)) {
         console.log("onUserNotificationCreate skip:user_pref_disabled", {
           uid,
-          type,
-        });
-        return;
-      }
-      if (!isAdminPush && !shouldDispatchNotificationPush(type, data)) {
-        console.log("onUserNotificationCreate skip:milestone_gate", {
-          uid,
-          type,
-          targetPresent: targetDocID.length > 0,
+          type: initialType,
         });
         return;
       }
 
       const userDoc = await db.collection("users").doc(uid).get();
-      const userData = (userDoc.data() || {}) as any;
-      const token = _resolveUserPushToken(userData);
+      resolvedUserData = (userDoc.data() || {}) as Record<string, unknown>;
+      const token = _resolveUserPushToken(resolvedUserData);
       if (!token) {
         console.log("onUserNotificationCreate skip:no_token", {
+          type: initialType,
+          targetPresent: initialTargetDocID.length > 0,
+        });
+        return;
+      }
+
+      const data = await _resolveNotificationPushPayload(rawData);
+      const type = String(data.type || initialType);
+      const fromUserID = String(data.fromUserID || initialFromUserID);
+      const targetDocID = String(
+        data.postID || data.chatID || data.userID || initialTargetDocID
+      );
+
+      if (!isAdminPush && !shouldDispatchNotificationPush(type, data)) {
+        console.log("onUserNotificationCreate skip:milestone_gate", {
+          uid,
           type,
           targetPresent: targetDocID.length > 0,
         });
@@ -736,8 +750,10 @@ export const onUserNotificationCreate = functions.firestore
       if (code === "messaging/registration-token-not-registered") {
         try {
           const uid = context.params.uid as string;
-          const userDoc = await db.collection("users").doc(uid).get();
-          const userData = (userDoc.data() || {}) as Record<string, unknown>;
+          const userData =
+            resolvedUserData ??
+            ((await db.collection("users").doc(uid).get()).data() as Record<string, unknown> | undefined) ??
+            {};
           const invalidToken = _resolveUserPushToken(userData);
           const cleanup: Record<string, admin.firestore.FieldValue> = {};
           for (const key of PUSH_TOKEN_FIELDS) {
@@ -1099,12 +1115,12 @@ async function _claimInteractionPushWindow(args: {
   });
 }
 
-async function _loadNotificationPushConfig(): Promise<{
-  enabled: boolean;
-  types: PushTypeMap;
-}> {
+async function _loadNotificationPushConfig(): Promise<NotificationPushConfig> {
   try {
-    const pushSnap = await db.doc("adminConfig/push").get();
+    const [pushSnap, serviceSnap] = await Promise.all([
+      db.doc("adminConfig/push").get(),
+      db.doc("adminConfig/service").get(),
+    ]);
     const pushData = (pushSnap.data() || {}) as any;
 
     // Primary schema (requested):
@@ -1114,7 +1130,6 @@ async function _loadNotificationPushConfig(): Promise<{
 
     // Backward-compatible fallback schema:
     // adminConfig/service => { notifications: { enabled, types: {...} } } or legacy keys.
-    const serviceSnap = await db.doc("adminConfig/service").get();
     const serviceData = (serviceSnap.data() || {}) as any;
     const notifications = (serviceData.notifications || {}) as any;
     const fallbackTypesRaw =
