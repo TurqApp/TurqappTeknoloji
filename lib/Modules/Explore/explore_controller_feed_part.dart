@@ -664,7 +664,6 @@ extension ExploreControllerFeedPart on ExploreController {
             .toList();
         newVideos = await _filterByPrivacy(newVideos);
         if (newVideos.isNotEmpty) {
-          newVideos.shuffle();
           accumulated.addAll(newVideos);
           if (accumulated.length >= targetBatch) {
             break;
@@ -728,7 +727,6 @@ extension ExploreControllerFeedPart on ExploreController {
             .toList();
         newPhotos = await _filterByPrivacy(newPhotos);
         if (newPhotos.isNotEmpty) {
-          newPhotos.shuffle();
           accumulated.addAll(newPhotos);
           if (accumulated.length >=
               ReadBudgetRegistry.explorePhotoTargetBatch) {
@@ -810,7 +808,6 @@ extension ExploreControllerFeedPart on ExploreController {
             .toList();
         batch = await _filterByPrivacy(batch);
         if (batch.isNotEmpty) {
-          batch.shuffle();
           accumulated.addAll(batch);
           if (accumulated.length >= 30) {
             break;

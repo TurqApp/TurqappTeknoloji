@@ -64,8 +64,7 @@ extension SavedJobsControllerRuntimeX on SavedJobsController {
       allowPermissionPrompt: allowLocationPrompt,
     );
     if (position == null) {
-      final shuffled = List<JobModel>.from(jobs)..shuffle();
-      return shuffled;
+      return List<JobModel>.from(jobs);
     }
 
     final userLat = position.latitude;

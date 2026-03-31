@@ -36,8 +36,7 @@ extension _RecommendedUserListControllerRuntimeX
       return normalizedRozet.isNotEmpty &&
           normalizedRozet != 'kirmizi' &&
           normalizedRozet != 'gri';
-    }).toList()
-      ..shuffle();
+    }).toList();
   }
 
   Future<void> getFollowing() async {
