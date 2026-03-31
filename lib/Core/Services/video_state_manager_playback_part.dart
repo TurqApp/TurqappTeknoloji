@@ -146,8 +146,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       try {
         final handle = entry.value;
         if (handle.isInitialized) {
-          handle.pause();
-          handle.setVolume(0.0);
+          if (handle is HLSAdapterPlaybackHandle) {
+            unawaited(handle.adapter.forceSilence());
+          } else {
+            unawaited(handle.pause());
+            unawaited(handle.setVolume(0.0));
+          }
         }
       } catch (_) {}
     }

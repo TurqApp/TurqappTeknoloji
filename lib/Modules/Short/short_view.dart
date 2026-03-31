@@ -208,8 +208,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Future<void> _quietBackgroundPlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     try {
-      await adapter.setVolume(0);
-      await adapter.pause();
+      await adapter.forceSilence();
     } catch (_) {}
   }
 
