@@ -40,6 +40,10 @@ void main() {
     expect(await kufurKontrolEt('anal'), isFalse);
     expect(await kufurKontrolEt('vajina'), isFalse);
     expect(await kufurKontrolEt('verdammt'), isFalse);
+    expect(await kufurKontrolEt('allahsız'), isFalse);
+    expect(await kufurKontrolEt('gavur'), isFalse);
+    expect(await kufurKontrolEt('sürtük'), isFalse);
+    expect(await kufurKontrolEt('kime veriyorsun'), isFalse);
   });
 
   test('turkish suffix variations are detected', () async {
