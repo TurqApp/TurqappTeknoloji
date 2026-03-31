@@ -159,7 +159,6 @@ extension ExploreControllerFeedPart on ExploreController {
         newPosts = await _filterByPrivacy(newPosts);
 
         if (newPosts.isNotEmpty) {
-          newPosts.shuffle();
           accumulated.addAll(newPosts);
           if (accumulated.length >= targetBatch) {
             break;
@@ -290,11 +289,7 @@ extension ExploreControllerFeedPart on ExploreController {
         final decodedPosts =
             _decodeExploreStartupPosts(shard.payload['explorePosts']);
         if (decodedPosts.isNotEmpty) {
-          final startupPosts = List<PostsModel>.from(decodedPosts);
-          if (startupPosts.length > 1) {
-            startupPosts.shuffle();
-          }
-          explorePosts.assignAll(startupPosts);
+          explorePosts.assignAll(decodedPosts);
           _scheduleExplorePrefetchFromPosts(explorePosts);
           didHydrate = true;
         }
@@ -490,11 +485,7 @@ extension ExploreControllerFeedPart on ExploreController {
     if (filtered.isEmpty) return;
     final valid = _dedupeExplorePosts(filtered);
     if (valid.isEmpty) return;
-    final startupPosts = List<PostsModel>.from(valid);
-    if (startupPosts.length > 1) {
-      startupPosts.shuffle();
-    }
-    explorePosts.assignAll(startupPosts);
+    explorePosts.assignAll(valid);
     _scheduleExplorePrefetchFromPosts(explorePosts);
     if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore)) {
       unawaited(_cleanupExplorePoolFill(valid));
