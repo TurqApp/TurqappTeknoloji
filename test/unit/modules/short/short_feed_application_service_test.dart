@@ -38,19 +38,16 @@ void main() {
       expect(plan.remappedIndex, 0);
     });
 
-    test('buildAppendPlan deduplicates and requests first-page shuffle once',
-        () {
+    test('buildAppendPlan deduplicates while preserving repository order', () {
       final service = ShortFeedApplicationService();
       final plan = service.buildAppendPlan(
         currentShorts: const <PostsModel>[],
         fetchedPosts: <PostsModel>[_short('s1'), _short('s2')],
-        globalShuffleCompleted: false,
         isEligiblePost: (post) => post.video.isNotEmpty,
       );
 
       expect(plan.itemsToAppend.map((post) => post.docID).toList(),
           <String>['s1', 's2']);
-      expect(plan.shouldShuffleBeforeAppend, isTrue);
     });
 
     test(
