@@ -38,7 +38,7 @@ void _handleChatListingClose(ChatListingController controller) {
   controller._searchDebounce?.cancel();
   controller._syncTimer?.cancel();
   controller._realtimeRefreshDebounce?.cancel();
-  controller._conversationsSub?.cancel();
+  controller._cancelLiveWindowListeners();
   controller._invalidationSub?.cancel();
   controller.search.removeListener(controller._onSearchChanged);
   controller.search.dispose();

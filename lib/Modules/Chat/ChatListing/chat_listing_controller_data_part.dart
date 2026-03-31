@@ -1,6 +1,8 @@
 part of 'chat_listing_controller.dart';
 
 extension ChatListingControllerDataPart on ChatListingController {
+  static const int _liveConversationWindowSize = 30;
+
   Future<void> _bootstrapCacheFirstList() async {
     await _restoreCachedList();
     if (_cacheLoaded) return;
@@ -18,6 +20,7 @@ extension ChatListingControllerDataPart on ChatListingController {
       _onSearchChanged();
     }
     _cacheLoaded = true;
+    _refreshLiveWindowListeners();
   }
 
   Future<List<ChatListingModel>?> _loadCachedList() async {
@@ -182,6 +185,7 @@ extension ChatListingControllerDataPart on ChatListingController {
         });
 
       list.value = tempList;
+      _refreshLiveWindowListeners();
       if (search.text.trim().isEmpty) {
         _applyTabFilter();
       } else {
@@ -244,167 +248,156 @@ extension ChatListingControllerDataPart on ChatListingController {
     required bool cacheOnly,
     required Map<String, ChatListingModel> existingByChatId,
   }) async {
-    final uid = _uid;
-    if (uid.isEmpty) return const <ChatListingModel>[];
-    final prefs = await SharedPreferences.getInstance();
     final userCache = ensureUserProfileCacheService();
+    final prefs = await SharedPreferences.getInstance();
     final tempList = <ChatListingModel>[];
-
     for (final doc in docs) {
-      final data = doc.data();
-      final existing = existingByChatId[doc.id];
-      final isArchived =
-          _conversationRepository.participantBoolValue(data["archived"], uid);
-      final isPinned =
-          _conversationRepository.participantBoolValue(data["pinned"], uid);
-      final isMuted =
-          _conversationRepository.participantBoolValue(data["muted"], uid);
-      final userID1 = (data["userID1"] ?? "").toString().trim();
-      final userID2 = (data["userID2"] ?? "").toString().trim();
-      final participants =
-          _conversationRepository.normalizeConversationParticipants(
+      final item = await _buildListingFromConversationData(
         chatId: doc.id,
-        currentUid: uid,
-        participants: data["participants"] is List
-            ? List<String>.from(
-                (data["participants"] as List).map((e) => e.toString().trim()),
-              ).where((e) => e.isNotEmpty).toList()
-            : <String>[],
-        userId1: userID1,
-        userId2: userID2,
-      );
-
-      String? otherUserId = participants.firstWhereOrNull((v) => v != uid);
-      if ((otherUserId == null || otherUserId.isEmpty) &&
-          userID1.isNotEmpty &&
-          userID2.isNotEmpty) {
-        if (userID1 == uid) otherUserId = userID2;
-        if (userID2 == uid) otherUserId = userID1;
-      }
-      if (otherUserId == null || otherUserId.isEmpty) continue;
-
-      Map<String, dynamic>? userData;
-      if (existing != null && existing.userID == otherUserId) {
-        final nameParts = existing.fullName
-            .split(' ')
-            .map((part) => part.trim())
-            .where((part) => part.isNotEmpty)
-            .toList(growable: false);
-        userData = <String, dynamic>{
-          'nickname': existing.nickname,
-          'firstName': nameParts.isEmpty ? '' : nameParts.first,
-          'lastName':
-              nameParts.length <= 1 ? '' : nameParts.skip(1).join(' ').trim(),
-          'avatarUrl': existing.avatarUrl,
-        };
-      }
-      userData ??= await userCache.getProfile(
-        otherUserId,
+        data: doc.data(),
         preferCache: preferCache,
         cacheOnly: cacheOnly,
+        existingByChatId: existingByChatId,
+        prefs: prefs,
+        userCache: userCache,
       );
-      if (userData == null) continue;
-
-      final serverUnread =
-          _conversationRepository.participantIntValue(data["unread"], uid);
-      final hasPreviewOverride =
-          _conversationRepository.participantMapContainsKey(
-        data["previewText"],
-        uid,
-      );
-      final previewText = hasPreviewOverride
-          ? _conversationRepository.participantStringValue(
-              data["previewText"],
-              uid,
-            )
-          : (data["lastMessage"] ?? "").toString();
-      final lastMessageAt = data["lastMessageAt"];
-      int ts = 0;
-      if (lastMessageAt is Timestamp) {
-        ts = lastMessageAt.millisecondsSinceEpoch;
-      } else {
-        final fallbackTs = data["lastMessageAtMs"];
-        ts = fallbackTs is int ? fallbackTs : int.tryParse("$fallbackTs") ?? 0;
+      if (item != null) {
+        tempList.add(item);
       }
-      if (hasPreviewOverride) {
-        ts = _conversationRepository.participantIntValue(
-          data["previewAt"],
-          uid,
-          defaultValue: ts,
-        );
-      }
-      final lastSenderId = (data["lastSenderId"] ?? "").toString();
-      final seenKey = "chat_last_opened_${uid}_${doc.id}";
-      final seenTs = prefs.getInt(seenKey) ?? 0;
-      final deletedCutoff =
-          _conversationRepository.participantIntValue(data["deletedAt"], uid);
-      final isDeleted = deletedCutoff > 0 && ts > 0 && ts <= deletedCutoff;
-      final unreadCount = ChatUnreadPolicy.resolveUnreadCount(
-        serverUnread: serverUnread,
-        lastMessageAtMs: ts,
-        locallySeenAtMs: seenTs,
-        currentUid: uid,
-        lastSenderId: lastSenderId,
-        deletedCutoffMs: deletedCutoff,
-      );
-
-      tempList.add(ChatListingModel(
-        chatID: doc.id,
-        userID: otherUserId,
-        timeStamp: ts.toString(),
-        deleted: [
-          if (isArchived) "__archived__",
-          if (isDeleted) "__deleted__",
-        ],
-        nickname: (userData["nickname"] ??
-                userData["username"] ??
-                userData["displayName"] ??
-                "")
-            .toString(),
-        fullName: "${userData["firstName"] ?? ""} ${userData["lastName"] ?? ""}"
-            .trim(),
-        avatarUrl: (userData["avatarUrl"] ?? "").toString(),
-        lastMessage: previewText,
-        unreadCount: unreadCount,
-        isConversation: true,
-        isPinned: isPinned,
-        isMuted: isMuted,
-        hasAuthoritativePreview: hasPreviewOverride,
-      ));
     }
-
     return tempList;
   }
 
-  Future<void> _applyRealtimeConversationSnapshot(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) async {
-    if (docs.isEmpty) return;
-    final existingByChatId = {
-      for (final item in list)
-        item.chatID: ChatListingModel.fromJson(item.toJson()),
-    };
-    final next = {
-      for (final entry in existingByChatId.entries) entry.key: entry.value,
-    };
-    final updated = await _buildListingsFromConversationDocs(
-      docs,
-      preferCache: true,
-      cacheOnly: _isOffline,
-      existingByChatId: existingByChatId,
+  Future<ChatListingModel?> _buildListingFromConversationData({
+    required String chatId,
+    required Map<String, dynamic> data,
+    required bool preferCache,
+    required bool cacheOnly,
+    required Map<String, ChatListingModel> existingByChatId,
+    required SharedPreferences prefs,
+    required UserProfileCacheService userCache,
+  }) async {
+    final uid = _uid;
+    if (uid.isEmpty) return null;
+    final existing = existingByChatId[chatId];
+    final isArchived =
+        _conversationRepository.participantBoolValue(data["archived"], uid);
+    final isPinned =
+        _conversationRepository.participantBoolValue(data["pinned"], uid);
+    final isMuted =
+        _conversationRepository.participantBoolValue(data["muted"], uid);
+    final userID1 = (data["userID1"] ?? "").toString().trim();
+    final userID2 = (data["userID2"] ?? "").toString().trim();
+    final participants =
+        _conversationRepository.normalizeConversationParticipants(
+      chatId: chatId,
+      currentUid: uid,
+      participants: data["participants"] is List
+          ? List<String>.from(
+              (data["participants"] as List).map((e) => e.toString().trim()),
+            ).where((e) => e.isNotEmpty).toList()
+          : <String>[],
+      userId1: userID1,
+      userId2: userID2,
     );
-    for (final item in updated) {
-      next[item.chatID] = item;
+
+    String? otherUserId = participants.firstWhereOrNull((v) => v != uid);
+    if ((otherUserId == null || otherUserId.isEmpty) &&
+        userID1.isNotEmpty &&
+        userID2.isNotEmpty) {
+      if (userID1 == uid) otherUserId = userID2;
+      if (userID2 == uid) otherUserId = userID1;
     }
-    final sorted = _sortChatListings(next.values.toList(growable: false));
-    list.assignAll(sorted);
-    if (search.text.trim().isEmpty) {
-      _applyTabFilter();
+    if (otherUserId == null || otherUserId.isEmpty) return null;
+
+    Map<String, dynamic>? userData;
+    if (existing != null && existing.userID == otherUserId) {
+      final nameParts = existing.fullName
+          .split(' ')
+          .map((part) => part.trim())
+          .where((part) => part.isNotEmpty)
+          .toList(growable: false);
+      userData = <String, dynamic>{
+        'nickname': existing.nickname,
+        'firstName': nameParts.isEmpty ? '' : nameParts.first,
+        'lastName':
+            nameParts.length <= 1 ? '' : nameParts.skip(1).join(' ').trim(),
+        'avatarUrl': existing.avatarUrl,
+      };
+    }
+    userData ??= await userCache.getProfile(
+      otherUserId,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    if (userData == null) return null;
+
+    final serverUnread =
+        _conversationRepository.participantIntValue(data["unread"], uid);
+    final hasPreviewOverride =
+        _conversationRepository.participantMapContainsKey(
+      data["previewText"],
+      uid,
+    );
+    final previewText = hasPreviewOverride
+        ? _conversationRepository.participantStringValue(
+            data["previewText"],
+            uid,
+          )
+        : (data["lastMessage"] ?? "").toString();
+    final lastMessageAt = data["lastMessageAt"];
+    int ts = 0;
+    if (lastMessageAt is Timestamp) {
+      ts = lastMessageAt.millisecondsSinceEpoch;
     } else {
-      _onSearchChanged();
+      final fallbackTs = data["lastMessageAtMs"];
+      ts = fallbackTs is int ? fallbackTs : int.tryParse("$fallbackTs") ?? 0;
     }
-    _saveCachedList(sorted);
-    _cacheLoaded = true;
+    if (hasPreviewOverride) {
+      ts = _conversationRepository.participantIntValue(
+        data["previewAt"],
+        uid,
+        defaultValue: ts,
+      );
+    }
+    final lastSenderId = (data["lastSenderId"] ?? "").toString();
+    final seenKey = "chat_last_opened_${uid}_$chatId";
+    final seenTs = prefs.getInt(seenKey) ?? 0;
+    final deletedCutoff =
+        _conversationRepository.participantIntValue(data["deletedAt"], uid);
+    final isDeleted = deletedCutoff > 0 && ts > 0 && ts <= deletedCutoff;
+    final unreadCount = ChatUnreadPolicy.resolveUnreadCount(
+      serverUnread: serverUnread,
+      lastMessageAtMs: ts,
+      locallySeenAtMs: seenTs,
+      currentUid: uid,
+      lastSenderId: lastSenderId,
+      deletedCutoffMs: deletedCutoff,
+    );
+
+    return ChatListingModel(
+      chatID: chatId,
+      userID: otherUserId,
+      timeStamp: ts.toString(),
+      deleted: [
+        if (isArchived) "__archived__",
+        if (isDeleted) "__deleted__",
+      ],
+      nickname: (userData["nickname"] ??
+              userData["username"] ??
+              userData["displayName"] ??
+              "")
+          .toString(),
+      fullName:
+          "${userData["firstName"] ?? ""} ${userData["lastName"] ?? ""}".trim(),
+      avatarUrl: (userData["avatarUrl"] ?? "").toString(),
+      lastMessage: previewText,
+      unreadCount: unreadCount,
+      isConversation: true,
+      isPinned: isPinned,
+      isMuted: isMuted,
+      hasAuthoritativePreview: hasPreviewOverride,
+    );
   }
 
   List<ChatListingModel> _sortChatListings(List<ChatListingModel> items) {
@@ -423,23 +416,89 @@ extension ChatListingControllerDataPart on ChatListingController {
   void startConversationListener() {
     final uid = _uid;
     _syncTimer?.cancel();
-    _conversationsSub?.cancel();
+    _cancelLiveWindowListeners();
     if (uid.isEmpty) return;
 
     if (!_isOffline) {
-      _conversationsSub = _conversationRepository
-          .watchUserConversations(uid)
-          .listen((snapshot) {
-        _realtimeRefreshDebounce?.cancel();
-        _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 350), () {
-          unawaited(_applyRealtimeConversationSnapshot(snapshot.docs));
-        });
-      }, onError: (_) {});
+      _refreshLiveWindowListeners();
       return;
     }
 
     _syncTimer = Timer.periodic(_syncInterval, (_) {
       getList(forceServer: false, silent: true);
     });
+  }
+
+  Future<void> _applyRealtimeConversationDocument(
+    DocumentSnapshot<Map<String, dynamic>> snapshot,
+  ) async {
+    if (!snapshot.exists) return;
+    final data = snapshot.data();
+    if (data == null || data.isEmpty) return;
+    final existingByChatId = {
+      for (final item in list)
+        item.chatID: ChatListingModel.fromJson(item.toJson()),
+    };
+    final prefs = await SharedPreferences.getInstance();
+    final userCache = ensureUserProfileCacheService();
+    final listing = await _buildListingFromConversationData(
+      chatId: snapshot.id,
+      data: data,
+      preferCache: true,
+      cacheOnly: _isOffline,
+      existingByChatId: existingByChatId,
+      prefs: prefs,
+      userCache: userCache,
+    );
+    if (listing == null) return;
+    final next = {
+      for (final entry in existingByChatId.entries) entry.key: entry.value,
+    };
+    next[listing.chatID] = listing;
+    final sorted = _sortChatListings(next.values.toList(growable: false));
+    list.assignAll(sorted);
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _saveCachedList(sorted);
+    _cacheLoaded = true;
+    _refreshLiveWindowListeners();
+  }
+
+  void _refreshLiveWindowListeners() {
+    if (_isOffline) {
+      _cancelLiveWindowListeners();
+      return;
+    }
+    final desiredChatIds = _sortChatListings(_cloneCurrentList())
+        .take(_liveConversationWindowSize)
+        .map((item) => item.chatID.trim())
+        .where((chatId) => chatId.isNotEmpty)
+        .toSet();
+    final currentChatIds = _liveConversationSubs.keys.toSet();
+
+    for (final chatId in currentChatIds.difference(desiredChatIds)) {
+      unawaited(_liveConversationSubs.remove(chatId)?.cancel());
+    }
+
+    for (final chatId in desiredChatIds.difference(currentChatIds)) {
+      _liveConversationSubs[chatId] =
+          _conversationRepository.watchConversation(chatId).listen((snapshot) {
+        _realtimeRefreshDebounce?.cancel();
+        _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 220), () {
+          unawaited(_applyRealtimeConversationDocument(snapshot));
+        });
+      }, onError: (_) {});
+    }
+  }
+
+  void _cancelLiveWindowListeners() {
+    final subscriptions = _liveConversationSubs.values.toList(growable: false);
+    _liveConversationSubs.clear();
+    for (final subscription in subscriptions) {
+      unawaited(subscription.cancel());
+    }
   }
 }

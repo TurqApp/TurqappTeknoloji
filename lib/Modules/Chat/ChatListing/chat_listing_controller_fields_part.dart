@@ -10,7 +10,9 @@ class _ChatListingControllerState {
   Timer? searchDebounce;
   Timer? syncTimer;
   Timer? realtimeRefreshDebounce;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? conversationsSub;
+  final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      liveConversationSubs =
+      <String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>{};
   StreamSubscription<CacheInvalidationEvent>? invalidationSub;
   bool isRefreshing = false;
   bool cacheLoaded = false;
@@ -33,12 +35,8 @@ extension ChatListingControllerFieldsPart on ChatListingController {
   set _realtimeRefreshDebounce(Timer? value) =>
       _state.realtimeRefreshDebounce = value;
 
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-      get _conversationsSub => _state.conversationsSub;
-  set _conversationsSub(
-    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? value,
-  ) =>
-      _state.conversationsSub = value;
+  Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      get _liveConversationSubs => _state.liveConversationSubs;
 
   StreamSubscription<CacheInvalidationEvent>? get _invalidationSub =>
       _state.invalidationSub;

@@ -4,6 +4,7 @@ extension ChatListingControllerActionsPart on ChatListingController {
   void _commitListMutation(List<ChatListingModel> items) {
     final sorted = _sortChatListings(items);
     list.assignAll(sorted);
+    _refreshLiveWindowListeners();
     if (search.text.trim().isEmpty) {
       _applyTabFilter();
     } else {
