@@ -1,6 +1,26 @@
 part of 'classic_content.dart';
 
 extension ClassicContentHeaderActionsPart on _ClassicContentState {
+  Widget _buildClassicHeaderBackdrop({required Widget child}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.12),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   void _suspendClassicFeedForRoute() {
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
@@ -242,141 +262,147 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     ];
     return Padding(
       padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: _openAvatarStoryOrProfile,
-            child: Obx(() => _buildClassicAvatar(
-                  userId: widget.model.userID,
-                  imageUrl: controller.avatarUrl.value,
-                )),
-          ),
-          7.pw,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: openProfile,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                child: Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        primaryName,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTypography.postName.copyWith(
-                                          color: Colors.white,
-                                          shadows: textShadow,
+      child: _buildClassicHeaderBackdrop(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: _openAvatarStoryOrProfile,
+              child: Obx(() => _buildClassicAvatar(
+                    userId: widget.model.userID,
+                    imageUrl: controller.avatarUrl.value,
+                  )),
+            ),
+            7.pw,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: openProfile,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  child: Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          primaryName,
+                                          overflow: TextOverflow.ellipsis,
+                                          style:
+                                              AppTypography.postName.copyWith(
+                                            color: Colors.white,
+                                            shadows: textShadow,
+                                          ),
                                         ),
                                       ),
+                                      const SizedBox(width: 4),
+                                      _buildClassicWhiteBadge(13),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 2,
+                                  crossAxisAlignment:
+                                      WrapCrossAlignment.center,
+                                  children: [
+                                    Text(
+                                      '@$handle',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style:
+                                          AppTypography.postHandle.copyWith(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.92),
+                                        shadows: textShadow,
+                                      ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    _buildClassicWhiteBadge(13),
+                                    Obx(
+                                      () {
+                                        _relativeTimeTickService.tick.value;
+                                        return Text(
+                                          buildDisplayTime(),
+                                          style:
+                                              AppTypography.postMeta.copyWith(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.9),
+                                            shadows: textShadow,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 2,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(
-                                    '@$handle',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.postHandle.copyWith(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.92),
-                                      shadows: textShadow,
-                                    ),
+                              ],
+                            )),
+                      ),
+                      if (widget.model.userID != _currentUid)
+                        Obx(() {
+                          if (controller.isFollowing.value) {
+                            return const SizedBox.shrink();
+                          }
+                          if (compact) {
+                            return const SizedBox.shrink();
+                          }
+                          return Transform.translate(
+                            offset: const Offset(0, -5),
+                            child: SizedBox(
+                              height: 24,
+                              child: Center(
+                                child: TextButton(
+                                  onPressed: controller.followLoading.value
+                                      ? null
+                                      : () {
+                                          controller.followUser();
+                                        },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  Obx(
-                                    () {
-                                      _relativeTimeTickService.tick.value;
-                                      return Text(
-                                        buildDisplayTime(),
-                                        style: AppTypography.postMeta.copyWith(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.9),
-                                          shadows: textShadow,
-                                        ),
-                                      );
-                                    },
+                                  child: _buildClassicOverlayFollowButton(
+                                    loading: controller.followLoading.value,
                                   ),
-                                ],
-                              ),
-                            ],
-                          )),
-                    ),
-                    if (widget.model.userID != _currentUid)
-                      Obx(() {
-                        if (controller.isFollowing.value) {
-                          return const SizedBox.shrink();
-                        }
-                        if (compact) {
-                          return const SizedBox.shrink();
-                        }
-                        return Transform.translate(
-                          offset: const Offset(0, -5),
-                          child: SizedBox(
-                            height: 24,
-                            child: Center(
-                              child: TextButton(
-                                onPressed: controller.followLoading.value
-                                    ? null
-                                    : () {
-                                        controller.followUser();
-                                      },
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: _buildClassicOverlayFollowButton(
-                                  loading: controller.followLoading.value,
                                 ),
                               ),
                             ),
+                          );
+                        }),
+                      7.pw,
+                      Transform.translate(
+                        offset: const Offset(0, -5),
+                        child: SizedBox(
+                          height: 24,
+                          child: Center(
+                            child: pulldownmenu(Colors.white),
                           ),
-                        );
-                      }),
-                    7.pw,
-                    Transform.translate(
-                      offset: const Offset(0, -5),
-                      child: SizedBox(
-                        height: 24,
-                        child: Center(
-                          child: pulldownmenu(Colors.white),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                if (widget.model.konum != "")
-                  Text(
-                    widget.model.konum,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.postMeta.copyWith(
-                      color: Colors.white,
-                      shadows: textShadow,
-                    ),
+                    ],
                   ),
-              ],
+                  if (widget.model.konum != "")
+                    Text(
+                      widget.model.konum,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.postMeta.copyWith(
+                        color: Colors.white,
+                        shadows: textShadow,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
