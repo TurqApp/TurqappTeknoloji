@@ -2672,7 +2672,7 @@ class AppTranslations extends Translations {
         'explore.tab.trending': 'Gündem',
         'explore.tab.for_you': 'Sana Özel',
         'explore.tab.series': 'Diziler',
-        'explore.trending_rank': '@index - Türkiye tarihinde gündemde',
+        'explore.trending_rank': '@index - Gönderi Gündemi',
         'explore.no_results': 'Sonuç bulunamadı',
         'explore.account_unavailable': 'Bu hesap artık görüntülenemiyor.',
         'explore.no_series': 'Dizi bulunamadı',

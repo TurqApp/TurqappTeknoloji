@@ -751,7 +751,7 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
       debugMode: asBool(sourceData.debugMode, false),
       deletedPost: false,
       deletedPostTime: 0,
-      editTime: asNum(sourceData.editTime, 0),
+      editTime: 0,
       flood: item.index !== 0,
       floodCount: group.docCount,
       gizlendi: false,
