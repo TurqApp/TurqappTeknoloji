@@ -385,9 +385,6 @@ extension AgendaControllerLoadingPart on AgendaController {
               keepFor: const Duration(milliseconds: 900));
         }
         if (pageApplyPlan.itemsToAdd.isNotEmpty) {
-          await _warmInitialFeedVideoPosters(
-            _initialVisibleVideoWarmupWindow(pageApplyPlan.itemsToAdd),
-          );
           _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
           _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
           _scheduleReshareFetchForPosts(
@@ -588,7 +585,6 @@ extension AgendaControllerLoadingPart on AgendaController {
       rethrow;
     }
     final visibleItems = page.items;
-    await _warmInitialFeedVideoPosters(visibleItems);
 
     _usePrimaryFeedPaging = page.usesPrimaryFeed;
     if (page.lastDoc != null) {
@@ -615,6 +611,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       ...agendaList.where((post) => !liveHeadIds.contains(post.docID)),
     ];
     agendaList.assignAll(mergedAgenda);
+    _scheduleInitialFeedVideoPosterWarmup(visibleItems);
     if (playbackAnchor != null && playbackAnchor.isNotEmpty) {
       _pendingCenteredDocId = playbackAnchor;
     }
