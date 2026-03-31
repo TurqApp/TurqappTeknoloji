@@ -550,6 +550,12 @@ class TestSnapshotRepository extends GetxService {
     ]);
   }
 
+  Future<void> invalidateAnsweredSurface(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await _coordinator.clearSurface(answeredSurfaceKey, userId: normalized);
+  }
+
   Future<void> invalidateAllSurfaces() async {
     await Future.wait(<Future<void>>[
       _coordinator.clearSurface(ownerSurfaceKey),
@@ -678,23 +684,82 @@ class TestSnapshotRepository extends GetxService {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
     final normalizedLimit = query.effectiveLimit;
-    final snapshot = await FirebaseFirestore.instance
-        .collectionGroup('Yanitlar')
-        .where('userID', isEqualTo: normalizedUserId)
+    final answeredRefsSnap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(normalizedUserId)
+        .collection('answered_tests')
         .get(const GetOptions(source: Source.serverAndCache));
-    final testIds = <String>[];
-    final seen = <String>{};
-    for (final doc in snapshot.docs) {
-      final parent = doc.reference.parent.parent;
-      final testId = parent?.id ?? '';
-      if (testId.isEmpty || !seen.add(testId)) continue;
-      testIds.add(testId);
+    final testIds = <String>{
+      for (final refDoc in answeredRefsSnap.docs)
+        if (refDoc.id.trim().isNotEmpty) refDoc.id.trim(),
+    };
+    if (testIds.isEmpty) {
+      final snapshot = await FirebaseFirestore.instance
+          .collectionGroup('Yanitlar')
+          .where('userID', isEqualTo: normalizedUserId)
+          .get(const GetOptions(source: Source.serverAndCache));
+      final backfillEntries = <String, int>{};
+      for (final doc in snapshot.docs) {
+        final parent = doc.reference.parent.parent;
+        if (parent == null || parent.parent.id != 'Testler') continue;
+        final testId = parent.id.trim();
+        if (testId.isEmpty) continue;
+        testIds.add(testId);
+        final rawTimestamp = doc.data()['timeStamp'];
+        final timestamp = rawTimestamp is num ? rawTimestamp.toInt() : 0;
+        final previous = backfillEntries[testId] ?? 0;
+        if (timestamp > previous) {
+          backfillEntries[testId] = timestamp;
+        }
+      }
+      if (backfillEntries.isNotEmpty) {
+        await _backfillAnsweredTestRefs(
+          normalizedUserId,
+          backfillEntries,
+        );
+      }
     }
-    final items = await _fetchByIds(testIds);
+    if (testIds.isEmpty) return const <TestsModel>[];
+    final items = await _fetchByIds(testIds.toList(growable: false));
     items.sort(
       (a, b) => _asTimestamp(b.timeStamp).compareTo(_asTimestamp(a.timeStamp)),
     );
     return items.take(normalizedLimit).toList(growable: false);
+  }
+
+  Future<void> _backfillAnsweredTestRefs(
+    String userId,
+    Map<String, int> testTimestamps,
+  ) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty || testTimestamps.isEmpty) return;
+
+    final firestore = FirebaseFirestore.instance;
+    final entries = testTimestamps.entries.toList(growable: false);
+    for (var index = 0; index < entries.length; index += 200) {
+      final batch = firestore.batch();
+      final chunk = entries.skip(index).take(200);
+      for (final entry in chunk) {
+        final timestamp = entry.value > 0
+            ? entry.value
+            : DateTime.now().millisecondsSinceEpoch;
+        final ref = firestore
+            .collection('users')
+            .doc(normalizedUserId)
+            .collection('answered_tests')
+            .doc(entry.key);
+        batch.set(
+          ref,
+          <String, dynamic>{
+            'testId': entry.key,
+            'updatedDate': timestamp,
+            'timeStamp': timestamp,
+          },
+          SetOptions(merge: true),
+        );
+      }
+      await batch.commit();
+    }
   }
 
   Future<List<TestsModel>> _fetchFavoriteItems(TestFavoritesQuery query) async {

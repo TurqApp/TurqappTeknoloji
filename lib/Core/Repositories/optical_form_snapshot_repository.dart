@@ -280,20 +280,82 @@ class OpticalFormSnapshotRepository extends GetxService {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <OpticalFormModel>[];
     final normalizedLimit = query.effectiveLimit;
-    final answersSnap = await FirebaseFirestore.instance
-        .collectionGroup('Yanitlar')
-        .where(FieldPath.documentId, isEqualTo: normalizedUserId)
+    final answeredRefsSnap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(normalizedUserId)
+        .collection('answered_optical_forms')
         .get(const GetOptions(source: Source.serverAndCache));
     final formIds = <String>{
-      for (final doc in answersSnap.docs)
-        if (doc.reference.parent.parent != null &&
-            doc.reference.parent.parent!.parent.id == 'optikForm')
-          doc.reference.parent.parent!.id,
-    }.toList(growable: false);
+      for (final refDoc in answeredRefsSnap.docs)
+        if (refDoc.id.trim().isNotEmpty) refDoc.id.trim(),
+    };
+    if (formIds.isEmpty) {
+      final answersSnap = await FirebaseFirestore.instance
+          .collectionGroup('Yanitlar')
+          .where(FieldPath.documentId, isEqualTo: normalizedUserId)
+          .get(const GetOptions(source: Source.serverAndCache));
+      final backfillEntries = <String, int>{};
+      for (final doc in answersSnap.docs) {
+        final parentRef = doc.reference.parent.parent;
+        if (parentRef == null || parentRef.parent.id != 'optikForm') {
+          continue;
+        }
+        final formId = parentRef.id.trim();
+        if (formId.isEmpty) continue;
+        formIds.add(formId);
+        final rawTimestamp = doc.data()['timeStamp'];
+        final timestamp = rawTimestamp is num ? rawTimestamp.toInt() : 0;
+        final previous = backfillEntries[formId] ?? 0;
+        if (timestamp > previous) {
+          backfillEntries[formId] = timestamp;
+        }
+      }
+      if (backfillEntries.isNotEmpty) {
+        await _backfillAnsweredOpticalFormRefs(
+          normalizedUserId,
+          backfillEntries,
+        );
+      }
+    }
     if (formIds.isEmpty) return const <OpticalFormModel>[];
-    final items = await _fetchByIds(formIds);
+    final items = await _fetchByIds(formIds.toList(growable: false));
     items.sort((a, b) => b.baslangic.compareTo(a.baslangic));
     return items.take(normalizedLimit).toList(growable: false);
+  }
+
+  Future<void> _backfillAnsweredOpticalFormRefs(
+    String userId,
+    Map<String, int> formTimestamps,
+  ) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty || formTimestamps.isEmpty) return;
+
+    final firestore = FirebaseFirestore.instance;
+    final entries = formTimestamps.entries.toList(growable: false);
+    for (var index = 0; index < entries.length; index += 200) {
+      final batch = firestore.batch();
+      final chunk = entries.skip(index).take(200);
+      for (final entry in chunk) {
+        final timestamp = entry.value > 0
+            ? entry.value
+            : DateTime.now().millisecondsSinceEpoch;
+        final ref = firestore
+            .collection('users')
+            .doc(normalizedUserId)
+            .collection('answered_optical_forms')
+            .doc(entry.key);
+        batch.set(
+          ref,
+          <String, dynamic>{
+            'opticalFormId': entry.key,
+            'updatedDate': timestamp,
+            'timeStamp': timestamp,
+          },
+          SetOptions(merge: true),
+        );
+      }
+      await batch.commit();
+    }
   }
 
   Future<List<OpticalFormModel>> _fetchByIds(List<String> docIds) async {
@@ -335,6 +397,15 @@ extension OpticalFormSnapshotRepositoryInvalidationPart
         userId: normalized,
       ),
     ]);
+  }
+
+  Future<void> invalidateAnsweredSurface(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return;
+    await _coordinator.clearSurface(
+      OpticalFormSnapshotRepository.answeredSurfaceKey,
+      userId: normalized,
+    );
   }
 
   Future<void> invalidateAllSurfaces() async {

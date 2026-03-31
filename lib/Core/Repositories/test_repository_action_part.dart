@@ -33,17 +33,35 @@ extension TestRepositoryActionPart on TestRepository {
     required String userId,
     required List<String> answers,
   }) async {
+    final normalizedTestId = testId.trim();
+    final normalizedUserId = userId.trim();
+    if (normalizedTestId.isEmpty || normalizedUserId.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final answerDocId = now.toString();
     await _firestore
         .collection('Testler')
-        .doc(testId)
+        .doc(normalizedTestId)
         .collection('Yanitlar')
-        .doc(DateTime.now().millisecondsSinceEpoch.toString())
+        .doc(answerDocId)
         .set({
       'cevaplar': answers,
-      'timeStamp': DateTime.now().millisecondsSinceEpoch,
-      'userID': userId,
+      'timeStamp': now,
+      'userID': normalizedUserId,
     });
-    _memory.remove('answers:$testId');
+    await _firestore
+        .collection('users')
+        .doc(normalizedUserId)
+        .collection('answered_tests')
+        .doc(normalizedTestId)
+        .set({
+      'testId': normalizedTestId,
+      'answerDocId': answerDocId,
+      'updatedDate': now,
+      'timeStamp': now,
+    }, SetOptions(merge: true));
+    _memory.remove('answers:$normalizedTestId');
+    await maybeFindTestSnapshotRepository()
+        ?.invalidateAnsweredSurface(normalizedUserId);
   }
 
   Future<void> deleteQuestion({
@@ -116,6 +134,16 @@ extension TestRepositoryActionPart on TestRepository {
       _removeCacheKey('answers:$normalizedTestId'),
       _removeCacheKey('questions:$normalizedTestId'),
     ]);
+
+    for (final userId in answeredUserIds) {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('answered_tests')
+          .doc(normalizedTestId)
+          .delete()
+          .catchError((_) => null);
+    }
 
     for (final userId in <String>{
       ...answeredUserIds,

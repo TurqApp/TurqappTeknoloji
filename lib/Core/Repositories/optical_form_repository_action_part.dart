@@ -29,17 +29,34 @@ extension OpticalFormRepositoryActionPart on OpticalFormRepository {
     String userId,
     int questionCount,
   ) async {
+    final normalizedFormId = formId.trim();
+    final normalizedUserId = userId.trim();
+    if (normalizedFormId.isEmpty || normalizedUserId.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
     final answers = List<String>.filled(questionCount, '');
     await _firestore
         .collection('optikForm')
-        .doc(formId)
+        .doc(normalizedFormId)
         .collection('Yanitlar')
-        .doc(userId)
+        .doc(normalizedUserId)
         .set({
-      'timeStamp': DateTime.now().millisecondsSinceEpoch,
+      'timeStamp': now,
       'cevaplar': answers,
     }, SetOptions(merge: true));
-    await _storePrimitive('answers:$formId:$userId', answers);
+    await _firestore
+        .collection('users')
+        .doc(normalizedUserId)
+        .collection('answered_optical_forms')
+        .doc(normalizedFormId)
+        .set({
+      'opticalFormId': normalizedFormId,
+      'updatedDate': now,
+      'timeStamp': now,
+    }, SetOptions(merge: true));
+    await _storePrimitive(
+        'answers:$normalizedFormId:$normalizedUserId', answers);
+    await maybeFindOpticalFormSnapshotRepository()
+        ?.invalidateAnsweredSurface(normalizedUserId);
   }
 
   Future<void> saveUserAnswers(
@@ -49,18 +66,35 @@ extension OpticalFormRepositoryActionPart on OpticalFormRepository {
     required String ogrenciNo,
     required String fullName,
   }) async {
+    final normalizedFormId = formId.trim();
+    final normalizedUserId = userId.trim();
+    if (normalizedFormId.isEmpty || normalizedUserId.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
     await _firestore
         .collection('optikForm')
-        .doc(formId)
+        .doc(normalizedFormId)
         .collection('Yanitlar')
-        .doc(userId)
+        .doc(normalizedUserId)
         .update({
-      'timeStamp': DateTime.now().millisecondsSinceEpoch,
+      'timeStamp': now,
       'cevaplar': answers,
       'ogrenciNo': ogrenciNo,
       'fullName': fullName,
     });
-    await _storePrimitive('answers:$formId:$userId', answers);
+    await _firestore
+        .collection('users')
+        .doc(normalizedUserId)
+        .collection('answered_optical_forms')
+        .doc(normalizedFormId)
+        .set({
+      'opticalFormId': normalizedFormId,
+      'updatedDate': now,
+      'timeStamp': now,
+    }, SetOptions(merge: true));
+    await _storePrimitive(
+        'answers:$normalizedFormId:$normalizedUserId', answers);
+    await maybeFindOpticalFormSnapshotRepository()
+        ?.invalidateAnsweredSurface(normalizedUserId);
   }
 
   Future<void> deleteForm(String formId) async {
@@ -90,6 +124,15 @@ extension OpticalFormRepositoryActionPart on OpticalFormRepository {
     }
 
     final snapshotRepository = maybeFindOpticalFormSnapshotRepository();
+    for (final userId in answeredUserIds) {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('answered_optical_forms')
+          .doc(normalizedFormId)
+          .delete()
+          .catchError((_) => null);
+    }
     for (final userId in <String>{ownerUserId, ...answeredUserIds}) {
       if (userId.isEmpty) continue;
       await snapshotRepository?.invalidateUserScopedSurfaces(userId);
