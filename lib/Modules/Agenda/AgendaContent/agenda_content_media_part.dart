@@ -29,6 +29,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
     final image = thumb.isNotEmpty
         ? CacheFirstNetworkImage(
             imageUrl: thumb,
+            candidateUrls: widget.model.preferredVideoPosterUrls,
             cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
             fallback: fallback,

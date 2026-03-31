@@ -29,6 +29,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
     final image = thumb.isNotEmpty
         ? CacheFirstNetworkImage(
             imageUrl: thumb,
+            candidateUrls: widget.model.preferredVideoPosterUrls,
             cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
             fallback: fallback,

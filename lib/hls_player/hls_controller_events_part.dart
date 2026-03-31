@@ -131,7 +131,11 @@ extension HLSControllerEventsPart on HLSController {
             break;
 
           case 'stopped':
-            _updateState(PlayerState.idle);
+            if (_state == PlayerState.completed || _isAtPlaybackEnd) {
+              _updateState(PlayerState.completed);
+            } else {
+              _updateState(PlayerState.idle);
+            }
             break;
 
           case 'error':

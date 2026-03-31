@@ -18,7 +18,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         headerUserInfoBar(),
-        if (!widget.model.hasRenderableVideoCard && widget.model.img.isEmpty)
+        if (!widget.model.hasRenderableVideoCard &&
+            widget.model.img.isEmpty &&
+            widget.model.poll.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 45),
             child: buildPollCard(),
@@ -240,15 +242,24 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
+                                              final atPlaybackEnd =
+                                                  v.isCompleted ||
+                                                      (v.duration >
+                                                              Duration.zero &&
+                                                          v.position >=
+                                                              (v.duration -
+                                                                  const Duration(
+                                                                      milliseconds:
+                                                                          350)));
                                               final hasStableVideoFrame =
-                                                  v.hasRenderedFirstFrame &&
-                                                      !v.isBuffering &&
-                                                      (v.isPlaying ||
-                                                          v.isCompleted ||
-                                                          v.position >
-                                                              const Duration(
-                                                                  milliseconds:
-                                                                      180));
+                                                  atPlaybackEnd ||
+                                                      (v.hasRenderedFirstFrame &&
+                                                          !v.isBuffering &&
+                                                          (v.isPlaying ||
+                                                              v.position >
+                                                                  const Duration(
+                                                                      milliseconds:
+                                                                          180)));
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(
@@ -463,7 +474,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
               child: buildImageGrid(widget.model.img),
             ),
           ),
-        if (widget.model.hasRenderableVideoCard || widget.model.img.isNotEmpty)
+        if ((widget.model.hasRenderableVideoCard ||
+                widget.model.img.isNotEmpty) &&
+            widget.model.poll.isNotEmpty)
           Transform.translate(
             offset: Offset(0, mediaVisualLift),
             child: Padding(
