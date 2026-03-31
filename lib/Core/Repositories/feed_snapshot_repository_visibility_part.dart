@@ -17,9 +17,10 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
         .map((post) => post.userID)
         .where((id) => id.isNotEmpty)
         .toSet();
-    final summaries = await _userSummaryResolver.resolveMany(
-      authorIds.toList(growable: false),
-      preferCache: true,
+    final summaries = await _loadDiscoverySummaries(
+      authorIds: authorIds,
+      currentUserId: currentUserId,
+      followingIds: followingIds,
     );
 
     final visible = <PostsModel>[];
@@ -114,6 +115,40 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
       );
     }
     return visible;
+  }
+
+  Future<Map<String, UserSummary>> _loadDiscoverySummaries({
+    required Set<String> authorIds,
+    required String currentUserId,
+    required Set<String> followingIds,
+  }) async {
+    if (authorIds.isEmpty) return const <String, UserSummary>{};
+    final cached = await _userSummaryResolver.resolveMany(
+      authorIds.toList(growable: false),
+      preferCache: true,
+    );
+    final viewerUid = currentUserId.trim();
+    final refreshIds = authorIds.where((authorId) {
+      final uid = authorId.trim();
+      if (uid.isEmpty) return false;
+      if (viewerUid.isNotEmpty && uid == viewerUid) return false;
+      if (followingIds.contains(uid)) return false;
+      final summary = cached[uid];
+      if (summary == null) return true;
+      if (summary.isDeleted) return false;
+      return !isDiscoveryPublicAuthor(
+        rozet: summary.rozet,
+        isApproved: summary.isApproved,
+      );
+    }).toList(growable: false);
+    if (refreshIds.isEmpty) return cached;
+
+    final fresh = await _userSummaryResolver.resolveMany(
+      refreshIds,
+      preferCache: false,
+    );
+    if (fresh.isEmpty) return cached;
+    return <String, UserSummary>{...cached, ...fresh};
   }
 
   bool _isRenderablePost(PostsModel post) {

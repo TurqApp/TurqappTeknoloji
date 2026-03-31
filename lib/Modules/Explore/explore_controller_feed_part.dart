@@ -456,8 +456,8 @@ extension ExploreControllerFeedPart on ExploreController {
       allowStale: true,
     );
     if (fromPool.isEmpty) return;
-    final profiles = await _userCache.getProfiles(
-      fromPool.map((e) => e.userID).toSet().toList(),
+    final profiles = await _loadDiscoveryProfiles(
+      fromPool.map((e) => e.userID).toSet(),
       preferCache: true,
       cacheOnly: true,
     );
@@ -840,9 +840,8 @@ extension ExploreControllerFeedPart on ExploreController {
     List<PostsModel> items,
   ) async {
     if (items.isEmpty) return items;
-    final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
-    final userProfiles = await _userCache.getProfiles(
-      uniqueUserIDs,
+    final userProfiles = await _loadDiscoveryProfiles(
+      items.map((e) => e.userID).toSet(),
       preferCache: true,
       cacheOnly: !ContentPolicy.isConnected,
     );
@@ -859,6 +858,48 @@ extension ExploreControllerFeedPart on ExploreController {
         isDeleted: false,
       );
     }).toList();
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _loadDiscoveryProfiles(
+    Set<String> userIds, {
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    if (userIds.isEmpty) return const <String, Map<String, dynamic>>{};
+    final cached = await _userCache.getProfiles(
+      userIds.toList(growable: false),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    if (cacheOnly) return cached;
+
+    final viewerUid = CurrentUserService.instance.effectiveUserId.trim();
+    final refreshIds = userIds.where((userId) {
+      final uid = userId.trim();
+      if (uid.isEmpty) return false;
+      if (viewerUid.isNotEmpty && uid == viewerUid) return false;
+      if (followingIDs.contains(uid)) return false;
+      final profile = cached[uid];
+      final rozet =
+          (profile?['rozet'] ?? profile?['badge'] ?? '').toString().trim();
+      final isApproved = profile?['isApproved'] == true;
+      final isDeleted = profile?['isDeleted'] == true;
+      if (isDeleted) return false;
+      if (profile == null) return true;
+      return !isDiscoveryPublicAuthor(
+        rozet: rozet,
+        isApproved: isApproved,
+      );
+    }).toList(growable: false);
+    if (refreshIds.isEmpty) return cached;
+
+    final fresh = await _userCache.getProfiles(
+      refreshIds,
+      preferCache: false,
+      cacheOnly: false,
+    );
+    if (fresh.isEmpty) return cached;
+    return <String, Map<String, dynamic>>{...cached, ...fresh};
   }
 
   List<PostsModel> _performPrioritizeCachedVideos(List<PostsModel> items) {

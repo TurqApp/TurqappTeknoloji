@@ -19,6 +19,12 @@ Bu dosya TurqApp icin kalici ajan anayasasidir. Bu repo uzerinde calisan her Cod
 5. Mevcut sistemi koru.
    - Var olan calisan yapiyi bozma.
    - Yan etki olusturma.
+   - Yan etki kesinlikle kabul edilemez.
+   - Bir degisiklik, hedef problemi cozse bile baska bir akis, ekran, trigger,
+     feed, playback, cache veya veri davranisinda bozulma olusturuyorsa kabul
+     edilmez.
+   - "Kucuk yan etki", "tolere edilebilir yan etki" veya "sonra temizleriz"
+     yaklasimi yasaktir.
 6. Kapsam disina cikma.
    - Istenmeyen hicbir gelistirme yapma.
    - "Bunu da duzeltmisken..." yaklasimi yasak.
@@ -52,6 +58,9 @@ Kok neden net degilse dur ve eksik bilgiyi belirt.
 - Dosya yapisini degistirme.
 - Stil degistirme.
 - Ekstra log, test veya yorum ekleme.
+- Her patch yan etki olusturmama hedefiyle tasarlanacak.
+- Degisiklikten etkilenen yakin akislar ve bagli yuzeyler dogrulanmadan cozum
+  tamamlanmis sayilmayacak.
 
 ## Uygulama Sonrasi Zorunluluk
 
@@ -65,6 +74,9 @@ Her degisiklikten sonra:
    - Frontend ise run veya build komutu ver.
    - Mobil ise emulator veya cihaz komutu ver.
    - Belirsiz ise nasil test edilecegini acikla.
+5. Kullanici `commit` istediyse commit alma istegi unutulmayacak.
+   - Dogrulama zinciri tamamlanir tamamlanmaz uygun commit alinacak.
+   - Commit alinmadiysa nedeni final cevapta acikca yazilacak.
 
 ## Cikti Formati Zorunlulugu
 

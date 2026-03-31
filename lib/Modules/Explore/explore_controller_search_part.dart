@@ -3,6 +3,11 @@ part of 'explore_controller.dart';
 extension ExploreControllerSearchPart on ExploreController {
   void _performResetSurfaceForTabTransition() {
     _performResetSearchToDefault();
+    if (exploreFloods.length > 1) {
+      final shuffled = List<PostsModel>.from(exploreFloods);
+      shuffled.shuffle();
+      exploreFloods.assignAll(shuffled);
+    }
     floodsVisibleIndex.value = -1;
     lastFloodVisibleIndex = null;
     _pendingFloodDocId = null;
