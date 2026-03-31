@@ -217,9 +217,24 @@ class ReadBudgetRegistry {
         shortHomeInitialLimit,
       );
 
+  static int get notificationsDeltaFetchLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.notificationsDeltaFetchLimit,
+        notificationsDeltaFetchLimit,
+      );
+
   static int get recommendedUsersInitialLimitValue => _readOverride(
         SurfacePolicyOverrideKeys.recommendedUsersInitialLimit,
         recommendedUsersInitialLimit,
+      );
+
+  static int get marketHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.marketHomeInitialLimit,
+        marketHomeInitialLimit,
+      );
+
+  static int get marketSearchInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.marketSearchInitialLimit,
+        marketSearchInitialLimit,
       );
 
   static int get marketOwnerInitialLimitValue => _readOverride(
@@ -227,9 +242,39 @@ class ReadBudgetRegistry {
         marketOwnerInitialLimit,
       );
 
+  static int get jobHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.jobHomeInitialLimit,
+        jobHomeInitialLimit,
+      );
+
+  static int get jobSearchInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.jobSearchInitialLimit,
+        jobSearchInitialLimit,
+      );
+
   static int get jobOwnerInitialLimitValue => _readOverride(
         SurfacePolicyOverrideKeys.jobOwnerInitialLimit,
         jobOwnerInitialLimit,
+      );
+
+  static int get scholarshipHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.scholarshipHomeInitialLimit,
+        scholarshipHomeInitialLimit,
+      );
+
+  static int get scholarshipSearchInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.scholarshipSearchInitialLimit,
+        scholarshipSearchInitialLimit,
+      );
+
+  static int get practiceExamHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.practiceExamHomeInitialLimit,
+        practiceExamHomeInitialLimit,
+      );
+
+  static int get practiceExamSearchInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.practiceExamSearchInitialLimit,
+        practiceExamSearchInitialLimit,
       );
 
   static int get testAnsweredInitialLimitValue => _readOverride(
@@ -242,6 +287,16 @@ class ReadBudgetRegistry {
         testFavoritesInitialLimit,
       );
 
+  static int get answerKeyHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.answerKeyHomeInitialLimit,
+        answerKeyHomeInitialLimit,
+      );
+
+  static int get answerKeySearchInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.answerKeySearchInitialLimit,
+        answerKeySearchInitialLimit,
+      );
+
   static int get practiceExamAnsweredInitialLimitValue => _readOverride(
         SurfacePolicyOverrideKeys.practiceExamAnsweredInitialLimit,
         practiceExamAnsweredInitialLimit,
@@ -250,6 +305,21 @@ class ReadBudgetRegistry {
   static int get opticalFormAnsweredInitialLimitValue => _readOverride(
         SurfacePolicyOverrideKeys.opticalFormAnsweredInitialLimit,
         opticalFormAnsweredInitialLimit,
+      );
+
+  static int get tutoringHomeInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.tutoringHomeInitialLimit,
+        tutoringHomeInitialLimit,
+      );
+
+  static int get tutoringSearchInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.tutoringSearchInitialLimit,
+        tutoringSearchInitialLimit,
+      );
+
+  static int get profilePostsInitialLimitValue => _readOverride(
+        SurfacePolicyOverrideKeys.profilePostsInitialLimit,
+        profilePostsInitialLimit,
       );
 
   static int get mobileWarmWindow => _readOverride(
@@ -298,10 +368,47 @@ class ReadBudgetRegistry {
   static const int profilePostsInitialLimit =
       SurfacePolicyRegistry.profilePostsInitialLimit;
 
+  static int get segmentPrefetchBreadthCountValue => _readOverride(
+        SurfacePolicyOverrideKeys.segmentPrefetchBreadthCount,
+        segmentPrefetchBreadthCount,
+      );
+
+  static int get segmentPrefetchDepthCountValue => _readOverride(
+        SurfacePolicyOverrideKeys.segmentPrefetchDepthCount,
+        segmentPrefetchDepthCount,
+      );
+
+  static int get segmentPrefetchMaxConcurrentValue => _readOverride(
+        SurfacePolicyOverrideKeys.segmentPrefetchMaxConcurrent,
+        segmentPrefetchMaxConcurrent,
+      );
+
+  static int get segmentCacheSoftLimitMbValue => _readOverride(
+        SurfacePolicyOverrideKeys.segmentCacheSoftLimitMb,
+        segmentCacheSoftLimitMb,
+      );
+
+  static int get segmentCacheHardLimitMbValue => _readOverride(
+        SurfacePolicyOverrideKeys.segmentCacheHardLimitMb,
+        segmentCacheHardLimitMb,
+      );
+
+  static int get segmentCacheRecentProtectCountValue => _readOverride(
+        SurfacePolicyOverrideKeys.segmentCacheRecentProtectCount,
+        segmentCacheRecentProtectCount,
+      );
+
   static int resolveFeedHomeInitialLimit(int value) => _resolveConfiguredValue(
         value,
         defaultValue: feedHomeInitialLimit,
         configuredValue: feedHomeInitialLimitValue,
+      );
+
+  static int resolveNotificationsDeltaFetchLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: notificationsDeltaFetchLimit,
+        configuredValue: notificationsDeltaFetchLimitValue,
       );
 
   static int resolveShortHomeInitialLimit(int value) => _resolveConfiguredValue(
@@ -317,6 +424,20 @@ class ReadBudgetRegistry {
         configuredValue: recommendedUsersInitialLimitValue,
       );
 
+  static int resolveMarketHomeInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: marketHomeInitialLimit,
+        configuredValue: marketHomeInitialLimitValue,
+      );
+
+  static int resolveMarketSearchInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: marketSearchInitialLimit,
+        configuredValue: marketSearchInitialLimitValue,
+      );
+
   static int resolveMarketOwnerInitialLimit(int value) =>
       _resolveConfiguredValue(
         value,
@@ -324,10 +445,50 @@ class ReadBudgetRegistry {
         configuredValue: marketOwnerInitialLimitValue,
       );
 
+  static int resolveJobHomeInitialLimit(int value) => _resolveConfiguredValue(
+        value,
+        defaultValue: jobHomeInitialLimit,
+        configuredValue: jobHomeInitialLimitValue,
+      );
+
+  static int resolveJobSearchInitialLimit(int value) => _resolveConfiguredValue(
+        value,
+        defaultValue: jobSearchInitialLimit,
+        configuredValue: jobSearchInitialLimitValue,
+      );
+
   static int resolveJobOwnerInitialLimit(int value) => _resolveConfiguredValue(
         value,
         defaultValue: jobOwnerInitialLimit,
         configuredValue: jobOwnerInitialLimitValue,
+      );
+
+  static int resolveScholarshipHomeInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: scholarshipHomeInitialLimit,
+        configuredValue: scholarshipHomeInitialLimitValue,
+      );
+
+  static int resolveScholarshipSearchInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: scholarshipSearchInitialLimit,
+        configuredValue: scholarshipSearchInitialLimitValue,
+      );
+
+  static int resolvePracticeExamHomeInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: practiceExamHomeInitialLimit,
+        configuredValue: practiceExamHomeInitialLimitValue,
+      );
+
+  static int resolvePracticeExamSearchInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: practiceExamSearchInitialLimit,
+        configuredValue: practiceExamSearchInitialLimitValue,
       );
 
   static int resolveTestAnsweredInitialLimit(int value) =>
@@ -344,6 +505,20 @@ class ReadBudgetRegistry {
         configuredValue: testFavoritesInitialLimitValue,
       );
 
+  static int resolveAnswerKeyHomeInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: answerKeyHomeInitialLimit,
+        configuredValue: answerKeyHomeInitialLimitValue,
+      );
+
+  static int resolveAnswerKeySearchInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: answerKeySearchInitialLimit,
+        configuredValue: answerKeySearchInitialLimitValue,
+      );
+
   static int resolvePracticeExamAnsweredInitialLimit(int value) =>
       _resolveConfiguredValue(
         value,
@@ -356,6 +531,27 @@ class ReadBudgetRegistry {
         value,
         defaultValue: opticalFormAnsweredInitialLimit,
         configuredValue: opticalFormAnsweredInitialLimitValue,
+      );
+
+  static int resolveTutoringHomeInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: tutoringHomeInitialLimit,
+        configuredValue: tutoringHomeInitialLimitValue,
+      );
+
+  static int resolveTutoringSearchInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: tutoringSearchInitialLimit,
+        configuredValue: tutoringSearchInitialLimitValue,
+      );
+
+  static int resolveProfilePostsInitialLimit(int value) =>
+      _resolveConfiguredValue(
+        value,
+        defaultValue: profilePostsInitialLimit,
+        configuredValue: profilePostsInitialLimitValue,
       );
 
   static int feedInitialPoolLimit({required bool onWiFi}) =>
@@ -449,10 +645,10 @@ class ReadBudgetRegistry {
       );
 
   static int get segmentCacheSoftLimitBytes =>
-      segmentCacheSoftLimitMb * 1024 * 1024;
+      segmentCacheSoftLimitMbValue * 1024 * 1024;
 
   static int get segmentCacheHardLimitBytes =>
-      segmentCacheHardLimitMb * 1024 * 1024;
+      segmentCacheHardLimitMbValue * 1024 * 1024;
 
   static int startupUserMetaFeedTake({required bool onWiFi}) =>
       SurfacePolicyRegistry.startupUserMetaFeedTake(onWiFi: onWiFi);

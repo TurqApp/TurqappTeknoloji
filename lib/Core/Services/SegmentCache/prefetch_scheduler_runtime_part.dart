@@ -22,7 +22,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   int get _breadthCount {
-    final base = ReadBudgetRegistry.segmentPrefetchBreadthCount;
+    final base = ReadBudgetRegistry.segmentPrefetchBreadthCountValue;
     return _isOnWiFi
         ? base < _prefetchSchedulerWifiMinBreadthCount
             ? _prefetchSchedulerWifiMinBreadthCount
@@ -31,7 +31,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   int get _depthCount {
-    final base = ReadBudgetRegistry.segmentPrefetchDepthCount;
+    final base = ReadBudgetRegistry.segmentPrefetchDepthCountValue;
     return _isOnWiFi
         ? base < _prefetchSchedulerWifiMinDepthCount
             ? _prefetchSchedulerWifiMinDepthCount
@@ -41,7 +41,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   int get _maxConcurrent {
     if (_mobileSeedMode) return 1;
-    final base = ReadBudgetRegistry.segmentPrefetchMaxConcurrent;
+    final base = ReadBudgetRegistry.segmentPrefetchMaxConcurrentValue;
     return _isOnWiFi
         ? base < _prefetchSchedulerWifiMinMaxConcurrent
             ? _prefetchSchedulerWifiMinMaxConcurrent

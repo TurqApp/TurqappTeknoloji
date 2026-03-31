@@ -109,7 +109,7 @@ extension PracticeExamSnapshotRepositoryFacadePart
   }) =>
       _openHomeImpl(
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolvePracticeExamHomeInitialLimit(limit),
         forceSync: forceSync,
       );
 
@@ -120,7 +120,7 @@ extension PracticeExamSnapshotRepositoryFacadePart
   }) =>
       _loadHomeImpl(
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolvePracticeExamHomeInitialLimit(limit),
         forceSync: forceSync,
       );
 
@@ -133,7 +133,7 @@ extension PracticeExamSnapshotRepositoryFacadePart
       _openSearchImpl(
         query: query,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolvePracticeExamSearchInitialLimit(limit),
         forceSync: forceSync,
       );
 
@@ -146,7 +146,7 @@ extension PracticeExamSnapshotRepositoryFacadePart
       _searchImpl(
         query: query,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolvePracticeExamSearchInitialLimit(limit),
         forceSync: forceSync,
       );
 

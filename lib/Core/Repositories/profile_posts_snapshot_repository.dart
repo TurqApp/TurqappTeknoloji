@@ -95,10 +95,13 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
+    );
     return _pipeline.open(
       ProfilePostsSnapshotQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );
@@ -120,9 +123,12 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     required String userId,
     int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
+    );
     final query = ProfilePostsSnapshotQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     return _coordinator.bootstrap(
       ScopedSnapshotKey(
@@ -146,7 +152,7 @@ extension ProfilePostsSnapshotRepositoryFacadePart
     await writeLocalBuckets(
       userId: userId,
       buckets: buckets,
-      limit: limit,
+      limit: ReadBudgetRegistry.resolveProfilePostsInitialLimit(limit),
       source: source,
     );
   }
@@ -165,9 +171,12 @@ extension ProfilePostsSnapshotRepositoryFacadePart
   }) async {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty) return null;
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
+    );
     final key = _localScopeKey(
       userId: normalizedUserId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     final memory = await _memoryStore.read(key, allowStale: true);
     if (memory != null) return memory.data;
@@ -185,15 +194,18 @@ extension ProfilePostsSnapshotRepositoryFacadePart
   }) async {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty) return;
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
+    );
     final normalized = ProfileBuckets(
-      all: buckets.all.take(limit).toList(growable: false),
-      photos: buckets.photos.take(limit).toList(growable: false),
-      videos: buckets.videos.take(limit).toList(growable: false),
-      scheduled: buckets.scheduled.take(limit).toList(growable: false),
+      all: buckets.all.take(effectiveLimit).toList(growable: false),
+      photos: buckets.photos.take(effectiveLimit).toList(growable: false),
+      videos: buckets.videos.take(effectiveLimit).toList(growable: false),
+      scheduled: buckets.scheduled.take(effectiveLimit).toList(growable: false),
     );
     final key = _localScopeKey(
       userId: normalizedUserId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     final isEmptyBuckets = normalized.all.isEmpty &&
         normalized.photos.isEmpty &&

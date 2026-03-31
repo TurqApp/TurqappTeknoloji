@@ -147,9 +147,11 @@ extension NotificationsRepositoryRuntimeX on NotificationsRepository {
     required int latestTs,
     int limit = ReadBudgetRegistry.notificationsDeltaFetchLimit,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveNotificationsDeltaFetchLimit(limit);
     Query<Map<String, dynamic>> query = _notificationsRef(uid)
         .orderBy('timeStamp', descending: false)
-        .limit(limit);
+        .limit(effectiveLimit);
     if (latestTs > 0) {
       query = query.where('timeStamp', isGreaterThan: latestTs);
     }

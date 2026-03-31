@@ -19,10 +19,14 @@ extension ScholarshipSnapshotRepositoryFacadePart
     int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
     int page = 1,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(
+      limit,
+    );
     final query = EducationTypesenseQuery(
       entity: EducationTypesenseEntity.scholarship,
       query: '*',
-      limit: limit,
+      limit: effectiveLimit,
       page: page,
       userId: userId,
       scopeTag: page <= 1 ? 'home' : 'home_page_$page',
@@ -50,7 +54,7 @@ extension ScholarshipSnapshotRepositoryFacadePart
   }) =>
       _openHomeImpl(
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(limit),
         page: page,
         forceSync: forceSync,
       );
@@ -63,7 +67,7 @@ extension ScholarshipSnapshotRepositoryFacadePart
   }) =>
       _loadHomeImpl(
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(limit),
         page: page,
         forceSync: forceSync,
       );
@@ -78,7 +82,7 @@ extension ScholarshipSnapshotRepositoryFacadePart
       _openSearchImpl(
         query: query,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveScholarshipSearchInitialLimit(limit),
         page: page,
         forceSync: forceSync,
       );
@@ -93,7 +97,7 @@ extension ScholarshipSnapshotRepositoryFacadePart
       _searchImpl(
         query: query,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveScholarshipSearchInitialLimit(limit),
         page: page,
         forceSync: forceSync,
       );

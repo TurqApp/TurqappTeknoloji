@@ -71,11 +71,12 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
     int limit = ReadBudgetRegistry.jobHomeInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveJobHomeInitialLimit(limit);
     return _homeAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.job,
         query: '*',
-        limit: limit,
+        limit: effectiveLimit,
         userId: userId,
         scopeTag: 'home',
       ),
@@ -101,11 +102,14 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
     int limit = ReadBudgetRegistry.jobSearchInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveJobSearchInitialLimit(
+      limit,
+    );
     return _searchAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.job,
         query: query,
-        limit: limit,
+        limit: effectiveLimit,
         userId: userId,
         scopeTag: 'search',
       ),

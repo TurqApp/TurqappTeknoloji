@@ -100,7 +100,7 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
   }) =>
       _AnswerKeySnapshotRepositoryRuntimeX(this).openHome(
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveAnswerKeyHomeInitialLimit(limit),
         forceSync: forceSync,
       );
 
@@ -111,7 +111,7 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
   }) =>
       _AnswerKeySnapshotRepositoryRuntimeX(this).loadHome(
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveAnswerKeyHomeInitialLimit(limit),
         forceSync: forceSync,
       );
 
@@ -124,7 +124,7 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
       _AnswerKeySnapshotRepositoryRuntimeX(this).openSearch(
         query: query,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveAnswerKeySearchInitialLimit(limit),
         forceSync: forceSync,
       );
 
@@ -137,7 +137,7 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
       _AnswerKeySnapshotRepositoryRuntimeX(this).search(
         query: query,
         userId: userId,
-        limit: limit,
+        limit: ReadBudgetRegistry.resolveAnswerKeySearchInitialLimit(limit),
         forceSync: forceSync,
       );
 

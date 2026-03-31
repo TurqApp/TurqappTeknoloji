@@ -59,11 +59,14 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     int page = 1,
     bool forceSync = false,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveMarketHomeInitialLimit(
+      limit,
+    );
     return _homePipeline.open(
       MarketListingQuery(
         query: '*',
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         page: page,
         scopeTag: page <= 1 ? 'home' : 'home_page_$page',
       ),
@@ -92,11 +95,14 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     int page = 1,
     bool forceSync = false,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveMarketSearchInitialLimit(
+      limit,
+    );
     return _searchPipeline.open(
       MarketListingQuery(
         query: query,
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
         page: page,
         scopeTag: page <= 1 ? 'search' : 'search_page_$page',
       ),

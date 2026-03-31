@@ -57,11 +57,13 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
     int page = 1,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveTutoringHomeInitialLimit(limit);
     return _homeAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.tutoring,
         query: '*',
-        limit: limit,
+        limit: effectiveLimit,
         page: page,
         userId: userId,
         scopeTag: page <= 1 ? 'home' : 'home_page_$page',
@@ -90,11 +92,13 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
     int limit = ReadBudgetRegistry.tutoringSearchInitialLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveTutoringSearchInitialLimit(limit);
     return _searchAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.tutoring,
         query: query,
-        limit: limit,
+        limit: effectiveLimit,
         page: 1,
         userId: userId,
         scopeTag: 'search',

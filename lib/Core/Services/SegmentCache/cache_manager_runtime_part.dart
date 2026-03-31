@@ -32,7 +32,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
       _userHardLimitBytes ?? ReadBudgetRegistry.segmentCacheHardLimitBytes;
 
   int get _recentPlayCount {
-    final remoteFloor = ReadBudgetRegistry.segmentCacheRecentProtectCount;
+    final remoteFloor = ReadBudgetRegistry.segmentCacheRecentProtectCountValue;
     final budgetManager = StorageBudgetManager.maybeFind();
     if (budgetManager == null) return remoteFloor;
     return budgetManager.recentProtectionWindow(

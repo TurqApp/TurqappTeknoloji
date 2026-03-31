@@ -171,6 +171,83 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
             title: 'Önerilen kullanıcı limiti',
             defaultValue: ReadBudgetRegistry.recommendedUsersInitialLimit,
           ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.profilePostsInitialLimit,
+            title: 'Profil gönderileri limiti',
+            defaultValue: ReadBudgetRegistry.profilePostsInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.notificationsDeltaFetchLimit,
+            title: 'Bildirim delta çekim limiti',
+            defaultValue: ReadBudgetRegistry.notificationsDeltaFetchLimit,
+          ),
+        ],
+      ),
+      _PolicySection(
+        title: 'Liste Yüzeyleri',
+        description:
+            'Ana home ve arama yüzeylerinin başlangıç boyutlarını burada büyütüp küçültebilirsin.',
+        fields: <_PolicyField>[
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.marketHomeInitialLimit,
+            title: 'Pasaj ana liste limiti',
+            defaultValue: ReadBudgetRegistry.marketHomeInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.marketSearchInitialLimit,
+            title: 'Pasaj arama limiti',
+            defaultValue: ReadBudgetRegistry.marketSearchInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.jobHomeInitialLimit,
+            title: 'İş ilanları ana liste limiti',
+            defaultValue: ReadBudgetRegistry.jobHomeInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.jobSearchInitialLimit,
+            title: 'İş ilanları arama limiti',
+            defaultValue: ReadBudgetRegistry.jobSearchInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.scholarshipHomeInitialLimit,
+            title: 'Burslar ana liste limiti',
+            defaultValue: ReadBudgetRegistry.scholarshipHomeInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.scholarshipSearchInitialLimit,
+            title: 'Burslar arama limiti',
+            defaultValue: ReadBudgetRegistry.scholarshipSearchInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.practiceExamHomeInitialLimit,
+            title: 'Denemeler ana liste limiti',
+            defaultValue: ReadBudgetRegistry.practiceExamHomeInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.practiceExamSearchInitialLimit,
+            title: 'Denemeler arama limiti',
+            defaultValue: ReadBudgetRegistry.practiceExamSearchInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.answerKeyHomeInitialLimit,
+            title: 'Cevap anahtarı ana liste limiti',
+            defaultValue: ReadBudgetRegistry.answerKeyHomeInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.answerKeySearchInitialLimit,
+            title: 'Cevap anahtarı arama limiti',
+            defaultValue: ReadBudgetRegistry.answerKeySearchInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.tutoringHomeInitialLimit,
+            title: 'Özel ders ana liste limiti',
+            defaultValue: ReadBudgetRegistry.tutoringHomeInitialLimit,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.tutoringSearchInitialLimit,
+            title: 'Özel ders arama limiti',
+            defaultValue: ReadBudgetRegistry.tutoringSearchInitialLimit,
+          ),
         ],
       ),
       _PolicySection(
@@ -270,6 +347,43 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
             key: SurfacePolicyOverrideKeys.mobileAheadSegments,
             title: 'Mobil ileri segment sayısı',
             defaultValue: ReadBudgetRegistry.mobileAheadSegments,
+          ),
+        ],
+      ),
+      _PolicySection(
+        title: 'Segment Önbelleği',
+        description:
+            'Kuyruk genişliği, derinlik ve disk koruma eşiklerini buradan yönetebilirsin.',
+        fields: <_PolicyField>[
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.segmentPrefetchBreadthCount,
+            title: 'Segment ön getirme genişliği',
+            defaultValue: ReadBudgetRegistry.segmentPrefetchBreadthCount,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.segmentPrefetchDepthCount,
+            title: 'Segment ön getirme derinliği',
+            defaultValue: ReadBudgetRegistry.segmentPrefetchDepthCount,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.segmentPrefetchMaxConcurrent,
+            title: 'Aynı anda segment indirme sayısı',
+            defaultValue: ReadBudgetRegistry.segmentPrefetchMaxConcurrent,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.segmentCacheSoftLimitMb,
+            title: 'Segment önbellek yumuşak limiti (MB)',
+            defaultValue: ReadBudgetRegistry.segmentCacheSoftLimitMb,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.segmentCacheHardLimitMb,
+            title: 'Segment önbellek sert limiti (MB)',
+            defaultValue: ReadBudgetRegistry.segmentCacheHardLimitMb,
+          ),
+          _PolicyField(
+            key: SurfacePolicyOverrideKeys.segmentCacheRecentProtectCount,
+            title: 'Yakın oynatılan koruma sayısı',
+            defaultValue: ReadBudgetRegistry.segmentCacheRecentProtectCount,
           ),
         ],
       ),
