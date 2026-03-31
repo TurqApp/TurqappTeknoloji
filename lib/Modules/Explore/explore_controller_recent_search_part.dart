@@ -249,6 +249,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
         subcollection: 'lastSearches',
         items: next.take(200).toList(growable: false),
       );
+      await CurrentUserService.instance.addRecentSearchLocal(cleanTarget);
     } catch (_) {
     } finally {
       await _reloadRecentSearchUsers();
@@ -284,6 +285,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
         items:
             existing.where((e) => e.id != cleanTarget).toList(growable: false),
       );
+      await CurrentUserService.instance.removeRecentSearchLocal(cleanTarget);
     } catch (_) {
       recentSearchUsers.value = before;
       await _saveRecentSearchUsersCache();

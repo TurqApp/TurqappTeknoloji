@@ -258,7 +258,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
           currentUid: userID,
         );
 
-        CurrentUserService.instance.forceRefresh();
+        await CurrentUserService.instance.addBlockedUserLocal(userID);
         await ViewerSurfaceInvalidationService.invalidateForViewer(currentUid);
         getUserData();
         isFollowingCheck();
@@ -280,7 +280,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
           subcollection: 'blockedUsers',
           docId: userID,
         );
-        CurrentUserService.instance.forceRefresh();
+        await CurrentUserService.instance.removeBlockedUserLocal(userID);
         await ViewerSurfaceInvalidationService.invalidateForViewer(currentUid);
         getUserData();
         isFollowingCheck();

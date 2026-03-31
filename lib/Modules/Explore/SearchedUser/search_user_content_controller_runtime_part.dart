@@ -28,7 +28,7 @@ Future<void> _goToSearchUserProfile(
       },
     );
 
-    await CurrentUserService.instance.forceRefresh();
+    await CurrentUserService.instance.addRecentSearchLocal(controller.userID);
   } catch (_) {
   } finally {
     maybeFindExploreController()?.resumeExplorePreview();
@@ -46,5 +46,5 @@ Future<void> _removeFromSearchUserLastSearch(
     subcollection: 'lastSearches',
     docId: controller.userID,
   );
-  await CurrentUserService.instance.forceRefresh();
+  await CurrentUserService.instance.removeRecentSearchLocal(controller.userID);
 }

@@ -59,6 +59,7 @@ class SearchUserContent extends StatelessWidget {
           'timeStamp': DateTime.now().millisecondsSinceEpoch,
         },
       );
+      await CurrentUserService.instance.addRecentSearchLocal(targetUid);
       await maybeFindExploreController()?.refreshRecentSearchUsers();
     } catch (_) {}
   }
@@ -103,6 +104,7 @@ class SearchUserContent extends StatelessWidget {
           subcollection: 'lastSearches',
           docId: targetUid,
         );
+        await CurrentUserService.instance.removeRecentSearchLocal(targetUid);
       }
     } catch (_) {}
   }

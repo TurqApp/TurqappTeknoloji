@@ -1,6 +1,33 @@
 part of 'current_user_service.dart';
 
 extension CurrentUserServiceAccountPart on CurrentUserService {
+  List<String> _normalizeLocalUserIdList(
+    Iterable<dynamic> source, {
+    int? maxItems,
+  }) {
+    final seen = <String>{};
+    final next = <String>[];
+    for (final raw in source) {
+      final value = raw.toString().trim();
+      if (value.isEmpty) continue;
+      if (!seen.add(value)) continue;
+      next.add(value);
+      if (maxItems != null && next.length >= maxItems) {
+        break;
+      }
+    }
+    return next;
+  }
+
+  bool _sameStringList(List<String> left, List<String> right) {
+    if (identical(left, right)) return true;
+    if (left.length != right.length) return false;
+    for (var i = 0; i < left.length; i++) {
+      if (left[i] != right[i]) return false;
+    }
+    return true;
+  }
+
   Future<void> restorePendingDeletionIfNeededForCurrentUser() async {
     final firebaseUser = currentAuthUser;
     if (firebaseUser == null) return;
@@ -104,6 +131,63 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
             clampNonNegative(current.counterOfFollowings + followingsDelta),
       ),
     );
+  }
+
+  Future<void> addBlockedUserLocal(String userId) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = _normalizeLocalUserIdList([
+      ...current.blockedUsers,
+      cleanUserId,
+    ]);
+    if (_sameStringList(next, current.blockedUsers)) return;
+    await _updateUser(current.copyWith(blockedUsers: next));
+  }
+
+  Future<void> removeBlockedUserLocal(String userId) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = current.blockedUsers
+        .where((entry) => entry.trim() != cleanUserId)
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+    if (_sameStringList(next, current.blockedUsers)) return;
+    await _updateUser(current.copyWith(blockedUsers: next));
+  }
+
+  Future<void> addRecentSearchLocal(
+    String userId, {
+    int maxEntries = 100,
+  }) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = _normalizeLocalUserIdList(
+      [cleanUserId, ...current.lastSearchList],
+      maxItems: maxEntries,
+    );
+    if (_sameStringList(next, current.lastSearchList)) return;
+    await _updateUser(current.copyWith(lastSearchList: next));
+  }
+
+  Future<void> removeRecentSearchLocal(String userId) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = current.lastSearchList
+        .where((entry) => entry.trim() != cleanUserId)
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+    if (_sameStringList(next, current.lastSearchList)) return;
+    await _updateUser(current.copyWith(lastSearchList: next));
   }
 
   Future<void> _applyOptimisticLocalPatch(
