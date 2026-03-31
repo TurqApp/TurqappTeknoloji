@@ -358,17 +358,34 @@ function buildSearchDoc(docId, data) {
 function shouldIndex(doc) {
     return doc.active && doc.title.trim().length > 0;
 }
-async function syncMarketDoc(docId, afterData) {
+function marketDocsEqual(left, right) {
+    if (!left || !right)
+        return false;
+    return JSON.stringify(left) === JSON.stringify(right);
+}
+async function syncMarketDoc(docId, beforeData, afterData) {
+    const beforeDoc = beforeData ? buildSearchDoc(docId, beforeData) : null;
+    const afterDoc = afterData ? buildSearchDoc(docId, afterData) : null;
+    const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
+    const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
     if (!afterData) {
+        if (!beforeIndexed) {
+            return;
+        }
         await deleteDoc(docId);
         return;
     }
-    const doc = buildSearchDoc(docId, afterData);
-    if (!shouldIndex(doc)) {
+    if (!afterIndexed || !afterDoc) {
+        if (!beforeIndexed) {
+            return;
+        }
         await deleteDoc(docId);
         return;
     }
-    await upsertDoc(doc);
+    if (beforeIndexed && marketDocsEqual(beforeDoc, afterDoc)) {
+        return;
+    }
+    await upsertDoc(afterDoc);
 }
 function quoteFilterValue(value) {
     return `\`${value.replace(/`/g, "\\`")}\``;
@@ -502,8 +519,9 @@ exports.f25_syncMarketToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncMarketDoc(docId, afterData);
+    await syncMarketDoc(docId, beforeData, afterData);
 });
 exports.f25_ensureMarketTypesenseCollectionCallable = (0, https_1.onCall)({
     region: REGION,

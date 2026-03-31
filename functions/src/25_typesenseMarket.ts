@@ -478,19 +478,45 @@ function shouldIndex(doc: MarketSearchDoc): boolean {
   return doc.active && doc.title.trim().length > 0;
 }
 
-async function syncMarketDoc(docId: string, afterData?: Record<string, unknown>) {
+function marketDocsEqual(
+  left: MarketSearchDoc | null | undefined,
+  right: MarketSearchDoc | null | undefined
+): boolean {
+  if (!left || !right) return false;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+async function syncMarketDoc(
+  docId: string,
+  beforeData?: Record<string, unknown>,
+  afterData?: Record<string, unknown>
+) {
+  const beforeDoc = beforeData ? buildSearchDoc(docId, beforeData) : null;
+  const afterDoc = afterData ? buildSearchDoc(docId, afterData) : null;
+  const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
+  const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
+
   if (!afterData) {
+    if (!beforeIndexed) {
+      return;
+    }
     await deleteDoc(docId);
     return;
   }
 
-  const doc = buildSearchDoc(docId, afterData);
-  if (!shouldIndex(doc)) {
+  if (!afterIndexed || !afterDoc) {
+    if (!beforeIndexed) {
+      return;
+    }
     await deleteDoc(docId);
     return;
   }
 
-  await upsertDoc(doc);
+  if (beforeIndexed && marketDocsEqual(beforeDoc, afterDoc)) {
+    return;
+  }
+
+  await upsertDoc(afterDoc);
 }
 
 function quoteFilterValue(value: string): string {
@@ -632,8 +658,9 @@ export const f25_syncMarketToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncMarketDoc(docId, afterData);
+    await syncMarketDoc(docId, beforeData, afterData);
   }
 );
 
