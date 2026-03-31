@@ -29,11 +29,9 @@ class ShortRefreshPlan {
 class ShortAppendPlan {
   const ShortAppendPlan({
     required this.itemsToAppend,
-    required this.shouldShuffleBeforeAppend,
   });
 
   final List<PostsModel> itemsToAppend;
-  final bool shouldShuffleBeforeAppend;
 }
 
 class ShortFeedApplicationService {
@@ -106,7 +104,6 @@ class ShortFeedApplicationService {
   ShortAppendPlan buildAppendPlan({
     required List<PostsModel> currentShorts,
     required List<PostsModel> fetchedPosts,
-    required bool globalShuffleCompleted,
     required bool Function(PostsModel post) isEligiblePost,
   }) {
     final existingIds = currentShorts.map((post) => post.docID).toSet();
@@ -117,9 +114,6 @@ class ShortFeedApplicationService {
 
     return ShortAppendPlan(
       itemsToAppend: incoming,
-      shouldShuffleBeforeAppend: currentShorts.isEmpty &&
-          !globalShuffleCompleted &&
-          incoming.isNotEmpty,
     );
   }
 

@@ -9,7 +9,6 @@ final double _neighborBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 3.6 : 3.6;
 final double _prepBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 2.8 : 3.0;
-bool _globalShuffleCompleted = false;
 
 ShortController _ensureShortController() {
   final existing = _maybeFindShortController();

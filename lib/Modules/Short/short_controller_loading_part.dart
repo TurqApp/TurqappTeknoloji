@@ -301,7 +301,7 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<void> _performInitialLoad() async {
     _log(
-      '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: $_globalShuffleCompleted)',
+      '[Shorts] loadInitialShorts - BAŞLADI',
     );
     _log(
       '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}',
@@ -614,20 +614,11 @@ extension ShortControllerLoadingPart on ShortController {
       final appendPlan = _shortFeedApplicationService.buildAppendPlan(
         currentShorts: shorts.toList(growable: false),
         fetchedPosts: result.posts,
-        globalShuffleCompleted: _globalShuffleCompleted,
         isEligiblePost: _isEligibleShortPost,
       );
       if (appendPlan.itemsToAppend.isNotEmpty) {
-        if (appendPlan.shouldShuffleBeforeAppend) {
-          final shuffled = List<PostsModel>.from(appendPlan.itemsToAppend);
-          shuffled.shuffle();
-          shorts.addAll(shuffled);
-          unawaited(_persistVisibleSnapshot());
-          _globalShuffleCompleted = true;
-        } else {
-          shorts.addAll(appendPlan.itemsToAppend);
-          unawaited(_persistVisibleSnapshot());
-        }
+        shorts.addAll(appendPlan.itemsToAppend);
+        unawaited(_persistVisibleSnapshot());
       }
 
       hasMore.value = result.hasMore;
