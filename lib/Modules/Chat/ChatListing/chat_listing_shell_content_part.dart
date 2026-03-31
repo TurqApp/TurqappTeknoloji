@@ -2,21 +2,11 @@ part of 'chat_listing.dart';
 
 extension ChatListingShellContentPart on _ChatListingState {
   Future<void> _archiveChat(ChatListingModel item) async {
-    await _conversationRepository.setArchived(
-      currentUid: _uid,
-      otherUserId: item.userID,
-      chatId: item.chatID,
-      archived: true,
-    );
+    await controller.setArchived(item, archived: true);
   }
 
   Future<void> _unarchiveChat(ChatListingModel item) async {
-    await _conversationRepository.setArchived(
-      currentUid: _uid,
-      otherUserId: item.userID,
-      chatId: item.chatID,
-      archived: false,
-    );
+    await controller.setArchived(item, archived: false);
   }
 
   Widget _buildPageContent(BuildContext context) {

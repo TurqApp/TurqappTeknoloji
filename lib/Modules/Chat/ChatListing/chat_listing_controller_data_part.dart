@@ -1,6 +1,12 @@
 part of 'chat_listing_controller.dart';
 
 extension ChatListingControllerDataPart on ChatListingController {
+  Future<void> _bootstrapCacheFirstList() async {
+    await _restoreCachedList();
+    if (_cacheLoaded) return;
+    await getList(forceServer: false);
+  }
+
   Future<void> _restoreCachedList() async {
     if (_cacheLoaded) return;
     final cached = await _loadCachedList();
@@ -44,11 +50,14 @@ extension ChatListingControllerDataPart on ChatListingController {
   }
 
   Future<void> _saveCachedList(List<ChatListingModel> items) async {
-    if (items.isEmpty) return;
     final key = _cacheKey;
     if (key.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (items.isEmpty) {
+        await prefs.remove(key);
+        return;
+      }
       final payload = jsonEncode(items.map((e) => e.toJson()).toList());
       await prefs.setString(key, payload);
     } catch (_) {}
@@ -211,22 +220,39 @@ extension ChatListingControllerDataPart on ChatListingController {
     required bool preferCache,
     required bool cacheOnly,
   }) async {
-    final tempList = <ChatListingModel>[];
     final uid = _uid;
-    final prefs = await SharedPreferences.getInstance();
     final docs = await _conversationRepository.fetchUserConversations(
       uid,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
       includeLegacy: true,
     );
-    if (docs.isEmpty) {
-      return tempList;
-    }
+    return _buildListingsFromConversationDocs(
+      docs,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+      existingByChatId: {
+        for (final item in list)
+          item.chatID: ChatListingModel.fromJson(item.toJson()),
+      },
+    );
+  }
 
+  Future<List<ChatListingModel>> _buildListingsFromConversationDocs(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
+    required bool preferCache,
+    required bool cacheOnly,
+    required Map<String, ChatListingModel> existingByChatId,
+  }) async {
+    final uid = _uid;
+    if (uid.isEmpty) return const <ChatListingModel>[];
+    final prefs = await SharedPreferences.getInstance();
     final userCache = ensureUserProfileCacheService();
+    final tempList = <ChatListingModel>[];
+
     for (final doc in docs) {
       final data = doc.data();
+      final existing = existingByChatId[doc.id];
       final isArchived =
           _conversationRepository.participantBoolValue(data["archived"], uid);
       final isPinned =
@@ -256,12 +282,29 @@ extension ChatListingControllerDataPart on ChatListingController {
         if (userID2 == uid) otherUserId = userID1;
       }
       if (otherUserId == null || otherUserId.isEmpty) continue;
-      final userData = await userCache.getProfile(
+
+      Map<String, dynamic>? userData;
+      if (existing != null && existing.userID == otherUserId) {
+        final nameParts = existing.fullName
+            .split(' ')
+            .map((part) => part.trim())
+            .where((part) => part.isNotEmpty)
+            .toList(growable: false);
+        userData = <String, dynamic>{
+          'nickname': existing.nickname,
+          'firstName': nameParts.isEmpty ? '' : nameParts.first,
+          'lastName':
+              nameParts.length <= 1 ? '' : nameParts.skip(1).join(' ').trim(),
+          'avatarUrl': existing.avatarUrl,
+        };
+      }
+      userData ??= await userCache.getProfile(
         otherUserId,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
       if (userData == null) continue;
+
       final serverUnread =
           _conversationRepository.participantIntValue(data["unread"], uid);
       final hasPreviewOverride =
@@ -320,11 +363,7 @@ extension ChatListingControllerDataPart on ChatListingController {
             .toString(),
         fullName: "${userData["firstName"] ?? ""} ${userData["lastName"] ?? ""}"
             .trim(),
-        avatarUrl: (userData["avatarUrl"] ??
-                userData["avatarUrl"] ??
-                userData["avatarUrl"] ??
-                "")
-            .toString(),
+        avatarUrl: (userData["avatarUrl"] ?? "").toString(),
         lastMessage: previewText,
         unreadCount: unreadCount,
         isConversation: true,
@@ -337,6 +376,50 @@ extension ChatListingControllerDataPart on ChatListingController {
     return tempList;
   }
 
+  Future<void> _applyRealtimeConversationSnapshot(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) async {
+    if (docs.isEmpty) return;
+    final existingByChatId = {
+      for (final item in list)
+        item.chatID: ChatListingModel.fromJson(item.toJson()),
+    };
+    final next = {
+      for (final entry in existingByChatId.entries) entry.key: entry.value,
+    };
+    final updated = await _buildListingsFromConversationDocs(
+      docs,
+      preferCache: true,
+      cacheOnly: _isOffline,
+      existingByChatId: existingByChatId,
+    );
+    for (final item in updated) {
+      next[item.chatID] = item;
+    }
+    final sorted = _sortChatListings(next.values.toList(growable: false));
+    list.assignAll(sorted);
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _saveCachedList(sorted);
+    _cacheLoaded = true;
+  }
+
+  List<ChatListingModel> _sortChatListings(List<ChatListingModel> items) {
+    final sorted = [...items];
+    sorted.sort((a, b) {
+      if (a.isPinned != b.isPinned) {
+        return a.isPinned ? -1 : 1;
+      }
+      final aTs = int.tryParse(a.timeStamp) ?? 0;
+      final bTs = int.tryParse(b.timeStamp) ?? 0;
+      return bTs.compareTo(aTs);
+    });
+    return sorted;
+  }
+
   void startConversationListener() {
     final uid = _uid;
     _syncTimer?.cancel();
@@ -344,11 +427,12 @@ extension ChatListingControllerDataPart on ChatListingController {
     if (uid.isEmpty) return;
 
     if (!_isOffline) {
-      _conversationsSub =
-          _conversationRepository.watchUserConversations(uid).listen((_) {
+      _conversationsSub = _conversationRepository
+          .watchUserConversations(uid)
+          .listen((snapshot) {
         _realtimeRefreshDebounce?.cancel();
         _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 350), () {
-          getList(forceServer: false, silent: true);
+          unawaited(_applyRealtimeConversationSnapshot(snapshot.docs));
         });
       }, onError: (_) {});
       return;

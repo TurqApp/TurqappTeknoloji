@@ -29,8 +29,7 @@ extension ChatListingControllerFacadePart on ChatListingController {
 
 void _handleChatListingInit(ChatListingController controller) {
   controller.search.addListener(controller._onSearchChanged);
-  controller._restoreCachedList();
-  controller.getList(forceServer: false);
+  unawaited(controller._bootstrapCacheFirstList());
   controller.startConversationListener();
   controller._listenCacheInvalidations();
 }

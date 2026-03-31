@@ -1,6 +1,59 @@
 part of 'chat_listing_controller.dart';
 
 extension ChatListingControllerActionsPart on ChatListingController {
+  void _commitListMutation(List<ChatListingModel> items) {
+    final sorted = _sortChatListings(items);
+    list.assignAll(sorted);
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _saveCachedList(sorted);
+  }
+
+  List<ChatListingModel> _cloneCurrentList() =>
+      list.map((item) => ChatListingModel.fromJson(item.toJson())).toList();
+
+  void _applyArchiveLocal({
+    required String chatId,
+    required bool archived,
+  }) {
+    final next = _cloneCurrentList();
+    for (final entry in next) {
+      if (entry.chatID != chatId) continue;
+      final deletedFlags =
+          entry.deleted.where((value) => value != "__archived__").toList();
+      if (archived) {
+        deletedFlags.add("__archived__");
+      }
+      entry.deleted = deletedFlags;
+    }
+    _commitListMutation(next);
+  }
+
+  void _applyDeleteLocal({
+    required ChatListingModel item,
+    required int deletedCutoff,
+  }) {
+    final next = _cloneCurrentList();
+    for (final entry in next) {
+      if (entry.chatID != item.chatID) continue;
+      entry.deleted = entry.deleted
+          .where((value) => value != "__archived__" && value != "__deleted__")
+          .toList()
+        ..add("__deleted__");
+      entry.unreadCount = 0;
+    }
+    _commitListMutation(next);
+    maybeFindUnreadMessagesController()?.updateConversationUnreadLocal(
+      otherUid: item.userID,
+      chatId: item.chatID,
+      unreadCount: 0,
+      seenAtMs: deletedCutoff,
+    );
+  }
+
   void _onSearchChanged() {
     final query = search.text.trim();
 
@@ -148,27 +201,56 @@ extension ChatListingControllerActionsPart on ChatListingController {
     final now = DateTime.now().millisecondsSinceEpoch;
     final conversationTs = int.tryParse(item.timeStamp) ?? 0;
     final deletedCutoff = conversationTs > now ? conversationTs : now;
-    await _conversationRepository.setDeletedCutoff(
-      currentUid: _uid,
-      otherUserId: item.userID,
-      chatId: item.chatID,
-      deletedAt: deletedCutoff,
+    final previous = _cloneCurrentList();
+    ChatListingModel? previousEntry;
+    for (final entry in previous) {
+      if (entry.chatID == item.chatID) {
+        previousEntry = entry;
+        break;
+      }
+    }
+    _applyDeleteLocal(
+      item: item,
+      deletedCutoff: deletedCutoff,
     );
+    try {
+      await _conversationRepository.setDeletedCutoff(
+        currentUid: _uid,
+        otherUserId: item.userID,
+        chatId: item.chatID,
+        deletedAt: deletedCutoff,
+      );
+    } catch (_) {
+      _commitListMutation(previous);
+      maybeFindUnreadMessagesController()?.updateConversationUnreadLocal(
+        otherUid: item.userID,
+        chatId: item.chatID,
+        unreadCount: previousEntry?.unreadCount ?? item.unreadCount,
+      );
+      rethrow;
+    }
+  }
 
-    for (final entry in list) {
-      if (entry.chatID != item.chatID) continue;
-      entry.deleted = entry.deleted
-          .where((value) => value != "__archived__" && value != "__deleted__")
-          .toList()
-        ..add("__deleted__");
+  Future<void> setArchived(
+    ChatListingModel item, {
+    required bool archived,
+  }) async {
+    final previous = _cloneCurrentList();
+    _applyArchiveLocal(
+      chatId: item.chatID,
+      archived: archived,
+    );
+    try {
+      await _conversationRepository.setArchived(
+        currentUid: _uid,
+        otherUserId: item.userID,
+        chatId: item.chatID,
+        archived: archived,
+      );
+    } catch (_) {
+      _commitListMutation(previous);
+      rethrow;
     }
-    list.refresh();
-    if (search.text.trim().isEmpty) {
-      _applyTabFilter();
-    } else {
-      _onSearchChanged();
-    }
-    _saveCachedList(list.toList());
   }
 
   void showCreateChatBottomSheet() {
