@@ -163,10 +163,13 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
             height: 56,
             color: const Color(0xFFF3F4F6),
             child: offer.coverImageUrl.trim().isNotEmpty
-                ? Image.network(
-                    offer.coverImageUrl,
+                ? CacheFirstNetworkImage(
+                    imageUrl: offer.coverImageUrl,
+                    cacheManager: TurqImageCacheManager.instance,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
+                    memCacheWidth: 160,
+                    memCacheHeight: 160,
+                    fallback: const Icon(
                       Icons.shopping_bag_outlined,
                       color: Colors.black45,
                     ),

@@ -3,8 +3,10 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -245,12 +247,13 @@ class MarketListingCard extends StatelessWidget {
     required double radius,
   }) {
     final child = item.coverImageUrl.isNotEmpty
-        ? Image.network(
-            item.coverImageUrl,
+        ? CacheFirstNetworkImage(
+            imageUrl: item.coverImageUrl,
+            cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            errorBuilder: (_, __, ___) => _buildItemFallback(item, accent),
+            memCacheWidth: 240,
+            memCacheHeight: 240,
+            fallback: _buildItemFallback(item, accent),
           )
         : _buildItemFallback(item, accent);
     return ClipRRect(

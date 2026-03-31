@@ -50,13 +50,11 @@ class _MarketGridMediaState extends State<_MarketGridMedia> {
         child: Container(
           color: widget.accent.withValues(alpha: 0.12),
           child: allImages.isNotEmpty
-              ? Image.network(
-                  allImages.first,
+              ? CacheFirstNetworkImage(
+                  imageUrl: allImages.first,
+                  cacheManager: TurqImageCacheManager.instance,
                   fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (_, __, ___) =>
-                      widget.fallbackBuilder(widget.item, widget.accent),
+                  fallback: widget.fallbackBuilder(widget.item, widget.accent),
                 )
               : widget.fallbackBuilder(widget.item, widget.accent),
         ),
@@ -80,12 +78,11 @@ class _MarketGridMediaState extends State<_MarketGridMedia> {
               itemBuilder: (context, index) {
                 return Container(
                   color: widget.accent.withValues(alpha: 0.12),
-                  child: Image.network(
-                    allImages[index],
+                  child: CacheFirstNetworkImage(
+                    imageUrl: allImages[index],
+                    cacheManager: TurqImageCacheManager.instance,
                     fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (_, __, ___) =>
+                    fallback:
                         widget.fallbackBuilder(widget.item, widget.accent),
                   ),
                 );

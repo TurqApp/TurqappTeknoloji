@@ -170,19 +170,22 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
                 : () => Get.to(() => SocialProfile(userID: item.userId)),
             child: Row(
               children: [
-                CircleAvatar(
+                CachedUserAvatar(
                   radius: 20,
+                  imageUrl: item.sellerPhotoUrl.trim().isNotEmpty
+                      ? item.sellerPhotoUrl
+                      : null,
                   backgroundColor: const Color(0xFFE5E7EB),
-                  backgroundImage: item.sellerPhotoUrl.trim().isNotEmpty
-                      ? NetworkImage(item.sellerPhotoUrl)
-                      : null,
-                  child: item.sellerPhotoUrl.trim().isEmpty
-                      ? const Icon(
-                          CupertinoIcons.person_fill,
-                          color: Colors.black54,
-                          size: 18,
-                        )
-                      : null,
+                  placeholder: const Icon(
+                    CupertinoIcons.person_fill,
+                    color: Colors.black54,
+                    size: 18,
+                  ),
+                  errorWidget: const Icon(
+                    CupertinoIcons.person_fill,
+                    color: Colors.black54,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(

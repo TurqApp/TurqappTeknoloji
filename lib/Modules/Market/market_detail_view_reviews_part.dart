@@ -190,14 +190,20 @@ extension _MarketDetailViewReviewsPart on _MarketDetailViewState {
         children: [
           Row(
             children: [
-              CircleAvatar(
+              CachedUserAvatar(
                 radius: 14,
+                imageUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
                 backgroundColor: const Color(0xFFE5E7EB),
-                backgroundImage:
-                    avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                child: avatarUrl.isEmpty
-                    ? const Icon(Icons.person, size: 16, color: Colors.black54)
-                    : null,
+                placeholder: const Icon(
+                  Icons.person,
+                  size: 16,
+                  color: Colors.black54,
+                ),
+                errorWidget: const Icon(
+                  Icons.person,
+                  size: 16,
+                  color: Colors.black54,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(

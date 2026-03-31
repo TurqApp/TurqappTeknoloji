@@ -242,10 +242,13 @@ extension _MarketSearchViewContentPart on _MarketSearchViewState {
                 color: accent,
                 size: 26,
               )
-            : Image.network(
-                imageUrl,
+            : CacheFirstNetworkImage(
+                imageUrl: imageUrl,
+                cacheManager: TurqImageCacheManager.instance,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(
+                memCacheWidth: 160,
+                memCacheHeight: 160,
+                fallback: Icon(
                   CupertinoIcons.cube_box_fill,
                   color: accent,
                   size: 26,

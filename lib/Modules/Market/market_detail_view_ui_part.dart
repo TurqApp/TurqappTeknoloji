@@ -29,10 +29,11 @@ extension _MarketDetailViewUiPart on _MarketDetailViewState {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: image.isNotEmpty
-                  ? Image.network(
-                      image,
+                  ? CacheFirstNetworkImage(
+                      imageUrl: image,
+                      cacheManager: TurqImageCacheManager.instance,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imageFallback(),
+                      fallback: _imageFallback(),
                     )
                   : _imageFallback(),
             ),
@@ -209,10 +210,13 @@ extension _MarketDetailViewUiPart on _MarketDetailViewState {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: related.coverImageUrl.isNotEmpty
-                    ? Image.network(
-                        related.coverImageUrl,
+                    ? CacheFirstNetworkImage(
+                        imageUrl: related.coverImageUrl,
+                        cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imageFallback(),
+                        memCacheWidth: 320,
+                        memCacheHeight: 320,
+                        fallback: _imageFallback(),
                       )
                     : _imageFallback(),
               ),
