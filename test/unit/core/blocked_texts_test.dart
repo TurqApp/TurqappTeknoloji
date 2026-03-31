@@ -9,8 +9,8 @@ void main() {
 
   test('static blocked word list still matches normalized input', () async {
     BlockWordConfigService.instance.setTestOverride(enabled: false);
-    expect(await kufurKontrolEt('Aptal!!!'), isTrue);
     expect(await kufurKontrolEt('hassiktir'), isTrue);
+    expect(await kufurKontrolEt('götünü sikeyim'), isTrue);
   });
 
   test('adminConfig blockWord words are applied client-side', () async {
@@ -30,7 +30,16 @@ void main() {
     );
 
     expect(await kufurKontrolEt('sadeceadmin'), isFalse);
-    expect(await kufurKontrolEt('aptal'), isTrue);
+    expect(await kufurKontrolEt('hassiktir'), isTrue);
+  });
+
+  test('removed review terms are no longer blocked by static list', () async {
+    BlockWordConfigService.instance.setTestOverride(enabled: false);
+
+    expect(await kufurKontrolEt('aptal'), isFalse);
+    expect(await kufurKontrolEt('anal'), isFalse);
+    expect(await kufurKontrolEt('vajina'), isFalse);
+    expect(await kufurKontrolEt('verdammt'), isFalse);
   });
 
   test('turkish suffix variations are detected', () async {
