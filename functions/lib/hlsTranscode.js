@@ -4,6 +4,7 @@ exports.onVideoUpload = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const child_process_1 = require("child_process");
+const crypto_1 = require("crypto");
 const util_1 = require("util");
 const path = require("path");
 const os = require("os");
@@ -15,6 +16,35 @@ if (admin.apps.length === 0) {
 const db = admin.firestore();
 const storage = admin.storage();
 const CDN_DOMAIN = "cdn.turqapp.com";
+const buildTokenizedCdnUrl = (bucketName, storagePath, token) => `https://${CDN_DOMAIN}/v0/b/${bucketName}/o/${encodeURIComponent(storagePath)}?alt=media&token=${encodeURIComponent(token)}`;
+const extractDownloadToken = (metadata) => {
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+        return "";
+    }
+    const raw = String(metadata
+        .firebaseStorageDownloadTokens || "").trim();
+    if (!raw)
+        return "";
+    return raw
+        .split(",")
+        .map((item) => item.trim())
+        .find(Boolean) || "";
+};
+const buildProtectedAssetUrl = async (bucket, storagePath) => {
+    const file = bucket.file(storagePath);
+    const [metadata] = await file.getMetadata();
+    let token = extractDownloadToken(metadata.metadata);
+    if (!token) {
+        token = (0, crypto_1.randomUUID)();
+        await file.setMetadata({
+            metadata: {
+                ...(metadata.metadata || {}),
+                firebaseStorageDownloadTokens: token,
+            },
+        });
+    }
+    return buildTokenizedCdnUrl(bucket.name, storagePath, token);
+};
 const TURQ_CLEAN_VISION = Object.freeze({
     brightness: 0.05,
     contrast: 0.88,
@@ -332,7 +362,7 @@ exports.onVideoUpload = functions
                         },
                     }).catch((e) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
                 ]);
-                thumbnailUrl = `https://${CDN_DOMAIN}/${thumbnailWebpStoragePath}`;
+                thumbnailUrl = await buildProtectedAssetUrl(bucket, thumbnailWebpStoragePath);
                 console.log(`[HLS] Thumbnails uploaded: JPEG + WebP`);
             }
             catch (thumbErr) {
