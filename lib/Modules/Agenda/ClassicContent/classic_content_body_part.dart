@@ -639,39 +639,6 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     ),
                   ),
                 _buildIzBirakBlurOverlay(),
-                // Süre göstergesi filtrenin üstünde kalmalı
-                if (videoController != null && !_shouldBlurIzBirakPost)
-                  ValueListenableBuilder<HLSVideoValue>(
-                    valueListenable: videoValueNotifier,
-                    builder: (_, v, __) {
-                      if (!v.isInitialized) return const SizedBox.shrink();
-                      final remaining = v.duration - v.position;
-                      final safeRemaining =
-                          remaining.isNegative ? Duration.zero : remaining;
-                      return Positioned(
-                        top: 42,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _formatDuration(safeRemaining),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: "Montserrat",
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
                 _buildIzBirakBottomBar(),
                 if (!_isIzBirakPost)
                   Positioned(
@@ -744,6 +711,38 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     ),
                   ),
                 _buildClassicMediaHeader(),
+                if (videoController != null && !_shouldBlurIzBirakPost)
+                  ValueListenableBuilder<HLSVideoValue>(
+                    valueListenable: videoValueNotifier,
+                    builder: (_, v, __) {
+                      if (!v.isInitialized) return const SizedBox.shrink();
+                      final remaining = v.duration - v.position;
+                      final safeRemaining =
+                          remaining.isNegative ? Duration.zero : remaining;
+                      return Positioned(
+                        top: 40,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _formatDuration(safeRemaining),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: "Montserrat",
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
           ),
