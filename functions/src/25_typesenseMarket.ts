@@ -53,6 +53,7 @@ type SearchMarketInput = {
   limit?: number;
   page?: number;
   docId?: string;
+  docIds?: string[];
   userId?: string;
   categoryKey?: string;
   city?: string;
@@ -499,12 +500,16 @@ function quoteFilterValue(value: string): string {
 function buildFilterBy(input: SearchMarketInput): string {
   const filters = ["active:=true"];
   const docId = asString(input.docId);
+  const docIds = asStringArray(input.docIds);
   const userId = asString(input.userId);
   const categoryKey = asString(input.categoryKey);
   const city = asString(input.city);
   const district = asString(input.district);
 
   if (docId) filters.push(`docId:=${quoteFilterValue(docId)}`);
+  if (!docId && docIds.length) {
+    filters.push(`docId:=[${docIds.map(quoteFilterValue).join(",")}]`);
+  }
   if (userId) filters.push(`userId:=${quoteFilterValue(userId)}`);
   if (categoryKey) filters.push(`categoryKey:=${quoteFilterValue(categoryKey)}`);
   if (city) filters.push(`city:=${quoteFilterValue(city)}`);
@@ -676,6 +681,7 @@ export const f25_searchMarketCallable = onCall(
         limit,
         page,
         docId: request.data?.docId,
+        docIds: Array.isArray(request.data?.docIds) ? request.data?.docIds : undefined,
         userId: request.data?.userId,
         categoryKey: request.data?.categoryKey,
         city: request.data?.city,

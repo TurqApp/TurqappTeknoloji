@@ -43,6 +43,7 @@ class TypesenseMarketSearchService {
     int limit = 30,
     int page = 1,
     String? docId,
+    List<String> docIds = const <String>[],
     String? userId,
     String? categoryKey,
     String? city,
@@ -56,6 +57,7 @@ class TypesenseMarketSearchService {
         limit: limit,
         page: page,
         docId: docId,
+        docIds: docIds,
         userId: userId,
         categoryKey: categoryKey,
         city: city,
@@ -118,16 +120,24 @@ class TypesenseMarketSearchService {
     required int limit,
     required int page,
     String? docId,
+    List<String> docIds = const <String>[],
     String? userId,
     String? categoryKey,
     String? city,
     String? district,
   }) {
+    final normalizedDocIds = docIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
     return <String>[
       'q=${query.trim()}',
       'limit=$limit',
       'page=$page',
       'docId=${(docId ?? '').trim()}',
+      'docIds=${normalizedDocIds.join(',')}',
       'userId=${(userId ?? '').trim()}',
       'categoryKey=${(categoryKey ?? '').trim()}',
       'city=${(city ?? '').trim()}',

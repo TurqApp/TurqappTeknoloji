@@ -26,6 +26,7 @@ extension TypesenseMarketSearchServiceSearchPart
     required int limit,
     required int page,
     String? docId,
+    List<String> docIds = const <String>[],
     String? userId,
     String? categoryKey,
     String? city,
@@ -40,6 +41,7 @@ extension TypesenseMarketSearchServiceSearchPart
       limit: limit,
       page: page,
       docId: docId,
+      docIds: docIds,
       userId: userId,
       categoryKey: categoryKey,
       city: city,
@@ -65,6 +67,11 @@ extension TypesenseMarketSearchServiceSearchPart
       'limit': limit,
       'page': page,
       if ((docId ?? '').trim().isNotEmpty) 'docId': docId,
+      if (docIds.any((id) => id.trim().isNotEmpty))
+        'docIds': docIds
+            .map((id) => id.trim())
+            .where((id) => id.isNotEmpty)
+            .toList(growable: false),
       if ((userId ?? '').trim().isNotEmpty) 'userId': userId,
       if ((categoryKey ?? '').trim().isNotEmpty) 'categoryKey': categoryKey,
       if ((city ?? '').trim().isNotEmpty) 'city': city,
@@ -182,6 +189,7 @@ extension TypesenseMarketSearchServiceSearchPart
     final ids = docIds
         .map((id) => id.trim())
         .where((id) => id.isNotEmpty)
+        .toSet()
         .toList(growable: false);
     if (ids.isEmpty) return const <MarketItemModel>[];
 
@@ -195,20 +203,35 @@ extension TypesenseMarketSearchServiceSearchPart
           resolved[id] = memory.first;
           continue;
         }
+        final disk = await _getCachedFromPrefs('doc:$id');
+        if (disk != null && disk.items.isNotEmpty) {
+          _memory['doc:$id'] = disk;
+          resolved[id] = _cloneMarketItems(
+            <MarketItemModel>[disk.items.first],
+          ).first;
+          continue;
+        }
         missing.add(id);
       }
     } else {
       missing.addAll(ids);
     }
 
-    for (final id in missing) {
-      final item = await fetchByDocId(
-        id,
-        preferCache: preferCache,
+    const batchSize = 25;
+    for (var i = 0; i < missing.length; i += batchSize) {
+      final chunk = missing.skip(i).take(batchSize).toList(growable: false);
+      final items = await searchItems(
+        query: '*',
+        limit: chunk.length,
+        page: 1,
+        docIds: chunk,
+        preferCache: false,
         forceRefresh: forceRefresh,
       );
-      if (item != null) {
-        resolved[id] = item;
+      for (final item in items) {
+        final normalizedId = item.id.trim();
+        if (normalizedId.isEmpty) continue;
+        resolved[normalizedId] = item;
       }
     }
 
