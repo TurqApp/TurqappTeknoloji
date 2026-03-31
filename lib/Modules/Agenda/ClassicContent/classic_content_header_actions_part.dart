@@ -5,13 +5,13 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+        filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.035),
+            color: Colors.black.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.045),
+              color: Colors.white.withValues(alpha: 0.03),
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
