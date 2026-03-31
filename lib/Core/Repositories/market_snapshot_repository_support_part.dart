@@ -86,6 +86,7 @@ CacheFirstQueryPipeline<MarketOwnerQuery, List<MarketItemModel>,
         query.buildScopeId(MarketSnapshotRepository._ownerSurfaceKey),
     fetchRaw: repository._fetchOwnerItems,
     resolve: (items) => items,
+    loadWarmSnapshot: repository._loadOwnerWarmSnapshot,
     isEmpty: (items) => items.isEmpty,
     liveSource: CachedResourceSource.server,
     schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(

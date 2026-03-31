@@ -23,6 +23,22 @@ extension _MarketSnapshotRepositoryDataX on MarketSnapshotRepository {
     return items.isEmpty ? null : items;
   }
 
+  Future<List<MarketItemModel>?> _loadOwnerWarmSnapshot(
+    MarketOwnerQuery query,
+  ) async {
+    final normalizedUserId = query.userId.trim();
+    if (normalizedUserId.isEmpty) return null;
+    final items = await TypesenseMarketSearchService.instance.searchItems(
+      query: '*',
+      limit: query.effectiveLimit,
+      page: 1,
+      userId: normalizedUserId,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    return items.isEmpty ? null : items;
+  }
+
   Map<String, dynamic> _encodeItems(List<MarketItemModel> items) {
     return <String, dynamic>{
       'items': items.map((item) => item.toJson()).toList(growable: false),
