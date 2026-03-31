@@ -1,6 +1,6 @@
 part of 'cache_manager.dart';
 
-const Duration _watchedEvictionGracePeriod = Duration(hours: 6);
+const Duration _userInteractionEvictionGracePeriod = Duration(hours: 6);
 
 extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
   VideoCacheEntry? _findEvictionCandidate({bool preferLowQuality = false}) {
@@ -9,9 +9,14 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     final now = DateTime.now();
 
     Iterable<VideoCacheEntry> candidates = _index.entries.values.where(
-      (entry) =>
-          entry.state != VideoCacheState.watched ||
-          now.difference(entry.lastAccessedAt) >= _watchedEvictionGracePeriod,
+      (entry) {
+        final userInteractionAt = entry.lastUserInteractionAt;
+        if (userInteractionAt == null) {
+          return true;
+        }
+        return now.difference(userInteractionAt) >=
+            _userInteractionEvictionGracePeriod;
+      },
     );
     if (preferLowQuality) {
       final lowQuality = candidates.where(_isLowQualityEntry).toList();

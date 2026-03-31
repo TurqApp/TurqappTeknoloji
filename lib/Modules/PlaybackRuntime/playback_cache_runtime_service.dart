@@ -78,12 +78,14 @@ class SegmentCacheRuntimeService {
     this.entryReader,
     this.markPlayingAction,
     this.touchEntryAction,
+    this.touchUserEntryAction,
     this.updateWatchProgressAction,
   });
 
   final SegmentCacheEntryReader? entryReader;
   final SegmentCacheDocAction? markPlayingAction;
   final SegmentCacheDocAction? touchEntryAction;
+  final SegmentCacheDocAction? touchUserEntryAction;
   final SegmentCacheProgressAction? updateWatchProgressAction;
 
   VideoCacheEntry? _readEntry(String docId) {
@@ -118,6 +120,17 @@ class SegmentCacheRuntimeService {
     cache.touchEntry(docId);
   }
 
+  void _touchUserEntry(String docId) {
+    final action = touchUserEntryAction;
+    if (action != null) {
+      action(docId);
+      return;
+    }
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.touchUserEntry(docId);
+  }
+
   void _updateWatchProgress(String docId, double progress) {
     final action = updateWatchProgressAction;
     if (action != null) {
@@ -148,6 +161,10 @@ class SegmentCacheRuntimeService {
     _touchEntry(docId);
   }
 
+  void touchUserEntry(String docId) {
+    _touchUserEntry(docId);
+  }
+
   void updateWatchProgress(String docId, double progress) {
     _updateWatchProgress(docId, progress);
   }
@@ -165,7 +182,7 @@ class SegmentCacheRuntimeService {
       if (behindIndex < 0 || behindIndex >= orderedDocIds.length) {
         break;
       }
-      touchEntry(orderedDocIds[behindIndex]);
+      touchUserEntry(orderedDocIds[behindIndex]);
     }
   }
 }

@@ -80,6 +80,9 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   void touchEntry(String docID) =>
       _SegmentCacheManagerRuntimeX(this).touchEntry(docID);
 
+  void touchUserEntry(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).touchUserEntry(docID);
+
   Future<void> evictIfNeeded({int? targetBytes}) async {
     final target = targetBytes ?? softLimitBytes;
     while (_index.totalSizeBytes > target) {

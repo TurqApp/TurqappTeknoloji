@@ -84,11 +84,13 @@ void main() {
     };
     final marked = <String>[];
     final touched = <String>[];
+    final userTouched = <String>[];
     final progressUpdates = <String, double>{};
     final service = SegmentCacheRuntimeService(
       entryReader: (docId) => entries[docId],
       markPlayingAction: marked.add,
       touchEntryAction: touched.add,
+      touchUserEntryAction: userTouched.add,
       updateWatchProgressAction: (docId, progress) {
         progressUpdates[docId] = progress;
       },
@@ -106,7 +108,8 @@ void main() {
     service.updateWatchProgress('doc-c', 0.6);
 
     expect(marked, <String>['doc-c']);
-    expect(touched, <String>['doc-b', 'doc-a']);
+    expect(touched, isEmpty);
+    expect(userTouched, <String>['doc-b', 'doc-a']);
     expect(progressUpdates['doc-c'], 0.6);
   });
 

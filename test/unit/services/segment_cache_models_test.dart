@@ -63,6 +63,7 @@ void main() {
       masterPlaylistUrl: post.playbackUrl,
       cardData: post.toMap(),
       totalSegmentCount: 1,
+      lastUserInteractionAt: DateTime.utc(2026, 3, 30, 12),
       segments: <String, CachedSegment>{
         '720p/segment_0.ts': CachedSegment(
           segmentUri: '720p/segment_0.ts',
@@ -80,6 +81,10 @@ void main() {
     expect(roundTripped.cachedPostModel!.rozet, 'turkuaz');
     expect(roundTripped.cachedPostModel!.authorNickname, 'rozetli');
     expect(roundTripped.isFullyCached, isTrue);
+    expect(
+      roundTripped.lastUserInteractionAt?.millisecondsSinceEpoch,
+      DateTime.utc(2026, 3, 30, 12).millisecondsSinceEpoch,
+    );
   });
 }
 
@@ -97,7 +102,7 @@ PostsModel _buildShortPost({
     deletedPostTime: 0,
     docID: docId,
     flood: false,
-    floodCount: 0,
+    floodCount: 1,
     gizlendi: false,
     img: const <String>[],
     isAd: false,

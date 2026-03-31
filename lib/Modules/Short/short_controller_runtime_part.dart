@@ -30,6 +30,7 @@ extension _ShortControllerRuntimeX on ShortController {
 
   bool isEligibleShortPost(PostsModel post) {
     if (!post.hasPlayableVideo) return false;
+    if (post.isFloodSeriesContent) return false;
     final ar = post.aspectRatio.toDouble();
     if (ar > _shortLandscapeAspectThreshold) {
       return false;

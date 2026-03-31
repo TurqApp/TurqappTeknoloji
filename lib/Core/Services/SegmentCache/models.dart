@@ -57,6 +57,7 @@ class VideoCacheEntry {
   int totalSegmentCount;
   int totalSizeBytes;
   DateTime lastAccessedAt;
+  DateTime? lastUserInteractionAt;
   double watchProgress; // 0.0 - 1.0
   VideoCacheState state;
 
@@ -103,6 +104,7 @@ class VideoCacheEntry {
     this.totalSegmentCount = 0,
     this.totalSizeBytes = 0,
     DateTime? lastAccessedAt,
+    this.lastUserInteractionAt,
     this.watchProgress = 0.0,
     this.state = VideoCacheState.uncached,
   })  : segments = _cloneSegments(segments ?? const <String, CachedSegment>{}),
@@ -121,6 +123,7 @@ class VideoCacheEntry {
         'totalSegmentCount': totalSegmentCount,
         'totalSizeBytes': totalSizeBytes,
         'lastAccessedAt': lastAccessedAt.millisecondsSinceEpoch,
+        'lastUserInteractionAt': lastUserInteractionAt?.millisecondsSinceEpoch,
         'watchProgress': watchProgress,
         'state': state.name,
       };
@@ -157,6 +160,14 @@ class VideoCacheEntry {
               ),
             )
           : DateTime.now(),
+      lastUserInteractionAt: json['lastUserInteractionAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['lastUserInteractionAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
+          : null,
       watchProgress: _asDouble(json['watchProgress']),
       state: VideoCacheState.values.firstWhere(
         (s) => s.name == (json['state'] ?? '').toString(),

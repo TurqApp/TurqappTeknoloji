@@ -90,6 +90,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
           totalSegmentCount: existing.totalSegmentCount,
           totalSizeBytes: existing.totalSizeBytes,
           lastAccessedAt: existing.lastAccessedAt,
+          lastUserInteractionAt: existing.lastUserInteractionAt,
           watchProgress: existing.watchProgress,
           state: existing.state,
         );
@@ -107,7 +108,9 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     final entry = _index.entries[docID];
     if (entry == null) return;
     entry.state = VideoCacheState.playing;
-    entry.lastAccessedAt = DateTime.now();
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.lastUserInteractionAt = now;
     _recentlyPlayed.remove(docID);
     _recentlyPlayed.add(docID);
     if (_recentlyPlayed.length > _recentPlayCount) {
@@ -121,14 +124,15 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     if (entry == null) return;
     final normalized = progress.clamp(0.0, 1.0);
     entry.watchProgress = normalized;
-    entry.lastAccessedAt = DateTime.now();
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.lastUserInteractionAt = now;
     if (normalized >= 0.9 && entry.state == VideoCacheState.playing) {
       entry.state = VideoCacheState.watched;
     }
 
     final lastProgress = _lastPersistedProgress[docID] ?? -1.0;
     final lastAt = _lastPersistedProgressAt[docID];
-    final now = DateTime.now();
     final changedEnough = (normalized - lastProgress).abs() >= 0.03;
     final timeEnough = lastAt == null || now.difference(lastAt).inSeconds >= 6;
     final reachedEdge = normalized >= 0.98 || normalized <= 0.02;
@@ -144,6 +148,15 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     final entry = _index.entries[docID];
     if (entry == null) return;
     entry.lastAccessedAt = DateTime.now();
+    _markDirty();
+  }
+
+  void touchUserEntry(String docID) {
+    final entry = _index.entries[docID];
+    if (entry == null) return;
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.lastUserInteractionAt = now;
     _markDirty();
   }
 

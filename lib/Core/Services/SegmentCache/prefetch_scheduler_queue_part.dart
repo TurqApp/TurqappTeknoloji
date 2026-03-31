@@ -286,6 +286,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
   bool _isEligibleOfflineCandidatePost(PostsModel post) {
     if (!post.hasPlayableVideo) return false;
+    if (post.isFloodSeriesContent) return false;
     return normalizeRozetValue(post.rozet).isNotEmpty;
   }
 

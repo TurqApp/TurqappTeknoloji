@@ -1,6 +1,38 @@
 part of 'short_controller.dart';
 
 extension ShortControllerLoadingPart on ShortController {
+  bool get _shouldPreferOfflineCache =>
+      NetworkAwarenessService.maybeFind()?.isConnected == false;
+
+  Future<bool> _tryApplyOfflineCachedShorts({
+    required int limit,
+    required String trigger,
+    bool persistSnapshot = true,
+  }) async {
+    final offlineFallback = await _loadOfflineCachedShorts(
+      limit: limit,
+      trigger: trigger,
+    );
+    if (offlineFallback.isEmpty) {
+      return false;
+    }
+
+    _log('[Shorts] Offline cache tercih edildi ($trigger)');
+    _replaceShorts(offlineFallback);
+    _lastDoc = null;
+    hasMore.value = false;
+    if (persistSnapshot) {
+      await _shortSnapshotRepository.persistHomeSnapshot(
+        userId: _currentUserId,
+        posts: offlineFallback,
+        limit: limit,
+        source: CachedResourceSource.scopedDisk,
+      );
+    }
+    await preloadRange(0, range: 0);
+    return true;
+  }
+
   void _recordShortFetchEvent({
     required String stage,
     required String trigger,
@@ -275,10 +307,24 @@ extension ShortControllerLoadingPart on ShortController {
       '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}',
     );
 
+    final initialLimit =
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
+    if (_shouldPreferOfflineCache) {
+      final appliedOfflineCache = await _tryApplyOfflineCachedShorts(
+        limit: initialLimit,
+        trigger: shorts.isEmpty
+            ? 'initial_offline_cache_preferred'
+            : 'existing_list_offline_cache_preferred',
+      );
+      if (appliedOfflineCache) {
+        return;
+      }
+    }
+
     if (shorts.isEmpty) {
       final snapshot = await _shortSnapshotRepository.loadHome(
         userId: _currentUserId,
-        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+        limit: initialLimit,
       );
       final initialPlan = _shortFeedApplicationService.buildInitialLoadPlan(
         currentShorts: shorts.toList(growable: false),
@@ -301,20 +347,10 @@ extension ShortControllerLoadingPart on ShortController {
         _lastDoc = null;
         clearCache();
       }
-      final offlineFallback = await _loadOfflineCachedShorts(
-        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+      if (await _tryApplyOfflineCachedShorts(
+        limit: initialLimit,
         trigger: 'initial_offline_cache_fallback',
-      );
-      if (offlineFallback.isNotEmpty) {
-        _log('[Shorts] Offline cache fallback ile liste kuruldu');
-        _replaceShorts(offlineFallback);
-        await _shortSnapshotRepository.persistHomeSnapshot(
-          userId: _currentUserId,
-          posts: offlineFallback,
-          limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
-          source: CachedResourceSource.scopedDisk,
-        );
-        await preloadRange(0, range: 0);
+      )) {
         return;
       }
       if (initialPlan.shouldBootstrapNextPage) {
