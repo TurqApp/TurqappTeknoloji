@@ -872,20 +872,43 @@ async function deleteUserDoc(userId: string) {
   }
 }
 
-async function searchPostsFromTypesense(q: string, limit: number, page: number) {
+async function searchPostsFromTypesense(
+  q: string,
+  limit: number,
+  page: number,
+  options?: {
+    tag?: string;
+    includeNonPublic?: boolean;
+  }
+) {
   await ensurePostsCollection();
+
+  const normalizedTag = normalizeTag(options?.tag || "");
+  const includeNonPublic = options?.includeNonPublic === true;
+  const filterParts = [
+    "arsiv:=false",
+    "deletedPost:=false",
+    "gizlendi:=false",
+    "isUploading:=false",
+  ];
+  if (!includeNonPublic) {
+    filterParts.unshift("paylasGizliligi:=0");
+  }
+  if (normalizedTag) {
+    filterParts.push(`hashtags:=[${typesenseStringLiteral(normalizedTag)}]`);
+  }
 
   const baseUrl = getTypesenseBaseUrl();
   const resp = await axios.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
     headers: headers(),
     timeout: 10000,
     params: {
-      q,
+      q: q.trim() !== "" ? q : "*",
       query_by: "metin,hashtags,mentions,authorNickname,authorDisplayName",
       per_page: limit,
       page,
       sort_by: "timeStamp:desc",
-      filter_by: "paylasGizliligi:=0 && arsiv:=false && deletedPost:=false && gizlendi:=false && isUploading:=false",
+      filter_by: filterParts.join(" && "),
       prefix: "true,true,true,true,true",
       typo_tokens_threshold: 1,
     },
@@ -896,6 +919,7 @@ async function searchPostsFromTypesense(q: string, limit: number, page: number) 
 
   return {
     q,
+    tag: normalizedTag,
     page,
     limit,
     found: Number(body.found || 0),
@@ -1239,7 +1263,9 @@ export const f14_searchPosts = onRequest(
     }
 
     const q = String(req.query.q || "").trim();
-    if (q.length < 2) {
+    const tag = normalizeTag(String(req.query.tag || ""));
+    const includeNonPublic = req.query.includeNonPublic === "true";
+    if (!tag && q.length < 2) {
       res.status(400).json({ error: "query_too_short", minLength: 2 });
       return;
     }
@@ -1248,7 +1274,12 @@ export const f14_searchPosts = onRequest(
     const page = Math.max(1, Number(req.query.page || 1));
 
     try {
-      res.json(await searchPostsFromTypesense(q, limit, page));
+      res.json(
+        await searchPostsFromTypesense(q, limit, page, {
+          tag,
+          includeNonPublic,
+        })
+      );
     } catch (err: any) {
       const status = err?.response?.status || 500;
       const detail = err?.response?.data || err?.message || "unknown_error";
@@ -1273,7 +1304,9 @@ export const f14_searchPostsCallable = onCall(
     }
 
     const q = String(request.data?.q || "").trim();
-    if (q.length < 2) {
+    const tag = normalizeTag(String(request.data?.tag || ""));
+    const includeNonPublic = request.data?.includeNonPublic === true;
+    if (!tag && q.length < 2) {
       throw new HttpsError("invalid-argument", "query_too_short");
     }
 
@@ -1281,7 +1314,10 @@ export const f14_searchPostsCallable = onCall(
     const page = Math.max(1, Number(request.data?.page || 1));
 
     try {
-      return await searchPostsFromTypesense(q, limit, page);
+      return await searchPostsFromTypesense(q, limit, page, {
+        tag,
+        includeNonPublic,
+      });
     } catch (err: any) {
       const detail = err?.response?.data || err?.message || "unknown_error";
       throw new HttpsError("internal", "typesense_search_failed", detail);
