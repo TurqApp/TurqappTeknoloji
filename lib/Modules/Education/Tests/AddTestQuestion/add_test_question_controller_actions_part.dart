@@ -2,6 +2,7 @@ part of 'add_test_question_controller_library.dart';
 
 extension AddTestQuestionControllerActionsPart on AddTestQuestionController {
   Future<void> yukle(File imageFile, int index) async {
+    if (!legacyTestsNetworkEnabled) return;
     try {
       final nsfw = await OptimizedNSFWService.checkImage(imageFile);
       if (nsfw.errorMessage != null) {
@@ -58,6 +59,7 @@ extension AddTestQuestionControllerActionsPart on AddTestQuestionController {
   }
 
   Future<void> deleteQuestion(int index) async {
+    if (!legacyTestsNetworkEnabled) return;
     await _testRepository.deleteQuestion(
       testId: testID,
       questionId: soruList[index].docID,
@@ -66,6 +68,7 @@ extension AddTestQuestionControllerActionsPart on AddTestQuestionController {
   }
 
   Future<void> publishTest() async {
+    if (!legacyTestsNetworkEnabled) return;
     await FirebaseFirestore.instance.collection("Testler").doc(testID).set({
       "taslak": false,
     }, SetOptions(merge: true));

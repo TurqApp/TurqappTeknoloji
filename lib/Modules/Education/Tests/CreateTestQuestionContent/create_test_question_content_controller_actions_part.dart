@@ -9,6 +9,7 @@ extension CreateTestQuestionContentControllerActionsPart
   }
 
   Future<void> fastSetData(String dogruCvp) {
+    if (!legacyTestsNetworkEnabled) return Future<void>.value();
     return FirebaseFirestore.instance
         .collection("Testler")
         .doc(testID)
@@ -28,6 +29,7 @@ extension CreateTestQuestionContentControllerActionsPart
   }
 
   Future<void> yukle(File imageFile) async {
+    if (!legacyTestsNetworkEnabled) return;
     isLoading.value = true;
     try {
       final nsfw = await OptimizedNSFWService.checkImage(imageFile);

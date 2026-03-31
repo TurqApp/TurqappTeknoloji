@@ -33,6 +33,7 @@ extension TestRepositoryActionPart on TestRepository {
     required String userId,
     required List<String> answers,
   }) async {
+    if (!legacyTestsNetworkEnabled) return;
     final normalizedTestId = testId.trim();
     final normalizedUserId = userId.trim();
     if (normalizedTestId.isEmpty || normalizedUserId.isEmpty) return;
@@ -68,6 +69,7 @@ extension TestRepositoryActionPart on TestRepository {
     required String testId,
     required String questionId,
   }) async {
+    if (!legacyTestsNetworkEnabled) return;
     final normalizedTestId = testId.trim();
     final normalizedQuestionId = questionId.trim();
     if (normalizedTestId.isEmpty || normalizedQuestionId.isEmpty) return;
@@ -84,6 +86,7 @@ extension TestRepositoryActionPart on TestRepository {
     String testId, {
     required String userId,
   }) async {
+    if (!legacyTestsNetworkEnabled) return false;
     final docRef = _firestore.collection('Testler').doc(testId);
     final docSnapshot = await docRef.get();
     if (!docSnapshot.exists) return false;
@@ -105,6 +108,7 @@ extension TestRepositoryActionPart on TestRepository {
   }
 
   Future<void> deleteTest(String testId) async {
+    if (!legacyTestsNetworkEnabled) return;
     final normalizedTestId = testId.trim();
     if (normalizedTestId.isEmpty) return;
     final docRef = _firestore.collection('Testler').doc(normalizedTestId);

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/legacy_tests_feature_gate.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
@@ -639,6 +640,7 @@ class TestSnapshotRepository extends GetxService {
   }
 
   Future<List<TestsModel>> _fetchOwnerItems(TestOwnerQuery query) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
     final snapshot = await FirebaseFirestore.instance
@@ -656,6 +658,7 @@ class TestSnapshotRepository extends GetxService {
   }
 
   Future<List<TestsModel>> _fetchAllItems(TestAllQuery query) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final snapshot = await FirebaseFirestore.instance
         .collection('Testler')
         .get(const GetOptions(source: Source.serverAndCache));
@@ -666,6 +669,7 @@ class TestSnapshotRepository extends GetxService {
   }
 
   Future<List<TestsModel>> _fetchTypeItems(TestTypeQuery query) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final normalizedType = query.testType.trim();
     if (normalizedType.isEmpty) {
       return const <TestsModel>[];
@@ -681,6 +685,7 @@ class TestSnapshotRepository extends GetxService {
   }
 
   Future<List<TestsModel>> _fetchAnsweredItems(TestAnsweredQuery query) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
     final normalizedLimit = query.effectiveLimit;
@@ -763,6 +768,7 @@ class TestSnapshotRepository extends GetxService {
   }
 
   Future<List<TestsModel>> _fetchFavoriteItems(TestFavoritesQuery query) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
     final normalizedLimit = query.effectiveLimit;
@@ -782,6 +788,7 @@ class TestSnapshotRepository extends GetxService {
 
   Future<List<TestsModel>> _fetchSharedPageItems(
       TestSharedPageQuery query) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final normalizedPage = query.page < 1 ? 1 : query.page;
     final normalizedLimit =
         query.limit < 1 ? ReadBudgetRegistry.testSharedPageLimit : query.limit;
@@ -814,6 +821,7 @@ class TestSnapshotRepository extends GetxService {
   }
 
   Future<List<TestsModel>> _fetchByIds(List<String> ids) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final wanted = ids.where((id) => id.trim().isNotEmpty).toSet().toList();
     if (wanted.isEmpty) return const <TestsModel>[];
     final resolved = <String, TestsModel>{};

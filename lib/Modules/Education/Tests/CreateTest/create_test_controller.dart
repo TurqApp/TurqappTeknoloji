@@ -9,6 +9,7 @@ import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/legacy_tests_feature_gate.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';

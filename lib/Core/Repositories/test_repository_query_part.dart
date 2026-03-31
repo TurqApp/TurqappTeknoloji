@@ -7,6 +7,7 @@ extension TestRepositoryQueryPart on TestRepository {
     bool forceRefresh = false,
     bool cacheOnly = false,
   }) async {
+    if (!legacyTestsNetworkEnabled) return const <Map<String, dynamic>>[];
     final cacheKey = 'answers:$testId';
     if (!forceRefresh && preferCache) {
       final cached = await _getRawList(cacheKey);
@@ -36,6 +37,7 @@ extension TestRepositoryQueryPart on TestRepository {
     bool forceRefresh = false,
     bool cacheOnly = false,
   }) async {
+    if (!legacyTestsNetworkEnabled) return const <TestReadinessModel>[];
     final cacheKey = 'questions:$testId';
     if (!forceRefresh && preferCache) {
       final cached = await _getRawList(cacheKey);
@@ -73,6 +75,7 @@ extension TestRepositoryQueryPart on TestRepository {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
+    if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final wanted = ids.where((e) => e.trim().isNotEmpty).toSet().toList();
     if (wanted.isEmpty) return const <TestsModel>[];
     final resolved = <String, TestsModel>{};
@@ -131,6 +134,7 @@ extension TestRepositoryQueryPart on TestRepository {
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
+    if (!legacyTestsNetworkEnabled) return null;
     final cacheKey = 'raw:$testId';
     if (!forceRefresh && preferCache) {
       final raw = await _getRawDoc(cacheKey);

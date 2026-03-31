@@ -28,6 +28,7 @@ extension CreateTestControllerActionsPart on CreateTestController {
   }
 
   Future<void> yukle(File imageFile) async {
+    if (!legacyTestsNetworkEnabled) return;
     try {
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
         storage: FirebaseStorage.instance,
@@ -46,11 +47,13 @@ extension CreateTestControllerActionsPart on CreateTestController {
   }
 
   Future<void> deleteTest() async {
+    if (!legacyTestsNetworkEnabled) return;
     await _testRepository.deleteTest(testID.value.toString());
     Get.back();
   }
 
   Future<void> saveTest(BuildContext context) async {
+    if (!legacyTestsNetworkEnabled) return;
     await FirebaseFirestore.instance
         .collection("Testler")
         .doc(testID.value.toString())
@@ -67,6 +70,7 @@ extension CreateTestControllerActionsPart on CreateTestController {
   }
 
   Future<void> prepareTest(BuildContext context) async {
+    if (!legacyTestsNetworkEnabled) return;
     await FirebaseFirestore.instance
         .collection("Testler")
         .doc(testID.value.toString())
