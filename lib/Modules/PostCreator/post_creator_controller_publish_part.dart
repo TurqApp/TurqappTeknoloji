@@ -268,6 +268,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
     final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
     final batchTimeStamp =
         scheduledMs != 0 ? scheduledMs : DateTime.now().millisecondsSinceEpoch;
+    final authorSummary = await _resolveAuthorSummary();
 
     for (int index = 0; index < allPosts.length; index++) {
       final post = allPosts[index];
@@ -514,6 +515,15 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         "thumbnail": thumbnailUrl,
         "timeStamp": batchTimeStamp,
         "userID": uid,
+        "authorNickname": authorSummary.nickname,
+        "authorDisplayName": authorSummary.displayName,
+        "authorAvatarUrl": authorSummary.avatarUrl,
+        "nickname": authorSummary.nickname,
+        "username": authorSummary.username,
+        "fullName": authorSummary.fullName,
+        "displayName": authorSummary.displayName,
+        "avatarUrl": authorSummary.avatarUrl,
+        "rozet": authorSummary.rozet,
         "video": videoUrl,
         "hlsStatus": isReusedVideoPost ? "ready" : "none",
         "hlsMasterUrl": isReusedVideoPost ? videoUrl : "",
@@ -609,6 +619,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           thumbnail: thumbnailUrl,
           timeStamp: batchTimeStamp,
           userID: uid,
+          authorNickname: authorSummary.nickname,
+          authorDisplayName: authorSummary.displayName,
+          authorAvatarUrl: authorSummary.avatarUrl,
+          rozet: authorSummary.rozet,
           video: videoUrl,
           hlsStatus: isReusedVideoPost ? "ready" : "none",
           hlsMasterUrl: isReusedVideoPost ? videoUrl : "",

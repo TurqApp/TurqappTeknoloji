@@ -574,7 +574,9 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 timeStamp: batchTimeStamp,
                 userID: uid,
                 authorNickname: authorNickname,
+                authorDisplayName: authorDisplayName,
                 authorAvatarUrl: authorAvatarUrl,
+                rozet: authorRozet,
                 video: videoUrl,
                 videoLook: {
                   "preset": post.videoLookPreset,

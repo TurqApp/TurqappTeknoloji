@@ -220,7 +220,7 @@ export {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 👤 AUTHOR FIELD DENORMALIZATION (B10)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export { denormAuthorOnPostWrite, syncAuthorFieldsOnProfileUpdate } from "./authorDenorm";
+export { denormAuthorOnPostWrite } from "./authorDenorm";
 export * from "./04_tagSettings";
 export * from "./09_userProfile";
 export * from "./11_resend";
