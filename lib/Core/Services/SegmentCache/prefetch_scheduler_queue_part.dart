@@ -370,6 +370,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required String variantDir,
     required SegmentCacheManager cacheManager,
     required double watchProgress,
+    int? desiredReadySegments,
   }) {
     if (segmentUris.isEmpty) return const <String>[];
 
@@ -378,12 +379,12 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       watchProgress: watchProgress,
       totalSegments: total,
     );
-
-    final baseTarget = watchedSeg <= 2 ? 3 : watchedSeg + 1;
+    final targetReadySegments =
+        (desiredReadySegments ?? (watchedSeg + 1)).clamp(1, total);
 
     final ordered = <String>[];
     final seen = <int>{};
-    for (int seg = baseTarget; seg <= total; seg++) {
+    for (int seg = 1; seg <= targetReadySegments; seg++) {
       final idx = seg - 1;
       if (!seen.add(idx)) continue;
       final uri = segmentUris[idx];
@@ -395,7 +396,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
     if (ordered.isNotEmpty) return ordered;
 
-    for (int idx = 0; idx < total; idx++) {
+    for (int idx = targetReadySegments; idx < total; idx++) {
       final uri = segmentUris[idx];
       final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
       if (cacheManager.getSegmentFile(docID, key) == null) {

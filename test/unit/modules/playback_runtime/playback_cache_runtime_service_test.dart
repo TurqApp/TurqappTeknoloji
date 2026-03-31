@@ -81,11 +81,32 @@ void main() {
           ),
         },
       ),
+      'doc-c': VideoCacheEntry(
+        docID: 'doc-c',
+        masterPlaylistUrl: 'https://example.com/c.m3u8',
+        totalSegmentCount: 6,
+        segments: <String, CachedSegment>{
+          's1': CachedSegment(
+            segmentUri: 's1.ts',
+            diskPath: '/tmp/c-1.ts',
+            sizeBytes: 10,
+            cachedAt: DateTime.utc(2026, 3, 28),
+          ),
+          's2': CachedSegment(
+            segmentUri: 's2.ts',
+            diskPath: '/tmp/c-2.ts',
+            sizeBytes: 10,
+            cachedAt: DateTime.utc(2026, 3, 28),
+          ),
+        },
+      ),
     };
     final marked = <String>[];
     final touched = <String>[];
     final userTouched = <String>[];
     final progressUpdates = <String, double>{};
+    final readyBoosts = <String, int>{};
+    final readyBoostLog = <String>[];
     final service = SegmentCacheRuntimeService(
       entryReader: (docId) => entries[docId],
       markPlayingAction: marked.add,
@@ -93,6 +114,10 @@ void main() {
       touchUserEntryAction: userTouched.add,
       updateWatchProgressAction: (docId, progress) {
         progressUpdates[docId] = progress;
+      },
+      boostReadySegmentsAction: (docId, readySegments) {
+        readyBoosts[docId] = readySegments;
+        readyBoostLog.add('$docId:$readySegments');
       },
     );
 
@@ -106,11 +131,15 @@ void main() {
       lookBehind: 2,
     );
     service.updateWatchProgress('doc-c', 0.6);
+    service.ensureNextSegmentReady('doc-c', 0.40);
+    service.ensureNextSegmentReady('doc-c', 0.80);
 
     expect(marked, <String>['doc-c']);
     expect(touched, isEmpty);
     expect(userTouched, <String>['doc-b', 'doc-a']);
     expect(progressUpdates['doc-c'], 0.6);
+    expect(readyBoostLog, <String>['doc-c:3', 'doc-c:5']);
+    expect(readyBoosts['doc-c'], 5);
   });
 
   test('hot playback sources delegate through runtime boundary services',

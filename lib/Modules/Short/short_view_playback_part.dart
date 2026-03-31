@@ -534,6 +534,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final dur = v.duration.inMilliseconds / 1000.0;
     if (dur > 0) {
       VideoTelemetryService.instance.onPositionUpdate(videoId, pos, dur);
+      try {
+        _segmentCacheRuntimeService.ensureNextSegmentReady(
+          videoId,
+          (pos / dur).clamp(0.0, 1.0),
+        );
+      } catch (_) {}
     }
   }
 

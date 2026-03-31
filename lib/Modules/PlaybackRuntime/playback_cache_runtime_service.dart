@@ -1,5 +1,6 @@
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/models.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 
@@ -7,6 +8,8 @@ typedef SegmentCacheEntryReader = VideoCacheEntry? Function(String docId);
 typedef SegmentCacheDocAction = void Function(String docId);
 typedef SegmentCacheProgressAction = void Function(
     String docId, double progress);
+typedef SegmentCacheReadySegmentsAction = void Function(
+    String docId, int readySegments);
 
 class PlaybackRuntimeService {
   const PlaybackRuntimeService({
@@ -80,6 +83,7 @@ class SegmentCacheRuntimeService {
     this.touchEntryAction,
     this.touchUserEntryAction,
     this.updateWatchProgressAction,
+    this.boostReadySegmentsAction,
   });
 
   final SegmentCacheEntryReader? entryReader;
@@ -87,6 +91,10 @@ class SegmentCacheRuntimeService {
   final SegmentCacheDocAction? touchEntryAction;
   final SegmentCacheDocAction? touchUserEntryAction;
   final SegmentCacheProgressAction? updateWatchProgressAction;
+  final SegmentCacheReadySegmentsAction? boostReadySegmentsAction;
+
+  static final Map<String, int> _lastRequestedReadySegmentsByDoc =
+      <String, int>{};
 
   VideoCacheEntry? _readEntry(String docId) {
     final reader = entryReader;
@@ -169,6 +177,52 @@ class SegmentCacheRuntimeService {
     _updateWatchProgress(docId, progress);
   }
 
+  void ensureNextSegmentReady(
+    String docId,
+    double progress, {
+    int lookAheadSegments = 1,
+  }) {
+    final normalized = progress.clamp(0.0, 1.0);
+    if (normalized <= 0) return;
+    final entry = _readEntry(docId);
+    if (entry == null) return;
+
+    final totalSegmentCount = entry.totalSegmentCount;
+    if (totalSegmentCount <= 1) return;
+
+    final currentSegment = _estimateCurrentSegment(
+      progress: normalized,
+      totalSegments: totalSegmentCount,
+    );
+    final targetReadySegments =
+        (currentSegment + lookAheadSegments).clamp(1, totalSegmentCount);
+
+    if (entry.cachedSegmentCount >= targetReadySegments) {
+      final lastRequested = _lastRequestedReadySegmentsByDoc[docId] ?? 0;
+      if (lastRequested <= entry.cachedSegmentCount) {
+        _lastRequestedReadySegmentsByDoc.remove(docId);
+      }
+      return;
+    }
+
+    final lastRequested = _lastRequestedReadySegmentsByDoc[docId] ?? 0;
+    if (targetReadySegments <= lastRequested &&
+        lastRequested > entry.cachedSegmentCount) {
+      return;
+    }
+
+    final boostAction = boostReadySegmentsAction;
+    if (boostAction != null) {
+      _lastRequestedReadySegmentsByDoc[docId] = targetReadySegments;
+      boostAction(docId, targetReadySegments);
+      return;
+    }
+    final scheduler = maybeFindPrefetchScheduler();
+    if (scheduler == null) return;
+    _lastRequestedReadySegmentsByDoc[docId] = targetReadySegments;
+    scheduler.boostDoc(docId, readySegments: targetReadySegments);
+  }
+
   void markPlayingAndTouchRecent(
     List<String> orderedDocIds,
     int currentIndex, {
@@ -184,5 +238,13 @@ class SegmentCacheRuntimeService {
       }
       touchUserEntry(orderedDocIds[behindIndex]);
     }
+  }
+
+  int _estimateCurrentSegment({
+    required double progress,
+    required int totalSegments,
+  }) {
+    final raw = (progress * totalSegments).floor();
+    return raw.clamp(1, totalSegments);
   }
 }

@@ -13,8 +13,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
 
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
-      final prefersImmediateVideoInit = isStandalonePostInstance ||
-          _isFeedStyleInlineSurfaceInstance;
+      final prefersImmediateVideoInit =
+          isStandalonePostInstance || _isFeedStyleInlineSurfaceInstance;
       final delay = isStandalonePostInstance
           ? Duration.zero
           : (prefersImmediateVideoInit
@@ -234,6 +234,12 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (v.isInitialized && v.duration.inMilliseconds > 0) {
       final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
       if (progress > 0) {
+        try {
+          _segmentCacheRuntimeService.ensureNextSegmentReady(
+            widget.model.docID,
+            progress,
+          );
+        } catch (_) {}
         try {
           _segmentCacheRuntimeService.updateWatchProgress(
             widget.model.docID,

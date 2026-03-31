@@ -201,6 +201,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           variantDir: variantDir,
           cacheManager: cacheManager,
           watchProgress: watchedProgress,
+          desiredReadySegments: job.maxSegments > 0 ? job.maxSegments : null,
         );
         toDownload = preferred.take(1);
       }

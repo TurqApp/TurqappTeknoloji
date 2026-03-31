@@ -231,6 +231,12 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     if (dur > 0) {
       VideoTelemetryService.instance.onPositionUpdate(docId, pos, dur);
       final progress = (pos / dur).clamp(0.0, 1.0);
+      try {
+        _segmentCacheRuntimeService.ensureNextSegmentReady(
+          docId,
+          progress,
+        );
+      } catch (_) {}
       final now = DateTime.now();
       final shouldPersistByTime = _lastProgressPersistAt == null ||
           now.difference(_lastProgressPersistAt!) >=
@@ -262,7 +268,8 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
     final candidates = <String>[
       if (resolvedUrl.isNotEmpty) resolvedUrl,
-      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl) fallbackImage,
+      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl)
+        fallbackImage,
       ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
     ];
     if (candidates.isEmpty) {
