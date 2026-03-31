@@ -212,6 +212,25 @@ extension _SplashViewWarmPart on _SplashViewState {
         0,
         maxDocs: ReadBudgetRegistry.startupShortPrefetchDocLimit,
       ));
+      _primeShortStartupSegments(shorts, prefetch);
+    } catch (_) {}
+  }
+
+  void _primeShortStartupSegments(
+    ShortController shorts,
+    PrefetchScheduler prefetch,
+  ) {
+    try {
+      final startupWindow = shorts.shorts
+          .where((post) => post.hasPlayableVideo)
+          .take(3)
+          .toList(growable: false);
+      for (final post in startupWindow) {
+        prefetch.boostDoc(
+          post.docID,
+          readySegments: 2,
+        );
+      }
     } catch (_) {}
   }
 
@@ -276,26 +295,101 @@ extension _SplashViewWarmPart on _SplashViewState {
           storyController.users.length < storyTarget) {
         await _forceLoadStoriesSync(storyController, limit: storyTarget);
       }
+      if (storyController != null) {
+        unawaited(
+          _warmCurrentStoryMedia(
+            storyController,
+            take: storyTarget,
+          ),
+        );
+      }
 
-      if (onWiFi || _shouldPrioritizeEducationWarmups()) {
-        await Future.wait([
-          (() async {
-            try {
-              await _warmMarketListings(onWiFi: onWiFi).timeout(
-                const Duration(milliseconds: 1400),
-                onTimeout: () {},
-              );
-            } catch (_) {}
-          })(),
-          (() async {
-            try {
-              await _warmJobListings(onWiFi: onWiFi).timeout(
-                const Duration(milliseconds: 1400),
-                onTimeout: () {},
-              );
-            } catch (_) {}
-          })(),
-        ]);
+      await Future.wait([
+        (() async {
+          try {
+            final exploreController =
+                maybeFindExploreController() ?? ensureExploreController();
+            await exploreController
+                .prepareStartupSurface(
+                  allowBackgroundRefresh:
+                      ContentPolicy.allowBackgroundRefresh(
+                    ContentScreenKind.explore,
+                  ),
+                )
+                .timeout(
+                  Duration(milliseconds: onWiFi ? 1200 : 800),
+                  onTimeout: () {},
+                );
+          } catch (_) {}
+        })(),
+        (() async {
+          try {
+            await _warmMarketListings(onWiFi: onWiFi).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+            await prepareMarketStartupSurface(
+              maybeFindMarketController() ?? ensureMarketController(),
+              allowBackgroundRefresh: onWiFi,
+            ).timeout(
+              Duration(milliseconds: onWiFi ? 1200 : 900),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+        (() async {
+          try {
+            await _warmJobListings(onWiFi: onWiFi).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+            await prepareJobFinderStartupSurface(
+              maybeFindJobFinderController() ?? ensureJobFinderController(),
+              allowBackgroundRefresh: onWiFi,
+            ).timeout(
+              Duration(milliseconds: onWiFi ? 1200 : 900),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+      ]);
+    } catch (_) {}
+  }
+
+  Future<void> _warmCurrentStoryMedia(
+    StoryRowController storyController, {
+    required int take,
+  }) async {
+    try {
+      final urls = <String>{};
+      for (final user in storyController.users.cast<dynamic>().take(take)) {
+        final avatarUrl = (user.avatarUrl ?? '').toString().trim();
+        if (avatarUrl.isNotEmpty) {
+          urls.add(avatarUrl);
+        }
+        final stories = (user.stories as List?) ?? const <dynamic>[];
+        if (stories.isEmpty) continue;
+        final story = stories.first;
+        final musicCoverUrl = (story.musicCoverUrl ?? '').toString().trim();
+        if (musicCoverUrl.isNotEmpty) {
+          urls.add(musicCoverUrl);
+        }
+        final elements = (story.elements as List?) ?? const <dynamic>[];
+        for (final element in elements) {
+          final type = (element.type?.toString() ?? '').toLowerCase();
+          final content = (element.content ?? '').toString().trim();
+          if (content.isEmpty) continue;
+          if (type.endsWith('image') || type.endsWith('gif')) {
+            urls.add(content);
+            break;
+          }
+        }
+      }
+      if (urls.isEmpty) return;
+      for (final url in urls) {
+        try {
+          await TurqImageCacheManager.warmUrl(url);
+        } catch (_) {}
       }
     } catch (_) {}
   }
