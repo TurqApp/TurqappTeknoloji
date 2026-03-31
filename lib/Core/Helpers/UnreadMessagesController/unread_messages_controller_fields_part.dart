@@ -3,10 +3,14 @@ part of 'unread_messages_controller_library.dart';
 class _UnreadMessagesControllerState {
   final RxInt totalUnreadCount = 0.obs;
   Timer? syncTimer;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? conversationsSub;
+  final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      liveConversationSubs =
+      <String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>{};
   bool listenersStarted = false;
   String? activeUid;
   final Map<String, int> conversationUnreadByUser = {};
+  final Map<String, ChatListingModel> cachedListingsByChatId =
+      <String, ChatListingModel>{};
   final Map<String, int> localReadCutoffByChatId = {};
   final Map<String, int> persistedReadCutoffByChatId = {};
   bool readStateReady = false;
@@ -20,18 +24,16 @@ extension UnreadMessagesControllerFieldsPart on UnreadMessagesController {
   RxInt get totalUnreadCount => _state.totalUnreadCount;
   Timer? get _syncTimer => _state.syncTimer;
   set _syncTimer(Timer? value) => _state.syncTimer = value;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-      get _conversationsSub => _state.conversationsSub;
-  set _conversationsSub(
-    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? value,
-  ) =>
-      _state.conversationsSub = value;
+  Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      get _liveConversationSubs => _state.liveConversationSubs;
   bool get _listenersStarted => _state.listenersStarted;
   set _listenersStarted(bool value) => _state.listenersStarted = value;
   String? get _activeUid => _state.activeUid;
   set _activeUid(String? value) => _state.activeUid = value;
   Map<String, int> get _conversationUnreadByUser =>
       _state.conversationUnreadByUser;
+  Map<String, ChatListingModel> get _cachedListingsByChatId =>
+      _state.cachedListingsByChatId;
   Map<String, int> get _localReadCutoffByChatId =>
       _state.localReadCutoffByChatId;
   Map<String, int> get _persistedReadCutoffByChatId =>

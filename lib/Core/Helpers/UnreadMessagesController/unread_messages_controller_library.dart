@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/chat_unread_policy.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 

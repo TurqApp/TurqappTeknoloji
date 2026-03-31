@@ -20,6 +20,7 @@ extension ChatListingControllerDataPart on ChatListingController {
       _onSearchChanged();
     }
     _cacheLoaded = true;
+    _publishListSnapshotToUnreadController(cached);
     _refreshLiveWindowListeners();
   }
 
@@ -185,6 +186,7 @@ extension ChatListingControllerDataPart on ChatListingController {
         });
 
       list.value = tempList;
+      _publishListSnapshotToUnreadController(tempList);
       _refreshLiveWindowListeners();
       if (search.text.trim().isEmpty) {
         _applyTabFilter();
@@ -457,6 +459,7 @@ extension ChatListingControllerDataPart on ChatListingController {
     next[listing.chatID] = listing;
     final sorted = _sortChatListings(next.values.toList(growable: false));
     list.assignAll(sorted);
+    _publishListSnapshotToUnreadController(sorted);
     if (search.text.trim().isEmpty) {
       _applyTabFilter();
     } else {

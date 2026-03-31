@@ -1,6 +1,10 @@
 part of 'chat_listing_controller.dart';
 
 extension ChatListingControllerActionsPart on ChatListingController {
+  void _publishListSnapshotToUnreadController(List<ChatListingModel> items) {
+    maybeFindUnreadMessagesController()?.replaceUnreadFromChatListings(items);
+  }
+
   void _commitListMutation(List<ChatListingModel> items) {
     final sorted = _sortChatListings(items);
     list.assignAll(sorted);
@@ -11,6 +15,7 @@ extension ChatListingControllerActionsPart on ChatListingController {
       _onSearchChanged();
     }
     _saveCachedList(sorted);
+    _publishListSnapshotToUnreadController(sorted);
   }
 
   List<ChatListingModel> _cloneCurrentList() =>
@@ -122,6 +127,7 @@ extension ChatListingControllerActionsPart on ChatListingController {
       _onSearchChanged();
     }
     _saveCachedList(list.toList());
+    _publishListSnapshotToUnreadController(list.toList());
   }
 
   void updateConversationPreviewLocal({
@@ -162,6 +168,7 @@ extension ChatListingControllerActionsPart on ChatListingController {
       _onSearchChanged();
     }
     _saveCachedList(list.toList());
+    _publishListSnapshotToUnreadController(list.toList());
   }
 
   void setTab(String tab) {
