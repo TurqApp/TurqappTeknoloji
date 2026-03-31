@@ -112,6 +112,29 @@ class CurrentUserSyncRole {
     }
   }
 
+  Future<void> ensureResolvedCurrentUser({
+    required String expectedUid,
+    bool reloadEmailVerification = false,
+  }) async {
+    final normalizedUid = expectedUid.trim();
+    if (normalizedUid.isEmpty) return;
+
+    final current = service.currentUser;
+    final hasResolvedCoreUser = current != null &&
+        current.userID == normalizedUid &&
+        current.email.trim().isNotEmpty &&
+        current.nickname.trim().isNotEmpty;
+
+    if (hasResolvedCoreUser) {
+      if (reloadEmailVerification) {
+        await service.refreshEmailVerificationStatus(reloadAuthUser: true);
+      }
+      return;
+    }
+
+    await forceRefresh();
+  }
+
   Future<void> startFirebaseSync() async {
     if (_isSyncing) return;
 

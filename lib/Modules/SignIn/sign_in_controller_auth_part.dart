@@ -192,7 +192,10 @@ extension SignInControllerAuthPart on SignInController {
       await CurrentUserService.instance.initialize();
       await NotificationService.instance.initialize();
       await _clearSessionCachesAfterAccountSwitch();
-      await CurrentUserService.instance.forceRefresh();
+      await CurrentUserService.instance.ensureResolvedCurrentUser(
+        expectedUid: signedUid,
+        reloadEmailVerification: true,
+      );
       await _trackCurrentAccountForDevice();
       await ensureAccountCenterService()
           .registerCurrentDeviceSessionIfEnabled();

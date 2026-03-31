@@ -80,7 +80,10 @@ extension SignInControllerSignupPart on SignInController {
         await CurrentUserService.instance.initialize();
         await NotificationService.instance.initialize();
         await _clearSessionCachesAfterAccountSwitch();
-        await CurrentUserService.instance.forceRefresh();
+        await CurrentUserService.instance.ensureResolvedCurrentUser(
+          expectedUid: uid,
+          reloadEmailVerification: true,
+        );
         await _trackCurrentAccountForDevice();
         await _persistStoredSessionHint(
           email: email.value,

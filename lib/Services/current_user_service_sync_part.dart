@@ -7,6 +7,15 @@ extension CurrentUserServiceSyncPart on CurrentUserService {
 
   Future<void> _performForceRefresh() => _syncRole.forceRefresh();
 
+  Future<void> _performEnsureResolvedCurrentUser({
+    required String expectedUid,
+    bool reloadEmailVerification = false,
+  }) =>
+      _syncRole.ensureResolvedCurrentUser(
+        expectedUid: expectedUid,
+        reloadEmailVerification: reloadEmailVerification,
+      );
+
   Future<void> _performValidateExclusiveSessionFromServer(String uid) =>
       _syncRole.validateExclusiveSessionFromServer(uid);
 

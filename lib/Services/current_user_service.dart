@@ -218,6 +218,15 @@ extension CurrentUserServiceFacadePart on CurrentUserService {
 
   Future<void> forceRefresh() => _performForceRefresh();
 
+  Future<void> ensureResolvedCurrentUser({
+    required String expectedUid,
+    bool reloadEmailVerification = false,
+  }) =>
+      _performEnsureResolvedCurrentUser(
+        expectedUid: expectedUid,
+        reloadEmailVerification: reloadEmailVerification,
+      );
+
   Future<void> _validateExclusiveSessionFromServer(String uid) =>
       _performValidateExclusiveSessionFromServer(uid);
 

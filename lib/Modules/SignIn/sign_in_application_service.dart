@@ -358,7 +358,12 @@ class SignInApplicationService {
       ]);
       unawaited(NotificationService.instance.initialize());
       unawaited(_clearSessionCachesAfterAccountSwitch());
-      unawaited(_ensureCurrentUserService().forceRefresh());
+      unawaited(
+        _ensureCurrentUserService().ensureResolvedCurrentUser(
+          expectedUid: _authUserIdProvider(),
+          reloadEmailVerification: true,
+        ),
+      );
 
       try {
         final storyController = maybeFindStoryRowController();
