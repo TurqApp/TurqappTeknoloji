@@ -1,5 +1,7 @@
 part of 'profile_repository_library.dart';
 
+const Duration _profileOwnPostFutureTolerance = Duration(minutes: 15);
+
 extension ProfileRepositoryQueryPart on ProfileRepository {
   String _asTrimmedString(dynamic value) => (value ?? '').toString().trim();
 
@@ -35,6 +37,21 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     return base.copyWith(poll: poll);
   }
 
+  bool _isOwnProfileRequest(String uid) {
+    final normalizedUid = uid.trim();
+    if (normalizedUid.isEmpty) return false;
+    final authUid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    if (authUid.isNotEmpty && authUid == normalizedUid) return true;
+    final effectiveUid = CurrentUserService.instance.effectiveUserId.trim();
+    return effectiveUid.isNotEmpty && effectiveUid == normalizedUid;
+  }
+
+  int _profileVisibleNowThresholdMs(String uid) {
+    final baseNowMs = DateTime.now().millisecondsSinceEpoch;
+    if (!_isOwnProfileRequest(uid)) return baseNowMs;
+    return baseNowMs + _profileOwnPostFutureTolerance.inMilliseconds;
+  }
+
   Future<ProfilePageResult> _fetchPrimaryPageImpl({
     required String uid,
     required DocumentSnapshot<Map<String, dynamic>>? startAfter,
@@ -63,7 +80,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       preferCache: false,
       cacheOnly: false,
     );
-    final buckets = buildBucketsFromPosts(
+    final buckets = _buildBucketsFromPostsImpl(
       postIds
           .map(
             (id) => _mergeSnapshotCard(
@@ -76,6 +93,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
           .where((post) => post.deletedPost != true)
           .where((post) => !post.shouldHideWhileUploading)
           .toList(growable: false),
+      profileUid: uid,
     );
     return ProfilePageResult(
       all: buckets.all,
@@ -190,8 +208,13 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     return posts;
   }
 
-  ProfileBuckets _buildBucketsFromPostsImpl(List<PostsModel> posts) {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
+  ProfileBuckets _buildBucketsFromPostsImpl(
+    List<PostsModel> posts, {
+    String? profileUid,
+  }) {
+    final visibleNowThresholdMs = profileUid == null
+        ? DateTime.now().millisecondsSinceEpoch
+        : _profileVisibleNowThresholdMs(profileUid);
     final all = <PostsModel>[];
     final photos = <PostsModel>[];
     final videos = <PostsModel>[];
@@ -205,7 +228,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       if (isIzBirakPost) {
         scheduled.add(post);
       }
-      if (post.timeStamp > nowMs) {
+      if (post.timeStamp > visibleNowThresholdMs) {
         continue;
       }
       all.add(post);

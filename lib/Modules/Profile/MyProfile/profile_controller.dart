@@ -42,3 +42,4 @@ part 'profile_controller_support_part.dart';
 part 'profile_controller_fields_part.dart';
 
 const int kProfileIntegrationSmokeShellSelection = 99;
+const int kProfileOwnFutureToleranceMs = 15 * 60 * 1000;
