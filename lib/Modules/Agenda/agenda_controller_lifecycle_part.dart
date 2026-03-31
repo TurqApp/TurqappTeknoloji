@@ -1,6 +1,37 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLifecyclePart on AgendaController {
+  void _disposeFeedScrollControllerSafely() {
+    final controller = scrollController;
+    try {
+      controller.removeListener(_onScroll);
+    } catch (_) {}
+
+    void disposeWhenDetached([int remainingFrames = 8]) {
+      bool attached = false;
+      try {
+        attached = controller.positions.isNotEmpty;
+      } catch (_) {}
+
+      if (!attached) {
+        try {
+          controller.dispose();
+        } catch (_) {}
+        return;
+      }
+
+      if (remainingFrames <= 0) {
+        return;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        disposeWhenDetached(remainingFrames - 1);
+      });
+    }
+
+    disposeWhenDetached();
+  }
+
   void _handleLifecycleInit() {
     scrollController.addListener(_onScroll);
     navBarController = ensureNavBarController();
@@ -31,8 +62,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _agendaRetryTimer?.cancel();
     _deferredInitialNetworkBootstrapTimer?.cancel();
     unawaited(persistWarmLaunchCache());
-    scrollController.removeListener(_onScroll);
-    scrollController.dispose();
+    _disposeFeedScrollControllerSafely();
   }
 
   // ignore: unused_element
