@@ -72,6 +72,7 @@ extension ShortSnapshotRepositoryRuntimeX on ShortSnapshotRepository {
   }) async {
     final effectiveLimit =
         ReadBudgetRegistry.resolveShortHomeInitialLimit(limit);
+    TurqImageCacheManager.hydratePosterHintsFromPayload(payload);
     final decoded = _performDecodePosts(payload);
     final normalized =
         _normalizePosts(decoded).take(effectiveLimit).toList(growable: false);

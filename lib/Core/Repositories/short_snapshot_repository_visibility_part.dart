@@ -94,7 +94,7 @@ List<PostsModel> _performNormalizePosts(List<PostsModel> posts) {
 }
 
 Map<String, dynamic> _performEncodePosts(List<PostsModel> posts) {
-  return <String, dynamic>{
+  final payload = <String, dynamic>{
     'items': posts
         .map((post) => <String, dynamic>{
               'docID': post.docID,
@@ -102,9 +102,15 @@ Map<String, dynamic> _performEncodePosts(List<PostsModel> posts) {
             })
         .toList(growable: false),
   };
+  final posterHints = TurqImageCacheManager.buildPosterHintsForPosts(posts);
+  if (posterHints.isNotEmpty) {
+    payload[TurqImageCacheManager.startupPosterHintsKey] = posterHints;
+  }
+  return payload;
 }
 
 List<PostsModel> _performDecodePosts(Map<String, dynamic> json) {
+  TurqImageCacheManager.hydratePosterHintsFromPayload(json);
   final rawItems = (json['items'] as List<dynamic>?) ?? const <dynamic>[];
   return rawItems
       .whereType<Map>()

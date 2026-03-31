@@ -243,6 +243,7 @@ extension FeedSnapshotRepositoryStartupShardPart on FeedSnapshotRepository {
   }) async {
     final effectiveLimit =
         ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
+    TurqImageCacheManager.hydratePosterHintsFromPayload(payload);
     final decoded = _decodePosts(payload);
     final normalized =
         _normalizePosts(decoded).take(effectiveLimit).toList(growable: false);

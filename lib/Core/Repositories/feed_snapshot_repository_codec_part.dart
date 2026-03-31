@@ -10,7 +10,7 @@ extension _FeedSnapshotRepositoryCodecX on FeedSnapshotRepository {
   }
 
   Map<String, dynamic> _encodePosts(List<PostsModel> posts) {
-    return <String, dynamic>{
+    final payload = <String, dynamic>{
       'items': posts
           .map((post) => <String, dynamic>{
                 'docID': post.docID,
@@ -18,9 +18,15 @@ extension _FeedSnapshotRepositoryCodecX on FeedSnapshotRepository {
               })
           .toList(growable: false),
     };
+    final posterHints = TurqImageCacheManager.buildPosterHintsForPosts(posts);
+    if (posterHints.isNotEmpty) {
+      payload[TurqImageCacheManager.startupPosterHintsKey] = posterHints;
+    }
+    return payload;
   }
 
   List<PostsModel> _decodePosts(Map<String, dynamic> json) {
+    TurqImageCacheManager.hydratePosterHintsFromPayload(json);
     final rawItems = (json['items'] as List<dynamic>?) ?? const <dynamic>[];
     final decoded = rawItems
         .whereType<Map>()

@@ -326,7 +326,7 @@ extension ProfileControllerHeaderPart on ProfileController {
   }
 
   Map<String, dynamic> _encodeProfileStartupPosts(List<PostsModel> posts) {
-    return <String, dynamic>{
+    final payload = <String, dynamic>{
       'items': posts
           .map(
             (post) => <String, dynamic>{
@@ -336,10 +336,18 @@ extension ProfileControllerHeaderPart on ProfileController {
           )
           .toList(growable: false),
     };
+    final posterHints = TurqImageCacheManager.buildPosterHintsForPosts(posts);
+    if (posterHints.isNotEmpty) {
+      payload[TurqImageCacheManager.startupPosterHintsKey] = posterHints;
+    }
+    return payload;
   }
 
   List<PostsModel> _decodeProfileStartupPosts(dynamic raw) {
     if (raw is! Map) return const <PostsModel>[];
+    TurqImageCacheManager.hydratePosterHintsFromPayload(
+      Map<String, dynamic>.from(raw.cast<dynamic, dynamic>()),
+    );
     final items = raw['items'];
     if (items is! List) return const <PostsModel>[];
     return items
