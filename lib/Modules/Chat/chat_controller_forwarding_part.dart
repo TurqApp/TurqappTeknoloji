@@ -4,6 +4,8 @@ extension ChatControllerForwardingPart on ChatController {
   Future<String> _resolvedWriteUserId() async {
     final ensured = await CurrentUserService.instance.ensureAuthReady(
       waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
     );
     final authUid = (ensured ?? '').trim();
     if (authUid.isNotEmpty) return authUid;

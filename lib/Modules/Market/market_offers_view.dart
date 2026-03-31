@@ -22,7 +22,6 @@ class MarketOffersView extends StatefulWidget {
 
 class _MarketOffersViewState extends State<MarketOffersView> {
   final MarketRepository _repository = ensureMarketRepository();
-  late final String uid;
   late Future<List<MarketOfferModel>> sentFuture;
   late Future<List<MarketOfferModel>> receivedFuture;
   final Set<String> _processingIds = <String>{};
@@ -30,13 +29,33 @@ class _MarketOffersViewState extends State<MarketOffersView> {
   @override
   void initState() {
     super.initState();
-    uid = CurrentUserService.instance.effectiveUserId;
     _reload();
   }
 
   void _reload() {
-    sentFuture = MarketOfferService.fetchSentOffers(uid);
-    receivedFuture = MarketOfferService.fetchReceivedOffers(uid);
+    sentFuture = _loadSentOffers();
+    receivedFuture = _loadReceivedOffers();
+  }
+
+  Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
+
+  Future<List<MarketOfferModel>> _loadSentOffers() async {
+    final uid = await _resolveCurrentUid();
+    if (uid.isEmpty) return const <MarketOfferModel>[];
+    return MarketOfferService.fetchSentOffers(uid);
+  }
+
+  Future<List<MarketOfferModel>> _loadReceivedOffers() async {
+    final uid = await _resolveCurrentUid();
+    if (uid.isEmpty) return const <MarketOfferModel>[];
+    return MarketOfferService.fetchReceivedOffers(uid);
   }
 
   @override

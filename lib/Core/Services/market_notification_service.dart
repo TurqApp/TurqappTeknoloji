@@ -28,7 +28,14 @@ class MarketNotificationService {
     );
   }
 
-  static String get _currentUid => CurrentUserService.instance.effectiveUserId;
+  static Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
 
   static String get _senderLabel {
     final fullName = CurrentUserService.instance.fullName.trim();
@@ -135,7 +142,7 @@ class MarketNotificationService {
     String postType = 'market',
     Map<String, dynamic> extra = const <String, dynamic>{},
   }) async {
-    final fromUid = _currentUid.trim();
+    final fromUid = await _resolveCurrentUid();
     final targetUid = targetUserId.trim();
     if (fromUid.isEmpty || targetUid.isEmpty || fromUid == targetUid) return;
     final now = DateTime.now().millisecondsSinceEpoch;

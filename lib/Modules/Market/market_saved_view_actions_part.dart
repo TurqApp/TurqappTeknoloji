@@ -16,6 +16,14 @@ extension MarketSavedViewActionsPart on _MarketSavedViewState {
 
   Future<void> _unsave(MarketItemModel item) async {
     try {
+      final uid = await _resolveCurrentUid();
+      if (uid.isEmpty) {
+        AppSnackbar(
+          'pasaj.market.sign_in_required_title'.tr,
+          'pasaj.market.sign_in_to_save'.tr,
+        );
+        return;
+      }
       await MarketSavedStore.unsave(uid, item.id);
       if (!mounted) return;
       _updateViewState(() {

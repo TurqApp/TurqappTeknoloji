@@ -14,6 +14,8 @@ extension ShareGridControllerRuntimePart on ShareGridController {
   Future<void> getFolowers() async {
     final currentUid = ((await CurrentUserService.instance.ensureAuthReady(
               waitForAuthState: true,
+              forceTokenRefresh: true,
+              timeout: const Duration(seconds: 8),
             )) ??
             CurrentUserService.instance.authUserId)
         .trim();
@@ -53,6 +55,8 @@ extension ShareGridControllerRuntimePart on ShareGridController {
     );
     final currentUID = ((await CurrentUserService.instance.ensureAuthReady(
               waitForAuthState: true,
+              forceTokenRefresh: true,
+              timeout: const Duration(seconds: 8),
             )) ??
             CurrentUserService.instance.authUserId)
         .trim();

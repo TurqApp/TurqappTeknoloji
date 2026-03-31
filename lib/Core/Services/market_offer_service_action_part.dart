@@ -5,7 +5,7 @@ Future<void> _createOfferImpl({
   required double offerPrice,
   required String message,
 }) async {
-  final buyerId = MarketOfferService._currentUid;
+  final buyerId = await MarketOfferService._resolveCurrentUid();
   if (buyerId.isEmpty) {
     throw Exception('auth_required');
   }
@@ -77,7 +77,7 @@ Future<void> _respondToOfferImpl({
   required MarketOfferModel offer,
   required String status,
 }) async {
-  final sellerId = MarketOfferService._currentUid;
+  final sellerId = await MarketOfferService._resolveCurrentUid();
   if (sellerId.isEmpty) {
     throw Exception('auth_required');
   }

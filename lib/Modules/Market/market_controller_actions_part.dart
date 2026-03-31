@@ -13,7 +13,7 @@ extension _MarketControllerActionsPart on MarketController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveMarket)) {
       return;
     }
-    final uid = _currentUid;
+    final uid = await _resolveWriteUid();
     if (uid.isEmpty) {
       AppSnackbar(
         'pasaj.market.sign_in_required_title'.tr,
@@ -117,7 +117,7 @@ extension _MarketControllerActionsPart on MarketController {
   }
 
   Future<void> _performLoadSavedItems() async {
-    final uid = _currentUid;
+    final uid = await _resolveWriteUid();
     if (uid.isEmpty) {
       if (savedItemIds.isNotEmpty) {
         savedItemIds.clear();
@@ -142,7 +142,7 @@ extension _MarketControllerActionsPart on MarketController {
   Future<void> _performLoadRoundMenuBadges({
     required bool forceRefresh,
   }) async {
-    final uid = _currentUid;
+    final uid = await _resolveWriteUid();
     if (uid.isEmpty) {
       if (roundMenuBadges.isNotEmpty) {
         roundMenuBadges.assignAll(const <String, int>{});

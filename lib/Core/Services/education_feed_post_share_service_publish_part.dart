@@ -11,7 +11,13 @@ extension EducationFeedPostShareServicePublishPart
     required String ctaType,
     required String ctaDocId,
   }) async {
-    final currentUid = CurrentUserService.instance.effectiveUserId;
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    final currentUid =
+        (ensured ?? CurrentUserService.instance.authUserId).trim();
     if (currentUid.isEmpty) {
       AppSnackbar(
         'login.sign_in'.tr,

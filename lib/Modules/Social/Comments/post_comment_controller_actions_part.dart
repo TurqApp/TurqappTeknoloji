@@ -45,7 +45,7 @@ extension PostCommentControllerActions on PostCommentController {
         );
         return;
       }
-      if (commentId != null && commentId.startsWith('offline_')) {
+      if (commentId.startsWith('offline_')) {
         final currentUid = userService.effectiveUserId;
         if (currentUid.isNotEmpty) {
           final local = PostCommentModel(
@@ -75,14 +75,12 @@ extension PostCommentControllerActions on PostCommentController {
       }
     }
 
-    if (commentId != null && onCommentCountChange != null) {
+    if (onCommentCountChange != null) {
       onCommentCountChange!(true);
     }
-    if (commentId != null) {
-      lastSuccessfulCommentId.value = commentId;
-      lastSuccessfulSendText.value = trimmed;
-      lastSuccessfulSendWasReply.value = targetCommentId.isNotEmpty;
-    }
+    lastSuccessfulCommentId.value = commentId;
+    lastSuccessfulSendText.value = trimmed;
+    lastSuccessfulSendWasReply.value = targetCommentId.isNotEmpty;
 
     clearReplyTarget();
     clearSelectedGif();

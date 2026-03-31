@@ -2,18 +2,31 @@ part of 'market_saved_view.dart';
 
 class _MarketSavedViewState extends State<MarketSavedView> {
   final MarketRepository _repository = ensureMarketRepository();
-  late final String uid;
   late Future<List<MarketItemModel>> _savedFuture;
 
   @override
   void initState() {
     super.initState();
-    uid = CurrentUserService.instance.effectiveUserId;
     _reload();
   }
 
   void _reload({bool force = false}) {
-    _savedFuture = _repository.fetchSaved(
+    _savedFuture = _loadSavedItems(force: force);
+  }
+
+  Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
+
+  Future<List<MarketItemModel>> _loadSavedItems({required bool force}) async {
+    final uid = await _resolveCurrentUid();
+    if (uid.isEmpty) return const <MarketItemModel>[];
+    return _repository.fetchSaved(
       uid,
       preferCache: !force,
       forceRefresh: force,

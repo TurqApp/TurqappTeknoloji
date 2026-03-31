@@ -160,7 +160,12 @@ extension MarketControllerRuntimePart on MarketController {
 
   void _onScroll() => _performOnScroll();
 
-  String get _currentUid {
-    return CurrentUserService.instance.effectiveUserId;
+  Future<String> _resolveWriteUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
   }
 }

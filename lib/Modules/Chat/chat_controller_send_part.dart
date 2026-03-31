@@ -46,6 +46,8 @@ extension ChatControllerSendPart on ChatController {
     final now = DateTime.now();
     final currentUid = (await CurrentUserService.instance.ensureAuthReady(
           waitForAuthState: true,
+          forceTokenRefresh: true,
+          timeout: const Duration(seconds: 8),
         ))
             ?.trim() ??
         CurrentUserService.instance.authUserId.trim();

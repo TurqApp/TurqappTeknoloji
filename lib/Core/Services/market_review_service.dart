@@ -6,7 +6,15 @@ class MarketReviewService {
   const MarketReviewService();
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
+  Future<String> _resolveCurrentUserId() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
 
   CollectionReference<Map<String, dynamic>> _reviewsRef(String itemId) {
     return _firestore
@@ -36,7 +44,7 @@ class MarketReviewService {
     required int rating,
     required String comment,
   }) async {
-    final uid = _currentUserId;
+    final uid = await _resolveCurrentUserId();
     if (uid.isEmpty) {
       throw Exception('auth_required');
     }
@@ -57,7 +65,7 @@ class MarketReviewService {
     required String itemId,
     required String reviewId,
   }) async {
-    final uid = _currentUserId;
+    final uid = await _resolveCurrentUserId();
     if (uid.isEmpty || uid != reviewId) {
       throw Exception('forbidden');
     }

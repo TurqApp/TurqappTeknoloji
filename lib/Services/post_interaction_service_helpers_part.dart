@@ -20,6 +20,8 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
   }) async {
     final ensured = await CurrentUserService.instance.ensureAuthReady(
       waitForAuthState: waitForAuthState,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
     );
     final normalizedEnsured = (ensured ?? '').trim();
     if (normalizedEnsured.isNotEmpty) return normalizedEnsured;

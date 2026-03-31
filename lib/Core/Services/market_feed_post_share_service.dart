@@ -21,8 +21,17 @@ import 'package:uuid/uuid.dart';
 class MarketFeedPostShareService {
   const MarketFeedPostShareService();
 
+  Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
+
   Future<void> shareItem(MarketItemModel item) async {
-    final currentUid = CurrentUserService.instance.effectiveUserId;
+    final currentUid = await _resolveCurrentUid();
     if (currentUid.isEmpty) {
       AppSnackbar(
           'login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);

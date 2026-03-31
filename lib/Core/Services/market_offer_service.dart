@@ -18,7 +18,14 @@ class MarketOfferService {
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  static String get _currentUid => CurrentUserService.instance.effectiveUserId;
+  static Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
 
   static Future<void> createOffer({
     required MarketItemModel item,
