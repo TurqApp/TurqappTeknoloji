@@ -60,162 +60,166 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       }
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, right: 8, top: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: _openAvatarStoryOrProfile,
-            child: Obx(() => _buildClassicAvatar(
-                  userId: widget.model.userID,
-                  imageUrl: controller.avatarUrl.value,
-                  radius: 20, // 40px diameter / 2
-                )),
-          ),
-          7.pw,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: openProfile,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 24,
-                                child: Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        primaryName,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTypography.postName.copyWith(
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    RozetContent(
-                                      size: 13,
-                                      userID: widget.model.userID,
-                                      rozetValue: widget.model.rozet,
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 6, right: 12),
-                                      child: Obx(
-                                        () {
-                                          _relativeTimeTickService.tick.value;
-                                          return Text(
-                                            buildDisplayTime(),
-                                            style:
-                                                AppTypography.postMeta.copyWith(
-                                              color: Colors.grey,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                '@$handle',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTypography.postHandle.copyWith(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          )),
-                    ),
-                    if (widget.model.userID != _currentUid)
-                      Obx(() {
-                        if (controller.isFollowing.value) {
-                          return const SizedBox.shrink();
-                        }
-                        return Transform.translate(
-                          offset: const Offset(0, -5),
-                          child: SizedBox(
-                            height: 24,
-                            child: Center(
-                              child: TextButton(
-                                onPressed: controller.followLoading.value
-                                    ? null
-                                    : () {
-                                        controller.followUser();
-                                      },
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: controller.followLoading.value
-                                    ? Container(
-                                        height: 20,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                            color: Colors.transparent,
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                                    Radius.circular(12)),
-                                            border: Border.all(
-                                                color: Colors.black)),
-                                        child: const Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 15),
-                                          child: SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                      Colors.black),
-                                            ),
+    return Transform.translate(
+      offset: const Offset(0, -8),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 8, right: 8, top: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: _openAvatarStoryOrProfile,
+              child: Obx(() => _buildClassicAvatar(
+                    userId: widget.model.userID,
+                    imageUrl: controller.avatarUrl.value,
+                    radius: 20, // 40px diameter / 2
+                  )),
+            ),
+            7.pw,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: openProfile,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: 24,
+                                  child: Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          primaryName,
+                                          overflow: TextOverflow.ellipsis,
+                                          style:
+                                              AppTypography.postName.copyWith(
+                                            color: Colors.black,
                                           ),
                                         ),
-                                      )
-                                    : Texts.followMeButtonBlack,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      RozetContent(
+                                        size: 13,
+                                        userID: widget.model.userID,
+                                        rozetValue: widget.model.rozet,
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            left: 6, right: 12),
+                                        child: Obx(
+                                          () {
+                                            _relativeTimeTickService.tick.value;
+                                            return Text(
+                                              buildDisplayTime(),
+                                              style: AppTypography.postMeta
+                                                  .copyWith(
+                                                color: Colors.grey,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  '@$handle',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.postHandle.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            )),
+                      ),
+                      if (widget.model.userID != _currentUid)
+                        Obx(() {
+                          if (controller.isFollowing.value) {
+                            return const SizedBox.shrink();
+                          }
+                          return Transform.translate(
+                            offset: const Offset(0, -5),
+                            child: SizedBox(
+                              height: 24,
+                              child: Center(
+                                child: TextButton(
+                                  onPressed: controller.followLoading.value
+                                      ? null
+                                      : () {
+                                          controller.followUser();
+                                        },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: controller.followLoading.value
+                                      ? Container(
+                                          height: 20,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                              color: Colors.transparent,
+                                              borderRadius:
+                                                  const BorderRadius.all(
+                                                      Radius.circular(12)),
+                                              border: Border.all(
+                                                  color: Colors.black)),
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 15),
+                                            child: SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                        Color>(Colors.black),
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : Texts.followMeButtonBlack,
+                                ),
                               ),
                             ),
+                          );
+                        }),
+                      7.pw,
+                      Transform.translate(
+                        offset: const Offset(0, -5),
+                        child: SizedBox(
+                          height: 24,
+                          child: Center(
+                            child: pulldownmenu(Colors.black),
                           ),
-                        );
-                      }),
-                    7.pw,
-                    Transform.translate(
-                      offset: const Offset(0, -5),
-                      child: SizedBox(
-                        height: 24,
-                        child: Center(
-                          child: pulldownmenu(Colors.black),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                if (widget.model.konum != "")
-                  Text(
-                    widget.model.konum,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.postMeta.copyWith(
-                      color: Colors.black,
-                    ),
+                    ],
                   ),
-              ],
+                  if (widget.model.konum != "")
+                    Text(
+                      widget.model.konum,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.postMeta.copyWith(
+                        color: Colors.black,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -260,148 +264,151 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         offset: const Offset(0, 1),
       ),
     ];
-    return Padding(
-      padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 18),
-      child: _buildClassicHeaderBackdrop(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: _openAvatarStoryOrProfile,
-              child: Obx(() => _buildClassicAvatar(
-                    userId: widget.model.userID,
-                    imageUrl: controller.avatarUrl.value,
-                  )),
-            ),
-            7.pw,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: openProfile,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  child: Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          primaryName,
-                                          overflow: TextOverflow.ellipsis,
-                                          style:
-                                              AppTypography.postName.copyWith(
-                                            color: Colors.white,
-                                            shadows: textShadow,
+    return Transform.translate(
+      offset: const Offset(0, -8),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 18),
+        child: _buildClassicHeaderBackdrop(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: _openAvatarStoryOrProfile,
+                child: Obx(() => _buildClassicAvatar(
+                      userId: widget.model.userID,
+                      imageUrl: controller.avatarUrl.value,
+                    )),
+              ),
+              7.pw,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: openProfile,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            primaryName,
+                                            overflow: TextOverflow.ellipsis,
+                                            style:
+                                                AppTypography.postName.copyWith(
+                                              color: Colors.white,
+                                              shadows: textShadow,
+                                            ),
                                           ),
                                         ),
+                                        const SizedBox(width: 4),
+                                        _buildClassicWhiteBadge(13),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 2,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      Text(
+                                        '@$handle',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style:
+                                            AppTypography.postHandle.copyWith(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.92),
+                                          shadows: textShadow,
+                                        ),
                                       ),
-                                      const SizedBox(width: 4),
-                                      _buildClassicWhiteBadge(13),
+                                      Obx(
+                                        () {
+                                          _relativeTimeTickService.tick.value;
+                                          return Text(
+                                            buildDisplayTime(),
+                                            style:
+                                                AppTypography.postMeta.copyWith(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.9),
+                                              shadows: textShadow,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Wrap(
-                                  spacing: 6,
-                                  runSpacing: 2,
-                                  crossAxisAlignment:
-                                      WrapCrossAlignment.center,
-                                  children: [
-                                    Text(
-                                      '@$handle',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style:
-                                          AppTypography.postHandle.copyWith(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.92),
-                                        shadows: textShadow,
-                                      ),
+                                ],
+                              )),
+                        ),
+                        if (widget.model.userID != _currentUid)
+                          Obx(() {
+                            if (controller.isFollowing.value) {
+                              return const SizedBox.shrink();
+                            }
+                            if (compact) {
+                              return const SizedBox.shrink();
+                            }
+                            return Transform.translate(
+                              offset: const Offset(0, -5),
+                              child: SizedBox(
+                                height: 24,
+                                child: Center(
+                                  child: TextButton(
+                                    onPressed: controller.followLoading.value
+                                        ? null
+                                        : () {
+                                            controller.followUser();
+                                          },
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    Obx(
-                                      () {
-                                        _relativeTimeTickService.tick.value;
-                                        return Text(
-                                          buildDisplayTime(),
-                                          style:
-                                              AppTypography.postMeta.copyWith(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.9),
-                                            shadows: textShadow,
-                                          ),
-                                        );
-                                      },
+                                    child: _buildClassicOverlayFollowButton(
+                                      loading: controller.followLoading.value,
                                     ),
-                                  ],
-                                ),
-                              ],
-                            )),
-                      ),
-                      if (widget.model.userID != _currentUid)
-                        Obx(() {
-                          if (controller.isFollowing.value) {
-                            return const SizedBox.shrink();
-                          }
-                          if (compact) {
-                            return const SizedBox.shrink();
-                          }
-                          return Transform.translate(
-                            offset: const Offset(0, -5),
-                            child: SizedBox(
-                              height: 24,
-                              child: Center(
-                                child: TextButton(
-                                  onPressed: controller.followLoading.value
-                                      ? null
-                                      : () {
-                                          controller.followUser();
-                                        },
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: _buildClassicOverlayFollowButton(
-                                    loading: controller.followLoading.value,
                                   ),
                                 ),
                               ),
+                            );
+                          }),
+                        7.pw,
+                        Transform.translate(
+                          offset: const Offset(0, -5),
+                          child: SizedBox(
+                            height: 24,
+                            child: Center(
+                              child: pulldownmenu(Colors.white),
                             ),
-                          );
-                        }),
-                      7.pw,
-                      Transform.translate(
-                        offset: const Offset(0, -5),
-                        child: SizedBox(
-                          height: 24,
-                          child: Center(
-                            child: pulldownmenu(Colors.white),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  if (widget.model.konum != "")
-                    Text(
-                      widget.model.konum,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.postMeta.copyWith(
-                        color: Colors.white,
-                        shadows: textShadow,
-                      ),
+                      ],
                     ),
-                ],
+                    if (widget.model.konum != "")
+                      Text(
+                        widget.model.konum,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.postMeta.copyWith(
+                          color: Colors.white,
+                          shadows: textShadow,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
