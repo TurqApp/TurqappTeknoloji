@@ -98,10 +98,10 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                       aspectRatio: shorts[idx].aspectRatio > 1.2
                           ? shorts[idx].aspectRatio.toDouble()
                           : 1.0,
-                      child: _cachedThumb(injThumb),
+                      child: _cachedThumb(shorts[idx], overrideUrl: injThumb),
                     ),
                   )
-                : SizedBox.expand(child: _cachedThumb(injThumb));
+                : SizedBox.expand(child: _cachedThumb(shorts[idx], overrideUrl: injThumb));
             return IgnorePointer(
               ignoring: true,
               child: AnimatedOpacity(
@@ -134,11 +134,11 @@ extension SingleShortViewUiPart on _SingleShortViewState {
             Center(
               child: AspectRatio(
                 aspectRatio: loadingThumbAr > 1.2 ? loadingThumbAr : 1.0,
-                child: _cachedThumb(thumb),
+                child: _cachedThumb(shorts[idx], overrideUrl: thumb),
               ),
             )
           else
-            _cachedThumb(thumb)
+            _cachedThumb(shorts[idx], overrideUrl: thumb)
         else
           const SizedBox.shrink(),
       ],
@@ -157,11 +157,11 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                   Center(
                     child: AspectRatio(
                       aspectRatio: thumbAr > 1.2 ? thumbAr : 1.0,
-                      child: _cachedThumb(thumb),
+                      child: _cachedThumb(shorts[idx], overrideUrl: thumb),
                     ),
                   )
                 else
-                  _cachedThumb(thumb),
+                  _cachedThumb(shorts[idx], overrideUrl: thumb),
             ],
           )
         : Stack(
@@ -190,10 +190,10 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                             aspectRatio: shorts[idx].aspectRatio > 1.2
                                 ? shorts[idx].aspectRatio.toDouble()
                                 : 1.0,
-                            child: _cachedThumb(thumb),
+                            child: _cachedThumb(shorts[idx], overrideUrl: thumb),
                           ),
                         )
-                      : SizedBox.expand(child: _cachedThumb(thumb));
+                      : SizedBox.expand(child: _cachedThumb(shorts[idx], overrideUrl: thumb));
                   return IgnorePointer(
                     ignoring: true,
                     child: AnimatedOpacity(

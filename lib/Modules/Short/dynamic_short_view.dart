@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
@@ -115,12 +116,21 @@ class DynamicShortViewState extends State<DynamicShortView> {
 
   Widget _buildThumb(PostsModel post) {
     final thumb = post.thumbnail.trim();
-    if (thumb.isEmpty) {
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    final candidateUrls = <String>[
+      if (thumb.isNotEmpty) thumb,
+      if (fallbackImage.isNotEmpty) fallbackImage,
+      ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
+    ];
+    final primaryUrl =
+        candidateUrls.isEmpty ? '' : candidateUrls.first.trim();
+    if (primaryUrl.isEmpty) {
       return const ColoredBox(color: Colors.black);
     }
     final modelAr = post.aspectRatio > 0 ? post.aspectRatio.toDouble() : 9 / 16;
     final image = CacheFirstNetworkImage(
-      imageUrl: thumb,
+      imageUrl: primaryUrl,
+      candidateUrls: candidateUrls.skip(1).toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: const ColoredBox(color: Colors.black),

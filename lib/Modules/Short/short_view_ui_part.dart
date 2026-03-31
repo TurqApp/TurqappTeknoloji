@@ -71,16 +71,27 @@ extension ShortViewUiPart on _ShortViewState {
     );
   }
 
-  Widget _cachedThumb(String url) {
+  Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    final candidates = <String>[
+      if (resolvedUrl.isNotEmpty) resolvedUrl,
+      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl) fallbackImage,
+      ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
+    ];
+    if (candidates.isEmpty) {
+      return const ColoredBox(color: Colors.black);
+    }
     return CacheFirstNetworkImage(
-      imageUrl: url,
+      imageUrl: candidates.first,
+      candidateUrls: candidates.skip(1).toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: const ColoredBox(color: Colors.black),
     );
   }
 
-  Widget _buildThumbOverlay(String thumb, double modelAr) {
+  Widget _buildThumbOverlay(int idx, String thumb, double modelAr) {
     if (thumb.isEmpty) {
       return const ColoredBox(color: Colors.black);
     }
@@ -88,11 +99,13 @@ extension ShortViewUiPart on _ShortViewState {
       return Center(
         child: AspectRatio(
           aspectRatio: modelAr,
-          child: _cachedThumb(thumb),
+          child: _cachedThumb(_cachedShorts[idx], overrideUrl: thumb),
         ),
       );
     }
-    return SizedBox.expand(child: _cachedThumb(thumb));
+    return SizedBox.expand(
+      child: _cachedThumb(_cachedShorts[idx], overrideUrl: thumb),
+    );
   }
 
   void _reportStableShortFrameIfNeeded(
@@ -248,7 +261,7 @@ extension ShortViewUiPart on _ShortViewState {
                   }
                   return Stack(
                     fit: StackFit.expand,
-                    children: [_buildThumbOverlay(thumb, modelAr)],
+                    children: [_buildThumbOverlay(idx, thumb, modelAr)],
                   );
                 }
 
@@ -264,7 +277,7 @@ extension ShortViewUiPart on _ShortViewState {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _buildThumbOverlay(thumb, modelAr),
+                      _buildThumbOverlay(idx, thumb, modelAr),
                       if (isActivePage) videoWidget,
                       if (isActivePage)
                         AnimatedBuilder(
@@ -293,7 +306,7 @@ extension ShortViewUiPart on _ShortViewState {
                                 opacity: hasStableVideoFrame ? 0 : 1,
                                 duration: const Duration(milliseconds: 220),
                                 curve: Curves.easeOutCubic,
-                                child: _buildThumbOverlay(thumb, modelAr),
+                                child: _buildThumbOverlay(idx, thumb, modelAr),
                               ),
                             );
                           },

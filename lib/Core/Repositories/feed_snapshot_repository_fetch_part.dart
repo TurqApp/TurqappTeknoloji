@@ -533,7 +533,21 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       cutoffMs: 0,
       limit: query.effectiveLimit,
     );
-    return visible.isEmpty ? null : visible;
+    if (visible.isEmpty) return null;
+
+    try {
+      final rehydratedById = await _rehydrateHomeFeedVideoCards(
+        <String, PostsModel>{
+          for (final post in visible) post.docID: post,
+        },
+        cacheOnly: false,
+      );
+      return visible
+          .map((post) => rehydratedById[post.docID] ?? post)
+          .toList(growable: false);
+    } catch (_) {
+      return visible;
+    }
   }
 
   Future<Set<String>> _loadFollowingIds(String userId) async {

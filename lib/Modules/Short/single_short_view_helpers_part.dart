@@ -247,9 +247,20 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     }
   }
 
-  Widget _cachedThumb(String url) {
+  Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    final candidates = <String>[
+      if (resolvedUrl.isNotEmpty) resolvedUrl,
+      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl) fallbackImage,
+      ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
+    ];
+    if (candidates.isEmpty) {
+      return const ColoredBox(color: Colors.black);
+    }
     return CacheFirstNetworkImage(
-      imageUrl: url,
+      imageUrl: candidates.first,
+      candidateUrls: candidates.skip(1).toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: const ColoredBox(color: Colors.black),
