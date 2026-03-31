@@ -86,6 +86,25 @@ extension ConversationRepositoryStatePart on ConversationRepository {
         defaultValue;
   }
 
+  String participantStringValue(
+    dynamic raw,
+    String uid, {
+    String defaultValue = '',
+  }) {
+    return _sanitizeStringParticipantMap(
+          raw,
+          <String>[uid],
+          defaultValue: defaultValue,
+        )[uid] ??
+        defaultValue;
+  }
+
+  bool participantMapContainsKey(dynamic raw, String uid) {
+    if (raw is! Map) return false;
+    if (raw.containsKey(uid)) return true;
+    return raw.keys.any((key) => key.toString() == uid);
+  }
+
   Map<String, bool> deriveArchiveOverridesFromConversationDocs(
     String currentUid,
     Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,

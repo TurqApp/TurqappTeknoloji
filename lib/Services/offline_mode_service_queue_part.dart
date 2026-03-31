@@ -135,6 +135,7 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
         try {
           final result = await action.execute();
           if (!result.isApplied) {
+            _publishSkippedActionRollback(action);
             print('⚪️ Skipped ${action.type}: ${result.reason}');
             failedCount.value++;
             deadLetterActions.add(action.copyWith(
@@ -190,5 +191,27 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
     return delay > _offlineModeMaxRetryDelayMs
         ? _offlineModeMaxRetryDelayMs
         : delay;
+  }
+
+  void _publishSkippedActionRollback(PendingAction action) {
+    final postId = (action.data['postId'] ?? '').toString().trim();
+    final userId = (action.data['userId'] ?? action.data['currentUid'] ?? '')
+        .toString()
+        .trim();
+    if (postId.isEmpty || userId.isEmpty) return;
+
+    final rollbackLike =
+        action.type == 'like_post' || action.type == 'set_like_post';
+    final rollbackSaved = action.type == 'set_save_post';
+    if (!rollbackLike && !rollbackSaved) return;
+
+    CacheInvalidationService.ensure().publish(
+      CacheInvalidationEvent.postInteractionRollback(
+        postId: postId,
+        userId: userId,
+        rollbackLike: rollbackLike,
+        rollbackSaved: rollbackSaved,
+      ),
+    );
   }
 }

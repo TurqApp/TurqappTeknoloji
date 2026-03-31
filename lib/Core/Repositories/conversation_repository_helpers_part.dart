@@ -53,6 +53,20 @@ extension ConversationRepositoryHelpersPart on ConversationRepository {
     return result;
   }
 
+  Map<String, String> _sanitizeStringParticipantMap(
+    dynamic raw,
+    List<String> participants, {
+    String defaultValue = '',
+  }) {
+    final source = raw is Map ? raw : const <String, dynamic>{};
+    final result = <String, String>{};
+    for (final uid in participants) {
+      final value = source[uid];
+      result[uid] = (value ?? defaultValue).toString();
+    }
+    return result;
+  }
+
   Map<String, int> _sanitizeIntParticipantMap(
     dynamic raw,
     List<String> participants, {
@@ -96,6 +110,21 @@ extension ConversationRepositoryHelpersPart on ConversationRepository {
     if (userId1.isNotEmpty && userId1 != currentUid) return userId1;
     if (userId2.isNotEmpty && userId2 != currentUid) return userId2;
     return '';
+  }
+
+  List<String> resolveConversationParticipants(Map<String, dynamic> data) {
+    final participants = _sanitizeParticipantIds(data['participants']);
+    if (participants.length == 2) {
+      final sorted = participants.toList()..sort();
+      return sorted;
+    }
+    final inferred = <String>{};
+    final userId1 = (data['userID1'] ?? '').toString().trim();
+    final userId2 = (data['userID2'] ?? '').toString().trim();
+    if (userId1.isNotEmpty) inferred.add(userId1);
+    if (userId2.isNotEmpty) inferred.add(userId2);
+    final resolved = inferred.toList()..sort();
+    return resolved;
   }
 
   DocumentReference<Map<String, dynamic>> _messageRef(
@@ -185,6 +214,21 @@ extension ConversationRepositoryHelpersPart on ConversationRepository {
       participants,
       defaultValue: false,
     );
+    final previewText = _sanitizeStringParticipantMap(
+      existing["previewText"],
+      participants,
+      defaultValue: '',
+    );
+    previewText[currentUid] = lastMessage;
+    previewText[otherUid] = lastMessage;
+    final previewAt = _sanitizeIntParticipantMap(
+      existing["previewAt"],
+      participants,
+      defaultValue: 0,
+      nonNegative: true,
+    );
+    previewAt[currentUid] = nowMs;
+    previewAt[otherUid] = nowMs;
     final chatBg = _sanitizeIntParticipantMap(
       existing["chatBg"],
       participants,
@@ -204,6 +248,8 @@ extension ConversationRepositoryHelpersPart on ConversationRepository {
       "typing": typing,
       "muted": muted,
       "pinned": pinned,
+      "previewText": previewText,
+      "previewAt": previewAt,
       "chatBg": chatBg,
     };
   }

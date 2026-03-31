@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 enum CacheInvalidationEventType {
   messageDeletedForUser,
   messageUnsent,
+  postInteractionRollback,
   postDeleted,
   storyDeleted,
   storyExpired,
@@ -56,6 +57,24 @@ class CacheInvalidationEvent {
     );
   }
 
+  factory CacheInvalidationEvent.postInteractionRollback({
+    required String postId,
+    required String userId,
+    bool rollbackLike = false,
+    bool rollbackSaved = false,
+  }) {
+    return CacheInvalidationEvent(
+      type: CacheInvalidationEventType.postInteractionRollback,
+      scopeId: postId.trim(),
+      entityId: postId.trim(),
+      actorUserId: userId.trim(),
+      payload: <String, Object?>{
+        'rollbackLike': rollbackLike,
+        'rollbackSaved': rollbackSaved,
+      },
+    );
+  }
+
   final CacheInvalidationEventType type;
   final String scopeId;
   final String entityId;
@@ -66,6 +85,9 @@ class CacheInvalidationEvent {
   bool get isMessageEvent =>
       type == CacheInvalidationEventType.messageDeletedForUser ||
       type == CacheInvalidationEventType.messageUnsent;
+
+  bool get isPostInteractionRollback =>
+      type == CacheInvalidationEventType.postInteractionRollback;
 }
 
 class CacheInvalidationService extends GetxService {

@@ -4,10 +4,9 @@ String? _activeChatTag;
 final ConversationRepository _conversationRepository =
     ConversationRepository.ensure();
 const int _initialPageSize = 60;
-const int _olderPageSize = 40;
-const int _syncHeadSize = 40;
-const int _typingHeartbeatIntervalMs = 1500;
 const int _localChatWindowLimit = 180;
+const int _syncHeadSize = _localChatWindowLimit;
+const int _typingHeartbeatIntervalMs = 1500;
 final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
 ChatController? _resolveRegisteredChatController({String? tag}) {

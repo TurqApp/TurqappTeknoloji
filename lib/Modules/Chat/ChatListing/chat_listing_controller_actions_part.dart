@@ -82,6 +82,10 @@ extension ChatListingControllerActionsPart on ChatListingController {
         item.lastMessage = previewText;
         changed = true;
       }
+      if (!item.hasAuthoritativePreview) {
+        item.hasAuthoritativePreview = true;
+        changed = true;
+      }
       if (timestampMs > 0 && item.timeStamp != '$timestampMs') {
         item.timeStamp = '$timestampMs';
         changed = true;

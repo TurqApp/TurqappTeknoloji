@@ -10,6 +10,21 @@ class PostInteractionService extends GetxController {
   final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
   final Set<String> _reportedByMe = <String>{};
   bool _permissionDeniedLogged = false;
+  StreamSubscription<CacheInvalidationEvent>? _invalidationSubscription;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _invalidationSubscription = CacheInvalidationService.ensure()
+        .watchType(CacheInvalidationEventType.postInteractionRollback)
+        .listen(_applyPostInteractionRollbackEvent);
+  }
+
+  @override
+  void onClose() {
+    _invalidationSubscription?.cancel();
+    super.onClose();
+  }
 }
 
 PostInteractionService? maybeFindPostInteractionService() {

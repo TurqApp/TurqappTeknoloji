@@ -18,6 +18,7 @@ class ChatListingModel {
   bool isConversation;
   bool isPinned;
   bool isMuted;
+  bool hasAuthoritativePreview;
 
   ChatListingModel({
     required this.chatID,
@@ -32,6 +33,7 @@ class ChatListingModel {
     this.isConversation = false,
     this.isPinned = false,
     this.isMuted = false,
+    this.hasAuthoritativePreview = false,
   }) : deleted = _cloneDeletedList(deleted);
 
   factory ChatListingModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +50,7 @@ class ChatListingModel {
       isConversation: json['isConversation'] ?? false,
       isPinned: json['isPinned'] ?? false,
       isMuted: json['isMuted'] ?? false,
+      hasAuthoritativePreview: json['hasAuthoritativePreview'] == true,
     );
   }
 
@@ -65,6 +68,7 @@ class ChatListingModel {
       'isConversation': isConversation,
       'isPinned': isPinned,
       'isMuted': isMuted,
+      'hasAuthoritativePreview': hasAuthoritativePreview,
     };
   }
 }

@@ -171,6 +171,22 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
     return parseFlexibleBool(value, fallback: fallback);
   }
 
+  void _applyPostInteractionRollbackEvent(CacheInvalidationEvent event) {
+    if (!event.isPostInteractionRollback) return;
+    final userId = currentUserID;
+    if (userId == null || userId.trim().isEmpty) return;
+    if (event.actorUserId.trim() != userId.trim()) return;
+    final postId = event.scopeId.trim();
+    if (postId.isEmpty) return;
+    final rollbackLike = event.payload['rollbackLike'] == true;
+    final rollbackSaved = event.payload['rollbackSaved'] == true;
+    _updateInteractionCache(
+      postId,
+      like: rollbackLike ? false : null,
+      saved: rollbackSaved ? false : null,
+    );
+  }
+
   void _updateInteractionCache(
     String postId, {
     bool? like,

@@ -116,7 +116,9 @@ extension ChatListingControllerDataPart on ChatListingController {
             deletedUntil != null && existingTs <= deletedUntil;
         final shouldReplace = currentTs >= existingTs;
         if (shouldReplace) {
-          if (item.lastMessage.isEmpty && existing.lastMessage.isNotEmpty) {
+          if (!item.hasAuthoritativePreview &&
+              item.lastMessage.isEmpty &&
+              existing.lastMessage.isNotEmpty) {
             item.lastMessage = existing.lastMessage;
           }
           if ((archivedEither || archivedForced) &&
@@ -262,6 +264,17 @@ extension ChatListingControllerDataPart on ChatListingController {
       if (userData == null) continue;
       final serverUnread =
           _conversationRepository.participantIntValue(data["unread"], uid);
+      final hasPreviewOverride =
+          _conversationRepository.participantMapContainsKey(
+        data["previewText"],
+        uid,
+      );
+      final previewText = hasPreviewOverride
+          ? _conversationRepository.participantStringValue(
+              data["previewText"],
+              uid,
+            )
+          : (data["lastMessage"] ?? "").toString();
       final lastMessageAt = data["lastMessageAt"];
       int ts = 0;
       if (lastMessageAt is Timestamp) {
@@ -269,6 +282,13 @@ extension ChatListingControllerDataPart on ChatListingController {
       } else {
         final fallbackTs = data["lastMessageAtMs"];
         ts = fallbackTs is int ? fallbackTs : int.tryParse("$fallbackTs") ?? 0;
+      }
+      if (hasPreviewOverride) {
+        ts = _conversationRepository.participantIntValue(
+          data["previewAt"],
+          uid,
+          defaultValue: ts,
+        );
       }
       final lastSenderId = (data["lastSenderId"] ?? "").toString();
       final seenKey = "chat_last_opened_${uid}_${doc.id}";
@@ -305,11 +325,12 @@ extension ChatListingControllerDataPart on ChatListingController {
                 userData["avatarUrl"] ??
                 "")
             .toString(),
-        lastMessage: data["lastMessage"] ?? "",
+        lastMessage: previewText,
         unreadCount: unreadCount,
         isConversation: true,
         isPinned: isPinned,
         isMuted: isMuted,
+        hasAuthoritativePreview: hasPreviewOverride,
       ));
     }
 
