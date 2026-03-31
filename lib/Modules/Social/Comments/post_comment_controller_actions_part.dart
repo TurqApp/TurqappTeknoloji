@@ -7,7 +7,7 @@ extension PostCommentControllerActions on PostCommentController {
     VoidCallback? onComplete,
   }) async {
     final gifUrl = selectedGifUrl.value.trim();
-    if (kufurKontrolEt(text)) {
+    if (await kufurKontrolEt(text)) {
       showAlertDialog(
         context,
         'comments.community_violation_title'.tr,

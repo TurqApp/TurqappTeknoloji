@@ -24,7 +24,7 @@ extension ChatControllerSendPart on ChatController {
     }
     final text = (textOverride ?? textEditingController.text).trim();
 
-    if (text.isNotEmpty && kufurKontrolEt(text)) {
+    if (text.isNotEmpty && await kufurKontrolEt(text)) {
       AppSnackbar(
         'comments.community_violation_title'.tr,
         'comments.community_violation_body'.tr,
