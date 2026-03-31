@@ -176,52 +176,6 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     setState(() {});
   }
 
-  void _handleManualVerticalDragStart(DragStartDetails details) {
-    _manualGestureDragDy = 0.0;
-  }
-
-  void _handleManualVerticalDragUpdate(DragUpdateDetails details) {
-    _manualGestureDragDy += details.primaryDelta ?? 0.0;
-  }
-
-  void _handleManualVerticalDragEnd(DragEndDetails details) {
-    final delta = _manualGestureDragDy;
-    final velocity = details.primaryVelocity ?? 0.0;
-    _manualGestureDragDy = 0.0;
-
-    if (!mounted || _manualSnapInProgress || shorts.isEmpty) return;
-
-    final goForward =
-        velocity < -_SingleShortViewState._manualGestureTriggerVelocity ||
-            delta < -_SingleShortViewState._manualGestureTriggerDistance;
-    final goBackward =
-        velocity > _SingleShortViewState._manualGestureTriggerVelocity ||
-            delta > _SingleShortViewState._manualGestureTriggerDistance;
-    if (goForward == goBackward) return;
-
-    final targetPage = goForward
-        ? (currentPage + 1).clamp(0, shorts.length - 1)
-        : (currentPage - 1).clamp(0, shorts.length - 1);
-    if (targetPage == currentPage) return;
-
-    unawaited(_animateManualPage(targetPage));
-  }
-
-  Future<void> _animateManualPage(int targetPage) async {
-    if (!mounted || _manualSnapInProgress || !pageController.hasClients) return;
-    _manualSnapInProgress = true;
-    try {
-      await pageController.animateToPage(
-        targetPage,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-      );
-    } catch (_) {
-    } finally {
-      _manualSnapInProgress = false;
-    }
-  }
-
   void _disposeSingleShortView() {
     try {
       final route = ModalRoute.of(context);

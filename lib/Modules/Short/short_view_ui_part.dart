@@ -1,55 +1,6 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
-  void _handleManualVerticalDragStart(DragStartDetails details) {
-    _manualGestureDragDy = 0.0;
-  }
-
-  void _handleManualVerticalDragUpdate(DragUpdateDetails details) {
-    _manualGestureDragDy += details.primaryDelta ?? 0.0;
-  }
-
-  void _handleManualVerticalDragEnd(DragEndDetails details) {
-    final delta = _manualGestureDragDy;
-    final velocity = details.primaryVelocity ?? 0.0;
-    _manualGestureDragDy = 0.0;
-
-    if (!mounted ||
-        _manualSnapInProgress ||
-        _isTransitioning ||
-        _cachedShorts.isEmpty) {
-      return;
-    }
-
-    final goForward = velocity < -_shortManualGestureTriggerVelocity ||
-        delta < -_shortManualGestureTriggerDistance;
-    final goBackward = velocity > _shortManualGestureTriggerVelocity ||
-        delta > _shortManualGestureTriggerDistance;
-    if (goForward == goBackward) return;
-
-    final targetPage = goForward
-        ? (currentPage + 1).clamp(0, _cachedShorts.length - 1)
-        : (currentPage - 1).clamp(0, _cachedShorts.length - 1);
-    if (targetPage == currentPage) return;
-
-    unawaited(_animateManualPage(targetPage));
-  }
-
-  Future<void> _animateManualPage(int targetPage) async {
-    if (!mounted || _manualSnapInProgress || !pageController.hasClients) return;
-    _manualSnapInProgress = true;
-    try {
-      await pageController.animateToPage(
-        targetPage,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-      );
-    } catch (_) {
-    } finally {
-      _manualSnapInProgress = false;
-    }
-  }
-
   Widget _buildRefreshingBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -236,15 +187,10 @@ extension ShortViewUiPart on _ShortViewState {
             _didInitialAttach = true;
           }
 
-          final pager = GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onVerticalDragStart: _handleManualVerticalDragStart,
-            onVerticalDragUpdate: _handleManualVerticalDragUpdate,
-            onVerticalDragEnd: _handleManualVerticalDragEnd,
-            child: PageView.builder(
+          final pager = PageView.builder(
               controller: pageController,
               scrollDirection: Axis.vertical,
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const MomentumPageScrollPhysics(),
               itemCount: list.length,
               onPageChanged: _onPageChanged,
               itemBuilder: (_, idx) {
@@ -254,6 +200,7 @@ extension ShortViewUiPart on _ShortViewState {
                     ? list[idx].aspectRatio.toDouble()
                     : (9 / 16);
                 final isActivePage = idx == currentPage;
+                final isWarmNeighbor = (idx - currentPage).abs() <= 1;
 
                 if (vp == null) {
                   if (isActivePage) {
@@ -265,11 +212,19 @@ extension ShortViewUiPart on _ShortViewState {
                   );
                 }
 
-                final videoWidget = isActivePage
-                    ? _buildFullscreenVideoSurface(
-                        vp,
-                        'vp-${list[idx].docID}-${vp.hashCode}',
-                        modelAspectRatio: modelAr,
+                final videoWidget = isActivePage || isWarmNeighbor
+                    ? IgnorePointer(
+                        ignoring: !isActivePage,
+                        child: AnimatedOpacity(
+                          opacity: isActivePage ? 1 : 0.001,
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          child: _buildFullscreenVideoSurface(
+                            vp,
+                            'vp-${list[idx].docID}-${vp.hashCode}',
+                            modelAspectRatio: modelAr,
+                          ),
+                        ),
                       )
                     : const SizedBox.shrink();
 
@@ -411,7 +366,6 @@ extension ShortViewUiPart on _ShortViewState {
                   ),
                 );
               },
-            ),
           );
 
           return Stack(

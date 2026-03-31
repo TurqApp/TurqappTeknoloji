@@ -31,8 +31,6 @@ import '../../Models/posts_model.dart';
 part 'short_view_playback_part.dart';
 part 'short_view_ui_part.dart';
 
-const double _shortManualGestureTriggerDistance = 18.0;
-const double _shortManualGestureTriggerVelocity = 80.0;
 const Duration _shortPlayResumeDelay = Duration(milliseconds: 50);
 const Duration _shortPlayResumeDelayAndroid = Duration.zero;
 const Duration _shortScrollDebounceAndroid = Duration(milliseconds: 24);
@@ -162,14 +160,12 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   bool _didInitialAttach = false;
   bool _didPrimeInitialPlayback = false;
   bool _isTransitioning = false;
-  bool _manualSnapInProgress = false;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
   String? _pendingActiveAdapterEnsureToken;
   List<PostsModel> _cachedShorts = [];
-  double _manualGestureDragDy = 0.0;
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;

@@ -172,10 +172,6 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   bool volume = true;
   bool showControls = true;
   DateTime _pageActivatedAt = DateTime.now();
-  bool _manualSnapInProgress = false;
-  double _manualGestureDragDy = 0.0;
-  static const double _manualGestureTriggerDistance = 18.0;
-  static const double _manualGestureTriggerVelocity = 80.0;
   static const Duration _engagementRescoreDelay = Duration(milliseconds: 2500);
   static const Duration _progressPersistInterval = Duration(seconds: 2);
   static const double _progressPersistDelta = 0.10;

@@ -25,19 +25,13 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 child: CupertinoActivityIndicator(color: Colors.white),
               );
             }
-            return GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onVerticalDragStart: _handleManualVerticalDragStart,
-              onVerticalDragUpdate: _handleManualVerticalDragUpdate,
-              onVerticalDragEnd: _handleManualVerticalDragEnd,
-              child: PageView.builder(
+            return PageView.builder(
                 controller: pageController,
                 scrollDirection: Axis.vertical,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const MomentumPageScrollPhysics(),
                 itemCount: shorts.length,
                 onPageChanged: _handlePageChanged,
                 itemBuilder: (_, idx) => _buildShortPage(idx),
-              ),
             );
           }),
         ),
