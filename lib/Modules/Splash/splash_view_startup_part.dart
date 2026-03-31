@@ -772,8 +772,14 @@ extension _SplashViewStartupPart on _SplashViewState {
     }
     if (_effectiveStartupRouteHint() == 'nav_education') {
       try {
+        final marketEnabled = _shouldPrioritizeEducationMarketWarmups()
+            ? await isPasajTabEnabled(PasajTabIds.market)
+            : false;
+        final jobEnabled = _shouldPrioritizeEducationJobWarmups()
+            ? await isPasajTabEnabled(PasajTabIds.jobFinder)
+            : false;
         await Future.wait([
-          if (_shouldPrioritizeEducationMarketWarmups())
+          if (marketEnabled)
             if (_hasWarmStartupSurface('market'))
               Future<void>.value()
             else
@@ -784,7 +790,7 @@ extension _SplashViewStartupPart on _SplashViewState {
                 const Duration(milliseconds: 900),
                 onTimeout: () {},
               ),
-          if (_shouldPrioritizeEducationJobWarmups())
+          if (jobEnabled)
             if (_hasWarmStartupSurface('jobs'))
               Future<void>.value()
             else

@@ -16,7 +16,12 @@ extension CikmisSorularSnapshotRepositoryFacadePart
     on CikmisSorularSnapshotRepository {
   Future<CachedResource<List<Map<String, dynamic>>>> loadCachedHome({
     required String userId,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.practiceExams)) {
+      return pasajDisabledResource<List<Map<String, dynamic>>>(
+        const <Map<String, dynamic>>[],
+      );
+    }
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
       _pastQuestionHomeSnapshotSurfaceKey,
     );
@@ -43,8 +48,14 @@ extension CikmisSorularSnapshotRepositoryFacadePart
   Stream<CachedResource<List<Map<String, dynamic>>>> openHome({
     required String userId,
     bool forceSync = false,
-  }) {
-    return _homePipeline.open(userId, forceSync: forceSync);
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.practiceExams)) {
+      yield* pasajDisabledStream<List<Map<String, dynamic>>>(
+        const <Map<String, dynamic>>[],
+      );
+      return;
+    }
+    yield* _homePipeline.open(userId, forceSync: forceSync);
   }
 
   Future<CachedResource<List<Map<String, dynamic>>>> loadHome({
@@ -62,14 +73,21 @@ extension CikmisSorularSnapshotRepositoryFacadePart
     required String userId,
     int limit = ReadBudgetRegistry.pastQuestionSearchInitialLimit,
     bool forceSync = false,
-  }) =>
-      openPastQuestionSearch(
-        this,
-        query: query,
-        userId: userId,
-        limit: limit,
-        forceSync: forceSync,
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.practiceExams)) {
+      yield* pasajDisabledStream<List<Map<String, dynamic>>>(
+        const <Map<String, dynamic>>[],
       );
+      return;
+    }
+    yield* openPastQuestionSearch(
+      this,
+      query: query,
+      userId: userId,
+      limit: limit,
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<Map<String, dynamic>>>> search({
     required String query,

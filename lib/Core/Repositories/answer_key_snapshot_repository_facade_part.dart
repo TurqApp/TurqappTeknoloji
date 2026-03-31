@@ -10,7 +10,12 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
   Future<CachedResource<List<BookletModel>>> loadCachedExamType({
     required String userId,
     required String examType,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      return pasajDisabledResource<List<BookletModel>>(
+        const <BookletModel>[],
+      );
+    }
     final query = AnswerKeyExamTypeQuery(
       userId: userId,
       examType: examType,
@@ -33,8 +38,14 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
     required String userId,
     required String examType,
     bool forceSync = false,
-  }) {
-    return _typePipeline.open(
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      yield* pasajDisabledStream<List<BookletModel>>(
+        const <BookletModel>[],
+      );
+      return;
+    }
+    yield* _typePipeline.open(
       AnswerKeyExamTypeQuery(
         userId: userId,
         examType: examType,
@@ -57,7 +68,12 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
 
   Future<CachedResource<List<BookletModel>>> loadCachedOwner({
     required String userId,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      return pasajDisabledResource<List<BookletModel>>(
+        const <BookletModel>[],
+      );
+    }
     final query = AnswerKeyOwnerQuery(userId: userId);
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
       _answerKeyOwnerSurfaceKey,
@@ -76,8 +92,14 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
   Stream<CachedResource<List<BookletModel>>> openOwner({
     required String userId,
     bool forceSync = false,
-  }) {
-    return _ownerPipeline.open(
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      yield* pasajDisabledStream<List<BookletModel>>(
+        const <BookletModel>[],
+      );
+      return;
+    }
+    yield* _ownerPipeline.open(
       AnswerKeyOwnerQuery(userId: userId),
       forceSync: forceSync,
     );
@@ -97,49 +119,75 @@ extension AnswerKeySnapshotRepositoryFacadePart on AnswerKeySnapshotRepository {
     required String userId,
     int limit = ReadBudgetRegistry.answerKeyHomeInitialLimit,
     bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).openHome(
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveAnswerKeyHomeInitialLimit(limit),
-        forceSync: forceSync,
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      yield* pasajDisabledStream<List<BookletModel>>(
+        const <BookletModel>[],
       );
+      return;
+    }
+    yield* _AnswerKeySnapshotRepositoryRuntimeX(this).openHome(
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveAnswerKeyHomeInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<BookletModel>>> loadHome({
     required String userId,
     int limit = ReadBudgetRegistry.answerKeyHomeInitialLimit,
     bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).loadHome(
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveAnswerKeyHomeInitialLimit(limit),
-        forceSync: forceSync,
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      return pasajDisabledResource<List<BookletModel>>(
+        const <BookletModel>[],
       );
+    }
+    return _AnswerKeySnapshotRepositoryRuntimeX(this).loadHome(
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveAnswerKeyHomeInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Stream<CachedResource<List<BookletModel>>> openSearch({
     required String query,
     required String userId,
     int limit = ReadBudgetRegistry.answerKeySearchInitialLimit,
     bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).openSearch(
-        query: query,
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveAnswerKeySearchInitialLimit(limit),
-        forceSync: forceSync,
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      yield* pasajDisabledStream<List<BookletModel>>(
+        const <BookletModel>[],
       );
+      return;
+    }
+    yield* _AnswerKeySnapshotRepositoryRuntimeX(this).openSearch(
+      query: query,
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveAnswerKeySearchInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<BookletModel>>> search({
     required String query,
     required String userId,
     int limit = ReadBudgetRegistry.answerKeySearchInitialLimit,
     bool forceSync = false,
-  }) =>
-      _AnswerKeySnapshotRepositoryRuntimeX(this).search(
-        query: query,
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveAnswerKeySearchInitialLimit(limit),
-        forceSync: forceSync,
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.answerKey)) {
+      return pasajDisabledResource<List<BookletModel>>(
+        const <BookletModel>[],
       );
+    }
+    return _AnswerKeySnapshotRepositoryRuntimeX(this).search(
+      query: query,
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveAnswerKeySearchInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Future<void> invalidateUserScopedSurfaces(String userId) async {
     final normalized = userId.trim();

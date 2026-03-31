@@ -4,7 +4,12 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
   Future<CachedResource<List<MarketItemModel>>> loadCachedOwner({
     required String userId,
     int limit = ReadBudgetRegistry.marketOwnerInitialLimit,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.market)) {
+      return pasajDisabledResource<List<MarketItemModel>>(
+        const <MarketItemModel>[],
+      );
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolveMarketOwnerInitialLimit(limit);
     final query = MarketOwnerQuery(
@@ -29,10 +34,16 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     required String userId,
     int limit = ReadBudgetRegistry.marketOwnerInitialLimit,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.market)) {
+      yield* pasajDisabledStream<List<MarketItemModel>>(
+        const <MarketItemModel>[],
+      );
+      return;
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolveMarketOwnerInitialLimit(limit);
-    return _ownerPipeline.open(
+    yield* _ownerPipeline.open(
       MarketOwnerQuery(
         userId: userId,
         limit: effectiveLimit,
@@ -58,11 +69,17 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     int limit = ReadBudgetRegistry.marketHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.market)) {
+      yield* pasajDisabledStream<List<MarketItemModel>>(
+        const <MarketItemModel>[],
+      );
+      return;
+    }
     final effectiveLimit = ReadBudgetRegistry.resolveMarketHomeInitialLimit(
       limit,
     );
-    return _homePipeline.open(
+    yield* _homePipeline.open(
       MarketListingQuery(
         query: '*',
         userId: userId,
@@ -94,11 +111,17 @@ extension MarketSnapshotRepositoryFacadePart on MarketSnapshotRepository {
     int limit = ReadBudgetRegistry.marketSearchInitialLimit,
     int page = 1,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.market)) {
+      yield* pasajDisabledStream<List<MarketItemModel>>(
+        const <MarketItemModel>[],
+      );
+      return;
+    }
     final effectiveLimit = ReadBudgetRegistry.resolveMarketSearchInitialLimit(
       limit,
     );
-    return _searchPipeline.open(
+    yield* _searchPipeline.open(
       MarketListingQuery(
         query: query,
         userId: userId,

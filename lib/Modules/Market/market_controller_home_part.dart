@@ -24,6 +24,9 @@ extension _MarketControllerHomePart on MarketController {
   Future<void> _performRunPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.market)) {
+      return;
+    }
     try {
       final allowRefresh = allowBackgroundRefresh ?? false;
       await _performHydrateMarketStartupShard();

@@ -85,3 +85,31 @@ extension SettingsControllerRuntimePart on SettingsController {
     );
   }
 }
+
+Future<Map<String, bool>> loadPasajVisibilitySnapshot() async {
+  final existing = maybeFindSettingsController();
+  if (existing != null && existing.pasajVisibility.isNotEmpty) {
+    return <String, bool>{
+      for (final title in pasajTabs)
+        title: existing.pasajVisibility[title] ?? true,
+    };
+  }
+
+  final prefs = await SharedPreferences.getInstance();
+  final hidden = (prefs.getStringList(
+            userScopedKey(_settingsPasajVisibilityKeyPrefix),
+          ) ??
+          const <String>[])
+      .map(pasajLegacyTitleToId)
+      .where(pasajTabs.contains)
+      .toSet();
+  return <String, bool>{
+    for (final title in pasajTabs) title: !hidden.contains(title),
+  };
+}
+
+Future<bool> isPasajTabVisibleLocally(String tabId) async {
+  if (!pasajTabs.contains(tabId)) return true;
+  final snapshot = await loadPasajVisibilitySnapshot();
+  return snapshot[tabId] ?? true;
+}

@@ -24,6 +24,9 @@ extension JobFinderControllerDataPart on JobFinderController {
   Future<void> _performRunPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+      return;
+    }
     try {
       final allowRefresh = allowBackgroundRefresh ?? false;
       await _performHydrateJobFinderStartupShard();

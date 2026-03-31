@@ -16,7 +16,10 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
   Future<CachedResource<List<JobModel>>> loadCachedOwner({
     required String userId,
     int limit = ReadBudgetRegistry.jobOwnerInitialLimit,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+      return pasajDisabledResource<List<JobModel>>(const <JobModel>[]);
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolveJobOwnerInitialLimit(limit);
     final query = JobOwnerQuery(
@@ -42,10 +45,14 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
     required String userId,
     int limit = ReadBudgetRegistry.jobOwnerInitialLimit,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+      yield* pasajDisabledStream<List<JobModel>>(const <JobModel>[]);
+      return;
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolveJobOwnerInitialLimit(limit);
-    return _ownerPipeline.open(
+    yield* _ownerPipeline.open(
       JobOwnerQuery(
         userId: userId,
         limit: effectiveLimit,
@@ -70,9 +77,13 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
     required String userId,
     int limit = ReadBudgetRegistry.jobHomeInitialLimit,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+      yield* pasajDisabledStream<List<JobModel>>(const <JobModel>[]);
+      return;
+    }
     final effectiveLimit = ReadBudgetRegistry.resolveJobHomeInitialLimit(limit);
-    return _homeAdapter.open(
+    yield* _homeAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.job,
         query: '*',
@@ -101,11 +112,15 @@ extension JobHomeSnapshotRepositoryFacadePart on JobHomeSnapshotRepository {
     required String userId,
     int limit = ReadBudgetRegistry.jobSearchInitialLimit,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+      yield* pasajDisabledStream<List<JobModel>>(const <JobModel>[]);
+      return;
+    }
     final effectiveLimit = ReadBudgetRegistry.resolveJobSearchInitialLimit(
       limit,
     );
-    return _searchAdapter.open(
+    yield* _searchAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.job,
         query: query,

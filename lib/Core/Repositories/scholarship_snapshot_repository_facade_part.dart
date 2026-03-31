@@ -18,7 +18,15 @@ extension ScholarshipSnapshotRepositoryFacadePart
     required String userId,
     int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
     int page = 1,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+      return pasajDisabledResource<ScholarshipListingSnapshot>(
+        const ScholarshipListingSnapshot(
+          items: <Map<String, dynamic>>[],
+          found: 0,
+        ),
+      );
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(
       limit,
@@ -51,26 +59,45 @@ extension ScholarshipSnapshotRepositoryFacadePart
     int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
-  }) =>
-      _openHomeImpl(
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(limit),
-        page: page,
-        forceSync: forceSync,
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+      yield* pasajDisabledStream<ScholarshipListingSnapshot>(
+        const ScholarshipListingSnapshot(
+          items: <Map<String, dynamic>>[],
+          found: 0,
+        ),
       );
+      return;
+    }
+    yield* _openHomeImpl(
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(limit),
+      page: page,
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<ScholarshipListingSnapshot>> loadHome({
     required String userId,
     int limit = ReadBudgetRegistry.scholarshipHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
-  }) =>
-      _loadHomeImpl(
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(limit),
-        page: page,
-        forceSync: forceSync,
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+      return pasajDisabledResource<ScholarshipListingSnapshot>(
+        const ScholarshipListingSnapshot(
+          items: <Map<String, dynamic>>[],
+          found: 0,
+        ),
       );
+    }
+    return _loadHomeImpl(
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveScholarshipHomeInitialLimit(limit),
+      page: page,
+      forceSync: forceSync,
+    );
+  }
 
   Stream<CachedResource<ScholarshipListingSnapshot>> openSearch({
     required String query,
@@ -78,14 +105,24 @@ extension ScholarshipSnapshotRepositoryFacadePart
     int limit = ReadBudgetRegistry.scholarshipSearchInitialLimit,
     int page = 1,
     bool forceSync = false,
-  }) =>
-      _openSearchImpl(
-        query: query,
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveScholarshipSearchInitialLimit(limit),
-        page: page,
-        forceSync: forceSync,
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+      yield* pasajDisabledStream<ScholarshipListingSnapshot>(
+        const ScholarshipListingSnapshot(
+          items: <Map<String, dynamic>>[],
+          found: 0,
+        ),
       );
+      return;
+    }
+    yield* _openSearchImpl(
+      query: query,
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveScholarshipSearchInitialLimit(limit),
+      page: page,
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<ScholarshipListingSnapshot>> search({
     required String query,
@@ -93,14 +130,23 @@ extension ScholarshipSnapshotRepositoryFacadePart
     int limit = ReadBudgetRegistry.scholarshipSearchInitialLimit,
     int page = 1,
     bool forceSync = false,
-  }) =>
-      _searchImpl(
-        query: query,
-        userId: userId,
-        limit: ReadBudgetRegistry.resolveScholarshipSearchInitialLimit(limit),
-        page: page,
-        forceSync: forceSync,
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+      return pasajDisabledResource<ScholarshipListingSnapshot>(
+        const ScholarshipListingSnapshot(
+          items: <Map<String, dynamic>>[],
+          found: 0,
+        ),
       );
+    }
+    return _searchImpl(
+      query: query,
+      userId: userId,
+      limit: ReadBudgetRegistry.resolveScholarshipSearchInitialLimit(limit),
+      page: page,
+      forceSync: forceSync,
+    );
+  }
 
   Future<void> invalidateUserScopedSurfaces(String userId) async {
     final normalized = userId.trim();

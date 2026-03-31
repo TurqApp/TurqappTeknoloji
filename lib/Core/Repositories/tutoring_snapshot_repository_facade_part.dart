@@ -15,7 +15,12 @@ TutoringSnapshotRepository ensureTutoringSnapshotRepository() {
 extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
   Future<CachedResource<List<TutoringModel>>> loadCachedOwner({
     required String userId,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.tutoring)) {
+      return pasajDisabledResource<List<TutoringModel>>(
+        const <TutoringModel>[],
+      );
+    }
     final query = TutoringOwnerQuery(userId: userId);
     final schemaVersion = CacheFirstPolicyRegistry.schemaVersionForSurface(
       TutoringSnapshotRepository._ownerSurfaceKey,
@@ -34,8 +39,14 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
   Stream<CachedResource<List<TutoringModel>>> openOwner({
     required String userId,
     bool forceSync = false,
-  }) {
-    return _ownerPipeline.open(
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.tutoring)) {
+      yield* pasajDisabledStream<List<TutoringModel>>(
+        const <TutoringModel>[],
+      );
+      return;
+    }
+    yield* _ownerPipeline.open(
       TutoringOwnerQuery(userId: userId),
       forceSync: forceSync,
     );
@@ -56,10 +67,16 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
     int limit = ReadBudgetRegistry.tutoringHomeInitialLimit,
     int page = 1,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.tutoring)) {
+      yield* pasajDisabledStream<List<TutoringModel>>(
+        const <TutoringModel>[],
+      );
+      return;
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolveTutoringHomeInitialLimit(limit);
-    return _homeAdapter.open(
+    yield* _homeAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.tutoring,
         query: '*',
@@ -91,10 +108,16 @@ extension TutoringSnapshotRepositoryFacadePart on TutoringSnapshotRepository {
     required String query,
     int limit = ReadBudgetRegistry.tutoringSearchInitialLimit,
     bool forceSync = false,
-  }) {
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.tutoring)) {
+      yield* pasajDisabledStream<List<TutoringModel>>(
+        const <TutoringModel>[],
+      );
+      return;
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolveTutoringSearchInitialLimit(limit);
-    return _searchAdapter.open(
+    yield* _searchAdapter.open(
       EducationTypesenseQuery(
         entity: EducationTypesenseEntity.tutoring,
         query: query,

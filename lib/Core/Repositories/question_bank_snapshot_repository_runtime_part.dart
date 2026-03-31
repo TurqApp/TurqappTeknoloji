@@ -6,8 +6,14 @@ Stream<CachedResource<List<QuestionBankModel>>> _openQuestionBankSearch(
   required String userId,
   int limit = ReadBudgetRegistry.questionBankSearchInitialLimit,
   bool forceSync = false,
-}) {
-  return repository._searchAdapter.open(
+}) async* {
+  if (!await isPasajTabEnabled(PasajTabIds.questionBank)) {
+    yield* pasajDisabledStream<List<QuestionBankModel>>(
+      const <QuestionBankModel>[],
+    );
+    return;
+  }
+  yield* repository._searchAdapter.open(
     EducationTypesenseQuery(
       entity: EducationTypesenseEntity.workout,
       query: query,
@@ -91,6 +97,9 @@ extension QuestionBankSnapshotRepositoryRuntimeX
     String ders, {
     int? limit,
   }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.questionBank)) {
+      return const <QuestionBankModel>[];
+    }
     final filterBy = <String>[
       'active:=true',
       'anaBaslik:=${_typesenseFilterValue(anaBaslik)}',

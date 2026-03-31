@@ -17,7 +17,10 @@ extension PracticeExamSnapshotRepositoryFacadePart
   Future<CachedResource<List<SinavModel>>> loadCachedAnswered({
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamAnsweredInitialLimit,
-  }) {
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      return pasajDisabledResource<List<SinavModel>>(const <SinavModel>[]);
+    }
     final effectiveLimit =
         ReadBudgetRegistry.resolvePracticeExamAnsweredInitialLimit(limit);
     final query = PracticeExamAnsweredQuery(
@@ -43,112 +46,156 @@ extension PracticeExamSnapshotRepositoryFacadePart
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamAnsweredInitialLimit,
     bool forceSync = false,
-  }) =>
-      _openAnsweredImpl(
-        userId: userId,
-        limit:
-            ReadBudgetRegistry.resolvePracticeExamAnsweredInitialLimit(limit),
-        forceSync: forceSync,
-      );
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      yield* pasajDisabledStream<List<SinavModel>>(const <SinavModel>[]);
+      return;
+    }
+    yield* _openAnsweredImpl(
+      userId: userId,
+      limit: ReadBudgetRegistry.resolvePracticeExamAnsweredInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<SinavModel>>> loadAnswered({
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamAnsweredInitialLimit,
     bool forceSync = false,
-  }) =>
-      _loadAnsweredImpl(
-        userId: userId,
-        limit: limit,
-        forceSync: forceSync,
-      );
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      return pasajDisabledResource<List<SinavModel>>(const <SinavModel>[]);
+    }
+    return _loadAnsweredImpl(
+      userId: userId,
+      limit: limit,
+      forceSync: forceSync,
+    );
+  }
 
   Stream<CachedResource<List<SinavModel>>> openType({
     required String userId,
     required String examType,
     bool forceSync = false,
-  }) =>
-      _openTypeImpl(
-        userId: userId,
-        examType: examType,
-        forceSync: forceSync,
-      );
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      yield* pasajDisabledStream<List<SinavModel>>(const <SinavModel>[]);
+      return;
+    }
+    yield* _openTypeImpl(
+      userId: userId,
+      examType: examType,
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<SinavModel>>> loadType({
     required String userId,
     required String examType,
     bool forceSync = false,
-  }) =>
-      _loadTypeImpl(
-        userId: userId,
-        examType: examType,
-        forceSync: forceSync,
-      );
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      return pasajDisabledResource<List<SinavModel>>(const <SinavModel>[]);
+    }
+    return _loadTypeImpl(
+      userId: userId,
+      examType: examType,
+      forceSync: forceSync,
+    );
+  }
 
   Stream<CachedResource<List<SinavModel>>> openOwner({
     required String userId,
     bool forceSync = false,
-  }) =>
-      _openOwnerImpl(
-        userId: userId,
-        forceSync: forceSync,
-      );
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      yield* pasajDisabledStream<List<SinavModel>>(const <SinavModel>[]);
+      return;
+    }
+    yield* _openOwnerImpl(
+      userId: userId,
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<SinavModel>>> loadOwner({
     required String userId,
     bool forceSync = false,
-  }) =>
-      _loadOwnerImpl(
-        userId: userId,
-        forceSync: forceSync,
-      );
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      return pasajDisabledResource<List<SinavModel>>(const <SinavModel>[]);
+    }
+    return _loadOwnerImpl(
+      userId: userId,
+      forceSync: forceSync,
+    );
+  }
 
   Stream<CachedResource<List<SinavModel>>> openHome({
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamHomeInitialLimit,
     bool forceSync = false,
-  }) =>
-      _openHomeImpl(
-        userId: userId,
-        limit: ReadBudgetRegistry.resolvePracticeExamHomeInitialLimit(limit),
-        forceSync: forceSync,
-      );
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      yield* pasajDisabledStream<List<SinavModel>>(const <SinavModel>[]);
+      return;
+    }
+    yield* _openHomeImpl(
+      userId: userId,
+      limit: ReadBudgetRegistry.resolvePracticeExamHomeInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<SinavModel>>> loadHome({
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamHomeInitialLimit,
     bool forceSync = false,
-  }) =>
-      _loadHomeImpl(
-        userId: userId,
-        limit: ReadBudgetRegistry.resolvePracticeExamHomeInitialLimit(limit),
-        forceSync: forceSync,
-      );
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      return pasajDisabledResource<List<SinavModel>>(const <SinavModel>[]);
+    }
+    return _loadHomeImpl(
+      userId: userId,
+      limit: ReadBudgetRegistry.resolvePracticeExamHomeInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Stream<CachedResource<List<SinavModel>>> openSearch({
     required String query,
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamSearchInitialLimit,
     bool forceSync = false,
-  }) =>
-      _openSearchImpl(
-        query: query,
-        userId: userId,
-        limit: ReadBudgetRegistry.resolvePracticeExamSearchInitialLimit(limit),
-        forceSync: forceSync,
-      );
+  }) async* {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      yield* pasajDisabledStream<List<SinavModel>>(const <SinavModel>[]);
+      return;
+    }
+    yield* _openSearchImpl(
+      query: query,
+      userId: userId,
+      limit: ReadBudgetRegistry.resolvePracticeExamSearchInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Future<CachedResource<List<SinavModel>>> search({
     required String query,
     required String userId,
     int limit = ReadBudgetRegistry.practiceExamSearchInitialLimit,
     bool forceSync = false,
-  }) =>
-      _searchImpl(
-        query: query,
-        userId: userId,
-        limit: ReadBudgetRegistry.resolvePracticeExamSearchInitialLimit(limit),
-        forceSync: forceSync,
-      );
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.onlineExam)) {
+      return pasajDisabledResource<List<SinavModel>>(const <SinavModel>[]);
+    }
+    return _searchImpl(
+      query: query,
+      userId: userId,
+      limit: ReadBudgetRegistry.resolvePracticeExamSearchInitialLimit(limit),
+      forceSync: forceSync,
+    );
+  }
 
   Future<void> invalidateUserScopedSurfaces(String userId) async {
     final normalized = userId.trim();

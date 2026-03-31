@@ -135,6 +135,7 @@ extension _SplashViewWarmPart on _SplashViewState {
           (() async {
             try {
               if (!prioritizeEducationMarketWarmups) return;
+              if (!await isPasajTabEnabled(PasajTabIds.market)) return;
               await prepareMarketStartupSurface(
                 maybeFindMarketController() ?? ensureMarketController(),
                 allowBackgroundRefresh: onWiFi,
@@ -148,6 +149,7 @@ extension _SplashViewWarmPart on _SplashViewState {
           (() async {
             try {
               if (!prioritizeEducationJobWarmups) return;
+              if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) return;
               await prepareJobFinderStartupSurface(
                 maybeFindJobFinderController() ?? ensureJobFinderController(),
                 allowBackgroundRefresh: onWiFi,
@@ -527,6 +529,9 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool allowLiveSync,
   }) async {
     try {
+      if (!await isPasajTabEnabled(PasajTabIds.market)) {
+        return;
+      }
       final warmLimit =
           ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
       final userId = CurrentUserService.instance.effectiveUserId;
@@ -563,6 +568,9 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool allowLiveSync,
   }) async {
     try {
+      if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+        return;
+      }
       final warmLimit =
           ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
       final userId = CurrentUserService.instance.effectiveUserId;
