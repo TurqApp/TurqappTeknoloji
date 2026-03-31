@@ -49,6 +49,14 @@ void main() {
     expect(await kufurKontrolEt('şerefsiz'), isFalse);
     expect(await kufurKontrolEt('manyak'), isFalse);
     expect(await kufurKontrolEt('öl geber'), isFalse);
+    expect(await kufurKontrolEt('abaza'), isFalse);
+    expect(await kufurKontrolEt('saksofon'), isFalse);
+    expect(await kufurKontrolEt('allah belanı versin'), isFalse);
+    expect(await kufurKontrolEt('topsun'), isFalse);
+    expect(await kufurKontrolEt('zibidi'), isFalse);
+    expect(await kufurKontrolEt('mastürbasyon'), isTrue);
+    expect(await kufurKontrolEt('porno'), isTrue);
+    expect(await kufurKontrolEt('sevişelim'), isTrue);
   });
 
   test('effective blocked list is deduplicated and filtered', () {
@@ -56,8 +64,12 @@ void main() {
 
     expect(lowered.length, lowered.toSet().length);
     expect(lowered.contains('aptal'), isFalse);
+    expect(lowered.contains('abaza'), isFalse);
     expect(lowered.contains('gavur'), isFalse);
     expect(lowered.contains('manyak'), isFalse);
+    expect(lowered.contains('allah belanı versin'), isFalse);
+    expect(lowered.contains('mastürbasyon'), isTrue);
+    expect(lowered.contains('porno'), isTrue);
     expect(lowered.contains('orospu'), isTrue);
     expect(lowered.contains('hassiktir'), isTrue);
   });
