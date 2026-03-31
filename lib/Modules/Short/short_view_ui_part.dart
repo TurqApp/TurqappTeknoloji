@@ -1,6 +1,16 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
+  bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    if (resolvedUrl.isNotEmpty || fallbackImage.isNotEmpty) {
+      return true;
+    }
+    return CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim())
+        .isNotEmpty;
+  }
+
   Widget _buildRefreshingBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -43,7 +53,7 @@ extension ShortViewUiPart on _ShortViewState {
   }
 
   Widget _buildThumbOverlay(int idx, String thumb, double modelAr) {
-    if (thumb.isEmpty) {
+    if (!_hasThumbCandidate(_cachedShorts[idx], overrideUrl: thumb)) {
       return const ColoredBox(color: Colors.black);
     }
     if (modelAr > 1.2) {
@@ -233,8 +243,8 @@ extension ShortViewUiPart on _ShortViewState {
                     fit: StackFit.expand,
                     children: [
                       _buildThumbOverlay(idx, thumb, modelAr),
-                      if (isActivePage) videoWidget,
-                      if (isActivePage)
+                      if (isActivePage || isWarmNeighbor) videoWidget,
+                      if (isActivePage || isWarmNeighbor)
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
@@ -252,7 +262,10 @@ extension ShortViewUiPart on _ShortViewState {
                               vp,
                               hasStableVideoFrame,
                             );
-                            if (thumb.isEmpty) {
+                            if (!_hasThumbCandidate(
+                              list[idx],
+                              overrideUrl: thumb,
+                            )) {
                               return const SizedBox.shrink();
                             }
                             return IgnorePointer(

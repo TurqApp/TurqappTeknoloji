@@ -3,6 +3,16 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {
+  bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    if (resolvedUrl.isNotEmpty || fallbackImage.isNotEmpty) {
+      return true;
+    }
+    return CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim())
+        .isNotEmpty;
+  }
+
   void _scheduleFullscreenPlaybackGuard(HLSVideoAdapter ctrl, String docId) {
     _fullscreenPlaybackGuardTimer?.cancel();
     _fullscreenPlaybackGuardTimer = Timer(

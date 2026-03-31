@@ -82,7 +82,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
             final hasStableVideoFrame = v.hasRenderedFirstFrame &&
                 !v.isBuffering &&
                 (v.isPlaying || v.position > const Duration(milliseconds: 180));
-            if (injThumb.isEmpty) {
+            if (!_hasThumbCandidate(shorts[idx], overrideUrl: injThumb)) {
               return const SizedBox.shrink();
             }
             final thumb = shorts[idx].aspectRatio >= 0.8
@@ -123,7 +123,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (thumb.isNotEmpty)
+        if (_hasThumbCandidate(shorts[idx], overrideUrl: thumb))
           if (loadingThumbAr >= 0.8)
             Center(
               child: AspectRatio(
@@ -146,7 +146,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
         ? Stack(
             fit: StackFit.expand,
             children: [
-              if (thumb.isNotEmpty)
+              if (_hasThumbCandidate(shorts[idx], overrideUrl: thumb))
                 if (thumbAr >= 0.8)
                   Center(
                     child: AspectRatio(
@@ -174,7 +174,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                       !v.isBuffering &&
                       (v.isPlaying ||
                           v.position > const Duration(milliseconds: 180));
-                  if (thumb.isEmpty) {
+                  if (!_hasThumbCandidate(shorts[idx], overrideUrl: thumb)) {
                     return const SizedBox.shrink();
                   }
                   final overlay = shorts[idx].aspectRatio >= 0.8
