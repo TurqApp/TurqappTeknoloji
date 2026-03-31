@@ -1,5 +1,4 @@
 import * as admin from "firebase-admin";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
 import { RateLimits } from "./rateLimiter";
 
@@ -28,73 +27,6 @@ interface SyncResult {
   errors: string[];
   duration: number;
 }
-
-export const syncUserProfileToPosts = onDocumentUpdated(
-  {
-    document: "users/{userId}",
-    region: REGION,
-    timeoutSeconds: 540,
-    memory: "1GiB",
-  },
-  async (event) => {
-    const userId = event.params.userId;
-    const before = event.data?.before.data();
-    const after = event.data?.after.data();
-    const startTime = Date.now();
-
-    console.log("[User Profile Sync] Started");
-
-    try {
-      if (!before || !after) {
-        console.log("[User Profile Sync] Missing before/after snapshot");
-        return null;
-      }
-
-      const beforeProfile = extractProfileFields(before);
-      const afterProfile = extractProfileFields(after);
-      const needsSync = shouldSyncUserProfile(beforeProfile, afterProfile);
-      if (!needsSync) {
-        console.log("[User Profile Sync] No displayable fields changed. Skipping sync");
-        return null;
-      }
-
-      const postsSnapshot = await admin
-        .firestore()
-        .collection("Posts")
-        .where("userID", "==", userId)
-        .limit(MAX_POSTS_PER_EXECUTION)
-        .get();
-
-      if (postsSnapshot.empty) {
-        console.log("[User Profile Sync] No posts found");
-        return null;
-      }
-
-      const updateData: Partial<UserProfileFields> = {};
-      if (beforeProfile.nickname !== afterProfile.nickname) updateData.nickname = afterProfile.nickname;
-      if (beforeProfile.username !== afterProfile.username) updateData.username = afterProfile.username;
-      if (beforeProfile.displayName !== afterProfile.displayName) updateData.displayName = afterProfile.displayName;
-      if (beforeProfile.avatarUrl !== afterProfile.avatarUrl) updateData.avatarUrl = afterProfile.avatarUrl;
-      if (beforeProfile.rozet !== afterProfile.rozet) updateData.rozet = afterProfile.rozet;
-
-      const result = await updatePostsInBatches(postsSnapshot.docs, updateData, userId);
-      const scholarshipResult = await updateScholarshipsInBatches(
-        userId,
-        updateData
-      );
-      result.scholarshipsFound = scholarshipResult.found;
-      result.scholarshipsUpdated = scholarshipResult.updated;
-      result.batchesExecuted += scholarshipResult.batchesExecuted;
-      result.errors.push(...scholarshipResult.errors);
-      result.duration = Date.now() - startTime;
-      await logSyncMetrics(userId, result);
-      return result;
-    } catch (error) {
-      console.error("[User Profile Sync] Failed", error);
-      throw new HttpsError("internal", `Failed to sync user profile: ${error}`);
-    }
-  }
-);
 
 function extractProfileFields(data: admin.firestore.DocumentData): UserProfileFields {
   const firstName = data.firstName as string | undefined;

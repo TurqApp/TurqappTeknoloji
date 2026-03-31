@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.manualBackfillScholarshipAuthors = exports.manualSyncUserProfile = exports.syncUserProfileToPosts = void 0;
+exports.manualBackfillScholarshipAuthors = exports.manualSyncUserProfile = void 0;
 const admin = require("firebase-admin");
-const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const rateLimiter_1 = require("./rateLimiter");
 const BATCH_SIZE = 500;
@@ -11,65 +10,6 @@ const REGION = "europe-west3";
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
-exports.syncUserProfileToPosts = (0, firestore_1.onDocumentUpdated)({
-    document: "users/{userId}",
-    region: REGION,
-    timeoutSeconds: 540,
-    memory: "1GiB",
-}, async (event) => {
-    const userId = event.params.userId;
-    const before = event.data?.before.data();
-    const after = event.data?.after.data();
-    const startTime = Date.now();
-    console.log("[User Profile Sync] Started");
-    try {
-        if (!before || !after) {
-            console.log("[User Profile Sync] Missing before/after snapshot");
-            return null;
-        }
-        const beforeProfile = extractProfileFields(before);
-        const afterProfile = extractProfileFields(after);
-        const needsSync = shouldSyncUserProfile(beforeProfile, afterProfile);
-        if (!needsSync) {
-            console.log("[User Profile Sync] No displayable fields changed. Skipping sync");
-            return null;
-        }
-        const postsSnapshot = await admin
-            .firestore()
-            .collection("Posts")
-            .where("userID", "==", userId)
-            .limit(MAX_POSTS_PER_EXECUTION)
-            .get();
-        if (postsSnapshot.empty) {
-            console.log("[User Profile Sync] No posts found");
-            return null;
-        }
-        const updateData = {};
-        if (beforeProfile.nickname !== afterProfile.nickname)
-            updateData.nickname = afterProfile.nickname;
-        if (beforeProfile.username !== afterProfile.username)
-            updateData.username = afterProfile.username;
-        if (beforeProfile.displayName !== afterProfile.displayName)
-            updateData.displayName = afterProfile.displayName;
-        if (beforeProfile.avatarUrl !== afterProfile.avatarUrl)
-            updateData.avatarUrl = afterProfile.avatarUrl;
-        if (beforeProfile.rozet !== afterProfile.rozet)
-            updateData.rozet = afterProfile.rozet;
-        const result = await updatePostsInBatches(postsSnapshot.docs, updateData, userId);
-        const scholarshipResult = await updateScholarshipsInBatches(userId, updateData);
-        result.scholarshipsFound = scholarshipResult.found;
-        result.scholarshipsUpdated = scholarshipResult.updated;
-        result.batchesExecuted += scholarshipResult.batchesExecuted;
-        result.errors.push(...scholarshipResult.errors);
-        result.duration = Date.now() - startTime;
-        await logSyncMetrics(userId, result);
-        return result;
-    }
-    catch (error) {
-        console.error("[User Profile Sync] Failed", error);
-        throw new https_1.HttpsError("internal", `Failed to sync user profile: ${error}`);
-    }
-});
 function extractProfileFields(data) {
     const firstName = data.firstName;
     const lastName = data.lastName;
