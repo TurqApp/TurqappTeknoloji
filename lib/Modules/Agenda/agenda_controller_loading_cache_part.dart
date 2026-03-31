@@ -52,12 +52,12 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     );
     final filtered = page.items;
     if (filtered.isEmpty) return;
-    await _warmInitialFeedVideoPosters(filtered);
     final existingIDs = agendaList.map((e) => e.docID).toSet();
     final toAdd =
         filtered.where((p) => !existingIDs.contains(p.docID)).toList();
     if (toAdd.isNotEmpty) {
       _addUniqueToAgenda(toAdd);
+      _scheduleInitialFeedVideoPosterWarmup(toAdd);
       unawaited(_revalidateQuickFilledAgenda(toAdd));
       _scheduleReshareFetchForPosts(toAdd, perPostLimit: 1);
 
@@ -84,8 +84,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final quickFiltered = snapshot.data ?? const <PostsModel>[];
     if (quickFiltered.isEmpty) return hadWarmSnapshot;
 
-    await _warmInitialFeedVideoPosters(quickFiltered);
     _addUniqueToAgenda(quickFiltered);
+    _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
     unawaited(_revalidateQuickFilledAgenda(quickFiltered));
 
     if (agendaList.isNotEmpty) {

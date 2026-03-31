@@ -27,6 +27,11 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
+  void _scheduleInitialFeedVideoPosterWarmup(List<PostsModel> posts) {
+    if (posts.isEmpty) return;
+    unawaited(_warmInitialFeedVideoPosters(posts));
+  }
+
   void _resumeFeedPlaybackAfterRefresh({
     required int expectedEpoch,
   }) {
@@ -345,11 +350,10 @@ extension AgendaControllerLoadingPart on AgendaController {
         preferCache: shouldPreferCacheOnOpen,
         cacheOnly: !liveConnected,
       );
-    final visibleItems = page.items;
-    await _warmInitialFeedVideoPosters(visibleItems);
-    final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
-      currentItems: agendaList.toList(growable: false),
-      pageItems: visibleItems,
+      final visibleItems = page.items;
+      final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
+        currentItems: agendaList.toList(growable: false),
+        pageItems: visibleItems,
         nowMs: nowMs,
         loadLimit: loadLimit,
         lastDoc: page.lastDoc,
@@ -372,6 +376,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
         if (pageApplyPlan.itemsToAdd.isNotEmpty) {
           _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
+          _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
           _scheduleReshareFetchForPosts(
             pageApplyPlan.itemsToAdd,
             perPostLimit: 1,
