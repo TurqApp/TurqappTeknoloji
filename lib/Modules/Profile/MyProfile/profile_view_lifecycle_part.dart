@@ -89,10 +89,22 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     }
   }
 
-  void _refreshUserState() {
-    userService.forceRefresh();
-    refreshStoryRowGlobally();
-    unawaited(_loadMarketItems(force: true));
+  void _refreshUserState({
+    bool refreshStories = true,
+    bool refreshSurface = true,
+    bool refreshEmailVerification = false,
+  }) {
+    if (refreshEmailVerification) {
+      unawaited(
+        userService.refreshEmailVerificationStatus(reloadAuthUser: false),
+      );
+    }
+    if (refreshStories) {
+      refreshStoryRowGlobally();
+    }
+    if (refreshSurface) {
+      _refreshProfileSurfaceMetaIfActive(force: false);
+    }
   }
 
   void _showProfileImagePreview() {
@@ -182,13 +194,14 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     final position = controller.currentScrollPosition;
     if (position == null) return;
     final currentOffset = position.pixels;
-    final scrollDelta = (currentOffset - controller.lastObservedScrollOffset).abs();
+    final scrollDelta =
+        (currentOffset - controller.lastObservedScrollOffset).abs();
     final startupLockActive =
         GetPlatform.isIOS && controller.hasStartupPlaybackLock;
     final startupUnlockThreshold = startupLockActive ? 12.0 : 1.0;
-    final hasMeaningfulScrollMovement = currentOffset.abs() >
-            startupUnlockThreshold ||
-        scrollDelta > startupUnlockThreshold;
+    final hasMeaningfulScrollMovement =
+        currentOffset.abs() > startupUnlockThreshold ||
+            scrollDelta > startupUnlockThreshold;
     if (!controller.hasStartupScrollStarted && hasMeaningfulScrollMovement) {
       controller.markStartupScrollBegan();
     }

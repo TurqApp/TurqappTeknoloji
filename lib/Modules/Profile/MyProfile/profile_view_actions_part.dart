@@ -65,7 +65,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                 _suspendProfileFeedForRoute();
                 Get.to(() => BiographyMaker())?.then((_) {
                   _resumeProfileFeedAfterRoute();
-                  _refreshUserState();
+                  _refreshUserState(refreshStories: false);
                 });
               },
               child: Padding(

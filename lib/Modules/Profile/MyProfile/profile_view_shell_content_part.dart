@@ -52,7 +52,8 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
 
   Widget _buildProfileContent(BuildContext context) {
     if (IntegrationTestMode.enabled &&
-        controller.postSelection.value == kProfileIntegrationSmokeShellSelection) {
+        controller.postSelection.value ==
+            kProfileIntegrationSmokeShellSelection) {
       return _buildIntegrationSmokeShell();
     }
 
@@ -288,7 +289,10 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
     _suspendProfileFeedForRoute();
     Get.to(() => SettingsView())?.then((_) {
       _resumeProfileFeedAfterRoute();
-      _refreshUserState();
+      _refreshUserState(
+        refreshStories: false,
+        refreshEmailVerification: true,
+      );
     });
   }
 
@@ -324,7 +328,7 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
     _suspendProfileFeedForRoute();
     Get.to(() => StoryMaker())?.then((_) {
       _resumeProfileFeedAfterRoute();
-      _refreshUserState();
+      _refreshUserState(refreshSurface: false);
     });
   }
 
