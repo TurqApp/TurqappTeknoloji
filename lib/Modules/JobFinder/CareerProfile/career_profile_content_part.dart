@@ -108,12 +108,6 @@ extension _CareerProfileContentPart on _CareerProfileState {
                       ? Colors.black
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
-                  image: controller.photoUrl.value.isNotEmpty
-                      ? DecorationImage(
-                          image: NetworkImage(controller.photoUrl.value),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
                 ),
                 child: controller.photoUrl.value.isEmpty
                     ? const Icon(
@@ -121,7 +115,16 @@ extension _CareerProfileContentPart on _CareerProfileState {
                         color: Colors.white,
                         size: 24,
                       )
-                    : null,
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: CacheFirstNetworkImage(
+                          imageUrl: controller.photoUrl.value,
+                          cacheManager: TurqImageCacheManager.instance,
+                          memCacheWidth: 104,
+                          memCacheHeight: 104,
+                          fallback: const SizedBox.shrink(),
+                        ),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
