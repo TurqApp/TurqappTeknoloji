@@ -274,6 +274,11 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final onWiFi = _isOnWiFiNow();
       final storyController = maybeFindStoryRowController();
+      final prioritizeEducationWarmups = _shouldPrioritizeEducationWarmups();
+      final prioritizeEducationMarketWarmups =
+          _shouldPrioritizeEducationMarketWarmups();
+      final prioritizeEducationJobWarmups =
+          _shouldPrioritizeEducationJobWarmups();
       final shortTarget = ReadBudgetRegistry.shortWarmTargetCount(
         onWiFi: onWiFi,
         isFirstLaunch: isFirstLaunch,
@@ -311,8 +316,7 @@ extension _SplashViewWarmPart on _SplashViewState {
                 maybeFindExploreController() ?? ensureExploreController();
             await exploreController
                 .prepareStartupSurface(
-                  allowBackgroundRefresh:
-                      ContentPolicy.allowBackgroundRefresh(
+                  allowBackgroundRefresh: ContentPolicy.allowBackgroundRefresh(
                     ContentScreenKind.explore,
                   ),
                 )
@@ -324,32 +328,45 @@ extension _SplashViewWarmPart on _SplashViewState {
         })(),
         (() async {
           try {
-            await _warmMarketListings(onWiFi: onWiFi).timeout(
+            await _warmMarketListings(
+              onWiFi: onWiFi,
+              allowLiveSync: prioritizeEducationWarmups &&
+                  prioritizeEducationMarketWarmups,
+            ).timeout(
               const Duration(milliseconds: 1400),
               onTimeout: () {},
             );
-            await prepareMarketStartupSurface(
-              maybeFindMarketController() ?? ensureMarketController(),
-              allowBackgroundRefresh: onWiFi,
-            ).timeout(
-              Duration(milliseconds: onWiFi ? 1200 : 900),
-              onTimeout: () {},
-            );
+            if (prioritizeEducationWarmups &&
+                prioritizeEducationMarketWarmups) {
+              await prepareMarketStartupSurface(
+                maybeFindMarketController() ?? ensureMarketController(),
+                allowBackgroundRefresh: onWiFi,
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 1200 : 900),
+                onTimeout: () {},
+              );
+            }
           } catch (_) {}
         })(),
         (() async {
           try {
-            await _warmJobListings(onWiFi: onWiFi).timeout(
+            await _warmJobListings(
+              onWiFi: onWiFi,
+              allowLiveSync:
+                  prioritizeEducationWarmups && prioritizeEducationJobWarmups,
+            ).timeout(
               const Duration(milliseconds: 1400),
               onTimeout: () {},
             );
-            await prepareJobFinderStartupSurface(
-              maybeFindJobFinderController() ?? ensureJobFinderController(),
-              allowBackgroundRefresh: onWiFi,
-            ).timeout(
-              Duration(milliseconds: onWiFi ? 1200 : 900),
-              onTimeout: () {},
-            );
+            if (prioritizeEducationWarmups && prioritizeEducationJobWarmups) {
+              await prepareJobFinderStartupSurface(
+                maybeFindJobFinderController() ?? ensureJobFinderController(),
+                allowBackgroundRefresh: onWiFi,
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 1200 : 900),
+                onTimeout: () {},
+              );
+            }
           } catch (_) {}
         })(),
       ]);
@@ -505,7 +522,10 @@ extension _SplashViewWarmPart on _SplashViewState {
     }
   }
 
-  Future<void> _warmMarketListings({required bool onWiFi}) async {
+  Future<void> _warmMarketListings({
+    required bool onWiFi,
+    required bool allowLiveSync,
+  }) async {
     try {
       final warmLimit =
           ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
@@ -526,6 +546,9 @@ extension _SplashViewWarmPart on _SplashViewState {
       if (cachedItems.where((item) => item.status == 'active').length >= 10) {
         return;
       }
+      if (!allowLiveSync) {
+        return;
+      }
 
       await MarketSnapshotRepository.ensure().loadHome(
         userId: userId,
@@ -535,7 +558,10 @@ extension _SplashViewWarmPart on _SplashViewState {
     } catch (_) {}
   }
 
-  Future<void> _warmJobListings({required bool onWiFi}) async {
+  Future<void> _warmJobListings({
+    required bool onWiFi,
+    required bool allowLiveSync,
+  }) async {
     try {
       final warmLimit =
           ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
@@ -554,6 +580,9 @@ extension _SplashViewWarmPart on _SplashViewState {
       final cachedItems = cached.data ?? const <dynamic>[];
 
       if (cachedItems.length >= 10) {
+        return;
+      }
+      if (!allowLiveSync) {
         return;
       }
 
