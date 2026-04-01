@@ -19,10 +19,10 @@ extension StoryRowContentPart on _StoryRowState {
                 width: double.infinity,
                 child: ListView.builder(
                   key: const ValueKey(IntegrationTestKeys.storyRow),
+                  controller: _scrollController,
                   scrollDirection: Axis.horizontal,
                   itemCount: controller.users.length,
                   itemBuilder: (context, index) {
-                    controller.maybeLoadMoreStories(visibleIndex: index);
                     final user = controller.users[index];
                     return Padding(
                       padding: EdgeInsets.only(

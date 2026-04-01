@@ -207,7 +207,7 @@ extension SignInControllerAuthPart on SignInController {
         final storyController = maybeFindStoryRowController();
         if (storyController == null) return;
         await storyController.loadStories(
-          limit: storyController.fullLimit,
+          limit: storyController.initialLimit,
           cacheFirst: false,
         );
         if (storyController.users.isEmpty) {

@@ -93,7 +93,10 @@ extension SignInControllerSignupPart on SignInController {
       try {
         final storyController = maybeFindStoryRowController();
         if (storyController == null) return;
-        await storyController.loadStories(limit: 100, cacheFirst: false);
+        await storyController.loadStories(
+          limit: storyController.initialLimit,
+          cacheFirst: false,
+        );
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
         }

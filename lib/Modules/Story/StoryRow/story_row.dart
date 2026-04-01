@@ -20,6 +20,7 @@ class StoryRow extends StatefulWidget {
 
 class _StoryRowState extends State<StoryRow> {
   late final StoryRowController controller;
+  final ScrollController _scrollController = ScrollController();
   bool _ownsController = false;
 
   StoryInteractionOptimizer get _storyOptimizer =>
@@ -35,15 +36,34 @@ class _StoryRowState extends State<StoryRow> {
       controller = ensureStoryRowController();
       _ownsController = true;
     }
+    _scrollController.addListener(_handleStoryRowScroll);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_handleStoryRowScroll);
+    _scrollController.dispose();
     if (_ownsController &&
         identical(maybeFindStoryRowController(), controller)) {
       Get.delete<StoryRowController>();
     }
     super.dispose();
+  }
+
+  void _handleStoryRowScroll() {
+    if (!_scrollController.hasClients || controller.users.isEmpty) {
+      return;
+    }
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0 || position.pixels <= 0) {
+      return;
+    }
+    if (position.extentAfter > 240) {
+      return;
+    }
+    controller.maybeLoadMoreStories(
+      visibleIndex: controller.users.length - 1,
+    );
   }
 
   @override

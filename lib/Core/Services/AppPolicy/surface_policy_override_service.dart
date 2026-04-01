@@ -6,8 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SurfacePolicyOverrideKeys {
   const SurfacePolicyOverrideKeys._();
 
-  static const String feedHomeInitialLimit = 'feed_home_initial_limit';
-  static const String shortHomeInitialLimit = 'short_home_initial_limit';
   static const String recommendedUsersInitialLimit =
       'recommended_users_initial_limit';
   static const String notificationsDeltaFetchLimit =
@@ -41,25 +39,6 @@ class SurfacePolicyOverrideKeys {
   static const String tutoringSearchInitialLimit =
       'tutoring_search_initial_limit';
   static const String profilePostsInitialLimit = 'profile_posts_initial_limit';
-  static const String startupFeedPrefetchDocLimit =
-      'startup_feed_prefetch_doc_limit';
-  static const String startupShortPrefetchDocLimit =
-      'startup_short_prefetch_doc_limit';
-  static const String startupListingWarmLimitOnWiFi =
-      'startup_listing_warm_limit_wifi';
-  static const String startupListingWarmLimitOnCellular =
-      'startup_listing_warm_limit_cellular';
-  static const String mobileWarmWindow = 'mobile_warm_window';
-  static const String mobileNextWindow = 'mobile_next_window';
-  static const String minGlobalCachedVideos = 'min_global_cached_videos';
-  static const String mobileInitialSegments = 'mobile_initial_segments';
-  static const String mobileAheadSegments = 'mobile_ahead_segments';
-  static const String segmentPrefetchBreadthCount =
-      'segment_prefetch_breadth_count';
-  static const String segmentPrefetchDepthCount =
-      'segment_prefetch_depth_count';
-  static const String segmentPrefetchMaxConcurrent =
-      'segment_prefetch_max_concurrent';
   static const String segmentCacheSoftLimitMb = 'segment_cache_soft_limit_mb';
   static const String segmentCacheHardLimitMb = 'segment_cache_hard_limit_mb';
   static const String segmentCacheRecentProtectCount =

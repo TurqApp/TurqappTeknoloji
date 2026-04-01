@@ -207,15 +207,9 @@ class ReadBudgetRegistry {
     return normalized == defaultValue ? configuredValue : normalized;
   }
 
-  static int get feedHomeInitialLimitValue => _readOverride(
-        SurfacePolicyOverrideKeys.feedHomeInitialLimit,
-        feedHomeInitialLimit,
-      );
+  static int get feedHomeInitialLimitValue => feedHomeInitialLimit;
 
-  static int get shortHomeInitialLimitValue => _readOverride(
-        SurfacePolicyOverrideKeys.shortHomeInitialLimit,
-        shortHomeInitialLimit,
-      );
+  static int get shortHomeInitialLimitValue => shortHomeInitialLimit;
 
   static int get notificationsDeltaFetchLimitValue => _readOverride(
         SurfacePolicyOverrideKeys.notificationsDeltaFetchLimit,
@@ -322,30 +316,18 @@ class ReadBudgetRegistry {
         profilePostsInitialLimit,
       );
 
-  static int get mobileWarmWindow => _readOverride(
-        SurfacePolicyOverrideKeys.mobileWarmWindow,
-        SurfacePolicyRegistry.mobileWarmWindow,
-      );
+  static int get mobileWarmWindow => SurfacePolicyRegistry.mobileWarmWindow;
 
-  static int get mobileNextWindow => _readOverride(
-        SurfacePolicyOverrideKeys.mobileNextWindow,
-        SurfacePolicyRegistry.mobileNextWindow,
-      );
+  static int get mobileNextWindow => SurfacePolicyRegistry.mobileNextWindow;
 
-  static int get minGlobalCachedVideos => _readOverride(
-        SurfacePolicyOverrideKeys.minGlobalCachedVideos,
-        SurfacePolicyRegistry.minGlobalCachedVideos,
-      );
+  static int get minGlobalCachedVideos =>
+      SurfacePolicyRegistry.minGlobalCachedVideos;
 
-  static int get mobileInitialSegments => _readOverride(
-        SurfacePolicyOverrideKeys.mobileInitialSegments,
-        SurfacePolicyRegistry.mobileInitialSegments,
-      );
+  static int get mobileInitialSegments =>
+      SurfacePolicyRegistry.mobileInitialSegments;
 
-  static int get mobileAheadSegments => _readOverride(
-        SurfacePolicyOverrideKeys.mobileAheadSegments,
-        SurfacePolicyRegistry.mobileAheadSegments,
-      );
+  static int get mobileAheadSegments =>
+      SurfacePolicyRegistry.mobileAheadSegments;
 
   static const int segmentPrefetchBreadthCount =
       SurfacePolicyRegistry.segmentPrefetchBreadthCount;
@@ -368,20 +350,13 @@ class ReadBudgetRegistry {
   static const int profilePostsInitialLimit =
       SurfacePolicyRegistry.profilePostsInitialLimit;
 
-  static int get segmentPrefetchBreadthCountValue => _readOverride(
-        SurfacePolicyOverrideKeys.segmentPrefetchBreadthCount,
-        segmentPrefetchBreadthCount,
-      );
+  static int get segmentPrefetchBreadthCountValue =>
+      segmentPrefetchBreadthCount;
 
-  static int get segmentPrefetchDepthCountValue => _readOverride(
-        SurfacePolicyOverrideKeys.segmentPrefetchDepthCount,
-        segmentPrefetchDepthCount,
-      );
+  static int get segmentPrefetchDepthCountValue => segmentPrefetchDepthCount;
 
-  static int get segmentPrefetchMaxConcurrentValue => _readOverride(
-        SurfacePolicyOverrideKeys.segmentPrefetchMaxConcurrent,
-        segmentPrefetchMaxConcurrent,
-      );
+  static int get segmentPrefetchMaxConcurrentValue =>
+      segmentPrefetchMaxConcurrent;
 
   static int get segmentCacheSoftLimitMbValue => _readOverride(
         SurfacePolicyOverrideKeys.segmentCacheSoftLimitMb,
@@ -627,22 +602,14 @@ class ReadBudgetRegistry {
         onWiFi: onWiFi,
       );
 
-  static int startupListingWarmLimit({required bool onWiFi}) => _readOverride(
-        onWiFi
-            ? SurfacePolicyOverrideKeys.startupListingWarmLimitOnWiFi
-            : SurfacePolicyOverrideKeys.startupListingWarmLimitOnCellular,
-        SurfacePolicyRegistry.startupListingWarmLimit(onWiFi: onWiFi),
-      );
+  static int startupListingWarmLimit({required bool onWiFi}) =>
+      SurfacePolicyRegistry.startupListingWarmLimit(onWiFi: onWiFi);
 
-  static int get startupShortPrefetchDocLimit => _readOverride(
-        SurfacePolicyOverrideKeys.startupShortPrefetchDocLimit,
-        SurfacePolicyRegistry.startupShortPrefetchDocLimit,
-      );
+  static int get startupShortPrefetchDocLimit =>
+      SurfacePolicyRegistry.startupShortPrefetchDocLimit;
 
-  static int get startupFeedPrefetchDocLimit => _readOverride(
-        SurfacePolicyOverrideKeys.startupFeedPrefetchDocLimit,
-        SurfacePolicyRegistry.startupFeedPrefetchDocLimit,
-      );
+  static int get startupFeedPrefetchDocLimit =>
+      SurfacePolicyRegistry.startupFeedPrefetchDocLimit;
 
   static int get segmentCacheSoftLimitBytes =>
       segmentCacheSoftLimitMbValue * 1024 * 1024;

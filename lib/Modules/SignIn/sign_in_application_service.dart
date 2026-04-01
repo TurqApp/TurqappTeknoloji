@@ -370,7 +370,7 @@ class SignInApplicationService {
         if (storyController == null) return;
         await Future.any([
           storyController.loadStories(
-            limit: storyController.fullLimit,
+            limit: storyController.initialLimit,
             cacheFirst: false,
           ),
           Future.delayed(const Duration(seconds: 3)),

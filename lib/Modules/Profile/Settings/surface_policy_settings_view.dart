@@ -157,16 +157,6 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
             'İlk yükleme ve görünür liste boyutlarını burada ayarlayabilirsin.',
         fields: <_PolicyField>[
           _PolicyField(
-            key: SurfacePolicyOverrideKeys.feedHomeInitialLimit,
-            title: 'Feed ilk yükleme limiti',
-            defaultValue: ReadBudgetRegistry.feedHomeInitialLimit,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.shortHomeInitialLimit,
-            title: 'Kısa akış ilk yükleme limiti',
-            defaultValue: ReadBudgetRegistry.shortHomeInitialLimit,
-          ),
-          _PolicyField(
             key: SurfacePolicyOverrideKeys.recommendedUsersInitialLimit,
             title: 'Önerilen kullanıcı limiti',
             defaultValue: ReadBudgetRegistry.recommendedUsersInitialLimit,
@@ -288,88 +278,10 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
         ],
       ),
       _PolicySection(
-        title: 'Başlangıç',
-        description:
-            'Splash ve ilk sıcak açılışta kaç belge ve kaç liste ısıtılacağını belirler.',
-        fields: <_PolicyField>[
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.startupFeedPrefetchDocLimit,
-            title: 'Feed başlangıç ön getirme belge limiti',
-            defaultValue: ReadBudgetRegistry.startupFeedPrefetchDocLimit,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.startupShortPrefetchDocLimit,
-            title: 'Kısa akış başlangıç ön getirme belge limiti',
-            defaultValue: ReadBudgetRegistry.startupShortPrefetchDocLimit,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.startupListingWarmLimitOnWiFi,
-            title: 'Başlangıç liste ısıtma limiti (Wi‑Fi)',
-            defaultValue: ReadBudgetRegistry.startupListingWarmLimit(
-              onWiFi: true,
-            ),
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.startupListingWarmLimitOnCellular,
-            title: 'Başlangıç liste ısıtma limiti (Hücresel)',
-            defaultValue: ReadBudgetRegistry.startupListingWarmLimit(
-              onWiFi: false,
-            ),
-          ),
-        ],
-      ),
-      _PolicySection(
-        title: 'Oynatma',
-        description:
-            'Mobil veri tarafındaki video ısıtma ve segment davranışlarını ayarlar.',
-        fields: <_PolicyField>[
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.mobileWarmWindow,
-            title: 'Mobil ısıtma penceresi',
-            defaultValue: ReadBudgetRegistry.mobileWarmWindow,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.mobileNextWindow,
-            title: 'Mobil sonraki pencere',
-            defaultValue: ReadBudgetRegistry.mobileNextWindow,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.minGlobalCachedVideos,
-            title: 'Minimum global önbellekli video',
-            defaultValue: ReadBudgetRegistry.minGlobalCachedVideos,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.mobileInitialSegments,
-            title: 'Mobil ilk segment sayısı',
-            defaultValue: ReadBudgetRegistry.mobileInitialSegments,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.mobileAheadSegments,
-            title: 'Mobil ileri segment sayısı',
-            defaultValue: ReadBudgetRegistry.mobileAheadSegments,
-          ),
-        ],
-      ),
-      _PolicySection(
         title: 'Segment Önbelleği',
         description:
             'Kuyruk genişliği, derinlik ve disk koruma eşiklerini buradan yönetebilirsin.',
         fields: <_PolicyField>[
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.segmentPrefetchBreadthCount,
-            title: 'Segment ön getirme genişliği',
-            defaultValue: ReadBudgetRegistry.segmentPrefetchBreadthCount,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.segmentPrefetchDepthCount,
-            title: 'Segment ön getirme derinliği',
-            defaultValue: ReadBudgetRegistry.segmentPrefetchDepthCount,
-          ),
-          _PolicyField(
-            key: SurfacePolicyOverrideKeys.segmentPrefetchMaxConcurrent,
-            title: 'Aynı anda segment indirme sayısı',
-            defaultValue: ReadBudgetRegistry.segmentPrefetchMaxConcurrent,
-          ),
           _PolicyField(
             key: SurfacePolicyOverrideKeys.segmentCacheSoftLimitMb,
             title: 'Segment önbellek yumuşak limiti (MB)',
