@@ -10,7 +10,8 @@ extension ExploreControllerApiX on ExploreController {
 
   Future<void> _fetchFollowingIDs(String uid) => _performFetchFollowingIDs(uid);
 
-  Future<void> fetchExplorePosts() => _performFetchExplorePosts();
+  Future<void> fetchExplorePosts({bool forceRefresh = false}) =>
+      _performFetchExplorePosts(forceRefresh: forceRefresh);
 
   Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
       _performPrepareStartupSurface(

@@ -1,6 +1,67 @@
 part of 'explore_controller.dart';
 
 extension ExploreControllerFeedPart on ExploreController {
+  void _performBindShortReadyMirror() {
+    final shortController = ensureShortController();
+    _shortsMirrorWorker?.dispose();
+    _shortsMirrorWorker = ever<List<PostsModel>>(
+      shortController.shorts,
+      (items) {
+        _performAdoptShortReadyPosts(items);
+      },
+    );
+  }
+
+  bool _performHasSameExploreOrder(
+    List<PostsModel> current,
+    List<PostsModel> next,
+  ) {
+    if (identical(current, next)) return true;
+    if (current.length != next.length) return false;
+    for (int i = 0; i < current.length; i++) {
+      if (current[i].docID != next[i].docID) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _performAdoptShortReadyPosts(List<PostsModel> source) {
+    if (source.isEmpty) return false;
+    final mirrored = _dedupeExplorePosts(
+      source.where(_isEligibleExplorePost).toList(growable: false),
+    );
+    if (mirrored.isEmpty) return false;
+    final prioritized = _prioritizeCachedVideos(mirrored);
+    if (!_performHasSameExploreOrder(explorePosts, prioritized)) {
+      explorePosts.assignAll(prioritized);
+    }
+    lastExploreDoc = null;
+    exploreHasMore.value = false;
+    _exploreEmptyScans = 0;
+    return true;
+  }
+
+  Future<bool> _performSyncExploreFromShorts({
+    bool ensureReady = false,
+    bool forceRefresh = false,
+    bool nearEnd = false,
+  }) async {
+    final shortController = ensureShortController();
+    if (forceRefresh) {
+      await shortController.refreshShorts();
+    } else if (ensureReady) {
+      await shortController.warmStart(
+        targetCount: ReadBudgetRegistry.shortHomeInitialLimit,
+        maxPages: 2,
+      );
+    }
+    if (nearEnd && shortController.shorts.isNotEmpty) {
+      await shortController.loadMoreIfNeeded(shortController.shorts.length - 1);
+    }
+    return _performAdoptShortReadyPosts(shortController.shorts);
+  }
+
   void _performSyncScrollToTopVisibility(double offset) {
     final shouldShow = offset > 500;
     if (showScrollToTop.value == shouldShow) {
@@ -170,7 +231,17 @@ extension ExploreControllerFeedPart on ExploreController {
     } catch (_) {}
   }
 
-  Future<void> _performFetchExplorePosts() async {
+  Future<void> _performFetchExplorePosts({
+    bool forceRefresh = false,
+  }) async {
+    final mirrored = await _performSyncExploreFromShorts(
+      ensureReady: !forceRefresh,
+      forceRefresh: forceRefresh,
+      nearEnd: explorePosts.isNotEmpty && !forceRefresh,
+    );
+    if (mirrored) {
+      return;
+    }
     if (exploreIsLoading.value || !exploreHasMore.value) return;
     exploreIsLoading.value = true;
     try {
@@ -278,6 +349,9 @@ extension ExploreControllerFeedPart on ExploreController {
 
       await _performHydrateExploreStartupShard();
       await _performWarmTrendingTagsForStartup();
+      if (await _performSyncExploreFromShorts(ensureReady: true)) {
+        return;
+      }
       await _tryQuickFillExploreFromPool();
       _scheduleExplorePrefetchFromPosts(explorePosts);
 

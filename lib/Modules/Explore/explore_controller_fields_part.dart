@@ -47,6 +47,7 @@ class _ExploreControllerState {
   int photoEmptyScans = 0;
   int floodsEmptyScans = 0;
   Worker? currentUserWorker;
+  Worker? shortsMirrorWorker;
   Timer? searchDebounce;
   int searchRequestId = 0;
   String recentSearchReloadKey = '';
@@ -113,6 +114,8 @@ extension ExploreControllerFieldsPart on ExploreController {
   set _floodsEmptyScans(int value) => _state.floodsEmptyScans = value;
   Worker? get _currentUserWorker => _state.currentUserWorker;
   set _currentUserWorker(Worker? value) => _state.currentUserWorker = value;
+  Worker? get _shortsMirrorWorker => _state.shortsMirrorWorker;
+  set _shortsMirrorWorker(Worker? value) => _state.shortsMirrorWorker = value;
   Timer? get _searchDebounce => _state.searchDebounce;
   set _searchDebounce(Timer? value) => _state.searchDebounce = value;
   int get _searchRequestId => _state.searchRequestId;

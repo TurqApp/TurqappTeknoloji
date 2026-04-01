@@ -24,6 +24,7 @@ import 'package:turqappv2/Core/Utils/account_status_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
+import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 

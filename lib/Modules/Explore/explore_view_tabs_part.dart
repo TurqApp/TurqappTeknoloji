@@ -209,7 +209,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
           controller.explorePosts.clear();
           controller.lastExploreDoc = null;
           controller.exploreHasMore.value = true;
-          await controller.fetchExplorePosts();
+          await controller.fetchExplorePosts(forceRefresh: true);
         },
         child: list.isEmpty && !controller.exploreIsLoading.value
             ? Center(child: EmptyRow(text: 'explore.no_results'.tr))

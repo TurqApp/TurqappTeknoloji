@@ -5,6 +5,7 @@ extension ExploreControllerRuntime on ExploreController {
     _applyUserCacheQuota();
     unawaited(_loadRecentSearchUsersCache());
     UserAnalyticsService.instance.trackFeatureUsage('explore_open');
+    _performBindShortReadyMirror();
     unawaited(prepareStartupSurface());
     _bindRecentSearchUsers();
     _bindFollowingListener();
@@ -62,6 +63,8 @@ extension ExploreControllerRuntime on ExploreController {
   void _handleOnClose() {
     _currentUserWorker?.dispose();
     _currentUserWorker = null;
+    _shortsMirrorWorker?.dispose();
+    _shortsMirrorWorker = null;
     _searchDebounce?.cancel();
     exploreScroll.dispose();
     videoScroll.dispose();
