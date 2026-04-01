@@ -1,25 +1,29 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
-import 'package:turqappv2/Core/Services/video_state_manager.dart';
+import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
+import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
+import '../../main.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
@@ -27,8 +31,6 @@ import '../../Models/posts_model.dart';
 part 'short_view_playback_part.dart';
 part 'short_view_ui_part.dart';
 
-const double _shortManualGestureTriggerDistance = 18.0;
-const double _shortManualGestureTriggerVelocity = 80.0;
 const Duration _shortPlayResumeDelay = Duration(milliseconds: 50);
 const Duration _shortPlayResumeDelayAndroid = Duration.zero;
 const Duration _shortScrollDebounceAndroid = Duration(milliseconds: 24);
@@ -141,10 +143,14 @@ class ShortView extends StatefulWidget {
   _ShortViewState createState() => _ShortViewState();
 }
 
-class _ShortViewState extends State<ShortView> {
-  ShortController get controller => ShortController.ensure();
+class _ShortViewState extends State<ShortView> with RouteAware {
+  ShortController get controller => ensureShortController();
   final ShortRenderCoordinator _shortRenderCoordinator =
-      ShortRenderCoordinator.ensure();
+      ensureShortRenderCoordinator();
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
+  final SegmentCacheRuntimeService _segmentCacheRuntimeService =
+      const SegmentCacheRuntimeService();
 
   late PageController pageController;
   int currentPage = 0;
@@ -154,9 +160,12 @@ class _ShortViewState extends State<ShortView> {
   bool _didInitialAttach = false;
   bool _didPrimeInitialPlayback = false;
   bool _isTransitioning = false;
-  bool _manualSnapInProgress = false;
+  String? _lastExclusivePlayDocId;
+  DateTime? _lastExclusivePlayAt;
+  String _currentScrollToken = '';
+  String _lastReportedStableFrameToken = '';
+  String? _pendingActiveAdapterEnsureToken;
   List<PostsModel> _cachedShorts = [];
-  double _manualGestureDragDy = 0.0;
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;
@@ -164,6 +173,8 @@ class _ShortViewState extends State<ShortView> {
   Timer? _tierDebounce;
   Timer? _engagementRescoreTimer;
   Timer? _playbackWatchdogTimer;
+  DateTime? _autoplaySegmentGateStartedAt;
+  bool _autoplaySegmentGateTimedOut = false;
 
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
@@ -175,6 +186,11 @@ class _ShortViewState extends State<ShortView> {
   Timer? _stallWatchdogTimer;
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
+  bool _routeObserverSubscribed = false;
+  static const Duration _shortAutoplaySegmentGateTimeout =
+      Duration(milliseconds: 950);
+  static const Duration _shortAutoplaySegmentGatePollInterval =
+      Duration(milliseconds: 120);
 
   // Liste değişimlerini takip eden worker
   Worker? _shortsWorker;
@@ -192,8 +208,7 @@ class _ShortViewState extends State<ShortView> {
   Future<void> _quietBackgroundPlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     try {
-      await adapter.setVolume(0);
-      await adapter.pause();
+      await adapter.forceSilence();
     } catch (_) {}
   }
 
@@ -206,16 +221,62 @@ class _ShortViewState extends State<ShortView> {
     });
   }
 
+  void _syncShortSurfaceAfterStartup() {
+    if (!mounted) return;
+    _cachedShorts = List<PostsModel>.from(controller.shorts);
+    currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+    if (pageController.hasClients) {
+      try {
+        pageController.jumpToPage(currentPage);
+      } catch (_) {}
+    }
+    setState(() {});
+    if (_cachedShorts.isNotEmpty) {
+      unawaited(controller.updateCacheTiers(currentPage));
+      _primeInitialPlayback();
+    }
+  }
+
+  Future<void> _pauseCurrentShortRoutePlayback() async {
+    _scrollDebounce?.cancel();
+    _playDebounce?.cancel();
+    _tierDebounce?.cancel();
+    _engagementRescoreTimer?.cancel();
+    _playbackWatchdogTimer?.cancel();
+    _stallWatchdogTimer?.cancel();
+    final vc = controller.cache[currentPage];
+    if (vc != null) {
+      _persistShortPlaybackState(currentPage, vc);
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        _quietBackgroundPlayback(vc);
+      } else {
+        await _releasePlayback(vc);
+      }
+      vc.removeListener(_videoEndListener);
+      vc.removeListener(_telemetryListener);
+    }
+    if (currentPage < _cachedShorts.length) {
+      await VideoTelemetryService.instance.endSession(
+        _cachedShorts[currentPage].docID,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     unawaited(
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
     try {
+      maybeFindNavBarController()?.pushMediaOverlayLock();
+      maybeFindNavBarController()?.suspendFeedForTabExit();
+      maybeFindNavBarController()?.pauseGlobalTabMedia();
+    } catch (_) {}
+    try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
     try {
-      VideoStateManager.instance.pauseAllVideos(force: true);
+      _playbackRuntimeService.pauseAll(force: true);
     } catch (_) {}
 
     final initialIndex = controller.shorts.isEmpty
@@ -228,34 +289,11 @@ class _ShortViewState extends State<ShortView> {
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     pageController = PageController(initialPage: initialIndex);
 
-    // Sadece gerçekten boşsa yükle
-    if (controller.shorts.isEmpty) {
-      controller.loadInitialShorts().then((_) {
-        if (mounted) {
-          _cachedShorts = List<PostsModel>.from(controller.shorts);
-          currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
-          if (pageController.hasClients) {
-            pageController.jumpToPage(currentPage);
-          }
-          setState(() {});
-          if (_cachedShorts.isNotEmpty) {
-            unawaited(controller.updateCacheTiers(currentPage));
-          }
-          _primeInitialPlayback();
-        }
-      });
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
-          if (pageController.hasClients) {
-            pageController.jumpToPage(currentPage);
-          }
-          unawaited(controller.updateCacheTiers(currentPage));
-          _primeInitialPlayback();
-        }
-      });
-    }
+    controller.onPrimarySurfaceVisible().then((_) {
+      _syncShortSurfaceAfterStartup();
+    }).catchError((_) {
+      _syncShortSurfaceAfterStartup();
+    });
 
     // Hedefli reaktivite: RxList değişimlerini debounced setState ile takip et
     _shortsWorker = ever(controller.shorts, (_) {
@@ -263,6 +301,33 @@ class _ShortViewState extends State<ShortView> {
       final newList = List<PostsModel>.from(controller.shorts);
       _applyRenderListUpdate(newList);
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeObserverSubscribed) return;
+    final route = ModalRoute.of(context);
+    if (route == null) return;
+    routeObserver.subscribe(this, route);
+    _routeObserverSubscribed = true;
+  }
+
+  @override
+  void didPushNext() {
+    unawaited(_pauseCurrentShortRoutePlayback());
+  }
+
+  @override
+  void didPopNext() {
+    final isStillCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+    if (!isStillCurrent) return;
+    try {
+      maybeFindNavBarController()?.suspendFeedForTabExit();
+      maybeFindNavBarController()?.pauseGlobalTabMedia();
+    } catch (_) {}
+    if (_cachedShorts.isEmpty) return;
+    _startAutoPlayCurrentVideo();
   }
 
   @override
@@ -274,6 +339,12 @@ class _ShortViewState extends State<ShortView> {
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _shortsWorker?.dispose();
+    if (_routeObserverSubscribed) {
+      try {
+        routeObserver.unsubscribe(this);
+      } catch (_) {}
+      _routeObserverSubscribed = false;
+    }
     controller.lastIndex.value = currentPage;
     pageController.dispose();
 
@@ -290,7 +361,8 @@ class _ShortViewState extends State<ShortView> {
           .endSession(_cachedShorts[currentPage].docID);
     }
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      maybeFindNavBarController()?.popMediaOverlayLock();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
 
     super.dispose();

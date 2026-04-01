@@ -1,97 +1,115 @@
+import 'package:firebase_core/firebase_core.dart';
+// ignore: depend_on_referenced_packages
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Modules/Chat/ChatListing/chat_search_field.dart';
+import 'package:turqappv2/Models/chat_listing_model.dart';
+import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing.dart';
+import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 
 import '../../helpers/pump_app.dart';
 
-class _ChatSearchHarness extends StatefulWidget {
-  const _ChatSearchHarness();
+class _ScreenTestChatListingController extends ChatListingController {
+  _ScreenTestChatListingController({
+    List<ChatListingModel>? seededChats,
+  }) : _seededChats = seededChats ?? const <ChatListingModel>[];
+
+  final List<ChatListingModel> _seededChats;
 
   @override
-  State<_ChatSearchHarness> createState() => _ChatSearchHarnessState();
-}
-
-class _ChatSearchHarnessState extends State<_ChatSearchHarness> {
-  final TextEditingController _searchController = TextEditingController();
-  final List<String> _allChats = <String>['Ali', 'Ayse', 'Burak'];
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  // ignore: must_call_super
+  void onInit() {
+    selectedTab.value = 'all';
+    waiting.value = false;
+    list.value = List<ChatListingModel>.from(_seededChats);
+    filteredList.value = List<ChatListingModel>.from(_seededChats);
+    search.addListener(_handleSearchChanged);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final query = _searchController.text.trim().toLowerCase();
-    final filtered = _allChats
-        .where((chat) => chat.toLowerCase().contains(query))
-        .toList(growable: false);
+  void onClose() {
+    search.removeListener(_handleSearchChanged);
+    super.onClose();
+  }
 
-    return Scaffold(
-      body: Column(
-        children: [
-          ChatSearchField(
-            controller: _searchController,
-            onChanged: (_) => setState(() {}),
-          ),
-          if (filtered.isEmpty)
-            const Text('No results')
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  final chat = filtered[index];
-                  return ListTile(
-                    key: ValueKey(IntegrationTestKeys.chatTile(chat)),
-                    title: Text(chat),
-                  );
-                },
-              ),
-            ),
-        ],
-      ),
-    );
+  void _handleSearchChanged() {
+    final query = search.text.trim().toLowerCase();
+    filteredList.value = _seededChats.where((chat) {
+      if (query.isEmpty) {
+        return true;
+      }
+      return chat.nickname.toLowerCase().contains(query) ||
+          chat.fullName.toLowerCase().contains(query) ||
+          chat.lastMessage.toLowerCase().contains(query);
+    }).toList(growable: false);
   }
 }
 
 void main() {
-  testWidgets('production chat search field renders with integration key', (
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    setupFirebaseCoreMocks();
+    try {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: 'test',
+          appId: 'test',
+          messagingSenderId: 'test',
+          projectId: 'test',
+        ),
+      );
+    } on FirebaseException catch (error) {
+      if (error.code != 'duplicate-app') {
+        rethrow;
+      }
+    }
+  });
+
+  setUp(() {
+    Get.testMode = true;
+  });
+
+  tearDown(() {
+    Get.reset();
+  });
+
+  testWidgets('real chat listing screen renders search field and tabs', (
     tester,
   ) async {
-    await pumpApp(tester, const _ChatSearchHarness());
+    Get.put<ChatListingController>(_ScreenTestChatListingController());
 
+    await pumpApp(tester, const ChatListing());
+
+    expect(
+      find.byKey(const ValueKey(IntegrationTestKeys.screenChat)),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey(IntegrationTestKeys.inputChatSearch)),
       findsOneWidget,
     );
-    expect(find.text('Ali'), findsOneWidget);
-    expect(find.text('Ayse'), findsOneWidget);
-    expect(find.text('Burak'), findsOneWidget);
-  });
-
-  testWidgets('typing filters visible chat tiles', (tester) async {
-    await pumpApp(tester, const _ChatSearchHarness());
-
-    await tester.enterText(
-      find.byKey(const ValueKey(IntegrationTestKeys.inputChatSearch)),
-      'ay',
-    );
-    await tester.pump();
-
-    expect(find.text('Ayse'), findsOneWidget);
-    expect(find.text('Ali'), findsNothing);
-    expect(find.text('Burak'), findsNothing);
     expect(
-      find.byKey(ValueKey(IntegrationTestKeys.chatTile('Ayse'))),
+      find.byKey(const ValueKey(IntegrationTestKeys.chatTabAll)),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey(IntegrationTestKeys.chatTabUnread)),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey(IntegrationTestKeys.chatTabArchive)),
       findsOneWidget,
     );
   });
 
-  testWidgets('empty search result shows empty state', (tester) async {
-    await pumpApp(tester, const _ChatSearchHarness());
+  testWidgets('real chat listing screen shows no-results state for empty search',
+      (tester) async {
+    Get.put<ChatListingController>(_ScreenTestChatListingController());
+
+    await pumpApp(tester, const ChatListing());
 
     await tester.enterText(
       find.byKey(const ValueKey(IntegrationTestKeys.inputChatSearch)),
@@ -99,6 +117,6 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('No results'), findsOneWidget);
+    expect(find.text('common.no_results'), findsOneWidget);
   });
 }

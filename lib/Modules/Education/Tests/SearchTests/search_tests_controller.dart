@@ -2,104 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Repositories/test_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
-class SearchTestsController extends GetxController {
-  static SearchTestsController ensure({
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      SearchTestsController(),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static SearchTestsController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<SearchTestsController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<SearchTestsController>(tag: tag);
-  }
-
-  final TestRepository _testRepository = TestRepository.ensure();
-  static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  final list = <TestsModel>[].obs;
-  final filteredList = <TestsModel>[].obs;
-  final isLoading = true.obs;
-  final searchController = TextEditingController();
-  final focusNode = FocusNode();
-
-  @override
-  void onInit() {
-    super.onInit();
-    unawaited(_bootstrapData());
-    Future.delayed(const Duration(milliseconds: 100), () {
-      Get.focusScope?.requestFocus(focusNode);
-    });
-  }
-
-  @override
-  void onClose() {
-    searchController.dispose();
-    focusNode.dispose();
-    super.onClose();
-  }
-
-  Future<void> _bootstrapData() async {
-    final cached = await _testRepository.fetchAll(cacheOnly: true);
-    if (cached.isNotEmpty) {
-      list.assignAll(cached);
-      filteredList.assignAll(cached);
-      isLoading.value = false;
-      if (SilentRefreshGate.shouldRefresh(
-        'tests:search_all',
-        minInterval: _silentRefreshInterval,
-      )) {
-        unawaited(getData(silent: true, forceRefresh: true));
-      }
-      return;
-    }
-    await getData();
-  }
-
-  Future<void> getData({
-    bool silent = false,
-    bool forceRefresh = false,
-  }) async {
-    if (!silent || list.isEmpty) {
-      isLoading.value = true;
-    }
-    final items = await _testRepository.fetchAll(
-      preferCache: !forceRefresh,
-      forceRefresh: forceRefresh,
-    );
-    list.assignAll(items);
-    filterSearchResults(searchController.text);
-    SilentRefreshGate.markRefreshed('tests:search_all');
-    isLoading.value = false;
-  }
-
-  void filterSearchResults(String query) {
-    final normalizedQuery = normalizeSearchText(query);
-    if (normalizedQuery.isEmpty) {
-      filteredList.assignAll(list);
-    } else {
-      filteredList.assignAll(
-        list.where(
-          (test) =>
-              normalizeSearchText(test.aciklama).contains(normalizedQuery) ||
-              normalizeSearchText(test.testTuru).contains(normalizedQuery) ||
-              test.dersler.any(
-                (ders) => normalizeSearchText(ders).contains(normalizedQuery),
-              ),
-        ),
-      );
-    }
-  }
-}
+part 'search_tests_controller_facade_part.dart';
+part 'search_tests_controller_runtime_part.dart';

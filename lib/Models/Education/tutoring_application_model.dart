@@ -9,6 +9,13 @@ class TutoringApplicationModel {
   final int statusUpdatedAt;
   final String note;
 
+  static int _asInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static String _asString(Object? value) => (value ?? '').toString();
+
   TutoringApplicationModel({
     required this.tutoringDocID,
     required this.userID,
@@ -25,14 +32,16 @@ class TutoringApplicationModel {
       Map<String, dynamic> map, String docID) {
     return TutoringApplicationModel(
       tutoringDocID: docID,
-      userID: map['userID'] ?? '',
-      tutoringTitle: map['tutoringTitle'] ?? '',
-      tutorName: map['tutorName'] ?? '',
-      tutorImage: map['tutorImage'] ?? '',
-      status: map['status'] ?? 'pending',
-      timeStamp: map['timeStamp'] ?? 0,
-      statusUpdatedAt: map['statusUpdatedAt'] ?? 0,
-      note: map['note'] ?? '',
+      userID: _asString(map['userID']),
+      tutoringTitle: _asString(map['tutoringTitle']),
+      tutorName: _asString(map['tutorName']),
+      tutorImage: _asString(map['tutorImage']),
+      status: _asString(map['status']).isEmpty
+          ? 'pending'
+          : _asString(map['status']),
+      timeStamp: _asInt(map['timeStamp']),
+      statusUpdatedAt: _asInt(map['statusUpdatedAt']),
+      note: _asString(map['note']),
     );
   }
 

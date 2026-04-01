@@ -13,14 +13,28 @@ let collection;
 let doc;
 let deleteDoc;
 let getDoc;
+let getDocs;
+let query;
 let setDoc;
 let updateDoc;
+let where;
 
 test.before(async () => {
   ({ initializeTestEnvironment, assertFails, assertSucceeds } = await import(
     "@firebase/rules-unit-testing"
   ));
-  ({ addDoc, collection, doc, deleteDoc, getDoc, setDoc, updateDoc } = await import("firebase/firestore"));
+  ({
+    addDoc,
+    collection,
+    doc,
+    deleteDoc,
+    getDoc,
+    getDocs,
+    query,
+    setDoc,
+    updateDoc,
+    where,
+  } = await import("firebase/firestore"));
   testEnv = await initializeTestEnvironment({
     projectId: "demo-turqapp",
     firestore: {
@@ -64,6 +78,55 @@ test("users collection blocks owner from writing moderation fields", async () =>
   const ownerCtx = testEnv.authenticatedContext(uid);
   await assertFails(
     updateDoc(doc(ownerCtx.firestore(), `users/${uid}`), { isBanned: true }),
+  );
+});
+
+test("users collection allows authenticated limited list queries", async () => {
+  const owner1Ctx = testEnv.authenticatedContext("list-user-1");
+  const owner2Ctx = testEnv.authenticatedContext("list-user-2");
+  await assertSucceeds(
+    setDoc(doc(owner1Ctx.firestore(), "users/list-user-1"), {
+      nickname: "alpha",
+      isDeleted: false,
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(owner2Ctx.firestore(), "users/list-user-2"), {
+      nickname: "beta",
+      isDeleted: false,
+    }),
+  );
+
+  const actorCtx = testEnv.authenticatedContext("list-actor");
+  await assertSucceeds(
+    actorCtx.firestore().collection("users").limit(10).get(),
+  );
+});
+
+test("users collection allows authenticated direct get for another user's document", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "users/public-user"), {
+      nickname: "public",
+      isDeleted: false,
+    });
+  });
+
+  const actorCtx = testEnv.authenticatedContext("other-actor");
+  await assertSucceeds(getDoc(doc(actorCtx.firestore(), "users/public-user")));
+});
+
+test("users collection blocks oversized list queries", async () => {
+  const ownerCtx = testEnv.authenticatedContext("list-user-3");
+  await assertSucceeds(
+    setDoc(doc(ownerCtx.firestore(), "users/list-user-3"), {
+      nickname: "gamma",
+      isDeleted: false,
+    }),
+  );
+
+  const actorCtx = testEnv.authenticatedContext("oversized-list-actor");
+  await assertFails(
+    actorCtx.firestore().collection("users").limit(501).get(),
   );
 });
 
@@ -125,7 +188,37 @@ test("marketStore blocks creating item for another user", async () => {
   );
 });
 
-test("marketStore allows authenticated single-step view increments", async () => {
+test("marketStore blocks create with non-default server owned counters", async () => {
+  const uid = "market-owner-forged";
+  const ownerCtx = testEnv.authenticatedContext(uid);
+  const itemRef = doc(ownerCtx.firestore(), "marketStore/17421600000025");
+
+  await assertFails(
+    setDoc(itemRef, {
+      id: "17421600000025",
+      userId: uid,
+      title: "Sayaç enjeksiyonlu ilan",
+      description: "",
+      price: 10,
+      currency: "TRY",
+      categoryKey: "antika/aydinlatma",
+      categoryPath: ["Antika", "Aydınlatma"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Kadıköy",
+      locationText: "Kadıköy, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000025,
+      updatedAt: 1742160000025,
+      viewCount: 99,
+    }),
+  );
+});
+
+test("marketStore blocks authenticated viewer counter increments", async () => {
   const ownerUid = "market-owner-view";
   const viewerUid = "market-viewer";
 
@@ -156,10 +249,89 @@ test("marketStore allows authenticated single-step view increments", async () =>
   });
 
   const viewerCtx = testEnv.authenticatedContext(viewerUid);
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(viewerCtx.firestore(), "marketStore/1742160000003"), {
       viewCount: 2,
       updatedAt: 1742160000100,
+    }),
+  );
+});
+
+test("marketStore allows owner item updates", async () => {
+  const ownerUid = "market-owner-edit";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "marketStore/1742160000004"), {
+      id: "1742160000004",
+      userId: ownerUid,
+      title: "Eski Baslik",
+      description: "Aciklama",
+      price: 100,
+      currency: "TRY",
+      categoryKey: "elektronik/bilgisayar",
+      categoryPath: ["Elektronik", "Bilgisayar"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Üsküdar",
+      locationText: "Üsküdar, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000200,
+      updatedAt: 1742160000200,
+      viewCount: 0,
+      offerCount: 0,
+      favoriteCount: 0,
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertSucceeds(
+    updateDoc(doc(ownerCtx.firestore(), "marketStore/1742160000004"), {
+      title: "Yeni Baslik",
+      updatedAt: 1742160000300,
+    }),
+  );
+});
+
+test("marketStore blocks owner from updating server owned counter fields", async () => {
+  const ownerUid = "market-owner-counter-locked";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "marketStore/1742160000005"), {
+      id: "1742160000005",
+      userId: ownerUid,
+      title: "Counter Locked",
+      description: "Aciklama",
+      price: 100,
+      currency: "TRY",
+      categoryKey: "elektronik/bilgisayar",
+      categoryPath: ["Elektronik", "Bilgisayar"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Üsküdar",
+      locationText: "Üsküdar, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000500,
+      updatedAt: 1742160000500,
+      viewCount: 1,
+      favoriteCount: 2,
+      offerCount: 3,
+      reviewCount: 4,
+      averageRating: 4.5,
+      lastOfferAt: 1742160000400,
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertFails(
+    updateDoc(doc(ownerCtx.firestore(), "marketStore/1742160000005"), {
+      favoriteCount: 7,
+      updatedAt: 1742160000600,
     }),
   );
 });
@@ -1108,6 +1280,69 @@ test("conversations block non-participant read", async () => {
   );
 });
 
+test("conversations allow participant preview and cutoff updates", async () => {
+  const uid1 = "conv-preview-user-1";
+  const uid2 = "conv-preview-user-2";
+  const conversationId = "conv-preview-user-1_conv-preview-user-2";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `conversations/${conversationId}`), {
+      participants: [uid1, uid2],
+      userID1: uid1,
+      userID2: uid2,
+      lastMessage: "ilk",
+      lastMessageAt: 1,
+      lastMessageAtMs: 1,
+      lastSenderId: uid1,
+      unread: { [uid1]: 0, [uid2]: 1 },
+      archived: { [uid1]: false, [uid2]: false },
+      muted: { [uid1]: false, [uid2]: false },
+      pinned: { [uid1]: false, [uid2]: false },
+      typing: { [uid1]: 0, [uid2]: 0 },
+      chatBg: { [uid1]: 0, [uid2]: 0 },
+    });
+  });
+
+  const user1Ctx = testEnv.authenticatedContext(uid1);
+  await assertSucceeds(
+    updateDoc(doc(user1Ctx.firestore(), `conversations/${conversationId}`), {
+      [`previewText.${uid1}`]: "guncel onizleme",
+      [`previewAt.${uid1}`]: Date.now(),
+      [`deletedAt.${uid1}`]: Date.now(),
+    }),
+  );
+});
+
+test("conversations allow legacy participant list queries", async () => {
+  const uid1 = "conv-legacy-user-1";
+  const uid2 = "conv-legacy-user-2";
+  const conversationId = "conv-legacy-user-1_conv-legacy-user-2";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `conversations/${conversationId}`), {
+      userID1: uid1,
+      userID2: uid2,
+      lastMessage: "",
+      lastMessageAt: 0,
+      unread: {},
+      archived: {},
+      muted: {},
+      pinned: {},
+      typing: {},
+    });
+  });
+
+  const user1Ctx = testEnv.authenticatedContext(uid1);
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(user1Ctx.firestore(), "conversations"),
+        where("userID1", "==", uid1),
+      ),
+    ),
+  );
+});
+
 test("conversation messages allow participant self-sent payload", async () => {
   const uid1 = "msg-user-1";
   const uid2 = "msg-user-2";
@@ -1172,6 +1407,31 @@ test("conversation messages block spoofed sender payload", async () => {
         text: "spoof",
       },
     ),
+  );
+});
+
+test("users interaction subcollections allow owner write", { concurrency: false }, async () => {
+  const uid = "user-interaction-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+  const db = ctx.firestore();
+
+  await assertSucceeds(
+    setDoc(doc(db, `users/${uid}/liked_posts/post-1`), {
+      post_docID: "post-1",
+      timeStamp: Date.now(),
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(db, `users/${uid}/saved_posts/post-1`), {
+      post_docID: "post-1",
+      timeStamp: Date.now(),
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(db, `users/${uid}/commented_posts/comment-1`), {
+      post_docID: "post-1",
+      timeStamp: Date.now(),
+    }),
   );
 });
 
@@ -1369,12 +1629,11 @@ test("questions subcollections allow admin writes and block non-admin writes", a
   );
 });
 
-test("questionsAnswers allows owner-scoped canonical payload", async () => {
+test("questionsAnswers denies client create and read", async () => {
   const uid = "questions-answer-owner";
-  const ctx = testEnv.authenticatedContext(uid);
 
-  await assertSucceeds(
-    addDoc(collection(ctx.firestore(), "questionsAnswers"), {
+  await assertFails(
+    addDoc(collection(testEnv.authenticatedContext(uid).firestore(), "questionsAnswers"), {
       cevaplar: ["A", "B", "C"],
       dogruCevaplar: ["A", "D", "C"],
       timeStamp: Date.now(),
@@ -1387,30 +1646,18 @@ test("questionsAnswers allows owner-scoped canonical payload", async () => {
       userID: uid,
     }),
   );
-});
 
-test("questionsAnswers blocks spoofed owner payload", async () => {
-  const uid = "questions-answer-owner-block";
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "questionsAnswers", "qa-read-blocked"), {
+      userID: uid,
+    });
+  });
+
   const ctx = testEnv.authenticatedContext(uid);
-
-  await assertFails(
-    addDoc(collection(ctx.firestore(), "questionsAnswers"), {
-      cevaplar: ["A"],
-      dogruCevaplar: ["A"],
-      timeStamp: Date.now(),
-      anaBaslik: "TYT",
-      sinavTuru: "Turkce",
-      yil: "2025",
-      baslik2: "Genel",
-      baslik3: "",
-      cikmisSoruID: "cikmis-2",
-      userID: "different-user",
-      extra: true,
-    }),
-  );
+  await assertFails(getDoc(doc(ctx.firestore(), "questionsAnswers", "qa-read-blocked")));
 });
 
-test("questionsAnswers rejects client update and delete after create", async () => {
+test("questionsAnswers rejects client update and delete", async () => {
   const uid = "questions-answer-owner-immutable";
 
   await testEnv.withSecurityRulesDisabled(async (context) => {

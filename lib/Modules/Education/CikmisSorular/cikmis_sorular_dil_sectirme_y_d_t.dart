@@ -23,7 +23,7 @@ class _CikmisSorularDilSectirmeYDTState
     extends State<CikmisSorularDilSectirmeYDT> {
   static const _ydt = 'YDT';
 
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> diller = [];
 
   String _localizedLanguage(String raw) {
@@ -49,11 +49,11 @@ class _CikmisSorularDilSectirmeYDTState
     super.initState();
     _repository
         .distinctValues(
-          where: (doc) =>
-              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
-              (doc['sinavTuru'] ?? '').toString() == 'YDT',
-          field: 'baslik2',
-        )
+      where: (doc) =>
+          (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+          (doc['sinavTuru'] ?? '').toString() == 'YDT',
+      field: 'baslik2',
+    )
         .then((items) {
       final ordered = <String>[];
       for (final item in items) {

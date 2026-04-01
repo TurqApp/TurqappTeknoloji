@@ -9,7 +9,7 @@ import '../network_awareness_service.dart';
 /// - Cellular: arka plan prefetch kapalı, on-demand segment fetch açık
 /// - Offline: sadece cache'den serv et
 class CacheNetworkPolicy {
-  static PlaybackPolicyEngine? get _engine => PlaybackPolicyEngine.maybeFind();
+  static PlaybackPolicyEngine? get _engine => maybeFindPlaybackPolicyEngine();
 
   /// Wi-Fi'de mi? Prefetch sadece Wi-Fi'de çalışır.
   static bool get canPrefetch {

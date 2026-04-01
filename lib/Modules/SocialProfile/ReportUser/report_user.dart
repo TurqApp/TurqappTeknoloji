@@ -37,11 +37,11 @@ class _ReportUserState extends State<ReportUser> {
     _controllerTag =
         'report_user_${widget.userID}_${widget.postID}_${widget.commentID}_${identityHashCode(this)}';
     final existingController =
-        ReportUserController.maybeFind(tag: _controllerTag);
+        maybeFindReportUserController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = ReportUserController.ensure(
+      controller = ensureReportUserController(
         userID: widget.userID,
         postID: widget.postID,
         commentID: widget.commentID,
@@ -55,7 +55,7 @@ class _ReportUserState extends State<ReportUser> {
   void dispose() {
     if (_ownsController &&
         identical(
-          ReportUserController.maybeFind(tag: _controllerTag),
+          maybeFindReportUserController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ReportUserController>(tag: _controllerTag);

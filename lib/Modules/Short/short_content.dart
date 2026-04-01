@@ -31,10 +31,14 @@ import '../Agenda/TagPosts/tag_posts.dart';
 import '../Social/PostSharers/post_sharers.dart';
 import '../PostCreator/post_creator.dart';
 import '../SocialProfile/social_profile.dart';
+import '../Story/StoryRow/story_row_controller.dart';
+import '../Story/StoryRow/story_user_model.dart';
+import '../Story/StoryViewer/story_viewer.dart';
 import 'short_content_controller.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
 part 'short_content_body_part.dart';
+part 'short_content_actions_part.dart';
 
 class ShortsContent extends StatefulWidget {
   final PostsModel model;
@@ -75,6 +79,44 @@ class _ShortsContentState extends State<ShortsContent> {
   void Function(String updatedDocId)? get onEdited => widget.onEdited;
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
+  StoryUserModel? _resolveStoryUser() {
+    final rowController = maybeFindStoryRowController();
+    if (rowController == null) return null;
+    for (final user in rowController.users) {
+      if (user.userID == model.userID && user.stories.isNotEmpty) {
+        return user;
+      }
+    }
+    return null;
+  }
+
+  List<StoryUserModel> _storyUsersSnapshot() {
+    final rowController = maybeFindStoryRowController();
+    if (rowController == null) return const <StoryUserModel>[];
+    return rowController.users.toList(growable: false);
+  }
+
+  Future<void> _openAuthorProfile() async {
+    if (model.userID == _currentUserId) return;
+    volumeOff(false);
+    await Get.to(() => SocialProfile(userID: model.userID));
+    volumeOff(true);
+  }
+
+  Future<void> _openAvatarStoryOrProfile() async {
+    final storyUser = _resolveStoryUser();
+    if (storyUser != null && storyUser.stories.isNotEmpty) {
+      volumeOff(false);
+      await Get.to(() => StoryViewer(
+            startedUser: storyUser,
+            storyOwnerUsers: _storyUsersSnapshot(),
+          ));
+      volumeOff(true);
+      return;
+    }
+    await _openAuthorProfile();
+  }
+
   void resumeIfActive() {
     if (!widget.isActive) return;
     videoPlayerController.play();
@@ -85,8 +127,8 @@ class _ShortsContentState extends State<ShortsContent> {
     super.initState();
     _controllerTag = model.docID;
     _ownsController =
-        ShortContentController.maybeFind(tag: _controllerTag) == null;
-    controller = ShortContentController.ensure(
+        maybeFindShortContentController(tag: _controllerTag) == null;
+    controller = ensureShortContentController(
       postID: model.docID,
       model: model,
       tag: _controllerTag,
@@ -98,7 +140,7 @@ class _ShortsContentState extends State<ShortsContent> {
     Future.microtask(() {
       if (_ownsController &&
           identical(
-            ShortContentController.maybeFind(tag: _controllerTag),
+            maybeFindShortContentController(tag: _controllerTag),
             controller,
           )) {
         Get.delete<ShortContentController>(tag: _controllerTag);

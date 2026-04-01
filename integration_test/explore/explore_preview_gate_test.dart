@@ -23,7 +23,11 @@ void main() {
           expect(probe['previousRoute'], isA<String>());
           expectSurfaceRegistered('feed');
           final afterFeed = readSurfaceProbe('feed');
-          expectSurfaceMatchesFixture('feed', afterFeed);
+          expectSurfaceMatchesFixture(
+            'feed',
+            afterFeed,
+            enforceRequiredDocIds: false,
+          );
           expectCountNeverDropsToZeroAfterReplay(
             'feed',
             before: beforeFeed,

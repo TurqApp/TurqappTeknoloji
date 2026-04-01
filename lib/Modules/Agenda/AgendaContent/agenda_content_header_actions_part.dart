@@ -1,335 +1,6 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentHeaderActionsPart on _AgendaContentState {
-  List<StoryUserModel> _storyUsersSnapshot() {
-    final rowController = StoryRowController.maybeFind();
-    if (rowController == null) return const [];
-    return rowController.users.toList(growable: false);
-  }
-
-  void _suspendEmbeddedFeedContextsForRoute() {
-    final floodController = FloodListingController.maybeFind();
-    if (floodController != null) {
-      final floodIndex = floodController.floods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (floodIndex >= 0) {
-        floodController.capturePendingCenteredEntry(model: widget.model);
-        floodController.lastCenteredIndex = floodIndex;
-        floodController.centeredIndex.value = -1;
-      }
-    }
-
-    final profileController = ProfileController.maybeFind();
-    if (profileController != null) {
-      final profileIndex = profileController.indexOfMergedEntry(
-        docId: widget.model.docID,
-        isReshare: widget.isReshared,
-      );
-      if (profileIndex >= 0) {
-        profileController.lastCenteredIndex = profileIndex;
-        profileController.currentVisibleIndex.value = -1;
-        profileController.centeredIndex.value = -1;
-        profileController.pausetheall.value = true;
-      }
-    }
-
-    final socialProfileController = SocialProfileController.maybeFind();
-    if (socialProfileController != null) {
-      final socialIndex = socialProfileController.indexOfCombinedEntry(
-        docId: widget.model.docID,
-        isReshare: widget.isReshared,
-      );
-      if (socialIndex >= 0) {
-        socialProfileController.lastCenteredIndex = socialIndex;
-        socialProfileController.currentVisibleIndex.value = -1;
-        socialProfileController.centeredIndex.value = -1;
-      }
-    }
-
-    final archiveController = ArchiveController.maybeFind();
-    if (archiveController != null) {
-      final archiveIndex = archiveController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (archiveIndex >= 0) {
-        archiveController.capturePendingCenteredEntry(model: widget.model);
-        archiveController.lastCenteredIndex = archiveIndex;
-        archiveController.centeredIndex.value = -1;
-      }
-    }
-
-    final likedController = LikedPostControllers.maybeFind();
-    if (likedController != null) {
-      final likedIndex =
-          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
-      if (likedIndex >= 0) {
-        likedController.capturePendingCenteredEntry(model: widget.model);
-        likedController.lastCenteredIndex = likedIndex;
-        likedController.currentVisibleIndex.value = -1;
-        likedController.centeredIndex.value = -1;
-      }
-    }
-
-    final topTagsController = TopTagsController.maybeFind();
-    if (topTagsController != null) {
-      final topTagsIndex = topTagsController.agendaList
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (topTagsIndex >= 0) {
-        topTagsController.capturePendingCenteredEntry(model: widget.model);
-        topTagsController.lastCenteredIndex = topTagsIndex;
-        topTagsController.currentVisibleIndex.value = -1;
-        topTagsController.centeredIndex.value = -1;
-      }
-    }
-
-    final tagPostsController = TagPostsController.maybeFind();
-    if (tagPostsController != null) {
-      final tagPostIndex = tagPostsController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (tagPostIndex >= 0) {
-        tagPostsController.capturePendingCenteredEntry(model: widget.model);
-        tagPostsController.lastCenteredIndex = tagPostIndex;
-        tagPostsController.currentVisibleIndex.value = -1;
-        tagPostsController.centeredIndex.value = -1;
-      }
-    }
-
-    final exploreController = ExploreController.maybeFind();
-    if (exploreController != null) {
-      final exploreIndex = exploreController.exploreFloods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (exploreIndex >= 0) {
-        exploreController.capturePendingFloodEntry(model: widget.model);
-        exploreController.lastFloodVisibleIndex = exploreIndex;
-        exploreController.floodsVisibleIndex.value = -1;
-      }
-    }
-  }
-
-  void _restoreEmbeddedFeedContexts() {
-    final floodController = FloodListingController.maybeFind();
-    if (floodController != null) {
-      final floodIndex = floodController.floods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (floodIndex >= 0) {
-        floodController.capturePendingCenteredEntry(model: widget.model);
-        floodController.centeredIndex.value = floodIndex;
-        floodController.currentVisibleIndex.value = floodIndex;
-        floodController.lastCenteredIndex = floodIndex;
-      }
-    }
-
-    final profileController = ProfileController.maybeFind();
-    if (profileController != null) {
-      final profileIndex = profileController.indexOfMergedEntry(
-        docId: widget.model.docID,
-        isReshare: widget.isReshared,
-      );
-      if (profileIndex >= 0) {
-        profileController.lastCenteredIndex = profileIndex;
-        profileController.currentVisibleIndex.value = profileIndex;
-        profileController.centeredIndex.value = profileIndex;
-        profileController.pausetheall.value = false;
-      }
-    }
-
-    final socialProfileController = SocialProfileController.maybeFind();
-    if (socialProfileController != null) {
-      final socialIndex = socialProfileController.indexOfCombinedEntry(
-        docId: widget.model.docID,
-        isReshare: widget.isReshared,
-      );
-      if (socialIndex >= 0) {
-        socialProfileController.lastCenteredIndex = socialIndex;
-        socialProfileController.currentVisibleIndex.value = socialIndex;
-        socialProfileController.centeredIndex.value = socialIndex;
-      }
-    }
-
-    final archiveController = ArchiveController.maybeFind();
-    if (archiveController != null) {
-      final archiveIndex = archiveController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (archiveIndex >= 0) {
-        archiveController.capturePendingCenteredEntry(model: widget.model);
-        archiveController.lastCenteredIndex = archiveIndex;
-        archiveController.currentVisibleIndex.value = archiveIndex;
-        archiveController.centeredIndex.value = archiveIndex;
-      }
-    }
-
-    final likedController = LikedPostControllers.maybeFind();
-    if (likedController != null) {
-      final likedIndex =
-          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
-      if (likedIndex >= 0) {
-        likedController.capturePendingCenteredEntry(model: widget.model);
-        likedController.lastCenteredIndex = likedIndex;
-        likedController.currentVisibleIndex.value = likedIndex;
-        likedController.centeredIndex.value = likedIndex;
-      }
-    }
-
-    final topTagsController = TopTagsController.maybeFind();
-    if (topTagsController != null) {
-      final topTagsIndex = topTagsController.agendaList
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (topTagsIndex >= 0) {
-        topTagsController.capturePendingCenteredEntry(model: widget.model);
-        topTagsController.lastCenteredIndex = topTagsIndex;
-        topTagsController.currentVisibleIndex.value = topTagsIndex;
-        topTagsController.centeredIndex.value = topTagsIndex;
-      }
-    }
-
-    final tagPostsController = TagPostsController.maybeFind();
-    if (tagPostsController != null) {
-      final tagPostIndex = tagPostsController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (tagPostIndex >= 0) {
-        tagPostsController.capturePendingCenteredEntry(model: widget.model);
-        tagPostsController.lastCenteredIndex = tagPostIndex;
-        tagPostsController.currentVisibleIndex.value = tagPostIndex;
-        tagPostsController.centeredIndex.value = tagPostIndex;
-      }
-    }
-
-    final exploreController = ExploreController.maybeFind();
-    if (exploreController != null) {
-      final exploreIndex = exploreController.exploreFloods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (exploreIndex >= 0) {
-        exploreController.capturePendingFloodEntry(model: widget.model);
-        exploreController.floodsVisibleIndex.value = exploreIndex;
-        exploreController.lastFloodVisibleIndex = exploreIndex;
-      }
-    }
-  }
-
-  void _suspendAgendaFeedForRoute() {
-    final modelIndex = agendaController.agendaList
-        .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex >= 0) {
-      agendaController.lastCenteredIndex = modelIndex;
-    }
-    agendaController.centeredIndex.value = -1;
-    _suspendEmbeddedFeedContextsForRoute();
-    videoController?.pause();
-  }
-
-  void _restoreAgendaFeedCenter() {
-    final last = agendaController.lastCenteredIndex;
-    int target = -1;
-    if (last != null &&
-        last >= 0 &&
-        last < agendaController.agendaList.length) {
-      target = last;
-    } else {
-      final modelIndex = agendaController.agendaList
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (modelIndex >= 0) {
-        target = modelIndex;
-      } else if (agendaController.agendaList.isNotEmpty) {
-        target = 0;
-      }
-    }
-    if (target >= 0 && target < agendaController.agendaList.length) {
-      agendaController.centeredIndex.value = target;
-      agendaController.lastCenteredIndex = target;
-    }
-    _restoreEmbeddedFeedContexts();
-  }
-
-  bool _hasStoryAvatar() {
-    final storyUser = _resolveStoryUser();
-    return storyUser != null && storyUser.stories.isNotEmpty;
-  }
-
-  void _openAvatarStoryOrProfile() {
-    final modelIndex = agendaController.agendaList
-        .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex >= 0) {
-      agendaController.lastCenteredIndex = modelIndex;
-    }
-    agendaController.centeredIndex.value = -1;
-    final storyUser = _resolveStoryUser();
-    if (storyUser != null && storyUser.stories.isNotEmpty) {
-      videoController?.pause();
-      final users = _storyUsersSnapshot();
-      Get.to(() => StoryViewer(
-            startedUser: storyUser,
-            storyOwnerUsers: users,
-          ))?.then((_) {
-        _restoreAgendaFeedCenter();
-      });
-      return;
-    }
-
-    videoController?.pause();
-    final currentUid = _currentUid;
-    final route = widget.model.userID == currentUid
-        ? Get.to(() => ProfileView())
-        : Get.to(() => SocialProfile(userID: widget.model.userID));
-    route?.then((_) {
-      _restoreAgendaFeedCenter();
-    });
-  }
-
-  Widget _buildStoryAwareAvatar({
-    required String userId,
-    required String imageUrl,
-    required double radius,
-  }) {
-    final hasStory = _hasStoryAvatar();
-    final ringColors = hasStory
-        ? const [
-            Color(0xFFB7F3D0),
-            Color(0xFF5AD39A),
-            Color(0xFF20B26B),
-            Color(0xFF12824D),
-          ]
-        : const [
-            Color(0xFFB7D8FF),
-            Color(0xFF6EB6FF),
-            Color(0xFF2C8DFF),
-            Color(0xFF0E5BFF),
-          ];
-
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 650),
-      curve: Curves.easeOutBack,
-      tween: Tween<double>(begin: 0, end: hasStory ? 0.018 : 0),
-      child: Container(
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomRight,
-            colors: ringColors,
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(1.5),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: CachedUserAvatar(
-            userId: userId,
-            imageUrl: imageUrl,
-            radius: radius,
-          ),
-        ),
-      ),
-      builder: (context, turns, child) {
-        return Transform.rotate(
-          angle: turns * 2 * 3.141592653589793,
-          child: child,
-        );
-      },
-    );
-  }
-
   Widget headerUserInfoBar() {
     final primaryName = controller.fullName.value.trim().isNotEmpty
         ? controller.fullName.value.replaceAll("  ", " ")
@@ -392,10 +63,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                               child: Text(
                                 primaryName,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: AppTypography.postName.copyWith(
                                   color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
                                 ),
                               ),
                             ),
@@ -405,10 +74,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                                 '@$handle',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: AppTypography.postHandle.copyWith(
                                   color: Colors.grey,
-                                  fontSize: 15,
-                                  fontFamily: "Montserrat",
                                 ),
                               ),
                             ),
@@ -426,10 +93,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                                   _relativeTimeTickService.tick.value;
                                   return Text(
                                     buildDisplayTime(),
-                                    style: const TextStyle(
+                                    style: AppTypography.postMeta.copyWith(
                                       color: Colors.grey,
-                                      fontSize: 15,
-                                      fontFamily: "MontserratMedium",
                                     ),
                                   );
                                 },
@@ -485,14 +150,12 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                     pulldownmenu(),
                   ],
                 ),
-                if ((widget.model.hasPlayableVideo ||
-                        widget.model.img.isNotEmpty) &&
-                    _AgendaContentState._ctaNavigationService
-                        .sanitizeCaptionText(
-                          widget.model.metin,
-                          meta: widget.model.reshareMap,
-                        )
-                        .isNotEmpty)
+                if (_AgendaContentState._ctaNavigationService
+                    .sanitizeCaptionText(
+                      widget.model.metin,
+                      meta: widget.model.reshareMap,
+                    )
+                    .isNotEmpty)
                   _buildFeedCaption(
                     text: widget.model.metin.trim(),
                     color: Colors.black,
@@ -537,7 +200,10 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             GestureDetector(
               onTap: () {
                 _suspendAgendaFeedForRoute();
-                Get.to(() => FloodListing(mainModel: widget.model))?.then((_) {
+                Get.to(() => FloodListing(
+                      mainModel: widget.model,
+                      hostSurface: widget.floodHostSurface,
+                    ))?.then((_) {
                   _restoreAgendaFeedCenter();
                 });
               },
@@ -565,7 +231,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
-                      fontSize: 12,
+                      fontSize: AppTypography.postAttribution.fontSize!,
                     ),
                 ],
               ),
@@ -598,220 +264,11 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             controller: controller,
             model: widget.model,
             explicitReshareUserId: widget.reshareUserID,
-            style: const TextStyle(
+            style: AppTypography.postAttribution.copyWith(
               color: Colors.white,
-              fontSize: 12,
-              fontFamily: "MontserratMedium",
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget pulldownmenu() {
-    final currentUid = _currentUid;
-    final canManagePost =
-        widget.model.userID == currentUid || controller.canSendAdminPush;
-    return PullDownButton(
-      itemBuilder: (context) => [
-        PullDownMenuItem(
-          onTap: () async {
-            _suspendAgendaFeedForRoute();
-
-            Get.to(() => PostCreator(
-                  sharedVideoUrl: widget.model.playbackUrl,
-                  sharedImageUrls: widget.model.img,
-                  sharedAspectRatio: widget.model.aspectRatio.toDouble(),
-                  sharedThumbnail: widget.model.thumbnail,
-                  originalUserID:
-                      PostStoryShareService.resolveOriginalUserId(widget.model),
-                  originalPostID:
-                      PostStoryShareService.resolveOriginalPostId(widget.model),
-                  sharedAsPost: true,
-                ))?.then((_) {
-              _restoreAgendaFeedCenter();
-            });
-          },
-          title: 'short.publish_as_post'.tr,
-          icon: CupertinoIcons.add_circled,
-        ),
-        PullDownMenuItem(
-          onTap: () async {
-            _suspendAgendaFeedForRoute();
-            await PostStoryShareService.openStoryMakerForPost(widget.model);
-            _restoreAgendaFeedCenter();
-          },
-          title: 'short.add_to_story'.tr,
-          icon: CupertinoIcons.sparkles,
-        ),
-        if (canManagePost)
-          PullDownMenuItem(
-            onTap: () {
-              _suspendAgendaFeedForRoute();
-              Get.to(() => PostSharers(
-                    postID: PostStoryShareService.resolveOriginalPostId(
-                      widget.model,
-                    ),
-                  ))?.then((_) {
-                _restoreAgendaFeedCenter();
-              });
-            },
-            title: 'short.shared_as_post_by'.tr,
-            icon: CupertinoIcons.person_2,
-          ),
-        PullDownMenuItem(
-          onTap: () {
-            controller.sendPost();
-          },
-          title: 'common.send'.tr,
-          icon: CupertinoIcons.paperplane,
-        ),
-        PullDownMenuItem(
-          onTap: () {
-            videoController?.pause();
-            controller.gizle();
-          },
-          title: 'common.hide'.tr,
-          icon: CupertinoIcons.eye_slash,
-        ),
-        if (canManagePost)
-          PullDownMenuItem(
-            onTap: () {
-              _suspendAgendaFeedForRoute();
-              Get.to(() => PostCreator(
-                    editMode: true,
-                    editPost: widget.model,
-                  ))?.then((_) {
-                _restoreAgendaFeedCenter();
-              });
-            },
-            title: 'common.edit'.tr,
-            icon: CupertinoIcons.pencil_circle,
-          ),
-        if (controller.canSendAdminPush)
-          PullDownMenuItem(
-            onTap: () {
-              _suspendAgendaFeedForRoute();
-              controller.sendAdminPushForPost().whenComplete(() {
-                _restoreAgendaFeedCenter();
-              });
-            },
-            title: 'common.push'.tr,
-            icon: CupertinoIcons.bell,
-          ),
-        PullDownMenuItem(
-          onTap: () async {
-            final previewImage = widget.model.thumbnail.trim().isNotEmpty
-                ? widget.model.thumbnail.trim()
-                : (widget.model.img.isNotEmpty
-                    ? widget.model.img.first.trim()
-                    : null);
-            final url = await ShortLinkService().getPostPublicUrl(
-              postId: widget.model.docID,
-              desc: widget.model.metin,
-              imageUrl: previewImage,
-            );
-
-            await Clipboard.setData(ClipboardData(text: url));
-
-            AppSnackbar('common.copied'.tr, 'common.link_copied'.tr);
-          },
-          title: 'common.copy_link'.tr,
-          icon: CupertinoIcons.doc_on_doc,
-        ),
-        PullDownMenuItem(
-          onTap: () async {
-            await ShareActionGuard.run(() async {
-              final previewImage = widget.model.thumbnail.trim().isNotEmpty
-                  ? widget.model.thumbnail.trim()
-                  : (widget.model.img.isNotEmpty
-                      ? widget.model.img.first.trim()
-                      : null);
-              final url = await ShortLinkService().getPostPublicUrl(
-                postId: widget.model.docID,
-                desc: widget.model.metin,
-                imageUrl: previewImage,
-              );
-              await ShareLinkService.shareUrl(
-                url: url,
-                title: 'common.post_share_title'.tr,
-                subject: 'common.post_share_title'.tr,
-              );
-            });
-          },
-          title: 'common.share'.tr,
-          icon: CupertinoIcons.share_up,
-        ),
-        if (canManagePost)
-          PullDownMenuItem(
-            onTap: () {
-              _suspendAgendaFeedForRoute();
-              noYesAlert(
-                title: 'common.delete_post_title'.tr,
-                message: 'common.delete_post_message'.tr,
-                yesText: 'common.delete_post_confirm'.tr,
-                cancelText: 'common.cancel'.tr,
-                onYesPressed: () {
-                  controller.sil();
-                },
-              ).then((_) {
-                if (!controller.silindi.value) {
-                  _restoreAgendaFeedCenter();
-                }
-              });
-            },
-            title: 'common.delete'.tr,
-            icon: CupertinoIcons.trash,
-            isDestructive: true,
-          ),
-        if (controller.arsiv.value == false &&
-            controller.model.arsiv == false &&
-            widget.model.userID == _currentUid)
-          PullDownMenuItem(
-            onTap: () {
-              controller.arsivle();
-              videoController?.pause();
-            },
-            title: 'common.archive'.tr,
-            icon: CupertinoIcons.doc_text_viewfinder,
-            isDestructive: true,
-          ),
-        if (controller.arsiv.value == false &&
-            controller.model.arsiv == true &&
-            widget.model.userID == _currentUid)
-          PullDownMenuItem(
-            onTap: () {
-              controller.arsivdenCikart();
-              videoController?.play();
-            },
-            title: 'common.unarchive'.tr,
-            icon: CupertinoIcons.doc_text_viewfinder,
-            isDestructive: true,
-          ),
-        if (widget.model.userID != _currentUid)
-          PullDownMenuItem(
-            onTap: () {
-              _suspendAgendaFeedForRoute();
-              Get.to(() => ReportUser(
-                  userID: widget.model.userID,
-                  postID: widget.model.docID,
-                  commentID: ""))?.then((_) {
-                _restoreAgendaFeedCenter();
-              });
-            },
-            title: 'common.report'.tr,
-            icon: CupertinoIcons.info,
-            isDestructive: true,
-          ),
-      ],
-      buttonBuilder: (context, showMenu) => CupertinoButton(
-        onPressed: showMenu,
-        padding: EdgeInsets.zero,
-        pressedOpacity: 0.6,
-        alignment: Alignment.center,
-        minimumSize: Size(0, 0),
-        child: const Icon(Icons.more_vert, color: Colors.black, size: 22),
       ),
     );
   }
@@ -827,7 +284,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final Color displayColor = _AgendaContentState._actionColor;
 
       return AnimatedActionButton(
-        key: ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
+        key:
+            ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
         enabled: canInteract,
         semanticsLabel: 'common.comments'.tr,
         onTap: canInteract
@@ -851,46 +309,46 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   Widget likeButton() {
-    final bool isLiked =
-        _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
-    final Color likeColor =
-        isLiked ? Colors.blueAccent : _AgendaContentState._actionColor;
+    return Obx(() {
+      final bool isLiked =
+          _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
+      final int displayLikeCount = controller.likeCount.value <= 0 && isLiked
+          ? 1
+          : controller.likeCount.value;
+      final Color likeColor =
+          isLiked ? Colors.blueAccent : _AgendaContentState._actionColor;
 
-    return AnimatedActionButton(
-      key: ValueKey(IntegrationTestKeys.feedLikeButton(widget.model.docID)),
-      enabled: true,
-      semanticsLabel: 'common.likes'.tr,
-      onTap: controller.like,
-      showTapArea: _AgendaContentState._showActionTapAreas,
-      onLongPress: () {
-        _suspendAgendaFeedForRoute();
-        Get.bottomSheet(
-          Container(
-            height: Get.height / 2,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(18),
-                topLeft: Radius.circular(18),
-              ),
-            ),
-            child: PostLikeListing(postID: widget.model.docID),
-          ),
-        ).then((_) {
-          _restoreAgendaFeedCenter();
-        });
-      },
-      child: _iconAction(
-        icon: isLiked
-            ? CupertinoIcons.hand_thumbsup_fill
-            : CupertinoIcons.hand_thumbsup,
-        color: likeColor,
-        label: NumberFormatter.format(controller.likeCount.value),
-        labelColor: likeColor,
-        iconSize: 17,
-        leadingTransformOffsetY: -2,
-      ),
-    );
+      return AnimatedActionButton(
+        key: ValueKey(IntegrationTestKeys.feedLikeButton(widget.model.docID)),
+        enabled: true,
+        semanticsLabel: 'common.likes'.tr,
+        onTap: controller.like,
+        showTapArea: _AgendaContentState._showActionTapAreas,
+        hitTestBehavior: HitTestBehavior.translucent,
+        longPressDuration: const Duration(milliseconds: 220),
+        padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 4.0),
+        onLongPress: () {
+          _suspendAgendaFeedForRoute();
+          Get.bottomSheet(
+            PostLikeListing(postID: widget.model.docID),
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+          ).then((_) {
+            _restoreAgendaFeedCenter();
+          });
+        },
+        child: _iconAction(
+          icon: isLiked
+              ? CupertinoIcons.hand_thumbsup_fill
+              : CupertinoIcons.hand_thumbsup,
+          color: likeColor,
+          label: NumberFormatter.format(displayLikeCount),
+          labelColor: likeColor,
+          iconSize: 17,
+          leadingTransformOffsetY: -2,
+        ),
+      );
+    });
   }
 
   Widget reshareButton() {
@@ -942,90 +400,27 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
     });
   }
 
-  void _runSimpleReshare() {
-    controller.reshare();
-    videoController?.play();
-  }
-
-  void _openReshareUsersSheet() {
-    _suspendAgendaFeedForRoute();
-    final targetPostId = widget.model.originalPostID.trim().isNotEmpty
-        ? widget.model.originalPostID.trim()
-        : widget.model.docID;
-    Get.bottomSheet(
-      PostReshareListing(postID: targetPostId),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-    ).then((_) {
-      _restoreAgendaFeedCenter();
-    });
-  }
-
-  Future<void> _openQuoteComposer() async {
-    String finalOriginalUserID;
-    String finalOriginalPostID;
-    final sourceSnapshot = await _resolveQuotedSourceSnapshot();
-    final String resolvedQuotedText = widget.model.quotedPost &&
-            widget.model.quotedOriginalText.trim().isNotEmpty
-        ? widget.model.quotedOriginalText.trim()
-        : widget.model.metin.trim();
-    final String resolvedQuotedSourceUserID = widget.model.quotedPost &&
-            widget.model.quotedSourceUserID.trim().isNotEmpty
-        ? widget.model.quotedSourceUserID.trim()
-        : sourceSnapshot.userId;
-    final String resolvedQuotedSourceDisplayName =
-        sourceSnapshot.displayName.trim();
-    final String resolvedQuotedSourceUsername = sourceSnapshot.username.trim();
-    final String resolvedQuotedSourceAvatarUrl =
-        sourceSnapshot.avatarUrl.trim();
-
-    if (widget.model.originalUserID.isNotEmpty) {
-      finalOriginalUserID = widget.model.originalUserID;
-      finalOriginalPostID = widget.model.originalPostID;
-    } else {
-      finalOriginalUserID = widget.model.userID;
-      finalOriginalPostID = widget.model.docID;
-    }
-
-    _suspendAgendaFeedForRoute();
-    Get.to(() => PostCreator(
-          sharedVideoUrl: widget.model.playbackUrl,
-          sharedImageUrls: widget.model.img,
-          sharedAspectRatio: widget.model.aspectRatio.toDouble(),
-          sharedThumbnail: widget.model.thumbnail,
-          originalUserID: finalOriginalUserID,
-          originalPostID: finalOriginalPostID,
-          sourcePostID: widget.model.docID,
-          sharedAsPost: true,
-          quotedPost: true,
-          quotedOriginalText: resolvedQuotedText,
-          quotedSourceUserID: resolvedQuotedSourceUserID,
-          quotedSourceDisplayName: resolvedQuotedSourceDisplayName,
-          quotedSourceUsername: resolvedQuotedSourceUsername,
-          quotedSourceAvatarUrl: resolvedQuotedSourceAvatarUrl,
-        ))?.then((_) {
-      _restoreAgendaFeedCenter();
-    });
-  }
-
   Widget saveButton() {
-    final bool isSaved = controller.saved.value == true;
-    final Color displayColor =
-        isSaved ? Colors.orange : _AgendaContentState._actionColor;
+    return Obx(() {
+      final bool isSaved = controller.saved.value == true;
+      final Color displayColor =
+          isSaved ? Colors.orange : _AgendaContentState._actionColor;
 
-    return AnimatedActionButton(
-      enabled: true,
-      semanticsLabel: 'common.save'.tr,
-      onTap: controller.save,
-      showTapArea: _AgendaContentState._showActionTapAreas,
-      child: _iconAction(
-        icon: isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
-        color: displayColor,
-        label: NumberFormatter.format(controller.savedCount.value),
-        labelColor: displayColor,
-        iconSize: 17,
-      ),
-    );
+      return AnimatedActionButton(
+        enabled: true,
+        semanticsLabel: 'common.save'.tr,
+        onTap: controller.save,
+        showTapArea: _AgendaContentState._showActionTapAreas,
+        child: _iconAction(
+          icon:
+              isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+          color: displayColor,
+          label: NumberFormatter.format(controller.savedCount.value),
+          labelColor: displayColor,
+          iconSize: 17,
+        ),
+      );
+    });
   }
 
   Widget statButton() {
@@ -1070,7 +465,6 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       enabled: true,
       semanticsLabel: 'common.share_external'.tr,
       onTap: _shareExternally,
-      padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
       showTapArea: _AgendaContentState._showActionTapAreas,
       child: SizedBox(
         width: 20,
@@ -1087,26 +481,6 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         ),
       ),
     );
-  }
-
-  Future<void> _shareExternally() async {
-    await ShareActionGuard.run(() async {
-      final previewImage = widget.model.thumbnail.trim().isNotEmpty
-          ? widget.model.thumbnail.trim()
-          : (widget.model.img.isNotEmpty
-              ? widget.model.img.first.trim()
-              : null);
-      final url = await ShortLinkService().getPostPublicUrl(
-        postId: widget.model.docID,
-        desc: widget.model.metin,
-        imageUrl: previewImage,
-      );
-      await ShareLinkService.shareUrl(
-        url: url,
-        title: 'post.share_title'.tr,
-        subject: 'post.share_title'.tr,
-      );
-    });
   }
 
   Widget _iconAction({

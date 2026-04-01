@@ -23,7 +23,7 @@ class SearchUserContent extends StatelessWidget {
   static final UserSummaryResolver _userSummaryResolver =
       UserSummaryResolver.ensure();
   static final UserSubcollectionRepository _userSubcollectionRepository =
-      UserSubcollectionRepository.ensure();
+      ensureUserSubcollectionRepository();
   static final UsernameLookupRepository _usernameLookupRepository =
       UsernameLookupRepository.ensure();
 
@@ -41,7 +41,7 @@ class SearchUserContent extends StatelessWidget {
   }
 
   Future<void> _saveRecentIfNeeded(String targetUid) async {
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
     if (explore != null) {
       await explore.saveRecentSearch(targetUid);
       return;
@@ -59,7 +59,8 @@ class SearchUserContent extends StatelessWidget {
           'timeStamp': DateTime.now().millisecondsSinceEpoch,
         },
       );
-      await ExploreController.maybeFind()?.refreshRecentSearchUsers();
+      await CurrentUserService.instance.addRecentSearchLocal(targetUid);
+      await maybeFindExploreController()?.refreshRecentSearchUsers();
     } catch (_) {}
   }
 
@@ -89,7 +90,7 @@ class SearchUserContent extends StatelessWidget {
   Future<void> _removeRecent() async {
     final targetUid = await _resolveTargetUid();
     if (targetUid.isEmpty) return;
-    final c = ExploreController.maybeFind();
+    final c = maybeFindExploreController();
     if (c != null) {
       await c.removeRecentSearch(targetUid);
       c.isSearchMode.value = true;
@@ -103,6 +104,7 @@ class SearchUserContent extends StatelessWidget {
           subcollection: 'lastSearches',
           docId: targetUid,
         );
+        await CurrentUserService.instance.removeRecentSearchLocal(targetUid);
       }
     } catch (_) {}
   }
@@ -130,7 +132,7 @@ class SearchUserContent extends StatelessWidget {
                           'common.info'.tr, 'explore.account_unavailable'.tr);
                       return;
                     }
-                    final explore = ExploreController.maybeFind();
+                    final explore = maybeFindExploreController();
                     explore?.suspendExplorePreview();
                     await Get.to(
                       () => SocialProfile(userID: targetUid),

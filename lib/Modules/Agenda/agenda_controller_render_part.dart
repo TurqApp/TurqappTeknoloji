@@ -18,6 +18,7 @@ extension AgendaControllerRenderPart on AgendaController {
         feedViewMode,
         followingIDs,
         CurrentUserService.instance.currentUserRx,
+        isLoading,
       ],
       (_) => _rebuildFilteredFeedEntries(),
     );
@@ -35,12 +36,17 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildMergedFeedEntries() {
     if (agendaList.isEmpty && feedReshareEntries.isEmpty) {
+      if (isLoading.value && mergedFeedEntries.isNotEmpty) {
+        return;
+      }
       mergedFeedEntries.clear();
       return;
     }
     final merged = _feedRenderCoordinator.buildMergedEntries(
       agendaList: agendaList.toList(growable: false),
       feedReshareEntries: feedReshareEntries.toList(growable: false),
+      myReshares: Map<String, int>.from(myReshares),
+      currentUserId: CurrentUserService.instance.effectiveUserId,
     );
     final patch = _feedRenderCoordinator.buildPatch(
       previous: mergedFeedEntries.toList(growable: false),
@@ -52,16 +58,29 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildFilteredFeedEntries() {
     if (mergedFeedEntries.isEmpty) {
+      if (isLoading.value && filteredFeedEntries.isNotEmpty) {
+        return;
+      }
+      _cancelQueuedFeedModeFallback();
       filteredFeedEntries.clear();
       return;
     }
-    final filtered = _feedRenderCoordinator.filterEntries(
+    var filtered = _feedRenderCoordinator.filterEntries(
       mergedEntries: mergedFeedEntries.toList(growable: false),
       isFollowingMode: isFollowingMode,
       isCityMode: isCityMode,
       followingIds: followingIDs.toSet(),
+      currentUserId: CurrentUserService.instance.effectiveUserId,
       city: currentUserLocationCity,
     );
+    final shouldFallbackToForYou =
+        filtered.isEmpty && !isLoading.value && (isFollowingMode || isCityMode);
+    if (shouldFallbackToForYou) {
+      filtered = mergedFeedEntries.toList(growable: false);
+      _queueFeedModeFallbackToForYou();
+    } else {
+      _cancelQueuedFeedModeFallback();
+    }
     final patch = _feedRenderCoordinator.buildPatch(
       previous: filteredFeedEntries.toList(growable: false),
       next: filtered,
@@ -72,6 +91,9 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildRenderFeedEntries() {
     if (filteredFeedEntries.isEmpty) {
+      if (isLoading.value && renderFeedEntries.isNotEmpty) {
+        return;
+      }
       renderFeedEntries.clear();
       return;
     }
@@ -84,5 +106,36 @@ extension AgendaControllerRenderPart on AgendaController {
       reason: 'render_feed_rebuild',
     );
     _feedRenderCoordinator.applyPatch(renderFeedEntries, patch);
+  }
+
+  void _queueFeedModeFallbackToForYou() {
+    if (_feedModeFallbackQueued || feedViewMode.value == FeedViewMode.forYou) {
+      return;
+    }
+    _feedModeFallbackQueued = true;
+    final token = ++_feedModeFallbackEpoch;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed || _feedModeFallbackEpoch != token) return;
+      _feedModeFallbackQueued = false;
+      if (feedViewMode.value == FeedViewMode.forYou) return;
+      if (isLoading.value || mergedFeedEntries.isEmpty) return;
+      final fallbackStillNeeded = _feedRenderCoordinator
+          .filterEntries(
+            mergedEntries: mergedFeedEntries.toList(growable: false),
+            isFollowingMode: isFollowingMode,
+            isCityMode: isCityMode,
+            followingIds: followingIDs.toSet(),
+            currentUserId: CurrentUserService.instance.effectiveUserId,
+            city: currentUserLocationCity,
+          )
+          .isEmpty;
+      if (!fallbackStillNeeded) return;
+      setFeedViewMode(FeedViewMode.forYou);
+    });
+  }
+
+  void _cancelQueuedFeedModeFallback() {
+    _feedModeFallbackEpoch++;
+    _feedModeFallbackQueued = false;
   }
 }

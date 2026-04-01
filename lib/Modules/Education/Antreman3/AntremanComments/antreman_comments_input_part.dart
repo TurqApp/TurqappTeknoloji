@@ -3,8 +3,7 @@ part of 'antreman_comments.dart';
 extension _AntremanCommentsInputPart on _AntremanCommentsState {
   Widget _buildCommentComposer() {
     return Obx(() {
-      final userInfo =
-          controller.userInfoCache[controller.userID] ??
+      final userInfo = controller.userInfoCache[controller.userID] ??
           {
             'avatarUrl': '',
             'displayName': 'training.unknown_user'.tr,
@@ -106,17 +105,16 @@ extension _AntremanCommentsInputPart on _AntremanCommentsState {
               );
               final replyUserInfo =
                   controller.userInfoCache[replyingComment.userID] ??
-                  {
-                    'avatarUrl': '',
-                    'displayName': 'training.unknown_user'.tr,
-                    'nickname': 'training.unknown_user'.tr,
-                  };
-              final replyUserName =
-                  (replyUserInfo['displayName'] ??
-                          replyUserInfo['username'] ??
-                          replyUserInfo['nickname'] ??
-                          'training.unknown_user'.tr)
-                      .toString();
+                      {
+                        'avatarUrl': '',
+                        'displayName': 'training.unknown_user'.tr,
+                        'nickname': 'training.unknown_user'.tr,
+                      };
+              final replyUserName = (replyUserInfo['displayName'] ??
+                      replyUserInfo['username'] ??
+                      replyUserInfo['nickname'] ??
+                      'training.unknown_user'.tr)
+                  .toString();
               controller.fetchUserInfo(replyingComment.userID);
               return Text(
                 'training.reply_to_user'.trParams({'name': replyUserName}),
@@ -288,8 +286,7 @@ extension _AntremanCommentsInputPart on _AntremanCommentsState {
       ],
       buttonBuilder: (context, showMenu) => IconButton(
         icon: const Icon(CupertinoIcons.add_circled, color: Colors.black),
-        onPressed:
-            controller.editingCommentDocID.value.isEmpty &&
+        onPressed: controller.editingCommentDocID.value.isEmpty &&
                 controller.editingReplyDocID.value.isEmpty
             ? showMenu
             : null,

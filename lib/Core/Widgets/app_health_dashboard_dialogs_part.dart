@@ -2,19 +2,19 @@ part of 'app_health_dashboard.dart';
 
 extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   void _ensureDashboardServices() {
-    ErrorHandlingService.ensure();
+    ensureErrorHandlingService();
     NetworkAwarenessService.ensure();
     UploadQueueService.ensure();
-    DraftService.ensure();
-    PostEditingService.ensure();
-    MediaEnhancementService.ensure();
+    ensureDraftService();
+    ensurePostEditingService();
+    ensureMediaEnhancementService();
     StorageBudgetManager.ensure();
-    PlaybackKpiService.ensure();
-    PlaybackPolicyEngine.ensure();
+    ensurePlaybackKpiService();
+    ensurePlaybackPolicyEngine();
   }
 
   void _showErrorStats() {
-    final errorService = ErrorHandlingService.maybeFind();
+    final errorService = maybeFindErrorHandlingService();
     if (errorService != null) {
       final stats = errorService.getErrorStats();
 
@@ -122,7 +122,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   }
 
   void _showDraftStats() {
-    final draftService = DraftService.maybeFind();
+    final draftService = maybeFindDraftService();
     if (draftService != null) {
       final stats = draftService.getDraftStats();
 
@@ -157,7 +157,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   }
 
   void _showEditingStats() {
-    final editingService = PostEditingService.maybeFind();
+    final editingService = maybeFindPostEditingService();
     if (editingService != null) {
       final stats = editingService.getEditStatistics();
 
@@ -194,7 +194,7 @@ extension _AppHealthDashboardDialogsPart on _AppHealthDashboardState {
   }
 
   void _showMediaStats() {
-    final mediaService = MediaEnhancementService.maybeFind();
+    final mediaService = maybeFindMediaEnhancementService();
     if (mediaService != null) {
       final stats = mediaService.getProcessingStats();
 

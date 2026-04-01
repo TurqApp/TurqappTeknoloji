@@ -23,7 +23,7 @@ extension MessageContentReplyParts on MessageContent {
       return cached.future;
     }
 
-    final future = NotifyLookupRepository.ensure().getPostLookup(key);
+    final future = ensureNotifyLookupRepository().getPostLookup(key);
     _replyPostFutureCache[key] =
         _ReplyPostFutureCacheEntry(future: future, createdAt: now);
 

@@ -1,37 +1,52 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
+
+const Duration _interstitialLoadTimeout = Duration(seconds: 4);
+const Duration _interstitialLifecycleTimeout = Duration(seconds: 15);
 
 /// Tam ekran interstitial reklam gösterir
 /// Debug modda otomatik olarak test reklamları kullanır
 /// Production modda gerçek reklamları kullanır
-Future<void> showUnskippableInterstitialAd() async {
-  // 🎯 Otomatik mod seçimi: Debug modda test reklamları, production'da gerçek reklamlar
-  // Bu sayede AdMob politikalarına uygun olarak kendi reklamlarımıza tıklamayız
+Future<bool> showUnskippableInterstitialAd() async {
   final bool isTestMode = kDebugMode;
+  final config = ensureAdmobUnitConfigService();
+  final availableIds = config.interstitialAdUnitIdsForCurrentPlatform(
+    isTestMode: isTestMode,
+  );
+  final attemptedIds = <String>{};
+  final maxAttempts = availableIds.length;
 
-  String adUnitId;
-  if (isTestMode) {
-    // Debug mode - Test reklamları
-    adUnitId = Platform.isIOS
-        ? 'ca-app-pub-3940256099942544/4411468910'
-        : 'ca-app-pub-3940256099942544/1033173712';
-    if (kDebugMode) {
-      print('🧪 InterstitialAd: Test mode - Loading test ad: $adUnitId');
+  for (var i = 0; i < maxAttempts; i++) {
+    final adUnitId = config.nextInterstitialAdUnitId(isTestMode: isTestMode);
+    if (!attemptedIds.add(adUnitId)) {
+      continue;
     }
-  } else {
-    // Production mode - Gerçek reklamlar
-    adUnitId = Platform.isIOS
-        ? 'ca-app-pub-4558422035199571/5999655265'
-        : 'ca-app-pub-4558422035199571/8183250889';
     if (kDebugMode) {
-      print('🚀 InterstitialAd: Production mode - Loading live ad: $adUnitId');
+      print(
+        '${isTestMode ? '🧪' : '🚀'} InterstitialAd: ${isTestMode ? 'Test' : 'Production'} mode - Loading ad: $adUnitId',
+      );
+    }
+    final didShow = await _loadAndShowInterstitialAd(adUnitId);
+    if (didShow) {
+      return true;
     }
   }
+  return false;
+}
 
+Future<bool> _loadAndShowInterstitialAd(String adUnitId) async {
   try {
-    // Timeout ile reklam yükleme - 10 saniye içinde yüklenmezse iptal et
+    final completer = Completer<void>();
+    var didShow = false;
+
+    void completeOnce() {
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    }
+
     await InterstitialAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
@@ -41,13 +56,13 @@ Future<void> showUnskippableInterstitialAd() async {
             print('✅ InterstitialAd: Ad loaded successfully');
           }
 
-          // Reklam davranışı
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (InterstitialAd ad) {
               if (kDebugMode) {
                 print('🔒 InterstitialAd: Ad dismissed by user');
               }
               ad.dispose();
+              completeOnce();
             },
             onAdFailedToShowFullScreenContent: (
               InterstitialAd ad,
@@ -57,8 +72,10 @@ Future<void> showUnskippableInterstitialAd() async {
                 print('❌ InterstitialAd: Failed to show - ${error.message}');
               }
               ad.dispose();
+              completeOnce();
             },
             onAdShowedFullScreenContent: (InterstitialAd ad) {
+              didShow = true;
               if (kDebugMode) {
                 print('👁️ InterstitialAd: Ad showed full screen');
               }
@@ -70,7 +87,6 @@ Future<void> showUnskippableInterstitialAd() async {
             },
           );
 
-          // Reklamı göster
           ad.show();
         },
         onAdFailedToLoad: (LoadAdError error) {
@@ -78,21 +94,32 @@ Future<void> showUnskippableInterstitialAd() async {
             print('❌ InterstitialAd: Failed to load - ${error.message}');
             print('   Code: ${error.code}, Domain: ${error.domain}');
           }
+          completeOnce();
         },
       ),
     ).timeout(
-      const Duration(seconds: 10),
+      _interstitialLoadTimeout,
       onTimeout: () {
         if (kDebugMode) {
-          print('⏱️ InterstitialAd: Load timeout after 10 seconds');
+          print(
+            '⏱️ InterstitialAd: Load timeout after ${_interstitialLoadTimeout.inSeconds} seconds',
+          );
         }
+        completeOnce();
         throw TimeoutException('InterstitialAd yükleme zaman aşımı');
       },
     );
+    await completer.future.timeout(
+      _interstitialLifecycleTimeout,
+      onTimeout: () {
+        completeOnce();
+      },
+    );
+    return didShow;
   } catch (e) {
     if (kDebugMode) {
       print('❌ InterstitialAd: Exception occurred - $e');
     }
-    // Sessizce başarısız ol - kullanıcı deneyimini bozmadan devam et
+    return false;
   }
 }

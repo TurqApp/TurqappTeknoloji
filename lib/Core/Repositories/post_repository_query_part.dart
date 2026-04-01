@@ -1,6 +1,27 @@
 part of 'post_repository.dart';
 
 extension PostRepositoryQueryPart on PostRepository {
+  static const String _pollSelectionPrefKeyPrefix =
+      'post_repository_poll_selection_v1';
+
+  bool _isValidRepositoryDocId(String value) {
+    final trimmed = value.trim();
+    return trimmed.isNotEmpty && !trimmed.contains('/');
+  }
+
+  int _feedRefAsInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _pollSelectionKey(String currentUid, String postId) =>
+      '${_pollSelectionPrefKeyPrefix}_${currentUid.trim()}_${postId.trim()}';
+
+  Future<SharedPreferences> _ensurePrefsInstance() async {
+    return _prefs ??= await SharedPreferences.getInstance();
+  }
+
   Future<Map<String, PostsModel>> _performFetchPostsByIds(
     List<String> postIds, {
     required bool preferCache,
@@ -8,7 +29,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = postIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <String, PostsModel>{};
@@ -62,7 +83,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = postIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <String, PostsModel>{};
@@ -94,6 +115,7 @@ extension PostRepositoryQueryPart on PostRepository {
       typesenseDocs = const <String, Map<String, dynamic>>{};
     }
     final fallbackIds = <String>[];
+    final pollBackfillIds = <String>[];
 
     for (final id in missing) {
       final doc = typesenseDocs[id];
@@ -107,6 +129,9 @@ extension PostRepositoryQueryPart on PostRepository {
         PostsModel.fromMap(raw, id),
       );
       result[id] = model;
+      if (model.poll.isEmpty) {
+        pollBackfillIds.add(id);
+      }
       final state = _states.putIfAbsent(id, () => PostRepositoryState(id));
       state.latestPostData.value = model.toMap();
       _countManager.initializeCounts(
@@ -119,10 +144,33 @@ extension PostRepositoryQueryPart on PostRepository {
       );
     }
 
+    if (pollBackfillIds.isNotEmpty) {
+      final firestorePollModels = await fetchPostsByIds(
+        pollBackfillIds,
+        preferCache: false,
+        cacheOnly: false,
+      );
+      for (final entry in firestorePollModels.entries) {
+        final firestoreModel = entry.value;
+        if (firestoreModel.poll.isEmpty) continue;
+        final currentModel = result[entry.key];
+        final mergedModel = currentModel == null
+            ? firestoreModel
+            : currentModel.copyWith(
+                poll: Map<String, dynamic>.from(firestoreModel.poll),
+              );
+        result[entry.key] = mergedModel;
+        final state = _states.putIfAbsent(
+            entry.key, () => PostRepositoryState(entry.key));
+        state.latestPostData.value = mergedModel.toMap();
+        _seedCounts(state, mergedModel);
+      }
+    }
+
     if (fallbackIds.isNotEmpty) {
       final firestoreModels = await fetchPostsByIds(
         fallbackIds,
-        preferCache: preferCache,
+        preferCache: false,
         cacheOnly: false,
       );
       for (final entry in firestoreModels.entries) {
@@ -208,15 +256,15 @@ extension PostRepositoryQueryPart on PostRepository {
           return UserFeedReference(
             postId: (data['postId'] ?? doc.id).toString().trim(),
             authorId: (data['authorId'] ?? '').toString().trim(),
-            timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
+            timeStamp: _feedRefAsInt(data['timeStamp']),
             isCelebrity: data['isCelebrity'] == true,
-            expiresAt: (data['expiresAt'] as num?)?.toInt() ?? 0,
+            expiresAt: _feedRefAsInt(data['expiresAt']),
           );
         })
-        .where((item) => item.postId.isNotEmpty)
+        .where((item) => _isValidRepositoryDocId(item.postId))
         .toList(growable: false);
 
-    if (kDebugMode) {
+    if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedRefs] uid=$normalizedUid count=${items.length} '
         'startAfter=${startAfter?.id ?? ''} '
@@ -237,7 +285,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = authorIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <String>[];
@@ -271,7 +319,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     final cleaned = authorIds
         .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
+        .where(_isValidRepositoryDocId)
         .toSet()
         .toList(growable: false);
     if (cleaned.isEmpty) return const <PostsModel>[];
@@ -296,7 +344,11 @@ extension PostRepositoryQueryPart on PostRepository {
           cacheOnly: cacheOnly,
         );
         return snap.docs
-            .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+            .map(
+              (doc) => _normalizeLikelyCompletedOwnPost(
+                PostsModel.fromMap(doc.data(), doc.id),
+              ),
+            )
             .where(
               (post) =>
                   !post.shouldHideWhileUploading &&
@@ -359,6 +411,48 @@ extension PostRepositoryQueryPart on PostRepository {
     return sorted;
   }
 
+  Future<List<PostsModel>> _performFetchRecentGlobalPosts({
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    required int? maxTimeExclusive,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('Posts')
+        .where('arsiv', isEqualTo: false)
+        .where('deletedPost', isEqualTo: false)
+        .where('flood', isEqualTo: false)
+        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
+        .orderBy('timeStamp', descending: true)
+        .limit(limit * 6);
+    if (maxTimeExclusive != null && maxTimeExclusive > 0) {
+      query = query.where('timeStamp', isLessThan: maxTimeExclusive);
+    }
+
+    final snap = await _getQueryWithSource(
+      query,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+
+    final merged = <String, PostsModel>{};
+    for (final doc in snap.docs) {
+      final model = PostsModel.fromMap(doc.data(), doc.id);
+      if (model.shouldHideWhileUploading) continue;
+      if (!_isRenderableCard(model)) continue;
+      final ts = model.timeStamp.toInt();
+      if (ts < cutoffMs || ts > nowMs) continue;
+      merged[model.docID] = model;
+      if (merged.length >= limit) break;
+    }
+
+    final sorted = merged.values.toList()
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    return sorted;
+  }
+
   Future<PostsModel?> _performFetchPostById(
     String postId, {
     required bool preferCache,
@@ -377,9 +471,110 @@ extension PostRepositoryQueryPart on PostRepository {
     if (normalized.isEmpty || patch.isEmpty) return;
     final state =
         _states.putIfAbsent(normalized, () => PostRepositoryState(normalized));
-    final current = Map<String, dynamic>.from(state.latestPostData.value ?? {});
-    current.addAll(patch);
+    final current = _clonePostMap(state.latestPostData.value ?? const {});
+    current.addAll(_clonePostMap(patch));
     state.latestPostData.value = current;
+  }
+
+  Future<void> _performPersistLocalPollSelection({
+    required String postId,
+    required String currentUid,
+    required int optionIndex,
+    required int expiresAtMs,
+    Map<String, dynamic>? poll,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedPostId.isEmpty || normalizedUid.isEmpty) return;
+    if (expiresAtMs > 0 &&
+        DateTime.now().millisecondsSinceEpoch >= expiresAtMs) {
+      await _performClearLocalPollSelection(
+        postId: normalizedPostId,
+        currentUid: normalizedUid,
+      );
+      return;
+    }
+    final prefs = await _ensurePrefsInstance();
+    final payload = jsonEncode(<String, dynamic>{
+      'optionIndex': optionIndex,
+      'expiresAtMs': expiresAtMs,
+      'updatedAtMs': DateTime.now().millisecondsSinceEpoch,
+      if (poll != null && poll.isNotEmpty)
+        'poll': Map<String, dynamic>.from(poll),
+    });
+    await prefs.setString(
+      _pollSelectionKey(normalizedUid, normalizedPostId),
+      payload,
+    );
+  }
+
+  Future<int?> _performReadLocalPollSelection({
+    required String postId,
+    required String currentUid,
+  }) async {
+    final data = await _performReadLocalPollSelectionState(
+      postId: postId,
+      currentUid: currentUid,
+    );
+    if (data == null) return null;
+    final optionRaw = data['optionIndex'];
+    final optionIndex = optionRaw is num
+        ? optionRaw.toInt()
+        : int.tryParse('${optionRaw ?? ''}');
+    return (optionIndex == null || optionIndex < 0) ? null : optionIndex;
+  }
+
+  Future<Map<String, dynamic>?> _performReadLocalPollSelectionState({
+    required String postId,
+    required String currentUid,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedPostId.isEmpty || normalizedUid.isEmpty) return null;
+    final prefs = await _ensurePrefsInstance();
+    final key = _pollSelectionKey(normalizedUid, normalizedPostId);
+    final raw = prefs.getString(key);
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      final data = jsonDecode(raw);
+      if (data is! Map) {
+        await prefs.remove(key);
+        return null;
+      }
+      final expiresAtRaw = data['expiresAtMs'];
+      final expiresAtMs = expiresAtRaw is num
+          ? expiresAtRaw.toInt()
+          : int.tryParse('${expiresAtRaw ?? ''}') ?? 0;
+      if (expiresAtMs > 0 &&
+          DateTime.now().millisecondsSinceEpoch >= expiresAtMs) {
+        await prefs.remove(key);
+        return null;
+      }
+      final optionRaw = data['optionIndex'];
+      final optionIndex = optionRaw is num
+          ? optionRaw.toInt()
+          : int.tryParse('${optionRaw ?? ''}');
+      if (optionIndex == null || optionIndex < 0) {
+        await prefs.remove(key);
+        return null;
+      }
+      return _clonePostMap(
+          Map<String, dynamic>.from(data.cast<String, dynamic>()));
+    } catch (_) {
+      await prefs.remove(key);
+      return null;
+    }
+  }
+
+  Future<void> _performClearLocalPollSelection({
+    required String postId,
+    required String currentUid,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedPostId.isEmpty || normalizedUid.isEmpty) return;
+    final prefs = await _ensurePrefsInstance();
+    await prefs.remove(_pollSelectionKey(normalizedUid, normalizedPostId));
   }
 
   Future<Map<String, dynamic>?> _performFetchPostRawById(
@@ -391,7 +586,7 @@ extension PostRepositoryQueryPart on PostRepository {
     final state = _states[normalized];
     final cached = preferCache ? state?.latestPostData.value : null;
     if (cached != null) {
-      return Map<String, dynamic>.from(cached);
+      return _clonePostMap(cached);
     }
 
     final doc = await _firestore.collection('Posts').doc(normalized).get();
@@ -400,8 +595,8 @@ extension PostRepositoryQueryPart on PostRepository {
     if (data == null) return null;
     final nextState =
         _states.putIfAbsent(normalized, () => PostRepositoryState(normalized));
-    nextState.latestPostData.value = Map<String, dynamic>.from(data);
-    return Map<String, dynamic>.from(data);
+    nextState.latestPostData.value = _clonePostMap(data);
+    return _clonePostMap(data);
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _performGetQueryWithSource(
@@ -411,7 +606,11 @@ extension PostRepositoryQueryPart on PostRepository {
   }) async {
     if (preferCache) {
       try {
-        return await query.get(const GetOptions(source: Source.cache));
+        final cached = await query.get(const GetOptions(source: Source.cache));
+        if (cacheOnly || cached.docs.isNotEmpty) {
+          return cached;
+        }
+        return query.get(const GetOptions(source: Source.server));
       } catch (_) {
         if (cacheOnly) rethrow;
         return query.get(const GetOptions(source: Source.server));
@@ -448,19 +647,25 @@ extension PostRepositoryQueryPart on PostRepository {
     final doc = snap.docs.first;
     final state =
         _states.putIfAbsent(doc.id, () => PostRepositoryState(doc.id));
-    state.latestPostData.value = Map<String, dynamic>.from(doc.data());
+    state.latestPostData.value = _clonePostMap(doc.data());
     return doc.id;
   }
 
   bool _performIsRenderableCard(PostsModel model) {
-    if (model.deletedPost || model.gizlendi || model.isUploading) {
+    if (model.deletedPost ||
+        model.gizlendi ||
+        model.shouldHideWhileUploading) {
       return false;
     }
     final hasVisual = model.thumbnail.trim().isNotEmpty || model.img.isNotEmpty;
     if (model.hasVideoSignal) {
       return model.hasRenderableVideoCard && hasVisual;
     }
-    return model.metin.trim().isNotEmpty || hasVisual || model.floodCount > 1;
+    return model.metin.trim().isNotEmpty ||
+        hasVisual ||
+        model.poll.isNotEmpty ||
+        model.quotedPost ||
+        model.quotedOriginalText.trim().isNotEmpty;
   }
 
   PostsModel _performNormalizeLikelyCompletedOwnPost(PostsModel model) {
@@ -480,7 +685,7 @@ extension PostRepositoryQueryPart on PostRepository {
     if (model.deletedPost || model.arsiv || model.gizlendi) return false;
     final ageMs =
         DateTime.now().millisecondsSinceEpoch - model.timeStamp.toInt();
-    if (ageMs < PostRepository._stuckUploadingRepairAge.inMilliseconds) {
+    if (ageMs < _postRepositoryStuckUploadingRepairAge.inMilliseconds) {
       return false;
     }
     final hasCompletedMedia = model.img.isNotEmpty ||
@@ -493,8 +698,8 @@ extension PostRepositoryQueryPart on PostRepository {
   Future<void> _performRepairStuckUploadingPost(PostsModel model) async {
     final docId = model.docID.trim();
     if (docId.isEmpty) return;
-    if (PostRepository._uploadRepairInFlight.contains(docId)) return;
-    PostRepository._uploadRepairInFlight.add(docId);
+    if (_postRepositoryUploadRepairInFlight.contains(docId)) return;
+    _postRepositoryUploadRepairInFlight.add(docId);
     try {
       await _firestore.collection('Posts').doc(docId).set(<String, dynamic>{
         'isUploading': false,
@@ -512,7 +717,7 @@ extension PostRepositoryQueryPart on PostRepository {
         );
       }
     } finally {
-      PostRepository._uploadRepairInFlight.remove(docId);
+      _postRepositoryUploadRepairInFlight.remove(docId);
     }
   }
 
@@ -536,10 +741,30 @@ extension PostRepositoryQueryPart on PostRepository {
 
     bool asBool(dynamic value) => value == true;
 
+    Map<String, dynamic> asMap(dynamic value) {
+      if (value is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(value);
+      }
+      if (value is Map) {
+        return value.map(
+          (key, val) => MapEntry(key.toString(), val),
+        );
+      }
+      return const <String, dynamic>{};
+    }
+
     final imageUrls = asStringList(doc['img']);
     final thumbnail = (doc['thumbnail'] ?? '').toString();
     final video = (doc['video'] ?? '').toString();
     final hlsMasterUrl = (doc['hlsMasterUrl'] ?? '').toString();
+    final ctaLabel = (doc['ctaLabel'] ?? '').toString().trim();
+    final ctaUrl = (doc['ctaUrl'] ?? '').toString().trim();
+    final ctaType = (doc['ctaType'] ?? '').toString().trim();
+    final ctaDocId = (doc['ctaDocId'] ?? '').toString().trim();
+    final hasCta = ctaLabel.isNotEmpty ||
+        ctaUrl.isNotEmpty ||
+        ctaType.isNotEmpty ||
+        ctaDocId.isNotEmpty;
 
     return <String, dynamic>{
       'metin': (doc['metin'] ?? '').toString(),
@@ -572,8 +797,16 @@ extension PostRepositoryQueryPart on PostRepository {
       'tags': asStringList(doc['hashtags']),
       'yorum': true,
       'yorumMap': const <String, dynamic>{},
-      'reshareMap': const <String, dynamic>{},
-      'poll': const <String, dynamic>{},
+      'reshareMap': hasCta
+          ? <String, dynamic>{
+              'visibility': 0,
+              if (ctaLabel.isNotEmpty) 'ctaLabel': ctaLabel,
+              if (ctaUrl.isNotEmpty) 'ctaUrl': ctaUrl,
+              if (ctaType.isNotEmpty) 'ctaType': ctaType,
+              if (ctaDocId.isNotEmpty) 'ctaDocId': ctaDocId,
+            }
+          : const <String, dynamic>{},
+      'poll': asMap(doc['poll']),
       'ad': false,
       'isAd': false,
       'debugMode': false,
@@ -598,5 +831,21 @@ extension PostRepositoryQueryPart on PostRepository {
       },
       'docID': docId,
     };
+  }
+
+  Map<String, dynamic> _clonePostMap(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _clonePostValue(value)));
+  }
+
+  dynamic _clonePostValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, child) => MapEntry(key.toString(), _clonePostValue(child)),
+      );
+    }
+    if (value is List) {
+      return value.map(_clonePostValue).toList(growable: false);
+    }
+    return value;
   }
 }

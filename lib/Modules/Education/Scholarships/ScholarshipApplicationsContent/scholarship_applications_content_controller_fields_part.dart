@@ -1,0 +1,94 @@
+part of 'scholarship_applications_content_controller.dart';
+
+class _ScholarshipApplicationsContentControllerState {
+  final UserRepository userRepository = UserRepository.ensure();
+  final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
+  Future<Map<String, dynamic>?>? userRawFuture;
+  final fullName = ''.obs;
+  final nickname = ''.obs;
+  final avatarUrl = ''.obs;
+  final showDetails = false.obs;
+  final isLoading = false.obs;
+  final isDetailsLoading = false.obs;
+  final ad = ''.obs;
+  final soyad = ''.obs;
+  final email = ''.obs;
+  final phoneNumber = ''.obs;
+  final ulke = ''.obs;
+  final nufusSehir = ''.obs;
+  final nufusIlce = ''.obs;
+  final fakulte = ''.obs;
+  final universite = ''.obs;
+  final bolum = ''.obs;
+  final lise = ''.obs;
+  final ortaOkul = ''.obs;
+  final educationLevel = ''.obs;
+  final dogumTarigi = ''.obs;
+  final medeniHal = ''.obs;
+  final cinsiyet = ''.obs;
+  final engelliRaporu = ''.obs;
+  final calismaDurumu = ''.obs;
+  final babaAdi = ''.obs;
+  final babaSoyadi = ''.obs;
+  final babaHayata = ''.obs;
+  final babaPhone = ''.obs;
+  final babaJob = ''.obs;
+  final babaSalary = ''.obs;
+  final anneAdi = ''.obs;
+  final anneSoyadi = ''.obs;
+  final anneHayata = ''.obs;
+  final annePhone = ''.obs;
+  final anneJob = ''.obs;
+  final anneSalary = ''.obs;
+  final evMulkiyeti = ''.obs;
+  final ikametSehir = ''.obs;
+  final ikametIlce = ''.obs;
+}
+
+extension ScholarshipApplicationsContentControllerFieldsPart
+    on ScholarshipApplicationsContentController {
+  UserRepository get _userRepository => _state.userRepository;
+  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
+  Future<Map<String, dynamic>?>? get _userRawFuture => _state.userRawFuture;
+  set _userRawFuture(Future<Map<String, dynamic>?>? value) =>
+      _state.userRawFuture = value;
+  RxString get fullName => _state.fullName;
+  RxString get nickname => _state.nickname;
+  RxString get avatarUrl => _state.avatarUrl;
+  RxBool get showDetails => _state.showDetails;
+  RxBool get isLoading => _state.isLoading;
+  RxBool get isDetailsLoading => _state.isDetailsLoading;
+  RxString get ad => _state.ad;
+  RxString get soyad => _state.soyad;
+  RxString get email => _state.email;
+  RxString get phoneNumber => _state.phoneNumber;
+  RxString get ulke => _state.ulke;
+  RxString get nufusSehir => _state.nufusSehir;
+  RxString get nufusIlce => _state.nufusIlce;
+  RxString get fakulte => _state.fakulte;
+  RxString get universite => _state.universite;
+  RxString get bolum => _state.bolum;
+  RxString get lise => _state.lise;
+  RxString get ortaOkul => _state.ortaOkul;
+  RxString get educationLevel => _state.educationLevel;
+  RxString get dogumTarigi => _state.dogumTarigi;
+  RxString get medeniHal => _state.medeniHal;
+  RxString get cinsiyet => _state.cinsiyet;
+  RxString get engelliRaporu => _state.engelliRaporu;
+  RxString get calismaDurumu => _state.calismaDurumu;
+  RxString get babaAdi => _state.babaAdi;
+  RxString get babaSoyadi => _state.babaSoyadi;
+  RxString get babaHayata => _state.babaHayata;
+  RxString get babaPhone => _state.babaPhone;
+  RxString get babaJob => _state.babaJob;
+  RxString get babaSalary => _state.babaSalary;
+  RxString get anneAdi => _state.anneAdi;
+  RxString get anneSoyadi => _state.anneSoyadi;
+  RxString get anneHayata => _state.anneHayata;
+  RxString get annePhone => _state.annePhone;
+  RxString get anneJob => _state.anneJob;
+  RxString get anneSalary => _state.anneSalary;
+  RxString get evMulkiyeti => _state.evMulkiyeti;
+  RxString get ikametSehir => _state.ikametSehir;
+  RxString get ikametIlce => _state.ikametIlce;
+}

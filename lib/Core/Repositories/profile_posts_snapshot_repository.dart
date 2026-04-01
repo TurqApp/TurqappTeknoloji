@@ -1,29 +1,16 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
-class ProfilePostsSnapshotQuery {
-  const ProfilePostsSnapshotQuery({
-    required this.userId,
-    this.limit = 24,
-    this.scopeTag = 'my_profile',
-  });
-
-  final String userId;
-  final int limit;
-  final String scopeTag;
-
-  String get scopeId => <String>[
-        'limit=$limit',
-        'scope=${scopeTag.trim()}',
-      ].join('|');
-}
+part 'profile_posts_snapshot_repository_codec_part.dart';
 
 class ProfilePostsSnapshotRepository extends GetxService {
-  ProfilePostsSnapshotRepository();
-
   static const String _surfaceKey = 'profile_posts_snapshot';
+  static const int _defaultScopeLimit =
+      ReadBudgetRegistry.profilePostsInitialLimit;
+  static const int _secondaryBucketLimit = 10;
 
   static ProfilePostsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfilePostsSnapshotRepository>();
@@ -37,61 +24,86 @@ class ProfilePostsSnapshotRepository extends GetxService {
     return Get.put(ProfilePostsSnapshotRepository(), permanent: true);
   }
 
-  final ProfileRepository _profileRepository = ProfileRepository.ensure();
+  final _ProfilePostsSnapshotRepositoryState _state;
 
-  late final MemoryScopedSnapshotStore<ProfileBuckets> _memoryStore =
+  ProfilePostsSnapshotRepository()
+      : _state = _ProfilePostsSnapshotRepositoryState() {
+    _state.initialize(this);
+  }
+}
+
+class _ProfilePostsSnapshotRepositoryState {
+  final ProfileRepository profileRepository = ensureProfileRepository();
+  final MemoryScopedSnapshotStore<ProfileBuckets> memoryStore =
       MemoryScopedSnapshotStore<ProfileBuckets>();
-  late final SharedPrefsScopedSnapshotStore<ProfileBuckets> _snapshotStore =
-      SharedPrefsScopedSnapshotStore<ProfileBuckets>(
-    prefsPrefix: 'profile_posts_snapshot_v1',
-    encode: _encodeBuckets,
-    decode: _decodeBuckets,
-  );
-
-  late final CacheFirstCoordinator<ProfileBuckets> _coordinator =
-      CacheFirstCoordinator<ProfileBuckets>(
-    memoryStore: _memoryStore,
-    snapshotStore: _snapshotStore,
-    telemetry: const CacheFirstKpiTelemetry<ProfileBuckets>(),
-    policy: const CacheFirstPolicy(
-      snapshotTtl: Duration(minutes: 10),
-      minLiveSyncInterval: Duration(seconds: 20),
-      syncOnOpen: true,
-      allowWarmLaunchFallback: true,
-      persistWarmLaunchSnapshot: true,
-      treatWarmLaunchAsStale: true,
-      preservePreviousOnEmptyLive: true,
-    ),
-  );
-
+  late final SharedPrefsScopedSnapshotStore<ProfileBuckets> snapshotStore;
+  late final CacheFirstCoordinator<ProfileBuckets> coordinator;
   late final CacheFirstQueryPipeline<ProfilePostsSnapshotQuery, ProfileBuckets,
-          ProfileBuckets> _pipeline =
-      CacheFirstQueryPipeline<ProfilePostsSnapshotQuery, ProfileBuckets,
-          ProfileBuckets>(
-    surfaceKey: _surfaceKey,
-    coordinator: _coordinator,
-    userIdResolver: (query) => query.userId.trim(),
-    scopeIdBuilder: (query) => query.scopeId,
-    fetchRaw: _fetchBuckets,
-    resolve: (buckets) => buckets,
-    loadWarmSnapshot: _loadWarmSnapshot,
-    isEmpty: (buckets) =>
-        buckets.all.isEmpty &&
-        buckets.photos.isEmpty &&
-        buckets.videos.isEmpty &&
-        buckets.scheduled.isEmpty,
-    liveSource: CachedResourceSource.server,
-  );
+      ProfileBuckets> pipeline;
 
+  void initialize(ProfilePostsSnapshotRepository repository) {
+    snapshotStore = SharedPrefsScopedSnapshotStore<ProfileBuckets>(
+      prefsPrefix: 'profile_posts_snapshot_v2',
+      encode: repository._encodeBuckets,
+      decode: repository._decodeBuckets,
+    );
+    coordinator = CacheFirstCoordinator<ProfileBuckets>(
+      memoryStore: memoryStore,
+      snapshotStore: snapshotStore,
+      telemetry: const CacheFirstKpiTelemetry<ProfileBuckets>(),
+      policy: CacheFirstPolicyRegistry.policyForSurface(
+        ProfilePostsSnapshotRepository._surfaceKey,
+      ),
+    );
+    pipeline = CacheFirstQueryPipeline<ProfilePostsSnapshotQuery,
+        ProfileBuckets, ProfileBuckets>(
+      surfaceKey: ProfilePostsSnapshotRepository._surfaceKey,
+      coordinator: coordinator,
+      userIdResolver: (query) => query.userId.trim(),
+      scopeIdBuilder: (query) => query.scopeId,
+      fetchRaw: repository._fetchBuckets,
+      resolve: (buckets) => buckets,
+      loadWarmSnapshot: repository._loadWarmSnapshot,
+      isEmpty: (buckets) =>
+          buckets.all.isEmpty &&
+          buckets.photos.isEmpty &&
+          buckets.videos.isEmpty &&
+          buckets.reshares.isEmpty &&
+          buckets.scheduled.isEmpty,
+      liveSource: CachedResourceSource.server,
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        ProfilePostsSnapshotRepository._surfaceKey,
+      ),
+    );
+  }
+}
+
+extension ProfilePostsSnapshotRepositoryFieldsPart
+    on ProfilePostsSnapshotRepository {
+  ProfileRepository get _profileRepository => _state.profileRepository;
+  MemoryScopedSnapshotStore<ProfileBuckets> get _memoryStore =>
+      _state.memoryStore;
+  SharedPrefsScopedSnapshotStore<ProfileBuckets> get _snapshotStore =>
+      _state.snapshotStore;
+  CacheFirstCoordinator<ProfileBuckets> get _coordinator => _state.coordinator;
+  CacheFirstQueryPipeline<ProfilePostsSnapshotQuery, ProfileBuckets,
+      ProfileBuckets> get _pipeline => _state.pipeline;
+}
+
+extension ProfilePostsSnapshotRepositoryFacadePart
+    on ProfilePostsSnapshotRepository {
   Stream<CachedResource<ProfileBuckets>> openProfile({
     required String userId,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     bool forceSync = false,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
+    );
     return _pipeline.open(
       ProfilePostsSnapshotQuery(
         userId: userId,
-        limit: limit,
+        limit: effectiveLimit,
       ),
       forceSync: forceSync,
     );
@@ -99,7 +111,7 @@ class ProfilePostsSnapshotRepository extends GetxService {
 
   Future<CachedResource<ProfileBuckets>> loadProfile({
     required String userId,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     bool forceSync = false,
   }) {
     return openProfile(
@@ -111,126 +123,218 @@ class ProfilePostsSnapshotRepository extends GetxService {
 
   Future<CachedResource<ProfileBuckets>> bootstrapProfile({
     required String userId,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
   }) {
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
+    );
     final query = ProfilePostsSnapshotQuery(
       userId: userId,
-      limit: limit,
+      limit: effectiveLimit,
     );
     return _coordinator.bootstrap(
       ScopedSnapshotKey(
-        surfaceKey: _surfaceKey,
+        surfaceKey: ProfilePostsSnapshotRepository._surfaceKey,
         userId: query.userId.trim(),
         scopeId: query.scopeId,
       ),
       loadWarmSnapshot: () => _loadWarmSnapshot(query),
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        ProfilePostsSnapshotRepository._surfaceKey,
+      ),
     );
   }
 
   Future<void> persistBuckets({
     required String userId,
     required ProfileBuckets buckets,
-    int limit = 24,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
     CachedResourceSource source = CachedResourceSource.server,
   }) async {
-    if (userId.trim().isEmpty) return;
-    final normalized = ProfileBuckets(
-      all: buckets.all.take(limit).toList(growable: false),
-      photos: buckets.photos.take(limit).toList(growable: false),
-      videos: buckets.videos.take(limit).toList(growable: false),
-      scheduled: buckets.scheduled.take(limit).toList(growable: false),
-    );
-    final query = ProfilePostsSnapshotQuery(
+    await writeLocalBuckets(
       userId: userId,
-      limit: limit,
+      buckets: buckets,
+      limit: ReadBudgetRegistry.resolveProfilePostsInitialLimit(limit),
+      source: source,
     );
-    final key = ScopedSnapshotKey(
-      surfaceKey: _surfaceKey,
-      userId: query.userId.trim(),
-      scopeId: query.scopeId,
+  }
+
+  Future<void> clearUserSnapshots({
+    String? userId,
+  }) =>
+      _coordinator.clearSurface(
+        ProfilePostsSnapshotRepository._surfaceKey,
+        userId: userId?.trim().isEmpty ?? true ? null : userId!.trim(),
+      );
+
+  Future<ProfileBuckets?> readLocalBuckets({
+    required String userId,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return null;
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
     );
+    final key = _localScopeKey(
+      userId: normalizedUserId,
+      limit: effectiveLimit,
+    );
+    final memory = await _memoryStore.read(key, allowStale: true);
+    if (memory != null) return memory.data;
+    final disk = await _snapshotStore.read(key, allowStale: true);
+    if (disk == null) return null;
+    await _memoryStore.write(key, disk);
+    return disk.data;
+  }
+
+  Future<void> writeLocalBuckets({
+    required String userId,
+    required ProfileBuckets buckets,
+    int limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
+    CachedResourceSource source = CachedResourceSource.server,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return;
+    final effectiveLimit = ReadBudgetRegistry.resolveProfilePostsInitialLimit(
+      limit,
+    );
+    final secondaryLimit =
+        effectiveLimit < ProfilePostsSnapshotRepository._secondaryBucketLimit
+            ? effectiveLimit
+            : ProfilePostsSnapshotRepository._secondaryBucketLimit;
+    final normalized = ProfileBuckets(
+      all: buckets.all.take(effectiveLimit).toList(growable: false),
+      photos: buckets.photos.take(secondaryLimit).toList(growable: false),
+      videos: buckets.videos.take(secondaryLimit).toList(growable: false),
+      reshares: buckets.reshares.take(secondaryLimit).toList(growable: false),
+      scheduled: buckets.scheduled.take(secondaryLimit).toList(growable: false),
+    );
+    final key = _localScopeKey(
+      userId: normalizedUserId,
+      limit: effectiveLimit,
+    );
+    final isEmptyBuckets = normalized.all.isEmpty &&
+        normalized.photos.isEmpty &&
+        normalized.videos.isEmpty &&
+        normalized.reshares.isEmpty &&
+        normalized.scheduled.isEmpty;
+    if (isEmptyBuckets) {
+      await Future.wait(<Future<void>>[
+        _memoryStore.clearScope(key),
+        _snapshotStore.clearScope(key),
+      ]);
+      return;
+    }
     final record = ScopedSnapshotRecord<ProfileBuckets>(
       data: normalized,
       snapshotAt: DateTime.now(),
-      schemaVersion: 1,
+      schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+        ProfilePostsSnapshotRepository._surfaceKey,
+      ),
       generationId: 'manual:${DateTime.now().millisecondsSinceEpoch}',
       source: source,
     );
     await Future.wait(<Future<void>>[
       _memoryStore.write(key, record),
       _snapshotStore.write(key, record),
-      _profileRepository.writeBuckets(userId, normalized),
     ]);
   }
 
-  Future<ProfileBuckets> _fetchBuckets(ProfilePostsSnapshotQuery query) async {
-    final page = await _profileRepository.fetchPrimaryPage(
-      uid: query.userId,
-      limit: query.limit,
-    );
-    return ProfileBuckets(
-      all: page.all,
-      photos: page.photos,
-      videos: page.videos,
-      scheduled: page.scheduled,
-    );
-  }
-
-  Future<ProfileBuckets?> _loadWarmSnapshot(
-    ProfilePostsSnapshotQuery query,
-  ) {
-    return _profileRepository.readCachedBuckets(query.userId);
-  }
-
-  Map<String, dynamic> _encodeBuckets(ProfileBuckets buckets) {
-    Map<String, dynamic> encodePosts(List<PostsModel> posts) {
-      return <String, dynamic>{
-        'items': posts
-            .map((post) => <String, dynamic>{
-                  'docID': post.docID,
-                  'data': post.toMap(),
-                })
-            .toList(growable: false),
-      };
-    }
-
-    return <String, dynamic>{
-      'all': encodePosts(buckets.all),
-      'photos': encodePosts(buckets.photos),
-      'videos': encodePosts(buckets.videos),
-      'scheduled': encodePosts(buckets.scheduled),
+  Future<void> removePostLocally({
+    required String userId,
+    required String docId,
+    Iterable<int> additionalLimits = const <int>[],
+  }) async {
+    final normalizedUserId = userId.trim();
+    final normalizedDocId = docId.trim();
+    if (normalizedUserId.isEmpty || normalizedDocId.isEmpty) return;
+    final limits = <int>{
+      ProfilePostsSnapshotRepository._defaultScopeLimit,
+      ...additionalLimits.where((value) => value > 0),
     };
+    for (final limit in limits) {
+      final existing = await readLocalBuckets(
+        userId: normalizedUserId,
+        limit: limit,
+      );
+      if (existing == null) continue;
+      final filtered = ProfileBuckets(
+        all: existing.all
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        photos: existing.photos
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        videos: existing.videos
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        reshares: existing.reshares
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+        scheduled: existing.scheduled
+            .where((post) => post.docID != normalizedDocId)
+            .toList(growable: false),
+      );
+      await writeLocalBuckets(
+        userId: normalizedUserId,
+        buckets: filtered,
+        limit: limit,
+      );
+    }
   }
 
-  ProfileBuckets _decodeBuckets(Map<String, dynamic> json) {
-    List<PostsModel> decodePosts(dynamic rawBucket) {
-      if (rawBucket is! Map) return const <PostsModel>[];
-      final items = rawBucket['items'];
-      if (items is! List) return const <PostsModel>[];
-      return items
-          .whereType<Map>()
-          .map((raw) {
-            final docId = (raw['docID'] ?? '').toString().trim();
-            final data = raw['data'];
-            if (docId.isEmpty || data is! Map) return null;
-            try {
-              return PostsModel.fromMap(
-                Map<String, dynamic>.from(data.cast<dynamic, dynamic>()),
-                docId,
-              );
-            } catch (_) {
-              return null;
-            }
-          })
-          .whereType<PostsModel>()
-          .toList(growable: false);
+  Future<void> clearLocalUser({
+    required String userId,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return;
+    final limits = <int>{ProfilePostsSnapshotRepository._defaultScopeLimit};
+    for (final limit in limits) {
+      final key = _localScopeKey(
+        userId: normalizedUserId,
+        limit: limit,
+      );
+      await Future.wait(<Future<void>>[
+        _memoryStore.clearScope(key),
+        _snapshotStore.clearScope(key),
+      ]);
     }
+  }
 
-    return ProfileBuckets(
-      all: decodePosts(json['all']),
-      photos: decodePosts(json['photos']),
-      videos: decodePosts(json['videos']),
-      scheduled: decodePosts(json['scheduled']),
+  ScopedSnapshotKey _localScopeKey({
+    required String userId,
+    required int limit,
+  }) {
+    final query = ProfilePostsSnapshotQuery(
+      userId: userId,
+      limit: limit,
+    );
+    return ScopedSnapshotKey(
+      surfaceKey: ProfilePostsSnapshotRepository._surfaceKey,
+      userId: query.userId.trim(),
+      scopeId: query.scopeId,
     );
   }
+}
+
+class ProfilePostsSnapshotQuery {
+  const ProfilePostsSnapshotQuery({
+    required this.userId,
+    this.limit = ProfilePostsSnapshotRepository._defaultScopeLimit,
+    this.scopeTag = 'my_profile',
+  });
+
+  final String userId;
+  final int limit;
+  final String scopeTag;
+
+  String get scopeId => CacheScopeNamespace.buildQueryScope(
+        userId: userId,
+        limit: limit,
+        scopeTag: scopeTag,
+        schemaVersion: CacheFirstPolicyRegistry.schemaVersionForSurface(
+          ProfilePostsSnapshotRepository._surfaceKey,
+        ),
+      );
 }

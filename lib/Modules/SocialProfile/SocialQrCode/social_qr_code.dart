@@ -25,7 +25,7 @@ class _SocialQrCodeState extends State<SocialQrCode> {
   void initState() {
     super.initState();
     _controllerTag = 'social_qr_${widget.userID}_${identityHashCode(this)}';
-    controller = SocialQrCodeController.ensure(
+    controller = ensureSocialQrCodeController(
       userID: widget.userID,
       tag: _controllerTag,
     );
@@ -33,9 +33,9 @@ class _SocialQrCodeState extends State<SocialQrCode> {
 
   @override
   void dispose() {
-    if (SocialQrCodeController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindSocialQrCodeController(tag: _controllerTag) != null &&
         identical(
-          SocialQrCodeController.maybeFind(tag: _controllerTag),
+          maybeFindSocialQrCodeController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<SocialQrCodeController>(tag: _controllerTag);

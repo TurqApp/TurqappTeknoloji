@@ -17,7 +17,7 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.market) {
       return null;
     }
-    return MarketController.ensure(permanent: true);
+    return ensureMarketController(permanent: true);
   }
 
   bool _showInlineMarketActions() {
@@ -26,11 +26,25 @@ extension EducationViewActionsPart on EducationView {
         !controller.isSearchMode.value;
   }
 
+  ScholarshipsController? _activeScholarshipsController() {
+    if (_tabIdForIndex(controller.selectedTab.value) !=
+        PasajTabIds.scholarships) {
+      return null;
+    }
+    return ensureScholarshipsController(permanent: true);
+  }
+
+  bool _showInlineScholarshipActions() {
+    return _activeScholarshipsController() != null &&
+        !controller.isKeyboardOpen.value &&
+        !controller.isSearchMode.value;
+  }
+
   JobFinderController? _activeJobFinderController() {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.jobFinder) {
       return null;
     }
-    return JobFinderController.ensure(permanent: true);
+    return ensureJobFinderController(permanent: true);
   }
 
   bool _showInlineJobActions() {
@@ -40,7 +54,7 @@ extension EducationViewActionsPart on EducationView {
   }
 
   ViewModeController _viewModeController() {
-    return ViewModeController.ensure(permanent: true);
+    return ensureViewModeController(permanent: true);
   }
 
   DenemeSinavlariController? _activePracticeExamController() {
@@ -48,7 +62,7 @@ extension EducationViewActionsPart on EducationView {
         PasajTabIds.onlineExam) {
       return null;
     }
-    return DenemeSinavlariController.ensure(permanent: true);
+    return ensureDenemeSinavlariController(permanent: true);
   }
 
   bool _showInlinePracticeExamActions() {
@@ -61,7 +75,7 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.answerKey) {
       return null;
     }
-    return AnswerKeyController.ensure(permanent: true);
+    return ensureAnswerKeyController(permanent: true);
   }
 
   bool _showInlineAnswerKeyActions() {
@@ -74,14 +88,14 @@ extension EducationViewActionsPart on EducationView {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
     }
-    return TutoringController.ensure(permanent: true);
+    return ensureTutoringController(permanent: true);
   }
 
   TutoringFilterController? _activeTutoringFilterController() {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
     }
-    return TutoringFilterController.ensure(permanent: true);
+    return ensureTutoringFilterController(permanent: true);
   }
 
   bool _showInlineTutoringActions() {
@@ -210,15 +224,17 @@ extension EducationViewActionsPart on EducationView {
   ScrollController? _activeScrollController() {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
-        return ScholarshipsController.maybeFind()?.scrollController;
+        return maybeFindScholarshipsController()?.scrollController;
+      case PasajTabIds.practiceExams:
+        return maybeFindCikmisSorularController()?.scrollController;
       case PasajTabIds.onlineExam:
-        return DenemeSinavlariController.maybeFind()?.scrollController;
+        return maybeFindDenemeSinavlariController()?.scrollController;
       case PasajTabIds.answerKey:
-        return AnswerKeyController.maybeFind()?.scrollController;
+        return maybeFindAnswerKeyController()?.scrollController;
       case PasajTabIds.tutoring:
-        return TutoringController.maybeFind()?.scrollController;
+        return maybeFindTutoringController()?.scrollController;
       case PasajTabIds.market:
-        return MarketController.maybeFind()?.scrollController;
+        return maybeFindMarketController()?.scrollController;
       default:
         return null;
     }
@@ -227,19 +243,21 @@ extension EducationViewActionsPart on EducationView {
   bool _showMenuByScrollOffset() {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
-        return (ScholarshipsController.maybeFind()?.scrollOffset.value ?? 0) <=
+        return (maybeFindScholarshipsController()?.scrollOffset.value ?? 0) <=
+            350;
+      case PasajTabIds.practiceExams:
+        return (maybeFindCikmisSorularController()?.scrollOffset.value ?? 0) <=
             350;
       case PasajTabIds.onlineExam:
-        return (DenemeSinavlariController.maybeFind()?.scrollOffset.value ??
+        return (maybeFindDenemeSinavlariController()?.scrollOffset.value ??
                 0) <=
             350;
       case PasajTabIds.answerKey:
-        return (AnswerKeyController.maybeFind()?.scrollOffset.value ?? 0) <=
-            350;
+        return (maybeFindAnswerKeyController()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.tutoring:
-        return (TutoringController.maybeFind()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindTutoringController()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.market:
-        return (MarketController.maybeFind()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindMarketController()?.scrollOffset.value ?? 0) <= 350;
       default:
         return true;
     }
@@ -258,7 +276,7 @@ extension EducationViewActionsPart on EducationView {
             title: 'settings.title'.tr,
             icon: CupertinoIcons.gear,
             onTap: () {
-              ScholarshipsController.maybeFind()?.settings(context);
+              maybeFindScholarshipsController()?.settings(context);
             },
           ),
           PullDownMenuItem(
@@ -308,7 +326,7 @@ extension EducationViewActionsPart on EducationView {
             title: 'education.change_main_category'.tr,
             icon: CupertinoIcons.square_grid_2x2,
             onTap: () {
-              final antController = AntremanController.ensure();
+              final antController = ensureAntremanController();
               antController.openMainCategoryPicker(context, force: true);
             },
           ),
@@ -329,7 +347,7 @@ extension EducationViewActionsPart on EducationView {
             title: 'pasaj.market.add_listing'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () {
-              final marketController = MarketController.maybeFind();
+              final marketController = maybeFindMarketController();
               if (marketController != null) {
                 marketController.openRoundMenu('create');
               } else {
@@ -341,21 +359,21 @@ extension EducationViewActionsPart on EducationView {
             title: 'pasaj.market.my_listings'.tr,
             icon: CupertinoIcons.cube_box,
             onTap: () {
-              MarketController.maybeFind()?.openRoundMenu('my_items');
+              maybeFindMarketController()?.openRoundMenu('my_items');
             },
           ),
           PullDownMenuItem(
             title: 'pasaj.market.saved_items'.tr,
             icon: CupertinoIcons.hand_thumbsup,
             onTap: () {
-              MarketController.maybeFind()?.openRoundMenu('saved');
+              maybeFindMarketController()?.openRoundMenu('saved');
             },
           ),
           PullDownMenuItem(
             title: 'pasaj.market.my_offers'.tr,
             icon: CupertinoIcons.tag,
             onTap: () {
-              MarketController.maybeFind()?.openRoundMenu('offers');
+              maybeFindMarketController()?.openRoundMenu('offers');
             },
           ),
           PullDownMenuItem(
@@ -454,7 +472,7 @@ extension EducationViewActionsPart on EducationView {
             icon: CupertinoIcons.add_circled,
             onTap: () => Get.to(AnswerKeyCreatingOption(
               onBack: () {
-                AnswerKeyController.maybeFind()?.refreshData();
+                maybeFindAnswerKeyController()?.refreshData();
               },
             )),
           ),

@@ -1,0 +1,38 @@
+part of 'deneme_sinavlari_controller.dart';
+
+DenemeSinavlariController ensureDenemeSinavlariController({
+  bool permanent = false,
+}) =>
+    _ensureDenemeSinavlariController(permanent: permanent);
+
+DenemeSinavlariController? maybeFindDenemeSinavlariController() =>
+    _maybeFindDenemeSinavlariController();
+
+DenemeSinavlariController _ensureDenemeSinavlariController({
+  bool permanent = false,
+}) {
+  final existing = _maybeFindDenemeSinavlariController();
+  if (existing != null) return existing;
+  return Get.put(DenemeSinavlariController(), permanent: permanent);
+}
+
+DenemeSinavlariController? _maybeFindDenemeSinavlariController() {
+  final isRegistered = Get.isRegistered<DenemeSinavlariController>();
+  if (!isRegistered) return null;
+  return Get.find<DenemeSinavlariController>();
+}
+
+bool _hasActivePracticeExamSearch(DenemeSinavlariController controller) =>
+    controller.searchQuery.value.trim().length >= 2;
+
+extension DenemeSinavlariControllerFacadePart on DenemeSinavlariController {
+  bool get hasActiveSearch => _hasActivePracticeExamSearch(this);
+}
+
+void _handleDenemeSinavlariInit(DenemeSinavlariController controller) {
+  controller._handlePracticeExamInit();
+}
+
+void _handleDenemeSinavlariClose(DenemeSinavlariController controller) {
+  controller._handlePracticeExamClose();
+}

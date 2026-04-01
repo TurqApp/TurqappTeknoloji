@@ -1,13 +1,14 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
@@ -19,6 +20,9 @@ import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_det
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
+
+part 'tutoring_widget_builder_grid_part.dart';
+part 'tutoring_widget_builder_list_part.dart';
 
 String? getCurrentUserId() {
   final userId = CurrentUserService.instance.effectiveUserId;
@@ -42,29 +46,15 @@ class TutoringWidgetBuilder extends StatelessWidget {
   Future<void> _shareExternally(TutoringModel tutoring) async {
     await ShareActionGuard.run(() async {
       final shareId = 'tutoring:${tutoring.docID}';
-      final shortTail = tutoring.docID.length >= 8
-          ? tutoring.docID.substring(0, 8)
-          : tutoring.docID;
-      final fallbackId = 'tutoring-$shortTail';
-      final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
-
-      String shortUrl = fallbackUrl;
-      try {
-        shortUrl = await ShortLinkService().getEducationPublicUrl(
-          shareId: shareId,
-          title: tutoring.baslik,
-          desc: tutoring.brans.isNotEmpty ? tutoring.brans : 'Özel ders ilanı',
-          imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
-              ? tutoring.imgs!.first
-              : null,
-        );
-      } catch (_) {
-        shortUrl = fallbackUrl;
-      }
-
-      if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
-        shortUrl = fallbackUrl;
-      }
+      final shortUrl = await ShortLinkService().getEducationPublicUrl(
+        shareId: shareId,
+        title: tutoring.baslik,
+        desc: tutoring.brans.isNotEmpty ? tutoring.brans : 'Özel ders ilanı',
+        imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
+            ? tutoring.imgs!.first
+            : null,
+        existingShortUrl: tutoring.shortUrl,
+      );
 
       await ShareLinkService.shareUrl(
         url: shortUrl,
@@ -76,9 +66,9 @@ class TutoringWidgetBuilder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final savedController = SavedTutoringsController.ensure();
-    final tutoringController = TutoringController.ensure();
-    final myTutoringsController = MyTutoringsController.maybeFind();
+    final savedController = ensureSavedTutoringsController();
+    final tutoringController = ensureTutoringController();
+    final myTutoringsController = maybeFindMyTutoringsController();
     final currentUserId = getCurrentUserId();
 
     if (tutoringList.isEmpty) {
@@ -86,332 +76,33 @@ class TutoringWidgetBuilder extends StatelessWidget {
     }
 
     if (isGridView) {
-      return Column(
-        children: PasajListingAdLayout.buildTwoColumnGridChildren(
-          items: tutoringList,
-          horizontalSpacing: 8,
-          rowSpacing: 8,
-          itemBuilder: (tutoring, index) {
-            final lessonPlace = _lessonPlaceText(tutoring);
-            final imageUrl = _imageUrl(tutoring);
-            return PasajGridCard(
-              onTap: () async {
-                if (allowReactivate &&
-                    tutoring.ended == true &&
-                    myTutoringsController != null) {
-                  await myTutoringsController.reactivateEndedTutoring(tutoring);
-                  return;
-                }
-                await Get.to(() => TutoringDetail(), arguments: tutoring);
-              },
-              media: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
-                child: imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => _fallbackImage(),
-                      )
-                    : _fallbackImage(),
-              ),
-              overlay: Obx(
-                () => GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _toggleSave(
-                    tutoring: tutoring,
-                    currentUserId: currentUserId,
-                    controller: tutoringController,
-                    savedController: savedController,
-                  ),
-                  child: SizedBox(
-                    width: PasajListCardMetrics.gridOverlayButtonSize,
-                    height: PasajListCardMetrics.gridOverlayButtonSize,
-                    child: Center(
-                      child: Icon(
-                        savedController.savedTutoringIds
-                                .contains(tutoring.docID)
-                            ? AppIcons.saved
-                            : AppIcons.save,
-                        size: PasajListCardMetrics.gridOverlayIconSize,
-                        color: Colors.white,
-                        shadows: const [
-                          Shadow(
-                            color: Color(0x66000000),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              lines: [
-                Text(
-                  tutoring.baslik,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PasajCardStyles.lineOne,
-                ),
-                Text(
-                  tutoring.brans,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PasajCardStyles.gridLineTwo(
-                    PasajCardStyles.lineTwoColor,
-                  ),
-                ),
-                Text(
-                  lessonPlace,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PasajCardStyles.detail,
-                ),
-                Text(
-                  _cityDistrictText(tutoring),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: PasajCardStyles.gridLineFour(
-                    PasajCardStyles.lineFourColor,
-                  ),
-                ),
-              ],
-              cta: GestureDetector(
-                onTap: () => Get.to(
-                  () => TutoringDetail(),
-                  arguments: tutoring,
-                ),
-                child: Container(
-                  height: PasajListCardMetrics.gridCtaHeight,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(PasajListCardMetrics.gridCtaRadius),
-                    ),
-                  ),
-                  child: Text(
-                    allowReactivate && tutoring.ended == true
-                        ? 'admin.reports.restore'.tr
-                        : 'common.view'.tr,
-                    style: PasajCardStyles.gridCta,
-                  ),
-                ),
-              ),
-            );
-          },
-          adBuilder: (slot) => AdmobKare(
-            key: ValueKey('tutoring-grid-ad-$slot'),
-          ),
-        ),
+      return _buildGridLayout(
+        currentUserId: currentUserId,
+        savedController: savedController,
+        tutoringController: tutoringController,
+        myTutoringsController: myTutoringsController,
       );
     }
 
-    return Column(
-      children: PasajListingAdLayout.buildListChildren(
-        items: tutoringList,
-        itemBuilder: (tutoring, index) {
-          final lessonPlace = _lessonPlaceText(tutoring);
-          final imageUrl = _imageUrl(tutoring);
-          const metrics = PasajListCardMetrics.regular;
-          return Padding(
-            padding:
-                const EdgeInsets.only(left: 15, right: 15, bottom: 6, top: 6),
-            child: GestureDetector(
-              onTap: () async {
-                if (allowReactivate &&
-                    tutoring.ended == true &&
-                    myTutoringsController != null) {
-                  await myTutoringsController.reactivateEndedTutoring(tutoring);
-                  return;
-                }
-                await Get.to(() => TutoringDetail(), arguments: tutoring);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: Colors.grey.withValues(alpha: 0.18)),
-                  color: Colors.white,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      child: SizedBox(
-                        width: metrics.mediaSize,
-                        height: metrics.railHeight,
-                        child: imageUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: imageUrl,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => _fallbackImage(),
-                              )
-                            : _fallbackImage(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SizedBox(
-                        height: metrics.railHeight,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              height: metrics.detailRowHeight,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  tutoring.baslik,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: PasajCardStyles.lineOne,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: metrics.contentGap),
-                            SizedBox(
-                              height: metrics.detailRowHeight,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  tutoring.brans,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: PasajCardStyles.lineTwo,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: metrics.contentGap),
-                            SizedBox(
-                              height: metrics.detailRowHeight,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  lessonPlace,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: PasajCardStyles.detail,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: metrics.contentGap),
-                            SizedBox(
-                              height: metrics.ctaHeight,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  _cityDistrictText(tutoring),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: PasajCardStyles.lineFour,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    SizedBox(
-                      width: metrics.railWidth,
-                      height: metrics.railHeight,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AppHeaderActionButton(
-                                onTap: () => _shareExternally(tutoring),
-                                size: metrics.actionButtonSize,
-                                child: Icon(
-                                  AppIcons.share,
-                                  size: metrics.actionIconSize,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              SizedBox(width: metrics.railActionGap),
-                              Obx(() {
-                                final isSaved = savedController.savedTutoringIds
-                                    .contains(tutoring.docID);
-                                return AppHeaderActionButton(
-                                  onTap: () => _toggleSave(
-                                    tutoring: tutoring,
-                                    currentUserId: currentUserId,
-                                    controller: tutoringController,
-                                    savedController: savedController,
-                                  ),
-                                  size: metrics.actionButtonSize,
-                                  child: Icon(
-                                    isSaved ? AppIcons.saved : AppIcons.save,
-                                    size: metrics.actionIconSize,
-                                    color: isSaved
-                                        ? Colors.orange
-                                        : Colors.black87,
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                          SizedBox(height: metrics.railSectionGap),
-                          SizedBox(height: metrics.middleSlotHeight),
-                          const Spacer(),
-                          SizedBox(
-                            width: metrics.railWidth,
-                            child: GestureDetector(
-                              onTap: () async {
-                                if (allowReactivate &&
-                                    tutoring.ended == true &&
-                                    myTutoringsController != null) {
-                                  await myTutoringsController
-                                      .reactivateEndedTutoring(tutoring);
-                                  return;
-                                }
-                                await Get.to(
-                                  () => TutoringDetail(),
-                                  arguments: tutoring,
-                                );
-                              },
-                              child: Container(
-                                height: metrics.ctaHeight,
-                                alignment: Alignment.center,
-                                decoration: const BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(8)),
-                                ),
-                                child: Text(
-                                  allowReactivate && tutoring.ended == true
-                                      ? 'admin.reports.restore'.tr
-                                      : 'common.view'.tr,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: metrics.ctaFontSize,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-        adBuilder: (slot) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-          child: AdmobKare(
-            key: ValueKey('tutoring-list-ad-$slot'),
-          ),
-        ),
-      ),
+    return _buildListLayout(
+      currentUserId: currentUserId,
+      savedController: savedController,
+      tutoringController: tutoringController,
+      myTutoringsController: myTutoringsController,
     );
+  }
+
+  Future<void> _openTutoringDetail(
+    TutoringModel tutoring, {
+    MyTutoringsController? myTutoringsController,
+  }) async {
+    if (allowReactivate &&
+        tutoring.ended == true &&
+        myTutoringsController != null) {
+      await myTutoringsController.reactivateEndedTutoring(tutoring);
+      return;
+    }
+    await Get.to(() => TutoringDetail(), arguments: tutoring);
   }
 
   Future<void> _toggleSave({

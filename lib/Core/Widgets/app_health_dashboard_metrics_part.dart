@@ -1,6 +1,12 @@
 part of 'app_health_dashboard.dart';
 
 extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
+  double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Widget _buildServiceCard(
     String title,
     String status,
@@ -50,22 +56,20 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
     final uploadStats = _getUploadStats();
     final mediaStats = _getMediaStats();
 
-    final totalErrors = (errorStats['total'] as num?)?.toDouble() ?? 0;
-    final criticalErrors = (errorStats['critical'] as num?)?.toDouble() ?? 0;
+    final totalErrors = _asDouble(errorStats['total']);
+    final criticalErrors = _asDouble(errorStats['critical']);
     final errorRatio =
         totalErrors <= 0 ? 0.0 : (criticalErrors / totalErrors).clamp(0.0, 1.0);
 
     final dataUsagePercent =
-        ((networkStats['dataUsagePercentage'] as num?)?.toDouble() ?? 0.0) /
-            100;
+        _asDouble(networkStats['dataUsagePercentage']) / 100;
 
-    final uploadTotal = (uploadStats['total'] as num?)?.toDouble() ?? 0;
-    final uploadBekliyor = (uploadStats['pending'] as num?)?.toDouble() ?? 0;
+    final uploadTotal = _asDouble(uploadStats['total']);
+    final uploadBekliyor = _asDouble(uploadStats['pending']);
     final queuePressure =
         uploadTotal <= 0 ? 0.0 : (uploadBekliyor / uploadTotal).clamp(0.0, 1.0);
 
-    final processingProgress =
-        (mediaStats['processingProgress'] as num?)?.toDouble() ?? 0.0;
+    final processingProgress = _asDouble(mediaStats['processingProgress']);
 
     return Card(
       elevation: 2,
@@ -258,7 +262,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getSystemHealth() {
-    final errorService = ErrorHandlingService.maybeFind();
+    final errorService = maybeFindErrorHandlingService();
     if (errorService != null) {
       return errorService.getSystemHealth();
     }
@@ -271,7 +275,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getErrorStats() {
-    final errorService = ErrorHandlingService.maybeFind();
+    final errorService = maybeFindErrorHandlingService();
     if (errorService != null) {
       return errorService.getErrorStats();
     }
@@ -314,7 +318,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getDraftStats() {
-    final draftService = DraftService.maybeFind();
+    final draftService = maybeFindDraftService();
     if (draftService != null) {
       return draftService.getDraftStats();
     }
@@ -328,7 +332,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getEditStats() {
-    final editingService = PostEditingService.maybeFind();
+    final editingService = maybeFindPostEditingService();
     if (editingService != null) {
       return editingService.getEditStatistics();
     }
@@ -343,7 +347,7 @@ extension _AppHealthDashboardMetricsPart on _AppHealthDashboardState {
   }
 
   Map<String, dynamic> _getMediaStats() {
-    final mediaService = MediaEnhancementService.maybeFind();
+    final mediaService = maybeFindMediaEnhancementService();
     if (mediaService != null) {
       return mediaService.getProcessingStats();
     }

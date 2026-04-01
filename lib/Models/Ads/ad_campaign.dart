@@ -28,12 +28,20 @@ class AdCampaign {
   final String createdBy;
   final String approvedBy;
 
-  const AdCampaign({
+  static List<AdPlacementType> _clonePlacements(
+    List<AdPlacementType> source,
+  ) =>
+      List<AdPlacementType>.from(source, growable: false);
+
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
+  AdCampaign({
     required this.id,
     required this.advertiserId,
     required this.name,
     required this.status,
-    required this.placementTypes,
+    required List<AdPlacementType> placementTypes,
     required this.budgetType,
     required this.totalBudget,
     required this.dailyBudget,
@@ -42,7 +50,7 @@ class AdCampaign {
     required this.startAt,
     required this.endAt,
     required this.targeting,
-    required this.creativeIds,
+    required List<String> creativeIds,
     required this.bidType,
     required this.bidAmount,
     required this.priority,
@@ -53,7 +61,8 @@ class AdCampaign {
     required this.updatedAt,
     required this.createdBy,
     required this.approvedBy,
-  });
+  }) : placementTypes = _clonePlacements(placementTypes),
+       creativeIds = _cloneStringList(creativeIds);
 
   factory AdCampaign.empty({required String createdBy}) {
     final now = DateTime.now();
@@ -70,7 +79,7 @@ class AdCampaign {
       currency: 'TRY',
       startAt: now,
       endAt: now.add(const Duration(days: 7)),
-      targeting: const AdTargeting(),
+      targeting: AdTargeting(),
       creativeIds: const <String>[],
       bidType: AdBidType.cpm,
       bidAmount: 0,
@@ -153,7 +162,9 @@ class AdCampaign {
       'advertiserId': advertiserId,
       'name': name,
       'status': enumToShort(status),
-      'placementTypes': placementTypes.map(enumToShort).toList(),
+      'placementTypes': placementTypes
+          .map(enumToShort)
+          .toList(growable: false),
       'budgetType': enumToShort(budgetType),
       'totalBudget': totalBudget,
       'dailyBudget': dailyBudget,
@@ -162,7 +173,7 @@ class AdCampaign {
       'startAt': startAt.millisecondsSinceEpoch,
       'endAt': endAt.millisecondsSinceEpoch,
       'targeting': targeting.toMap(),
-      'creativeIds': creativeIds,
+      'creativeIds': List<String>.from(creativeIds, growable: false),
       'bidType': enumToShort(bidType),
       'bidAmount': bidAmount,
       'priority': priority,

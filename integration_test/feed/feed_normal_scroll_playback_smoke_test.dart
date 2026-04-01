@@ -33,13 +33,14 @@ void main() {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             final first = await _captureCurrentFeedVideo(
               tester,
               controller: controller,
               timeout: const Duration(seconds: 8),
             );
-            expect(first, isNotNull, reason: 'No initial autoplay feed video found.');
+            expect(first, isNotNull,
+                reason: 'No initial autoplay feed video found.');
             final firstAdapter = await _waitForFeedAdapter(
               tester,
               sample: first!,
@@ -71,7 +72,8 @@ void main() {
                 timeout: const Duration(seconds: 6),
               );
               expect(sample, isNotNull,
-                  reason: 'No autoplay video found after normal scroll step $i.');
+                  reason:
+                      'No autoplay video found after normal scroll step $i.');
               final adapter = await _waitForFeedAdapter(
                 tester,
                 sample: sample!,
@@ -139,7 +141,8 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
   final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
+    final adapter =
+        GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
     final value = adapter?.value;
     final playable = adapter != null &&
         !adapter.isDisposed &&
@@ -150,7 +153,8 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
     if (playable) return adapter;
   }
 
-  final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
+  final adapter =
+      GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
   final value = adapter?.value;
   throw TestFailure(
     '$label did not reach playable adapter state '
@@ -179,7 +183,8 @@ Future<void> _assertAdvance(
     await tester.pump(step);
     final value = adapter.value;
     if (adapter.isDisposed || !value.isInitialized) {
-      throw TestFailure('$label disposed or lost initialization (doc=${sample.docId}).');
+      throw TestFailure(
+          '$label disposed or lost initialization (doc=${sample.docId}).');
     }
     final position = value.position;
     baseline ??= position > Duration.zero ? position : null;

@@ -1,21 +1,6 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerProfilePart on SocialProfileController {
-  String _performResolveNickname(
-    Map<String, dynamic> raw,
-    Map<String, dynamic> profile,
-  ) {
-    final nickname =
-        (raw["nickname"] ?? profile["nickname"] ?? "").toString().trim();
-    final username =
-        (raw["username"] ?? profile["username"] ?? "").toString().trim();
-    final displayName =
-        (raw["displayName"] ?? profile["displayName"] ?? "").toString().trim();
-    if (nickname.isNotEmpty) return nickname;
-    if (username.isNotEmpty) return username;
-    return displayName;
-  }
-
   Future<void> _performLogProfileVisitIfNeeded() async {
     try {
       final current = CurrentUserService.instance.effectiveUserId;
@@ -39,10 +24,9 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
   Future<void> _performGetCounters() async {
     try {
       _pruneCaches();
-      final cached = SocialProfileController._counterCache[userID];
+      final cached = _counterCache[userID];
       if (cached != null &&
-          DateTime.now().difference(cached.cachedAt) <=
-              SocialProfileController._counterCacheTtl) {
+          DateTime.now().difference(cached.cachedAt) <= _counterCacheTtl) {
         totalFollower.value = cached.followers;
         totalFollowing.value = cached.followings;
         return;
@@ -72,7 +56,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         totalFollower.value = followers.length;
         totalFollowing.value = followings.length;
       }
-      SocialProfileController._counterCache[userID] = _SocialCounterCacheEntry(
+      _counterCache[userID] = _SocialCounterCacheEntry(
         followers: totalFollower.value,
         followings: totalFollowing.value,
         cachedAt: DateTime.now(),
@@ -93,6 +77,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     try {
       final posts = await _linkService.fetchResharedPosts(userID, refs);
       reshares.value = posts;
+      bootstrapFeedPlaybackAfterDataChange();
     } catch (e) {
       print('SocialProfileController hydrate reshares error: $e');
     }
@@ -100,137 +85,59 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
 
   Future<void> _performIsFollowingCheck() async {
     final currentUid = CurrentUserService.instance.effectiveUserId;
-    if (currentUid.isEmpty) return;
-    _pruneCaches();
-    final cacheKey = '$currentUid:$userID';
-    final cached = SocialProfileController._followCheckCache[cacheKey];
-    if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <=
-            SocialProfileController._followCheckCacheTtl) {
-      takipEdiyorum.value = cached.isFollowing;
+    if (currentUid.isEmpty) {
+      takipEdiyorum.value = false;
       complatedCheck.value = true;
+      postNotificationsEnabled.value = false;
       return;
     }
-    final isFollowing = await FollowRepository.ensure().isFollowing(
+    _pruneCaches();
+    final cacheKey = '$currentUid:$userID';
+    final cached = _followCheckCache[cacheKey];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _followCheckCacheTtl) {
+      takipEdiyorum.value = cached.isFollowing;
+      complatedCheck.value = true;
+      if (cached.isFollowing) {
+        unawaited(refreshPostNotificationSubscription());
+      } else {
+        postNotificationsEnabled.value = false;
+      }
+    }
+    final isFollowing = await ensureFollowRepository().isFollowing(
       userID,
       currentUid: currentUid,
-      preferCache: true,
+      preferCache: false,
     );
     takipEdiyorum.value = isFollowing;
     complatedCheck.value = true;
-    SocialProfileController._followCheckCache[cacheKey] =
-        _SocialFollowCheckCacheEntry(
+    if (isFollowing) {
+      await refreshPostNotificationSubscription();
+    } else {
+      postNotificationsEnabled.value = false;
+    }
+    _followCheckCache[cacheKey] = _SocialFollowCheckCacheEntry(
       isFollowing: isFollowing,
       cachedAt: DateTime.now(),
     );
   }
 
-  Future<void> _performGetSocialMediaLinks() async {
-    final list = await _socialLinksRepository.getLinks(
-      userID,
-      preferCache: true,
-      forceRefresh: false,
-    );
-    socialMediaList.value = list;
-  }
+  Future<void> _performRefreshPostNotificationSubscription() async {
+    final currentUid = CurrentUserService.instance.effectiveUserId;
+    if (currentUid.isEmpty ||
+        currentUid == userID ||
+        takipEdiyorum.value == false) {
+      postNotificationsEnabled.value = false;
+      return;
+    }
 
-  Future<void> _performShowSocialMediaLinkDelete(String docID) async {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'social_links.remove_title'.tr,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontFamily: "MontserratBold",
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'social_links.remove_message'.tr,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: "MontserratMedium",
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Get.back();
-                    },
-                    child: Container(
-                      height: 50,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'common.cancel'.tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      Get.back();
-                      await _socialLinksRepository.deleteLink(userID, docID);
-
-                      unawaited(
-                        SocialMediaController.maybeFind()?.getData(
-                              silent: true,
-                              forceRefresh: true,
-                            ) ??
-                            Future.value(),
-                      );
-                    },
-                    child: Container(
-                      height: 50,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      child: Text(
-                        'common.remove'.tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-    );
+    try {
+      postNotificationsEnabled.value = await NotificationsRepository.ensure()
+          .hasAuthorPostSubscription(userID, currentUid);
+    } catch (e) {
+      postNotificationsEnabled.value = false;
+      print('SocialProfile refreshPostNotificationSubscription error: $e');
+    }
   }
 
   Future<void> _performGetUserData() async {
@@ -365,165 +272,23 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         (likesCount is num) ? likesCount.toInt() : totalLikes.value;
   }
 
-  Future<void> _performToggleFollowStatus() async {
-    if (followLoading.value) return;
-    final bool wasFollowing = takipEdiyorum.value;
-    takipEdiyorum.value = !wasFollowing;
-    followLoading.value = true;
-    try {
-      final outcome = await FollowService.toggleFollow(userID);
-      takipEdiyorum.value = outcome.nowFollowing;
-      final currentUid = CurrentUserService.instance.effectiveUserId;
-      if (currentUid.isNotEmpty) {
-        SocialProfileController._followCheckCache['$currentUid:$userID'] =
-            _SocialFollowCheckCacheEntry(
-          isFollowing: outcome.nowFollowing,
-          cachedAt: DateTime.now(),
-        );
-      }
-
-      if (outcome.nowFollowing && !wasFollowing) {
-        totalFollower.value++;
-        NotificationService.instance.sendNotification(
-          token: token.value,
-          title: CurrentUserService.instance.nickname,
-          body: "seni takip etmeye başladı",
-          docID: userID,
-          type: "User",
-        );
-      } else if (!outcome.nowFollowing && wasFollowing) {
-        totalFollower.value--;
-      }
-
-      if (outcome.limitReached) {
-        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
-      }
-    } catch (e) {
-      takipEdiyorum.value = wasFollowing;
-      print("Bir hata oluştu: $e");
-    } finally {
-      followLoading.value = false;
-    }
-  }
-
-  Future<void> _performBlock() async {
-    await noYesAlert(
-      title: 'common.block'.tr,
-      message: 'social_profile.block_confirm_body'
-          .trParams({'nickname': nickname.value}),
-      cancelText: 'common.cancel'.tr,
-      yesText: 'common.block'.tr,
-      onYesPressed: () async {
-        final currentUid = CurrentUserService.instance.effectiveUserId;
-        await _userSubcollectionRepository.upsertEntry(
-          currentUid,
-          subcollection: 'blockedUsers',
-          docId: userID,
-          data: {
-            "userID": userID,
-            "updatedDate": DateTime.now().millisecondsSinceEpoch,
-          },
-        );
-
-        await FollowService.deleteRelationPair(
-          userID,
-          currentUid: currentUid,
-        );
-        await FollowService.deleteRelationPair(
-          currentUid,
-          currentUid: userID,
-        );
-
-        CurrentUserService.instance.forceRefresh();
-        getUserData();
-        isFollowingCheck();
-      },
-    );
-  }
-
-  Future<void> _performUnblock() async {
-    await noYesAlert(
-      title: 'blocked_users.unblock_confirm_title'.tr,
-      message: 'blocked_users.unblock_confirm_body'
-          .trParams({'nickname': nickname.value}),
-      cancelText: 'common.cancel'.tr,
-      yesText: 'blocked_users.unblock'.tr,
-      onYesPressed: () async {
-        final currentUid = CurrentUserService.instance.effectiveUserId;
-        await _userSubcollectionRepository.deleteEntry(
-          currentUid,
-          subcollection: 'blockedUsers',
-          docId: userID,
-        );
-        CurrentUserService.instance.forceRefresh();
-        getUserData();
-        isFollowingCheck();
-      },
-    );
-  }
-
-  Future<void> _performGetUserStoryUserModelAndPrint(String userId) async {
-    final stories = await _storyRepository.getStoriesForUser(
-      userId,
-      preferCache: true,
-    );
-
-    if (stories.isEmpty) {
-      print("Kullanıcıya ait hiç hikaye yok.");
-      return;
-    }
-
-    final summary = await _userSummaryResolver.resolve(
-      userId,
-      preferCache: true,
-    );
-    if (summary == null) {
-      print("Kullanıcı bulunamadı.");
-      return;
-    }
-    final raw = await _userRepository.getUserRaw(
-      userId,
-      preferCache: true,
-      cacheOnly: true,
-    );
-    final fullNameSource = raw ?? const <String, dynamic>{};
-    final userModel = StoryUserModel(
-      nickname: summary.nickname,
-      avatarUrl: summary.avatarUrl,
-      fullName:
-          "${fullNameSource['firstName'] ?? ""} ${fullNameSource['lastName'] ?? ""}"
-              .trim(),
-      userID: userId,
-      stories: stories,
-    );
-
-    print("Kullanıcı StoryUserModel: $userModel");
-    storyUserModel = userModel;
-    print(
-      "Nickname: ${userModel.nickname}, Story Sayısı: ${userModel.stories.length}",
-    );
-  }
-
   void _performPruneCaches() {
     final now = DateTime.now();
-    bool isStale(DateTime t) =>
-        now.difference(t) > SocialProfileController._cacheStaleRetention;
-    SocialProfileController._followCheckCache
-        .removeWhere((_, v) => isStale(v.cachedAt));
-    SocialProfileController._counterCache
-        .removeWhere((_, v) => isStale(v.cachedAt));
-    _trimMap(SocialProfileController._followCheckCache, (v) => v.cachedAt);
-    _trimMap(SocialProfileController._counterCache, (v) => v.cachedAt);
+    bool isStale(DateTime t) => now.difference(t) > _cacheStaleRetention;
+    _followCheckCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _counterCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _trimMap(_followCheckCache, (v) => v.cachedAt);
+    _trimMap(_counterCache, (v) => v.cachedAt);
   }
 
   void _performTrimMap<T>(
     Map<String, T> map,
     DateTime Function(T value) cachedAt,
   ) {
-    if (map.length <= SocialProfileController._maxCacheEntries) return;
+    if (map.length <= _maxCacheEntries) return;
     final entries = map.entries.toList()
       ..sort((a, b) => cachedAt(a.value).compareTo(cachedAt(b.value)));
-    final removeCount = map.length - SocialProfileController._maxCacheEntries;
+    final removeCount = map.length - _maxCacheEntries;
     for (var i = 0; i < removeCount; i++) {
       map.remove(entries[i].key);
     }

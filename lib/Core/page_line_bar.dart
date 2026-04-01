@@ -9,6 +9,9 @@ import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart
 import 'package:turqappv2/Modules/SocialProfile/SocialProfileFollowers/social_profile_followers_controller.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
+part 'page_line_bar_controller_fields_part.dart';
+part 'page_line_bar_controller_support_part.dart';
+
 const String kExplorePageLineBarTag = 'explore_page_line_bar';
 const String kSavedPostsPageLineBarTag = 'saved_posts_page_line_bar';
 const String kLikedPostsPageLineBarTag = 'liked_posts_page_line_bar';
@@ -19,7 +22,9 @@ const String kFollowersSocialProfilePageLineBarTag =
     'followers_social_profile_page_line_bar';
 
 PageLineBarController? maybeFindPageLineBarController(String tag) {
-  return PageLineBarController.maybeFind(tag: tag);
+  final isRegistered = Get.isRegistered<PageLineBarController>(tag: tag);
+  if (!isRegistered) return null;
+  return Get.find<PageLineBarController>(tag: tag);
 }
 
 void syncPageLineBarSelection(String tag, int index) {
@@ -31,6 +36,9 @@ class PageLineBar extends StatefulWidget {
   final String pageName;
   final int initialIndex;
   final double fontSize;
+  final bool isScrollable;
+  final EdgeInsetsGeometry scrollablePadding;
+  final double scrollableTabHorizontalPadding;
   final PageController? pageController; // optional: direct control of PageView
 
   const PageLineBar({
@@ -39,6 +47,9 @@ class PageLineBar extends StatefulWidget {
     required this.pageName,
     this.initialIndex = 0,
     this.fontSize = 15,
+    this.isScrollable = false,
+    this.scrollablePadding = EdgeInsets.zero,
+    this.scrollableTabHorizontalPadding = 14,
     this.pageController,
   });
 
@@ -48,8 +59,11 @@ class PageLineBar extends StatefulWidget {
 
 class _PageLineBarState extends State<PageLineBar> {
   late PageLineBarController controller;
+  final ScrollController _scrollController = ScrollController();
+  late List<GlobalKey> _tabKeys;
   bool _didInit = false;
   bool _ownsController = false;
+  int? _lastRevealedIndex;
 
   void _syncExternalPageController(
     int index, {
@@ -84,9 +98,12 @@ class _PageLineBarState extends State<PageLineBar> {
   @override
   void initState() {
     super.initState();
-    _ownsController =
-        PageLineBarController.maybeFind(tag: widget.pageName) == null;
-    controller = PageLineBarController.ensure(
+    _tabKeys = List<GlobalKey>.generate(
+      widget.barList.length,
+      (_) => GlobalKey(),
+    );
+    _ownsController = maybeFindPageLineBarController(widget.pageName) == null;
+    controller = ensurePageLineBarController(
       pageName: widget.pageName,
       tag: widget.pageName,
     );
@@ -105,7 +122,36 @@ class _PageLineBarState extends State<PageLineBar> {
   }
 
   @override
+  void didUpdateWidget(covariant PageLineBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.barList.length != widget.barList.length) {
+      _tabKeys = List<GlobalKey>.generate(
+        widget.barList.length,
+        (_) => GlobalKey(),
+      );
+      _lastRevealedIndex = null;
+    }
+  }
+
+  void _scheduleSelectedTabReveal(int index) {
+    if (!widget.isScrollable || _lastRevealedIndex == index) return;
+    _lastRevealedIndex = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || index < 0 || index >= _tabKeys.length) return;
+      final targetContext = _tabKeys[index].currentContext;
+      if (targetContext == null) return;
+      Scrollable.ensureVisible(
+        targetContext,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   void dispose() {
+    _scrollController.dispose();
     if (_ownsController &&
         maybeFindPageLineBarController(widget.pageName) == controller) {
       Get.delete<PageLineBarController>(
@@ -119,28 +165,71 @@ class _PageLineBarState extends State<PageLineBar> {
   @override
   Widget build(BuildContext context) {
     return Obx(
-      () => Row(
-        children: List.generate(widget.barList.length, (index) {
-          final item = widget.barList[index];
-          return Expanded(
-            child: GestureDetector(
-              key: ValueKey(
-                IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
-              ),
-              onTap: () {
-                controller.selection.value = index;
-                _syncExternalPageController(index, animate: true);
-              },
-              child: Container(
-                height: 40,
-                color: Colors.white,
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: FittedBox(
+      () {
+        final selectedIndex = controller.selection.value;
+        _scheduleSelectedTabReveal(selectedIndex);
+        final items = List.generate(
+          widget.barList.length,
+          (index) => _buildTabItem(index, scrollable: widget.isScrollable),
+        );
+        if (widget.isScrollable) {
+          return SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: widget.scrollablePadding,
+              child: Row(children: items),
+            ),
+          );
+        }
+        return Row(children: items);
+      },
+    );
+  }
+
+  Widget _buildTabItem(
+    int index, {
+    required bool scrollable,
+  }) {
+    final item = widget.barList[index];
+    final content = KeyedSubtree(
+      key: _tabKeys[index],
+      child: GestureDetector(
+        key: ValueKey(
+          IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
+        ),
+        onTap: () {
+          controller.selection.value = index;
+          _syncExternalPageController(index, animate: true);
+        },
+        child: Container(
+          height: 40,
+          color: Colors.white,
+          padding: scrollable
+              ? EdgeInsets.symmetric(
+                  horizontal: widget.scrollableTabHorizontalPadding,
+                )
+              : null,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: scrollable
+                      ? Text(
+                          item,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: widget.fontSize,
+                            fontFamily: controller.selection.value == index
+                                ? AppFontFamilies.mbold
+                                : AppFontFamilies.mmedium,
+                          ),
+                        )
+                      : FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             item,
@@ -155,115 +244,24 @@ class _PageLineBarState extends State<PageLineBar> {
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    if (controller.selection.value == index)
-                      Container(
-                        height: 3,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.all(Radius.circular(50)),
-                        ),
-                      ),
-                  ],
                 ),
               ),
-            ),
-          );
-        }),
+              if (controller.selection.value == index)
+                Container(
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
-  }
-}
-
-class PageLineBarController extends GetxController {
-  static PageLineBarController ensure({
-    required String pageName,
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      PageLineBarController(pageName: pageName),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static PageLineBarController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<PageLineBarController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<PageLineBarController>(tag: tag);
-  }
-
-  final String pageName;
-  PageLineBarController({required this.pageName});
-
-  var selection = 0.obs;
-  final PageController pageController = PageController();
-
-  bool _matchesTag(String baseTag) {
-    return pageName == baseTag || pageName.startsWith('${baseTag}_');
-  }
-
-  String? _scopedSuffix(String baseTag) {
-    final prefix = '${baseTag}_';
-    if (!pageName.startsWith(prefix)) {
-      return null;
+    if (scrollable) {
+      return content;
     }
-    return pageName.substring(prefix.length);
-  }
-
-  T? _maybeFindController<T>({String? tag}) {
-    if (tag != null && Get.isRegistered<T>(tag: tag)) {
-      return Get.find<T>(tag: tag);
-    }
-    final isRegistered = Get.isRegistered<T>();
-    if (!isRegistered) return null;
-    return Get.find<T>();
-  }
-
-  void setSelectionTo(int index) {
-    selection.value = index;
-    if (_matchesTag(kExplorePageLineBarTag)) {
-      _maybeFindController<ExploreController>()?.goToPage(index);
-      return;
-    }
-    if (_matchesTag(kSavedPostsPageLineBarTag)) {
-      final controller = _maybeFindController<SavedPostsController>();
-      controller?.pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-      );
-      return;
-    }
-    if (_matchesTag(kLikedPostsPageLineBarTag)) {
-      _maybeFindController<LikedPostControllers>()?.goToPage(index);
-      return;
-    }
-    if (_matchesTag(kNotificationsPageLineBarTag)) {
-      _maybeFindController<InAppNotificationsController>()?.goToPage(index);
-      return;
-    }
-    if (_matchesTag(kFollowersPageLineBarTag)) {
-      _maybeFindController<FollowingFollowersController>(
-        tag: _scopedSuffix(kFollowersPageLineBarTag),
-      )?.goToPage(index);
-      return;
-    }
-    if (_matchesTag(kFollowersSocialProfilePageLineBarTag)) {
-      _maybeFindController<SocialProfileFollowersController>(
-        tag: _scopedSuffix(kFollowersSocialProfilePageLineBarTag),
-      )?.goToPage(index);
-      return;
-    }
-  }
-
-  @override
-  void onClose() {
-    pageController.dispose();
-    super.onClose();
+    return Expanded(child: content);
   }
 }

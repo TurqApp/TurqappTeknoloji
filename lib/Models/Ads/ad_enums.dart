@@ -1,4 +1,21 @@
-enum AdPlacementType { feed, shorts, explore }
+enum AdPlacementType {
+  feed,
+  shorts,
+  explore,
+  profile,
+  market,
+  scholarship,
+  answerKey,
+  job,
+  practiceExam,
+  tutoring,
+  topMarket,
+  topAnswerKey,
+  topJob,
+  topPracticeExam,
+  topTutoring,
+  topPreviousQuestions,
+}
 
 enum AdBidType { cpm, cpc, cpv }
 
@@ -50,6 +67,103 @@ enum AdAnalyticsEventType {
 
 String enumToShort(Object value) {
   return value.toString().split('.').last;
+}
+
+extension AdPlacementTypeLabelPart on AdPlacementType {
+  String get displayName {
+    switch (this) {
+      case AdPlacementType.feed:
+        return 'Feed';
+      case AdPlacementType.shorts:
+        return 'Shorts';
+      case AdPlacementType.explore:
+        return 'Keşfet';
+      case AdPlacementType.profile:
+        return 'Profil';
+      case AdPlacementType.market:
+        return 'Mobil Pazar';
+      case AdPlacementType.scholarship:
+        return 'Burs';
+      case AdPlacementType.answerKey:
+        return 'Cevap Anahtarı';
+      case AdPlacementType.job:
+        return 'İşveren';
+      case AdPlacementType.practiceExam:
+        return 'Online Sınav';
+      case AdPlacementType.tutoring:
+        return 'Özel Ders';
+      case AdPlacementType.topMarket:
+        return 'Pasaj üst slider';
+      case AdPlacementType.topAnswerKey:
+        return 'Cevap Anahtarı üst slider';
+      case AdPlacementType.topJob:
+        return 'İşveren üst slider';
+      case AdPlacementType.topPracticeExam:
+        return 'Online Sınav üst slider';
+      case AdPlacementType.topTutoring:
+        return 'Özel Ders üst slider';
+      case AdPlacementType.topPreviousQuestions:
+        return 'Çıkmış Sorular üst slider';
+    }
+  }
+}
+
+extension AdBidTypeLabelPart on AdBidType {
+  String get displayName {
+    switch (this) {
+      case AdBidType.cpm:
+        return 'Bin gösterim';
+      case AdBidType.cpc:
+        return 'Tıklama';
+      case AdBidType.cpv:
+        return 'Video izlenme';
+    }
+  }
+}
+
+extension AdCampaignStatusLabelPart on AdCampaignStatus {
+  String get displayName {
+    switch (this) {
+      case AdCampaignStatus.draft:
+        return 'Taslak';
+      case AdCampaignStatus.pendingReview:
+        return 'İnceleme bekliyor';
+      case AdCampaignStatus.approved:
+        return 'Onaylandı';
+      case AdCampaignStatus.paused:
+        return 'Duraklatıldı';
+      case AdCampaignStatus.active:
+        return 'Aktif';
+      case AdCampaignStatus.ended:
+        return 'Bitti';
+      case AdCampaignStatus.rejected:
+        return 'Reddedildi';
+    }
+  }
+}
+
+extension AdBudgetTypeLabelPart on AdBudgetType {
+  String get displayName {
+    switch (this) {
+      case AdBudgetType.daily:
+        return 'Günlük';
+      case AdBudgetType.lifetime:
+        return 'Toplam';
+    }
+  }
+}
+
+extension AdCreativeTypeLabelPart on AdCreativeType {
+  String get displayName {
+    switch (this) {
+      case AdCreativeType.image:
+        return 'Görsel';
+      case AdCreativeType.video:
+        return 'Video';
+      case AdCreativeType.hlsVideo:
+        return 'HLS video';
+    }
+  }
 }
 
 T parseEnum<T>(

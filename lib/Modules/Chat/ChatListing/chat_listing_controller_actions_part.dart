@@ -1,6 +1,65 @@
 part of 'chat_listing_controller.dart';
 
 extension ChatListingControllerActionsPart on ChatListingController {
+  void _publishListSnapshotToUnreadController(List<ChatListingModel> items) {
+    maybeFindUnreadMessagesController()?.replaceUnreadFromChatListings(items);
+  }
+
+  void _commitListMutation(List<ChatListingModel> items) {
+    final sorted = _sortChatListings(items);
+    list.assignAll(sorted);
+    _refreshLiveWindowListeners();
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _saveCachedList(sorted);
+    _publishListSnapshotToUnreadController(sorted);
+  }
+
+  List<ChatListingModel> _cloneCurrentList() =>
+      list.map((item) => ChatListingModel.fromJson(item.toJson())).toList();
+
+  void _applyArchiveLocal({
+    required String chatId,
+    required bool archived,
+  }) {
+    final next = _cloneCurrentList();
+    for (final entry in next) {
+      if (entry.chatID != chatId) continue;
+      final deletedFlags =
+          entry.deleted.where((value) => value != "__archived__").toList();
+      if (archived) {
+        deletedFlags.add("__archived__");
+      }
+      entry.deleted = deletedFlags;
+    }
+    _commitListMutation(next);
+  }
+
+  void _applyDeleteLocal({
+    required ChatListingModel item,
+    required int deletedCutoff,
+  }) {
+    final next = _cloneCurrentList();
+    for (final entry in next) {
+      if (entry.chatID != item.chatID) continue;
+      entry.deleted = entry.deleted
+          .where((value) => value != "__archived__" && value != "__deleted__")
+          .toList()
+        ..add("__deleted__");
+      entry.unreadCount = 0;
+    }
+    _commitListMutation(next);
+    maybeFindUnreadMessagesController()?.updateConversationUnreadLocal(
+      otherUid: item.userID,
+      chatId: item.chatID,
+      unreadCount: 0,
+      seenAtMs: deletedCutoff,
+    );
+  }
+
   void _onSearchChanged() {
     final query = search.text.trim();
 
@@ -68,6 +127,48 @@ extension ChatListingControllerActionsPart on ChatListingController {
       _onSearchChanged();
     }
     _saveCachedList(list.toList());
+    _publishListSnapshotToUnreadController(list.toList());
+  }
+
+  void updateConversationPreviewLocal({
+    required String chatId,
+    required String previewText,
+    int timestampMs = 0,
+  }) {
+    var changed = false;
+    for (final item in list) {
+      if (item.chatID != chatId) continue;
+      if (item.lastMessage != previewText) {
+        item.lastMessage = previewText;
+        changed = true;
+      }
+      if (!item.hasAuthoritativePreview) {
+        item.hasAuthoritativePreview = true;
+        changed = true;
+      }
+      if (timestampMs > 0 && item.timeStamp != '$timestampMs') {
+        item.timeStamp = '$timestampMs';
+        changed = true;
+      }
+    }
+    if (!changed) return;
+
+    final sorted = [...list]..sort((a, b) {
+        if (a.isPinned != b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        final aTs = int.tryParse(a.timeStamp) ?? 0;
+        final bTs = int.tryParse(b.timeStamp) ?? 0;
+        return bTs.compareTo(aTs);
+      });
+    list.assignAll(sorted);
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _saveCachedList(list.toList());
+    _publishListSnapshotToUnreadController(list.toList());
   }
 
   void setTab(String tab) {
@@ -108,27 +209,56 @@ extension ChatListingControllerActionsPart on ChatListingController {
     final now = DateTime.now().millisecondsSinceEpoch;
     final conversationTs = int.tryParse(item.timeStamp) ?? 0;
     final deletedCutoff = conversationTs > now ? conversationTs : now;
-    await _conversationRepository.setDeletedCutoff(
-      currentUid: _uid,
-      otherUserId: item.userID,
-      chatId: item.chatID,
-      deletedAt: deletedCutoff,
+    final previous = _cloneCurrentList();
+    ChatListingModel? previousEntry;
+    for (final entry in previous) {
+      if (entry.chatID == item.chatID) {
+        previousEntry = entry;
+        break;
+      }
+    }
+    _applyDeleteLocal(
+      item: item,
+      deletedCutoff: deletedCutoff,
     );
+    try {
+      await _conversationRepository.setDeletedCutoff(
+        currentUid: _uid,
+        otherUserId: item.userID,
+        chatId: item.chatID,
+        deletedAt: deletedCutoff,
+      );
+    } catch (_) {
+      _commitListMutation(previous);
+      maybeFindUnreadMessagesController()?.updateConversationUnreadLocal(
+        otherUid: item.userID,
+        chatId: item.chatID,
+        unreadCount: previousEntry?.unreadCount ?? item.unreadCount,
+      );
+      rethrow;
+    }
+  }
 
-    for (final entry in list) {
-      if (entry.chatID != item.chatID) continue;
-      entry.deleted = entry.deleted
-          .where((value) => value != "__archived__" && value != "__deleted__")
-          .toList()
-        ..add("__deleted__");
+  Future<void> setArchived(
+    ChatListingModel item, {
+    required bool archived,
+  }) async {
+    final previous = _cloneCurrentList();
+    _applyArchiveLocal(
+      chatId: item.chatID,
+      archived: archived,
+    );
+    try {
+      await _conversationRepository.setArchived(
+        currentUid: _uid,
+        otherUserId: item.userID,
+        chatId: item.chatID,
+        archived: archived,
+      );
+    } catch (_) {
+      _commitListMutation(previous);
+      rethrow;
     }
-    list.refresh();
-    if (search.text.trim().isEmpty) {
-      _applyTabFilter();
-    } else {
-      _onSearchChanged();
-    }
-    _saveCachedList(list.toList());
   }
 
   void showCreateChatBottomSheet() {
@@ -140,5 +270,108 @@ extension ChatListingControllerActionsPart on ChatListingController {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
     );
+  }
+
+  void _listenCacheInvalidations() {
+    _invalidationSub?.cancel();
+    _invalidationSub = CacheInvalidationService.ensure().events.listen((event) {
+      switch (event.type) {
+        case CacheInvalidationEventType.messageDeletedForUser:
+        case CacheInvalidationEventType.messageUnsent:
+          if (event.scopeId.trim().isEmpty) return;
+          unawaited(_refreshConversationPreviewFromHead(event.scopeId));
+          return;
+        default:
+          return;
+      }
+    });
+  }
+
+  Future<void> _refreshConversationPreviewFromHead(String chatId) async {
+    final normalizedChatId = chatId.trim();
+    final uid = _uid.trim();
+    if (normalizedChatId.isEmpty || uid.isEmpty) return;
+    try {
+      final snapshot = await _conversationRepository.fetchLatestMessages(
+        normalizedChatId,
+        limit: 12,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      Map<String, dynamic>? latestVisible;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final deletedFor = (data['deletedFor'] as List?)
+                ?.map((item) => item.toString().trim())
+                .where((item) => item.isNotEmpty)
+                .toList(growable: false) ??
+            const <String>[];
+        if (deletedFor.contains(uid)) continue;
+        latestVisible = data;
+        break;
+      }
+      updateConversationPreviewLocal(
+        chatId: normalizedChatId,
+        previewText: latestVisible == null
+            ? ''
+            : _buildConversationPreviewFromData(latestVisible),
+        timestampMs: latestVisible == null
+            ? 0
+            : _extractConversationPreviewTimestampMs(latestVisible),
+      );
+    } catch (_) {}
+  }
+
+  int _extractConversationPreviewTimestampMs(Map<String, dynamic> data) {
+    final raw = data['createdDate'];
+    if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+    if (raw is num) return raw.toInt();
+    return int.tryParse('$raw') ?? 0;
+  }
+
+  num _conversationPreviewAsNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse('${value ?? ''}') ?? 0;
+  }
+
+  String _buildConversationPreviewFromData(Map<String, dynamic> data) {
+    if (data['unsent'] == true) return 'chat.unsent_message'.tr;
+
+    final text = (data['text'] ?? '').toString().trim();
+    if (text.isNotEmpty) return text;
+
+    final videoUrl = (data['videoUrl'] ?? '').toString().trim();
+    if (videoUrl.isNotEmpty) return 'chat.video'.tr;
+
+    final audioUrl = (data['audioUrl'] ?? '').toString().trim();
+    if (audioUrl.isNotEmpty) return 'chat.audio'.tr;
+
+    final mediaUrls = data['mediaUrls'];
+    if (mediaUrls is Iterable && mediaUrls.isNotEmpty) {
+      return 'chat.photo'.tr;
+    }
+
+    final postRef = data['postRef'];
+    if (postRef is Map &&
+        (postRef['postId'] ?? '').toString().trim().isNotEmpty) {
+      return 'chat.post'.tr;
+    }
+
+    final contact = data['contact'];
+    if (contact is Map &&
+        (contact['name'] ?? '').toString().trim().isNotEmpty) {
+      return 'chat.person'.tr;
+    }
+
+    final location = data['location'];
+    if (location is Map) {
+      final lat = _conversationPreviewAsNum(location['lat']);
+      final lng = _conversationPreviewAsNum(location['lng']);
+      if (lat != 0 || lng != 0) {
+        return 'chat.location'.tr;
+      }
+    }
+
+    return '';
   }
 }

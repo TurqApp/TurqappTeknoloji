@@ -1,6 +1,14 @@
 part of 'deep_link_service.dart';
 
 extension DeepLinkServiceOpenPart on DeepLinkService {
+  bool _deepLinkAsBool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+
   Future<void> _performOpenPost(String postId) async {
     final lookup = await _getPostLookup(postId);
     final model = lookup.model;
@@ -48,7 +56,7 @@ extension DeepLinkServiceOpenPart on DeepLinkService {
       AppSnackbar('common.info'.tr, 'deep_link.story_not_found'.tr);
       return;
     }
-    if ((storyData['deleted'] ?? false) == true) {
+    if (_deepLinkAsBool(storyData['deleted'], fallback: false)) {
       AppSnackbar('common.info'.tr, 'deep_link.story_removed'.tr);
       return;
     }
@@ -164,8 +172,8 @@ extension DeepLinkServiceOpenPart on DeepLinkService {
       return;
     }
 
-    final navController = NavBarController.ensure();
-    final educationController = EducationController.ensure();
+    final navController = ensureNavBarController();
+    final educationController = ensureEducationController();
 
     navController.changeIndex(3);
 

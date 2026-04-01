@@ -31,6 +31,8 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'tutoring_view_content_part.dart';
 part 'tutoring_view_shell_part.dart';
+part 'tutoring_view_shell_content_part.dart';
+part 'tutoring_view_shell_layout_part.dart';
 
 class TutoringView extends StatelessWidget {
   TutoringView({
@@ -42,11 +44,11 @@ class TutoringView extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final TutoringController tutoringController =
-      TutoringController.ensure(permanent: true);
+      ensureTutoringController(permanent: true);
   final ViewModeController viewModeController =
-      ViewModeController.ensure(permanent: true);
+      ensureViewModeController(permanent: true);
   final TutoringFilterController filterController =
-      TutoringFilterController.ensure(permanent: true);
+      ensureTutoringFilterController(permanent: true);
   final applyFilterTrigger = false.obs;
   ScrollController get _scrollController => tutoringController.scrollController;
 

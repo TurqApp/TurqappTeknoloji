@@ -8,23 +8,15 @@ service firebase.storage {
     }
     function canWritePostMedia(postId) {
       return isAuth()
-        && (
-          !firestore.exists(/databases/(default)/documents/Posts/$(postId))
-          || firestore.get(/databases/(default)/documents/Posts/$(postId)).data.userID == request.auth.uid
-        );
+        && firestore.exists(/databases/(default)/documents/Posts/$(postId))
+        && firestore.get(/databases/(default)/documents/Posts/$(postId)).data.userID == request.auth.uid;
     }
     function hasMatchingUploaderMetadata() {
       return isAuth()
         && request.resource != null
         && request.resource.metadata != null
+        && request.resource.metadata.keys().hasAll(['uploaderUid'])
         && request.resource.metadata.uploaderUid == request.auth.uid;
-    }
-    function isStorageUploaderBypass() {
-      return isAuth()
-        && request.auth.uid in [
-          'gszJ4gBsCRd03fijoldmtfsAXks2',
-          'fzP4AVdMugTi5oe11UTj6ljnfCj2'
-        ];
     }
     function isConversationParticipant(chatId) {
       return isAuth()
@@ -55,16 +47,14 @@ service firebase.storage {
       allow write: if fileName != "thumbnail.jpg"
                    && fileName != "hls"
                    && (canWritePostMedia(postId)
-                       || hasMatchingUploaderMetadata()
-                       || isStorageUploaderBypass())
+                       || hasMatchingUploaderMetadata())
                    && request.resource.size < 35 * 1024 * 1024; // 35MB video limit
     }
     match /Posts/{postId}/{folder}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if folder != "hls"
                    && (canWritePostMedia(postId)
-                       || hasMatchingUploaderMetadata()
-                       || isStorageUploaderBypass())
+                       || hasMatchingUploaderMetadata())
                    && request.resource.size < 35 * 1024 * 1024;
     }
 
@@ -165,14 +155,22 @@ service firebase.storage {
                    && request.resource.size < 15 * 1024 * 1024;
     }
 
+    match /scholarships/{folder}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && (folder == "templates"
+                       || folder == "images"
+                       || folder == "logos")
+                   && request.resource.size < 15 * 1024 * 1024;
+    }
+
     match /isBul/{jobId}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if isAuth()
                    && (
-                     !firestore.exists(/databases/(default)/documents/isBul/$(jobId))
-                     || firestore.get(/databases/(default)/documents/isBul/$(jobId)).data.userID == request.auth.uid
+                     (firestore.exists(/databases/(default)/documents/isBul/$(jobId))
+                      && firestore.get(/databases/(default)/documents/isBul/$(jobId)).data.userID == request.auth.uid)
                      || hasMatchingUploaderMetadata()
-                     || isStorageUploaderBypass()
                    )
                    && request.resource.size < 15 * 1024 * 1024;
     }

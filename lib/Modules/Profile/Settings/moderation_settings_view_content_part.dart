@@ -1,53 +1,17 @@
 part of 'moderation_settings_view.dart';
 
 extension _ModerationSettingsViewContentPart on _ModerationSettingsViewState {
-  Widget _buildModerationSettingsScaffold(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: 'admin.moderation.title'.tr),
-            Expanded(
-              child: FutureBuilder<bool>(
-                future: _canAccessFuture,
-                builder: (context, accessSnap) {
-                  if (accessSnap.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (accessSnap.data != true) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'admin.no_access'.tr,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'MontserratMedium',
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return StreamBuilder<ModerationConfigModel>(
-                    stream: _configService.watch(),
-                    builder: (context, configSnap) {
-                      final config =
-                          configSnap.data ?? ModerationConfigModel.defaults;
-                      return _ModerationThresholdList(
-                        config: config,
-                        provisioning: _provisioning,
-                        onEnsureConfig: _ensureConfig,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildModerationSettingsContent(BuildContext context) {
+    return StreamBuilder<ModerationConfigModel>(
+      stream: _configService.watch(),
+      builder: (context, configSnap) {
+        final config = configSnap.data ?? ModerationConfigModel.defaults;
+        return _ModerationThresholdList(
+          config: config,
+          provisioning: _provisioning,
+          onEnsureConfig: _ensureConfig,
+        );
+      },
     );
   }
 
@@ -84,7 +48,7 @@ class _ModerationThresholdList extends StatelessWidget {
   final bool provisioning;
   final Future<void> Function() onEnsureConfig;
   static final ModerationRepository _moderationRepository =
-      ModerationRepository.ensure();
+      ensureModerationRepository();
 
   @override
   Widget build(BuildContext context) {

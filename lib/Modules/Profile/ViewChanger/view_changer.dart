@@ -24,7 +24,7 @@ class _ViewChangerState extends State<ViewChanger> {
     super.initState();
     _controllerTag = 'view_changer_${identityHashCode(this)}';
     final initialSelection = (userService.currentUser?.viewSelection ?? 1).obs;
-    controller = ViewChangerController.ensure(
+    controller = ensureViewChangerController(
       selection: initialSelection,
       tag: _controllerTag,
     );
@@ -32,9 +32,9 @@ class _ViewChangerState extends State<ViewChanger> {
 
   @override
   void dispose() {
-    if (ViewChangerController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindViewChangerController(tag: _controllerTag) != null &&
         identical(
-          ViewChangerController.maybeFind(tag: _controllerTag),
+          maybeFindViewChangerController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ViewChangerController>(tag: _controllerTag);
@@ -42,8 +42,7 @@ class _ViewChangerState extends State<ViewChanger> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -60,11 +59,12 @@ class _ViewChangerState extends State<ViewChanger> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           GestureDetector(
-                              onTap: () {
-                                controller.updateViewMode(0);
-                                Get.back();
-                              },
-                              child: selection1()),
+                            onTap: () {
+                              controller.updateViewMode(0);
+                              Get.back();
+                            },
+                            child: _buildClassicSelection(),
+                          ),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 20),
                             child: Divider(
@@ -72,131 +72,124 @@ class _ViewChangerState extends State<ViewChanger> {
                             ),
                           ),
                           GestureDetector(
-                              onTap: () {
-                                controller.updateViewMode(1);
-                                Get.back();
-                              },
-                              child: selection2()),
+                            onTap: () {
+                              controller.updateViewMode(1);
+                              Get.back();
+                            },
+                            child: _buildModernSelection(),
+                          ),
                         ],
                       ),
                     );
-                  })
+                  }),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget selection1() {
+  Widget _buildClassicSelection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 25,
-              height: 25,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(3),
-                child: Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: controller.selection.value == 0
-                          ? Colors.black
-                          : Colors.white),
-                ),
-              ), // örnek ikon
-            ),
-            7.pw,
-            Text(
-              'view_changer.classic'.tr,
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratBold"),
-            )
-          ],
+        _buildSelectionHeader(
+          label: 'view_changer.classic'.tr,
+          isSelected: controller.selection.value == 0,
         ),
         7.ph,
         Padding(
           padding: const EdgeInsets.only(left: 33),
           child: Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                      color: controller.selection.value == 0
-                          ? Colors.blueAccent
-                          : Colors.grey.withAlpha(50)),
-                  borderRadius: BorderRadius.all(Radius.circular(4))),
-              child: ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(4)),
-                  child: Image.asset("assets/images/klasikview.webp"))),
-        )
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: controller.selection.value == 0
+                    ? Colors.blueAccent
+                    : Colors.grey.withAlpha(50),
+              ),
+              borderRadius: const BorderRadius.all(Radius.circular(4)),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(4)),
+              child: Image.asset("assets/images/klasikview.webp"),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget selection2() {
+  Widget _buildModernSelection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 25,
-              height: 25,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(3),
-                child: Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: controller.selection.value == 1
-                          ? Colors.black
-                          : Colors.white),
-                ),
-              ), // örnek ikon
-            ),
-            7.pw,
-            Text(
-              'view_changer.modern'.tr,
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratBold"),
-            )
-          ],
+        _buildSelectionHeader(
+          label: 'view_changer.modern'.tr,
+          isSelected: controller.selection.value == 1,
         ),
         7.ph,
         Padding(
           padding: const EdgeInsets.only(left: 33),
           child: Container(
-              decoration: BoxDecoration(
-                  border: Border.all(
-                      color: controller.selection.value == 1
-                          ? Colors.blueAccent
-                          : Colors.grey.withAlpha(50)),
-                  borderRadius: BorderRadius.all(Radius.circular(4))),
-              child: ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(4)),
-                  child: Image.asset("assets/images/modernview.webp"))),
-        )
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: controller.selection.value == 1
+                    ? Colors.blueAccent
+                    : Colors.grey.withAlpha(50),
+              ),
+              borderRadius: const BorderRadius.all(Radius.circular(4)),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(4)),
+              child: Image.asset("assets/images/modernview.webp"),
+            ),
+          ),
+        ),
       ],
     );
   }
+
+  Widget _buildSelectionHeader({
+    required String label,
+    required bool isSelected,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 25,
+          height: 25,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.grey),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(3),
+            child: Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? Colors.black : Colors.white,
+              ),
+            ),
+          ),
+        ),
+        7.pw,
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 15,
+            fontFamily: "MontserratBold",
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => _buildPage(context);
 }

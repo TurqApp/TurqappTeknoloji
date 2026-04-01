@@ -36,13 +36,13 @@ class _NotifyReaderState extends State<NotifyReader> {
     super.initState();
     _controllerTag =
         'notify_reader_${widget.type}_${widget.docID}_${identityHashCode(this)}';
-    final existingController = NotifyReaderController.maybeFind(
+    final existingController = maybeFindNotifyReaderController(
       tag: _controllerTag,
     );
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = NotifyReaderController.ensure(tag: _controllerTag);
+      controller = ensureNotifyReaderController(tag: _controllerTag);
       _ownsController = true;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -56,7 +56,7 @@ class _NotifyReaderState extends State<NotifyReader> {
   void dispose() {
     if (_ownsController &&
         identical(
-          NotifyReaderController.maybeFind(tag: _controllerTag),
+          maybeFindNotifyReaderController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<NotifyReaderController>(tag: _controllerTag);

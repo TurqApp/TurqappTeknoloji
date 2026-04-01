@@ -2,6 +2,24 @@ part of 'create_scholarship_controller.dart';
 
 extension CreateScholarshipControllerSubmissionPart
     on CreateScholarshipController {
+  Future<RenderRepaintBoundary?> _waitForTemplateBoundary() async {
+    for (var attempt = 0; attempt < 5; attempt++) {
+      await WidgetsBinding.instance.endOfFrame;
+      final boundary =
+          templateKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary != null && !boundary.debugNeedsPaint) {
+        return boundary;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+    final boundary =
+        templateKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary != null && !boundary.debugNeedsPaint) {
+      return boundary;
+    }
+    return null;
+  }
+
   Future<Uint8List?> _compressFileToWebp(File file, {int quality = 85}) async {
     try {
       return await FlutterImageCompress.compressWithFile(
@@ -83,8 +101,7 @@ extension CreateScholarshipControllerSubmissionPart
         return null;
       }
 
-      RenderRepaintBoundary? boundary = templateKey.currentContext
-          ?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary = await _waitForTemplateBoundary();
       if (boundary == null) {
         return null;
       }
@@ -149,24 +166,20 @@ extension CreateScholarshipControllerSubmissionPart
 
   List<String> _buildAltEducationAudience() {
     final altEgitimKitlesi = <String>[];
-    if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceMiddleSchoolValue) {
+    if (egitimKitlesi.value == educationAudienceMiddleSchoolValue) {
       altEgitimKitlesi.add(
-        CreateScholarshipController.educationAudienceMiddleSchoolValue,
+        educationAudienceMiddleSchoolValue,
       );
-    } else if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceHighSchoolValue) {
+    } else if (egitimKitlesi.value == educationAudienceHighSchoolValue) {
       altEgitimKitlesi.add(
-        CreateScholarshipController.educationAudienceHighSchoolValue,
+        educationAudienceHighSchoolValue,
       );
-    } else if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceUndergraduateValue) {
+    } else if (egitimKitlesi.value == educationAudienceUndergraduateValue) {
       altEgitimKitlesi.addAll(lisansTuru);
-    } else if (egitimKitlesi.value ==
-        CreateScholarshipController.educationAudienceAllValue) {
+    } else if (egitimKitlesi.value == educationAudienceAllValue) {
       altEgitimKitlesi.addAll([
-        CreateScholarshipController.educationAudienceMiddleSchoolValue,
-        CreateScholarshipController.educationAudienceHighSchoolValue,
+        educationAudienceMiddleSchoolValue,
+        educationAudienceHighSchoolValue,
       ]);
       altEgitimKitlesi.addAll(lisansTuru);
     }
@@ -174,9 +187,8 @@ extension CreateScholarshipControllerSubmissionPart
   }
 
   String _resolvedEducationAudienceValue() {
-    return egitimKitlesi.value ==
-            CreateScholarshipController.educationAudienceAllValue
-        ? CreateScholarshipController.educationAudienceAllExpandedValue
+    return egitimKitlesi.value == educationAudienceAllValue
+        ? educationAudienceAllExpandedValue
         : egitimKitlesi.value;
   }
 
@@ -226,12 +238,12 @@ extension CreateScholarshipControllerSubmissionPart
   }
 
   Future<void> _navigateAfterSubmission(String successMessage) async {
-    final scholarshipsController = ScholarshipsController.ensure();
+    final scholarshipsController = ensureScholarshipsController();
     scholarshipsController.fetchScholarships();
 
     try {
       Get.offAll(() => NavBarView());
-      NavBarController.maybeFind()?.changeIndex(3);
+      maybeFindNavBarController()?.changeIndex(3);
     } catch (_) {}
 
     try {

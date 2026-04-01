@@ -6,14 +6,44 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 
 class StoredAccount {
-  const StoredAccount({
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static bool _asBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
+  StoredAccount({
     required this.uid,
     required this.email,
     required this.username,
     required this.displayName,
     required this.rozet,
     required this.avatarUrl,
-    required this.providers,
+    required List<String> providers,
     required this.lastUsedAt,
     required this.isSessionValid,
     required this.requiresReauth,
@@ -21,7 +51,7 @@ class StoredAccount {
     required this.isPinned,
     required this.sortOrder,
     required this.lastSuccessfulSignInAt,
-  });
+  }) : providers = List<String>.from(providers, growable: false);
 
   final String uid;
   final String email;
@@ -89,7 +119,7 @@ class StoredAccount {
       'displayName': displayName,
       'rozet': rozet,
       'avatarUrl': avatarUrl,
-      'providers': providers,
+      'providers': List<String>.from(providers, growable: false),
       'lastUsedAt': lastUsedAt,
       'isSessionValid': isSessionValid,
       'requiresReauth': requiresReauth,
@@ -113,14 +143,13 @@ class StoredAccount {
               .where((e) => e.trim().isNotEmpty)
               .toList(growable: false) ??
           const <String>[],
-      lastUsedAt: (json['lastUsedAt'] as num?)?.toInt() ?? 0,
+      lastUsedAt: _asInt(json['lastUsedAt']),
       isSessionValid: json['isSessionValid'] != false,
-      requiresReauth: json['requiresReauth'] == true,
+      requiresReauth: _asBool(json['requiresReauth']),
       accountState: (json['accountState'] ?? 'active').toString(),
-      isPinned: json['isPinned'] == true,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-      lastSuccessfulSignInAt:
-          (json['lastSuccessfulSignInAt'] as num?)?.toInt() ?? 0,
+      isPinned: _asBool(json['isPinned']),
+      sortOrder: _asInt(json['sortOrder']),
+      lastSuccessfulSignInAt: _asInt(json['lastSuccessfulSignInAt']),
     );
   }
 
@@ -129,9 +158,8 @@ class StoredAccount {
     required User firebaseUser,
   }) {
     final username = user.nickname.trim();
-    final displayName = user.fullName.trim().isNotEmpty
-        ? user.fullName.trim()
-        : username;
+    final displayName =
+        user.fullName.trim().isNotEmpty ? user.fullName.trim() : username;
     final providers = firebaseUser.providerData
         .map((e) => e.providerId.trim())
         .where((e) => e.isNotEmpty)

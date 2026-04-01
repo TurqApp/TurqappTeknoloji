@@ -22,6 +22,8 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { buildInboxPayload } from "./notificationInbox";
+import { HYBRID_FEED_CONTRACT } from "./hybridFeedContract";
 
 const db = () => admin.firestore();
 
@@ -33,6 +35,183 @@ const FAN_OUT_BATCH_SIZE = 450; // Firestore batch limiti 500, güvenli margin
 
 /// Feed item'ın geçerlilik süresi: 7 gün
 const FEED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const FOLLOWED_POST_NOTIFICATION_FIELD = "followedPostNotificationSentAt";
+const FOLLOWED_POST_SUBCOLLECTION = "postNotificationSubscribers";
+const NOTIFICATION_BATCH_SIZE = 400;
+
+function asTrimmedString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function firstNonEmptyString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === "string" && entry.trim().length > 0) {
+          return entry.trim();
+        }
+      }
+    }
+  }
+  return "";
+}
+
+function resolveAuthorTitle(data: admin.firestore.DocumentData | undefined): string {
+  return firstNonEmptyString(
+    data?.authorDisplayName,
+    data?.authorNickname,
+    data?.nickname,
+    data?.username,
+    data?.fullName,
+    "TurqApp",
+  );
+}
+
+function resolveAuthorAvatarUrl(
+  data: admin.firestore.DocumentData | undefined,
+): string {
+  return firstNonEmptyString(
+    data?.authorAvatarUrl,
+    data?.avatarUrl,
+    data?.profileImage,
+  );
+}
+
+function resolvePostPreviewImage(
+  data: admin.firestore.DocumentData | undefined,
+): string {
+  return firstNonEmptyString(
+    data?.thumbnail,
+    data?.imageUrl,
+    data?.imageURL,
+    data?.coverImageUrl,
+    data?.images,
+    data?.img,
+  );
+}
+
+async function claimFollowedPostNotification(
+  postRef: admin.firestore.DocumentReference,
+): Promise<boolean> {
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(postRef);
+    if (!snap.exists) return false;
+    const data = snap.data() || {};
+    if (Number(data[FOLLOWED_POST_NOTIFICATION_FIELD] || 0) > 0) {
+      return false;
+    }
+    tx.set(
+      postRef,
+      {
+        [FOLLOWED_POST_NOTIFICATION_FIELD]: Date.now(),
+      },
+      { merge: true },
+    );
+    return true;
+  });
+}
+
+async function notifyFollowedPostSubscribers(args: {
+  postId: string;
+  postRef: admin.firestore.DocumentReference;
+  data: admin.firestore.DocumentData;
+}): Promise<void> {
+  const { postId, postRef, data } = args;
+  const authorId = asTrimmedString(data.userID);
+  if (!postId || !authorId || !isVisiblePostRecord(data)) return;
+
+  const claimed = await claimFollowedPostNotification(postRef);
+  if (!claimed) return;
+
+  const timeStamp = Number(data.timeStamp) || Date.now();
+  const title = resolveAuthorTitle(data);
+  const body = "yeni bir gönderi paylaştı";
+  const avatarUrl = resolveAuthorAvatarUrl(data);
+  const imageUrl = resolvePostPreviewImage(data);
+  let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+
+  while (true) {
+    let query: admin.firestore.Query = db()
+      .collection("users")
+      .doc(authorId)
+      .collection(FOLLOWED_POST_SUBCOLLECTION)
+      .orderBy(admin.firestore.FieldPath.documentId())
+      .limit(NOTIFICATION_BATCH_SIZE);
+
+    if (lastDoc) query = query.startAfter(lastDoc);
+
+    const subscribersSnap = await query.get();
+    if (subscribersSnap.empty) break;
+
+    const batch = db().batch();
+    for (const subscriberDoc of subscribersSnap.docs) {
+      const subscriberUid = subscriberDoc.id.trim();
+      if (!subscriberUid || subscriberUid == authorId) continue;
+
+      const payload = buildInboxPayload(subscriberUid, {
+        fromUserID: authorId,
+        postID: postId,
+        type: "posts",
+        followedPostSubscriber: true,
+        title,
+        body,
+        desc: body,
+        timeStamp,
+        ...(avatarUrl ? { avatarUrl } : {}),
+        ...(imageUrl ? { imageUrl, thumbnail: imageUrl } : {}),
+      });
+
+      batch.set(
+        db()
+          .collection("users")
+          .doc(subscriberUid)
+          .collection("notifications")
+          .doc(`followed_post_${postId}`),
+        payload,
+        { merge: true },
+      );
+    }
+
+    await batch.commit();
+    lastDoc = subscribersSnap.docs[subscribersSnap.docs.length - 1];
+    if (subscribersSnap.docs.length < NOTIFICATION_BATCH_SIZE) break;
+  }
+}
+
+function isCountedRootPost(
+  data: admin.firestore.DocumentData | undefined,
+  nowMs: number = Date.now(),
+): boolean {
+  if (!data) return false;
+  const timeStamp = Number(data.timeStamp || 0);
+  const scheduledAt = Number(data.scheduledAt || 0);
+  return (
+    data.flood !== true &&
+    data.arsiv !== true &&
+    data.deletedPost !== true &&
+    data.gizlendi !== true &&
+    data.isUploading !== true &&
+    scheduledAt <= 0 &&
+    timeStamp > 0 &&
+    timeStamp <= nowMs
+  );
+}
+
+async function adjustAuthorPostCount(
+  authorId: string,
+  delta: number,
+): Promise<void> {
+  if (!authorId || delta == 0) return;
+  await db().collection("users").doc(authorId).set(
+    {
+      counterOfPosts: admin.firestore.FieldValue.increment(delta),
+    },
+    { merge: true },
+  );
+}
 
 export async function resolveFollowerCollection(authorId: string): Promise<string> {
   const followersSnap = await db()
@@ -64,23 +243,23 @@ export async function upsertPostIntoHybridFeed(args: {
     0;
 
   if (followerCount > FAN_OUT_THRESHOLD) {
-    await db().collection("celebAccounts").doc(authorId).set(
+    await db().collection(HYBRID_FEED_CONTRACT.celebrityCollection).doc(authorId).set(
       { uid: authorId, followerCount, updatedAt: Date.now() },
       { merge: true }
     );
     await db()
-      .collection("userFeeds")
+      .collection(HYBRID_FEED_CONTRACT.primaryCollection)
       .doc(authorId)
-      .collection("items")
+      .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
       .doc(postId)
       .set(
         {
-          postId,
-          authorId,
-          timeStamp,
-          isVideo,
-          expiresAt: timeStamp + FEED_TTL_MS,
-          isCelebrity: true,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: true,
         },
         { merge: true }
       );
@@ -106,20 +285,20 @@ export async function upsertPostIntoHybridFeed(args: {
     for (const followerDoc of followersSnap.docs) {
       const followerUid = followerDoc.id;
       const feedRef = db()
-        .collection("userFeeds")
+        .collection(HYBRID_FEED_CONTRACT.primaryCollection)
         .doc(followerUid)
-        .collection("items")
+        .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
         .doc(postId);
 
       wb.set(
         feedRef,
         {
-          postId,
-          authorId,
-          timeStamp,
-          isVideo,
-          expiresAt: timeStamp + FEED_TTL_MS,
-          isCelebrity: false,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
         },
         { merge: true }
       );
@@ -131,18 +310,18 @@ export async function upsertPostIntoHybridFeed(args: {
   }
 
   await db()
-    .collection("userFeeds")
+    .collection(HYBRID_FEED_CONTRACT.primaryCollection)
     .doc(authorId)
-    .collection("items")
+    .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
     .doc(postId)
     .set(
       {
-        postId,
-        authorId,
-        timeStamp,
-        isVideo,
-        expiresAt: timeStamp + FEED_TTL_MS,
-        isCelebrity: false,
+        [HYBRID_FEED_CONTRACT.referenceFields.postId]: postId,
+        [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+        [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: timeStamp,
+        [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: isVideo,
+        [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]: timeStamp + FEED_TTL_MS,
+        [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
       },
       { merge: true }
     );
@@ -226,7 +405,7 @@ export async function rebuildHybridFeedForUser(args: {
           }, [])
           .map(async (chunk) => {
             const snap = await db()
-              .collection("celebAccounts")
+              .collection(HYBRID_FEED_CONTRACT.celebrityCollection)
               .where(admin.firestore.FieldPath.documentId(), "in", chunk)
               .get();
             return snap.docs.map((doc) => doc.id);
@@ -287,17 +466,18 @@ export async function rebuildHybridFeedForUser(args: {
     for (const entry of chunk) {
       wb.set(
         db()
-          .collection("userFeeds")
+          .collection(HYBRID_FEED_CONTRACT.primaryCollection)
           .doc(normalizedUid)
-          .collection("items")
+          .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
           .doc(entry.postId),
         {
-          postId: entry.postId,
-          authorId: entry.authorId,
-          timeStamp: entry.timeStamp,
-          isVideo: entry.isVideo,
-          expiresAt: entry.timeStamp + FEED_TTL_MS,
-          isCelebrity: entry.isCelebrity,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: entry.postId,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: entry.authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: entry.timeStamp,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]: entry.isVideo,
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]:
+            entry.timeStamp + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: entry.isCelebrity,
         },
         { merge: true }
       );
@@ -355,10 +535,7 @@ export const onPostCreate = functions
     const authorId: string = data.userID || "";
     const timeStamp: number = data.timeStamp || Date.now();
     const isVideo: boolean = !!(data.videoHLSMasterUrl || data.hlsMasterUrl || data.video);
-    const arsiv: boolean = data.arsiv === true;
-    const deletedPost: boolean = data.deletedPost === true;
-
-    if (!authorId || arsiv || deletedPost) return;
+    if (!authorId || !isVisiblePostRecord(data) || timeStamp > Date.now()) return;
 
     try {
       await upsertPostIntoHybridFeed({
@@ -371,6 +548,24 @@ export const onPostCreate = functions
       console.log("[HybridFeed] Fan-out complete");
     } catch (e) {
       console.error("[HybridFeed] onPostCreate error:", e);
+    }
+
+    try {
+      await notifyFollowedPostSubscribers({
+        postId,
+        postRef: snap.ref,
+        data,
+      });
+    } catch (e) {
+      console.error("[HybridFeed] onPostCreate notify followers error:", e);
+    }
+
+    try {
+      if (isCountedRootPost(data)) {
+        await adjustAuthorPostCount(authorId, 1);
+      }
+    } catch (e) {
+      console.error("[HybridFeed] onPostCreate counter error:", e);
     }
   });
 
@@ -398,19 +593,43 @@ export const onPostBecomeVisible = functions
       after.deletedPost !== true &&
       after.gizlendi !== true &&
       after.isUploading !== true;
+    const beforeCounted = isCountedRootPost(before);
+    const afterCounted = isCountedRootPost(after);
 
-    if (!authorId || beforeVisible || !afterVisible) return;
+    if (!authorId) return;
+
+    if (!beforeVisible && afterVisible) {
+      try {
+        await upsertPostIntoHybridFeed({
+          postId,
+          authorId,
+          timeStamp,
+          isVideo,
+        });
+        console.log("[HybridFeed] Visibility upsert complete");
+      } catch (e) {
+        console.error("[HybridFeed] onPostBecomeVisible error:", e);
+      }
+
+      try {
+        await notifyFollowedPostSubscribers({
+          postId,
+          postRef: change.after.ref,
+          data: after,
+        });
+      } catch (e) {
+        console.error("[HybridFeed] onPostBecomeVisible notify followers error:", e);
+      }
+    }
 
     try {
-      await upsertPostIntoHybridFeed({
-        postId,
-        authorId,
-        timeStamp,
-        isVideo,
-      });
-      console.log("[HybridFeed] Visibility upsert complete");
+      if (!beforeCounted && afterCounted) {
+        await adjustAuthorPostCount(authorId, 1);
+      } else if (beforeCounted && !afterCounted) {
+        await adjustAuthorPostCount(authorId, -1);
+      }
     } catch (e) {
-      console.error("[HybridFeed] onPostBecomeVisible error:", e);
+      console.error("[HybridFeed] onPostVisibility counter error:", e);
     }
   });
 
@@ -424,14 +643,15 @@ export const onPostDelete = functions
   .onDelete(async (snap, context) => {
     const postId = context.params.postId;
     const authorId: string = snap.data()?.userID || "";
+    const wasCounted = isCountedRootPost(snap.data());
     if (!authorId) return;
 
     try {
       // Author'ın kendi feed'inden sil
       await db()
-        .collection("userFeeds")
+        .collection(HYBRID_FEED_CONTRACT.primaryCollection)
         .doc(authorId)
-        .collection("items")
+        .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
         .doc(postId)
         .delete();
 
@@ -439,8 +659,8 @@ export const onPostDelete = functions
       let lastDocRef: admin.firestore.QueryDocumentSnapshot | null = null;
       while (true) {
         let q: admin.firestore.Query = db()
-          .collectionGroup("items")
-          .where("postId", "==", postId)
+          .collectionGroup(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
+          .where(HYBRID_FEED_CONTRACT.referenceFields.postId, "==", postId)
           .limit(400);
         if (lastDocRef) q = q.startAfter(lastDocRef);
 
@@ -458,6 +678,14 @@ export const onPostDelete = functions
       console.log("[HybridFeed] Feed items cleaned up");
     } catch (e) {
       console.error("[HybridFeed] onPostDelete error:", e);
+    }
+
+    try {
+      if (wasCounted) {
+        await adjustAuthorPostCount(authorId, -1);
+      }
+    } catch (e) {
+      console.error("[HybridFeed] onPostDelete counter error:", e);
     }
   });
 
@@ -494,18 +722,20 @@ export const onNewFollower = functions
       for (const postDoc of postsSnap.docs) {
         const d = postDoc.data();
         const feedRef = db()
-          .collection("userFeeds")
+          .collection(HYBRID_FEED_CONTRACT.primaryCollection)
           .doc(followerId)
-          .collection("items")
+          .collection(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
           .doc(postDoc.id);
 
         wb.set(feedRef, {
-          postId: postDoc.id,
-          authorId,
-          timeStamp: d.timeStamp || now,
-          isVideo: !!(d.videoHLSMasterUrl || d.video),
-          expiresAt: (d.timeStamp || now) + FEED_TTL_MS,
-          isCelebrity: false,
+          [HYBRID_FEED_CONTRACT.referenceFields.postId]: postDoc.id,
+          [HYBRID_FEED_CONTRACT.referenceFields.authorId]: authorId,
+          [HYBRID_FEED_CONTRACT.referenceFields.timeStamp]: d.timeStamp || now,
+          [HYBRID_FEED_CONTRACT.referenceFields.isVideo]:
+            !!(d.videoHLSMasterUrl || d.video),
+          [HYBRID_FEED_CONTRACT.referenceFields.expiresAt]:
+            (d.timeStamp || now) + FEED_TTL_MS,
+          [HYBRID_FEED_CONTRACT.referenceFields.isCelebrity]: false,
         });
       }
       await wb.commit();
@@ -530,8 +760,8 @@ export const cleanupExpiredFeedItems = functions
     let lastDocRef: admin.firestore.QueryDocumentSnapshot | null = null;
     while (true) {
       let q: admin.firestore.Query = db()
-        .collectionGroup("items")
-        .where("expiresAt", "<", now)
+        .collectionGroup(HYBRID_FEED_CONTRACT.primaryItemsSubcollection)
+        .where(HYBRID_FEED_CONTRACT.referenceFields.expiresAt, "<", now)
         .limit(400);
       if (lastDocRef) q = q.startAfter(lastDocRef);
 

@@ -4,12 +4,21 @@ import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
 import { upsertPostIntoHybridFeed } from "./hybridFeed";
 import { buildInboxPayload } from "./notificationInbox";
+import {
+  defaultPushTypes,
+  interactionQuietWindowMs,
+  interactionThrottleType,
+  isNotificationTypeEnabled,
+  shouldDispatchNotificationPush,
+  isUserNotificationTypeEnabled,
+  notificationBodyFromType,
+  type PushTypeMap,
+} from "./notificationPushPolicy";
 export { archiveOnStoryDelete, cleanupExpiredStories } from "./storyArchive";
 import {
   normalizeAvatarUrl,
   normalizePhone,
   normalizeUsernameLower,
-  parseForceFollowUids,
   parseLegacyCreatedDateToTimestamp,
   toNonNegativeInt,
 } from "./userSchemaUtils";
@@ -19,6 +28,168 @@ if (admin.apps.length === 0) {
 }
 
 const db = admin.firestore();
+const DEFAULT_SIGNUP_FOLLOW_UID = "fzP4AVdMugTi5oe11UTj6ljnfCj2";
+const PUSH_TOKEN_FIELDS = ["fcmToken", "pushToken", "token", "fcm_token"] as const;
+
+type NotificationPushConfig = {
+  enabled: boolean;
+  types: PushTypeMap;
+};
+
+function _firstNonEmptyString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === "string" && entry.trim().length > 0) {
+          return entry.trim();
+        }
+      }
+    }
+  }
+  return "";
+}
+
+function _pickPostPreviewImage(
+  data: Record<string, unknown> | undefined,
+): string {
+  if (!data) return "";
+  return _firstNonEmptyString(
+    data.imageUrl,
+    data.thumbnail,
+    data.imageURL,
+    data.coverImageUrl,
+    data.logo,
+    data.avatarUrl,
+    data.img,
+    data.images,
+  );
+}
+
+function _resolveUserPushToken(
+  data: Record<string, unknown> | undefined,
+): string {
+  if (!data) return "";
+  return _firstNonEmptyString(
+    data.fcmToken,
+    data.pushToken,
+    data.token,
+    data.fcm_token,
+  );
+}
+
+async function _resolveNotificationImageUrl(
+  data: Record<string, unknown>,
+): Promise<string> {
+  const direct = _firstNonEmptyString(
+    data.imageUrl,
+    data.thumbnail,
+    data.imageURL,
+    data.avatarUrl,
+    data.applicantPfImage,
+    data.tutorImage,
+    data.companyLogo,
+    data.logo,
+    data.coverImageUrl,
+    data.img,
+    data.images,
+  );
+  if (direct) return direct;
+
+  const rawType = String(data.type || "").trim().toLowerCase();
+  const postId = String(data.postID || data.chatID || "").trim();
+  if (postId) {
+    if (
+      rawType === "posts" ||
+      rawType === "post" ||
+      rawType === "like" ||
+      rawType === "comment" ||
+      rawType === "reshared_posts" ||
+      rawType === "shared_as_posts"
+    ) {
+      const postSnap = await db.collection("Posts").doc(postId).get();
+      if (postSnap.exists) {
+        const preview = _pickPostPreviewImage(
+          postSnap.data() as Record<string, unknown> | undefined,
+        );
+        if (preview) return preview;
+      }
+    } else if (rawType === "job_application") {
+      const jobSnap = await db.collection("isBul").doc(postId).get();
+      if (jobSnap.exists) {
+        const preview = _pickPostPreviewImage(
+          jobSnap.data() as Record<string, unknown> | undefined,
+        );
+        if (preview) return preview;
+      }
+    } else if (
+      rawType === "tutoring_application" ||
+      rawType === "tutoring_status"
+    ) {
+      const tutoringSnap = await db.collection("educators").doc(postId).get();
+      if (tutoringSnap.exists) {
+        const preview = _pickPostPreviewImage(
+          tutoringSnap.data() as Record<string, unknown> | undefined,
+        );
+        if (preview) return preview;
+      }
+    }
+  }
+
+  const fromUserID = String(data.fromUserID || "").trim();
+  if (fromUserID) {
+    const userSnap = await db.collection("users").doc(fromUserID).get();
+    if (userSnap.exists) {
+      const avatarUrl = normalizeAvatarUrl(userSnap.data()?.avatarUrl);
+      if (avatarUrl) return avatarUrl;
+    }
+  }
+
+  return "";
+}
+
+async function _resolveNotificationPushPayload(
+  raw: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const data = { ...raw };
+  const rawType = String(data.type || "").trim().toLowerCase();
+  const postId = String(data.postID || "").trim();
+
+  if (rawType !== "like" || !postId) {
+    return data;
+  }
+
+  if (toNonNegativeInt(data.likeCount) > 0) {
+    return data;
+  }
+
+  try {
+    const postSnap = await db.collection("Posts").doc(postId).get();
+    if (!postSnap.exists) return data;
+
+    const postData = postSnap.data() as Record<string, unknown> | undefined;
+    const stats =
+      postData?.stats &&
+      typeof postData.stats === "object" &&
+      !Array.isArray(postData.stats)
+        ? (postData.stats as Record<string, unknown>)
+        : undefined;
+    const likeCount = toNonNegativeInt(stats?.likeCount);
+    if (likeCount > 0) {
+      data.likeCount = likeCount;
+    }
+  } catch (e) {
+    console.error("_resolveNotificationPushPayload error", {
+      type: rawType,
+      postId,
+      message: String(e),
+    });
+  }
+
+  return data;
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS
@@ -32,11 +203,7 @@ export { generateThumbnails } from "./thumbnails";
 // 🎬 HLS VIDEO TRANSCODE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export { onVideoUpload } from "./hlsTranscode";
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 📊 AGGREGATION COUNTER SHARDING (A9)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export { recordViewBatch, aggregateCounterShards, initCounterShards } from "./counterShards";
+export { processPostsMigrationQueue } from "./postsMigrationScheduler";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
@@ -207,51 +374,159 @@ export const syncUserSchemaAndFlags = functions.firestore
     });
   });
 
-// FORCE FOLLOW ON NEW USER CREATE (server-side guarantee)
+// ONE-TIME DEFAULT FOLLOW ON NEW USER CREATE
 export const enforceMandatoryFollowOnUserCreate = functions.firestore
   .document("users/{uid}")
   .onCreate(async (_snap, context) => {
-    const uid = context.params.uid as string;
-    if (!uid) return;
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = DEFAULT_SIGNUP_FOLLOW_UID.trim();
+    if (!uid || !targetUid || uid == targetUid) return;
 
     try {
-      const configSnap = await db.collection("adminConfig").doc("forceFollow").get();
-      const required = parseForceFollowUids(configSnap.data()).filter((target) => target !== uid);
-      if (required.length === 0) return;
-
       const now = Date.now();
-      for (const targetUid of required) {
-        const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
-        const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
-        const meRootRef = db.doc(`users/${uid}`);
-        const targetRootRef = db.doc(`users/${targetUid}`);
+      const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
+      const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
 
-        await db.runTransaction(async (tx) => {
-          const existing = await tx.get(myFollowingRef);
-          if (existing.exists) return;
+      await db.runTransaction(async (tx) => {
+        const existing = await tx.get(myFollowingRef);
+        if (existing.exists) return;
 
-          tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
-          tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
-          tx.set(
-            meRootRef,
-            {
-              counterOfFollowings: admin.firestore.FieldValue.increment(1),
-              updatedDate: now,
-            },
-            { merge: true }
-          );
-          tx.set(
-            targetRootRef,
-            {
-              counterOfFollowers: admin.firestore.FieldValue.increment(1),
-              updatedDate: now,
-            },
-            { merge: true }
-          );
-        });
-      }
+        tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
+        tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
+      });
     } catch (e) {
       console.error("enforceMandatoryFollowOnUserCreate error", e);
+    }
+  });
+
+export const incrementFollowCountersOnFollowingCreate = functions.firestore
+  .document("users/{uid}/followings/{targetUid}")
+  .onCreate(async (_snap, context) => {
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = String(context.params.targetUid || "").trim();
+    if (!uid || !targetUid || uid == targetUid) return;
+
+    try {
+      const now = Date.now();
+      await db.runTransaction(async (tx) => {
+        tx.set(
+          db.doc(`users/${uid}`),
+          {
+            counterOfFollowings: admin.firestore.FieldValue.increment(1),
+            updatedDate: now,
+          },
+          { merge: true }
+        );
+        tx.set(
+          db.doc(`users/${targetUid}`),
+          {
+            counterOfFollowers: admin.firestore.FieldValue.increment(1),
+            updatedDate: now,
+          },
+          { merge: true }
+        );
+      });
+    } catch (e) {
+      console.error("incrementFollowCountersOnFollowingCreate error", e);
+    }
+  });
+
+export const decrementFollowCountersOnFollowingDelete = functions.firestore
+  .document("users/{uid}/followings/{targetUid}")
+  .onDelete(async (_snap, context) => {
+    const uid = String(context.params.uid || "").trim();
+    const targetUid = String(context.params.targetUid || "").trim();
+    if (!uid || !targetUid || uid == targetUid) return;
+
+    try {
+      const now = Date.now();
+      const meRef = db.doc(`users/${uid}`);
+      const targetRef = db.doc(`users/${targetUid}`);
+      await db.runTransaction(async (tx) => {
+        const meSnap = await tx.get(meRef);
+        const targetSnap = await tx.get(targetRef);
+        const myCount = Number(meSnap.data()?.counterOfFollowings || 0);
+        const targetCount = Number(targetSnap.data()?.counterOfFollowers || 0);
+        if (myCount > 0) {
+          tx.set(
+            meRef,
+            {
+              counterOfFollowings: admin.firestore.FieldValue.increment(-1),
+              updatedDate: now,
+            },
+            { merge: true }
+          );
+        }
+        if (targetCount > 0) {
+          tx.set(
+            targetRef,
+            {
+              counterOfFollowers: admin.firestore.FieldValue.increment(-1),
+              updatedDate: now,
+            },
+            { merge: true }
+          );
+        }
+      });
+    } catch (e) {
+      console.error("decrementFollowCountersOnFollowingDelete error", e);
+    }
+  });
+
+// LIKE COUNTER MIRROR: keep profile counterOfLikes in sync with post likes.
+export const incrementOwnerLikesOnLikeCreate = functions.firestore
+  .document("Posts/{postId}/likes/{likeId}")
+  .onCreate(async (_snap, context) => {
+    const postId = String(context.params.postId || "").trim();
+    if (!postId) return;
+
+    try {
+      const postRef = db.doc(`Posts/${postId}`);
+      const postSnap = await postRef.get();
+      const ownerId = String(postSnap.data()?.userID || "").trim();
+      if (!ownerId) return;
+
+      await db.doc(`users/${ownerId}`).set(
+        {
+          counterOfLikes: admin.firestore.FieldValue.increment(1),
+          updatedDate: Date.now(),
+        },
+        { merge: true }
+      );
+    } catch (e) {
+      console.error("incrementOwnerLikesOnLikeCreate error", e);
+    }
+  });
+
+export const decrementOwnerLikesOnLikeDelete = functions.firestore
+  .document("Posts/{postId}/likes/{likeId}")
+  .onDelete(async (_snap, context) => {
+    const postId = String(context.params.postId || "").trim();
+    if (!postId) return;
+
+    try {
+      const postRef = db.doc(`Posts/${postId}`);
+      const postSnap = await postRef.get();
+      const ownerId = String(postSnap.data()?.userID || "").trim();
+      if (!ownerId) return;
+
+      const ownerRef = db.doc(`users/${ownerId}`);
+      await db.runTransaction(async (tx) => {
+        const ownerSnap = await tx.get(ownerRef);
+        const current =
+          Number(ownerSnap.data()?.counterOfLikes || 0);
+        if (current <= 0) return;
+        tx.set(
+          ownerRef,
+          {
+            counterOfLikes: admin.firestore.FieldValue.increment(-1),
+            updatedDate: Date.now(),
+          },
+          { merge: true }
+        );
+      });
+    } catch (e) {
+      console.error("decrementOwnerLikesOnLikeDelete error", e);
     }
   });
 
@@ -349,39 +624,88 @@ export const onUserDocUpdate = functions.firestore
 export const onUserNotificationCreate = functions.firestore
   .document("users/{uid}/notifications/{notificationId}")
   .onCreate(async (snap, context) => {
+    let resolvedUserData: Record<string, unknown> | undefined;
     try {
       const uid = context.params.uid as string;
-      const data = (snap.data() || {}) as any;
-      const type = String(data.type || "Posts");
-      const fromUserID = String(data.fromUserID || "");
-      const targetDocID = String(
-        data.postID || data.chatID || data.userID || ""
+      const rawData = (snap.data() || {}) as Record<string, unknown>;
+      const initialType = String(rawData.type || "Posts");
+      const initialFromUserID = String(rawData.fromUserID || "");
+      const initialTargetDocID = String(
+        rawData.postID || rawData.chatID || rawData.userID || ""
       );
-      const cfg = await _loadNotificationPushConfig();
+      const isAdminPush = rawData.adminPush === true;
 
       // Self-notification push göndermeyelim.
-      if (fromUserID && fromUserID === uid) return;
+      if (initialFromUserID && initialFromUserID === uid) return;
+      const [cfg, userPrefs] = await Promise.all([
+        _loadNotificationPushConfig(),
+        _loadUserNotificationPreferences(uid),
+      ]);
       // Global veya tür bazlı kapalıysa push gönderme.
-      if (!cfg.enabled || !_isNotificationTypeEnabled(type, cfg.types)) return;
+      if (!cfg.enabled || !isNotificationTypeEnabled(initialType, cfg.types)) return;
+      if (!isUserNotificationTypeEnabled(initialType, userPrefs)) {
+        console.log("onUserNotificationCreate skip:user_pref_disabled", {
+          uid,
+          type: initialType,
+        });
+        return;
+      }
 
       const userDoc = await db.collection("users").doc(uid).get();
-      const userData = (userDoc.data() || {}) as any;
-      const token = String((userData.fcmToken as string) || "");
+      resolvedUserData = (userDoc.data() || {}) as Record<string, unknown>;
+      const token = _resolveUserPushToken(resolvedUserData);
       if (!token) {
         console.log("onUserNotificationCreate skip:no_token", {
+          type: initialType,
+          targetPresent: initialTargetDocID.length > 0,
+        });
+        return;
+      }
+
+      const data = await _resolveNotificationPushPayload(rawData);
+      const type = String(data.type || initialType);
+      const fromUserID = String(data.fromUserID || initialFromUserID);
+      const targetDocID = String(
+        data.postID || data.chatID || data.userID || initialTargetDocID
+      );
+
+      if (!isAdminPush && !shouldDispatchNotificationPush(type, data)) {
+        console.log("onUserNotificationCreate skip:milestone_gate", {
+          uid,
           type,
           targetPresent: targetDocID.length > 0,
         });
         return;
       }
 
+      if (!isAdminPush) {
+        const canSendPush = await _claimInteractionPushWindow({
+          uid,
+          type,
+          postId: targetDocID,
+          fromUserID,
+        });
+        if (!canSendPush) {
+          console.log("onUserNotificationCreate skip:rate_limited", {
+            uid,
+            type,
+            targetPresent: targetDocID.length > 0,
+          });
+          return;
+        }
+      }
+
       const title = String(data.title || "TurqApp");
-      const body = String(data.body || _notificationBodyFromType(type));
-      const imageUrl = String(data.imageUrl || "");
+      const body = String(data.body || notificationBodyFromType(type));
+      const imageUrl = await _resolveNotificationImageUrl(data);
 
       await admin.messaging().send({
         token,
-        notification: { title, body },
+        notification: {
+          title,
+          body,
+          ...(imageUrl ? { imageUrl } : {}),
+        },
         data: {
           docID: targetDocID,
           type,
@@ -401,6 +725,7 @@ export const onUserNotificationCreate = functions.firestore
         },
         apns: {
           headers: { "apns-priority": "10" },
+          ...(imageUrl ? { fcmOptions: { imageUrl } } : {}),
           payload: {
             aps: {
               alert: { title, body },
@@ -420,10 +745,20 @@ export const onUserNotificationCreate = functions.firestore
       if (code === "messaging/registration-token-not-registered") {
         try {
           const uid = context.params.uid as string;
+          const userData =
+            resolvedUserData ??
+            ((await db.collection("users").doc(uid).get()).data() as Record<string, unknown> | undefined) ??
+            {};
+          const invalidToken = _resolveUserPushToken(userData);
+          const cleanup: Record<string, admin.firestore.FieldValue> = {};
+          for (const key of PUSH_TOKEN_FIELDS) {
+            const raw = _firstNonEmptyString((userData as Record<string, unknown>)[key]);
+            if (!raw || raw === invalidToken) {
+              cleanup[key] = admin.firestore.FieldValue.delete();
+            }
+          }
           await db.collection("users").doc(uid).set(
-            {
-              fcmToken: admin.firestore.FieldValue.delete(),
-            },
+            cleanup,
             { merge: true }
           );
           console.log("onUserNotificationCreate cleared_invalid_token", {
@@ -722,32 +1057,65 @@ export const resetMonthlyAntPoint = functions.pubsub
     return null;
   });
 
-type PushTypeMap = {
-  follow: boolean;
-  comment: boolean;
-  message: boolean;
-  like: boolean;
-  reshared_posts: boolean;
-  shared_as_posts: boolean;
-  posts: boolean;
-};
+function _pushThrottleRef(uid: string) {
+  return db
+    .collection("users")
+    .doc(uid.trim())
+    .collection("_runtime")
+    .doc("pushThrottle");
+}
 
-const _defaultPushTypes: PushTypeMap = {
-  follow: true,
-  comment: true,
-  message: true,
-  like: true,
-  reshared_posts: true,
-  shared_as_posts: true,
-  posts: true,
-};
+async function _claimInteractionPushWindow(args: {
+  uid: string;
+  type: string;
+  postId?: string;
+  fromUserID?: string;
+}): Promise<boolean> {
+  const uid = args.uid.trim();
+  const type = interactionThrottleType(args.type);
+  const quietWindowMs = interactionQuietWindowMs(type);
+  if (!uid || !quietWindowMs) return true;
 
-async function _loadNotificationPushConfig(): Promise<{
-  enabled: boolean;
-  types: PushTypeMap;
-}> {
+  const ref = _pushThrottleRef(uid);
+  const now = Date.now();
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = (snap.data() || {}) as Record<string, unknown>;
+    const lastSentAt = Number(data[`${type}LastSentAt`] ?? 0);
+    if (lastSentAt > 0 && now - lastSentAt < quietWindowMs) {
+      tx.set(
+        ref,
+        {
+          [`${type}SuppressedCount`]: admin.firestore.FieldValue.increment(1),
+          [`${type}LastSuppressedAt`]: now,
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+      return false;
+    }
+
+    tx.set(
+      ref,
+      {
+        [`${type}LastSentAt`]: now,
+        [`${type}LastPostID`]: String(args.postId || ""),
+        [`${type}LastFromUserID`]: String(args.fromUserID || ""),
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+    return true;
+  });
+}
+
+async function _loadNotificationPushConfig(): Promise<NotificationPushConfig> {
   try {
-    const pushSnap = await db.doc("adminConfig/push").get();
+    const [pushSnap, serviceSnap] = await Promise.all([
+      db.doc("adminConfig/push").get(),
+      db.doc("adminConfig/service").get(),
+    ]);
     const pushData = (pushSnap.data() || {}) as any;
 
     // Primary schema (requested):
@@ -757,7 +1125,6 @@ async function _loadNotificationPushConfig(): Promise<{
 
     // Backward-compatible fallback schema:
     // adminConfig/service => { notifications: { enabled, types: {...} } } or legacy keys.
-    const serviceSnap = await db.doc("adminConfig/service").get();
     const serviceData = (serviceSnap.data() || {}) as any;
     const notifications = (serviceData.notifications || {}) as any;
     const fallbackTypesRaw =
@@ -775,88 +1142,58 @@ async function _loadNotificationPushConfig(): Promise<{
       types: {
         follow: normalizeBool(
           primaryTypesRaw.follow,
-          normalizeBool(fallbackTypesRaw.follow, _defaultPushTypes.follow)
+          normalizeBool(fallbackTypesRaw.follow, defaultPushTypes.follow)
         ),
         comment: normalizeBool(
           primaryTypesRaw.comment,
-          normalizeBool(fallbackTypesRaw.comment, _defaultPushTypes.comment)
+          normalizeBool(fallbackTypesRaw.comment, defaultPushTypes.comment)
         ),
         message: normalizeBool(
           primaryTypesRaw.message,
-          normalizeBool(fallbackTypesRaw.message, _defaultPushTypes.message)
+          normalizeBool(fallbackTypesRaw.message, defaultPushTypes.message)
         ),
         like: normalizeBool(
           primaryTypesRaw.like,
-          normalizeBool(fallbackTypesRaw.like, _defaultPushTypes.like)
+          normalizeBool(fallbackTypesRaw.like, defaultPushTypes.like)
         ),
         reshared_posts: normalizeBool(
           primaryTypesRaw.reshared_posts,
           normalizeBool(
             fallbackTypesRaw.reshared_posts,
-            _defaultPushTypes.reshared_posts
+            defaultPushTypes.reshared_posts
           )
         ),
         shared_as_posts: normalizeBool(
           primaryTypesRaw.shared_as_posts,
           normalizeBool(
             fallbackTypesRaw.shared_as_posts,
-            _defaultPushTypes.shared_as_posts
+            defaultPushTypes.shared_as_posts
           )
         ),
         posts: normalizeBool(
           primaryTypesRaw.posts,
-          normalizeBool(fallbackTypesRaw.posts, _defaultPushTypes.posts)
+          normalizeBool(fallbackTypesRaw.posts, defaultPushTypes.posts)
         ),
       },
     };
   } catch (e) {
     console.error("_loadNotificationPushConfig error", e);
-    return { enabled: true, types: _defaultPushTypes };
+    return { enabled: true, types: defaultPushTypes };
   }
 }
 
-function _isNotificationTypeEnabled(type: string, types: PushTypeMap): boolean {
-  const t = String(type || "").toLowerCase();
-  switch (t) {
-    case "user":
-    case "follow":
-      return types.follow;
-    case "comment":
-      return types.comment;
-    case "chat":
-    case "message":
-      return types.message;
-    case "like":
-      return types.like;
-    case "reshared_posts":
-      return types.reshared_posts;
-    case "shared_as_posts":
-      return types.shared_as_posts;
-    case "posts":
-      return types.posts;
-    default:
-      // Tanınmayan tipleri güvenli tarafta bırak: push açık
-      return true;
-  }
-}
-
-function _notificationBodyFromType(type: string): string {
-  switch (type) {
-    case "User":
-    case "follow":
-      return "seni takip etmeye başladı";
-    case "Chat":
-    case "message":
-      return "sana mesaj gönderdi";
-    case "Comment":
-    case "comment":
-      return "gönderine yorum yaptı";
-    case "Posts":
-    case "like":
-    case "reshared_posts":
-    case "shared_as_posts":
-    default:
-      return "gönderinle etkileşime geçti";
+async function _loadUserNotificationPreferences(uid: string) {
+  try {
+    const settingsSnap = await db
+      .collection("users")
+      .doc(uid.trim())
+      .collection("settings")
+      .doc("notifications")
+      .get();
+    return (settingsSnap.data() || {}) as Record<string, unknown>;
+  } catch (e) {
+    console.error("_loadUserNotificationPreferences error", e);
+    return {};
   }
 }
 

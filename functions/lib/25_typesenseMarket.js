@@ -1,4 +1,18 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.f25_reindexMarketToTypesenseCallable = exports.f25_searchMarketCallable = exports.f25_ensureMarketTypesenseCollectionCallable = exports.f25_syncMarketToTypesense = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
@@ -7,6 +21,7 @@ const app_1 = require("firebase-admin/app");
 const firestore_2 = require("firebase-admin/firestore");
 const axios_1 = require("axios");
 const rateLimiter_1 = require("./rateLimiter");
+__exportStar(require("./marketCounters"), exports);
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const COLLECTION = "market_search_v3";
 const MAX_LIMIT = 100;
@@ -343,17 +358,34 @@ function buildSearchDoc(docId, data) {
 function shouldIndex(doc) {
     return doc.active && doc.title.trim().length > 0;
 }
-async function syncMarketDoc(docId, afterData) {
+function marketDocsEqual(left, right) {
+    if (!left || !right)
+        return false;
+    return JSON.stringify(left) === JSON.stringify(right);
+}
+async function syncMarketDoc(docId, beforeData, afterData) {
+    const beforeDoc = beforeData ? buildSearchDoc(docId, beforeData) : null;
+    const afterDoc = afterData ? buildSearchDoc(docId, afterData) : null;
+    const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
+    const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
     if (!afterData) {
+        if (!beforeIndexed) {
+            return;
+        }
         await deleteDoc(docId);
         return;
     }
-    const doc = buildSearchDoc(docId, afterData);
-    if (!shouldIndex(doc)) {
+    if (!afterIndexed || !afterDoc) {
+        if (!beforeIndexed) {
+            return;
+        }
         await deleteDoc(docId);
         return;
     }
-    await upsertDoc(doc);
+    if (beforeIndexed && marketDocsEqual(beforeDoc, afterDoc)) {
+        return;
+    }
+    await upsertDoc(afterDoc);
 }
 function quoteFilterValue(value) {
     return `\`${value.replace(/`/g, "\\`")}\``;
@@ -361,12 +393,16 @@ function quoteFilterValue(value) {
 function buildFilterBy(input) {
     const filters = ["active:=true"];
     const docId = asString(input.docId);
+    const docIds = asStringArray(input.docIds);
     const userId = asString(input.userId);
     const categoryKey = asString(input.categoryKey);
     const city = asString(input.city);
     const district = asString(input.district);
     if (docId)
         filters.push(`docId:=${quoteFilterValue(docId)}`);
+    if (!docId && docIds.length) {
+        filters.push(`docId:=[${docIds.map(quoteFilterValue).join(",")}]`);
+    }
     if (userId)
         filters.push(`userId:=${quoteFilterValue(userId)}`);
     if (categoryKey)
@@ -483,8 +519,9 @@ exports.f25_syncMarketToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncMarketDoc(docId, afterData);
+    await syncMarketDoc(docId, beforeData, afterData);
 });
 exports.f25_ensureMarketTypesenseCollectionCallable = (0, https_1.onCall)({
     region: REGION,
@@ -522,6 +559,7 @@ exports.f25_searchMarketCallable = (0, https_1.onCall)({
             limit,
             page,
             docId: request.data?.docId,
+            docIds: Array.isArray(request.data?.docIds) ? request.data?.docIds : undefined,
             userId: request.data?.userId,
             categoryKey: request.data?.categoryKey,
             city: request.data?.city,

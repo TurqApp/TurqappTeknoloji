@@ -19,13 +19,19 @@ class HigherEducationModel {
 
   factory HigherEducationModel.fromJson(Map<String, dynamic> json) {
     return HigherEducationModel(
-      id: json['id'] ?? 0,
-      tip: json['tip'] ?? '',
-      sub: json['sub'] ?? '',
-      il: json['il'] ?? '',
-      universite: json['universite'] ?? '',
-      fakulte: json['fakulte'] ?? '',
-      bolum: json['bolum'] ?? '',
+      id: _asInt(json['id']),
+      tip: (json['tip'] ?? '').toString(),
+      sub: (json['sub'] ?? '').toString(),
+      il: (json['il'] ?? '').toString(),
+      universite: (json['universite'] ?? '').toString(),
+      fakulte: (json['fakulte'] ?? '').toString(),
+      bolum: (json['bolum'] ?? '').toString(),
     );
   }
+}
+
+int _asInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
 }

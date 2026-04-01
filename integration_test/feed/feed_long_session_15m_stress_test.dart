@@ -29,7 +29,7 @@ void main() {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             final pool = GlobalVideoAdapterPool.ensure();
             final suiteDeadline =
                 DateTime.now().add(const Duration(minutes: 15));

@@ -203,6 +203,9 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishPost)) {
       return <PostsModel>[];
     }
+    if (!_validateCaptionLengths()) {
+      return <PostsModel>[];
+    }
     final allPosts = <PreparedPostModel>[];
     final uploadedPosts = <PostsModel>[];
     final uuid = const Uuid().v4();
@@ -261,6 +264,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
     }
 
     final allHashtags = <String>{};
+    final scheduledDate = _normalizedIzBirakDateTime();
+    final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
+    final batchTimeStamp =
+        scheduledMs != 0 ? scheduledMs : DateTime.now().millisecondsSinceEpoch;
 
     for (int index = 0; index < allPosts.length; index++) {
       final post = allPosts[index];
@@ -272,7 +279,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       await _preparePostShellForStorageUpload(
         docID: docID,
         uid: uid,
-        nowMs: nowMs,
+        timeStamp: batchTimeStamp,
       );
 
       // Update progress
@@ -321,7 +328,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           throw Exception('Uygunsuz video tespit edildi');
         }
         final videoSize = await post.video!.length();
-        if (videoSize > PostCreatorController._maxVideoBytesForStorageRule) {
+        if (videoSize > _maxVideoBytesForStorageRule) {
           throw Exception('VIDEO_NOT_REDUCED_UNDER_LIMIT');
         }
         final videoRef = FirebaseStorage.instance.ref().child(
@@ -462,9 +469,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         statusText: 'post_creator.saving_to_database'.tr,
       );
 
-      final scheduledDate = _normalizedIzBirakDateTime();
-      final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
-      final publishTime = scheduledMs != 0 ? scheduledMs : nowMs;
+      final publishTime = batchTimeStamp;
       final locationCity =
           post.location.trim().isNotEmpty ? _resolvePostLocationCity() : '';
 
@@ -496,7 +501,8 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         },
         "konum": post.location,
         "locationCity": locationCity,
-        "mainFlood": index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
+        "mainFlood":
+            index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
         "metin": post.text,
         "reshareMap": {
           "visibility": paylasimSelection.value,
@@ -506,7 +512,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         "stabilized": false,
         "tags": index == 0 ? allHashtags.toList() : [],
         "thumbnail": thumbnailUrl,
-        "timeStamp": nowMs + index,
+        "timeStamp": batchTimeStamp,
         "userID": uid,
         "video": videoUrl,
         "hlsStatus": isReusedVideoPost ? "ready" : "none",
@@ -590,7 +596,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           stats: PostStats(),
           konum: post.location,
           locationCity: locationCity,
-          mainFlood: index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
+          mainFlood: index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
           metin: post.text,
           paylasGizliligi: paylasimSelection.value,
           reshareMap: {
@@ -601,7 +607,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           stabilized: false,
           tags: index == 0 ? allHashtags.toList() : [],
           thumbnail: thumbnailUrl,
-          timeStamp: nowMs + index,
+          timeStamp: batchTimeStamp,
           userID: uid,
           video: videoUrl,
           hlsStatus: isReusedVideoPost ? "ready" : "none",
@@ -630,16 +636,11 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       );
 
       // Sayaç güncelle: kök post (index==0) ve hemen yayınlanıyorsa
-      if (index == 0 && publishTime == nowMs) {
+      if (index == 0 && scheduledMs == 0) {
         try {
-          final me = _currentUid;
-          if (me.isNotEmpty) {
-            await UserRepository.ensure().updateUserFields(
-              me,
-              {'counterOfPosts': FieldValue.increment(1)},
-              mergeIntoCache: false,
-            );
-          }
+          await CurrentUserService.instance.applyLocalCounterDelta(
+            postsDelta: 1,
+          );
         } catch (_) {}
       }
     }

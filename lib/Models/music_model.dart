@@ -55,9 +55,39 @@ class MusicModel {
 
   factory MusicModel.fromMap(Map<String, dynamic> data, String docID) {
     int parseInt(dynamic value, [int fallback = 0]) {
-      if (value is int) return value;
       if (value is num) return value.toInt();
-      return int.tryParse(value?.toString() ?? '') ?? fallback;
+      if (value is String) {
+        final normalized = value.trim();
+        final parsed = int.tryParse(normalized);
+        if (parsed != null) return parsed;
+        final parsedNum = num.tryParse(normalized);
+        if (parsedNum != null) return parsedNum.toInt();
+      }
+      return fallback;
+    }
+
+    bool parseBool(dynamic value, {required bool fallback}) {
+      if (value is bool) return value;
+      if (value is num) return value != 0;
+      if (value is String) {
+        final normalized = value.trim().toLowerCase();
+        if (normalized.isEmpty) return fallback;
+        switch (normalized) {
+          case 'true':
+          case '1':
+          case 'yes':
+          case 'y':
+          case 'on':
+            return true;
+          case 'false':
+          case '0':
+          case 'no':
+          case 'n':
+          case 'off':
+            return false;
+        }
+      }
+      return fallback;
     }
 
     return MusicModel(
@@ -74,7 +104,7 @@ class MusicModel {
       lastUsedAt: parseInt(data['lastUsedAt']),
       createdAt: parseInt(data['createdAt']),
       updatedAt: parseInt(data['updatedAt']),
-      isActive: (data['isActive'] ?? true) == true,
+      isActive: parseBool(data['isActive'], fallback: true),
       category: (data['category'] ?? '').toString().trim(),
     );
   }

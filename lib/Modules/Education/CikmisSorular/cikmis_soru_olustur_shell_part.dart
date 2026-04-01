@@ -1,43 +1,7 @@
 part of 'cikmis_soru_olustur.dart';
 
 extension _CikmisSoruOlusturShellPart on _CikmisSoruOlusturState {
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Row(
-        children: [
-          AppBackButton(
-            icon: Icons.arrow_back,
-            onTap: () => Navigator.pop(context),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: AppPageTitle(
-              "education.past_exam_create_title",
-              translate: true,
-              fontSize: 25,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildHeader() => _buildCikmisSoruOlusturHeaderContent();
 
-  Widget _buildStartBanner() {
-    return Container(
-      height: 50,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(color: Colors.indigo),
-      child: Text(
-        "education.start_creating".tr,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          fontFamily: "MontserratBold",
-        ),
-      ),
-    );
-  }
+  Widget _buildStartBanner() => _buildCikmisSoruOlusturStartBannerContent();
 }

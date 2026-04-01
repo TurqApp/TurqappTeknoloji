@@ -12,7 +12,7 @@ extension PracticeExamRepositoryDetailPart on PracticeExamRepository {
     final cached = _boolMemory[cacheKey];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
-            PracticeExamRepository._ttl) {
+            _practiceExamRepositoryTtl) {
       return cached.value;
     }
 

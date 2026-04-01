@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,23 +6,24 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_owner_card.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
-import 'package:turqappv2/Core/rozet_content.dart';
-import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsList/scholarship_applications_list.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
+import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -39,7 +39,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
   ScholarshipDetailView({super.key});
 
   final ScholarshipsController scholarshipsController =
-      ScholarshipsController.ensure();
+      ensureScholarshipsController();
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
 

@@ -44,7 +44,7 @@ class IntegrationSmokeScenarioReport {
 }
 
 class IntegrationSmokeReport {
-  const IntegrationSmokeReport({
+  IntegrationSmokeReport({
     required this.scenarioCount,
     required this.failureCount,
     required this.screenshotCount,
@@ -52,8 +52,11 @@ class IntegrationSmokeReport {
     required this.telemetryIssueCount,
     required this.telemetryBlockingCount,
     required this.blockingScenarioCount,
-    required this.scenarios,
-  });
+    required List<IntegrationSmokeScenarioReport> scenarios,
+  }) : scenarios = List<IntegrationSmokeScenarioReport>.from(
+         scenarios,
+         growable: false,
+       );
 
   final int scenarioCount;
   final int failureCount;
@@ -161,15 +164,29 @@ class IntegrationSmokeReporter {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
       return value.map(
-        (key, entry) => MapEntry(key.toString(), entry),
+        (key, entry) => MapEntry(key.toString(), _cloneValue(entry)),
       );
     }
     return const <String, dynamic>{};
   }
 
   static List<dynamic> _asList(dynamic value) {
-    if (value is List) return value;
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
     return const <dynamic>[];
+  }
+
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, entry) => MapEntry(key.toString(), _cloneValue(entry)),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
   }
 
   static int _asInt(dynamic value) {

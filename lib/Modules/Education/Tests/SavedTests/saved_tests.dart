@@ -22,15 +22,15 @@ class _SavedTestsState extends State<SavedTests> {
   void initState() {
     super.initState();
     _controllerTag = 'tests_saved_${identityHashCode(this)}';
-    final existing = SavedTestsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindSavedTestsController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? SavedTestsController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureSavedTestsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = SavedTestsController.maybeFind(
+      final registeredController = maybeFindSavedTestsController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {
@@ -42,55 +42,62 @@ class _SavedTestsState extends State<SavedTests> {
 
   @override
   Widget build(BuildContext context) {
+    return _buildPage();
+  }
+
+  Widget _buildPage() {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "common.saved".tr),
+            BackButtons(text: 'common.saved'.tr),
             Expanded(
               child: Container(
                 color: Colors.white,
-                child: Obx(
-                  () => controller.isLoading.value
-                      ? const Center(
-                          child: CupertinoActivityIndicator(
-                            radius: 20,
-                            color: Colors.black,
-                          ),
-                        )
-                      : controller.list.isEmpty
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                EmptyRow(text: "tests.saved_empty".tr),
-                              ],
-                            )
-                          : Padding(
-                              padding:
-                                  const EdgeInsets.only(left: 15, right: 15),
-                              child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 5.0,
-                                  mainAxisSpacing: 5.0,
-                                  childAspectRatio: 1.85 / 3.6,
-                                ),
-                                itemCount: controller.list.length,
-                                itemBuilder: (context, index) {
-                                  return TestsGrid(
-                                      model: controller.list[index]);
-                                },
-                              ),
-                            ),
-                ),
+                child: Obx(() => _buildContent()),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (controller.isLoading.value) {
+      return const Center(
+        child: CupertinoActivityIndicator(
+          radius: 20,
+          color: Colors.black,
+        ),
+      );
+    }
+
+    if (controller.list.isEmpty) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          EmptyRow(text: 'tests.saved_empty'.tr),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 15, right: 15),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 5.0,
+          mainAxisSpacing: 5.0,
+          childAspectRatio: 1.85 / 3.6,
+        ),
+        itemCount: controller.list.length,
+        itemBuilder: (context, index) {
+          return TestsGrid(model: controller.list[index]);
+        },
       ),
     );
   }

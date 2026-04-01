@@ -5,8 +5,7 @@ const String kNotificationPostTypeComment = 'Comment';
 const String kNotificationPostTypeChat = 'Chat';
 const String kNotificationPostTypePosts = 'Posts';
 const String kNotificationPostTypeJobApplication = 'JobApplication';
-const String kNotificationPostTypeTutoringApplication =
-    'TutoringApplication';
+const String kNotificationPostTypeTutoringApplication = 'TutoringApplication';
 
 const String kNotificationPostTypeUserLower = 'user';
 const String kNotificationPostTypeCommentLower = 'comment';
@@ -132,12 +131,25 @@ String notificationDescriptionKeyForType(String type) {
 }
 
 String normalizeNotificationCreateType(String type) {
-  switch (type) {
+  final normalizedType = normalizeSearchText(type);
+  switch (normalizedType) {
+    case 'follow':
+    case 'user':
+      return 'follow';
+    case 'message':
+    case 'chat':
+      return 'message';
     case 'comment':
-      return kNotificationPostTypeComment;
+      return 'comment';
     case 'like':
+      return 'like';
     case 'reshared_posts':
+      return 'reshared_posts';
     case 'shared_as_posts':
+    case 'reshare':
+      return 'shared_as_posts';
+    case 'posts':
+    case 'post':
     default:
       return kNotificationPostTypePosts;
   }

@@ -5,11 +5,12 @@ Future<void> main(List<String> args) async {
   final parsed = _parseArgs(args);
   final smokePath = parsed['smoke-input'];
   final telemetryPath = parsed['telemetry-input'];
+  final deviceLogPath = parsed['device-log-input'];
   final outputPath = parsed['output'];
 
   if (outputPath == null) {
     stderr.writeln(
-      'Usage: dart run tool/release_alert_bundle.dart --output <file> [--smoke-input <file>] [--telemetry-input <file>]',
+      'Usage: dart run tool/release_alert_bundle.dart --output <file> [--smoke-input <file>] [--telemetry-input <file>] [--device-log-input <file>]',
     );
     exitCode = 64;
     return;
@@ -17,20 +18,29 @@ Future<void> main(List<String> args) async {
 
   final smoke = await _readJsonFile(smokePath);
   final telemetry = await _readJsonFile(telemetryPath);
+  final deviceLog = await _readJsonFile(deviceLogPath);
 
   final smokeSummary = _asMap(smoke['summary']);
   final telemetrySummary = _asMap(telemetry['summary']);
+  final deviceLogSummary = _asMap(deviceLog['summary']);
   final smokeScenarios = _asList(smoke['scenarios']);
   final telemetryIssues = _asList(telemetry['issues']);
+  final deviceLogIssues = _asList(deviceLog['issues']);
   final smokeBlockingCount = _asInt(smokeSummary['blockingScenarioCount']);
   final telemetryBlocking = telemetrySummary['hasBlocking'] == true;
+  final deviceLogBlocking = deviceLogSummary['hasBlocking'] == true;
   final smokeFailures = _asInt(smokeSummary['failureCount']);
   final telemetryIssueCount = _asInt(telemetrySummary['issueCount']);
+  final deviceLogIssueCount = _asInt(deviceLogSummary['issueCount']);
+  final adminReportRequired = deviceLogSummary['adminReportRequired'] == true;
+  final triageState = (deviceLogSummary['triageState'] ?? '').toString();
   final severity = _resolveSeverity(
     smokeFailures: smokeFailures,
     smokeBlockingCount: smokeBlockingCount,
     telemetryBlocking: telemetryBlocking,
     telemetryIssueCount: telemetryIssueCount,
+    deviceLogBlocking: deviceLogBlocking,
+    deviceLogIssueCount: deviceLogIssueCount,
   );
   final headline = _buildHeadline(
     severity: severity,
@@ -38,16 +48,22 @@ Future<void> main(List<String> args) async {
     smokeBlockingCount: smokeBlockingCount,
     telemetryBlocking: telemetryBlocking,
     telemetryIssueCount: telemetryIssueCount,
+    deviceLogBlocking: deviceLogBlocking,
+    deviceLogIssueCount: deviceLogIssueCount,
   );
   final topSignals = _collectTopSignals(
     smokeScenarios: smokeScenarios,
     telemetryIssues: telemetryIssues,
+    deviceLogIssues: deviceLogIssues,
   );
   final nextActions = _suggestNextActions(
     smokeFailures: smokeFailures,
     smokeBlockingCount: smokeBlockingCount,
     telemetryBlocking: telemetryBlocking,
     telemetryIssueCount: telemetryIssueCount,
+    deviceLogBlocking: deviceLogBlocking,
+    deviceLogIssueCount: deviceLogIssueCount,
+    adminReportRequired: adminReportRequired,
   );
 
   final payload = <String, dynamic>{
@@ -55,20 +71,27 @@ Future<void> main(List<String> args) async {
     'sources': <String, dynamic>{
       'smokeReport': smokePath ?? '',
       'telemetryReport': telemetryPath ?? '',
+      'deviceLogReport': deviceLogPath ?? '',
     },
     'summary': <String, dynamic>{
       'severity': severity,
       'headline': headline,
-      'hasBlockingSignals': smokeBlockingCount > 0 || telemetryBlocking,
+      'hasBlockingSignals':
+          smokeBlockingCount > 0 || telemetryBlocking || deviceLogBlocking,
       'smokeFailureCount': smokeFailures,
       'smokeBlockingScenarioCount': smokeBlockingCount,
       'telemetryBlocking': telemetryBlocking,
       'telemetryIssueCount': telemetryIssueCount,
+      'deviceLogBlocking': deviceLogBlocking,
+      'deviceLogIssueCount': deviceLogIssueCount,
+      'adminReportRequired': adminReportRequired,
+      'triageState': triageState,
     },
     'topSignals': topSignals,
     'nextActions': nextActions,
     'smoke': smoke,
     'telemetry': telemetry,
+    'deviceLog': deviceLog,
   };
 
   final outputFile = File(outputPath);
@@ -78,7 +101,7 @@ Future<void> main(List<String> args) async {
   );
 
   stdout.writeln(
-    '[release-alert-bundle] severity=$severity blocking=${payload['summary']?['hasBlockingSignals'] == true} smokeFailures=$smokeFailures smokeBlocking=$smokeBlockingCount telemetryBlocking=$telemetryBlocking',
+    '[release-alert-bundle] severity=$severity blocking=${payload['summary']?['hasBlockingSignals'] == true} smokeFailures=$smokeFailures smokeBlocking=$smokeBlockingCount telemetryBlocking=$telemetryBlocking deviceLogBlocking=$deviceLogBlocking',
   );
 }
 
@@ -87,11 +110,16 @@ String _resolveSeverity({
   required int smokeBlockingCount,
   required bool telemetryBlocking,
   required int telemetryIssueCount,
+  required bool deviceLogBlocking,
+  required int deviceLogIssueCount,
 }) {
-  if (smokeFailures > 0 || smokeBlockingCount > 0 || telemetryBlocking) {
+  if (smokeFailures > 0 ||
+      smokeBlockingCount > 0 ||
+      telemetryBlocking ||
+      deviceLogBlocking) {
     return 'blocking';
   }
-  if (telemetryIssueCount > 0) {
+  if (telemetryIssueCount > 0 || deviceLogIssueCount > 0) {
     return 'warning';
   }
   return 'ok';
@@ -103,12 +131,14 @@ String _buildHeadline({
   required int smokeBlockingCount,
   required bool telemetryBlocking,
   required int telemetryIssueCount,
+  required bool deviceLogBlocking,
+  required int deviceLogIssueCount,
 }) {
   if (severity == 'blocking') {
-    return 'Release gate blocking: smokeFailures=$smokeFailures smokeBlocking=$smokeBlockingCount telemetryBlocking=$telemetryBlocking';
+    return 'Release gate blocking: smokeFailures=$smokeFailures smokeBlocking=$smokeBlockingCount telemetryBlocking=$telemetryBlocking deviceLogBlocking=$deviceLogBlocking';
   }
   if (severity == 'warning') {
-    return 'Release gate warning: telemetryIssues=$telemetryIssueCount';
+    return 'Release gate warning: telemetryIssues=$telemetryIssueCount deviceLogIssues=$deviceLogIssueCount';
   }
   return 'Release gate healthy';
 }
@@ -116,14 +146,14 @@ String _buildHeadline({
 List<Map<String, dynamic>> _collectTopSignals({
   required List<dynamic> smokeScenarios,
   required List<dynamic> telemetryIssues,
+  required List<dynamic> deviceLogIssues,
 }) {
   final signals = <Map<String, dynamic>>[];
 
   for (final scenarioRaw in smokeScenarios.take(5)) {
     final scenario = _asMap(scenarioRaw);
     final hasFailure = scenario['hasFailure'] == true;
-    final telemetryBlockingCount =
-        _asInt(scenario['telemetryBlockingCount']);
+    final telemetryBlockingCount = _asInt(scenario['telemetryBlockingCount']);
     final invariantCount = _asInt(scenario['invariantCount']);
     if (!hasFailure && telemetryBlockingCount == 0 && invariantCount == 0) {
       continue;
@@ -147,6 +177,18 @@ List<Map<String, dynamic>> _collectTopSignals({
     });
   }
 
+  for (final issueRaw in deviceLogIssues.take(5 - signals.length)) {
+    final issue = _asMap(issueRaw);
+    signals.add(<String, dynamic>{
+      'type': 'device_log',
+      'code': (issue['code'] ?? '').toString(),
+      'severity': (issue['severity'] ?? '').toString(),
+      'message': (issue['message'] ?? '').toString(),
+      'count': _asInt(issue['count']),
+      'tag': (issue['tag'] ?? '').toString(),
+    });
+  }
+
   return signals;
 }
 
@@ -155,6 +197,9 @@ List<String> _suggestNextActions({
   required int smokeBlockingCount,
   required bool telemetryBlocking,
   required int telemetryIssueCount,
+  required bool deviceLogBlocking,
+  required int deviceLogIssueCount,
+  required bool adminReportRequired,
 }) {
   final actions = <String>[];
   if (smokeFailures > 0) {
@@ -167,6 +212,16 @@ List<String> _suggestNextActions({
     actions.add('Investigate blocking telemetry thresholds on feed/short');
   } else if (telemetryIssueCount > 0) {
     actions.add('Review warning telemetry thresholds before release');
+  }
+  if (deviceLogBlocking) {
+    actions
+        .add('Review blocking device log findings with admin before patching');
+  } else if (deviceLogIssueCount > 0) {
+    actions.add(
+        'Present device log findings to admin before fixing runtime issues');
+  }
+  if (adminReportRequired) {
+    actions.add('Keep device-derived fixes behind admin review first');
   }
   if (actions.isEmpty) {
     actions.add('No blocking signals detected');

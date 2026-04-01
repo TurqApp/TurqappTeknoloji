@@ -8,6 +8,7 @@ import 'package:turqappv2/Themes/app_colors.dart';
 import 'nav_bar_controller.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
@@ -27,6 +28,7 @@ import '../../Core/Widgets/cached_user_avatar.dart';
 import '../../Core/Widgets/offline_indicator.dart';
 
 part 'nav_bar_view_shell_part.dart';
+part 'nav_bar_view_shell_content_part.dart';
 part 'nav_bar_view_avatar_part.dart';
 
 class NavBarView extends StatelessWidget {
@@ -36,22 +38,22 @@ class NavBarView extends StatelessWidget {
   NavBarView({super.key}) {
     _ensureControllersReady();
   }
-  final NavBarController controller = NavBarController.ensure();
-  final SettingsController settingController = SettingsController.ensure();
-  final DeepLinkService? deepLinkService = DeepLinkService.maybeFind();
+  final NavBarController controller = ensureNavBarController();
+  final SettingsController settingController = ensureSettingsController();
+  final DeepLinkService? deepLinkService = maybeFindDeepLinkService();
 
   // Ensure controllers are available
   void _ensureControllersReady() {
     final isIOS = GetPlatform.isIOS;
-    AgendaController.ensure();
+    ensureAgendaController();
     if (!isIOS) {
-      StoryRowController.ensure();
+      ensureStoryRowController();
     }
 
     // Deep link çözümleme her NavBar açılışında tetiklensin.
     // (Yeniden login senaryosunda _controllersPrepared true kalsa bile)
     if (!isIOS) {
-      DeepLinkService.maybeFind()?.start();
+      maybeFindDeepLinkService()?.start();
     }
 
     // Controller registration should always be enforced (Android lifecycle can dispose lazies).
@@ -61,7 +63,7 @@ class NavBarView extends StatelessWidget {
     // ⚠️ CRITICAL FIX: Start UnreadMessagesController listeners after user is logged in
     // Note: startListeners() has internal guard against multiple calls
     if (!isIOS) {
-      final unreadController = UnreadMessagesController.maybeFind();
+      final unreadController = maybeFindUnreadMessagesController();
       if (unreadController == null) {
         _controllersPrepared = true;
         return;
@@ -86,57 +88,5 @@ class NavBarView extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final shouldPop = await _handleBackNavigation();
-        if (shouldPop) {
-          SystemNavigator.pop();
-        }
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        key: const ValueKey(IntegrationTestKeys.navBarRoot),
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragEnd: _handleRootHorizontalSwipe,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Column(
-                children: [
-                  const OfflineIndicator(),
-                  Expanded(
-                    child: Obx(() => _buildSelectedPage()),
-                  ),
-                ],
-              ),
-              Obx(() {
-                if (controller.selectedIndex.value != 0) {
-                  return const SizedBox.shrink();
-                }
-                return Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: MediaQuery.of(context).padding.top - 3,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              }),
-              Obx(() {
-                final showBar = controller.showBar.value;
-                return _buildNavBar(context, showBar: showBar);
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildNavBarView(context);
 }

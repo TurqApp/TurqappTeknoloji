@@ -20,15 +20,15 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
   @override
   void initState() {
     super.initState();
-    final existing = MyPracticeExamsController.maybeFind();
+    final existing = maybeFindMyPracticeExamsController();
     _ownsController = existing == null;
-    controller = existing ?? MyPracticeExamsController.ensure();
+    controller = existing ?? ensureMyPracticeExamsController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(MyPracticeExamsController.maybeFind(), controller)) {
+        identical(maybeFindMyPracticeExamsController(), controller)) {
       Get.delete<MyPracticeExamsController>();
     }
     super.dispose();
@@ -39,28 +39,7 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
     final uid = CurrentUserService.instance.effectiveUserId;
 
     if (uid.isEmpty) {
-      return Scaffold(
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              BackButtons(text: 'pasaj.common.published'.tr),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    'practice.user_session_missing'.tr,
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildMissingSessionShell();
     }
 
     return Scaffold(
@@ -71,57 +50,85 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
             BackButtons(text: 'pasaj.common.published'.tr),
             Expanded(
               child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(
-                    child: CupertinoActivityIndicator(),
-                  );
-                }
-
-                if (controller.exams.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Text(
-                        'practice.published_empty'.tr,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  color: Colors.white,
-                  backgroundColor: Colors.black,
-                  onRefresh: () => controller.fetchExams(forceRefresh: true),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: GridView.builder(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 4,
-                        mainAxisSpacing: 4,
-                        childAspectRatio: 0.52,
-                      ),
-                      itemCount: controller.exams.length,
-                      itemBuilder: (context, index) {
-                        return DenemeGrid(
-                          model: controller.exams[index],
-                          getData: () async {},
-                        );
-                      },
-                    ),
-                  ),
-                );
+                return _buildPublishedExamsContent();
               }),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMissingSessionShell() {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'pasaj.common.published'.tr),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'practice.user_session_missing'.tr,
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 15,
+                    fontFamily: "MontserratMedium",
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPublishedExamsContent() {
+    if (controller.isLoading.value) {
+      return const Center(
+        child: CupertinoActivityIndicator(),
+      );
+    }
+
+    if (controller.exams.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text(
+            'practice.published_empty'.tr,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 15,
+              fontFamily: "MontserratMedium",
+            ),
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: Colors.white,
+      backgroundColor: Colors.black,
+      onRefresh: () => controller.fetchExams(forceRefresh: true),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: GridView.builder(
+          padding: const EdgeInsets.only(bottom: 20),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 4,
+            mainAxisSpacing: 4,
+            childAspectRatio: 0.52,
+          ),
+          itemCount: controller.exams.length,
+          itemBuilder: (context, index) {
+            return DenemeGrid(
+              model: controller.exams[index],
+              getData: () async {},
+            );
+          },
         ),
       ),
     );

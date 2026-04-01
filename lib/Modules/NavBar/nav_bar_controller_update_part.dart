@@ -1,10 +1,17 @@
 part of 'nav_bar_controller.dart';
 
 extension _NavBarControllerUpdatePart on NavBarController {
+  Future<void> _launchStore() => _launchStoreImpl();
+
+  int _asConfigInt(Object? value, int fallback) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? fallback;
+  }
+
   Future<void> _loadAppVersionConfigImpl({bool forceRefresh = false}) async {
-    final repo = ConfigRepository.ensure();
+    final repo = ensureConfigRepository();
     final doc = await repo.getAdminConfigDoc(
-          NavBarController._appVersionDocId,
+          _appVersionDocId,
           preferCache: !forceRefresh,
           forceRefresh: forceRefresh,
         ) ??
@@ -30,11 +37,12 @@ extension _NavBarControllerUpdatePart on NavBarController {
     _iosStoreUrlOverride = iosStoreUrl.isEmpty ? null : iosStoreUrl;
 
     _ratingPromptEnabled = doc['ratingPromptEnabled'] != false;
-    final initialDays =
-        (doc['ratingPromptInitialDelayDays'] as num?)?.toInt() ?? 7;
-    final repeatDays = (doc['ratingPromptRepeatDays'] as num?)?.toInt() ?? 7;
-    final cooldownDays =
-        (doc['ratingPromptStoreCooldownDays'] as num?)?.toInt() ?? 90;
+    final initialDays = _asConfigInt(doc['ratingPromptInitialDelayDays'], 7);
+    final repeatDays = _asConfigInt(doc['ratingPromptRepeatDays'], 7);
+    final cooldownDays = _asConfigInt(
+      doc['ratingPromptStoreCooldownDays'],
+      90,
+    );
     _ratingPromptEnabledAfter =
         Duration(days: initialDays < 1 ? 7 : initialDays);
     _ratingPromptRepeatAfter = Duration(days: repeatDays < 1 ? 7 : repeatDays);
@@ -199,15 +207,12 @@ extension _NavBarControllerUpdatePart on NavBarController {
 
     final prefs = await SharedPreferences.getInstance();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final firstSeenMs =
-        prefs.getInt(NavBarController._ratingFirstSeenAtKey) ?? 0;
-    final lastShownMs =
-        prefs.getInt(NavBarController._ratingLastShownAtKey) ?? 0;
-    final lastStoreTapMs =
-        prefs.getInt(NavBarController._ratingLastStoreTapAtKey) ?? 0;
+    final firstSeenMs = prefs.getInt(_ratingFirstSeenAtKey) ?? 0;
+    final lastShownMs = prefs.getInt(_ratingLastShownAtKey) ?? 0;
+    final lastStoreTapMs = prefs.getInt(_ratingLastStoreTapAtKey) ?? 0;
 
     if (firstSeenMs <= 0) {
-      await prefs.setInt(NavBarController._ratingFirstSeenAtKey, nowMs);
+      await prefs.setInt(_ratingFirstSeenAtKey, nowMs);
       return;
     }
 
@@ -233,7 +238,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
     }
 
     _ratingSheetShownThisSession = true;
-    await prefs.setInt(NavBarController._ratingLastShownAtKey, nowMs);
+    await prefs.setInt(_ratingLastShownAtKey, nowMs);
 
     await Get.bottomSheet(
       isDismissible: true,
@@ -302,7 +307,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
                 child: ElevatedButton(
                   onPressed: () async {
                     await prefs.setInt(
-                      NavBarController._ratingLastStoreTapAtKey,
+                      _ratingLastStoreTapAtKey,
                       nowMs,
                     );
                     if (Get.isBottomSheetOpen == true) {

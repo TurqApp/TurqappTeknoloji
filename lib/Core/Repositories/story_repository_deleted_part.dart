@@ -1,6 +1,60 @@
 part of 'story_repository.dart';
 
+int _deletedStoryCacheAsInt(dynamic value, {int fallback = 0}) {
+  if (value is num) return value.toInt();
+  if (value is String) {
+    final parsed = int.tryParse(value.trim());
+    if (parsed != null) return parsed;
+    final parsedNum = num.tryParse(value.trim());
+    if (parsedNum != null) return parsedNum.toInt();
+  }
+  return fallback;
+}
+
+bool _isStoryMediaElementType(String type) => type == 'image' || type == 'gif';
+
 extension StoryRepositoryDeletedPart on StoryRepository {
+  Future<void> _deleteStoryStorageRefRecursively(Reference ref) async {
+    try {
+      final children = await ref.listAll();
+      for (final prefix in children.prefixes) {
+        await _deleteStoryStorageRefRecursively(prefix);
+      }
+      for (final item in children.items) {
+        try {
+          await item.delete();
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _purgeStoryStorageDirectory(String uid, String storyId) async {
+    final normalizedUid = uid.trim();
+    final normalizedStoryId = storyId.trim();
+    if (normalizedUid.isEmpty || normalizedStoryId.isEmpty) return;
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('stories/$normalizedUid/$normalizedStoryId');
+    await _deleteStoryStorageRefRecursively(ref);
+  }
+
+  List<String> _collectStoryMediaUrls(Map<String, dynamic> raw) {
+    final urls = <String>{};
+    for (final element in _normalizeStoryElements(raw['elements'])) {
+      final type = (element['type'] ?? '').toString().trim().toLowerCase();
+      if (!_isStoryMediaElementType(type)) continue;
+      final url = (element['content'] ?? '').toString().trim();
+      if (url.isNotEmpty) urls.add(url);
+    }
+    return urls.toList(growable: false);
+  }
+
+  Future<void> _purgeStoryMediaUrls(Map<String, dynamic> raw) async {
+    final urls = _collectStoryMediaUrls(raw);
+    if (urls.isEmpty) return;
+    await TurqImageCacheManager.removeUrls(urls);
+  }
+
   Future<void> _performMarkExpiredStoriesDeleted(String uid) async {
     try {
       final expiry = DateTime.now().subtract(const Duration(hours: 24));
@@ -9,6 +63,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
           .where('userId', isEqualTo: uid)
           .get();
       var didMutate = false;
+      final mediaUrls = <String>{};
 
       for (final doc in expiredSnap.docs) {
         try {
@@ -22,10 +77,12 @@ extension StoryRepositoryDeletedPart on StoryRepository {
             'deletedAt': DateTime.now().millisecondsSinceEpoch,
             'deleteReason': 'expired',
           });
+          mediaUrls.addAll(_collectStoryMediaUrls(doc.data()));
           didMutate = true;
         } catch (_) {}
       }
       if (didMutate) {
+        await TurqImageCacheManager.removeUrls(mediaUrls);
         await invalidateStoryCachesForUser(uid);
       }
     } catch (_) {}
@@ -44,6 +101,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
       'deletedAt': DateTime.now().millisecondsSinceEpoch,
       'deleteReason': reason,
     });
+    await _purgeStoryMediaUrls(raw);
     if (uid.isNotEmpty) {
       await invalidateStoryCachesForUser(uid);
     }
@@ -76,6 +134,8 @@ extension StoryRepositoryDeletedPart on StoryRepository {
           .doc(storyId)
           .delete();
     } catch (_) {}
+    await _purgeStoryMediaUrls(raw);
+    await _purgeStoryStorageDirectory(uid, storyId);
 
     if (uid.isNotEmpty) {
       try {
@@ -195,41 +255,79 @@ extension StoryRepositoryDeletedPart on StoryRepository {
     String uid,
   ) async {
     await _ensureInitialized();
+    final prefsKey = _deletedStoriesCacheKey(uid);
     try {
-      final raw = _prefs?.getString(_deletedStoriesCacheKey(uid));
+      final raw = _prefs?.getString(prefsKey);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return null;
-      final savedAtMs = (decoded['savedAt'] as num?)?.toInt() ?? 0;
-      if (savedAtMs <= 0) return null;
+      if (decoded is! Map<String, dynamic>) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
+      final savedAtMs = _deletedStoryCacheAsInt(decoded['savedAt']);
+      if (savedAtMs <= 0) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
       final cacheAge = DateTime.now().difference(
         DateTime.fromMillisecondsSinceEpoch(savedAtMs),
       );
-      if (cacheAge > deletedStoriesCacheTtlInternal) return null;
+      if (cacheAge > deletedStoriesCacheTtlInternal) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
       final items = (decoded['items'] as List?) ?? const [];
       final restoredStories = <StoryModel>[];
       final restoredDeletedAt = <String, int>{};
       final restoredReasons = <String, String>{};
+      var shouldPersist = false;
       for (final item in items) {
-        if (item is! Map) continue;
-        final map = Map<String, dynamic>.from(item.cast<String, dynamic>());
-        final storyMap = Map<String, dynamic>.from(
-          (map['story'] as Map?)?.cast<String, dynamic>() ?? const {},
-        );
-        if (storyMap.isEmpty) continue;
-        final story = StoryModel.fromCacheMap(storyMap);
-        restoredStories.add(story);
-        restoredDeletedAt[story.id] = (map['deletedAt'] as num?)?.toInt() ?? 0;
-        final reason = (map['deleteReason'] ?? '').toString();
-        if (reason.isNotEmpty) restoredReasons[story.id] = reason;
+        if (item is! Map) {
+          shouldPersist = true;
+          continue;
+        }
+        try {
+          final map = Map<String, dynamic>.from(item.cast<String, dynamic>());
+          final storyMap = Map<String, dynamic>.from(
+            (map['story'] as Map?)?.cast<String, dynamic>() ?? const {},
+          );
+          if (storyMap.isEmpty) {
+            shouldPersist = true;
+            continue;
+          }
+          final story = StoryModel.fromCacheMap(storyMap);
+          if (story.id.trim().isEmpty) {
+            shouldPersist = true;
+            continue;
+          }
+          restoredStories.add(story);
+          restoredDeletedAt[story.id] =
+              _deletedStoryCacheAsInt(map['deletedAt']);
+          final reason = (map['deleteReason'] ?? '').toString();
+          if (reason.isNotEmpty) restoredReasons[story.id] = reason;
+        } catch (_) {
+          shouldPersist = true;
+        }
       }
-      if (restoredStories.isEmpty) return null;
+      if (restoredStories.isEmpty) {
+        await _prefs?.remove(prefsKey);
+        return null;
+      }
+      if (shouldPersist || restoredStories.length != items.length) {
+        await _performPersistDeletedStoriesCache(
+          uid: uid,
+          stories: restoredStories,
+          deletedAtById: restoredDeletedAt,
+          deleteReasonById: restoredReasons,
+        );
+      }
       return DeletedStoryCachePayload(
         stories: restoredStories,
         deletedAtById: restoredDeletedAt,
         deleteReasonById: restoredReasons,
       );
     } catch (_) {
+      await _prefs?.remove(prefsKey);
       return null;
     }
   }
@@ -368,9 +466,8 @@ extension StoryRepositoryDeletedPart on StoryRepository {
       return bDeletedAt.compareTo(aDeletedAt);
     });
 
-    final trimmed = items
-        .take(deletedStoriesCacheLimitInternal)
-        .toList(growable: false);
+    final trimmed =
+        items.take(deletedStoriesCacheLimitInternal).toList(growable: false);
     final keptIds = trimmed.map((e) => e.id).toSet();
     deletedAtById.removeWhere((key, _) => !keptIds.contains(key));
     deleteReasonById.removeWhere((key, _) => !keptIds.contains(key));

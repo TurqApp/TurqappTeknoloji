@@ -1,13 +1,42 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerPlaybackPart on AgendaController {
+  bool _shouldRetainStartupPlaybackTarget({
+    required int current,
+    required double stopThreshold,
+  }) {
+    if (!GetPlatform.isIOS) return false;
+    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+      return false;
+    }
+    if (current < 0 || current >= agendaList.length) return false;
+    if (!_canAutoplayVideoPost(agendaList[current])) return false;
+    if (_lastPlaybackCommandAt == null) return false;
+    // iOS cold-start layout can rebalance visible fractions for a few frames
+    // before the user actually scrolls. Releasing the startup target early
+    // causes 0->2->3 handoffs and sequential player spin-up across cards.
+    final currentFraction = _visibleFractions[current] ?? 0.0;
+    return currentFraction >= stopThreshold;
+  }
+
   void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (modelIndex < 0 || modelIndex >= agendaList.length) return;
+    if (playbackSuspended.value || !isPrimaryFeedRouteVisible) {
+      _visibleFractions.remove(modelIndex);
+      _visibleUpdatedAt.remove(modelIndex);
+      if (centeredIndex.value == modelIndex) {
+        centeredIndex.value = -1;
+      }
+      _lastPlaybackWindowSignature = null;
+      _trackPlaybackWindow();
+      return;
+    }
     final prev = _visibleFractions[modelIndex];
 
-    if (GetPlatform.isAndroid &&
-        prev != null &&
-        (prev - visibleFraction).abs() < 0.08) {
+    if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
+      previousFraction: prev,
+      visibleFraction: visibleFraction,
+    )) {
       return;
     }
 
@@ -19,12 +48,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
       _visibleUpdatedAt[modelIndex] = DateTime.now();
     }
 
-    const double playThreshold = 0.80;
-    final double stopThreshold = GetPlatform.isAndroid ? 0.25 : 0.40;
-
     _scheduleVisibilityEvaluation(
-      playThreshold: playThreshold,
-      stopThreshold: stopThreshold,
+      playThreshold: FeedPlaybackSelectionPolicy.playThreshold,
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
     );
   }
 
@@ -34,9 +60,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
   }) {
     _visibilityDebounce?.cancel();
     _visibilityDebounce = Timer(
-      GetPlatform.isAndroid
-          ? const Duration(milliseconds: 24)
-          : const Duration(milliseconds: 40),
+      FeedPlaybackSelectionPolicy.evaluationDebounceDuration,
       () => _evaluateCenteredPlayback(
         playThreshold: playThreshold,
         stopThreshold: stopThreshold,
@@ -48,114 +72,113 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double playThreshold,
     required double stopThreshold,
   }) {
+    if (_canRetainStartupPlaybackLock) {
+      final lockedDocId = _startupLockedFeedDocId?.trim() ?? '';
+      final lockedIndex =
+          agendaList.indexWhere((post) => post.docID == lockedDocId);
+      if (lockedIndex >= 0 &&
+          lockedIndex < agendaList.length &&
+          _canAutoplayVideoPost(agendaList[lockedIndex])) {
+        final centeredChanged = centeredIndex.value != lockedIndex;
+        if (centeredChanged) {
+          centeredIndex.value = lockedIndex;
+        }
+        lastCenteredIndex = lockedIndex;
+        if (!centeredChanged && !_isPlaybackTargetCurrent(lockedIndex)) {
+          _ensureFeedPlaybackForIndex(lockedIndex);
+        }
+        _trackPlaybackWindow();
+        return;
+      }
+    }
     final current = centeredIndex.value;
-    var bestIndex = -1;
-    var bestFraction = 0.0;
-    var fallbackIndex = -1;
-    var fallbackFraction = 0.0;
-
-    _visibleFractions.forEach((index, fraction) {
-      if (index < 0 || index >= agendaList.length) return;
-      final post = agendaList[index];
-      if (!_canAutoplayVideoPost(post)) return;
-      if (fraction > fallbackFraction) {
-        fallbackFraction = fraction;
-        fallbackIndex = index;
-      }
-      if (fraction < playThreshold) return;
-      if (fraction > bestFraction) {
-        bestFraction = fraction;
-        bestIndex = index;
-      }
-    });
-
-    if (bestIndex >= 0) {
-      final currentFraction =
-          current >= 0 ? (_visibleFractions[current] ?? 0.0) : 0.0;
-      final hysteresis = GetPlatform.isAndroid ? 0.10 : 0.06;
-      final shouldSwitch = current == -1 ||
-          current == bestIndex ||
-          currentFraction < playThreshold ||
-          bestFraction >= currentFraction + hysteresis;
-
-      if (shouldSwitch && centeredIndex.value != bestIndex) {
-        centeredIndex.value = bestIndex;
-        lastCenteredIndex = bestIndex;
-      }
-      _ensureFeedPlaybackForIndex(bestIndex);
+    if (_shouldRetainStartupPlaybackTarget(
+      current: current,
+      stopThreshold: stopThreshold,
+    )) {
+      lastCenteredIndex = current;
       _trackPlaybackWindow();
       return;
     }
-
-    final secondaryThreshold = GetPlatform.isAndroid ? 0.55 : 0.62;
-    if (fallbackIndex >= 0 && fallbackFraction >= secondaryThreshold) {
-      if (centeredIndex.value != fallbackIndex) {
-        centeredIndex.value = fallbackIndex;
-        lastCenteredIndex = fallbackIndex;
-      }
-      _ensureFeedPlaybackForIndex(fallbackIndex);
-      _trackPlaybackWindow();
-      return;
-    }
-
-    if (current >= 0) {
+    if (current >= 0 && current < agendaList.length) {
+      final currentDocId = agendaList[current].docID;
+      final currentPlaybackKey = _feedPlaybackHandleKeyForDoc(currentDocId);
       final currentFraction = _visibleFractions[current] ?? 0.0;
-      final lingerThreshold = GetPlatform.isAndroid ? 0.14 : stopThreshold;
-      if (currentFraction < lingerThreshold) {
-        final preservedIndex = () {
-          if (lastCenteredIndex != null &&
-              lastCenteredIndex! >= 0 &&
-              lastCenteredIndex! < agendaList.length &&
-              _canAutoplayVideoPost(agendaList[lastCenteredIndex!])) {
-            return lastCenteredIndex!;
-          }
-          if (current >= 0 &&
-              current < agendaList.length &&
-              _canAutoplayVideoPost(agendaList[current])) {
-            return current;
-          }
-          final anyVisiblePlayable = _visibleFractions.entries
-              .where((entry) =>
-                  entry.key >= 0 &&
-                  entry.key < agendaList.length &&
-                  _canAutoplayVideoPost(agendaList[entry.key]))
-              .map((entry) => entry.key)
-              .cast<int?>()
-              .firstWhere((entry) => entry != null, orElse: () => null);
-          if (anyVisiblePlayable != null) return anyVisiblePlayable;
-          final firstPlayable =
-              agendaList.indexWhere((post) => _canAutoplayVideoPost(post));
-          return firstPlayable >= 0 ? firstPlayable : -1;
-        }();
+      if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+        lastCommandAt: _lastPlaybackCommandAt,
+        lastCommandDocId: _lastPlaybackCommandDocId,
+        currentDocId: currentPlaybackKey,
+        isCurrentTargetActive: _isPlaybackTargetCurrent(current),
+        currentFraction: currentFraction,
+        stopThreshold: stopThreshold,
+      )) {
+        lastCenteredIndex = current;
+        _trackPlaybackWindow();
+        return;
+      }
+    }
+    final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+      visibleFractions: _visibleFractions,
+      currentIndex: current,
+      lastCenteredIndex: lastCenteredIndex,
+      itemCount: agendaList.length,
+      canAutoplayIndex: (index) => _canAutoplayVideoPost(agendaList[index]),
+      stopThreshold: stopThreshold,
+    );
 
-        if (preservedIndex >= 0 && preservedIndex < agendaList.length) {
-          if (centeredIndex.value != preservedIndex) {
-            centeredIndex.value = preservedIndex;
-          }
-          lastCenteredIndex = preservedIndex;
-          _ensureFeedPlaybackForIndex(preservedIndex);
-        } else {
-          centeredIndex.value = -1;
+    if (targetIndex >= 0 && targetIndex < agendaList.length) {
+      final now = DateTime.now();
+      if (GetPlatform.isIOS &&
+          current >= 0 &&
+          current < agendaList.length &&
+          current != targetIndex &&
+          _isPlaybackTargetCurrent(current)) {
+        final currentFraction = _visibleFractions[current] ?? 0.0;
+        final targetUpdatedAt = _visibleUpdatedAt[targetIndex];
+        final targetIsFresh = targetUpdatedAt != null &&
+            now.difference(targetUpdatedAt) <
+                FeedPlaybackSelectionPolicy.scrollSettleReassertDuration;
+        if (currentFraction >=
+                FeedPlaybackSelectionPolicy.switchRetentionThreshold &&
+            targetIsFresh) {
+          lastCenteredIndex = current;
+          _trackPlaybackWindow();
+          return;
         }
       }
-    } else if (lastCenteredIndex != null &&
-        lastCenteredIndex! >= 0 &&
-        lastCenteredIndex! < agendaList.length &&
-        _canAutoplayVideoPost(agendaList[lastCenteredIndex!])) {
-      centeredIndex.value = lastCenteredIndex!;
-      _ensureFeedPlaybackForIndex(lastCenteredIndex!);
+      final centeredChanged = centeredIndex.value != targetIndex;
+      if (centeredChanged) {
+        centeredIndex.value = targetIndex;
+      }
+      lastCenteredIndex = targetIndex;
+      // When centeredIndex changes, the bound listener is the single owner of
+      // the autoplay dispatch. Issuing a second command here creates duplicate
+      // playOnlyThis bursts for the same card and destabilizes Android feed
+      // playback after scroll settle.
+      if (!centeredChanged && !_isPlaybackTargetCurrent(targetIndex)) {
+        _ensureFeedPlaybackForIndex(targetIndex);
+      }
+    } else {
+      centeredIndex.value = -1;
     }
 
     _trackPlaybackWindow();
   }
 
   void _performTrackPlaybackWindow() {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     final centered = centeredIndex.value;
     final activeDocId = centered >= 0 && centered < agendaList.length
         ? agendaList[centered].docID
         : '';
+    final currentPlayingDocId = VideoStateManager.instance.currentPlayingDocID;
+    final externalOwnerActive = _hasExternalPlaybackOwner(currentPlayingDocId);
+    final ownershipExpected = isPrimaryFeedRouteVisible &&
+        canClaimPlaybackNow &&
+        !playbackSuspended.value &&
+        !pauseAll.value &&
+        !externalOwnerActive;
     final visibleCount = _visibleFractions.length;
     var strongestIndex = -1;
     var strongestFraction = 0.0;
@@ -181,6 +204,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
         'activeIndex': centered,
         'activeDocId': activeDocId,
         'visibleCount': visibleCount,
+        'ownershipExpected': ownershipExpected,
+        'externalOwnerActive': externalOwnerActive,
+        'currentPlayingDocId': currentPlayingDocId ?? '',
         'strongestIndex': strongestIndex,
         'strongestFraction': strongestFraction,
       },

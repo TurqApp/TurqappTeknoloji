@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_create_controller.dart';
@@ -34,11 +36,11 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     super.initState();
     _controllerTag =
         'market_create_${widget.initialItem?.id ?? 'new'}_${identityHashCode(this)}';
-    final existing = MarketCreateController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindMarketCreateController(tag: _controllerTag);
     if (existing != null) {
       controller = existing;
     } else {
-      controller = MarketCreateController.ensure(
+      controller = ensureMarketCreateController(
         initialItem: widget.initialItem,
         tag: _controllerTag,
       );
@@ -49,7 +51,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   @override
   void dispose() {
     _imagePreviewController.dispose();
-    final existing = MarketCreateController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindMarketCreateController(tag: _controllerTag);
     if (_ownsController && identical(existing, controller)) {
       Get.delete<MarketCreateController>(tag: _controllerTag);
     }

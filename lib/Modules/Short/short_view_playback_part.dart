@@ -1,6 +1,54 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  void _requestExclusivePlayback(
+    String docId, {
+    Duration minSpacing = const Duration(milliseconds: 220),
+  }) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return;
+    final playbackHandleKey = controller.playbackHandleKeyForDoc(trimmed);
+    final now = DateTime.now();
+    final lastDocId = _lastExclusivePlayDocId;
+    final lastAt = _lastExclusivePlayAt;
+    if (lastDocId == playbackHandleKey &&
+        lastAt != null &&
+        now.difference(lastAt) < minSpacing) {
+      return;
+    }
+    _lastExclusivePlayDocId = playbackHandleKey;
+    _lastExclusivePlayAt = now;
+    try {
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+    } catch (_) {}
+  }
+
+  void _resetShortAutoplaySegmentGate() {
+    _autoplaySegmentGateStartedAt = null;
+    _autoplaySegmentGateTimedOut = false;
+  }
+
+  bool _hasReadyShortSegment(int page) {
+    if (page < 0 || page >= _cachedShorts.length) return true;
+    try {
+      return _segmentCacheRuntimeService.hasReadySegment(
+        _cachedShorts[page].docID,
+      );
+    } catch (_) {
+      return true;
+    }
+  }
+
+  void _boostShortSegments(int page) {
+    if (page < 0 || page >= _cachedShorts.length) return;
+    try {
+      ensurePrefetchScheduler().boostDoc(
+        _cachedShorts[page].docID,
+        readySegments: 2,
+      );
+    } catch (_) {}
+  }
+
   bool _hasRenderableListChanged(
     List<PostsModel> previous,
     List<PostsModel> next,
@@ -53,9 +101,27 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _onPageChanged(int page) {
     if (_cachedShorts.isEmpty) return;
     if (page == currentPage) return;
+    final nextDocId = page >= 0 && page < _cachedShorts.length
+        ? _cachedShorts[page].docID
+        : '';
+    _currentScrollToken = nextDocId.isEmpty
+        ? ''
+        : '${DateTime.now().microsecondsSinceEpoch}:$page:$nextDocId';
+    recordQALabScrollEvent(
+      surface: 'short',
+      phase: 'settled',
+      metadata: <String, dynamic>{
+        'fromIndex': currentPage,
+        'toIndex': page,
+        'docId': nextDocId,
+        'count': _cachedShorts.length,
+        'scrollToken': _currentScrollToken,
+      },
+    );
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
+      _persistShortPlaybackState(currentPage, oldVc);
       if (defaultTargetPlatform == TargetPlatform.android) {
         _quietBackgroundPlayback(oldVc);
       } else {
@@ -74,10 +140,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
       currentPage = page;
       _showOverlayControls = true;
     });
+    _resetShortAutoplaySegmentGate();
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       try {
-        VideoStateManager.instance
-            .updateExclusiveModeDoc(_cachedShorts[currentPage].docID);
+        _playbackRuntimeService.updateExclusiveModeDoc(
+          controller.playbackHandleKeyForDoc(_cachedShorts[currentPage].docID),
+        );
       } catch (_) {}
     }
     isManuallyPaused = false;
@@ -102,6 +170,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
         controller.loadMoreIfNeeded(currentPage);
       },
     );
+  }
+
+  void _persistShortPlaybackState(int page, HLSVideoAdapter adapter) {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) return;
+    try {
+      _playbackRuntimeService.savePlaybackState(
+        controller.playbackHandleKeyForDoc(_cachedShorts[page].docID),
+        HLSAdapterPlaybackHandle(adapter),
+      );
+    } catch (_) {}
   }
 
   void _enforceSingleActiveAudio(int activePage) {
@@ -138,11 +216,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final hadActiveAdapter = controller.cache[currentPage] != null;
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       final docId = _cachedShorts[currentPage].docID;
+      final playbackHandleKey = controller.playbackHandleKeyForDoc(docId);
       try {
-        VideoStateManager.instance.updateExclusiveModeDoc(docId);
+        _playbackRuntimeService.updateExclusiveModeDoc(playbackHandleKey);
       } catch (_) {}
       try {
-        VideoStateManager.instance.enterExclusiveMode(docId);
+        _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
       } catch (_) {}
     }
 
@@ -173,6 +252,35 @@ extension ShortViewPlaybackPart on _ShortViewState {
     }
   }
 
+  void _ensureActivePageAdapterAfterBuild(int page) {
+    if (!mounted || page != currentPage) return;
+    if (page < 0 || page >= _cachedShorts.length) return;
+    final docId = _cachedShorts[page].docID.trim();
+    if (docId.isEmpty) return;
+    final token = '$page:$docId';
+    if (_pendingActiveAdapterEnsureToken == token) return;
+    _pendingActiveAdapterEnsureToken = token;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (!mounted || page != currentPage) return;
+        final hadActiveAdapter = controller.cache[page] != null;
+        await controller.updateCacheTiers(
+          page,
+          suppressWarmPause: true,
+        );
+        if (!mounted || page != currentPage) return;
+        _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
+        if (!isManuallyPaused && controller.cache[page] != null) {
+          _schedulePlayForPage(page);
+        }
+      } finally {
+        if (_pendingActiveAdapterEnsureToken == token) {
+          _pendingActiveAdapterEnsureToken = null;
+        }
+      }
+    });
+  }
+
   void _schedulePlayForPage(int page) {
     _playDebounce?.cancel();
     _playDebounce = Timer(
@@ -180,13 +288,55 @@ extension ShortViewPlaybackPart on _ShortViewState {
           ? _shortPlayResumeDelayAndroid
           : _shortPlayResumeDelay,
       () {
-        if (!mounted || page != currentPage) return;
+        if (!mounted || page != currentPage || isManuallyPaused) return;
         _enforceSingleActiveAudio(page);
         final vc = controller.cache[page];
         if (vc == null) return;
+        final docId = page >= 0 && page < _cachedShorts.length
+            ? _cachedShorts[page].docID
+            : '';
+        recordQALabPlaybackDispatch(
+          surface: 'short',
+          stage: 'short_page_play',
+          metadata: <String, dynamic>{
+            'docId': docId,
+            'page': page,
+            'isPlaying': vc.value.isPlaying,
+            'isInitialized': vc.value.isInitialized,
+          },
+        );
         vc.setVolume(volume ? 1 : 0);
+        _boostShortSegments(page);
+        final shouldGate = !_autoplaySegmentGateTimedOut &&
+            vc.value.position <= Duration.zero &&
+            !vc.value.isPlaying &&
+            !_hasReadyShortSegment(page);
+        if (shouldGate) {
+          _autoplaySegmentGateStartedAt ??= DateTime.now();
+          final elapsed =
+              DateTime.now().difference(_autoplaySegmentGateStartedAt!);
+          if (elapsed < _ShortViewState._shortAutoplaySegmentGateTimeout) {
+            _playDebounce = Timer(
+              _ShortViewState._shortAutoplaySegmentGatePollInterval,
+              () {
+                if (!mounted || page != currentPage || isManuallyPaused) {
+                  return;
+                }
+                _schedulePlayForPage(page);
+              },
+            );
+            return;
+          }
+          _autoplaySegmentGateTimedOut = true;
+        } else {
+          _resetShortAutoplaySegmentGate();
+        }
+        if (isManuallyPaused) return;
         if (!vc.value.isPlaying) {
           vc.play();
+        }
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId);
         }
         _setupVideoEndListener(vc);
         _schedulePlaybackWatchdog(page, vc);
@@ -195,7 +345,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (page < _cachedShorts.length) {
           final post = _cachedShorts[page];
           try {
-            VideoStateManager.instance.enterExclusiveMode(post.docID);
+            _playbackRuntimeService.enterExclusiveMode(
+              controller.playbackHandleKeyForDoc(post.docID),
+            );
           } catch (_) {}
           VideoTelemetryService.instance
               .startSession(post.docID, post.playbackUrl);
@@ -213,17 +365,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
         if (page < _cachedShorts.length) {
           try {
-            final cm = SegmentCacheManager.maybeFind();
-            if (cm != null) {
-              cm.markPlaying(_cachedShorts[page].docID);
-              for (var i = 1; i <= 5; i++) {
-                final behindIdx = page - i;
-                if (behindIdx < 0) break;
-                if (behindIdx < _cachedShorts.length) {
-                  cm.touchEntry(_cachedShorts[behindIdx].docID);
-                }
-              }
-            }
+            _segmentCacheRuntimeService.markPlayingAndTouchRecent(
+              _cachedShorts.map((short) => short.docID).toList(growable: false),
+              page,
+            );
           } catch (_) {}
         }
       },
@@ -240,7 +385,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _armStallWatchdog(int page, HLSVideoAdapter vc) {
     _stallWatchdogTimer?.cancel();
     _stallWatchdogTimer = Timer(const Duration(milliseconds: 900), () async {
-      if (!mounted || page != currentPage || vc.isDisposed) return;
+      if (!mounted ||
+          page != currentPage ||
+          vc.isDisposed ||
+          isManuallyPaused) {
+        return;
+      }
       final value = vc.value;
       if (!value.isInitialized || !value.hasRenderedFirstFrame) {
         _stallWatchdogLastPosition = value.position;
@@ -258,8 +408,23 @@ extension ShortViewPlaybackPart on _ShortViewState {
       if (_stallWatchdogRetries >= 2) return;
       _stallWatchdogRetries++;
       try {
+        final docId = page >= 0 && page < _cachedShorts.length
+            ? _cachedShorts[page].docID
+            : '';
+        recordQALabPlaybackDispatch(
+          surface: 'short',
+          stage: 'short_stall_recovery_play',
+          metadata: <String, dynamic>{
+            'docId': docId,
+            'page': page,
+            'retry': _stallWatchdogRetries,
+          },
+        );
         vc.setVolume(volume ? 1 : 0);
         await vc.play();
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId);
+        }
       } catch (_) {}
       _armStallWatchdog(page, vc);
     });
@@ -273,17 +438,36 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _armPlaybackWatchdog(int page, HLSVideoAdapter vc) {
     _playbackWatchdogTimer?.cancel();
-    _playbackWatchdogTimer =
-        Timer(_shortPlayWatchdogDelay, () async {
-      if (!mounted || page != currentPage || vc.isDisposed) return;
+    _playbackWatchdogTimer = Timer(_shortPlayWatchdogDelay, () async {
+      if (!mounted ||
+          page != currentPage ||
+          vc.isDisposed ||
+          isManuallyPaused) {
+        return;
+      }
       final value = vc.value;
       final hasStarted = value.isPlaying || value.position > Duration.zero;
       if (hasStarted) return;
       if (_playWatchdogRetries >= 2) return;
       _playWatchdogRetries++;
       try {
+        final docId = page >= 0 && page < _cachedShorts.length
+            ? _cachedShorts[page].docID
+            : '';
+        recordQALabPlaybackDispatch(
+          surface: 'short',
+          stage: 'short_watchdog_play_retry',
+          metadata: <String, dynamic>{
+            'docId': docId,
+            'page': page,
+            'retry': _playWatchdogRetries,
+          },
+        );
         vc.setVolume(volume ? 1 : 0);
         await vc.play();
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId);
+        }
       } catch (_) {}
       _armPlaybackWatchdog(page, vc);
     });
@@ -296,8 +480,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _scheduleEngagementRescore(int page) {
     _engagementRescoreTimer?.cancel();
-    _engagementRescoreTimer =
-        Timer(_shortEngagementRescoreDelay, () {
+    _engagementRescoreTimer = Timer(_shortEngagementRescoreDelay, () {
       if (!mounted || page != currentPage || isManuallyPaused) return;
       if (page < 0 || page >= _cachedShorts.length) return;
       final vc = controller.cache[page];
@@ -308,7 +491,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         isAudible: volume,
         hasStableFocus: true,
       );
-      final playbackKpi = PlaybackKpiService.maybeFind();
+      final playbackKpi = maybeFindPlaybackKpiService();
       if (playbackKpi != null) {
         playbackKpi.track(
           PlaybackKpiEventType.playbackIntent,
@@ -321,8 +504,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
       }
       try {
-        PrefetchScheduler.maybeFind()?.updateQueue(
-          _cachedShorts.map((s) => s.docID).toList(growable: false),
+        maybeFindPrefetchScheduler()?.updateQueueForPosts(
+          _cachedShorts,
           currentPage,
         );
       } catch (_) {}
@@ -351,6 +534,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final dur = v.duration.inMilliseconds / 1000.0;
     if (dur > 0) {
       VideoTelemetryService.instance.onPositionUpdate(videoId, pos, dur);
+      try {
+        _segmentCacheRuntimeService.ensureNextSegmentReady(
+          videoId,
+          (pos / dur).clamp(0.0, 1.0),
+        );
+      } catch (_) {}
     }
   }
 
@@ -378,15 +567,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
             shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
 
         if (shouldPersist) {
-          final cache = SegmentCacheManager.maybeFind();
-          if (cache != null) {
-            cache.updateWatchProgress(
-              _cachedShorts[currentPage].docID,
-              progress,
-            );
-            _lastProgressPersistAt = now;
-            _lastPersistedProgress = progress;
-          }
+          _segmentCacheRuntimeService.updateWatchProgress(
+            _cachedShorts[currentPage].docID,
+            progress,
+          );
+          _lastProgressPersistAt = now;
+          _lastPersistedProgress = progress;
         }
       } catch (_) {}
 

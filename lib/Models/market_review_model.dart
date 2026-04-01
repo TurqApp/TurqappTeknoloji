@@ -1,4 +1,10 @@
 class MarketReviewModel {
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   const MarketReviewModel({
     required this.reviewId,
     required this.userId,
@@ -23,9 +29,9 @@ class MarketReviewModel {
       reviewId: reviewId,
       userId: (map['userID'] ?? map['userId'] ?? '').toString(),
       itemId: (map['itemId'] ?? '').toString(),
-      rating: (map['rating'] as num?)?.toInt() ?? 0,
+      rating: _asInt(map['rating']),
       comment: (map['comment'] ?? '').toString(),
-      timeStamp: (map['timeStamp'] as num?)?.toInt() ?? 0,
+      timeStamp: _asInt(map['timeStamp']),
     );
   }
 

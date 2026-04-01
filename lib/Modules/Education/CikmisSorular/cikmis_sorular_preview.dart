@@ -18,6 +18,7 @@ class CikmisSorularPreview extends StatefulWidget {
   final String yil;
   final String baslik2;
   final String baslik3;
+  final int? sira;
 
   const CikmisSorularPreview({
     super.key,
@@ -26,6 +27,7 @@ class CikmisSorularPreview extends StatefulWidget {
     required this.yil,
     required this.baslik2,
     required this.baslik3,
+    this.sira,
   });
 
   @override
@@ -33,7 +35,7 @@ class CikmisSorularPreview extends StatefulWidget {
 }
 
 class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<CikmisSorularinModeli> list = [];
   List<String> selectedAnswers = [];
   List<String> dogruCevaplarList = [];

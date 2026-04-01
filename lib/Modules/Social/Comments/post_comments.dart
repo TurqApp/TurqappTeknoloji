@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
@@ -8,6 +10,47 @@ import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'comment_composer_bar.dart';
+
+Widget buildPostCommentsSheet({
+  required BuildContext context,
+  required String postID,
+  required String userID,
+  required String collection,
+  Function(bool increment)? onCommentCountChange,
+  double preferredHeightFactor = 0.55,
+}) {
+  final media = MediaQuery.of(context);
+  final preferredHeight = media.size.height * preferredHeightFactor;
+  const topSheetGap = 20.0;
+  final maxVisibleHeight = math.max(
+    0.0,
+    media.size.height -
+        media.viewInsets.bottom -
+        media.padding.top -
+        topSheetGap,
+  );
+  final resolvedHeight = maxVisibleHeight <= 240
+      ? maxVisibleHeight
+      : (preferredHeight <= maxVisibleHeight
+          ? preferredHeight
+          : maxVisibleHeight);
+
+  return Align(
+    alignment: Alignment.bottomCenter,
+    child: SizedBox(
+      height: resolvedHeight,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: PostComments(
+          postID: postID,
+          userID: userID,
+          collection: collection,
+          onCommentCountChange: onCommentCountChange,
+        ),
+      ),
+    ),
+  );
+}
 
 class PostComments extends StatefulWidget {
   final String postID;
@@ -41,8 +84,8 @@ class _PostCommentsState extends State<PostComments> {
     super.initState();
     _controllerTag = 'post_comments_${widget.postID}_${identityHashCode(this)}';
     _ownsController =
-        PostCommentController.maybeFind(tag: _controllerTag) == null;
-    controller = PostCommentController.ensure(
+        maybeFindPostCommentController(tag: _controllerTag) == null;
+    controller = ensurePostCommentController(
       postID: widget.postID,
       userID: widget.userID,
       collection: widget.collection,
@@ -50,7 +93,12 @@ class _PostCommentsState extends State<PostComments> {
       tag: _controllerTag,
     );
 
-    focusNode.requestFocus();
+    if (GetPlatform.isIOS) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        focusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -59,7 +107,7 @@ class _PostCommentsState extends State<PostComments> {
     focusNode.dispose();
     if (_ownsController &&
         identical(
-          PostCommentController.maybeFind(tag: _controllerTag),
+          maybeFindPostCommentController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PostCommentController>(tag: _controllerTag);
@@ -72,124 +120,121 @@ class _PostCommentsState extends State<PostComments> {
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenComments),
       backgroundColor: Colors.transparent,
-      // <<< Prevent the layout from resizing when keyboard opens
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         bottom: false,
         child: Obx(() {
-          return Stack(
-            children: [
-              // Main sheet
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  children: [
-                    header(),
-                    // Comment list or placeholder
-                    Expanded(
-                      child: controller.list.isNotEmpty
-                          ? ListView.builder(
-                              physics: const ClampingScrollPhysics(),
-                              padding: const EdgeInsets.only(top: 6, bottom: 4),
-                              itemCount: controller.list.length,
-                              itemBuilder: (ctx, i) => Column(
-                                children: [
-                                  PostCommentContent(
-                                    model: controller.list[i],
-                                    postID: widget.postID,
-                                    commentControllerTag: _controllerTag,
-                                    isPending: controller.isPendingComment(
-                                        controller.list[i].docID),
-                                    onReplyTap: (commentId, nickname) {
-                                      controller.setReplyTarget(
-                                        commentId: commentId,
-                                        nickname: nickname,
-                                      );
-                                      final mention = '@$nickname ';
-                                      if (textEditingController.text !=
-                                          mention) {
-                                        textEditingController.text = mention;
-                                        textEditingController.selection =
-                                            TextSelection.fromPosition(
-                                          TextPosition(
-                                            offset: textEditingController
-                                                .text.length,
-                                          ),
-                                        );
-                                      }
-                                      focusNode.requestFocus();
-                                      setState(() {});
-                                    },
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                header(),
+                Expanded(
+                  child: controller.list.isNotEmpty
+                      ? ListView.builder(
+                          reverse: true,
+                          physics: const ClampingScrollPhysics(),
+                          padding: const EdgeInsets.only(top: 6, bottom: 4),
+                          itemCount: controller.list.length,
+                          itemBuilder: (ctx, i) {
+                            final model = controller.list[i];
+                            return Column(
+                              children: [
+                                PostCommentContent(
+                                  key: ValueKey(
+                                    'post_comment_${model.docID}',
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 58, top: 6, bottom: 6),
-                                    child: SizedBox(
-                                      height: 1,
-                                      child: Divider(
-                                        color: Colors.grey.withAlpha(20),
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            )
-                          : Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.lightbulb_outline,
-                                      color: Colors.black54,
-                                      size: 30,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'comments.empty'.tr,
-                                      style: TextStyle(
-                                        color: Colors.black54,
-                                        fontSize: 16,
-                                        fontFamily: "Montserrat",
-                                      ),
-                                    ),
-                                  ],
+                                  model: model,
+                                  postID: widget.postID,
+                                  postOwnerUserId: widget.userID,
+                                  commentControllerTag: _controllerTag,
+                                  isPending: controller.isPendingComment(
+                                    model.docID,
+                                  ),
+                                  onReplyTap: (commentId, nickname) {
+                                    controller.setReplyTarget(
+                                      commentId: commentId,
+                                      nickname: nickname,
+                                    );
+                                    final mention = '@$nickname ';
+                                    if (textEditingController.text != mention) {
+                                      textEditingController.text = mention;
+                                      textEditingController.selection =
+                                          TextSelection.fromPosition(
+                                        TextPosition(
+                                          offset:
+                                              textEditingController.text.length,
+                                        ),
+                                      );
+                                    }
+                                    focusNode.requestFocus();
+                                    setState(() {});
+                                  },
                                 ),
-                              ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 58,
+                                    top: 6,
+                                    bottom: 6,
+                                  ),
+                                  child: SizedBox(
+                                    height: 1,
+                                    child: Divider(
+                                      color: Colors.grey.withAlpha(20),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lightbulb_outline,
+                                  color: Colors.black54,
+                                  size: 30,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'comments.empty'.tr,
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 16,
+                                    fontFamily: "Montserrat",
+                                  ),
+                                ),
+                              ],
                             ),
-                    ),
-
-                    // Emoji row
-                    Container(
-                      color: Colors.grey.withAlpha(0),
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: emojis.map((e) {
-                          return GestureDetector(
-                            onTap: () {
-                              textEditingController.text += e;
-                              setState(() {});
-                            },
-                            child:
-                                Text(e, style: const TextStyle(fontSize: 24)),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-
-                    // Placeholder for space under the input row
-                    const SizedBox(height: 72),
-                  ],
+                          ),
+                        ),
                 ),
-              ),
-
-              inputRow()
-            ],
+                Container(
+                  color: Colors.grey.withAlpha(0),
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: emojis.map((e) {
+                      return GestureDetector(
+                        onTap: () {
+                          textEditingController.text += e;
+                          setState(() {});
+                        },
+                        child: Text(e, style: const TextStyle(fontSize: 24)),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                inputRow(),
+              ],
+            ),
           );
         }),
       ),
@@ -232,10 +277,8 @@ class _PostCommentsState extends State<PostComments> {
   }
 
   Widget inputRow() {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 14,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
       child: Obx(
         () => CommentComposerBar(
           avatarUrl: user.avatarUrl,

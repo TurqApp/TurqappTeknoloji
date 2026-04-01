@@ -70,7 +70,7 @@ final class PlaybackWatchdog {
 
         let staleFrame = monitor.shouldFlagVideoFreeze(referenceTime: timestamp)
         let likelyAudioOnly =
-            (playerIsPlaying || monitor.isPlaybackExpected) &&
+            playerIsPlaying &&
             (advanced || timestamp - lastAdvancedAt < 1.0) &&
             staleFrame &&
             !monitor.isBuffering &&

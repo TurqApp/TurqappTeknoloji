@@ -60,11 +60,13 @@ extension _MarketCreateViewMediaPart on _MarketCreateViewState {
                             child: SizedBox(
                               width: double.infinity,
                               child: isExisting
-                                  ? Image.network(
-                                      controller.existingImageUrls[index],
+                                  ? CacheFirstNetworkImage(
+                                      imageUrl:
+                                          controller.existingImageUrls[index],
+                                      cacheManager:
+                                          TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _buildImageFallback(),
+                                      fallback: _buildImageFallback(),
                                     )
                                   : Image.file(
                                       controller.selectedImages[index -
@@ -179,11 +181,11 @@ extension _MarketCreateViewMediaPart on _MarketCreateViewState {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: isExisting
-                              ? Image.network(
-                                  controller.existingImageUrls[index],
+                              ? CacheFirstNetworkImage(
+                                  imageUrl: controller.existingImageUrls[index],
+                                  cacheManager: TurqImageCacheManager.instance,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _buildImageFallback(),
+                                  fallback: _buildImageFallback(),
                                 )
                               : Image.file(
                                   controller.selectedImages[index -

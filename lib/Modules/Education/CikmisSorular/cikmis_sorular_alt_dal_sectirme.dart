@@ -21,7 +21,7 @@ class CikmisSorularAltDalSectirme extends StatefulWidget {
 
 class _CikmisSorularAltDalSectirmeState
     extends State<CikmisSorularAltDalSectirme> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> dallar = [];
   static const _fieldKnowledge = 'Alan Bilgisi';
   static const _educationSciences = 'Eğitim Bilimleri';
@@ -44,19 +44,19 @@ class _CikmisSorularAltDalSectirmeState
         return raw;
     }
   }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _repository
         .distinctValues(
-          where: (doc) =>
-              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
-              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru,
-          field: 'baslik2',
-        )
+      where: (doc) =>
+          (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+          (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru,
+      field: 'baslik2',
+    )
         .then((dallarList) {
-
       // Özel sıralama: GK - GY, A Grubu, Eğitim Bilimleri, Alan Bilgisi
       const baslik2Order = [
         _generalAbilityCulture,

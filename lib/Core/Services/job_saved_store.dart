@@ -52,6 +52,21 @@ class JobSavedStore {
     };
   }
 
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
+  static String _asTrimmedString(dynamic value) {
+    return value?.toString().trim() ?? '';
+  }
+
   static Future<bool> isSaved(String uid, String jobId) async {
     DocumentSnapshot<Map<String, dynamic>> currentSnap;
     try {
@@ -76,8 +91,10 @@ class JobSavedStore {
     if (!legacySnap.exists) return false;
 
     final legacyData = legacySnap.data() ?? const <String, dynamic>{};
-    final timeStamp = (legacyData['timeStamp'] as num?)?.toInt() ??
-        DateTime.now().millisecondsSinceEpoch;
+    final timeStamp = _asInt(
+      legacyData['timeStamp'],
+      fallback: DateTime.now().millisecondsSinceEpoch,
+    );
     await _migrateLegacyDoc(uid, jobId, timeStamp);
     return true;
   }
@@ -133,11 +150,13 @@ class JobSavedStore {
     final byJobId = <String, SavedJobRecord>{};
     for (final doc in currentSnap.docs) {
       final data = doc.data();
-      final jobId = (data['jobID'] ?? doc.id).toString().trim();
+      final jobId = _asTrimmedString(data['jobID']) == ''
+          ? _asTrimmedString(doc.id)
+          : _asTrimmedString(data['jobID']);
       if (jobId.isEmpty) continue;
       byJobId[jobId] = SavedJobRecord(
         jobId: jobId,
-        timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
+        timeStamp: _asInt(data['timeStamp']),
       );
     }
 
@@ -145,10 +164,12 @@ class JobSavedStore {
       final batch = _firestore.batch();
       for (final doc in legacySnap.docs) {
         final data = doc.data();
-        final jobId = (data['jobID'] ?? '').toString().trim();
+        final jobId = _asTrimmedString(data['jobID']);
         if (jobId.isEmpty) continue;
-        final timeStamp = (data['timeStamp'] as num?)?.toInt() ??
-            DateTime.now().millisecondsSinceEpoch;
+        final timeStamp = _asInt(
+          data['timeStamp'],
+          fallback: DateTime.now().millisecondsSinceEpoch,
+        );
         final existing = byJobId[jobId];
         if (existing == null || timeStamp > existing.timeStamp) {
           byJobId[jobId] = SavedJobRecord(jobId: jobId, timeStamp: timeStamp);
@@ -193,28 +214,53 @@ class JobSavedStore {
 
   static Future<List<SavedJobRecord>?> _readCache(String uid) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString('$_prefsPrefix$uid');
+    final prefs = _prefs;
+    final prefsKey = '$_prefsPrefix$uid';
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
-      if (savedAt <= 0) return null;
-      final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
-      if (DateTime.now().difference(cachedAt) > const Duration(hours: 12)) {
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
         return null;
       }
-      final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
-          .whereType<Map>()
-          .map(
-            (item) => SavedJobRecord(
-              jobId: (item['jobId'] ?? '').toString(),
-              timeStamp: (item['timeStamp'] as num?)?.toInt() ?? 0,
-            ),
-          )
-          .where((item) => item.jobId.isNotEmpty)
-          .toList(growable: false);
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
+      final savedAt = _asInt(decoded['savedAt']);
+      if (savedAt <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
+      if (DateTime.now().difference(cachedAt) > const Duration(hours: 12)) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      var shouldPrune = false;
+      final items = <SavedJobRecord>[];
+      for (final rawItem
+          in (decoded['items'] as List<dynamic>? ?? const <dynamic>[])) {
+        if (rawItem is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        final item = SavedJobRecord(
+          jobId: _asTrimmedString(rawItem['jobId']),
+          timeStamp: _asInt(rawItem['timeStamp']),
+        );
+        if (item.jobId.isEmpty) {
+          shouldPrune = true;
+          continue;
+        }
+        items.add(item);
+      }
+      if (shouldPrune) {
+        await _storeCache(uid, items);
+      }
       return items;
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }

@@ -2,13 +2,13 @@ part of 'post_content_controller.dart';
 
 extension PostContentControllerActionsPart on PostContentController {
   ExploreController? get _exploreControllerOrNull =>
-      ExploreController.maybeFind();
+      maybeFindExploreController();
 
   ProfileController? get _profileControllerOrNull =>
       ProfileController.maybeFind();
 
   ArchiveController? get _archiveControllerOrNull =>
-      ArchiveController.maybeFind();
+      maybeFindArchiveController();
 
   Future<void> getGizleArsivSikayetEdildi() async {
     gizlendi.value = model.gizlendi;
@@ -150,8 +150,7 @@ extension PostContentControllerActionsPart on PostContentController {
 
     final archiveController = _archiveControllerOrNull;
     if (archiveController != null) {
-      final index11 = archiveController.list.indexOf(model);
-      if (index11 >= 0) archiveController.list.removeAt(index11);
+      archiveController.removeArchivedPost(model.docID);
     }
 
     arsiv.value = false;
@@ -180,14 +179,22 @@ extension PostContentControllerActionsPart on PostContentController {
 
   Future<void> reshare() async {
     final targetPostId = reshareTargetPostId;
+    final isDirectTarget = targetPostId == model.docID;
     final bool wasReshared = yenidenPaylasildiMi.value;
 
     try {
-      final status = targetPostId == model.docID
+      final status = isDirectTarget
           ? await _postRepository.toggleReshare(model)
           : await _interactionService.toggleReshare(targetPostId);
 
       final uid = _currentUid;
+      if (!isDirectTarget) {
+        _syncIndirectReshareCountLocally(
+          targetPostId: targetPostId,
+          nowReshared: status,
+          wasReshared: wasReshared,
+        );
+      }
 
       if (status) {
         yenidenPaylasildiMi.value = true;
@@ -221,211 +228,19 @@ extension PostContentControllerActionsPart on PostContentController {
     }
   }
 
-  Future<void> followCheck() async {
-    final currentUid = _currentUid;
-    if (model.userID != currentUid) {
-      if (agendaController.followingIDs.contains(model.userID)) {
-        isFollowing.value = true;
-        return;
-      }
-      final docExists = await FollowRepository.ensure().isFollowing(
-        model.userID,
-        currentUid: currentUid,
-        preferCache: true,
-      );
-      isFollowing.value = docExists;
-      if (docExists) {
-        agendaController.followingIDs.add(model.userID);
-      }
-    }
-  }
-
-  Future<void> getUserData(String userID) async {
-    final postLevelNickname = model.authorNickname.trim();
-    final postLevelDisplayName = model.authorDisplayName.trim();
-    final postLevelAvatarFallback = model.authorAvatarUrl.trim();
-    final hasPostLevelIdentity = postLevelNickname.isNotEmpty &&
-        postLevelDisplayName.isNotEmpty &&
-        postLevelAvatarFallback.isNotEmpty;
-
-    void applyProfile({
-      required String nick,
-      required String uname,
-      required String image,
-      required String pushToken,
-      required String name,
-    }) {
-      final rawImage = image.toString().trim();
-      final shouldUsePostFallback = postLevelAvatarFallback.isNotEmpty &&
-          (rawImage.isEmpty || rawImage == kDefaultAvatarUrl);
-      final normalizedImage = shouldUsePostFallback
-          ? postLevelAvatarFallback
-          : (rawImage.isEmpty ? kDefaultAvatarUrl : rawImage);
-      final effectiveNick =
-          postLevelNickname.isNotEmpty ? postLevelNickname : nick;
-      final effectiveName =
-          postLevelDisplayName.isNotEmpty ? postLevelDisplayName : name;
-      nickname.value = effectiveNick;
-      username.value = uname.isNotEmpty ? uname : effectiveNick;
-      avatarUrl.value = normalizedImage;
-      token.value = pushToken;
-      fullName.value = effectiveName;
-    }
-
-    void cacheProfile({
-      required String uid,
-      required String nick,
-      required String uname,
-      required String image,
-      required String pushToken,
-      required String name,
-    }) {
-      PostContentController._userProfileCache[uid] = _UserProfileCacheEntry(
-        nickname: nick,
-        username: uname,
-        avatarUrl: image,
-        token: pushToken,
-        fullName: name,
-        updatedAt: DateTime.now(),
-      );
-    }
-
-    void bindCurrentUserStream() {
-      _currentUserStreamSub?.cancel();
-      _currentUserStreamSub = userService.userStream.listen((user) {
-        if (user == null || user.userID != userID) return;
-        final currentUserDisplayName =
-            user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
-        final image = userService.avatarUrl;
-        applyProfile(
-          nick: user.nickname,
-          uname: user.nickname,
-          image: image,
-          pushToken: user.token,
-          name: currentUserDisplayName,
-        );
-        cacheProfile(
-          uid: userID,
-          nick: user.nickname,
-          uname: user.nickname,
-          image: image,
-          pushToken: user.token,
-          name: currentUserDisplayName,
-        );
-      });
-    }
-
-    // Current user posts should stay bound to current-user stream so avatar/
-    // nickname changes are reflected immediately in feed cards.
-    final currentUserId = _currentUid;
-    if (currentUserId == userID) {
-      if (userService.currentUser != null) {
-        final user = userService.currentUser!;
-        final currentUserDisplayName =
-            user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
-        final image = userService.avatarUrl;
-        applyProfile(
-          nick: user.nickname,
-          uname: user.nickname,
-          image: image,
-          pushToken: user.token,
-          name: currentUserDisplayName,
-        );
-        cacheProfile(
-          uid: userID,
-          nick: user.nickname,
-          uname: user.nickname,
-          image: image,
-          pushToken: user.token,
-          name: currentUserDisplayName,
-        );
-        bindCurrentUserStream();
-        return;
-      }
-      bindCurrentUserStream();
-    }
-    if (currentUserId != userID) {
-      _currentUserStreamSub?.cancel();
-      _currentUserStreamSub = null;
-    }
-
-    if (hasPostLevelIdentity) {
-      applyProfile(
-        nick: postLevelNickname,
-        uname: postLevelNickname,
-        image: postLevelAvatarFallback,
-        pushToken: '',
-        name: postLevelDisplayName,
-      );
-      return;
-    }
-
-    // 0) Aynı kullanıcı için hafızadaki cache tazeyse, ağa gitmeden çık.
-    final cachedProfile = PostContentController._userProfileCache[userID];
-    if (cachedProfile != null &&
-        DateTime.now().difference(cachedProfile.updatedAt) <
-            PostContentController._userProfileCacheTtl) {
-      applyProfile(
-        nick: cachedProfile.nickname,
-        uname: cachedProfile.username,
-        image: cachedProfile.avatarUrl,
-        pushToken: cachedProfile.token,
-        name: cachedProfile.fullName,
-      );
-      return;
-    }
-
-    final userSummaryResolver = UserSummaryResolver.ensure();
-    final warmProfile = userSummaryResolver.peek(userID, allowStale: true);
-    if (warmProfile != null) {
-      applyProfile(
-        nick: warmProfile.nickname,
-        uname: warmProfile.username.isNotEmpty
-            ? warmProfile.username
-            : warmProfile.nickname,
-        image: warmProfile.avatarUrl,
-        pushToken: warmProfile.token,
-        name: warmProfile.preferredName,
-      );
-      cacheProfile(
-        uid: userID,
-        nick: warmProfile.nickname,
-        uname: warmProfile.username.isNotEmpty
-            ? warmProfile.username
-            : warmProfile.nickname,
-        image: warmProfile.avatarUrl,
-        pushToken: warmProfile.token,
-        name: warmProfile.preferredName,
-      );
-      return;
-    }
-
-    try {
-      final summary = await userSummaryResolver.resolve(
-        userID,
-        preferCache: true,
-        cacheOnly: false,
-      );
-      if (summary != null) {
-        applyProfile(
-          nick: summary.nickname,
-          uname:
-              summary.username.isNotEmpty ? summary.username : summary.nickname,
-          image: summary.avatarUrl,
-          pushToken: summary.token,
-          name: summary.preferredName,
-        );
-        cacheProfile(
-          uid: userID,
-          nick: summary.nickname,
-          uname:
-              summary.username.isNotEmpty ? summary.username : summary.nickname,
-          image: summary.avatarUrl,
-          pushToken: summary.token,
-          name: summary.preferredName,
-        );
-      }
-    } catch (_) {}
+  void _syncIndirectReshareCountLocally({
+    required String targetPostId,
+    required bool nowReshared,
+    required bool wasReshared,
+  }) {
+    if (targetPostId.isEmpty || nowReshared == wasReshared) return;
+    final delta = nowReshared ? 1 : -1;
+    final next = (countManager.getRetryCount(targetPostId).value + delta)
+        .clamp(0, 1 << 30);
+    countManager.getRetryCount(targetPostId).value = next;
+    countManager.getRetryCount(model.docID).value = next;
+    model.stats.retryCount = next;
+    currentModel.value = model;
   }
 
   Future<void> goToPreview() async {
@@ -436,81 +251,6 @@ extension PostContentControllerActionsPart on PostContentController {
     try {
       await _interactionService.recordView(model.docID);
     } catch (_) {}
-  }
-
-  Future<void> getReSharedUsers(String docID) async {
-    final cached = PostContentController._reshareUsersCache[docID];
-    if (cached != null &&
-        DateTime.now().difference(cached.updatedAt) <
-            PostContentController._reshareUsersCacheTtl) {
-      reSharedUsers.value = cached.userIds;
-      reShareUserUserID.value = cached.displayUserId;
-      reShareUserNickname.value = cached.displayNickname;
-      return;
-    }
-
-    final reshareEntries = await _postRepository.fetchAllReshareEntries(
-      docID,
-      limit: 200,
-    );
-    final entries =
-        reshareEntries.map((e) => MapEntry(e.userId, e.timeStamp)).toList();
-    // ID listesi
-    final list = entries.map((e) => e.key).toList();
-    reSharedUsers.value = list;
-
-    // Kimi göstereceğiz? Önce ben, sonra takip ettiklerimden en günceli
-    final me = _currentUid;
-    if (me.isNotEmpty && list.contains(me)) {
-      reShareUserUserID.value = me;
-      reShareUserNickname.value = 'Sen';
-      PostContentController._reshareUsersCache[docID] = _ReshareUsersCacheEntry(
-        updatedAt: DateTime.now(),
-        userIds: List<String>.from(list),
-        displayUserId: me,
-        displayNickname: 'Sen',
-      );
-      return;
-    }
-
-    // Takip ettiklerimden biri var mı?
-    try {
-      final following = agendaController.followingIDs;
-      // Takip edilenler içinden en yeni timeStamp’e sahip olanı seç
-      final candidates = entries
-          .where((e) => following.contains(e.key))
-          .toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      if (candidates.isNotEmpty) {
-        final match = candidates.first.key;
-        reShareUserUserID.value = match;
-        final cached = ReshareHelper.getCachedNickname(match);
-        if (cached != null) {
-          reShareUserNickname.value = cached;
-        } else {
-          final nick = await ReshareHelper.getUserNickname(match);
-          reShareUserNickname.value = nick;
-        }
-        PostContentController._reshareUsersCache[docID] =
-            _ReshareUsersCacheEntry(
-          updatedAt: DateTime.now(),
-          userIds: List<String>.from(list),
-          displayUserId: match,
-          displayNickname: reShareUserNickname.value,
-        );
-        return;
-      }
-    } catch (_) {}
-
-    // Kimse yoksa temizle
-    reShareUserUserID.value = '';
-    reShareUserNickname.value = '';
-    PostContentController._reshareUsersCache[docID] = _ReshareUsersCacheEntry(
-      updatedAt: DateTime.now(),
-      userIds: List<String>.from(list),
-      displayUserId: '',
-      displayNickname: '',
-    );
   }
 
   Future<void> like() async {
@@ -544,18 +284,16 @@ extension PostContentControllerActionsPart on PostContentController {
 
   Future<void> showPostCommentsBottomSheet({VoidCallback? onClosed}) async {
     await Get.bottomSheet(
-      SizedBox(
-        height: Get.height * 0.55, // Ekranın %95'i kadar yükseklik
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: PostComments(
-            postID: model.docID,
-            userID: model.userID,
-            collection: 'Posts',
-            onCommentCountChange: (increment) async {
-              await updateCommentCount(increment: increment);
-            },
-          ),
+      Builder(
+        builder: (context) => buildPostCommentsSheet(
+          context: context,
+          postID: model.docID,
+          userID: model.userID,
+          collection: 'Posts',
+          onCommentCountChange: (increment) async {
+            await updateCommentCount(increment: increment);
+          },
+          preferredHeightFactor: 0.55,
         ),
       ),
       isScrollControlled: true,
@@ -564,7 +302,7 @@ extension PostContentControllerActionsPart on PostContentController {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: Colors.white, // Alt barda arka plan rengi
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black54, // Gri karartma rengi
     ).then((v) {
       if (onClosed != null) onClosed();
@@ -579,19 +317,11 @@ extension PostContentControllerActionsPart on PostContentController {
   Future<void> onlyFollowUserOneTime() async {
     try {
       if (followLoading.value) return;
-      final currentUid = _currentUid;
-      final alreadyFollowing = await FollowRepository.ensure().isFollowing(
-        model.userID,
-        currentUid: currentUid,
-        preferCache: true,
-      );
-      if (alreadyFollowing) {
-        isFollowing.value = true;
-        return;
-      }
-
       followLoading.value = true;
-      final outcome = await FollowService.toggleFollow(model.userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        model.userID,
+        assumedFollowing: false,
+      );
       if (outcome.nowFollowing) {
         isFollowing.value = true;
       }
@@ -698,36 +428,4 @@ extension PostContentControllerActionsPart on PostContentController {
       print('Stats count update error: $e');
     }
   }
-}
-
-class _UserProfileCacheEntry {
-  final String nickname;
-  final String username;
-  final String avatarUrl;
-  final String token;
-  final String fullName;
-  final DateTime updatedAt;
-
-  const _UserProfileCacheEntry({
-    required this.nickname,
-    required this.username,
-    required this.avatarUrl,
-    required this.token,
-    required this.fullName,
-    required this.updatedAt,
-  });
-}
-
-class _ReshareUsersCacheEntry {
-  final DateTime updatedAt;
-  final List<String> userIds;
-  final String displayUserId;
-  final String displayNickname;
-
-  const _ReshareUsersCacheEntry({
-    required this.updatedAt,
-    required this.userIds,
-    required this.displayUserId,
-    required this.displayNickname,
-  });
 }

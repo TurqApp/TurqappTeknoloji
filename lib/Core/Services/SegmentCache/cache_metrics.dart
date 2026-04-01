@@ -76,7 +76,7 @@ class CacheMetrics {
   }
 
   void _publishKpi({bool force = false}) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     if (!force && proxyRequestsTotal == 0) return;
     playbackKpi.track(

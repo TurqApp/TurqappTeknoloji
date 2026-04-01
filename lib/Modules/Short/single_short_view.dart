@@ -1,12 +1,14 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import '../../main.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Models/posts_model.dart';
@@ -15,15 +17,22 @@ import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
+import '../../Core/Services/read_budget_registry.dart';
 import '../../Core/Services/short_render_coordinator.dart';
-import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
-import '../../Core/Services/SegmentCache/cache_manager.dart';
+import '../../Themes/app_tokens.dart';
 import 'short_content.dart';
+import '../NavBar/nav_bar_controller.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
+import '../PlaybackRuntime/playback_cache_runtime_service.dart';
 
 part 'single_short_view_helpers_part.dart';
+part 'single_short_view_controller_part.dart';
+part 'single_short_view_controller_cleanup_part.dart';
+part 'single_short_view_controller_bootstrap_part.dart';
+part 'single_short_view_controller_listener_part.dart';
+part 'single_short_view_controller_sync_part.dart';
 part 'single_short_view_playback_part.dart';
 part 'single_short_view_ui_part.dart';
 
@@ -151,23 +160,26 @@ class SingleShortView extends StatefulWidget {
 class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   /// Videoları tutan reaktif liste
   final shorts = <PostsModel>[].obs;
-  final videoStateManager = VideoStateManager.instance;
-  final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
+  final SegmentCacheRuntimeService _segmentCacheRuntimeService =
+      const SegmentCacheRuntimeService();
+  final GlobalVideoAdapterPool _videoPool = ensureGlobalVideoAdapterPool();
   final ShortRenderCoordinator _shortRenderCoordinator =
-      ShortRenderCoordinator.ensure();
+      ensureShortRenderCoordinator();
 
   final PageController pageController = PageController();
   int currentPage = 0;
   bool volume = true;
   bool showControls = true;
   DateTime _pageActivatedAt = DateTime.now();
-  bool _manualSnapInProgress = false;
-  double _manualGestureDragDy = 0.0;
-  static const double _manualGestureTriggerDistance = 18.0;
-  static const double _manualGestureTriggerVelocity = 80.0;
   static const Duration _engagementRescoreDelay = Duration(milliseconds: 2500);
   static const Duration _progressPersistInterval = Duration(seconds: 2);
   static const double _progressPersistDelta = 0.10;
+  static const Duration _autoplaySegmentGateTimeout =
+      Duration(milliseconds: 950);
+  static const Duration _autoplaySegmentGatePollInterval =
+      Duration(milliseconds: 120);
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
@@ -177,13 +189,20 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   List<PostsModel> _renderedShorts = <PostsModel>[];
   Timer? _engagementRescoreTimer;
   Timer? _fullscreenPlaybackGuardTimer;
+  Timer? _autoplaySegmentGateTimer;
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
+  DateTime? _autoplaySegmentGateStartedAt;
+  bool _autoplaySegmentGateTimedOut = false;
   bool _telemetryFirstFrame = false;
   HLSVideoAdapter? _telemetryAdapter;
   String? _activeTelemetryVideoId;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
+  HLSVideoAdapter? _fullscreenReturnPreservedController;
+
+  String _playbackHandleKeyForDoc(String docId) =>
+      'single_short:${docId.trim()}';
 
   @override
   void initState() {
@@ -230,6 +249,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   }
 
   final Map<int, bool> _completionTriggered = {};
+
+  void _refreshView() {
+    if (!mounted) return;
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {

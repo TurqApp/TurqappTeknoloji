@@ -14,6 +14,8 @@ import 'in_app_notifications_controller.dart';
 import 'notification_actions_sheet_content.dart';
 
 part 'in_app_notifications_shell_part.dart';
+part 'in_app_notifications_scaffold_part.dart';
+part 'in_app_notifications_shell_content_part.dart';
 part 'in_app_notifications_list_part.dart';
 
 class InAppNotifications extends StatefulWidget {
@@ -35,12 +37,12 @@ class _InAppNotificationsState extends State<InAppNotifications> {
     super.initState();
     _controllerTag = 'in_app_notifications_${identityHashCode(this)}';
     _pageLineBarTag = '${kNotificationsPageLineBarTag}_$_controllerTag';
-    controller = InAppNotificationsController.ensure(tag: _controllerTag);
-    final existingRecommended = RecommendedUserListController.maybeFind();
+    controller = InAppNotificationsController.ensure();
+    final existingRecommended = maybeFindRecommendedUserListController();
     if (existingRecommended != null) {
       recommendedController = existingRecommended;
     } else {
-      recommendedController = RecommendedUserListController.ensure();
+      recommendedController = ensureRecommendedUserListController();
       _ownsRecommendedController = true;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,15 +53,9 @@ class _InAppNotificationsState extends State<InAppNotifications> {
 
   @override
   void dispose() {
-    if (identical(
-      InAppNotificationsController.maybeFind(tag: _controllerTag),
-      controller,
-    )) {
-      Get.delete<InAppNotificationsController>(tag: _controllerTag);
-    }
     if (_ownsRecommendedController &&
         identical(
-            RecommendedUserListController.maybeFind(), recommendedController)) {
+            maybeFindRecommendedUserListController(), recommendedController)) {
       Get.delete<RecommendedUserListController>();
     }
     super.dispose();

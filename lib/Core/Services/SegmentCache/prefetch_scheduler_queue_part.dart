@@ -1,6 +1,36 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerQueuePart on PrefetchScheduler {
+  Future<void> updateQueueForPosts(
+    List<PostsModel> posts,
+    int currentIndex, {
+    int? maxDocs,
+  }) async {
+    final resolved = _resolveOfflineCandidateQueue(
+      posts,
+      currentIndex: currentIndex,
+      maxDocs: maxDocs,
+    );
+    if (resolved == null) return;
+    _getCacheManager()?.cachePostCards(resolved.posts);
+    await updateQueue(resolved.docIDs, resolved.currentIndex);
+  }
+
+  Future<void> updateFeedQueueForPosts(
+    List<PostsModel> posts,
+    int currentIndex, {
+    int? maxDocs,
+  }) async {
+    final resolved = _resolveOfflineCandidateQueue(
+      posts,
+      currentIndex: currentIndex,
+      maxDocs: maxDocs,
+    );
+    if (resolved == null) return;
+    _getCacheManager()?.cachePostCards(resolved.posts);
+    await updateFeedQueue(resolved.docIDs, resolved.currentIndex);
+  }
+
   Future<void> updateQueue(List<String> docIDs, int currentIndex) async {
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
@@ -28,10 +58,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (entry != null && entry.isFullyCached) continue;
 
       _queue.add(_PrefetchJob(
-        docID: docID,
-        maxSegments: PrefetchScheduler._targetReadySegments,
-        priority: 0,
-        sortScore: _buildJobScore(
+        docID,
+        _prefetchSchedulerTargetReadySegments,
+        0,
+        _buildJobScore(
           currentIndex: safeCurrent,
           currentDocId: currentDocId,
           targetIndex: idx,
@@ -49,10 +79,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final entry = cacheManager.getEntry(docID);
       if (entry == null || !entry.isFullyCached) {
         _queue.add(_PrefetchJob(
-          docID: docID,
-          maxSegments: PrefetchScheduler._targetReadySegments,
-          priority: 1,
-          sortScore: _buildJobScore(
+          docID,
+          _prefetchSchedulerTargetReadySegments,
+          1,
+          _buildJobScore(
             currentIndex: safeCurrent,
             currentDocId: currentDocId,
             targetIndex: safeCurrent,
@@ -74,10 +104,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (entry != null && entry.isFullyCached) continue;
 
       _queue.add(_PrefetchJob(
-        docID: docID,
-        maxSegments: PrefetchScheduler._targetReadySegments,
-        priority: 2,
-        sortScore: _buildJobScore(
+        docID,
+        _prefetchSchedulerTargetReadySegments,
+        2,
+        _buildJobScore(
           currentIndex: safeCurrent,
           currentDocId: currentDocId,
           targetIndex: idx,
@@ -138,10 +168,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final entry = cacheManager.getEntry(docID);
       if (entry != null && entry.isFullyCached) return;
       _queue.add(_PrefetchJob(
-        docID: docID,
-        maxSegments: PrefetchScheduler._targetReadySegments,
-        priority: priority,
-        sortScore: _buildJobScore(
+        docID,
+        _prefetchSchedulerTargetReadySegments,
+        priority,
+        _buildJobScore(
           currentIndex: safeCurrent,
           currentDocId: docIDs[safeCurrent],
           targetIndex: index,
@@ -180,10 +210,84 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _processQueue();
   }
 
+  void boostDoc(
+    String docID, {
+    int readySegments = _prefetchSchedulerTargetReadySegments,
+  }) {
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+    if (docID.trim().isEmpty) return;
+
+    _mobileSeedMode = _shouldEnableMobileSeedMode(
+      docIDs: _lastFeedDocIDs.isEmpty ? <String>[docID] : _lastFeedDocIDs,
+      cacheManager: cacheManager,
+    );
+
+    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+      return;
+    }
+
+    final entry = cacheManager.getEntry(docID);
+    if (entry != null && entry.cachedSegmentCount >= readySegments) {
+      return;
+    }
+
+    _queue.removeWhere((job) => job.docID == docID);
+    _queue.add(
+      _PrefetchJob(
+        docID,
+        readySegments,
+        -1,
+        (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0)).toDouble(),
+      ),
+    );
+    _jobEnqueuedAt[docID] = DateTime.now();
+    cacheManager.touchEntry(docID);
+    _queue.sort(_compareJobs);
+    _publishPrefetchHealthIfNeeded();
+    _processQueue();
+  }
+
   int _compareJobs(_PrefetchJob a, _PrefetchJob b) {
     final scoreCompare = b.sortScore.compareTo(a.sortScore);
     if (scoreCompare != 0) return scoreCompare;
     return a.priority.compareTo(b.priority);
+  }
+
+  _ResolvedPrefetchQueue? _resolveOfflineCandidateQueue(
+    List<PostsModel> posts, {
+    required int currentIndex,
+    int? maxDocs,
+  }) {
+    if (posts.isEmpty) return null;
+    final safeCurrent = currentIndex.clamp(0, posts.length - 1);
+    final currentDocId = posts[safeCurrent].docID.trim();
+    final seenDocIds = <String>{};
+    final eligible = posts.where((post) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenDocIds.add(docId)) return false;
+      return _isEligibleOfflineCandidatePost(post);
+    }).toList(growable: false);
+    if (eligible.isEmpty) return null;
+
+    final limited =
+        maxDocs == null || maxDocs <= 0 || eligible.length <= maxDocs
+            ? eligible
+            : eligible.take(maxDocs).toList(growable: false);
+    if (limited.isEmpty) return null;
+
+    final remapped = limited.indexWhere((post) => post.docID == currentDocId);
+    return _ResolvedPrefetchQueue(
+      docIDs: limited.map((post) => post.docID).toList(growable: false),
+      posts: limited,
+      currentIndex: remapped < 0 ? 0 : remapped,
+    );
+  }
+
+  bool _isEligibleOfflineCandidatePost(PostsModel post) {
+    if (!post.hasPlayableVideo) return false;
+    if (post.isFloodSeriesContent) return false;
+    return normalizeRozetValue(post.rozet).isNotEmpty;
   }
 
   double _buildJobScore({
@@ -223,7 +327,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
-    final policy = PlaybackPolicyEngine.maybeFind();
+    final policy = maybeFindPlaybackPolicyEngine();
     if (policy == null) return false;
     return policy
         .snapshot(
@@ -266,6 +370,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required String variantDir,
     required SegmentCacheManager cacheManager,
     required double watchProgress,
+    int? desiredReadySegments,
   }) {
     if (segmentUris.isEmpty) return const <String>[];
 
@@ -274,12 +379,12 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       watchProgress: watchProgress,
       totalSegments: total,
     );
-
-    final baseTarget = watchedSeg <= 2 ? 3 : watchedSeg + 1;
+    final targetReadySegments =
+        (desiredReadySegments ?? (watchedSeg + 1)).clamp(1, total);
 
     final ordered = <String>[];
     final seen = <int>{};
-    for (int seg = baseTarget; seg <= total; seg++) {
+    for (int seg = 1; seg <= targetReadySegments; seg++) {
       final idx = seg - 1;
       if (!seen.add(idx)) continue;
       final uri = segmentUris[idx];
@@ -291,13 +396,54 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
     if (ordered.isNotEmpty) return ordered;
 
-    for (int idx = 0; idx < total; idx++) {
+    for (int idx = targetReadySegments; idx < total; idx++) {
       final uri = segmentUris[idx];
       final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
       if (cacheManager.getSegmentFile(docID, key) == null) {
         ordered.add(uri);
       }
     }
+    return ordered;
+  }
+
+  Iterable<String> _pickOfflinePrioritySegments({
+    required String docID,
+    required List<String> segmentUris,
+    required String variantDir,
+    required SegmentCacheManager cacheManager,
+    required double watchProgress,
+  }) {
+    if (segmentUris.isEmpty) return const <String>[];
+
+    final total = segmentUris.length;
+    final startIndex = watchProgress <= 0.01
+        ? 0
+        : (_estimateWatchedSegment(
+                  watchProgress: watchProgress,
+                  totalSegments: total,
+                ) -
+                1)
+            .clamp(0, total - 1);
+
+    final ordered = <String>[];
+    final seen = <int>{};
+
+    void addIndex(int idx) {
+      if (!seen.add(idx)) return;
+      final uri = segmentUris[idx];
+      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
+      if (cacheManager.getSegmentFile(docID, key) == null) {
+        ordered.add(uri);
+      }
+    }
+
+    for (int idx = startIndex; idx < total; idx++) {
+      addIndex(idx);
+    }
+    for (int idx = 0; idx < startIndex; idx++) {
+      addIndex(idx);
+    }
+
     return ordered;
   }
 

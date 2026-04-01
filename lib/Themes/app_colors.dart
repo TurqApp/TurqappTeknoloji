@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static Color primaryColor = Color(0xFF4f718e);
-  static Color secondColor = Color(0xFF183351);
-  static Color textBlack = Colors.black;
-  static Color textWhite = Colors.white;
-  static Color textBlue = Colors.black;
-  static Color deleteText = Colors.red;
-  static Color textPink = Colors.pink;
-  static Color textIndigo = Colors.indigo;
-  static Color burgundy = Colors.indigo;
+  static const primaryColor = Color(0xFF4f718e),
+      secondColor = Color(0xFF183351);
+  static const textBlack = Colors.black, textWhite = Colors.white;
+  static const textBlue = Colors.black, deleteText = Colors.red;
+  static const textPink = Colors.pink, textIndigo = Colors.indigo;
+  static const burgundy = Colors.indigo;
 }

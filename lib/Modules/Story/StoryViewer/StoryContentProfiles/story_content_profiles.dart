@@ -30,12 +30,12 @@ class _StoryContentProfilesState extends State<StoryContentProfiles> {
     _controllerTag =
         'story_content_profile_${widget.userID}_${identityHashCode(this)}';
     final existingController =
-        StoryContentProfileController.maybeFind(tag: _controllerTag);
+        maybeFindStoryContentProfileController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = StoryContentProfileController.ensure(
+      controller = ensureStoryContentProfileController(
         tag: _controllerTag,
       );
       _ownsController = true;
@@ -47,7 +47,7 @@ class _StoryContentProfilesState extends State<StoryContentProfiles> {
   void dispose() {
     if (_ownsController &&
         identical(
-          StoryContentProfileController.maybeFind(tag: _controllerTag),
+          maybeFindStoryContentProfileController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<StoryContentProfileController>(

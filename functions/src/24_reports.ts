@@ -64,27 +64,6 @@ async function ensureAdmin(context: functions.https.CallableContext) {
   throw new functions.https.HttpsError("permission-denied", "admin_required");
 }
 
-async function ensureAdminByUid(uid: string) {
-  const normalizedUid = uid.trim();
-  if (!normalizedUid) {
-    throw new functions.https.HttpsError("unauthenticated", "auth_required");
-  }
-
-  const allowSnap = await db.doc("adminConfig/admin").get();
-  const allowedRaw = allowSnap.data()?.allowedUserIds;
-  if (Array.isArray(allowedRaw)) {
-    const allowed = allowedRaw
-      .map((v: unknown) => String(v ?? "").trim())
-      .filter((v: string) => v.length > 0);
-    if (allowed.includes(normalizedUid)) {
-      RateLimits.admin(normalizedUid);
-      return;
-    }
-  }
-
-  throw new functions.https.HttpsError("permission-denied", "admin_required");
-}
-
 function asMap(raw: unknown): Record<string, unknown> {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
     return raw as Record<string, unknown>;
@@ -113,6 +92,28 @@ function resolveThreshold(config: Record<string, unknown>, categoryKey: string):
   if (categoryThreshold > 0) return categoryThreshold;
   const fallback = toNonNegativeInt(config["defaultThreshold"]);
   return fallback > 0 ? fallback : 5;
+}
+
+export function parseReviewReportedTargetRequest(
+  data: unknown,
+  context: functions.https.CallableContext,
+) {
+  ensureAuth(context);
+  const payload = asMap(data);
+  const aggregateId = asString(payload["aggregateId"]);
+  const action = asString(payload["action"]);
+  if (!aggregateId) {
+    throw new functions.https.HttpsError("invalid-argument", "aggregate_required");
+  }
+  if (action !== "restore" && action !== "keep_hidden") {
+    throw new functions.https.HttpsError("invalid-argument", "invalid_action");
+  }
+
+  return {
+    aggregateId,
+    action,
+    reviewerUid: asString(context.auth?.uid),
+  };
 }
 
 export const ensureReportsConfig = functions
@@ -355,23 +356,11 @@ export const reviewReportedTarget = functions
   .region("europe-west3")
   .https
   .onCall(async (data, context) => {
-    const fallbackUid = asString(data?.uid);
-    if (context.auth?.uid) {
-      await ensureAdmin(context);
-    } else {
-      await ensureAdminByUid(fallbackUid);
-    }
-    const aggregateId = asString(data?.aggregateId);
-    const action = asString(data?.action);
-    if (!aggregateId) {
-      throw new functions.https.HttpsError("invalid-argument", "aggregate_required");
-    }
-    if (action !== "restore" && action !== "keep_hidden") {
-      throw new functions.https.HttpsError("invalid-argument", "invalid_action");
-    }
+    const { aggregateId, action, reviewerUid } = parseReviewReportedTargetRequest(data, context);
+    await ensureAdmin(context);
 
     const aggregateRef = db.collection("reportAggregates").doc(aggregateId);
-    const uid = asString(context.auth?.uid) || fallbackUid;
+    const uid = reviewerUid;
 
     await db.runTransaction(async (tx) => {
       const aggregateSnap = await tx.get(aggregateRef);
@@ -406,6 +395,25 @@ export const reviewReportedTarget = functions
         } else {
           tx.set(postRef, {
             gizlendi: true,
+            reportStatus: "actioned_hidden",
+            "moderation.status": "shadow_hidden",
+            "moderation.reportReviewState": "confirmed_hidden",
+            "moderation.reviewedAt": nowMs,
+            "moderation.reviewedBy": uid,
+          }, { merge: true });
+        }
+      } else if (targetType === "market" && targetId) {
+        const marketRef = db.collection("marketStore").doc(targetId);
+        if (action === "restore") {
+          tx.set(marketRef, {
+            reportStatus: "restored",
+            "moderation.status": "active",
+            "moderation.reportReviewState": "restored",
+            "moderation.restoredAt": nowMs,
+            "moderation.reviewedBy": uid,
+          }, { merge: true });
+        } else {
+          tx.set(marketRef, {
             reportStatus: "actioned_hidden",
             "moderation.status": "shadow_hidden",
             "moderation.reportReviewState": "confirmed_hidden",

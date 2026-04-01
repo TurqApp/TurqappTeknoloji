@@ -5,6 +5,13 @@ class PostSharersModel {
   final int timestamp;
   final String sharedPostID;
 
+  static int _asInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static String _asString(Object? value) => (value ?? '').toString();
+
   PostSharersModel({
     required this.userID,
     required this.timestamp,
@@ -13,9 +20,9 @@ class PostSharersModel {
 
   factory PostSharersModel.fromMap(Map<String, dynamic> data) {
     return PostSharersModel(
-      userID: data['userID'] ?? '',
-      timestamp: (data['timestamp'] ?? 0) as int,
-      sharedPostID: data['sharedPostID'] ?? '',
+      userID: _asString(data['userID']),
+      timestamp: _asInt(data['timestamp']),
+      sharedPostID: _asString(data['sharedPostID']),
     );
   }
 

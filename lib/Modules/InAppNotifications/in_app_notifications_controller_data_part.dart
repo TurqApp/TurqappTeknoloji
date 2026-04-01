@@ -1,6 +1,12 @@
 part of 'in_app_notifications_controller.dart';
 
 extension InAppNotificationsControllerDataPart on InAppNotificationsController {
+  bool _isIgnorablePermissionDenied(Object error) {
+    return IntegrationTestMode.enabled &&
+        error is FirebaseException &&
+        error.code == 'permission-denied';
+  }
+
   void _bindPreferences() {
     final uid = _currentUid;
     if (uid.isEmpty) return;
@@ -10,19 +16,22 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
       _preferences =
           NotificationPreferencesService.mergeWithDefaults(snapshot.data());
       _applyFilters();
+    }, onError: (error) {
+      if (_isIgnorablePermissionDenied(error)) {
+        return;
+      }
+      debugPrint('🔔 InApp notification settings listener error: $error');
     });
   }
 
   Future<void> getData() async {
     final uid = _currentUid;
-    if (uid.isEmpty) {
-      complatedDataFetch.value = true;
-      list.clear();
-      return;
-    }
-
     _notificationSub?.cancel();
     _newNotificationHeadSub?.cancel();
+    if (uid.isEmpty) {
+      _clearNotificationState();
+      return;
+    }
 
     await _loadInitialNotificationsFromSnapshot(uid);
     _bindNotificationsCacheStream(uid);
@@ -58,6 +67,9 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
       _applyNotificationDocs(snapshot.docs, replace: true);
     }, onError: (error) {
       complatedDataFetch.value = true;
+      if (_isIgnorablePermissionDenied(error)) {
+        return;
+      }
       debugPrint('🔔 InApp notifications listener error: $error');
     });
   }
@@ -176,7 +188,7 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
   ) {
     final notifications = resource.data;
     if (notifications == null || notifications.isEmpty) {
-      complatedDataFetch.value = true;
+      _clearNotificationState();
       return;
     }
     _allNotifications
@@ -201,5 +213,12 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
 
   void _refreshUnreadTotal() {
     unreadTotal.value = _allNotifications.where((n) => !n.isRead).length;
+  }
+
+  void _clearNotificationState() {
+    _allNotifications.clear();
+    list.clear();
+    unreadTotal.value = 0;
+    complatedDataFetch.value = true;
   }
 }

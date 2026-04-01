@@ -1,221 +1,43 @@
 part of 'scholarships_view.dart';
 
 extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
-  Widget _buildUserHeader(String type, Map<String, dynamic>? userData,
-      Map<String, dynamic>? firmaData) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(child: _buildUserInfo(type, userData, firmaData)),
-          if (_shouldShowFollowButton(userData)) ...[
-            8.pw,
-            _buildFollowButton(userData),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserInfo(String type, Map<String, dynamic>? userData,
-      Map<String, dynamic>? firmaData) {
-    final userId = userData?['userID']?.toString() ?? '';
-    return GestureDetector(
-      onTap: _getUserTapHandler(type, userData),
-      child: Row(
-        children: [
-          _buildUserAvatar(type, userData, firmaData),
-          6.pw,
-          Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    _truncateLabel(
-                      _getUserDisplayName(type, userData, firmaData),
-                      maxChars: 30,
-                    ),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                      color: Colors.black,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                ),
-                if (isIndividualScholarshipType(type) && userId.isNotEmpty) ...[
-                  4.pw,
-                  RozetContent(
-                    size: 13,
-                    userID: userId,
-                    leftSpacing: 0,
-                    rozetValue: userData?['rozet']?.toString(),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserAvatar(String type, Map<String, dynamic>? userData,
-      Map<String, dynamic>? firmaData) {
-    final imageUrl = (userData?['avatarUrl'] ?? '').toString();
-    return CircleAvatar(
-      radius: 15,
-      child: imageUrl.isNotEmpty
-          ? ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                placeholder: (context, url) => CupertinoActivityIndicator(),
-                errorWidget: (context, url, error) => Icon(Icons.error),
-                width: 30,
-                height: 30,
-                fit: BoxFit.cover,
-              ),
-            )
-          : Icon(Icons.person, size: 20),
-    );
-  }
-
-  VoidCallback? _getUserTapHandler(
-      String type, Map<String, dynamic>? userData) {
-    final uid = userData?['userID']?.toString() ?? '';
-    if (uid != CurrentUserService.instance.effectiveUserId) {
-      return () {
-        Get.to(() => SocialProfile(userID: uid));
-      };
-    }
-    return null;
-  }
-
-  String _getUserDisplayName(String type, Map<String, dynamic>? userData,
-      Map<String, dynamic>? firmaData) {
-    final nick = (userData?['displayName'] ??
-            userData?['username'] ??
-            userData?['nickname'])
-        ?.toString();
-    if (nick != null && nick.isNotEmpty) return nick;
-    final first = userData?['firstName']?.toString() ?? '';
-    final last = userData?['lastName']?.toString() ?? '';
-    final full = ('$first $last').trim();
-    return full.isNotEmpty ? full : 'common.user'.tr;
-  }
-
-  String _truncateLabel(String value, {required int maxChars}) {
-    final trimmed = value.trim();
-    if (trimmed.length <= maxChars) {
-      return trimmed;
-    }
-    final cutIndex = trimmed.lastIndexOf(' ', maxChars);
-    final safeIndex = cutIndex > 0 ? cutIndex : maxChars;
-    return '${trimmed.substring(0, safeIndex).trimRight()}...';
-  }
-
-  bool _shouldShowFollowButton(Map<String, dynamic>? userData) {
-    final currentUid = CurrentUserService.instance.effectiveUserId;
-    return userData?['userID']?.toString() != currentUid;
-  }
-
-  Widget _buildFollowButton(Map<String, dynamic>? userData) {
-    final userId = userData?['userID']?.toString() ?? '';
-    return Obx(
-      () {
-        final isLoading = controller.followLoading[userId] ?? false;
-        return ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 86),
-          child: ScaleTap(
-            enabled: !isLoading,
-            onPressed: isLoading ? null : () => _handleFollowTap(userData),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: _getFollowButtonColor(userData),
-                border: Border.all(width: 1, color: Colors.black),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: isLoading
-                  ? SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _getFollowButtonTextColor(userData),
-                        ),
-                      ),
-                    )
-                  : Text(
-                      _getFollowButtonText(userData),
-                      maxLines: 1,
-                      overflow: TextOverflow.clip,
-                      style: TextStyle(
-                        color: _getFollowButtonTextColor(userData),
-                        fontSize: 12,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Color _getFollowButtonColor(Map<String, dynamic>? userData) {
-    final isFollowing =
-        controller.followedUsers[userData?['userID']?.toString() ?? ''] ??
-            false;
-    return isFollowing ? Colors.white : Colors.black;
-  }
-
-  String _getFollowButtonText(Map<String, dynamic>? userData) {
-    final isFollowing =
-        controller.followedUsers[userData?['userID']?.toString() ?? ''] ??
-            false;
-    return isFollowing ? 'following.following'.tr : 'following.follow'.tr;
-  }
-
-  Color _getFollowButtonTextColor(Map<String, dynamic>? userData) {
-    final isFollowing =
-        controller.followedUsers[userData?['userID']?.toString() ?? ''] ??
-            false;
-    return isFollowing ? Colors.black : Colors.white;
-  }
-
-  Future<void> _handleFollowTap(Map<String, dynamic>? userData) async {
-    final followedId = userData?['userID']?.toString() ?? '';
-    if (followedId.isEmpty) return;
-    await controller.toggleFollow(followedId);
-    controller.allScholarships.refresh();
-    controller.visibleScholarships.refresh();
-  }
-
   Widget _buildScholarshipImage(int index, String type, dynamic burs,
       Map<String, dynamic> scholarshipData) {
     return GestureDetector(
-      onTap: () =>
-          Get.to(() => ScholarshipDetailView(), arguments: scholarshipData),
       onDoubleTap: () => controller.toggleLike(scholarshipData['docId'], type),
       child: _hasMultipleImages(type, burs)
-          ? _buildMultipleImagesView(index, burs)
-          : _buildSingleImageView(burs),
+          ? _buildMultipleImagesView(index, burs, scholarshipData)
+          : _buildSingleImageView(burs, scholarshipData),
+    );
+  }
+
+  Future<void> _openScholarshipDetail(
+    Map<String, dynamic> scholarshipData,
+  ) async {
+    await ScholarshipNavigationService.openDetail(scholarshipData);
+  }
+
+  Future<void> _openScholarshipWebsite(String website) async {
+    final url = Uri.parse(ensureUrlHasScheme(website));
+    if (await canLaunchUrl(url)) {
+      await confirmAndLaunchExternalUrl(url);
+      return;
+    }
+    AppSnackbar(
+      'common.error'.tr,
+      'scholarship.website_open_failed'.tr,
     );
   }
 
   bool _hasMultipleImages(String type, dynamic burs) {
-    return isIndividualScholarshipType(type) &&
-        burs is IndividualScholarshipsModel &&
-        burs.img2.isNotEmpty;
+    return false;
   }
 
-  Widget _buildMultipleImagesView(int index, IndividualScholarshipsModel burs) {
+  Widget _buildMultipleImagesView(
+    int index,
+    IndividualScholarshipsModel burs,
+    Map<String, dynamic> scholarshipData,
+  ) {
     return Column(
       children: [
         AspectRatio(
@@ -224,7 +46,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
             itemCount: 2,
             itemBuilder: (context, pageIndex) {
               final imageUrl = pageIndex == 0 ? burs.img : burs.img2;
-              return _buildNetworkImage(imageUrl);
+              return _buildInteractiveScholarshipImage(
+                burs: burs,
+                scholarshipData: scholarshipData,
+                imageUrl: imageUrl,
+              );
             },
             onPageChanged: (pageIndex) =>
                 controller.updatePageIndex(index, pageIndex),
@@ -236,10 +62,56 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     );
   }
 
-  Widget _buildSingleImageView(dynamic burs) {
+  Widget _buildSingleImageView(
+    dynamic burs,
+    Map<String, dynamic> scholarshipData,
+  ) {
     return AspectRatio(
       aspectRatio: 4 / 3,
-      child: _buildNetworkImage(burs.img),
+      child: _buildInteractiveScholarshipImage(
+        burs: burs,
+        scholarshipData: scholarshipData,
+        imageUrl: burs.img,
+      ),
+    );
+  }
+
+  Widget _buildInteractiveScholarshipImage({
+    required dynamic burs,
+    required Map<String, dynamic> scholarshipData,
+    required String imageUrl,
+  }) {
+    final website =
+        burs is IndividualScholarshipsModel ? burs.website.trim() : '';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _openScholarshipDetail(scholarshipData),
+              child: _buildNetworkImage(imageUrl),
+            ),
+            if (website.isNotEmpty)
+              Positioned(
+                left: width * 0.045,
+                right: width * 0.12,
+                bottom: math.max(0.0, height * 0.015 - 3),
+                height: height * 0.11,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _openScholarshipWebsite(website),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -499,16 +371,17 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   Widget _buildExpandButton(int index) {
-    return Column(
-      children: [
-        5.ph,
-        Obx(
-          () => GestureDetector(
+    return Obx(() {
+      if (controller.isExpandedList[index].value) {
+        return const SizedBox.shrink();
+      }
+      return Column(
+        children: [
+          5.ph,
+          GestureDetector(
             onTap: () => controller.toggleExpanded(index),
             child: Text(
-              controller.isExpandedList[index].value
-                  ? 'common.show_less'.tr
-                  : 'common.show_more'.tr,
+              'common.show_more'.tr,
               style: TextStyle(
                 fontSize: 13,
                 fontFamily: "Montserrat",
@@ -517,9 +390,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
               ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
   Widget _buildActionRow(
@@ -550,8 +423,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
             CurrentUserService.instance.effectiveUserId;
 
     return GestureDetector(
-      onTap: () =>
-          Get.to(() => ScholarshipDetailView(), arguments: scholarshipData),
+      onTap: () => ScholarshipNavigationService.openDetail(scholarshipData),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -573,10 +445,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
 
   String _getMainActionButtonText(String type, bool isOwnScholarship) {
     if (isOwnScholarship) return 'common.view'.tr;
-    if (isIndividualScholarshipType(type)) {
-      return 'pasaj.job_finder.apply'.tr;
-    }
-    return 'common.details'.tr;
+    return 'pasaj.market.inspect'.tr;
   }
 
   Widget _buildInteractionButtons(

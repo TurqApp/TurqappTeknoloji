@@ -1,4 +1,5 @@
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 
 import 'cache_first_telemetry.dart';
 
@@ -7,7 +8,7 @@ class CacheFirstKpiTelemetry<T> implements CacheFirstTelemetry<T> {
 
   @override
   void onEvent(CacheFirstTelemetryEvent<T> event) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
 
     final resource = event.resource;
@@ -33,6 +34,7 @@ class CacheFirstKpiTelemetry<T> implements CacheFirstTelemetry<T> {
       PlaybackKpiEventType.cacheFirstLifecycle,
       payload,
     );
+    recordQALabCacheFirstEvent(payload);
   }
 
   int? _inferItemCount(Object? data) {

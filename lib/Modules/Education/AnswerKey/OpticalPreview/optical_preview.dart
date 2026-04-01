@@ -35,8 +35,8 @@ class _OpticalPreviewState extends State<OpticalPreview> {
     _controllerTag =
         'optical_preview_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        OpticalPreviewController.maybeFind(tag: _controllerTag) == null;
-    controller = OpticalPreviewController.ensure(
+        maybeFindOpticalPreviewController(tag: _controllerTag) == null;
+    controller = ensureOpticalPreviewController(
       widget.model,
       widget.update,
       tag: _controllerTag,
@@ -45,7 +45,7 @@ class _OpticalPreviewState extends State<OpticalPreview> {
 
   @override
   void dispose() {
-    final registeredController = OpticalPreviewController.maybeFind(
+    final registeredController = maybeFindOpticalPreviewController(
       tag: _controllerTag,
     );
     if (_ownsController && identical(registeredController, controller)) {

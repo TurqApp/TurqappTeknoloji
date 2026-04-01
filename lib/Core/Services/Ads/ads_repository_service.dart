@@ -5,6 +5,18 @@ import 'package:turqappv2/Models/Ads/ads_models.dart';
 class AdsRepositoryService {
   const AdsRepositoryService();
 
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   CollectionReference<Map<String, dynamic>> get _campaigns =>
       FirebaseFirestore.instance.collection(AdsCollections.campaigns);
 
@@ -230,11 +242,13 @@ class AdsRepositoryService {
 
     for (final d in statsSnap.docs) {
       final data = d.data();
-      impressions += (data['totalImpressions'] as num?)?.toInt() ?? 0;
-      clicks += (data['clicks'] as num?)?.toInt() ?? 0;
-      spend += (data['spend'] as num?)?.toDouble() ?? 0;
-      uniqueReach += (data['uniqueReach'] as num?)?.toInt() ?? 0;
-      final vcr = (data['videoCompletionRate'] as num?)?.toDouble();
+      impressions += _asInt(data['totalImpressions']);
+      clicks += _asInt(data['clicks']);
+      spend += _asDouble(data['spend']);
+      uniqueReach += _asInt(data['uniqueReach']);
+      final vcr = data['videoCompletionRate'] == null
+          ? null
+          : _asDouble(data['videoCompletionRate']);
       if (vcr != null) {
         videoCompletionRateSum += vcr;
         completionCount++;

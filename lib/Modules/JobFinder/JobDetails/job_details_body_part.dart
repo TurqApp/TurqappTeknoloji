@@ -15,31 +15,34 @@ extension JobDetailsBodyPart on _JobDetailsState {
         title: AppPageTitle('pasaj.job_finder.detail_title'.tr),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 2),
-            child: EducationFeedShareIconButton(
-              onTap: () => shareService.shareJob(controller.model.value),
-              size: AppIconSurface.kSize,
-              iconSize: AppIconSurface.kIconSize,
-            ),
-          ),
-          Obx(() {
-            return Padding(
-              padding: const EdgeInsets.only(right: 2),
-              child: AppHeaderActionButton(
-                onTap: () =>
-                    controller.toggleSave(controller.model.value.docID),
-                child: Icon(
-                  controller.saved.value ? AppIcons.saved : AppIcons.save,
-                  size: AppIconSurface.kIconSize,
-                  color:
-                      controller.saved.value ? Colors.orange : Colors.black87,
+            padding: const EdgeInsets.only(right: 15),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                EducationFeedShareIconButton(
+                  onTap: () => shareService.shareJob(controller.model.value),
+                  size: 36,
+                  iconSize: 18,
                 ),
-              ),
-            );
-          }),
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: pullDownMenu(),
+                const SizedBox(width: 6),
+                Obx(() {
+                  return AppHeaderActionButton(
+                    onTap: () =>
+                        controller.toggleSave(controller.model.value.docID),
+                    size: 36,
+                    child: Icon(
+                      controller.saved.value ? AppIcons.saved : AppIcons.save,
+                      size: 18,
+                      color: controller.saved.value
+                          ? Colors.orange
+                          : Colors.black87,
+                    ),
+                  );
+                }),
+                const SizedBox(width: 6),
+                pullDownMenu(),
+              ],
+            ),
           ),
         ],
       ),
@@ -266,7 +269,9 @@ extension JobDetailsBodyPart on _JobDetailsState {
               const SizedBox(height: 18),
               _buildSimilarSection(controller),
               const SizedBox(height: 12),
-              const AdmobKare(),
+              const AdmobKare(
+                suggestionPlacementId: 'job',
+              ),
             ],
           );
         }),
@@ -280,10 +285,13 @@ extension JobDetailsBodyPart on _JobDetailsState {
       child: AspectRatio(
         aspectRatio: 1.18,
         child: imageUrl.trim().isNotEmpty
-            ? CachedNetworkImage(
+            ? CacheFirstNetworkImage(
                 imageUrl: imageUrl,
+                cacheManager: TurqImageCacheManager.instance,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => _imageFallback(),
+                memCacheWidth: 960,
+                memCacheHeight: 960,
+                fallback: _imageFallback(),
               )
             : _imageFallback(),
       ),

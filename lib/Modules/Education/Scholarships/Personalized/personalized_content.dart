@@ -21,7 +21,7 @@ class PersonalizedContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final docId =
-        PersonalizedController.maybeFind()?.docIdByTimestamp[model.timeStamp] ??
+        maybeFindPersonalizedController()?.docIdByTimestamp[model.timeStamp] ??
             '';
     final keyId = docId.isNotEmpty ? docId : 'ts_${model.timeStamp}';
     return GestureDetector(
@@ -71,7 +71,7 @@ class PersonalizedContent extends StatelessWidget {
 
   Map<String, dynamic> _createScholarshipData() {
     final docId =
-        PersonalizedController.maybeFind()?.docIdByTimestamp[model.timeStamp] ??
+        maybeFindPersonalizedController()?.docIdByTimestamp[model.timeStamp] ??
             '';
     return {
       'model': model,

@@ -1,11 +1,24 @@
 import 'dart:convert';
 
 class IntegrationTestFixtureSurface {
-  const IntegrationTestFixtureSurface({
+  static List<String> _cloneDocIds(Iterable<dynamic> source) {
+    return source
+        .map((item) => item?.toString().trim() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static int? _asNullableInt(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
+  IntegrationTestFixtureSurface({
     this.minCount,
-    this.requiredDocIds = const <String>[],
+    List<String> requiredDocIds = const <String>[],
     this.maxUnread,
-  });
+  }) : requiredDocIds = _cloneDocIds(requiredDocIds);
 
   final int? minCount;
   final List<String> requiredDocIds;
@@ -17,22 +30,25 @@ class IntegrationTestFixtureSurface {
   static IntegrationTestFixtureSurface fromMap(Map<String, dynamic> raw) {
     final rawDocIds = raw['docIds'];
     return IntegrationTestFixtureSurface(
-      minCount: (raw['minCount'] as num?)?.toInt(),
-      requiredDocIds: rawDocIds is List
-          ? rawDocIds
-              .map((item) => item?.toString().trim() ?? '')
-              .where((id) => id.isNotEmpty)
-              .toList(growable: false)
-          : const <String>[],
-      maxUnread: (raw['maxUnread'] as num?)?.toInt(),
+      minCount: _asNullableInt(raw['minCount']),
+      requiredDocIds:
+          rawDocIds is List ? _cloneDocIds(rawDocIds) : const <String>[],
+      maxUnread: _asNullableInt(raw['maxUnread']),
     );
   }
 }
 
 class IntegrationTestFixtureContract {
-  const IntegrationTestFixtureContract({
-    this.surfaces = const <String, IntegrationTestFixtureSurface>{},
-  });
+  static Map<String, IntegrationTestFixtureSurface> _cloneSurfaces(
+    Map<String, IntegrationTestFixtureSurface> source,
+  ) {
+    return Map<String, IntegrationTestFixtureSurface>.from(source);
+  }
+
+  IntegrationTestFixtureContract({
+    Map<String, IntegrationTestFixtureSurface> surfaces =
+        const <String, IntegrationTestFixtureSurface>{},
+  }) : surfaces = _cloneSurfaces(surfaces);
 
   final Map<String, IntegrationTestFixtureSurface> surfaces;
 
@@ -47,13 +63,13 @@ class IntegrationTestFixtureContract {
   static IntegrationTestFixtureContract fromRaw(String raw) {
     final normalized = raw.trim();
     if (normalized.isEmpty) {
-      return const IntegrationTestFixtureContract();
+      return IntegrationTestFixtureContract();
     }
 
     try {
       final decoded = jsonDecode(normalized);
       if (decoded is! Map) {
-        return const IntegrationTestFixtureContract();
+        return IntegrationTestFixtureContract();
       }
 
       final parsed = <String, IntegrationTestFixtureSurface>{};
@@ -69,7 +85,7 @@ class IntegrationTestFixtureContract {
       }
       return IntegrationTestFixtureContract(surfaces: parsed);
     } catch (_) {
-      return const IntegrationTestFixtureContract();
+      return IntegrationTestFixtureContract();
     }
   }
 }

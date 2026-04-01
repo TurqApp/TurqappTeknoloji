@@ -3,11 +3,6 @@ class HashtagModel {
   final num count;
   final bool hasHashtag;
   final int? lastSeenTs;
-
-  HashtagModel({
-    required this.hashtag,
-    required this.count,
-    this.hasHashtag = false,
-    this.lastSeenTs,
-  });
+  HashtagModel(this.hashtag, this.count,
+      {this.hasHashtag = false, this.lastSeenTs});
 }

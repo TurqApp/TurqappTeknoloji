@@ -1,0 +1,45 @@
+part of 'my_booklet_results_controller.dart';
+
+MyBookletResultsController? maybeFindMyBookletResultsController() {
+  final isRegistered = Get.isRegistered<MyBookletResultsController>();
+  if (!isRegistered) return null;
+  return Get.find<MyBookletResultsController>();
+}
+
+MyBookletResultsController ensureMyBookletResultsController({
+  bool permanent = false,
+}) {
+  final existing = maybeFindMyBookletResultsController();
+  if (existing != null) return existing;
+  return Get.put(MyBookletResultsController(), permanent: permanent);
+}
+
+extension MyBookletResultsControllerFacadePart on MyBookletResultsController {
+  void setSelection(int value) {
+    selection.value = value;
+  }
+
+  Future<void> _bootstrapResults() =>
+      MyBookletResultsControllerRuntimePart(this).bootstrapResults();
+
+  Future<void> fetchBookletResults({bool forceRefresh = false}) =>
+      MyBookletResultsControllerRuntimePart(this)
+          .fetchBookletResults(forceRefresh: forceRefresh);
+
+  Future<void> fetchOptikSonuclari({bool forceRefresh = false}) =>
+      MyBookletResultsControllerRuntimePart(this)
+          .fetchOptikSonuclari(forceRefresh: forceRefresh);
+
+  Future<void> refreshData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) =>
+      MyBookletResultsControllerRuntimePart(this).refreshData(
+        silent: silent,
+        forceRefresh: forceRefresh,
+      );
+
+  void _assignBookletResults(List<UserSubcollectionEntry> snapshot) =>
+      MyBookletResultsControllerRuntimePart(this)
+          .assignBookletResults(snapshot);
+}

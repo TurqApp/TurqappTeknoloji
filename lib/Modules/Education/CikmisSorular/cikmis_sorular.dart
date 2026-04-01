@@ -30,31 +30,13 @@ class CikmisSorular extends StatefulWidget {
 
 class _CikmisSorularState extends State<CikmisSorular> {
   final CikmisSorularController controller =
-      CikmisSorularController.ensure(permanent: true);
-  final ScrollController _scrollController = ScrollController();
-  double _previousOffset = 0.0;
-  bool showButons = false;
+      ensureCikmisSorularController(permanent: true);
+  ScrollController get _scrollController => controller.scrollController;
 
   @override
   void initState() {
     super.initState();
-    scrolControlcu();
-  }
-
-  void scrolControlcu() {
-    _scrollController.addListener(() {
-      final currentOffset = _scrollController.position.pixels;
-
-      if (currentOffset > _previousOffset || currentOffset < _previousOffset) {
-        if (mounted && showButons) {
-          setState(() {
-            showButons = false;
-          });
-        }
-      }
-
-      _previousOffset = currentOffset;
-    });
+    controller.requestScrollReset();
   }
 
   Widget _buildSearchResults() {
@@ -81,7 +63,9 @@ class _CikmisSorularState extends State<CikmisSorular> {
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final item = controller.searchResults[index];
-        final title = (item['title'] ?? item['anaBaslik'] ?? '').toString();
+        final anaBaslik = (item['anaBaslik'] ?? '').toString();
+        final title =
+            anaBaslik.isNotEmpty ? anaBaslik : (item['title'] ?? '').toString();
         final sinavTuru = (item['sinavTuru'] ?? '').toString();
         final yil = (item['yil'] ?? '').toString();
         final baslik2 = (item['baslik2'] ?? '').toString();
@@ -104,7 +88,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
             ),
           ),
           subtitle: Text(
-            [sinavTuru, yil, baslik2, baslik3]
+            [sinavTuru, baslik2, baslik3]
                 .where((e) => e.isNotEmpty)
                 .join(' • '),
             style: const TextStyle(
@@ -121,6 +105,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
                 yil: yil,
                 baslik2: baslik2,
                 baslik3: baslik3,
+                sira: (item['sira'] as num?)?.toInt(),
               ),
             );
           },

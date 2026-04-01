@@ -12,6 +12,7 @@ class AnimatedActionButton extends StatefulWidget {
   final EdgeInsetsGeometry padding;
   final bool showTapArea;
   final Duration? longPressDuration;
+  final HitTestBehavior hitTestBehavior;
 
   const AnimatedActionButton({
     super.key,
@@ -20,9 +21,10 @@ class AnimatedActionButton extends StatefulWidget {
     this.onLongPress,
     required this.enabled,
     required this.semanticsLabel,
-    this.padding = const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
+    this.padding = const EdgeInsets.symmetric(vertical: 3.0, horizontal: 4.0),
     this.showTapArea = false,
     this.longPressDuration,
+    this.hitTestBehavior = HitTestBehavior.translucent,
   });
 
   @override
@@ -86,11 +88,10 @@ class _AnimatedActionButtonState extends State<AnimatedActionButton>
       enabled: widget.enabled,
       label: widget.semanticsLabel,
       child: GestureDetector(
-        behavior: HitTestBehavior.deferToChild,
+        behavior: widget.hitTestBehavior,
         onLongPressDown: widget.enabled && widget.onLongPress != null
             ? (_) {
-                final delay =
-                    widget.longPressDuration ?? kLongPressTimeout;
+                final delay = widget.longPressDuration ?? kLongPressTimeout;
                 Future<void>.delayed(delay, () {
                   if (!mounted || _holdScale != _pressScale) return;
                   _setHoldScale(_releaseScale);

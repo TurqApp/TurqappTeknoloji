@@ -15,13 +15,17 @@ import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
-import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Models/current_user_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
@@ -57,23 +61,33 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 import '../../../Core/text_styles.dart';
 import '../../Agenda/agenda_controller.dart';
 import '../../Explore/explore_controller.dart';
+import '../../NavBar/nav_bar_controller.dart';
 import '../../Short/short_controller.dart';
 import '../../Story/StoryMaker/story_maker.dart';
 import '../../Story/StoryRow/story_row_controller.dart';
 import '../../Story/StoryRow/story_user_model.dart';
 import '../../../Core/Services/audio_focus_coordinator.dart';
+import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../../Core/Services/integration_test_keys.dart';
 import '../../../Core/Services/iz_birak_subscription_service.dart';
 import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/video_state_manager.dart';
 import '../SocialMediaLinks/social_media_links_controller.dart';
+import '../Settings/settings_controller.dart';
 import '../../../Models/social_media_model.dart';
 
-part 'profile_view_sections_part.dart';
-part 'profile_view_header_part.dart';
-part 'profile_view_grids_part.dart';
 part 'profile_view_lifecycle_part.dart';
 part 'profile_view_shell_part.dart';
+part 'profile_view_shell_content_part.dart';
+part 'profile_view_profile_part.dart';
+part 'profile_view_tabs_part.dart';
+part 'profile_view_actions_part.dart';
+part 'profile_view_social_part.dart';
+part 'profile_view_market_part.dart';
+part 'profile_view_photo_part.dart';
+part 'profile_view_video_part.dart';
+part 'profile_view_scheduled_part.dart';
+part 'profile_view_reshare_part.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -85,141 +99,70 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> {
   late final ProfileController controller;
   late final SocialMediaController socialMediaController;
+  final ScrollController _linksHighlightsScrollController =
+      ScrollController(keepScrollOffset: false);
   final userService = CurrentUserService.instance;
   final PostRepository _postRepository = PostRepository.ensure();
-  final MarketRepository _marketRepository = MarketRepository.ensure();
+  final MarketSnapshotRepository _marketSnapshotRepository =
+      MarketSnapshotRepository.ensure();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
   bool _scrollProbeScheduled = false;
+  Timer? _scrollSettleDebounce;
   bool _ownsController = false;
   bool _ownsSocialMediaController = false;
   bool _ownsHighlightsController = false;
   Worker? _marketUserWorker;
-
-  String get _myUserId => userService.effectiveUserId;
-
-  String get _myNickname => userService.nickname;
-  String get _myIosSafeNickname {
-    final controllerNickname = controller.headerNickname.value.trim();
-    if (controllerNickname.isNotEmpty) return controllerNickname;
-    final direct = _myNickname.trim();
-    if (direct.isNotEmpty) return direct;
-    return _myNickname;
-  }
-
-  String get _myAvatarUrl {
-    final direct = controller.headerAvatarUrl.value.trim();
-    if (direct.isNotEmpty) return direct;
-    return userService.avatarUrl;
-  }
-
-  String get _myFirstName => userService.firstName;
-  String get _myLastName => userService.lastName;
-  bool get _hasVerifiedRozet {
-    final headerRozet = normalizeRozetValue(controller.headerRozet.value);
-    if (headerRozet.isNotEmpty) return true;
-    return normalizeRozetValue(userService.rozet).isNotEmpty;
-  }
-
-  String get _myMeslek => userService.meslekKategori;
-  String get _myBio => userService.bio;
-  String get _myAdres => userService.adres;
-  String get _myDisplayFirstName {
-    final display = controller.headerDisplayName.value.trim();
-    if (display.isNotEmpty) return display;
-    final direct = controller.headerFirstName.value.trim();
-    if (direct.isNotEmpty) return direct;
-    return _myFirstName.trim();
-  }
-
-  String get _myDisplayLastName {
-    if (controller.headerDisplayName.value.trim().isNotEmpty) return '';
-    final direct = controller.headerLastName.value.trim();
-    if (direct.isNotEmpty) return direct;
-    return _myLastName.trim();
-  }
-
-  String get _myDisplayMeslek {
-    final direct = controller.headerMeslek.value.trim();
-    if (direct.isNotEmpty) return direct;
-    return _myMeslek.trim();
-  }
-
-  String get _myDisplayBio {
-    final direct = controller.headerBio.value.trim();
-    if (direct.isNotEmpty) return direct;
-    return _myBio.trim();
-  }
-
-  String get _myDisplayAdres {
-    final direct = controller.headerAdres.value.trim();
-    if (direct.isNotEmpty) return direct;
-    return _myAdres.trim();
-  }
-
-  int get _myTotalPosts => userService.counterOfPosts;
-  int get _myTotalLikes => userService.counterOfLikes;
-  int get _myTotalMarket =>
-      _marketItems.where((item) => item.status != 'archived').length;
-  bool get _hasMyStories =>
-      _myUserId.isNotEmpty &&
-      storyOwnerUsers.any((u) => u.userID == _myUserId && u.stories.isNotEmpty);
-
-  List<StoryUserModel> get storyOwnerUsers {
-    final rowController = StoryRowController.maybeFind();
-    if (rowController == null) {
-      return const <StoryUserModel>[];
-    }
-    return rowController.users;
-  }
-
-  StoryHighlightsController? _ensureProfileHighlightsController() {
-    final uid = _myUserId.trim();
-    if (uid.isEmpty) return null;
-    final tag = 'highlights_$uid';
-    final existing = StoryHighlightsController.maybeFind(tag: tag);
-    if (existing != null) {
-      return existing;
-    }
-    _ownsHighlightsController = true;
-    return StoryHighlightsController.ensure(userId: uid, tag: tag);
-  }
-
-  Future<void> _refreshProfileSurfaceMeta({bool force = false}) async {
-    final uid = _myUserId.trim();
-    if (uid.isEmpty) return;
-    await controller.refreshAll(forceSync: force);
-    await socialMediaController.getData(
-      silent: !force,
-      forceRefresh: force,
-    );
-    final highlightsController = _ensureProfileHighlightsController();
-    if (highlightsController != null) {
-      await highlightsController.loadHighlights(
-        silent: !force,
-        forceRefresh: force,
-      );
-    }
-    unawaited(_loadMarketItems(force: force));
-  }
-
-  void _updateViewState(VoidCallback callback) {
-    if (!mounted) return;
-    setState(callback);
-  }
+  Worker? _profileTabWorker;
 
   @override
   void initState() {
     super.initState();
+    if (IntegrationTestMode.enabled) {
+      debugPrint('[integration-smoke] ProfileView.initState');
+    }
     _initializeProfileView();
   }
 
   @override
   void dispose() {
+    if (IntegrationTestMode.enabled) {
+      debugPrint(
+          '[integration-smoke] ProfileView.dispose owns=$_ownsController');
+    }
     _disposeProfileView();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => _buildPage(context);
+
+  void _updateViewState(VoidCallback callback) {
+    if (!mounted) return;
+    setState(callback);
+  }
+
+  Widget header() {
+    return Obx(() {
+      return Column(
+        children: [
+          _buildTopHeaderRow(),
+          _buildImageAndButtonsRow(),
+          8.ph,
+          textInfoBody(),
+          _buildLinksAndHighlightsRow(),
+          Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: postButtons(context),
+          ),
+          Divider(
+            height: 0,
+            color: Colors.grey.withAlpha(50),
+          ),
+          4.ph,
+        ],
+      );
+    });
+  }
 }

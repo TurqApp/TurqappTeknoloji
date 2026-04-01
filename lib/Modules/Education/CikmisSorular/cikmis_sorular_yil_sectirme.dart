@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik2_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik3_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_preview.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'cikmis_sorular_yil_sectirme_actions_part.dart';
 part 'cikmis_sorular_yil_sectirme_content_part.dart';
@@ -29,7 +30,8 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 }
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularSnapshotRepository _snapshotRepository =
+      ensureCikmisSorularSnapshotRepository();
   List<String> yillar = [];
   static const _english = 'İngilizce';
   static const _german = 'Almanca';
@@ -52,9 +54,6 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   static const _ttbt = 'TTBT';
   static const _ales = 'ALES';
   static const _yks = 'YKS';
-
-  String _denemeLabel(int index) =>
-      'past_questions.mock_label'.trParams({'index': '${index + 1}'});
 
   String _localizedExamType(String raw) {
     switch (raw) {
@@ -107,36 +106,54 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
     getData();
   }
 
-  void getData() {
-    _repository
-        .distinctValues(
-      where: (doc) {
-        if ((doc['anaBaslik'] ?? '').toString() != widget.anaBaslik ||
-            (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {
-          return false;
-        }
-        if (_isLanguageOrDirectBranch(widget.baslik2)) {
-          return true;
-        }
-        if (widget.baslik3.isNotEmpty) {
-          return (doc['baslik3'] ?? '').toString() == widget.baslik3 &&
-              (doc['baslik2'] ?? '').toString() == widget.baslik2;
-        }
-        if (widget.baslik2.isNotEmpty) {
-          return (doc['baslik2'] ?? '').toString() == widget.baslik2;
-        }
-        return true;
-      },
-      field: 'yil',
-      descendingNumeric: true,
-    )
-        .then((items) {
-      if (mounted) {
-        setState(() {
-          yillar = items;
-        });
-      }
+  Future<void> getData() async {
+    final docs = (await _snapshotRepository.loadCachedHome(
+          userId: CurrentUserService.instance.effectiveUserId,
+        ))
+            .data ??
+        const <Map<String, dynamic>>[];
+    final filtered = docs.where(_matchesSessionDoc).toList(growable: false);
+    final years = <String>[];
+    for (final doc in filtered) {
+      final yil = (doc['yil'] ?? '').toString().trim();
+      if (yil.isEmpty || years.contains(yil)) continue;
+      years.add(yil);
+    }
+    years.sort((a, b) {
+      final left = int.tryParse(a) ?? -1;
+      final right = int.tryParse(b) ?? -1;
+      return right.compareTo(left);
     });
+    if (!mounted) return;
+    setState(() {
+      yillar = years;
+    });
+  }
+
+  String _denemeLabelForYear(String yil) {
+    final index = yillar.indexOf(yil);
+    final safeIndex = index >= 0 ? index + 1 : 1;
+    return 'past_questions.mock_label'.trParams({
+      'index': safeIndex.toString(),
+    });
+  }
+
+  bool _matchesSessionDoc(Map<String, dynamic> doc) {
+    if ((doc['anaBaslik'] ?? '').toString() != widget.anaBaslik ||
+        (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {
+      return false;
+    }
+    if (_isLanguageOrDirectBranch(widget.baslik2)) {
+      return true;
+    }
+    if (widget.baslik3.isNotEmpty) {
+      return (doc['baslik3'] ?? '').toString() == widget.baslik3 &&
+          (doc['baslik2'] ?? '').toString() == widget.baslik2;
+    }
+    if (widget.baslik2.isNotEmpty) {
+      return (doc['baslik2'] ?? '').toString() == widget.baslik2;
+    }
+    return true;
   }
 
   @override

@@ -54,6 +54,15 @@ class PlaybackWatchdog(
     private fun evaluatePlayer(player: Player) {
         val now = SystemClock.elapsedRealtime()
         val positionMs = player.currentPosition.coerceAtLeast(0L)
+        if (player.playbackState == Player.STATE_ENDED) {
+            lastObservedPositionMs = positionMs
+            lastProgressedAt = 0L
+            return
+        }
+        val canRenderNow =
+            monitor.hasActiveSurface() ||
+                monitor.awaitingFullscreenRecovery ||
+                monitor.awaitingBackgroundRecovery
         monitor.onPositionUpdate(positionMs)
         monitor.evaluatePassiveTimeouts()
 
@@ -80,6 +89,8 @@ class PlaybackWatchdog(
         val playbackExpected = monitor.isPlaybackExpected || player.playWhenReady
         val startedTooLate =
             playbackExpected &&
+                canRenderNow &&
+                !player.isPlaying &&
                 !monitor.hasRenderedFirstFrame &&
                 monitor.playbackRequestedAt > 0L &&
                 now - monitor.playbackRequestedAt > startTimeoutMs
@@ -89,6 +100,7 @@ class PlaybackWatchdog(
         }
 
         val likelyAudioOnly =
+            canRenderNow &&
             (player.isPlaying || playbackExpected) &&
                 (advanced || now - lastProgressedAt < freezeNoFrameWindowMs) &&
                 staleFrame &&

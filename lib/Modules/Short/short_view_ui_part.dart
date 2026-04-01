@@ -1,55 +1,14 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
-  void _handleManualVerticalDragStart(DragStartDetails details) {
-    _manualGestureDragDy = 0.0;
-  }
-
-  void _handleManualVerticalDragUpdate(DragUpdateDetails details) {
-    _manualGestureDragDy += details.primaryDelta ?? 0.0;
-  }
-
-  void _handleManualVerticalDragEnd(DragEndDetails details) {
-    final delta = _manualGestureDragDy;
-    final velocity = details.primaryVelocity ?? 0.0;
-    _manualGestureDragDy = 0.0;
-
-    if (!mounted ||
-        _manualSnapInProgress ||
-        _isTransitioning ||
-        _cachedShorts.isEmpty) {
-      return;
+  bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    if (resolvedUrl.isNotEmpty || fallbackImage.isNotEmpty) {
+      return true;
     }
-
-    final goForward =
-        velocity < -_shortManualGestureTriggerVelocity ||
-            delta < -_shortManualGestureTriggerDistance;
-    final goBackward =
-        velocity > _shortManualGestureTriggerVelocity ||
-            delta > _shortManualGestureTriggerDistance;
-    if (goForward == goBackward) return;
-
-    final targetPage = goForward
-        ? (currentPage + 1).clamp(0, _cachedShorts.length - 1)
-        : (currentPage - 1).clamp(0, _cachedShorts.length - 1);
-    if (targetPage == currentPage) return;
-
-    unawaited(_animateManualPage(targetPage));
-  }
-
-  Future<void> _animateManualPage(int targetPage) async {
-    if (!mounted || _manualSnapInProgress || !pageController.hasClients) return;
-    _manualSnapInProgress = true;
-    try {
-      await pageController.animateToPage(
-        targetPage,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-      );
-    } catch (_) {
-    } finally {
-      _manualSnapInProgress = false;
-    }
+    return CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim())
+        .isNotEmpty;
   }
 
   Widget _buildRefreshingBadge() {
@@ -73,28 +32,73 @@ extension ShortViewUiPart on _ShortViewState {
     );
   }
 
-  Widget _cachedThumb(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
+  Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    final candidates = <String>[
+      if (resolvedUrl.isNotEmpty) resolvedUrl,
+      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl) fallbackImage,
+      ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
+    ];
+    if (candidates.isEmpty) {
+      return const ColoredBox(color: Colors.black);
+    }
+    return CacheFirstNetworkImage(
+      imageUrl: candidates.first,
+      candidateUrls: candidates.skip(1).toList(growable: false),
+      cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
-      placeholder: (_, __) => const SizedBox.shrink(),
-      errorWidget: (_, __, ___) => const SizedBox.shrink(),
+      fallback: const ColoredBox(color: Colors.black),
     );
   }
 
-  Widget _buildThumbOverlay(String thumb, double modelAr) {
-    if (thumb.isEmpty) return const SizedBox.shrink();
+  Widget _buildThumbOverlay(int idx, String thumb, double modelAr) {
+    if (!_hasThumbCandidate(_cachedShorts[idx], overrideUrl: thumb)) {
+      return const ColoredBox(color: Colors.black);
+    }
     if (modelAr > 1.2) {
       return Center(
         child: AspectRatio(
           aspectRatio: modelAr,
-          child: _cachedThumb(thumb),
+          child: _cachedThumb(_cachedShorts[idx], overrideUrl: thumb),
         ),
       );
     }
     return SizedBox.expand(
-      child: _cachedThumb(thumb),
+      child: _cachedThumb(_cachedShorts[idx], overrideUrl: thumb),
     );
+  }
+
+  void _reportStableShortFrameIfNeeded(
+    int idx,
+    HLSVideoAdapter adapter,
+    bool hasStableVideoFrame,
+  ) {
+    if (!hasStableVideoFrame || idx != currentPage) return;
+    if (_currentScrollToken.isEmpty) return;
+    if (idx < 0 || idx >= _cachedShorts.length) return;
+    final docId = _cachedShorts[idx].docID.trim();
+    if (docId.isEmpty) return;
+    final token = '$_currentScrollToken|$docId';
+    if (_lastReportedStableFrameToken == token) return;
+    _lastReportedStableFrameToken = token;
+    final scrollToken = _currentScrollToken;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || idx != currentPage) return;
+      recordQALabScrollEvent(
+        surface: 'short',
+        phase: 'stable_frame',
+        metadata: <String, dynamic>{
+          'docId': docId,
+          'page': idx,
+          'scrollToken': scrollToken,
+          'positionMs': adapter.value.position.inMilliseconds,
+          'isPlaying': adapter.value.isPlaying,
+          'isBuffering': adapter.value.isBuffering,
+          'hasRenderedFirstFrame': adapter.value.hasRenderedFirstFrame,
+        },
+      );
+    });
   }
 
   Widget _buildFullscreenVideoSurface(
@@ -110,6 +114,7 @@ extension ShortViewUiPart on _ShortViewState {
       key: ValueKey(keyId),
       useAspectRatio: false,
       forceFullscreenOnAndroid: true,
+      suppressLoadingOverlay: true,
     );
 
     if (ar > 1.2) {
@@ -192,15 +197,10 @@ extension ShortViewUiPart on _ShortViewState {
             _didInitialAttach = true;
           }
 
-          final pager = GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onVerticalDragStart: _handleManualVerticalDragStart,
-            onVerticalDragUpdate: _handleManualVerticalDragUpdate,
-            onVerticalDragEnd: _handleManualVerticalDragEnd,
-            child: PageView.builder(
+          final pager = PageView.builder(
               controller: pageController,
               scrollDirection: Axis.vertical,
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const MomentumPageScrollPhysics(),
               itemCount: list.length,
               onPageChanged: _onPageChanged,
               itemBuilder: (_, idx) {
@@ -209,25 +209,32 @@ extension ShortViewUiPart on _ShortViewState {
                 final modelAr = list[idx].aspectRatio > 0
                     ? list[idx].aspectRatio.toDouble()
                     : (9 / 16);
+                final isActivePage = idx == currentPage;
+                final isWarmNeighbor = (idx - currentPage).abs() <= 1;
 
                 if (vp == null) {
+                  if (isActivePage) {
+                    _ensureActivePageAdapterAfterBuild(idx);
+                  }
                   return Stack(
                     fit: StackFit.expand,
-                    children: [
-                      _buildThumbOverlay(thumb, modelAr),
-                      const Center(
-                        child: CupertinoActivityIndicator(color: Colors.white),
-                      ),
-                    ],
+                    children: [_buildThumbOverlay(idx, thumb, modelAr)],
                   );
                 }
 
-                final isActivePage = idx == currentPage;
-                final videoWidget = isActivePage
-                    ? _buildFullscreenVideoSurface(
-                        vp,
-                        'vp-${list[idx].docID}',
-                        modelAspectRatio: modelAr,
+                final videoWidget = isActivePage || isWarmNeighbor
+                    ? IgnorePointer(
+                        ignoring: !isActivePage,
+                        child: AnimatedOpacity(
+                          opacity: isActivePage ? 1 : 0.001,
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          child: _buildFullscreenVideoSurface(
+                            vp,
+                            'vp-${list[idx].docID}-${vp.hashCode}',
+                            modelAspectRatio: modelAr,
+                          ),
+                        ),
                       )
                     : const SizedBox.shrink();
 
@@ -235,30 +242,48 @@ extension ShortViewUiPart on _ShortViewState {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _buildThumbOverlay(thumb, modelAr),
-                      if (isActivePage) videoWidget,
-                      if (isActivePage)
+                      _buildThumbOverlay(idx, thumb, modelAr),
+                      if (isActivePage || isWarmNeighbor) videoWidget,
+                      if (isActivePage || isWarmNeighbor)
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
-                            if (vp.value.hasRenderedFirstFrame) {
+                            final value = vp.value;
+                            final hasStableVideoFrame =
+                                value.hasRenderedFirstFrame &&
+                                    !value.isBuffering &&
+                                    (value.isPlaying ||
+                                        value.position >
+                                            const Duration(
+                                              milliseconds: 180,
+                                            ));
+                            _reportStableShortFrameIfNeeded(
+                              idx,
+                              vp,
+                              hasStableVideoFrame,
+                            );
+                            if (!_hasThumbCandidate(
+                              list[idx],
+                              overrideUrl: thumb,
+                            )) {
                               return const SizedBox.shrink();
                             }
-                            return _buildThumbOverlay(thumb, modelAr);
+                            return IgnorePointer(
+                              ignoring: true,
+                              child: AnimatedOpacity(
+                                opacity: hasStableVideoFrame ? 0 : 1,
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                child: _buildThumbOverlay(idx, thumb, modelAr),
+                              ),
+                            );
                           },
                         ),
                       if (isActivePage)
                         AnimatedBuilder(
                           animation: vp,
                           builder: (_, __) {
-                            if (vp.value.isInitialized) {
-                              return const SizedBox.shrink();
-                            }
-                            return const Center(
-                              child: CupertinoActivityIndicator(
-                                color: Colors.white,
-                              ),
-                            );
+                            return const SizedBox.shrink();
                           },
                         ),
                       if (isActivePage)
@@ -276,7 +301,7 @@ extension ShortViewUiPart on _ShortViewState {
                             await PostRepository.ensure().toggleLike(list[idx]);
                           },
                           onSwipeRight: () async {
-                            NavBarController.maybeFind()?.changeIndex(0);
+                            maybeFindNavBarController()?.changeIndex(0);
                           },
                           volumeOff: (v) {
                             if (v) {
@@ -354,7 +379,6 @@ extension ShortViewUiPart on _ShortViewState {
                   ),
                 );
               },
-            ),
           );
 
           return Stack(

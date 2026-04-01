@@ -19,9 +19,44 @@ jobs:
       - name: Run Security Regression Scan
         run: bash scripts/check_repo_security_regressions.sh
 
+  architecture-guards:
+    name: Architecture Guards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Architecture Guards
+        run: bash scripts/check_architecture_guards.sh
+
+      - name: Run Docs Single-Source Guard
+        run: bash scripts/check_docs_single_source.sh
+
+      - name: Run Repo Surface Budget Guard
+        run: bash scripts/check_repo_surface_budget.sh
+
+      - name: Run Part-Sprawl Budget Guard
+        run: bash scripts/check_part_sprawl_budget.sh
+
+      - name: Upload Architecture Guard Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-guard-artifacts
+          path: |
+            artifacts/architecture
+            artifacts/docs_guard
+            artifacts/repo_surface_budget
+            artifacts/part_sprawl_budget
+
   flutter-quality:
     name: Flutter Analyze + Test
     runs-on: ubuntu-latest
+    needs:
+      - security-guards
+      - architecture-guards
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,14 +75,17 @@ jobs:
       - name: Unit + Widget tests
         run: flutter test --coverage
 
-      - name: Enforce Coverage Floor
+      - name: Enforce Coverage Policy
         run: bash scripts/check_flutter_coverage.sh
 
       - name: Upload Coverage Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: flutter-lcov
-          path: coverage/lcov.info
+          name: flutter-coverage-artifacts
+          path: |
+            coverage/lcov.info
+            coverage/coverage_gate_report.txt
 
   android-integration-smoke:
     name: Android Integration Smoke
@@ -97,6 +135,13 @@ jobs:
 
       - name: Run Android integration smoke on emulator
         if: steps.integration-secrets.outputs.available == 'true'
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          INTEGRATION_TEST_MANIFEST: config/test_suites/release_gate_e2e.txt
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -104,11 +149,6 @@ jobs:
           profile: pixel_7
           script: |
             export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
-            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
-            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
-            export INTEGRATION_AUTO_SEED=1
-            export INTEGRATION_REQUIRE_SEED=1
-            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
             bash scripts/run_turqapp_test_smoke.sh
 
       - name: Skip Android integration smoke without secrets
@@ -127,7 +167,7 @@ jobs:
     needs:
       - flutter-quality
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 110
     env:
       IOS_SIMULATOR_NAME: iPhone 16
@@ -166,9 +206,7 @@ jobs:
 
       - name: Install CocoaPods deps
         if: steps.integration-secrets.outputs.available == 'true'
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         if: steps.integration-secrets.outputs.available == 'true'
@@ -191,6 +229,7 @@ jobs:
           INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
           INTEGRATION_AUTO_SEED: "1"
           INTEGRATION_REQUIRE_SEED: "1"
+          INTEGRATION_TEST_MANIFEST: config/test_suites/release_gate_e2e.txt
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: bash scripts/run_turqapp_test_smoke.sh
 

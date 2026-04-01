@@ -43,9 +43,9 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             }
           }
 
-          await _networkService.trackDataUsage(uploadMB: totalUploadMB);
+          await _networkRuntimeService.trackDataUsage(uploadMB: totalUploadMB);
 
-          final agendaController = AgendaController.maybeFind();
+          final agendaController = maybeFindAgendaController();
           await Future.delayed(const Duration(milliseconds: 150));
 
           final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -71,6 +71,20 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             agendaController.scrollController.jumpTo(0);
           }
 
+          await persistUploadedPostsToHomeFeed(nowPosts);
+          unawaited(
+            _hydrateUploadedPostShortLinks(
+              nowPosts,
+              agendaController: agendaController,
+            ),
+          );
+          final uploaderUid = userService.effectiveUserId.trim();
+          if (uploaderUid.isNotEmpty) {
+            _profileRepository.invalidateLatestProfilePost(uploaderUid);
+            await _profileSnapshotRepository.clearUserSnapshots(
+              userId: uploaderUid,
+            );
+          }
           ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
           progressController.complete('post_creator.upload_success'.tr);
         } else {
@@ -101,6 +115,9 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
   /// Upload all posts with comprehensive error handling
   Future<List<PostsModel>> uploadAllPostsWithErrorHandling(
       UploadProgressController progressController) async {
+    if (!_validateCaptionLengths()) {
+      return <PostsModel>[];
+    }
     final allPosts = <PreparedPostModel>[];
     final uploadedPosts = <PostsModel>[];
     final uuid = const Uuid().v4();
@@ -111,6 +128,10 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
     final authorDisplayName = authorSummary.displayName;
     final authorAvatarUrl = authorSummary.avatarUrl;
     final authorRozet = authorSummary.rozet;
+    final scheduledDate = _normalizedIzBirakDateTime();
+    final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
+    final batchTimeStamp =
+        scheduledMs != 0 ? scheduledMs : DateTime.now().millisecondsSinceEpoch;
 
     try {
       // Prepare all posts
@@ -185,7 +206,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           await _preparePostShellForStorageUpload(
             docID: docID,
             uid: uid,
-            nowMs: nowMs,
+            timeStamp: batchTimeStamp,
           );
 
           // Update progress
@@ -251,8 +272,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 throw Exception('Uygunsuz video tespit edildi');
               }
               final videoSize = await post.video!.length();
-              if (videoSize >
-                  PostCreatorController._maxVideoBytesForStorageRule) {
+              if (videoSize > _maxVideoBytesForStorageRule) {
                 throw Exception('VIDEO_NOT_REDUCED_UNDER_LIMIT');
               }
               final videoRef = FirebaseStorage.instance
@@ -328,8 +348,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           }
 
           // Calculate timing
-          final scheduledDate = _normalizedIzBirakDateTime();
-          final publishTime = scheduledDate?.millisecondsSinceEpoch ?? nowMs;
+          final publishTime = batchTimeStamp;
 
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
@@ -423,17 +442,18 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               },
               "konum": post.location,
               "locationCity": locationCity,
-              "mainFlood": index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
+              "mainFlood":
+                  index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
               "metin": post.text,
               "reshareMap": {
                 "visibility": paylasimSelection.value,
               },
-              "scheduledAt": scheduledDate?.millisecondsSinceEpoch ?? 0,
+              "scheduledAt": scheduledMs,
               "sikayetEdildi": false,
               "stabilized": false,
               "tags": index == 0 ? allHashtags.toList() : [],
               "thumbnail": thumbnailUrl,
-              "timeStamp": nowMs + index,
+              "timeStamp": batchTimeStamp,
               "userID": uid,
               "authorNickname": authorNickname,
               "authorDisplayName": authorDisplayName,
@@ -537,7 +557,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 stats: PostStats(),
                 konum: post.location,
                 locationCity: locationCity,
-                mainFlood: index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
+                mainFlood:
+                    index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
                 metin: post.text,
                 originalPostID: _isSharedAsPost ? _sharedOriginalPostID : "",
                 originalUserID: _isSharedAsPost ? _sharedOriginalUserID : "",
@@ -545,12 +566,12 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 reshareMap: {
                   "visibility": paylasimSelection.value,
                 },
-                scheduledAt: scheduledDate?.millisecondsSinceEpoch ?? 0,
+                scheduledAt: scheduledMs,
                 sikayetEdildi: false,
                 stabilized: false,
                 tags: index == 0 ? allHashtags.toList() : [],
                 thumbnail: thumbnailUrl,
-                timeStamp: nowMs + index,
+                timeStamp: batchTimeStamp,
                 userID: uid,
                 authorNickname: authorNickname,
                 authorAvatarUrl: authorAvatarUrl,
@@ -588,16 +609,11 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             );
 
             // Update counter for root post
-            if (index == 0 && publishTime == nowMs) {
+            if (index == 0 && scheduledMs == 0) {
               try {
-                final me = _currentUid;
-                if (me.isNotEmpty) {
-                  await UserRepository.ensure().updateUserFields(
-                    me,
-                    {'counterOfPosts': FieldValue.increment(1)},
-                    mergeIntoCache: false,
-                  );
-                }
+                await CurrentUserService.instance.applyLocalCounterDelta(
+                  postsDelta: 1,
+                );
               } catch (e) {
                 await _errorService.handleError(
                   e,

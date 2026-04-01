@@ -20,8 +20,69 @@ class MarketContactService {
   static final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
 
+  Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
+
+  Future<void> _ensureConversationShell({
+    required String chatId,
+    required String currentUid,
+    required String otherUid,
+  }) async {
+    final participants = <String>[currentUid, otherUid]..sort();
+    await FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(chatId)
+        .set({
+      'participants': participants,
+      'userID1': participants.first,
+      'userID2': participants.last,
+      'lastMessage': '',
+      'lastMessageAt': 0,
+      'lastMessageAtMs': 0,
+      'lastSenderId': '',
+      'unread': {
+        currentUid: 0,
+        otherUid: 0,
+      },
+      'typing': {
+        currentUid: 0,
+        otherUid: 0,
+      },
+      'archived': {
+        currentUid: false,
+        otherUid: false,
+      },
+      'muted': {
+        currentUid: false,
+        otherUid: false,
+      },
+      'pinned': {
+        currentUid: false,
+        otherUid: false,
+      },
+      'chatBg': {
+        currentUid: 0,
+        otherUid: 0,
+      },
+      'previewText': {
+        currentUid: '',
+        otherUid: '',
+      },
+      'previewAt': {
+        currentUid: 0,
+        otherUid: 0,
+      },
+    }, SetOptions(merge: true));
+  }
+
   Future<void> openChat(MarketItemModel item) async {
-    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
+    final currentUid = await _resolveCurrentUid();
     if (currentUid.isEmpty) {
       AppSnackbar('login.sign_in'.tr, 'market_contact.sign_in_required'.tr);
       return;
@@ -53,6 +114,11 @@ class MarketContactService {
     }
 
     final chatId = buildConversationId(currentUid, item.userId);
+    await _ensureConversationShell(
+      chatId: chatId,
+      currentUid: currentUid,
+      otherUid: item.userId,
+    );
     await _conversationRepository.setMarketContext(chatId: chatId, item: item);
     await Get.to(
       () => ChatView(

@@ -1,6 +1,63 @@
 part of 'conversation_repository.dart';
 
+Map<String, dynamic> _cloneConversationMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneConversationValue(value)),
+  );
+}
+
+dynamic _cloneConversationValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneConversationValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneConversationValue).toList(growable: false);
+  }
+  return value;
+}
+
 extension ConversationRepositoryStatePart on ConversationRepository {
+  List<String> normalizeConversationParticipants({
+    required String chatId,
+    required String currentUid,
+    required List<String> participants,
+    required String userId1,
+    required String userId2,
+  }) {
+    final cleaned = participants
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList();
+    if (cleaned.length == 2 && cleaned.contains(currentUid)) {
+      cleaned.sort();
+      return cleaned;
+    }
+
+    final inferred = <String>{};
+    if (userId1.trim().isNotEmpty) inferred.add(userId1.trim());
+    if (userId2.trim().isNotEmpty) inferred.add(userId2.trim());
+    for (final part in chatId.split('_')) {
+      final candidate = part.trim();
+      if (candidate.isNotEmpty) inferred.add(candidate);
+    }
+    if (inferred.length != 2 || !inferred.contains(currentUid)) return cleaned;
+    final normalized = inferred.toList()..sort();
+    unawaited(
+      _firestore.collection('conversations').doc(chatId).set({
+        'participants': normalized,
+        'userID1': normalized.first,
+        'userID2': normalized.last,
+      }, SetOptions(merge: true)),
+    );
+    return normalized;
+  }
+
   bool participantBoolValue(
     dynamic raw,
     String uid, {
@@ -29,6 +86,25 @@ extension ConversationRepositoryStatePart on ConversationRepository {
         defaultValue;
   }
 
+  String participantStringValue(
+    dynamic raw,
+    String uid, {
+    String defaultValue = '',
+  }) {
+    return _sanitizeStringParticipantMap(
+          raw,
+          <String>[uid],
+          defaultValue: defaultValue,
+        )[uid] ??
+        defaultValue;
+  }
+
+  bool participantMapContainsKey(dynamic raw, String uid) {
+    if (raw is! Map) return false;
+    if (raw.containsKey(uid)) return true;
+    return raw.keys.any((key) => key.toString() == uid);
+  }
+
   Map<String, bool> deriveArchiveOverridesFromConversationDocs(
     String currentUid,
     Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
@@ -40,12 +116,11 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       if (otherUid.isEmpty) continue;
       final archivedMap = data["archived"];
       if (archivedMap is! Map) continue;
-      final raw = archivedMap[currentUid];
-      if (raw is bool) {
-        map[otherUid] = raw;
-      } else if (raw is num) {
-        map[otherUid] = raw != 0;
-      }
+      map[otherUid] = participantBoolValue(
+        archivedMap,
+        currentUid,
+        defaultValue: false,
+      );
     }
     return map;
   }
@@ -61,12 +136,11 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       if (otherUid.isEmpty) continue;
       final deletedMap = data["deletedAt"];
       if (deletedMap is! Map) continue;
-      final raw = deletedMap[currentUid];
-      final deletedAt = raw is int
-          ? raw
-          : raw is num
-              ? raw.toInt()
-              : int.tryParse("$raw") ?? 0;
+      final deletedAt = participantIntValue(
+        deletedMap,
+        currentUid,
+        defaultValue: 0,
+      );
       if (deletedAt > 0) {
         map[otherUid] = deletedAt;
       }
@@ -177,7 +251,7 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       try {
         final cached = await ref.get(const GetOptions(source: Source.cache));
         if (cached.exists) {
-          return Map<String, dynamic>.from(
+          return _cloneConversationMap(
             cached.data() ?? const <String, dynamic>{},
           );
         }
@@ -186,7 +260,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     if (cacheOnly) return null;
     final doc = await ref.get();
     if (!doc.exists) return null;
-    return Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});
+    return _cloneConversationMap(
+      doc.data() ?? const <String, dynamic>{},
+    );
   }
 
   Future<void> setMarketContext({

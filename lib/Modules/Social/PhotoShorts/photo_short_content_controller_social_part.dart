@@ -15,7 +15,7 @@ extension PhotoShortContentControllerSocialPart
       nickname.value = postLevelNickname;
       token.value = '';
       fullName.value = postLevelDisplayName;
-      takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+      takipEdiyorum.value = await ensureFollowRepository().isFollowing(
         userID,
         currentUid: _currentUserId,
         preferCache: true,
@@ -42,7 +42,7 @@ extension PhotoShortContentControllerSocialPart
           : summary.displayName;
     }
 
-    takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+    takipEdiyorum.value = await ensureFollowRepository().isFollowing(
       userID,
       currentUid: _currentUserId,
       preferCache: true,
@@ -55,7 +55,10 @@ extension PhotoShortContentControllerSocialPart
     takipEdiyorum.value = !wasFollowing;
     followLoading.value = true;
     try {
-      final outcome = await FollowService.toggleFollow(userID);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        userID,
+        assumedFollowing: wasFollowing,
+      );
       takipEdiyorum.value = outcome.nowFollowing;
       if (outcome.limitReached) {
         AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
@@ -70,22 +73,20 @@ extension PhotoShortContentControllerSocialPart
 
   Future<void> showPostCommentsBottomSheet() async {
     await Get.bottomSheet(
-      SizedBox(
-        height: Get.height * 0.5,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: PostComments(
-            postID: model.docID,
-            userID: model.userID,
-            collection: 'Posts',
-            onCommentCountChange: (bool increment) async {
-              await countManager.updateCommentCount(
-                model.docID,
-                model.originalPostID,
-                increment: increment,
-              );
-            },
-          ),
+      Builder(
+        builder: (context) => buildPostCommentsSheet(
+          context: context,
+          postID: model.docID,
+          userID: model.userID,
+          collection: 'Posts',
+          onCommentCountChange: (bool increment) async {
+            await countManager.updateCommentCount(
+              model.docID,
+              model.originalPostID,
+              increment: increment,
+            );
+          },
+          preferredHeightFactor: 0.5,
         ),
       ),
       isScrollControlled: true,
@@ -94,7 +95,7 @@ extension PhotoShortContentControllerSocialPart
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black54,
     );
   }

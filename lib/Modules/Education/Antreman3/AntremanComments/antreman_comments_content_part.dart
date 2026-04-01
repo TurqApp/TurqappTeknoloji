@@ -50,20 +50,18 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
 
   Widget _buildCommentItem(BuildContext context, Comment comment) {
     final GlobalKey commentKey = GlobalKey();
-    final userInfo =
-        controller.userInfoCache[comment.userID] ??
+    final userInfo = controller.userInfoCache[comment.userID] ??
         {
           'avatarUrl': '',
           'displayName': 'training.unknown_user'.tr,
           'nickname': 'training.unknown_user'.tr,
         };
     final userImage = (userInfo['avatarUrl'] ?? '').toString();
-    final userName =
-        (userInfo['displayName'] ??
-                userInfo['username'] ??
-                userInfo['nickname'] ??
-                'training.unknown_user'.tr)
-            .toString();
+    final userName = (userInfo['displayName'] ??
+            userInfo['username'] ??
+            userInfo['nickname'] ??
+            'training.unknown_user'.tr)
+        .toString();
     controller.fetchUserInfo(comment.userID);
 
     return Column(
@@ -225,34 +223,40 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
           onPressed: () {
             final position = getWidgetPosition(commentKey);
             if (comment.userID == controller.userID) {
-              _showPullDownButton(context, [
-                PullDownMenuItem(
-                  title: 'training.edit'.tr,
-                  icon: CupertinoIcons.create_solid,
-                  iconColor: Colors.black,
-                  onTap: () {
-                    controller.startEditingComment(
-                      comment.docID,
-                      comment.metin,
-                    );
-                  },
-                ),
-                PullDownMenuItem(
-                  title: 'common.delete'.tr,
-                  icon: CupertinoIcons.delete_simple,
-                  iconColor: Colors.red,
-                  onTap: () => controller.deleteComment(comment.docID),
-                ),
-              ], position);
+              _showPullDownButton(
+                  context,
+                  [
+                    PullDownMenuItem(
+                      title: 'training.edit'.tr,
+                      icon: CupertinoIcons.create_solid,
+                      iconColor: Colors.black,
+                      onTap: () {
+                        controller.startEditingComment(
+                          comment.docID,
+                          comment.metin,
+                        );
+                      },
+                    ),
+                    PullDownMenuItem(
+                      title: 'common.delete'.tr,
+                      icon: CupertinoIcons.delete_simple,
+                      iconColor: Colors.red,
+                      onTap: () => controller.deleteComment(comment.docID),
+                    ),
+                  ],
+                  position);
             } else {
-              _showPullDownButton(context, [
-                PullDownMenuItem(
-                  title: 'training.report'.tr,
-                  icon: CupertinoIcons.question,
-                  iconColor: Colors.black,
-                  onTap: null,
-                ),
-              ], position);
+              _showPullDownButton(
+                  context,
+                  [
+                    PullDownMenuItem(
+                      title: 'training.report'.tr,
+                      icon: CupertinoIcons.question,
+                      iconColor: Colors.black,
+                      onTap: null,
+                    ),
+                  ],
+                  position);
             }
           },
         ),
@@ -280,20 +284,18 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
 
   Widget _buildReplyItem(BuildContext context, Comment parent, Reply reply) {
     final GlobalKey replyKey = GlobalKey();
-    final replyUserInfo =
-        controller.userInfoCache[reply.userID] ??
+    final replyUserInfo = controller.userInfoCache[reply.userID] ??
         {
           'avatarUrl': '',
           'displayName': 'training.unknown_user'.tr,
           'nickname': 'training.unknown_user'.tr,
         };
     final replyUserImage = (replyUserInfo['avatarUrl'] ?? '').toString();
-    final replyUserName =
-        (replyUserInfo['displayName'] ??
-                replyUserInfo['username'] ??
-                replyUserInfo['nickname'] ??
-                'training.unknown_user'.tr)
-            .toString();
+    final replyUserName = (replyUserInfo['displayName'] ??
+            replyUserInfo['username'] ??
+            replyUserInfo['nickname'] ??
+            'training.unknown_user'.tr)
+        .toString();
     controller.fetchUserInfo(reply.userID);
 
     return Container(
@@ -397,30 +399,36 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
                 onPressed: () {
                   final position = getWidgetPosition(replyKey);
                   if (reply.userID == controller.userID) {
-                    _showPullDownButton(context, [
-                      PullDownMenuItem(
-                        title: 'training.edit'.tr,
-                        onTap: () {
-                          controller.startEditingReply(
-                            parent.docID,
-                            reply.docID,
-                            reply.metin,
-                          );
-                        },
-                      ),
-                      PullDownMenuItem(
-                        title: 'common.delete'.tr,
-                        onTap: () =>
-                            controller.deleteReply(parent.docID, reply.docID),
-                      ),
-                    ], position);
+                    _showPullDownButton(
+                        context,
+                        [
+                          PullDownMenuItem(
+                            title: 'training.edit'.tr,
+                            onTap: () {
+                              controller.startEditingReply(
+                                parent.docID,
+                                reply.docID,
+                                reply.metin,
+                              );
+                            },
+                          ),
+                          PullDownMenuItem(
+                            title: 'common.delete'.tr,
+                            onTap: () => controller.deleteReply(
+                                parent.docID, reply.docID),
+                          ),
+                        ],
+                        position);
                   } else {
-                    _showPullDownButton(context, [
-                      PullDownMenuItem(
-                        title: 'training.report'.tr,
-                        onTap: null,
-                      ),
-                    ], position);
+                    _showPullDownButton(
+                        context,
+                        [
+                          PullDownMenuItem(
+                            title: 'training.report'.tr,
+                            onTap: null,
+                          ),
+                        ],
+                        position);
                   }
                 },
               ),

@@ -35,7 +35,7 @@ void main() {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             final sample = await _captureCurrentFeedVideo(
               tester,
               controller: controller,
@@ -142,7 +142,7 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(
+    final adapter = ensureGlobalVideoAdapterPool().adapterForTesting(
       sample.docId,
     );
     final value = adapter?.value;
@@ -157,7 +157,7 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
     }
   }
 
-  final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(
+  final adapter = ensureGlobalVideoAdapterPool().adapterForTesting(
     sample.docId,
   );
   final value = adapter?.value;

@@ -1,6 +1,21 @@
 part of 'story_repository.dart';
 
 extension StoryRepositoryCachePart on StoryRepository {
+  int _storyRowCacheAsInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  bool _storyRowCacheAsBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = value?.toString().trim().toLowerCase();
+    if (raw == 'true' || raw == '1') return true;
+    if (raw == 'false' || raw == '0') return false;
+    return fallback;
+  }
+
   Future<StoryFetchResult> _performFetchStoryUsers({
     required int limit,
     required bool cacheFirst,
@@ -49,7 +64,7 @@ extension StoryRepositoryCachePart on StoryRepository {
     for (final doc in snap.docs) {
       try {
         final data = doc.data();
-        if ((data['deleted'] ?? false) == true) continue;
+        if (_storyRowCacheAsBool(data['deleted'])) continue;
         final story = StoryModel.fromDoc(doc);
         if (story.createdAt.isBefore(expiry)) continue;
         userStories.putIfAbsent(story.userId, () => <StoryModel>[]);
@@ -67,7 +82,7 @@ extension StoryRepositoryCachePart on StoryRepository {
             'username': embeddedUsername,
             'firstName': (data['firstName'] ?? '').toString(),
             'lastName': (data['lastName'] ?? '').toString(),
-            'isPrivate': data['isPrivate'] == true,
+            'isPrivate': _storyRowCacheAsBool(data['isPrivate']),
           };
         }
       } catch (_) {}
@@ -105,7 +120,7 @@ extension StoryRepositoryCachePart on StoryRepository {
         rawData ?? _fallbackUserData(userId, current),
       );
 
-      final isPrivate = (data['isPrivate'] ?? false) == true;
+      final isPrivate = _storyRowCacheAsBool(data['isPrivate']);
       final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
         authorUserId: userId,
         followingIds: followingIds,
@@ -131,6 +146,29 @@ extension StoryRepositoryCachePart on StoryRepository {
         ),
       );
     }
+
+    final cachePayload = <String, dynamic>{
+      'event': cacheHit ? 'scopedSnapshotHit' : 'liveSyncSucceeded',
+      'surfaceKey': 'story_row_snapshot',
+      'hasScope': false,
+      'isUserScoped': false,
+      'source': cacheHit ? 'firestoreCache' : 'server',
+      'hasData': users.isNotEmpty,
+      'hasLocalSnapshot': cacheHit,
+      'isRefreshing': false,
+      'isStale': false,
+      'hasLiveError': false,
+      'itemCount': users.length,
+      'requestedLimit': limit,
+    };
+    final playbackKpi = maybeFindPlaybackKpiService();
+    if (playbackKpi != null) {
+      playbackKpi.track(
+        PlaybackKpiEventType.cacheFirstLifecycle,
+        cachePayload,
+      );
+    }
+    recordQALabCacheFirstEvent(cachePayload);
 
     return StoryFetchResult(users: users, cacheHit: cacheHit);
   }
@@ -163,49 +201,97 @@ extension StoryRepositoryCachePart on StoryRepository {
     await _ensureInitialized();
     final path = _storyRowCachePathForOwner(ownerUid);
     if (path == null) return const <StoryUserModel>[];
+    final file = File(path);
     try {
-      final file = File(path);
       if (!await file.exists()) return const <StoryUserModel>[];
       final raw = await file.readAsString();
-      if (raw.trim().isEmpty) return const <StoryUserModel>[];
-      final data = jsonDecode(raw);
-      if (data is! Map) return const <StoryUserModel>[];
-      final cacheOwnerUid = (data['ownerUid'] ?? '').toString();
-      if (cacheOwnerUid.isNotEmpty && cacheOwnerUid != ownerUid) {
+      if (raw.trim().isEmpty) {
+        await file.delete();
         return const <StoryUserModel>[];
       }
-      final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
+      final data = jsonDecode(raw);
+      if (data is! Map) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
+      final cacheOwnerUid = (data['ownerUid'] ?? '').toString();
+      if (cacheOwnerUid.isNotEmpty && cacheOwnerUid != ownerUid) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
+      final savedAt = _storyRowCacheAsInt(data['savedAt']);
       if (!allowExpired && savedAt > 0) {
         final age = DateTime.now().difference(
           DateTime.fromMillisecondsSinceEpoch(savedAt),
         );
         if (age > storyRowCacheTtlInternal) {
+          await file.delete();
           return const <StoryUserModel>[];
         }
       }
-      final usersJson =
-          (data['users'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      final usersJson = data['users'];
+      if (usersJson is! List) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
       final expiryCutoff = storyExpiryCutoffInternal;
-      return usersJson
-          .map(StoryUserModel.fromCacheMap)
-          .map((user) {
-            if (allowExpired) return user;
+      var shouldPersist = false;
+      final restoredUsers = <StoryUserModel>[];
+      for (final rawUser in usersJson) {
+        if (rawUser is! Map) {
+          shouldPersist = true;
+          continue;
+        }
+        try {
+          var user = StoryUserModel.fromCacheMap(
+            Map<String, dynamic>.from(rawUser.cast<dynamic, dynamic>()),
+          );
+          if (user.userID.isEmpty) {
+            shouldPersist = true;
+            continue;
+          }
+          if (!allowExpired) {
             final activeStories = user.stories
                 .where((story) => story.createdAt.isAfter(expiryCutoff))
                 .toList(growable: false)
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return StoryUserModel(
+            if (activeStories.length != user.stories.length) {
+              shouldPersist = true;
+            }
+            user = StoryUserModel(
               nickname: user.nickname,
               avatarUrl: user.avatarUrl,
               fullName: user.fullName,
               userID: user.userID,
               stories: activeStories,
             );
-          })
-          .where((u) => u.userID.isNotEmpty)
-          .where((u) => u.stories.isNotEmpty || u.userID == ownerUid)
-          .toList(growable: false);
+          }
+          if (user.stories.isEmpty && user.userID != ownerUid) {
+            shouldPersist = true;
+            continue;
+          }
+          restoredUsers.add(user);
+        } catch (_) {
+          shouldPersist = true;
+        }
+      }
+      if (restoredUsers.isEmpty) {
+        await file.delete();
+        return const <StoryUserModel>[];
+      }
+      if (shouldPersist || restoredUsers.length != usersJson.length) {
+        await _performSaveStoryRowCache(
+          restoredUsers,
+          ownerUid: ownerUid,
+        );
+      }
+      return restoredUsers;
     } catch (_) {
+      try {
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {}
       return const <StoryUserModel>[];
     }
   }
@@ -250,7 +336,7 @@ extension StoryRepositoryCachePart on StoryRepository {
       for (final doc in snap.docs) {
         try {
           final data = doc.data();
-          if ((data['deleted'] ?? false) == true) continue;
+          if (_storyRowCacheAsBool(data['deleted'])) continue;
           final story = StoryModel.fromDoc(doc);
           stories[story.id] = story;
         } catch (_) {}
@@ -287,7 +373,7 @@ extension StoryRepositoryCachePart on StoryRepository {
         .map((doc) {
           try {
             final data = doc.data();
-            if ((data['deleted'] ?? false) == true) {
+            if (_storyRowCacheAsBool(data['deleted'])) {
               return null;
             }
             return StoryModel.fromDoc(doc);
@@ -357,7 +443,8 @@ extension StoryRepositoryCachePart on StoryRepository {
     final expiryCutoff = storyExpiryCutoffInternal;
     final stories = snap.docs
         .where(
-          (doc) => includeDeleted || (doc.data()['deleted'] ?? false) != true,
+          (doc) =>
+              includeDeleted || !_storyRowCacheAsBool(doc.data()['deleted']),
         )
         .map(StoryModel.fromDoc)
         .where(

@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -27,9 +28,6 @@ import 'story_elements.dart';
 import 'story_video_widget.dart';
 import '../StoryHighlights/highlight_picker_sheet.dart';
 import 'package:saver_gallery/saver_gallery.dart';
-import 'package:turqappv2/Core/Services/share_action_guard.dart';
-import 'package:turqappv2/Core/Services/short_link_service.dart';
-import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -135,7 +133,7 @@ class _UserStoryContentState extends State<UserStoryContent>
   void _initializeController() {
     if (widget.user.stories.isNotEmpty &&
         storyIndex < widget.user.stories.length) {
-      controller = UserStoryContentController.ensure(
+      controller = ensureUserStoryContentController(
         tag: _controllerTagFor(storyIndex),
         storyID: widget.user.stories[storyIndex].id,
         nickname: widget.user.nickname,
@@ -148,14 +146,14 @@ class _UserStoryContentState extends State<UserStoryContent>
     if (widget.user.stories.isNotEmpty &&
         storyIndex < widget.user.stories.length) {
       final previousTag = _controllerTagFor(storyIndex - 1);
-      if (UserStoryContentController.maybeFind(tag: previousTag) != null) {
+      if (maybeFindUserStoryContentController(tag: previousTag) != null) {
         try {
           Get.delete<UserStoryContentController>(tag: previousTag);
         } catch (e) {
           // Controller bulunamadıysa devam et
         }
       }
-      controller = UserStoryContentController.ensure(
+      controller = ensureUserStoryContentController(
         tag: _controllerTagFor(storyIndex),
         storyID: widget.user.stories[storyIndex].id,
         nickname: widget.user.nickname,
@@ -172,7 +170,7 @@ class _UserStoryContentState extends State<UserStoryContent>
     AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
     final tag = _controllerTagFor(storyIndex);
-    if (identical(UserStoryContentController.maybeFind(tag: tag), controller)) {
+    if (identical(maybeFindUserStoryContentController(tag: tag), controller)) {
       try {
         Get.delete<UserStoryContentController>(tag: tag);
       } catch (e) {

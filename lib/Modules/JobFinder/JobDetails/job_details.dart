@@ -7,13 +7,14 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
-import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
@@ -58,8 +59,8 @@ class _JobDetailsState extends State<JobDetails> {
     _controllerTag =
         'job_details_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        JobDetailsController.maybeFind(tag: _controllerTag) == null;
-    controller = JobDetailsController.ensure(
+        maybeFindJobDetailsController(tag: _controllerTag) == null;
+    controller = ensureJobDetailsController(
       model: model,
       tag: _controllerTag,
     );
@@ -83,7 +84,7 @@ class _JobDetailsState extends State<JobDetails> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = JobDetailsController.maybeFind(
+      final registeredController = maybeFindJobDetailsController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

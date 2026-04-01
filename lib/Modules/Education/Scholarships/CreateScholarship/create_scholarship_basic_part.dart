@@ -3,10 +3,10 @@ part of 'create_scholarship_view.dart';
 extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
   String _applicationPlaceLabel(String value) {
     switch (value) {
-      case CreateScholarshipController.applicationPlaceTurqAppValue:
+      case applicationPlaceTurqAppValue:
         return 'scholarship.application_place_turqapp'.tr;
       case 'Burs Web Site':
-      case CreateScholarshipController.applicationPlaceWebsiteValue:
+      case applicationPlaceWebsiteValue:
         return 'scholarship.application_place_website'.tr;
       default:
         return value;

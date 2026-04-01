@@ -26,8 +26,8 @@ class _PhotoShortsState extends State<PhotoShorts> {
     super.initState();
     _controllerTag = 'PhotoShorts_${identityHashCode(this)}';
     _ownsController =
-        PhotoShortsController.maybeFind(tag: _controllerTag) == null;
-    controller = PhotoShortsController.ensure(tag: _controllerTag);
+        maybeFindPhotoShortsController(tag: _controllerTag) == null;
+    controller = ensurePhotoShortsController(tag: _controllerTag);
 
     // fetchedList'i kopyala ve gerekirse startModel'i başa ekle
     final List<PostsModel> initialList =
@@ -53,7 +53,7 @@ class _PhotoShortsState extends State<PhotoShorts> {
     pageController.dispose();
     if (_ownsController &&
         identical(
-          PhotoShortsController.maybeFind(tag: _controllerTag),
+          maybeFindPhotoShortsController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PhotoShortsController>(tag: _controllerTag, force: true);

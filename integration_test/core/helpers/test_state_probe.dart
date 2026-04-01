@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 
@@ -11,6 +12,13 @@ Map<String, dynamic> readSurfaceProbe(String surface) {
   final payload = snapshot[surface];
   expect(payload, isA<Map<String, dynamic>>());
   return Map<String, dynamic>.from(payload as Map<String, dynamic>);
+}
+
+Map<String, dynamic>? maybeReadSurfaceProbe(String surface) {
+  final snapshot = readIntegrationProbe();
+  final payload = snapshot[surface];
+  if (payload is! Map<String, dynamic>) return null;
+  return Map<String, dynamic>.from(payload);
 }
 
 List<String> _readDocIds(Map<String, dynamic> payload) {
@@ -65,6 +73,19 @@ void expectCountNeverDropsToZeroAfterReplay(
       reason: '$surface count dropped to zero after route replay');
 }
 
+void expectFeedUsesPrimaryContract(Map<String, dynamic> payload) {
+  expect(
+    payload['usesPrimaryFeedPaging'],
+    isTrue,
+    reason: 'feed unexpectedly fell back to legacy paging',
+  );
+  expect(
+    payload['feedContractId'],
+    FeedHomeContract.primaryHybridV1.contractId,
+    reason: 'feed contract id drifted from the canonical primary contract',
+  );
+}
+
 void expectDocPreservedIfStillPresent(
   String surface, {
   required Map<String, dynamic> before,
@@ -99,6 +120,7 @@ void expectSurfaceMatchesFixture(
   String countField = 'count',
   String docIdsField = 'docIds',
   String unreadField = 'unreadTotal',
+  bool enforceRequiredDocIds = true,
 }) {
   final contract = IntegrationTestFixtureContract.current.surface(surface);
   if (contract == null || !contract.isConfigured) return;
@@ -115,12 +137,14 @@ void expectSurfaceMatchesFixture(
   final docIds = _readDocIds(
     <String, dynamic>{'docIds': payload[docIdsField]},
   );
-  for (final docId in contract.requiredDocIds) {
-    expect(
-      docIds,
-      contains(docId),
-      reason: '$surface fixture docId missing: $docId',
-    );
+  if (enforceRequiredDocIds) {
+    for (final docId in contract.requiredDocIds) {
+      expect(
+        docIds,
+        contains(docId),
+        reason: '$surface fixture docId missing: $docId',
+      );
+    }
   }
 
   if (contract.maxUnread != null) {

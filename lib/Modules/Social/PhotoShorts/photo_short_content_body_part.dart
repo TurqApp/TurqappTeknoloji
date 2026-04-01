@@ -3,6 +3,52 @@
 part of 'photo_short_content.dart';
 
 extension PhotoShortContentBodyPart on _PhotoShortContentState {
+  EdgeInsets _actionSurfaceOuterPadding(BuildContext context) {
+    final viewBottom = MediaQuery.of(context).viewPadding.bottom;
+    final safeBase = viewBottom > 8.0 ? viewBottom : 8.0;
+    final adjustment = GetPlatform.isIOS ? 20.0 : 10.0;
+    final bottomInset = safeBase > adjustment ? safeBase - adjustment : 0.0;
+    return EdgeInsets.fromLTRB(12, 0, 12, bottomInset);
+  }
+
+  Widget _buildActionSurface({required Widget child}) {
+    final surface = BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.black.withValues(alpha: 0.22),
+          Colors.black.withValues(alpha: 0.36),
+        ],
+      ),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(
+        color: Colors.white.withValues(alpha: 0.10),
+      ),
+    );
+    final frameOffsetY = GetPlatform.isIOS ? -2.0 : 0.0;
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            top: frameOffsetY,
+            bottom: -frameOffsetY,
+            child: IgnorePointer(
+              child: DecoratedBox(decoration: surface),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget userInfoBar(BuildContext context) {
     return SafeArea(
       top: false,
@@ -51,168 +97,162 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 7),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipOval(
-                              child: SizedBox(
-                                width: 35,
-                                height: 35,
-                                child: Obx(
-                                  () => controller.avatarUrl.value != ""
-                                      ? GestureDetector(
-                                          onTap: () {
-                                            if (widget.model.userID !=
-                                                _currentUserId) {
-                                              Get.to(
-                                                () => SocialProfile(
-                                                  userID: widget.model.userID,
-                                                ),
-                                              );
-                                            }
-                                          },
-                                          child: CachedNetworkImage(
-                                            imageUrl:
-                                                controller.avatarUrl.value,
-                                            fit: BoxFit.cover,
-                                            memCacheHeight: 100,
-                                          ),
-                                        )
-                                      : const Center(
-                                          child: CupertinoActivityIndicator(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            Expanded(
-                              child: Column(
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 7),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          if (widget.model.userID !=
-                                              _currentUserId) {
-                                            Get.to(
-                                              () => SocialProfile(
-                                                userID: widget.model.userID,
+                                  ClipOval(
+                                    child: SizedBox(
+                                      width: 35,
+                                      height: 35,
+                                      child: Obx(
+                                        () => controller.avatarUrl.value != ""
+                                            ? GestureDetector(
+                                                onTap:
+                                                    _openAvatarStoryOrProfile,
+                                                child: CachedNetworkImage(
+                                                  imageUrl:
+                                                      controller.avatarUrl.value,
+                                                  fit: BoxFit.cover,
+                                                  memCacheHeight: 100,
+                                                ),
+                                              )
+                                            : const Center(
+                                                child:
+                                                    CupertinoActivityIndicator(
+                                                  color: Colors.white,
+                                                ),
                                               ),
-                                            );
-                                          }
-                                        },
-                                        child: Text(
-                                          controller.fullName.value,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontFamily: AppFontFamilies.mbold,
-                                          ),
-                                        ),
                                       ),
-                                      RozetContent(
-                                        size: 14,
-                                        userID: widget.model.userID,
-                                        rozetValue: widget.model.rozet,
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    controller.nickname.value.trim().isEmpty
-                                        ? ''
-                                        : '@${controller.nickname.value.trim()}',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                      fontFamily: AppFontFamilies.mregular,
                                     ),
+                                  ),
+                                  const SizedBox(width: 7),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: _openAuthorProfile,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  controller.fullName.value,
+                                                  style: AppTypography.postName
+                                                      .copyWith(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                              RozetContent(
+                                                size: 14,
+                                                userID: widget.model.userID,
+                                                rozetValue: widget.model.rozet,
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            controller.nickname.value.trim().isEmpty
+                                                ? ''
+                                                : '@${controller.nickname.value.trim()}',
+                                            style: AppTypography.postHandle
+                                                .copyWith(
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 7),
+                                  if (!controller.takipEdiyorum.value &&
+                                      widget.model.userID != _currentUserId &&
+                                      controller.avatarUrl.value != "")
+                                    Transform.translate(
+                                      offset: Offset(15, 0),
+                                      child: Obx(() {
+                                        final isLoading =
+                                            controller.followLoading.value;
+                                        return ScaleTap(
+                                          enabled: !isLoading,
+                                          onPressed: isLoading
+                                              ? null
+                                              : () {
+                                                  controller.toggleFollowStatus(
+                                                    widget.model.userID,
+                                                  );
+                                                },
+                                          child: Container(
+                                            height: 20,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                                color: Colors.transparent,
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                        Radius.circular(12)),
+                                                border: Border.all(
+                                                    color: Colors.white)),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 15),
+                                              child: isLoading
+                                                  ? const SizedBox(
+                                                      width: 14,
+                                                      height: 14,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        valueColor:
+                                                            AlwaysStoppedAnimation<
+                                                                    Color>(
+                                                                Colors.white),
+                                                      ),
+                                                    )
+                                                  : Text(
+                                                      'following.follow'.tr,
+                                                      style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontFamily:
+                                                              AppFontFamilies
+                                                                  .mmedium,
+                                                          fontSize: FontSizes
+                                                              .size12),
+                                                    ),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                  Transform.translate(
+                                    offset: Offset(15, -2),
+                                    child: pulldownmenu(context),
+                                  ),
+                                  SizedBox(
+                                    width: 12,
                                   ),
                                 ],
                               ),
                             ),
-                            SizedBox(width: 7),
-                            if (!controller.takipEdiyorum.value &&
-                                widget.model.userID != _currentUserId &&
-                                controller.avatarUrl.value != "")
-                              Transform.translate(
-                                offset: Offset(15, 0),
-                                child: Obx(() {
-                                  final isLoading =
-                                      controller.followLoading.value;
-                                  return ScaleTap(
-                                    enabled: !isLoading,
-                                    onPressed: isLoading
-                                        ? null
-                                        : () {
-                                            controller.toggleFollowStatus(
-                                              widget.model.userID,
-                                            );
-                                          },
-                                    child: Container(
-                                      height: 20,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                          color: Colors.transparent,
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(12)),
-                                          border:
-                                              Border.all(color: Colors.white)),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 15),
-                                        child: isLoading
-                                            ? const SizedBox(
-                                                width: 14,
-                                                height: 14,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                          Color>(Colors.white),
-                                                ),
-                                              )
-                                            : Text(
-                                                'following.follow'.tr,
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontFamily:
-                                                        AppFontFamilies.mmedium,
-                                                    fontSize: FontSizes.size12),
-                                              ),
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ),
-                            Transform.translate(
-                              offset: Offset(15, -2),
-                              child: pulldownmenu(context),
-                            ),
-                            SizedBox(
-                              width: 12,
+                            HashtagTextVideoPost(
+                              text: widget.model.metin,
+                              color: Colors.white,
+                              volume: (bool) {
+                                ///gerek yok
+                              },
                             ),
                           ],
                         ),
                       ),
-                      HashtagTextVideoPost(
-                        text: widget.model.metin,
-                        color: Colors.white,
-                        volume: (bool) {
-                          ///gerek yok
-                        },
-                      ),
-                    ],
-                  ),
+                Padding(
+                  padding: _actionSurfaceOuterPadding(context),
+                  child: _buildActionSurface(child: butonlar(context)),
                 ),
-                butonlar(context),
               ],
             ),
           ],
@@ -239,7 +279,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         /// Yorum Butonu
         Expanded(
@@ -425,6 +465,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   postId: widget.model.docID,
                   desc: widget.model.metin,
                   imageUrl: previewImage,
+                  existingShortUrl: widget.model.shortUrl,
                 );
                 await ShareLinkService.shareUrl(
                   url: url,
@@ -525,6 +566,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
               postId: widget.model.docID,
               desc: widget.model.metin,
               imageUrl: previewImage,
+              existingShortUrl: widget.model.shortUrl,
             );
             await Clipboard.setData(ClipboardData(text: url));
 
@@ -545,6 +587,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 postId: widget.model.docID,
                 desc: widget.model.metin,
                 imageUrl: previewImage,
+                existingShortUrl: widget.model.shortUrl,
               );
               await ShareLinkService.shareUrl(
                 url: url,
@@ -615,278 +658,6 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
         alignment: Alignment.center,
         minimumSize: Size(0, 0),
         child: Icon(Icons.more_vert, color: Colors.white, size: 22),
-      ),
-    );
-  }
-
-  Widget gonderiGizlendi(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.black),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Stack(
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.checkmark_seal,
-                      color: Colors.green,
-                      size: 30,
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 12,
-                ),
-                Text(
-                  'post_state.hidden_title'.tr,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium"),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 50),
-                  child: Divider(
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(
-                  height: 7,
-                ),
-                Text(
-                  'post_state.hidden_body'.tr,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: "Montserrat"),
-                ),
-                const SizedBox(
-                  height: 15,
-                ),
-                GestureDetector(
-                  onTap: () {
-                    controller.gizlemeyiGeriAl();
-                  },
-                  child: Text(
-                    'common.undo'.tr,
-                    style: TextStyle(
-                        color: Colors.blueAccent,
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium"),
-                  ),
-                )
-              ],
-            ),
-            SafeArea(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'short.next_post'.tr,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium"),
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 12,
-                  ),
-                  Icon(
-                    CupertinoIcons.arrow_down,
-                    color: Colors.white,
-                  )
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget gonderiArsivlendi(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Stack(
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.checkmark_seal,
-                      color: Colors.green,
-                      size: 30,
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 12,
-                ),
-                Text(
-                  'post_state.archived_title'.tr,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium"),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 50),
-                  child: Divider(color: Colors.white),
-                ),
-                SizedBox(
-                  height: 7,
-                ),
-                Text(
-                  'post_state.archived_body'.tr,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: "Montserrat"),
-                ),
-                const SizedBox(
-                  height: 15,
-                ),
-                GestureDetector(
-                  onTap: () {
-                    controller.arsivdenCikart();
-                  },
-                  child: Text(
-                    'common.undo'.tr,
-                    style: TextStyle(
-                        color: Colors.blueAccent,
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium"),
-                  ),
-                )
-              ],
-            ),
-            SafeArea(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'short.next_post'.tr,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium"),
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 12,
-                  ),
-                  Icon(
-                    CupertinoIcons.arrow_down,
-                    color: Colors.white,
-                  )
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget gonderiSilindi(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Stack(
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.checkmark_seal,
-                      color: Colors.green,
-                      size: 30,
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 12,
-                ),
-                Text(
-                  'post_state.deleted_title'.tr,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium"),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 50),
-                  child: Divider(color: Colors.white),
-                ),
-                SizedBox(
-                  height: 7,
-                ),
-                Text(
-                  'post_state.deleted_body'.tr,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: "Montserrat"),
-                ),
-                const SizedBox(
-                  height: 15,
-                ),
-              ],
-            ),
-            SafeArea(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'short.next_post'.tr,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium"),
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 12,
-                  ),
-                  Icon(
-                    CupertinoIcons.arrow_down,
-                    color: Colors.white,
-                  )
-                ],
-              ),
-            )
-          ],
-        ),
       ),
     );
   }

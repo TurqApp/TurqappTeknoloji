@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -25,6 +25,8 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 part 'deneme_grid_actions_part.dart';
 part 'deneme_grid_content_part.dart';
+part 'deneme_grid_list_part.dart';
+part 'deneme_grid_list_sections_part.dart';
 
 class DenemeGrid extends StatelessWidget {
   const DenemeGrid({
@@ -44,11 +46,11 @@ class DenemeGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DenemeGridController controller = DenemeGridController.ensure(
+    final DenemeGridController controller = ensureDenemeGridController(
       tag: model.docID,
     );
     final SavedPracticeExamsController savedController =
-        SavedPracticeExamsController.ensure();
+        ensureSavedPracticeExamsController();
     controller.initData(model);
 
     return _buildBody(

@@ -7,7 +7,7 @@ class NotificationPreferencesService {
   NotificationPreferencesService._();
 
   static Map<String, dynamic> defaults() {
-    return {
+    return _clonePreferencesMap({
       'pauseAll': false,
       'sleepMode': false,
       'messagesOnly': false,
@@ -15,8 +15,9 @@ class NotificationPreferencesService {
         'directMessages': true,
       },
       'posts': {
+        'posts': true,
         'comments': true,
-        'postActivity': true,
+        'likes': true,
       },
       'followers': {
         'follows': true,
@@ -26,11 +27,11 @@ class NotificationPreferencesService {
         'tutoringApplications': true,
         'applicationStatus': true,
       },
-    };
+    });
   }
 
   static NotificationPreferencesRepository get _repository =>
-      NotificationPreferencesRepository.ensure();
+      ensureNotificationPreferencesRepository();
 
   static Stream<Map<String, dynamic>> currentUserPreferencesStream() {
     final uid = CurrentUserService.instance.effectiveUserId;
@@ -65,8 +66,11 @@ class NotificationPreferencesService {
   }
 
   static Map<String, dynamic> mergeWithDefaults(Map<String, dynamic>? raw) {
-    final merged = _deepMerge(defaults(), raw ?? <String, dynamic>{});
-    return Map<String, dynamic>.from(merged);
+    final merged = _deepMerge(
+      defaults(),
+      _normalizeLegacyPreferences(raw ?? <String, dynamic>{}),
+    );
+    return _clonePreferencesMap(merged);
   }
 
   static bool isTypeEnabled(String type, Map<String, dynamic>? rawPrefs) {
@@ -88,11 +92,12 @@ class NotificationPreferencesService {
       case 'comment':
         return _readBool(prefs, 'posts.comments');
       case 'like':
+      case 'comment_like':
+        return _readBool(prefs, 'posts.likes');
       case 'reshared_posts':
       case 'shared_as_posts':
       case 'posts':
-      case 'comment_like':
-        return _readBool(prefs, 'posts.postActivity');
+        return _readBool(prefs, 'posts.posts');
       case 'follow':
       case 'user':
         return _readBool(prefs, 'followers.follows');
@@ -115,7 +120,7 @@ class NotificationPreferencesService {
       if (current is! Map) return false;
       current = current[segment];
     }
-    return current == true;
+    return _asNullableBool(current) ?? false;
   }
 
   static Map<String, dynamic> _deepMerge(
@@ -128,20 +133,70 @@ class NotificationPreferencesService {
       if (baseValue is Map<String, dynamic> && overrideValue is Map) {
         result[key] = _deepMerge(
           baseValue,
-          Map<String, dynamic>.from(overrideValue),
+          _clonePreferencesMap(
+            overrideValue.map(
+              (nestedKey, nestedValue) =>
+                  MapEntry(nestedKey.toString(), nestedValue),
+            ),
+          ),
         );
       } else if (overrideValue != null) {
-        result[key] = overrideValue;
+        result[key] = _clonePreferencesValue(overrideValue);
       } else {
-        result[key] = baseValue;
+        result[key] = _clonePreferencesValue(baseValue);
       }
     }
     return result;
   }
 
+  static Map<String, dynamic> _normalizeLegacyPreferences(
+    Map<String, dynamic> raw,
+  ) {
+    final normalized = _clonePreferencesMap(raw);
+    final posts = normalized['posts'];
+    if (posts is Map) {
+      final mappedPosts = _clonePreferencesMap(
+        posts.map((key, value) => MapEntry(key.toString(), value)),
+      );
+      final legacyPostActivity = _asNullableBool(mappedPosts['postActivity']);
+      if (legacyPostActivity != null) {
+        mappedPosts.putIfAbsent('posts', () => legacyPostActivity);
+        mappedPosts.putIfAbsent('likes', () => legacyPostActivity);
+      }
+      normalized['posts'] = mappedPosts;
+    }
+    return normalized;
+  }
+
+  static bool? _asNullableBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return null;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return null;
+  }
+
   static Map<String, dynamic> _pathMap(String path, dynamic value) {
     final segments = path.split('.');
-    Map<String, dynamic> result = <String, dynamic>{segments.last: value};
+    Map<String, dynamic> result = <String, dynamic>{
+      segments.last: _clonePreferencesValue(value),
+    };
     for (var i = segments.length - 2; i >= 0; i--) {
       result = <String, dynamic>{segments[i]: result};
     }
@@ -158,7 +213,9 @@ class NotificationPreferencesService {
       if (next is Map<String, dynamic>) {
         current = next;
       } else if (next is Map) {
-        final mapped = Map<String, dynamic>.from(next);
+        final mapped = _clonePreferencesMap(
+          next.map((mapKey, mapValue) => MapEntry(mapKey.toString(), mapValue)),
+        );
         current[key] = mapped;
         current = mapped;
       } else {
@@ -167,6 +224,29 @@ class NotificationPreferencesService {
         current = created;
       }
     }
-    current[segments.last] = value;
+    current[segments.last] = _clonePreferencesValue(value);
+  }
+
+  static Map<String, dynamic> _clonePreferencesMap(
+    Map<String, dynamic> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _clonePreferencesValue(value)),
+    );
+  }
+
+  static dynamic _clonePreferencesValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _clonePreferencesValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_clonePreferencesValue).toList(growable: false);
+    }
+    return value;
   }
 }

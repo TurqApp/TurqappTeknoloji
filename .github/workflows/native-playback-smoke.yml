@@ -40,7 +40,7 @@ jobs:
 
   ios-native-playback:
     name: iOS AVPlayer Smoke
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -55,9 +55,7 @@ jobs:
         run: flutter pub get
 
       - name: Install CocoaPods deps
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Run iOS native playback smoke
         run: |

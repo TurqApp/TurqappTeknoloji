@@ -126,7 +126,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
           return bTs.compareTo(aTs);
         });
       return docs
-          .take(ExploreController._recentSearchUsersLimit)
+          .take(_recentSearchUsersLimit)
           .map((d) => d.id.trim())
           .where((e) => e.isNotEmpty)
           .toList(growable: false);
@@ -139,7 +139,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   String? _recentSearchUsersCacheKey() {
     final uid = _currentUid;
     if (uid.isEmpty) return null;
-    return '${ExploreController._recentSearchUsersCachePrefix}$uid';
+    return '$_recentSearchUsersCachePrefix$uid';
   }
 
   Future<void> _loadRecentSearchUsersCache() async {
@@ -150,7 +150,10 @@ extension ExploreControllerRecentSearchPart on ExploreController {
       final raw = prefs.getString(key);
       if (raw == null || raw.trim().isEmpty) return;
       final parsed = jsonDecode(raw);
-      if (parsed is! List) return;
+      if (parsed is! List) {
+        await prefs.remove(key);
+        return;
+      }
 
       final restored = <OgrenciModel>[];
       for (final item in parsed) {
@@ -171,8 +174,17 @@ extension ExploreControllerRecentSearchPart on ExploreController {
       }
       if (restored.isNotEmpty) {
         recentSearchUsers.value = restored;
+      } else if (parsed.isNotEmpty) {
+        await prefs.remove(key);
       }
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final key = _recentSearchUsersCacheKey();
+        if (key == null) return;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+      } catch (_) {}
+    }
   }
 
   Future<void> _saveRecentSearchUsersCache() async {
@@ -181,7 +193,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
       if (key == null) return;
       final prefs = await SharedPreferences.getInstance();
       final payload = recentSearchUsers
-          .take(ExploreController._recentSearchUsersLimit)
+          .take(_recentSearchUsersLimit)
           .map(
             (u) => <String, dynamic>{
               'userID': u.userID,
@@ -237,6 +249,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
         subcollection: 'lastSearches',
         items: next.take(200).toList(growable: false),
       );
+      await CurrentUserService.instance.addRecentSearchLocal(cleanTarget);
     } catch (_) {
     } finally {
       await _reloadRecentSearchUsers();
@@ -272,6 +285,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
         items:
             existing.where((e) => e.id != cleanTarget).toList(growable: false),
       );
+      await CurrentUserService.instance.removeRecentSearchLocal(cleanTarget);
     } catch (_) {
       recentSearchUsers.value = before;
       await _saveRecentSearchUsersCache();

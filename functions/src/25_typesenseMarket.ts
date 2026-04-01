@@ -4,6 +4,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore, Query } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
 import { RateLimits } from "./rateLimiter";
+export * from "./marketCounters";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const COLLECTION = "market_search_v3";
@@ -52,6 +53,7 @@ type SearchMarketInput = {
   limit?: number;
   page?: number;
   docId?: string;
+  docIds?: string[];
   userId?: string;
   categoryKey?: string;
   city?: string;
@@ -476,19 +478,45 @@ function shouldIndex(doc: MarketSearchDoc): boolean {
   return doc.active && doc.title.trim().length > 0;
 }
 
-async function syncMarketDoc(docId: string, afterData?: Record<string, unknown>) {
+function marketDocsEqual(
+  left: MarketSearchDoc | null | undefined,
+  right: MarketSearchDoc | null | undefined
+): boolean {
+  if (!left || !right) return false;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+async function syncMarketDoc(
+  docId: string,
+  beforeData?: Record<string, unknown>,
+  afterData?: Record<string, unknown>
+) {
+  const beforeDoc = beforeData ? buildSearchDoc(docId, beforeData) : null;
+  const afterDoc = afterData ? buildSearchDoc(docId, afterData) : null;
+  const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
+  const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
+
   if (!afterData) {
+    if (!beforeIndexed) {
+      return;
+    }
     await deleteDoc(docId);
     return;
   }
 
-  const doc = buildSearchDoc(docId, afterData);
-  if (!shouldIndex(doc)) {
+  if (!afterIndexed || !afterDoc) {
+    if (!beforeIndexed) {
+      return;
+    }
     await deleteDoc(docId);
     return;
   }
 
-  await upsertDoc(doc);
+  if (beforeIndexed && marketDocsEqual(beforeDoc, afterDoc)) {
+    return;
+  }
+
+  await upsertDoc(afterDoc);
 }
 
 function quoteFilterValue(value: string): string {
@@ -498,12 +526,16 @@ function quoteFilterValue(value: string): string {
 function buildFilterBy(input: SearchMarketInput): string {
   const filters = ["active:=true"];
   const docId = asString(input.docId);
+  const docIds = asStringArray(input.docIds);
   const userId = asString(input.userId);
   const categoryKey = asString(input.categoryKey);
   const city = asString(input.city);
   const district = asString(input.district);
 
   if (docId) filters.push(`docId:=${quoteFilterValue(docId)}`);
+  if (!docId && docIds.length) {
+    filters.push(`docId:=[${docIds.map(quoteFilterValue).join(",")}]`);
+  }
   if (userId) filters.push(`userId:=${quoteFilterValue(userId)}`);
   if (categoryKey) filters.push(`categoryKey:=${quoteFilterValue(categoryKey)}`);
   if (city) filters.push(`city:=${quoteFilterValue(city)}`);
@@ -626,8 +658,9 @@ export const f25_syncMarketToTypesense = onDocumentWritten(
     ensureAdmin();
     if (!typesenseReady()) return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
-    await syncMarketDoc(docId, afterData);
+    await syncMarketDoc(docId, beforeData, afterData);
   }
 );
 
@@ -675,6 +708,7 @@ export const f25_searchMarketCallable = onCall(
         limit,
         page,
         docId: request.data?.docId,
+        docIds: Array.isArray(request.data?.docIds) ? request.data?.docIds : undefined,
         userId: request.data?.userId,
         categoryKey: request.data?.categoryKey,
         city: request.data?.city,

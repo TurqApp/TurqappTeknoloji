@@ -12,9 +12,11 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/upload_constants.dart';
+import 'package:turqappv2/Core/Services/post_caption_limits.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
+import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -22,8 +24,12 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/profile_posts_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../Agenda/agenda_controller.dart';
 import '../NavBar/nav_bar_controller.dart';
@@ -32,7 +38,6 @@ import 'CreatorContent/creator_content_controller.dart';
 import '../../Core/BottomSheets/future_date_picker_bottom_sheet.dart';
 import '../../Core/Services/upload_validation_service.dart';
 import '../../Core/Services/error_handling_service.dart';
-import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/user_moderation_guard.dart';
 import '../../Core/Services/draft_service.dart';
@@ -40,238 +45,20 @@ import '../../Core/Widgets/progress_indicators.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
 import '../../Core/Services/typesense_post_service.dart';
 import '../../Core/Services/webp_upload_service.dart';
+import 'post_creator_flood_identity.dart';
 
 part 'post_creator_controller_upload_support.dart';
+part 'post_creator_controller_base_part.dart';
 part 'post_creator_controller_flow_part.dart';
 part 'post_creator_controller_source_part.dart';
 part 'post_creator_controller_publish_part.dart';
 part 'post_creator_controller_publish_upload_part.dart';
 part 'post_creator_controller_route_part.dart';
 part 'post_creator_controller_ui_part.dart';
-
-class PreparedPostModel {
-  final String text;
-  final List<Uint8List> images;
-  final List<String> reusedImageUrls;
-  final double reusedImageAspectRatio;
-  final File? video;
-  final String reusedVideoUrl;
-  final String reusedVideoThumbnail;
-  final double reusedVideoAspectRatio;
-  final String videoLookPreset;
-  final String location;
-  final String gif;
-  final Uint8List? customThumbnail;
-  final Map<String, dynamic> poll;
-
-  PreparedPostModel({
-    required this.text,
-    required this.images,
-    required this.reusedImageUrls,
-    required this.reusedImageAspectRatio,
-    required this.video,
-    required this.reusedVideoUrl,
-    required this.reusedVideoThumbnail,
-    required this.reusedVideoAspectRatio,
-    required this.videoLookPreset,
-    required this.location,
-    required this.gif,
-    required this.customThumbnail,
-    required this.poll,
-  });
-
-  Map<String, dynamic> toMap({required String docID}) => {
-        'id': docID,
-        'text': text,
-        'location': location,
-        'gif': gif,
-        'timeStamp': DateTime.now().millisecondsSinceEpoch,
-      };
-}
-
-class PostCreatorController extends GetxController with WidgetsBindingObserver {
-  static PostCreatorController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(PostCreatorController(), permanent: permanent);
-  }
-
-  static PostCreatorController? maybeFind() {
-    final isRegistered = Get.isRegistered<PostCreatorController>();
-    if (!isRegistered) return null;
-    return Get.find<PostCreatorController>();
-  }
-
-  static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
-  static const int _maxScheduledWindowDays = 90;
-  static int _lastModerationSnackbarAtMs = 0;
-  final PostRepository _postRepository = PostRepository.ensure();
-  RxList<PostCreatorModel> postList =
-      <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
-  int _nextComposerItemIndex = 1;
-  final RxBool isKeyboardOpen = false.obs;
-  final RxBool isPublishing = false.obs;
-  var selectedIndex = 0.obs;
-  final agendaController = AgendaController.ensure();
-  var comment = true.obs;
-  // 0: Herkes, 1: Onaylı hesaplar, 2: Takip ettiğin hesaplar
-  var commentVisibility = 0.obs;
-  var paylasimSelection = 0.obs;
-  // 0: Şimdi Paylaş, 1: İleri Tarihe İz Bırak
-  var publishMode = 0.obs;
-  Rx<DateTime?> izBirakDateTime = Rx<DateTime?>(null);
-
-  // Services
-  late final ErrorHandlingService _errorService;
-  late final NetworkAwarenessService _networkService;
-  late final UploadQueueService _uploadQueueService;
-  late final DraftService _draftService;
-  bool _sharedSourceApplied = false;
-  String _sharedSourceFingerprint = "";
-  bool _isSharedAsPost = false;
-  String _sharedOriginalUserID = "";
-  String _sharedOriginalPostID = "";
-
-  String get _currentUid => CurrentUserService.instance.effectiveUserId;
-
-  String _requireCurrentUid() {
-    final uid = _currentUid;
-    if (uid.isEmpty) {
-      throw StateError('Current user uid unavailable');
-    }
-    return uid;
-  }
-
-  String _sharedSourcePostID = "";
-  bool _isQuotedPost = false;
-  String _quotedOriginalText = "";
-  String _quotedSourceUserID = "";
-  String _quotedSourceDisplayName = "";
-  String _quotedSourceUsername = "";
-  String _quotedSourceAvatarUrl = "";
-  bool _editSourceApplied = false;
-  final RxBool isEditMode = false.obs;
-  final RxString editingPostID = ''.obs;
-  final RxBool isSavingEdit = false.obs;
-
-  Timer? _autoSaveTimer;
-  Timer? _queueRingTimer;
-  String _preparedRouteId = '';
-
-  bool get isQuotedPost => _isQuotedPost;
-  String get quotedOriginalText => _quotedOriginalText;
-  String get quotedSourceUserID => _quotedSourceUserID;
-  String get quotedSourceDisplayName => _quotedSourceDisplayName;
-  String get quotedSourceUsername => _quotedSourceUsername;
-  String get quotedSourceAvatarUrl => _quotedSourceAvatarUrl;
-  String get sharedOriginalUserID => _sharedOriginalUserID;
-  String get sharedOriginalPostID => _sharedOriginalPostID;
-
-  String _resolvePostLocationCity() =>
-      _PostCreatorControllerUploadSupportX(this)._resolvePostLocationCity();
-
-  Future<String?> _ensureStorageUploadAuthReady() =>
-      _PostCreatorControllerUploadSupportX(this)
-          ._ensureStorageUploadAuthReady();
-
-  Future<void> _preparePostShellForStorageUpload({
-    required String docID,
-    required String uid,
-    required int nowMs,
-  }) =>
-      _PostCreatorControllerUploadSupportX(this)
-          ._preparePostShellForStorageUpload(
-        docID: docID,
-        uid: uid,
-        nowMs: nowMs,
-      );
-
-  Future<TaskSnapshot> _putFileWithAuthRetry({
-    required Reference ref,
-    required File file,
-    required SettableMetadata metadata,
-  }) =>
-      _PostCreatorControllerUploadSupportX(this)._putFileWithAuthRetry(
-        ref: ref,
-        file: file,
-        metadata: metadata,
-      );
-
-  NavBarController? _maybeNavBarController() =>
-      _PostCreatorControllerUploadSupportX(this)._maybeNavBarController();
-
-  DateTime get maxIzBirakDate =>
-      DateTime.now().add(const Duration(days: _maxScheduledWindowDays));
-
-  int allocateComposerItemIndex() {
-    final next = _nextComposerItemIndex;
-    _nextComposerItemIndex++;
-    return next;
-  }
-
-  PostCreatorModel insertComposerItemAfter(int listIndex) {
-    final newIndex = allocateComposerItemIndex();
-    final model = PostCreatorModel(index: newIndex, text: "");
-    final insertAt = (listIndex + 1).clamp(0, postList.length);
-    postList.insert(insertAt, model);
-    postList.refresh();
-    return model;
-  }
-
-  void resetComposerItemIndexSeed([int next = 1]) {
-    _nextComposerItemIndex = next;
-  }
-
-  CreatorContentController ensureComposerControllerFor(int composerIndex) {
-    final tag = composerIndex.toString();
-    return CreatorContentController.ensure(tag: tag);
-  }
-
-  @override
-  void onInit() {
-    super.onInit();
-    WidgetsBinding.instance.addObserver(this);
-    _initializeServices();
-    _startAutoSave();
-  }
-
-  @override
-  void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _autoSaveTimer?.cancel();
-    _queueRingTimer?.cancel();
-    _saveCurrentDraft();
-    super.onClose();
-  }
-
-  Future<void> prepareForRoute({
-    required String routeId,
-    required bool sharedAsPost,
-    required bool editMode,
-  }) =>
-      _PostCreatorControllerRouteX(this)._prepareForRoute(
-        routeId: routeId,
-        sharedAsPost: sharedAsPost,
-        editMode: editMode,
-      );
-
-  Future<void> resetComposerState() =>
-      _PostCreatorControllerRouteX(this)._resetComposerState();
-
-  @override
-  void didChangeMetrics() {
-    _PostCreatorControllerRouteX(this)._handleDidChangeMetrics();
-  }
-
-  DateTime? _normalizedIzBirakDateTime() =>
-      _PostCreatorControllerRouteX(this)._normalizedIzBirakDateTime();
-
-  Future<void> _hydrateQuotedSourceIfNeeded() =>
-      _PostCreatorControllerRouteX(this)._hydrateQuotedSourceIfNeeded();
-
-  void uploadAllPostsInBackground() =>
-      _PostCreatorControllerUiX(this)._uploadAllPostsInBackground();
-
-  Future<void> showCommentOptions() =>
-      _PostCreatorControllerUiX(this)._showCommentOptions();
-}
+part 'post_creator_controller_fields_part.dart';
+part 'post_creator_controller_facade_part.dart';
+part 'post_creator_controller_lifecycle_part.dart';
+part 'post_creator_controller_models_part.dart';
+part 'post_creator_controller_runtime_part.dart';
+part 'post_creator_controller_shell_part.dart';
+part 'post_creator_controller_support_part.dart';

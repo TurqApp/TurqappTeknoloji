@@ -6,6 +6,12 @@ import 'cache_first_serialization.dart';
 import 'cached_resource.dart';
 import 'scoped_snapshot_store.dart';
 
+int _scopedSnapshotAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
 class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
   SharedPrefsScopedSnapshotStore({
     required this.prefsPrefix,
@@ -24,27 +30,51 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
     ScopedSnapshotKey key, {
     bool allowStale = true,
   }) async {
+    final prefsKey = _prefsKey(key);
     try {
       final prefs = await _ensurePrefs();
-      final raw = prefs.getString(_prefsKey(key));
+      final raw = prefs.getString(prefsKey);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return null;
-      final payload = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
-      final snapshotAtMs = (payload['snapshotAt'] as num?)?.toInt() ?? 0;
-      final schemaVersion = (payload['schemaVersion'] as num?)?.toInt() ?? 1;
+      if (decoded is! Map) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final payload =
+          Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
+      final storedSurface = (payload['surfaceKey'] ?? '').toString().trim();
+      final storedUser = (payload['userId'] ?? '').toString().trim();
+      final storedScope = (payload['scopeId'] ?? '').toString().trim();
+      if (storedSurface != key.surfaceKey.trim() ||
+          storedUser != key.userId.trim() ||
+          storedScope != key.scopeId.trim()) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final snapshotAtMs = _scopedSnapshotAsInt(payload['snapshotAt']);
+      final schemaVersion = _scopedSnapshotAsInt(payload['schemaVersion']) == 0
+          ? 1
+          : _scopedSnapshotAsInt(payload['schemaVersion']);
       final generationId = (payload['generationId'] ?? '').toString().trim();
       final source = _parseSource(payload['source']);
       final dataMap = payload['data'];
-      if (snapshotAtMs <= 0 || dataMap is! Map) return null;
+      if (snapshotAtMs <= 0 || dataMap is! Map) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
       return ScopedSnapshotRecord<T>(
-        data: decode(Map<String, dynamic>.from(dataMap.cast<dynamic, dynamic>())),
+        data:
+            decode(Map<String, dynamic>.from(dataMap.cast<dynamic, dynamic>())),
         snapshotAt: DateTime.fromMillisecondsSinceEpoch(snapshotAtMs),
         schemaVersion: schemaVersion,
         generationId: generationId,
         source: source,
       );
     } catch (_) {
+      try {
+        final prefs = await _ensurePrefs();
+        await prefs.remove(prefsKey);
+      } catch (_) {}
       return null;
     }
   }
@@ -90,10 +120,16 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
         .toList(growable: false);
     for (final key in keys) {
       final raw = prefs.getString(key);
-      if (raw == null || raw.isEmpty) continue;
+      if (raw == null || raw.isEmpty) {
+        await prefs.remove(key);
+        continue;
+      }
       try {
         final decoded = jsonDecode(raw);
-        if (decoded is! Map) continue;
+        if (decoded is! Map) {
+          await prefs.remove(key);
+          continue;
+        }
         final payload =
             Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
         final storedSurface = (payload['surfaceKey'] ?? '').toString().trim();
@@ -103,7 +139,9 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
           continue;
         }
         await prefs.remove(key);
-      } catch (_) {}
+      } catch (_) {
+        await prefs.remove(key);
+      }
     }
   }
 
@@ -121,4 +159,3 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
     return CachedResourceSource.scopedDisk;
   }
 }
-

@@ -11,7 +11,7 @@ extension PostCreatorBodyPart on PostCreator {
             final isSelected = controller.selectedIndex.value == index;
             final postModel = controller.postList[index];
             final tag = postModel.index.toString();
-            CreatorContentController.ensure(tag: tag);
+            ensureCreatorContentController(tag: tag);
             return GestureDetector(
               key: ValueKey('composer-${postModel.index}'),
               behavior: HitTestBehavior.deferToChild,

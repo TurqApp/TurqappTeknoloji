@@ -3,18 +3,16 @@ part of 'tutoring_detail.dart';
 extension TutoringDetailBodyPart on TutoringDetail {
   Widget buildContent(BuildContext context) {
     final TutoringDetailController controller =
-        TutoringDetailController.ensure();
+        ensureTutoringDetailController();
     final SavedTutoringsController savedController =
-        SavedTutoringsController.ensure();
-    final TutoringController tutoringController = TutoringController.ensure();
+        ensureSavedTutoringsController();
+    final TutoringController tutoringController = ensureTutoringController();
     final String? currentUserId = getCurrentUserId();
 
     Future<void> deleteTutoring(String docId) async {
       try {
-        await FirebaseFirestore.instance
-            .collection('educators')
-            .doc(docId)
-            .delete();
+        await controller.deleteTutoring();
+        savedController.removeSavedTutoring(docId);
         Get.back();
         AppSnackbar('common.success'.tr, 'tutoring.delete_success'.tr);
       } catch (_) {
@@ -237,10 +235,13 @@ extension TutoringDetailBodyPart on TutoringDetail {
       child: AspectRatio(
         aspectRatio: 1.18,
         child: imageUrl.trim().isNotEmpty
-            ? CachedNetworkImage(
+            ? CacheFirstNetworkImage(
                 imageUrl: imageUrl,
+                cacheManager: TurqImageCacheManager.instance,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => _imageFallback(),
+                memCacheWidth: 960,
+                memCacheHeight: 960,
+                fallback: _imageFallback(),
               )
             : _imageFallback(),
       ),
@@ -393,17 +394,17 @@ extension TutoringDetailBodyPart on TutoringDetail {
             : () => Get.to(() => SocialProfile(userID: model.userID)),
         child: Row(
           children: [
-            ClipOval(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: avatarUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: avatarUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => _imageFallback(),
-                      )
-                    : _imageFallback(),
+            CachedUserAvatar(
+              userId: model.userID,
+              imageUrl: avatarUrl,
+              radius: 20,
+              backgroundColor: const Color(0xFFF3F5F7),
+              errorWidget: ClipOval(
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: _imageFallback(),
+                ),
               ),
             ),
             const SizedBox(width: 10),

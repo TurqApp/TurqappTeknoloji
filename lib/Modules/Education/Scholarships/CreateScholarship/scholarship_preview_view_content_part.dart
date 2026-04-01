@@ -5,6 +5,7 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
     required BuildContext context,
     required CreateScholarshipController controller,
     required CarouselSliderController carouselController,
+    required ScrollController scrollController,
     required RxInt currentIndex,
     required double logoSize,
   }) {
@@ -16,6 +17,7 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
             BackButtons(text: 'scholarship.preview_title'.tr),
             Expanded(
               child: SingleChildScrollView(
+                controller: scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Obx(
                   () => Column(
@@ -144,6 +146,7 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
                       _buildActionsRow(
                         controller: controller,
                         carouselController: carouselController,
+                        scrollController: scrollController,
                         currentIndex: currentIndex,
                       ),
                       const SizedBox(height: 20),
@@ -205,6 +208,7 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
   Widget _buildActionsRow({
     required CreateScholarshipController controller,
     required CarouselSliderController carouselController,
+    required ScrollController scrollController,
     required RxInt currentIndex,
   }) {
     return Row(
@@ -250,6 +254,15 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
                   curve: Curves.easeInOut,
                 );
               }
+              if (scrollController.hasClients &&
+                  scrollController.offset > 0) {
+                await scrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+              await WidgetsBinding.instance.endOfFrame;
               if (controller.isEditing.value) {
                 await controller.updateScholarship();
               } else {

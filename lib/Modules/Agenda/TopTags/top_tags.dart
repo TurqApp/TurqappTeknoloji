@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'top_tags_contoller.dart';
@@ -19,12 +20,12 @@ class _TopTagsState extends State<TopTags> {
   @override
   void initState() {
     super.initState();
-    final existingController = TopTagsController.maybeFind();
+    final existingController = maybeFindTopTagsController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = TopTagsController.ensure();
+      controller = ensureTopTagsController();
       _ownsController = true;
     }
   }
@@ -32,7 +33,7 @@ class _TopTagsState extends State<TopTags> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(TopTagsController.maybeFind(), controller)) {
+        identical(maybeFindTopTagsController(), controller)) {
       Get.delete<TopTagsController>(force: true);
     }
     super.dispose();
@@ -76,7 +77,7 @@ class _TopTagsState extends State<TopTags> {
                 onRefresh: () async {
                   controller.resetFeedState();
                   await controller.fetchAgendaBigData(initial: true);
-                  await controller.getTags();
+                  await controller.getTags(forceRefresh: true);
                 },
                 child: Obx(() {
                   final centeredIndex = controller.centeredIndex.value;
@@ -149,7 +150,9 @@ class _TopTagsState extends State<TopTags> {
 
   Widget header() {
     return Obx(() {
-      final items = controller.tags.take(30).toList();
+      final items = controller.tags
+          .take(ReadBudgetRegistry.topTagsTrendingResultLimit)
+          .toList();
       return Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[

@@ -28,21 +28,21 @@ class _CreateChatState extends State<CreateChat> {
   @override
   void initState() {
     super.initState();
-    final existingFollowers = FollowingFollowersController.maybeFind();
+    final existingFollowers = maybeFindFollowingFollowersController();
     if (existingFollowers != null) {
       followersFollowing = existingFollowers;
     } else {
-      followersFollowing = FollowingFollowersController.ensure(
+      followersFollowing = ensureFollowingFollowersController(
         initialPage: 0,
         userId: CurrentUserService.instance.effectiveUserId,
       );
       _ownsFollowersController = true;
     }
-    final existingCreateChat = CreateChatController.maybeFind();
+    final existingCreateChat = maybeFindCreateChatController();
     if (existingCreateChat != null) {
       controllerr = existingCreateChat;
     } else {
-      controllerr = CreateChatController.ensure();
+      controllerr = ensureCreateChatController();
       _ownsCreateChatController = true;
     }
     final existingChatListing = ChatListingController.maybeFind();
@@ -58,11 +58,11 @@ class _CreateChatState extends State<CreateChat> {
   void dispose() {
     if (_ownsFollowersController &&
         identical(
-            FollowingFollowersController.maybeFind(), followersFollowing)) {
+            maybeFindFollowingFollowersController(), followersFollowing)) {
       Get.delete<FollowingFollowersController>(force: true);
     }
     if (_ownsCreateChatController &&
-        identical(CreateChatController.maybeFind(), controllerr)) {
+        identical(maybeFindCreateChatController(), controllerr)) {
       Get.delete<CreateChatController>(force: true);
     }
     if (_ownsChatListingController &&

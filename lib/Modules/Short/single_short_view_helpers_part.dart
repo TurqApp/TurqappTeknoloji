@@ -3,6 +3,16 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {
+  bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    if (resolvedUrl.isNotEmpty || fallbackImage.isNotEmpty) {
+      return true;
+    }
+    return CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim())
+        .isNotEmpty;
+  }
+
   void _scheduleFullscreenPlaybackGuard(HLSVideoAdapter ctrl, String docId) {
     _fullscreenPlaybackGuardTimer?.cancel();
     _fullscreenPlaybackGuardTimer = Timer(
@@ -80,18 +90,19 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
   }) {
     final trimmed = docId.trim();
     if (trimmed.isEmpty) return;
+    final playbackHandleKey = _playbackHandleKeyForDoc(trimmed);
     final now = DateTime.now();
     final lastDocId = _lastExclusivePlayDocId;
     final lastAt = _lastExclusivePlayAt;
-    if (lastDocId == trimmed &&
+    if (lastDocId == playbackHandleKey &&
         lastAt != null &&
         now.difference(lastAt) < minSpacing) {
       return;
     }
-    _lastExclusivePlayDocId = trimmed;
+    _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      VideoStateManager.instance.playOnlyThis(trimmed);
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
     } catch (_) {}
   }
 
@@ -147,7 +158,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         isAudible: volume,
         hasStableFocus: true,
       );
-      final playbackKpi = PlaybackKpiService.maybeFind();
+      final playbackKpi = maybeFindPlaybackKpiService();
       if (playbackKpi != null) {
         playbackKpi.track(
           PlaybackKpiEventType.playbackIntent,
@@ -159,11 +170,11 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           },
         );
       }
-      final prefetch = PrefetchScheduler.maybeFind();
+      final prefetch = maybeFindPrefetchScheduler();
       if (prefetch != null) {
         try {
-          prefetch.updateQueue(
-            shorts.map((s) => s.docID).toList(growable: false),
+          prefetch.updateQueueForPosts(
+            shorts,
             currentPage,
           );
         } catch (_) {}
@@ -220,6 +231,12 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     if (dur > 0) {
       VideoTelemetryService.instance.onPositionUpdate(docId, pos, dur);
       final progress = (pos / dur).clamp(0.0, 1.0);
+      try {
+        _segmentCacheRuntimeService.ensureNextSegmentReady(
+          docId,
+          progress,
+        );
+      } catch (_) {}
       final now = DateTime.now();
       final shouldPersistByTime = _lastProgressPersistAt == null ||
           now.difference(_lastProgressPersistAt!) >=
@@ -231,12 +248,9 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
       if (shouldPersist) {
         try {
-          final cache = SegmentCacheManager.maybeFind();
-          if (cache != null) {
-            cache.updateWatchProgress(docId, progress);
-            _lastProgressPersistAt = now;
-            _lastPersistedProgress = progress;
-          }
+          _segmentCacheRuntimeService.updateWatchProgress(docId, progress);
+          _lastProgressPersistAt = now;
+          _lastPersistedProgress = progress;
         } catch (_) {}
       }
     }
@@ -249,33 +263,24 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     }
   }
 
-  Future<void> _releaseControllerAt(
-    int index, {
-    bool keepWarm = true,
-  }) async {
-    final adapter = _videoControllers[index];
-    if (adapter == null) return;
-    _detachCompletionListener(index, adapter);
-
-    final docId =
-        (index >= 0 && index < shorts.length) ? shorts[index].docID : null;
-    if (docId != null) {
-      try {
-        videoStateManager.unregisterVideoController(docId);
-      } catch (_) {}
+  Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
+    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
+    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    final candidates = <String>[
+      if (resolvedUrl.isNotEmpty) resolvedUrl,
+      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl)
+        fallbackImage,
+      ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
+    ];
+    if (candidates.isEmpty) {
+      return const ColoredBox(color: Colors.black);
     }
-
-    _videoControllers.remove(index);
-    if (adapter.isDisposed) return;
-    await _videoPool.release(adapter, keepWarm: keepWarm);
-  }
-
-  Widget _cachedThumb(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
+    return CacheFirstNetworkImage(
+      imageUrl: candidates.first,
+      candidateUrls: candidates.skip(1).toList(growable: false),
+      cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
-      placeholder: (_, __) => const SizedBox.shrink(),
-      errorWidget: (_, __, ___) => const SizedBox.shrink(),
+      fallback: const ColoredBox(color: Colors.black),
     );
   }
 
@@ -302,9 +307,11 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
       for (var i = 0; i < 3; i++) {
         if (!mounted || ctrl.isDisposed) return;
-        await ctrl.play();
-        _requestExclusivePlayback(docId);
-        _scheduleVolumeRestore(ctrl);
+        await _playSingleShortWhenReady(
+          currentPage,
+          ctrl,
+          source: 'single_short_injected_initial',
+        );
         await Future.delayed(const Duration(milliseconds: 120));
         if (ctrl.value.isPlaying) break;
       }
@@ -312,8 +319,53 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     } catch (_) {}
   }
 
-  Future<void> _pauseAllControllers() async {
+  HLSVideoAdapter? _resolveFullscreenReturnPreservedController({
+    int? preferredIndex,
+    HLSVideoAdapter? preferredController,
+  }) {
+    final injected = widget.injectedController;
+    if (injected == null ||
+        injected.isDisposed ||
+        !injected.value.isInitialized) {
+      return null;
+    }
+    final idx = preferredIndex ?? currentPage;
+    final candidate =
+        preferredController ?? (idx >= 0 ? _videoControllers[idx] : null);
+    if (candidate != null && identical(candidate, injected)) {
+      return injected;
+    }
+    final current = currentPage >= 0 ? _videoControllers[currentPage] : null;
+    if (current != null && identical(current, injected)) {
+      return injected;
+    }
+    return null;
+  }
+
+  void _unregisterShortHandlesForController(HLSVideoAdapter controller) {
+    for (final entry in _videoControllers.entries) {
+      if (!identical(entry.value, controller)) continue;
+      if (entry.key < 0 || entry.key >= shorts.length) continue;
+      try {
+        _playbackRuntimeService.unregisterPlaybackHandle(
+          _playbackHandleKeyForDoc(shorts[entry.key].docID),
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _pauseAllControllers({
+    HLSVideoAdapter? preserveController,
+  }) async {
+    final preserved = preserveController != null &&
+            !preserveController.isDisposed &&
+            preserveController.value.isInitialized
+        ? preserveController
+        : null;
+    final seen = <HLSVideoAdapter>{};
     for (final vp in _videoControllers.values) {
+      if (!seen.add(vp)) continue;
+      if (preserved != null && identical(vp, preserved)) continue;
       try {
         if (vp.isDisposed) continue;
         if (vp.value.isInitialized) {
@@ -322,18 +374,26 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       } catch (_) {}
     }
     final injected = widget.injectedController;
-    if (injected != null) {
+    if (injected != null && seen.add(injected)) {
+      if (preserved != null && identical(injected, preserved)) {
+        _unregisterShortHandlesForController(injected);
+      } else {
+        try {
+          if (!injected.isDisposed && injected.value.isInitialized) {
+            await _releasePlayback(injected);
+          }
+        } catch (_) {}
+      }
+    } else if (preserved != null) {
+      _unregisterShortHandlesForController(preserved);
+    }
+    if (preserved == null) {
       try {
-        if (!injected.isDisposed && injected.value.isInitialized) {
-          await _releasePlayback(injected);
-        }
+        _playbackRuntimeService.pauseAll(force: true);
       } catch (_) {}
     }
     try {
-      VideoStateManager.instance.pauseAllVideos(force: true);
-    } catch (_) {}
-    try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
   }
 
@@ -341,18 +401,13 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     if (index < 0 || index >= shorts.length) return;
     final ctrl = _videoControllers[index];
     if (ctrl == null || ctrl.isDisposed) return;
-    try {
-      ctrl.setVolume(volume ? 1 : 0);
-    } catch (_) {}
-    _scheduleVolumeRestore(ctrl);
-    unawaited(ctrl.play());
-    _requestExclusivePlayback(shorts[index].docID);
-    if (index == currentPage) {
-      _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);
-    }
-    if (index == currentPage) {
-      _beginTelemetryForCurrentPage(ctrl);
-    }
+    unawaited(
+      _playSingleShortWhenReady(
+        index,
+        ctrl,
+        source: 'single_short_prime_playback',
+      ),
+    );
   }
 
   Widget _buildFullscreenVideoSurface(
@@ -370,6 +425,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       useAspectRatio: false,
       overrideAutoPlay: overrideAutoPlay,
       forceFullscreenOnAndroid: true,
+      suppressLoadingOverlay: true,
     );
 
     if (ar > 1.2) {
@@ -391,166 +447,14 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     }
   }
 
-  void _configureInitialForList(List<PostsModel> list) {
-    int initial = 0;
-    if (widget.startModel != null) {
-      final idx = list.indexWhere((p) => p.docID == widget.startModel!.docID);
-      if (idx != -1) initial = idx;
-    } else if (list.isNotEmpty) {
-      initial = 0;
-    }
-    currentPage = initial;
-    _pageActivatedAt = DateTime.now();
-    _initialIndexForSeek = initial;
-    if (widget.injectedController != null &&
-        widget.injectedController!.value.isInitialized) {
-      _videoControllers[initial] = widget.injectedController!;
-      _externallyOwned.add(initial);
-      videoStateManager.registerPlaybackHandle(
-        list[initial].docID,
-        HLSAdapterPlaybackHandle(widget.injectedController!),
-      );
-      final ctrl = widget.injectedController!;
-
-      ctrl.setLooping(false);
-      ctrl.setVolume(volume ? 1 : 0);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || ctrl.isDisposed || initial >= list.length) return;
-        _ensureInjectedInitialPlayback(ctrl, list[initial].docID);
-      });
-
-      setState(() {});
-    } else {
-      _initialIndexForSeek = null;
-      _ensureController(initial);
-    }
-    if (list.isNotEmpty && initial >= 0 && initial < list.length) {
-      try {
-        VideoStateManager.instance.enterExclusiveMode(list[initial].docID);
-      } catch (_) {}
-      _primePlaybackForIndex(initial);
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (pageController.hasClients) {
-        pageController.jumpToPage(initial);
-      }
-    });
-    if (list.isNotEmpty) _preloadRange(initial);
-    _renderedShorts = List<PostsModel>.from(list);
-  }
-
-  void _handleShortsChange(List<PostsModel> list) {
-    final previous = List<PostsModel>.from(_renderedShorts);
-    if (previous.isEmpty) {
-      _configureInitialForList(list);
-      return;
-    }
-
-    final update = _shortRenderCoordinator.buildUpdate(
-      previous: previous,
-      next: list,
-      currentIndex: currentPage,
-    );
-    if (update.patch.isEmpty) {
-      _renderedShorts = List<PostsModel>.from(list);
-      return;
-    }
-
-    final oldControllers = Map<int, HLSVideoAdapter>.from(_videoControllers);
-    final oldExternallyOwned = Set<int>.from(_externallyOwned);
-    final oldCompletionTriggered = Map<int, bool>.from(_completionTriggered);
-    _videoControllers.clear();
-    _externallyOwned.clear();
-    _completionTriggered.clear();
-
-    if (list.isEmpty) {
-      for (final entry in oldControllers.entries) {
-        final controller = entry.value;
-        _detachCompletionListener(entry.key, controller);
-        if (widget.injectedController != null &&
-            identical(controller, widget.injectedController)) {
-          continue;
-        }
-        unawaited(_videoPool.release(controller, keepWarm: true));
-      }
-      _renderedShorts = const <PostsModel>[];
-      currentPage = 0;
-      if (mounted) {
-        setState(() {});
-      }
-      return;
-    }
-
-    final retained = <int>{};
-    for (final entry in oldControllers.entries) {
-      final oldIndex = entry.key;
-      final controller = entry.value;
-      if (oldIndex < 0 || oldIndex >= previous.length) {
-        if (!(widget.injectedController != null &&
-            identical(controller, widget.injectedController))) {
-          unawaited(_videoPool.release(controller, keepWarm: true));
-        }
-        continue;
-      }
-
-      final docId = previous[oldIndex].docID;
-      final newIndex = list.indexWhere((item) => item.docID == docId);
-      _detachCompletionListener(oldIndex, controller);
-
-      if (newIndex == -1) {
-        if (!(widget.injectedController != null &&
-            identical(controller, widget.injectedController))) {
-          unawaited(_videoPool.release(controller, keepWarm: true));
-        }
-        continue;
-      }
-
-      retained.add(newIndex);
-      _videoControllers[newIndex] = controller;
-      if (oldExternallyOwned.contains(oldIndex)) {
-        _externallyOwned.add(newIndex);
-      }
-      final wasCompleted = oldCompletionTriggered[oldIndex];
-      if (wasCompleted != null) {
-        _completionTriggered[newIndex] = wasCompleted;
-      }
-      _addVideoCompletionListener(controller, newIndex);
-    }
-
-    currentPage = update.remappedIndex.clamp(0, list.length - 1);
-    _renderedShorts = List<PostsModel>.from(list);
-
-    if (list.isNotEmpty && currentPage >= 0 && currentPage < list.length) {
-      try {
-        VideoStateManager.instance.enterExclusiveMode(list[currentPage].docID);
-      } catch (_) {}
-    }
-
-    if (!retained.contains(currentPage)) {
-      _ensureController(currentPage);
-    }
-    _preloadRange(currentPage);
-    _disposeOutsideRange(currentPage);
-    _primePlaybackForIndex(currentPage);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !pageController.hasClients) return;
-      try {
-        pageController.jumpToPage(currentPage);
-      } catch (_) {}
-    });
-
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   Future<void> _fetchAndShuffle() async {
     List<PostsModel> items = [];
 
     try {
-      items = await ShortRepository.ensure().fetchRandomReadyPosts(limit: 1000)
-        ..shuffle();
+      items = (await ensureShortRepository().fetchReadyPage(
+        pageSize: ReadBudgetRegistry.shortRandomReadyPoolLimit,
+      ))
+          .posts;
     } catch (_) {}
 
     final merged = <PostsModel>[];
@@ -568,149 +472,5 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     merged.addAll(items);
 
     shorts.assignAll(merged);
-  }
-
-  void _clearAllControllers() {
-    final keys = _videoControllers.keys.toList();
-    for (final idx in keys) {
-      final c = _videoControllers[idx]!;
-      if (_externallyOwned.contains(idx)) {
-        continue;
-      }
-      if (c.isDisposed) {
-        _detachCompletionListener(idx, c);
-        _videoControllers.remove(idx);
-        continue;
-      }
-      unawaited(_releaseControllerAt(idx));
-    }
-  }
-
-  void _preloadRange(int center) {
-    final len = shorts.length;
-    final start = (center - 1).clamp(0, len - 1);
-    final end = (center + 5).clamp(0, len - 1);
-    for (var i = start; i <= end; i++) {
-      _ensureController(i);
-    }
-  }
-
-  void _ensureController(int index) {
-    if (index < 0 || index >= shorts.length) return;
-    if (_videoControllers.containsKey(index)) return;
-
-    if (_initialIndexForSeek != null &&
-        index == _initialIndexForSeek &&
-        widget.injectedController != null &&
-        widget.injectedController!.value.isInitialized &&
-        !_videoControllers.containsKey(index)) {
-      if (index >= 0 && index < shorts.length) {
-        try {
-          videoStateManager.registerPlaybackHandle(
-            shorts[index].docID,
-            HLSAdapterPlaybackHandle(widget.injectedController!),
-          );
-        } catch (_) {}
-      }
-      _addVideoCompletionListener(widget.injectedController!, index);
-      return;
-    }
-
-    final url = shorts[index].playbackUrl;
-    if (url.isEmpty) return;
-
-    final ctrl = _videoPool.acquire(
-      cacheKey: shorts[index].docID,
-      url: url,
-      autoPlay: false,
-      loop: false,
-    );
-    _videoControllers[index] = ctrl;
-    try {
-      videoStateManager.registerPlaybackHandle(
-        shorts[index].docID,
-        HLSAdapterPlaybackHandle(ctrl),
-      );
-    } catch (_) {}
-
-    ctrl.setLooping(false);
-    _addVideoCompletionListener(ctrl, index);
-
-    if (index == currentPage) {
-      if (ctrl.isDisposed) return;
-      if (_initialIndexForSeek != null &&
-          index == _initialIndexForSeek &&
-          widget.initialPosition != null &&
-          widget.initialPosition! > Duration.zero) {
-        final pos = widget.initialPosition!;
-        ctrl.seekTo(pos);
-      }
-      _primePlaybackForIndex(index);
-    }
-    if (mounted) setState(() {});
-  }
-
-  void _addVideoCompletionListener(HLSVideoAdapter ctrl, int index) {
-    _detachCompletionListener(index, ctrl);
-    void listener() {
-      if (!mounted) return;
-      if (index != currentPage) return;
-
-      final value = ctrl.value;
-      if (!value.isInitialized) return;
-      if (_completionTriggered[index] == true) return;
-
-      final position = value.position;
-      final duration = value.duration;
-      final justActivated =
-          DateTime.now().difference(_pageActivatedAt).inMilliseconds < 1200;
-      if (justActivated) return;
-      if (duration.inMilliseconds > 0 &&
-          position >= duration - const Duration(milliseconds: 300) &&
-          position.inMilliseconds > 0) {
-        _completionTriggered[index] = true;
-        if (index >= 0 && index < shorts.length) {
-          VideoTelemetryService.instance.onCompleted(shorts[index].docID);
-        }
-
-        final nextIndex = currentPage + 1;
-        if (nextIndex < shorts.length) {
-          if (pageController.hasClients) {
-            pageController.nextPage(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-          }
-        } else {
-          Future.delayed(const Duration(milliseconds: 100), () {
-            final sameController = _videoControllers[index] == ctrl;
-            if (mounted && sameController && !ctrl.isDisposed) {
-              ctrl.seekTo(Duration.zero);
-              if (index >= 0 && index < shorts.length) {
-                _requestExclusivePlayback(shorts[index].docID);
-              }
-              _completionTriggered[index] = false;
-            }
-          });
-        }
-      }
-    }
-
-    _completionListeners[index] = listener;
-    ctrl.addListener(listener);
-  }
-
-  void _disposeOutsideRange(int center) {
-    final len = shorts.length;
-    final start = (center - 10).clamp(0, len - 1);
-    final end = (center + 10).clamp(0, len - 1);
-    final keys = _videoControllers.keys.toList();
-    for (var idx in keys) {
-      if (idx < start || idx > end) {
-        if (!_externallyOwned.contains(idx)) {
-          unawaited(_releaseControllerAt(idx));
-        }
-      }
-    }
   }
 }

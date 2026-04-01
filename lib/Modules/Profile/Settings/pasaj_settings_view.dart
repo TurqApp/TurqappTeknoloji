@@ -19,11 +19,11 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
   @override
   void initState() {
     super.initState();
-    final existingController = SettingsController.maybeFind();
+    final existingController = maybeFindSettingsController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = SettingsController.ensure();
+      controller = ensureSettingsController();
       _ownsController = true;
     }
   }
@@ -31,7 +31,7 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(SettingsController.maybeFind(), controller)) {
+        identical(maybeFindSettingsController(), controller)) {
       Get.delete<SettingsController>(force: true);
     }
     super.dispose();
@@ -46,34 +46,43 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
           children: [
             BackButtons(text: 'settings.pasaj'.tr),
             Expanded(
-              child: Obx(() {
-                final tabs = controller.pasajOrder.toList(growable: true);
-                if (!tabs.contains(PasajTabIds.practiceExams)) {
-                  final onlineIndex = tabs.indexOf(PasajTabIds.onlineExam);
-                  if (onlineIndex >= 0) {
-                    tabs.insert(onlineIndex, PasajTabIds.practiceExams);
-                  } else {
-                    tabs.add(PasajTabIds.practiceExams);
-                  }
-                }
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(15, 6, 15, 20),
-                  children: tabs
-                      .map(
-                        (title) => _PasajToggleTile(
-                          key: ValueKey('pasaj-tile-$title'),
-                          controller: controller,
-                          title: title,
-                        ),
-                      )
-                      .toList(growable: false),
-                );
-              }),
+              child: _buildPasajList(),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildPasajList() {
+    return Obx(() {
+      final tabs = _resolvedPasajTabs();
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(15, 6, 15, 20),
+        children: tabs
+            .map(
+              (title) => _PasajToggleTile(
+                key: ValueKey('pasaj-tile-$title'),
+                controller: controller,
+                title: title,
+              ),
+            )
+            .toList(growable: false),
+      );
+    });
+  }
+
+  List<String> _resolvedPasajTabs() {
+    final tabs = controller.pasajOrder.toList(growable: true);
+    if (!tabs.contains(PasajTabIds.practiceExams)) {
+      final onlineIndex = tabs.indexOf(PasajTabIds.onlineExam);
+      if (onlineIndex >= 0) {
+        tabs.insert(onlineIndex, PasajTabIds.practiceExams);
+      } else {
+        tabs.add(PasajTabIds.practiceExams);
+      }
+    }
+    return tabs;
   }
 }
 
@@ -86,12 +95,6 @@ class _PasajToggleTile extends StatelessWidget {
 
   final SettingsController controller;
   final String title;
-
-  String get _displayTitle {
-    final translationKey = pasajTitleTranslationKey(title);
-    if (translationKey.isNotEmpty) return translationKey.tr;
-    return title;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +128,7 @@ class _PasajToggleTile extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _displayTitle,
+                        _pasajDisplayTitle(title),
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 16,
@@ -174,5 +177,11 @@ class _PasajToggleTile extends StatelessWidget {
         ),
       );
     });
+  }
+
+  String _pasajDisplayTitle(String title) {
+    final translationKey = pasajTitleTranslationKey(title);
+    if (translationKey.isNotEmpty) return translationKey.tr;
+    return title;
   }
 }

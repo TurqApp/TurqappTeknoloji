@@ -27,8 +27,8 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
     _controllerTag =
         'lesson_based_tests_${widget.testTuru.hashCode}_${identityHashCode(this)}';
     _ownsController =
-        LessonBasedTestsController.maybeFind(tag: _controllerTag) == null;
-    controller = LessonBasedTestsController.ensure(
+        maybeFindLessonBasedTestsController(tag: _controllerTag) == null;
+    controller = ensureLessonBasedTestsController(
       widget.testTuru,
       tag: _controllerTag,
     );
@@ -38,7 +38,7 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          LessonBasedTestsController.maybeFind(tag: _controllerTag);
+          maybeFindLessonBasedTestsController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<LessonBasedTestsController>(tag: _controllerTag);
       }
@@ -48,12 +48,16 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
 
   @override
   Widget build(BuildContext context) {
+    return _buildPage();
+  }
+
+  Widget _buildPage() {
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
             BackButtons(
-              text: "tests.lesson_based_title".trParams({"type": testTuru}),
+              text: 'tests.lesson_based_title'.trParams({'type': testTuru}),
             ),
             Expanded(
               child: Container(
@@ -63,76 +67,72 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
                   color: Colors.white,
                   backgroundColor: Colors.black,
                   onRefresh: controller.getData,
-                  child: Obx(
-                    () => controller.isLoading.value
-                        ? const Center(child: CupertinoActivityIndicator())
-                        : controller.list
-                                .where((test) => test.testTuru == testTuru)
-                                .isNotEmpty
-                            ? Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: GridView.builder(
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    crossAxisSpacing: 5.0,
-                                    mainAxisSpacing: 5.0,
-                                    childAspectRatio: 1.85 / 3.6,
-                                  ),
-                                  itemCount: controller.list
-                                      .where(
-                                        (test) => test.testTuru == testTuru,
-                                      )
-                                      .length,
-                                  itemBuilder: (context, index) {
-                                    return TestsGrid(
-                                      model: controller.list
-                                          .where(
-                                            (test) => test.testTuru == testTuru,
-                                          )
-                                          .toList()[index],
-                                      update: controller.getData,
-                                    );
-                                  },
-                                ),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.lightbulb_outline,
-                                            color: Colors.black,
-                                          ),
-                                          SizedBox(height: 7),
-                                          Text(
-                                            "tests.none_in_category".tr,
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 15,
-                                              fontFamily: "Montserrat",
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                  ),
+                  child: Obx(() => _buildContent()),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    final filtered = controller.list
+        .where((test) => test.testTuru == testTuru)
+        .toList(growable: false);
+
+    if (controller.isLoading.value) {
+      return const Center(child: CupertinoActivityIndicator());
+    }
+
+    if (filtered.isEmpty) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.lightbulb_outline,
+                    color: Colors.black,
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    'tests.none_in_category'.tr,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 15,
+                      fontFamily: 'Montserrat',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 5.0,
+          mainAxisSpacing: 5.0,
+          childAspectRatio: 1.85 / 3.6,
+        ),
+        itemCount: filtered.length,
+        itemBuilder: (context, index) {
+          return TestsGrid(
+            model: filtered[index],
+            update: controller.getData,
+          );
+        },
       ),
     );
   }

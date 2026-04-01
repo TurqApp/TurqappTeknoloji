@@ -20,63 +20,68 @@ class PolicyDetailView extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
               child: BackButtons(text: policy.title),
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(15, 8, 15, 28),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          policy.title,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 22,
-                            fontFamily: 'MontserratBold',
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          policy.summary,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontSize: 14,
-                            height: 1.5,
-                            fontFamily: 'Montserrat',
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'policy_detail.last_updated'
-                              .trParams({'date': policy.updatedAt}),
-                          style: const TextStyle(
-                            color: Colors.black45,
-                            fontSize: 12,
-                            fontFamily: 'MontserratMedium',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  ...policy.sections.map(
-                    (section) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _SectionCard(section: section),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            Expanded(child: _buildPolicyDetailContent()),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPolicyDetailContent() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(15, 8, 15, 28),
+      children: [
+        _buildPolicyHeaderCard(),
+        const SizedBox(height: 14),
+        ...policy.sections.map(
+          (section) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _SectionCard(section: section),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPolicyHeaderCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            policy.title,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 22,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            policy.summary,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 14,
+              height: 1.5,
+              fontFamily: 'Montserrat',
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'policy_detail.last_updated'.trParams({'date': policy.updatedAt}),
+            style: const TextStyle(
+              color: Colors.black45,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+        ],
       ),
     );
   }

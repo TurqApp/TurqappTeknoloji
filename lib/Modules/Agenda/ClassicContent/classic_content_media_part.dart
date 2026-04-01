@@ -21,27 +21,20 @@ extension _ClassicContentMediaPart on _ClassicContentState {
   }
 
   Widget _buildVideoThumbnail({double? aspectRatio}) {
-    final thumb = widget.model.thumbnail.trim().isNotEmpty
-        ? widget.model.thumbnail.trim()
-        : (widget.model.img.isNotEmpty
-            ? widget.model.img.first.trim()
-            : '');
+    final thumb = widget.model.preferredVideoPosterUrl.trim();
     final fallback = _buildVideoPosterFallback(aspectRatio: aspectRatio);
     final cacheHeight = aspectRatio != null
         ? _feedCacheHeightForAspectRatio(aspectRatio)
         : (_feedCacheWidth * 1.4).round();
     final image = thumb.isNotEmpty
-        ? CachedNetworkImage(
+        ? CacheFirstNetworkImage(
             imageUrl: thumb,
+            candidateUrls: widget.model.preferredVideoPosterUrls,
             cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
+            fallback: fallback,
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
-            fadeInDuration: Duration.zero,
-            fadeOutDuration: Duration.zero,
-            placeholderFadeInDuration: Duration.zero,
-            placeholder: (_, __) => fallback,
-            errorWidget: (_, __, ___) => fallback,
           )
         : fallback;
     if (aspectRatio == null) return image;
@@ -53,7 +46,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       videoController?.pause();
     } catch (_) {}
     try {
-      VideoStateManager.instance.pauseAllVideos();
+      playbackRuntimeService.pauseAll();
     } catch (_) {}
   }
 
@@ -126,7 +119,8 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       } catch (_) {}
     }
 
-    final savedState = videoStateManager.getVideoState(widget.model.docID);
+    final savedState =
+        playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     return savedState?.position ?? Duration.zero;
   }
 
@@ -237,11 +231,14 @@ extension _ClassicContentMediaPart on _ClassicContentState {
     VoidCallback? onDoubleTap,
   }) {
     return Positioned.fill(
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: onTap,
-        onDoubleTap: onDoubleTap,
-        child: const SizedBox.expand(),
+      child: IgnorePointer(
+        ignoring: isReplayOverlayBlockingTap,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: onTap,
+          onDoubleTap: onDoubleTap,
+          child: const SizedBox.expand(),
+        ),
       ),
     );
   }
@@ -280,10 +277,8 @@ extension _ClassicContentMediaPart on _ClassicContentState {
                     controller: controller,
                     model: widget.model,
                     explicitReshareUserId: widget.reshareUserID,
-                    style: const TextStyle(
+                    style: AppTypography.postAttribution.copyWith(
                       color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: 'MontserratMedium',
                     ),
                   ),
                 ],
@@ -318,15 +313,15 @@ extension _ClassicContentMediaPart on _ClassicContentState {
         onTap: () => _ClassicContentState._ctaNavigationService
             .openFromPostMeta(widget.model.reshareMap),
         child: Container(
-          width: 132,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          width: 106,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: palette,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
             boxShadow: [
               BoxShadow(
@@ -341,7 +336,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 13,
               fontFamily: 'MontserratBold',
             ),
           ),

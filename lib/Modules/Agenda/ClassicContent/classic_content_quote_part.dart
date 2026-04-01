@@ -22,7 +22,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
       return;
     }
 
-    final profileCache = UserProfileCacheService.ensure();
+    final profileCache = ensureUserProfileCacheService();
     _quotedSourceProfileFuture = profileCache.getProfile(
       sourceUserId,
       preferCache: true,
@@ -33,22 +33,21 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     required String nickname,
     required String text,
   }) {
-    const nameStyle = TextStyle(
-      color: Color(0xFF20252B),
-      fontSize: 14,
+    final captionFontSize = AppTypography.postCaption.fontSize!;
+    final nameStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF20252B),
+      fontSize: captionFontSize,
       fontFamily: 'MontserratBold',
       height: 1.35,
     );
-    const bodyStyle = TextStyle(
-      color: Color(0xFF20252B),
-      fontSize: 13,
-      fontFamily: 'Montserrat',
+    final bodyStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF20252B),
+      fontSize: captionFontSize,
       height: 1.35,
     );
-    const moreStyle = TextStyle(
-      color: Color(0xFF6E7680),
-      fontSize: 14,
-      fontFamily: 'Montserrat',
+    final moreStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF6E7680),
+      fontSize: captionFontSize,
       height: 1.35,
     );
 
@@ -58,7 +57,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
           children: [
             TextSpan(text: nickname, style: nameStyle),
             const TextSpan(text: '  '),
-            ...ClickableTextController.buildSpans(
+            ...buildClickableTextControllerSpans(
               text: text,
               plainStyle: bodyStyle,
               urlStyle: bodyStyle.copyWith(color: Colors.blue),
@@ -105,7 +104,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: Container(
+                  child: Container(
                   color: Colors.white,
                   padding: const EdgeInsets.only(left: 8),
                   child: Text('common.show_more'.tr, style: moreStyle),
@@ -129,21 +128,20 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     String text, {
     required String sourceUserId,
   }) {
-    const bodyStyle = TextStyle(
-      color: Color(0xFF8A9199),
-      fontSize: 13,
-      fontFamily: 'Montserrat',
+    final captionFontSize = AppTypography.postCaption.fontSize!;
+    final bodyStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF8A9199),
+      fontSize: captionFontSize,
       height: 1.35,
     );
-    const moreStyle = TextStyle(
-      color: Color(0xFF8A9199),
-      fontSize: 13,
-      fontFamily: 'Montserrat',
+    final moreStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF8A9199),
+      fontSize: captionFontSize,
       height: 1.35,
     );
-    const nickStyle = TextStyle(
-      color: Color(0xFF4B5561),
-      fontSize: 13,
+    final nickStyle = AppTypography.postCaption.copyWith(
+      color: const Color(0xFF4B5561),
+      fontSize: captionFontSize,
       fontFamily: 'MontserratBold',
       height: 1.35,
     );
@@ -233,15 +231,40 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     return Padding(
       padding: const EdgeInsets.only(top: 8, left: 15, right: 15),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          commentButton(context),
-          likeButton(),
-          reshareButton(),
-          statButton(),
-          saveButton(),
-          sendButton(),
+          _buildClassicQuoteActionSlot(
+            commentButton(context),
+            offsetX: -5,
+          ),
+          _buildClassicQuoteActionSlot(
+            likeButton(),
+          ),
+          _buildClassicQuoteActionSlot(
+            reshareButton(),
+          ),
+          _buildClassicQuoteActionSlot(
+            statButton(),
+          ),
+          _buildClassicQuoteActionSlot(
+            saveButton(),
+          ),
+          _buildClassicQuoteActionSlot(
+            sendButton(),
+            offsetX: 5,
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildClassicQuoteActionSlot(
+    Widget child, {
+    double offsetX = 0,
+  }) {
+    return Expanded(
+      child: Transform.translate(
+        offset: Offset(offsetX, 0),
+        child: Center(child: child),
       ),
     );
   }
@@ -333,10 +356,8 @@ extension _ClassicContentQuotePart on _ClassicContentState {
             ),
             child: Text(
               displayTime,
-              style: const TextStyle(
-                color: Color(0xFF8A9199),
-                fontSize: 12,
-                fontFamily: 'Montserrat',
+              style: AppTypography.postMeta.copyWith(
+                color: const Color(0xFF8A9199),
               ),
             ),
           ),

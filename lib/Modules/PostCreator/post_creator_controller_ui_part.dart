@@ -2,13 +2,17 @@ part of 'post_creator_controller.dart';
 
 extension _PostCreatorControllerUiX on PostCreatorController {
   void _uploadAllPostsInBackground() async {
-    final progressController = UploadProgressController.ensure();
+    if (!_validateCaptionLengths()) {
+      return;
+    }
+
+    final progressController = ensureUploadProgressController();
     final allImages = <File>[];
     final allVideos = <File>[];
 
     for (final postModel in postList) {
       final tag = postModel.index.toString();
-      final c = CreatorContentController.ensure(tag: tag);
+      final c = ensureCreatorContentController(tag: tag);
       allImages.addAll(c.selectedImages);
       if (c.selectedVideo.value != null) {
         allVideos.add(c.selectedVideo.value!);
@@ -21,6 +25,7 @@ extension _PostCreatorControllerUiX on PostCreatorController {
                 c.reusedImageUrls.isNotEmpty)
             ? 'media'
             : c.textEdit.text.trim(),
+        maxTextLength: PostCaptionLimits.forCurrentUser(),
       );
 
       if (!validation.isValid) {
@@ -54,7 +59,7 @@ extension _PostCreatorControllerUiX on PostCreatorController {
       final uploadedPosts = await uploadAllPosts(progressController);
 
       if (uploadedPosts.isNotEmpty) {
-        final agendaController = AgendaController.maybeFind();
+        final agendaController = maybeFindAgendaController();
         await Future.delayed(const Duration(milliseconds: 150));
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         final nowPosts =
@@ -67,6 +72,20 @@ extension _PostCreatorControllerUiX on PostCreatorController {
         if (agendaController != null &&
             agendaController.scrollController.hasClients) {
           agendaController.scrollController.jumpTo(0);
+        }
+        await persistUploadedPostsToHomeFeed(nowPosts);
+        unawaited(
+          _hydrateUploadedPostShortLinks(
+            nowPosts,
+            agendaController: agendaController,
+          ),
+        );
+        final uploaderUid = userService.effectiveUserId.trim();
+        if (uploaderUid.isNotEmpty) {
+          _profileRepository.invalidateLatestProfilePost(uploaderUid);
+          await _profileSnapshotRepository.clearUserSnapshots(
+            userId: uploaderUid,
+          );
         }
         ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
         progressController.complete('post_creator.upload_success'.tr);

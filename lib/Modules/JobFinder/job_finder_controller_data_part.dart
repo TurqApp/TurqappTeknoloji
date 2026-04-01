@@ -1,6 +1,197 @@
 part of 'job_finder_controller.dart';
 
 extension JobFinderControllerDataPart on JobFinderController {
+  Future<void> _performPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) {
+    final active = _startupPrepareFuture;
+    if (active != null) {
+      return active;
+    }
+
+    final future = _performRunPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+    _startupPrepareFuture = future;
+    future.whenComplete(() {
+      if (identical(_startupPrepareFuture, future)) {
+        _startupPrepareFuture = null;
+      }
+    });
+    return future;
+  }
+
+  Future<void> _performRunPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) async {
+    if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+      return;
+    }
+    try {
+      final allowRefresh = allowBackgroundRefresh ?? false;
+      await _performHydrateJobFinderStartupShard();
+      await _restoreListingSelection();
+      unawaited(loadSehirler());
+      await warmJobContentSavedIdsForCurrentUser();
+
+      final currentUid = CurrentUserService.instance.effectiveUserId;
+      _homeSnapshotSub ??= _jobHomeSnapshotRepository
+          .openHome(
+            userId: currentUid,
+            limit: _jobFinderFullBootstrapLimit,
+          )
+          .listen(_applyHomeSnapshotResource);
+
+      if (list.isEmpty) {
+        await getStartData(
+          silent: true,
+          forceRefresh: false,
+          limit: _jobFinderFullBootstrapLimit,
+          deferLocationHydration: true,
+        );
+        return;
+      }
+
+      if (allowRefresh) {
+        unawaited(
+          getStartData(
+            silent: true,
+            forceRefresh: false,
+            limit: _jobFinderFullBootstrapLimit,
+            deferLocationHydration: true,
+          ),
+        );
+      }
+    } finally {
+      unawaited(_persistJobFinderStartupShard());
+      unawaited(_recordJobFinderStartupSurface());
+    }
+  }
+
+  Future<void> _performHydrateJobFinderStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    _startupShardHydrated = false;
+    _startupShardAgeMs = null;
+    try {
+      final shard = await ensureStartupSnapshotShardStore().load(
+        surface: 'jobs',
+        userId: userId,
+        maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+      );
+      if (shard == null) return;
+      var didHydrate = false;
+      final rawSelection = (shard.payload['listingSelection'] as num?)?.toInt();
+      if (rawSelection != null) {
+        listingSelection.value = rawSelection == 1 ? 1 : 0;
+        listingSelectionReady.value = true;
+        didHydrate = true;
+      }
+      final cityHint = (shard.payload['cityHint'] ?? '').toString().trim();
+      if (cityHint.isNotEmpty) {
+        sehir.value = cityHint;
+        didHydrate = true;
+      }
+      final userCityHint =
+          (shard.payload['userCityHint'] ?? '').toString().trim();
+      if (userCityHint.isNotEmpty) {
+        kullaniciSehiri.value = userCityHint;
+        didHydrate = true;
+      }
+      final decoded = _decodeJobFinderStartupJobs(shard.payload['jobs']);
+      if (decoded.isNotEmpty) {
+        if (list.isEmpty) {
+          list.assignAll(decoded);
+          didHydrate = true;
+        }
+        if (allJobs.isEmpty) {
+          allJobs.assignAll(decoded);
+          didHydrate = true;
+        }
+      }
+      if (!didHydrate) return;
+      _startupShardHydrated = true;
+      _startupShardAgeMs =
+          DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
+    } catch (_) {}
+  }
+
+  Future<void> _persistJobFinderStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final startupJobs = list
+        .take(ReadBudgetRegistry.jobStartupShardLimit)
+        .toList(growable: false);
+    final store = ensureStartupSnapshotShardStore();
+    if (startupJobs.isEmpty) {
+      await store.clear(
+        surface: 'jobs',
+        userId: userId,
+      );
+      return;
+    }
+    await store.save(
+      surface: 'jobs',
+      userId: userId,
+      itemCount: list.length,
+      limit: ReadBudgetRegistry.jobStartupShardLimit,
+      source: 'job_snapshot',
+      payload: <String, dynamic>{
+        'listingSelection': listingSelection.value == 1 ? 1 : 0,
+        'cityHint': sehir.value.trim(),
+        'userCityHint': kullaniciSehiri.value.trim(),
+        'jobs': startupJobs
+            .map(
+              (job) => <String, dynamic>{
+                'docID': job.docID,
+                'data': job.toMap(),
+              },
+            )
+            .toList(growable: false),
+      },
+    );
+  }
+
+  Future<void> _recordJobFinderStartupSurface() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final itemCount = list.length;
+    final hasLocalSnapshot = itemCount > 0;
+    try {
+      await ensureStartupSnapshotManifestStore().recordSurfaceState(
+        surface: 'jobs',
+        userId: userId,
+        itemCount: itemCount,
+        hasLocalSnapshot: hasLocalSnapshot,
+        source: hasLocalSnapshot ? 'job_snapshot' : 'none',
+        startupShardHydrated: _startupShardHydrated,
+        startupShardAgeMs: _startupShardAgeMs,
+      );
+    } catch (_) {}
+  }
+
+  List<JobModel> _decodeJobFinderStartupJobs(dynamic raw) {
+    if (raw is! List) return const <JobModel>[];
+    return raw
+        .whereType<Map>()
+        .map((entry) {
+          final map = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
+          final docId = (map['docID'] ?? '').toString().trim();
+          final data = map['data'];
+          if (docId.isEmpty || data is! Map) return null;
+          try {
+            return JobModel.fromMap(
+              Map<String, dynamic>.from(data.cast<dynamic, dynamic>()),
+              docId,
+            );
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<JobModel>()
+        .toList(growable: false);
+  }
+
   Future<void> searchFromTypesense(String query) async {
     final requestId = ++_searchRequestId;
     isLoading.value = true;
@@ -8,7 +199,7 @@ extension JobFinderControllerDataPart on JobFinderController {
       final resource = await _jobHomeSnapshotRepository.search(
         query: query,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.jobSearchInitialLimit,
         forceSync: true,
       );
       if (requestId != _searchRequestId || search.text.trim() != query) return;
@@ -32,12 +223,12 @@ extension JobFinderControllerDataPart on JobFinderController {
 
   Future<void> bootstrapStartData() async {
     final currentUid = CurrentUserService.instance.effectiveUserId;
-    await JobContentController.warmSavedIdsForCurrentUser();
+    await warmJobContentSavedIdsForCurrentUser();
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _jobHomeSnapshotRepository
         .openHome(
           userId: currentUid,
-          limit: JobFinderController._fullBootstrapLimit,
+          limit: _jobFinderFullBootstrapLimit,
         )
         .listen(_applyHomeSnapshotResource);
   }
@@ -45,7 +236,7 @@ extension JobFinderControllerDataPart on JobFinderController {
   Future<void> getStartData({
     bool silent = false,
     bool forceRefresh = false,
-    int limit = JobFinderController._fullBootstrapLimit,
+    int limit = _jobFinderFullBootstrapLimit,
     bool deferLocationHydration = false,
   }) async {
     final shouldShowLoader = !silent && list.isEmpty;
@@ -61,7 +252,14 @@ extension JobFinderControllerDataPart on JobFinderController {
       final fetchedJobs = _applyCurrentSorting(
         resource.data ?? const <JobModel>[],
       );
-      if (!_sameJobList(fetchedJobs)) {
+      final shouldPreserveExistingJobs =
+          fetchedJobs.isEmpty && (list.isNotEmpty || allJobs.isNotEmpty);
+      final hydrationSourceJobs = shouldPreserveExistingJobs
+          ? _applyCurrentSorting(List<JobModel>.from(
+              allJobs.isNotEmpty ? allJobs : list,
+            ))
+          : fetchedJobs;
+      if (!shouldPreserveExistingJobs && !_sameJobList(fetchedJobs)) {
         list.assignAll(fetchedJobs);
         allJobs.assignAll(fetchedJobs);
       }
@@ -71,10 +269,10 @@ extension JobFinderControllerDataPart on JobFinderController {
       }
 
       if (deferLocationHydration) {
-        _scheduleLocationHydration(fetchedJobs);
+        _scheduleLocationHydration(hydrationSourceJobs);
       } else {
         unawaited(_hydrateLocationAndResort(
-          fetchedJobs,
+          hydrationSourceJobs,
           allowPermissionPrompt: false,
         ));
       }

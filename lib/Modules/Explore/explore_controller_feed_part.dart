@@ -66,7 +66,7 @@ extension ExploreControllerFeedPart on ExploreController {
   }
 
   void _performRestoreFloodSeriesFocus() {
-    final target = resolveFloodSeriesFocusIndex();
+    final target = _performResolveFloodSeriesFocusIndex();
     if (target < 0 || target >= exploreFloods.length) return;
     floodsVisibleIndex.value = target;
     lastFloodVisibleIndex = target;
@@ -126,11 +126,15 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastExploreDoc == null) _exploreEmptyScans = 0;
       int pagesFetched = 0;
-      const int pageLimit = 20;
+      const int pageLimit = ReadBudgetRegistry.explorePostsPageLimit;
       final isBootstrapTopUp =
           lastExploreDoc == null && explorePosts.isNotEmpty;
-      final int maxPages = isBootstrapTopUp ? 4 : 10;
-      final int targetBatch = isBootstrapTopUp ? 12 : 24;
+      final int maxPages = isBootstrapTopUp
+          ? ReadBudgetRegistry.explorePostsBootstrapMaxPages
+          : ReadBudgetRegistry.explorePostsMaxPages;
+      final int targetBatch = isBootstrapTopUp
+          ? ReadBudgetRegistry.explorePostsBootstrapTargetBatch
+          : ReadBudgetRegistry.explorePostsTargetBatch;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && exploreHasMore.value) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -155,7 +159,6 @@ extension ExploreControllerFeedPart on ExploreController {
         newPosts = await _filterByPrivacy(newPosts);
 
         if (newPosts.isNotEmpty) {
-          newPosts.shuffle();
           accumulated.addAll(newPosts);
           if (accumulated.length >= targetBatch) {
             break;
@@ -196,21 +199,259 @@ extension ExploreControllerFeedPart on ExploreController {
     exploreIsLoading.value = false;
   }
 
-  Future<void> _performQuickFillExploreFromPoolAndBootstrap() async {
-    await _tryQuickFillExploreFromPool();
-    _scheduleExplorePrefetchFromPosts(explorePosts);
-    if (explorePosts.isEmpty) {
-      if (ContentPolicy.shouldBootstrapNetwork(
-        ContentScreenKind.explore,
-        hasLocalContent: false,
-      )) {
-        await fetchExplorePosts();
-      }
-    } else if (ContentPolicy.allowBackgroundRefresh(
-      ContentScreenKind.explore,
-    )) {
-      unawaited(fetchExplorePosts());
+  Future<void> _performPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) {
+    final active = _startupPrepareFuture;
+    if (active != null) {
+      return active;
     }
+
+    final future = _performRunPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+    _startupPrepareFuture = future;
+    future.whenComplete(() {
+      if (identical(_startupPrepareFuture, future)) {
+        _startupPrepareFuture = null;
+      }
+    });
+    return future;
+  }
+
+  Future<void> _performRunPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) async {
+    try {
+      final allowRefresh = allowBackgroundRefresh ??
+          ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore);
+
+      await _performHydrateExploreStartupShard();
+      await _performWarmTrendingTagsForStartup();
+      await _tryQuickFillExploreFromPool();
+      _scheduleExplorePrefetchFromPosts(explorePosts);
+
+      final hasLocalContent =
+          trendingTags.isNotEmpty || explorePosts.isNotEmpty;
+
+      if (trendingTags.isEmpty &&
+          ContentPolicy.shouldBootstrapNetwork(
+            ContentScreenKind.explore,
+            hasLocalContent: hasLocalContent,
+          )) {
+        await fetchTrendingTags();
+      }
+
+      if (explorePosts.isEmpty) {
+        if (ContentPolicy.shouldBootstrapNetwork(
+          ContentScreenKind.explore,
+          hasLocalContent: trendingTags.isNotEmpty || explorePosts.isNotEmpty,
+        )) {
+          if (trendingTags.isNotEmpty && !allowRefresh) {
+            return;
+          }
+          await fetchExplorePosts();
+        }
+        return;
+      }
+
+      if (allowRefresh) {
+        unawaited(fetchExplorePosts());
+      }
+    } finally {
+      unawaited(_persistExploreStartupShard());
+      unawaited(_recordExploreStartupSurface());
+    }
+  }
+
+  Future<void> _performHydrateExploreStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    _startupShardHydrated = false;
+    _startupShardAgeMs = null;
+    try {
+      final shard = await ensureStartupSnapshotShardStore().load(
+        surface: 'explore',
+        userId: userId,
+        maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+      );
+      if (shard == null) return;
+      var didHydrate = false;
+      if (trendingTags.isEmpty) {
+        final decodedTags =
+            _decodeExploreStartupTags(shard.payload['trendingTags']);
+        if (decodedTags.isNotEmpty) {
+          trendingTags.assignAll(decodedTags);
+          didHydrate = true;
+        }
+      }
+      if (explorePosts.isEmpty) {
+        final decodedPosts =
+            _decodeExploreStartupPosts(shard.payload['explorePosts']);
+        if (decodedPosts.isNotEmpty) {
+          explorePosts.assignAll(decodedPosts);
+          _scheduleExplorePrefetchFromPosts(explorePosts);
+          didHydrate = true;
+        }
+      }
+      if (!didHydrate) return;
+      _startupShardHydrated = true;
+      _startupShardAgeMs =
+          DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
+    } catch (_) {}
+  }
+
+  Future<void> _performWarmTrendingTagsForStartup() async {
+    if (trendingTags.isNotEmpty) return;
+    try {
+      final cached = await _topTagsRepository.readTrendingTagsCache(
+        resultLimit: ReadBudgetRegistry.exploreTrendingTagsLimit,
+      );
+      if (cached == null || cached.isEmpty) return;
+      trendingTags.assignAll(cached);
+    } catch (_) {}
+  }
+
+  Future<void> _persistExploreStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final payload = <String, dynamic>{
+      'trendingTags': _encodeExploreStartupTags(
+        trendingTags
+            .take(ReadBudgetRegistry.exploreStartupTagsShardLimit)
+            .toList(),
+      ),
+      'explorePosts': _encodeExploreStartupPosts(
+        explorePosts
+            .take(ReadBudgetRegistry.exploreStartupPostsShardLimit)
+            .toList(),
+      ),
+    };
+    final itemCount = trendingTags.length + explorePosts.length;
+    final hasData = (payload['trendingTags'] as List).isNotEmpty ||
+        (payload['explorePosts'] as Map<String, dynamic>)['items'] is List &&
+            ((payload['explorePosts'] as Map<String, dynamic>)['items'] as List)
+                .isNotEmpty;
+    try {
+      final store = ensureStartupSnapshotShardStore();
+      if (!hasData) {
+        await store.clear(
+          surface: 'explore',
+          userId: userId,
+        );
+        return;
+      }
+      await store.save(
+        surface: 'explore',
+        userId: userId,
+        itemCount: itemCount,
+        limit: ReadBudgetRegistry.exploreStartupShardLimit,
+        source: trendingTags.isNotEmpty ? 'top_tags_cache' : 'index_pool',
+        payload: payload,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _recordExploreStartupSurface() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final hasLocalSnapshot = trendingTags.isNotEmpty || explorePosts.isNotEmpty;
+    final source = trendingTags.isNotEmpty
+        ? 'top_tags_cache'
+        : explorePosts.isNotEmpty
+            ? 'index_pool'
+            : 'none';
+    final itemCount =
+        trendingTags.isNotEmpty ? trendingTags.length : explorePosts.length;
+    try {
+      await ensureStartupSnapshotManifestStore().recordSurfaceState(
+        surface: 'explore',
+        userId: userId,
+        itemCount: itemCount,
+        hasLocalSnapshot: hasLocalSnapshot,
+        source: source,
+        startupShardHydrated: _startupShardHydrated,
+        startupShardAgeMs: _startupShardAgeMs,
+      );
+    } catch (_) {}
+  }
+
+  List<Map<String, dynamic>> _encodeExploreStartupTags(
+      List<HashtagModel> tags) {
+    return tags
+        .map(
+          (tag) => <String, dynamic>{
+            'hashtag': tag.hashtag,
+            'count': tag.count,
+            'hasHashtag': tag.hasHashtag,
+            'lastSeenTs': tag.lastSeenTs,
+          },
+        )
+        .toList(growable: false);
+  }
+
+  List<HashtagModel> _decodeExploreStartupTags(dynamic raw) {
+    if (raw is! List) return const <HashtagModel>[];
+    return raw
+        .whereType<Map>()
+        .map((entry) {
+          final map = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
+          final hashtag = (map['hashtag'] ?? '').toString().trim();
+          if (hashtag.isEmpty) return null;
+          return HashtagModel(
+            hashtag,
+            (map['count'] as num?) ?? 0,
+            hasHashtag: map['hasHashtag'] == true,
+            lastSeenTs: (map['lastSeenTs'] as num?)?.toInt(),
+          );
+        })
+        .whereType<HashtagModel>()
+        .toList(growable: false);
+  }
+
+  Map<String, dynamic> _encodeExploreStartupPosts(List<PostsModel> posts) {
+    final payload = <String, dynamic>{
+      'items': posts
+          .map(
+            (post) => <String, dynamic>{
+              'docID': post.docID,
+              'data': post.toMap(),
+            },
+          )
+          .toList(growable: false),
+    };
+    final posterHints = TurqImageCacheManager.buildPosterHintsForPosts(posts);
+    if (posterHints.isNotEmpty) {
+      payload[TurqImageCacheManager.startupPosterHintsKey] = posterHints;
+    }
+    return payload;
+  }
+
+  List<PostsModel> _decodeExploreStartupPosts(dynamic raw) {
+    if (raw is! Map) return const <PostsModel>[];
+    TurqImageCacheManager.hydratePosterHintsFromPayload(
+      Map<String, dynamic>.from(raw.cast<dynamic, dynamic>()),
+    );
+    final items = raw['items'];
+    if (items is! List) return const <PostsModel>[];
+    return items
+        .whereType<Map>()
+        .map((entry) {
+          final map = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
+          final docId = (map['docID'] ?? '').toString().trim();
+          final data = map['data'];
+          if (docId.isEmpty || data is! Map) return null;
+          try {
+            return PostsModel.fromMap(
+              Map<String, dynamic>.from(data.cast<dynamic, dynamic>()),
+              docId,
+            );
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<PostsModel>()
+        .toList(growable: false);
   }
 
   Future<void> _performTryQuickFillExploreFromPool() async {
@@ -222,8 +463,8 @@ extension ExploreControllerFeedPart on ExploreController {
       allowStale: true,
     );
     if (fromPool.isEmpty) return;
-    final profiles = await _userCache.getProfiles(
-      fromPool.map((e) => e.userID).toSet().toList(),
+    final profiles = await _loadDiscoveryProfiles(
+      fromPool.map((e) => e.userID).toSet(),
       preferCache: true,
       cacheOnly: true,
     );
@@ -233,16 +474,19 @@ extension ExploreControllerFeedPart on ExploreController {
         .where((p) {
       final profile = profiles[p.userID];
       if (profile == null) return false;
-      final isPrivate = (profile['isPrivate'] ?? false) == true;
       final isDeactivated = isDeactivatedAccount(
         accountStatus: profile['accountStatus'],
         isDeleted: profile['isDeleted'],
       );
       if (isDeactivated) return false;
-      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final rozet =
+          (profile['rozet'] ?? profile['badge'] ?? p.rozet).toString().trim();
+      final isApproved = profile['isApproved'] == true;
+      return _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: p.userID,
         followingIds: followingIDs,
-        isPrivate: isPrivate,
+        rozet: rozet,
+        isApproved: isApproved,
         isDeleted: false,
       );
     }).toList();
@@ -278,8 +522,7 @@ extension ExploreControllerFeedPart on ExploreController {
   bool _performIsEligibleExplorePost(PostsModel post) {
     return post.hasPlayableVideo &&
         post.originalPostID.trim().isEmpty &&
-        post.aspectRatio.toDouble() <
-            ExploreController._verticalExploreAspectMax;
+        post.aspectRatio.toDouble() < _verticalExploreAspectMax;
   }
 
   String _performExploreCanonicalId(PostsModel post) {
@@ -356,16 +599,20 @@ extension ExploreControllerFeedPart on ExploreController {
     return valid;
   }
 
-  Future<void> _performFetchTrendingTags() async {
+  Future<void> _performFetchTrendingTags({
+    bool forceRefresh = false,
+  }) async {
     try {
       final tags = await _topTagsRepository.fetchTrendingTags(
-        resultLimit: 30,
-        preferCache: true,
+        resultLimit: ReadBudgetRegistry.exploreTrendingTagsLimit,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
+      if (tags.isEmpty && trendingTags.isNotEmpty) {
+        return;
+      }
       trendingTags.assignAll(tags);
-    } catch (_) {
-      trendingTags.clear();
-    }
+    } catch (_) {}
   }
 
   Future<void> _performFetchVideo() async {
@@ -374,11 +621,11 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastVideoDoc == null) _videoEmptyScans = 0;
       int pagesFetched = 0;
-      const int maxPages = 10;
-      const int targetBatch = 24;
+      const int maxPages = ReadBudgetRegistry.exploreVideoMaxPages;
+      const int targetBatch = ReadBudgetRegistry.exploreVideoTargetBatch;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && videoHasMore.value) {
-        const int pageLimit = 30;
+        const int pageLimit = ReadBudgetRegistry.exploreVideoPageLimit;
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         ExploreQueryPage page;
         try {
@@ -425,7 +672,6 @@ extension ExploreControllerFeedPart on ExploreController {
             .toList();
         newVideos = await _filterByPrivacy(newVideos);
         if (newVideos.isNotEmpty) {
-          newVideos.shuffle();
           accumulated.addAll(newVideos);
           if (accumulated.length >= targetBatch) {
             break;
@@ -460,8 +706,8 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastPhotoDoc == null) _photoEmptyScans = 0;
       int pagesFetched = 0;
-      const int maxPages = 5;
-      const int pageLimit = 20;
+      const int maxPages = ReadBudgetRegistry.explorePhotoMaxPages;
+      const int pageLimit = ReadBudgetRegistry.explorePhotoPageLimit;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && photoHasMore.value) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -489,9 +735,9 @@ extension ExploreControllerFeedPart on ExploreController {
             .toList();
         newPhotos = await _filterByPrivacy(newPhotos);
         if (newPhotos.isNotEmpty) {
-          newPhotos.shuffle();
           accumulated.addAll(newPhotos);
-          if (accumulated.length >= 30) {
+          if (accumulated.length >=
+              ReadBudgetRegistry.explorePhotoTargetBatch) {
             break;
           }
         }
@@ -523,8 +769,8 @@ extension ExploreControllerFeedPart on ExploreController {
     try {
       if (lastFloodsDoc == null) _floodsEmptyScans = 0;
       int pagesFetched = 0;
-      const int maxPages = 10;
-      const int pageLimit = 60;
+      const int maxPages = ReadBudgetRegistry.explorePostsMaxPages;
+      const int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit;
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       List<PostsModel> accumulated = [];
       bool noMoreServerPages = false;
@@ -570,7 +816,6 @@ extension ExploreControllerFeedPart on ExploreController {
             .toList();
         batch = await _filterByPrivacy(batch);
         if (batch.isNotEmpty) {
-          batch.shuffle();
           accumulated.addAll(batch);
           if (accumulated.length >= 30) {
             break;
@@ -599,27 +844,66 @@ extension ExploreControllerFeedPart on ExploreController {
     List<PostsModel> items,
   ) async {
     if (items.isEmpty) return items;
-    final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
-    final userProfiles = await _userCache.getProfiles(
-      uniqueUserIDs,
+    final userProfiles = await _loadDiscoveryProfiles(
+      items.map((e) => e.userID).toSet(),
       preferCache: true,
       cacheOnly: !ContentPolicy.isConnected,
     );
-    final userPrivacy = <String, bool>{};
-    for (final uid in uniqueUserIDs) {
-      final data = userProfiles[uid];
-      userPrivacy[uid] = (data?['isPrivate'] ?? false) == true;
-    }
-
     return items.where((post) {
-      final isPrivate = userPrivacy[post.userID] ?? false;
-      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final data = userProfiles[post.userID];
+      final rozet =
+          (data?['rozet'] ?? data?['badge'] ?? post.rozet).toString().trim();
+      final isApproved = data?['isApproved'] == true;
+      return _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: post.userID,
         followingIds: followingIDs,
-        isPrivate: isPrivate,
+        rozet: rozet,
+        isApproved: isApproved,
         isDeleted: false,
       );
     }).toList();
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _loadDiscoveryProfiles(
+    Set<String> userIds, {
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    if (userIds.isEmpty) return const <String, Map<String, dynamic>>{};
+    final cached = await _userCache.getProfiles(
+      userIds.toList(growable: false),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    if (cacheOnly) return cached;
+
+    final viewerUid = CurrentUserService.instance.effectiveUserId.trim();
+    final refreshIds = userIds.where((userId) {
+      final uid = userId.trim();
+      if (uid.isEmpty) return false;
+      if (viewerUid.isNotEmpty && uid == viewerUid) return false;
+      if (followingIDs.contains(uid)) return false;
+      final profile = cached[uid];
+      final rozet =
+          (profile?['rozet'] ?? profile?['badge'] ?? '').toString().trim();
+      final isApproved = profile?['isApproved'] == true;
+      final isDeleted = profile?['isDeleted'] == true;
+      if (isDeleted) return false;
+      if (profile == null) return true;
+      return !isDiscoveryPublicAuthor(
+        rozet: rozet,
+        isApproved: isApproved,
+      );
+    }).toList(growable: false);
+    if (refreshIds.isEmpty) return cached;
+
+    final fresh = await _userCache.getProfiles(
+      refreshIds,
+      preferCache: false,
+      cacheOnly: false,
+    );
+    if (fresh.isEmpty) return cached;
+    return <String, Map<String, dynamic>>{...cached, ...fresh};
   }
 
   List<PostsModel> _performPrioritizeCachedVideos(List<PostsModel> items) {
@@ -660,18 +944,14 @@ extension ExploreControllerFeedPart on ExploreController {
 
   void _performScheduleExplorePrefetchFromPosts(List<PostsModel> source) {
     if (source.isEmpty) return;
-    final prefetch = PrefetchScheduler.maybeFind();
+    final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
 
-    final docIds = source
-        .where((post) => post.hasPlayableVideo)
-        .map((post) => post.docID)
-        .where((id) => id.isNotEmpty)
-        .take(20)
-        .toList();
-    if (docIds.isEmpty) return;
-
-    unawaited(prefetch.updateQueue(docIds, 0));
+    unawaited(prefetch.updateQueueForPosts(
+      source,
+      0,
+      maxDocs: ReadBudgetRegistry.explorePrefetchDocLimit,
+    ));
   }
 
   void _performGoToPage(int index) {

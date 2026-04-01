@@ -7,6 +7,19 @@ if (admin.apps.length === 0) {
     admin.initializeApp();
 }
 const db = admin.firestore();
+function buildArchivePayload(storyId, data, now, reason) {
+    const userId = data.userId;
+    return {
+        storyId,
+        deletedAt: now,
+        reason,
+        userId,
+        createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
+        backgroundColor: data.backgroundColor ?? 0,
+        musicUrl: data.musicUrl ?? "",
+        elements: data.elements ?? [],
+    };
+}
 exports.cleanupExpiredStories = functions.pubsub
     .schedule("every 60 minutes")
     .onRun(async () => {
@@ -26,16 +39,9 @@ exports.cleanupExpiredStories = functions.pubsub
                 .collection("users")
                 .doc(userId)
                 .collection("DeletedStories")
-                .doc();
-            batch.set(archiveRef, {
-                storyId: doc.id,
-                deletedAt: now,
-                reason: "expired_cf",
-                userId,
-                createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
-                backgroundColor: data.backgroundColor ?? 0,
-                musicUrl: data.musicUrl ?? "",
-                elements: data.elements ?? [],
+                .doc(doc.id);
+            batch.set(archiveRef, buildArchivePayload(doc.id, data, now, "expired_cf"), {
+                merge: true,
             });
             batch.delete(doc.ref);
         }
@@ -59,19 +65,17 @@ exports.archiveOnStoryDelete = functions.firestore
             .collection("users")
             .doc(userId)
             .collection("DeletedStories")
-            .doc();
-        await archiveRef.set({
-            storyId: context.params.storyId,
-            deletedAt: now,
-            reason: "onDelete_trigger",
-            userId,
-            createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
-            backgroundColor: data.backgroundColor ?? 0,
-            musicUrl: data.musicUrl ?? "",
-            elements: data.elements ?? [],
-        });
+            .doc(context.params.storyId);
+        await archiveRef.create(buildArchivePayload(context.params.storyId, data, now, "onDelete_trigger"));
     }
     catch (e) {
+        const code = e?.code;
+        if (code === 6 || code === "already-exists") {
+            console.log("archiveOnStoryDelete skip:already_archived", {
+                storyId: context.params.storyId,
+            });
+            return;
+        }
         console.error("archiveOnStoryDelete error", e);
     }
 });

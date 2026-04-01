@@ -36,7 +36,7 @@ extension _MarketControllerFilterPart on MarketController {
   Future<void> _performClearRecentSearches() async {
     recentSearches.clear();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(MarketController._recentSearchesKey);
+    await prefs.remove(_marketRecentSearchesKey);
   }
 
   int _performCompareCategoryPriority(String left, String right) {
@@ -50,13 +50,12 @@ extension _MarketControllerFilterPart on MarketController {
 
   int _performPreferredCategoryIndex(String label) {
     final normalized = _categoryOrderKey(label);
-    for (var i = 0; i < MarketController._preferredCategoryOrder.length; i++) {
-      if (_categoryOrderKey(MarketController._preferredCategoryOrder[i]) ==
-          normalized) {
+    for (var i = 0; i < _marketPreferredCategoryOrder.length; i++) {
+      if (_categoryOrderKey(_marketPreferredCategoryOrder[i]) == normalized) {
         return i;
       }
     }
-    return MarketController._preferredCategoryOrder.length + 100;
+    return _marketPreferredCategoryOrder.length + 100;
   }
 
   String _performCategoryOrderKey(String value) {
@@ -258,7 +257,7 @@ extension _MarketControllerFilterPart on MarketController {
       final fetched = await _marketSnapshotRepository.search(
         query: query,
         userId: CurrentUserService.instance.effectiveUserId,
-        limit: 40,
+        limit: ReadBudgetRegistry.marketSearchInitialLimit,
         forceSync: true,
       );
       if (!_isLatestSearch(requestId, query)) return;
@@ -285,8 +284,8 @@ extension _MarketControllerFilterPart on MarketController {
 
   Future<void> _performLoadRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
-    final values = prefs.getStringList(MarketController._recentSearchesKey) ??
-        const <String>[];
+    final values =
+        prefs.getStringList(_marketRecentSearchesKey) ?? const <String>[];
     final next = values
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
@@ -314,7 +313,7 @@ extension _MarketControllerFilterPart on MarketController {
       recentSearches.assignAll(next);
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(MarketController._recentSearchesKey, next);
+    await prefs.setStringList(_marketRecentSearchesKey, next);
   }
 
   Future<void> _performLoadAllCityOptions() async {

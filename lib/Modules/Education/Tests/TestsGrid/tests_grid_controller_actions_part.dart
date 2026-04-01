@@ -312,11 +312,8 @@ extension TestsGridControllerActionsPart on TestsGridController {
       message: 'tests.delete_confirm'.tr,
       cancelText: 'common.close'.tr,
       yesText: 'tests.delete_test'.tr,
-      onYesPressed: () {
-        FirebaseFirestore.instance
-            .collection('Testler')
-            .doc(model.docID)
-            .delete();
+      onYesPressed: () async {
+        await _testRepository.deleteTest(model.docID);
         update();
       },
     );

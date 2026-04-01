@@ -6,7 +6,7 @@ import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 void main() {
   test('storage budget profile normalizes sub-4 GB plans safely', () {
-    final profile = StorageBudgetManager.profileForPlanGb(3);
+    final profile = storageBudgetProfileForPlanGb(3);
 
     expect(profile.planGb, 4);
     expect(profile.mediaQuotaBytes, greaterThan(0));
@@ -33,7 +33,7 @@ void main() {
 
   test('storage budget usage snapshot reports ratios and remaining budget', () {
     final manager = StorageBudgetManager();
-    final profile = StorageBudgetManager.profileForPlanGb(3);
+    final profile = storageBudgetProfileForPlanGb(3);
     final snapshot = manager.usageSnapshot(
       streamUsageBytes: profile.streamCacheSoftStopBytes ~/ 2,
     );
@@ -46,15 +46,15 @@ void main() {
   });
 
   test('recent protection window grows with larger cache plans', () {
-    final smallPlan = StorageBudgetManager.profileForPlanGb(2);
-    final largePlan = StorageBudgetManager.profileForPlanGb(5);
+    final smallPlan = storageBudgetProfileForPlanGb(2);
+    final largePlan = storageBudgetProfileForPlanGb(5);
 
-    final smallWindow = StorageBudgetManager.recentProtectionWindowForUsage(
+    final smallWindow = storageBudgetRecentProtectionWindowForUsage(
       smallPlan,
       streamUsageBytes: 0,
       remoteFloor: 3,
     );
-    final largeWindow = StorageBudgetManager.recentProtectionWindowForUsage(
+    final largeWindow = storageBudgetRecentProtectionWindowForUsage(
       largePlan,
       streamUsageBytes: 0,
       remoteFloor: 3,
@@ -66,14 +66,14 @@ void main() {
   });
 
   test('recent protection window shrinks near soft stop', () {
-    final profile = StorageBudgetManager.profileForPlanGb(5);
+    final profile = storageBudgetProfileForPlanGb(5);
 
-    final lowUsage = StorageBudgetManager.recentProtectionWindowForUsage(
+    final lowUsage = storageBudgetRecentProtectionWindowForUsage(
       profile,
       streamUsageBytes: profile.streamCacheSoftStopBytes ~/ 4,
       remoteFloor: 3,
     );
-    final nearSoftStop = StorageBudgetManager.recentProtectionWindowForUsage(
+    final nearSoftStop = storageBudgetRecentProtectionWindowForUsage(
       profile,
       streamUsageBytes: (profile.streamCacheSoftStopBytes * 0.93).round(),
       remoteFloor: 3,
@@ -84,9 +84,9 @@ void main() {
   });
 
   test('recent protection window collapses to floor after hard stop', () {
-    final profile = StorageBudgetManager.profileForPlanGb(4);
+    final profile = storageBudgetProfileForPlanGb(4);
 
-    final hardStopWindow = StorageBudgetManager.recentProtectionWindowForUsage(
+    final hardStopWindow = storageBudgetRecentProtectionWindowForUsage(
       profile,
       streamUsageBytes: profile.streamCacheHardStopBytes + 1024,
       remoteFloor: 4,
@@ -96,7 +96,7 @@ void main() {
   });
 
   test('playback policy resolves wifi fill mode with background prefetch', () {
-    final snapshot = PlaybackPolicyEngine.resolve(
+    final snapshot = resolvePlaybackPolicySnapshot(
       const PlaybackPolicyContext(
         isConnected: true,
         isOnWiFi: true,
@@ -115,7 +115,7 @@ void main() {
   });
 
   test('playback policy resolves cellular guard conservatively', () {
-    final snapshot = PlaybackPolicyEngine.resolve(
+    final snapshot = resolvePlaybackPolicySnapshot(
       const PlaybackPolicyContext(
         isConnected: true,
         isOnWiFi: false,
@@ -136,7 +136,7 @@ void main() {
 
   test('playback policy enters cache-only cellular guard when paused by user',
       () {
-    final snapshot = PlaybackPolicyEngine.resolve(
+    final snapshot = resolvePlaybackPolicySnapshot(
       const PlaybackPolicyContext(
         isConnected: true,
         isOnWiFi: false,
@@ -154,7 +154,7 @@ void main() {
   });
 
   test('playback policy resolves offline guard with cache-only behavior', () {
-    final snapshot = PlaybackPolicyEngine.resolve(
+    final snapshot = resolvePlaybackPolicySnapshot(
       const PlaybackPolicyContext(
         isConnected: false,
         isOnWiFi: false,

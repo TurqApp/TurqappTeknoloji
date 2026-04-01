@@ -29,9 +29,9 @@ class DownloadResult {
   DownloadResult({
     required this.segmentKey,
     required this.docID,
-    this.bytes,
+    Uint8List? bytes,
     this.error,
-  });
+  }) : bytes = bytes == null ? null : Uint8List.fromList(bytes);
 
   bool get success => bytes != null;
 }
@@ -44,6 +44,17 @@ class DownloadWorker {
   final _resultController = StreamController<DownloadResult>.broadcast();
   final _readyCompleter = Completer<void>();
   bool _isStopping = false;
+
+  static String _readMessageString(
+    Map<String, dynamic> message,
+    String key, {
+    String fallback = '',
+  }) {
+    final value = message[key];
+    if (value == null) return fallback;
+    final normalized = value.toString().trim();
+    return normalized.isEmpty ? fallback : normalized;
+  }
 
   Stream<DownloadResult> get results => _resultController.stream;
 
@@ -66,10 +77,12 @@ class DownloadWorker {
       } else if (message is Map<String, dynamic>) {
         if (_isStopping || _resultController.isClosed) return;
         final result = DownloadResult(
-          segmentKey: message['segmentKey'] as String,
-          docID: message['docID'] as String,
+          segmentKey: _readMessageString(message, 'segmentKey'),
+          docID: _readMessageString(message, 'docID'),
           bytes: message['bytes'] as Uint8List?,
-          error: message['error'] as String?,
+          error: _readMessageString(message, 'error', fallback: '').isEmpty
+              ? null
+              : _readMessageString(message, 'error'),
         );
         _resultController.add(result);
       }
@@ -123,9 +136,18 @@ class DownloadWorker {
 
       if (message is! Map<String, dynamic>) return;
 
-      final url = message['url'] as String;
-      final segmentKey = message['segmentKey'] as String;
-      final docID = message['docID'] as String;
+      final url = _readMessageString(message, 'url');
+      final segmentKey = _readMessageString(message, 'segmentKey');
+      final docID = _readMessageString(message, 'docID');
+      if (url.isEmpty || segmentKey.isEmpty || docID.isEmpty) {
+        mainSendPort.send({
+          'segmentKey': segmentKey,
+          'docID': docID,
+          'bytes': null,
+          'error': 'invalid_download_request',
+        });
+        return;
+      }
 
       try {
         final response = await client

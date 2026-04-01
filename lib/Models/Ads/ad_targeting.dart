@@ -14,19 +14,30 @@ class AdTargeting {
   final List<String> includeUserIds;
   final List<String> excludeUserIds;
 
-  const AdTargeting({
-    this.countries = const <String>[],
-    this.cities = const <String>[],
-    this.languages = const <String>[],
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
+  AdTargeting({
+    List<String> countries = const <String>[],
+    List<String> cities = const <String>[],
+    List<String> languages = const <String>[],
     this.minAge,
     this.maxAge,
-    this.genders = const <String>[],
-    this.interests = const <String>[],
-    this.devicePlatforms = const <String>[],
-    this.appVersions = const <String>[],
-    this.includeUserIds = const <String>[],
-    this.excludeUserIds = const <String>[],
-  });
+    List<String> genders = const <String>[],
+    List<String> interests = const <String>[],
+    List<String> devicePlatforms = const <String>[],
+    List<String> appVersions = const <String>[],
+    List<String> includeUserIds = const <String>[],
+    List<String> excludeUserIds = const <String>[],
+  }) : countries = _cloneStringList(countries),
+       cities = _cloneStringList(cities),
+       languages = _cloneStringList(languages),
+       genders = _cloneStringList(genders),
+       interests = _cloneStringList(interests),
+       devicePlatforms = _cloneStringList(devicePlatforms),
+       appVersions = _cloneStringList(appVersions),
+       includeUserIds = _cloneStringList(includeUserIds),
+       excludeUserIds = _cloneStringList(excludeUserIds);
 
   factory AdTargeting.fromMap(Map<String, dynamic>? map) {
     final data = map ?? const <String, dynamic>{};
@@ -49,17 +60,17 @@ class AdTargeting {
 
   Map<String, dynamic> toMap() {
     return {
-      'countries': countries,
-      'cities': cities,
-      'languages': languages,
+      'countries': List<String>.from(countries, growable: false),
+      'cities': List<String>.from(cities, growable: false),
+      'languages': List<String>.from(languages, growable: false),
       'minAge': minAge,
       'maxAge': maxAge,
-      'genders': genders,
-      'interests': interests,
-      'devicePlatforms': devicePlatforms,
-      'appVersions': appVersions,
-      'includeUserIds': includeUserIds,
-      'excludeUserIds': excludeUserIds,
+      'genders': List<String>.from(genders, growable: false),
+      'interests': List<String>.from(interests, growable: false),
+      'devicePlatforms': List<String>.from(devicePlatforms, growable: false),
+      'appVersions': List<String>.from(appVersions, growable: false),
+      'includeUserIds': List<String>.from(includeUserIds, growable: false),
+      'excludeUserIds': List<String>.from(excludeUserIds, growable: false),
     };
   }
 

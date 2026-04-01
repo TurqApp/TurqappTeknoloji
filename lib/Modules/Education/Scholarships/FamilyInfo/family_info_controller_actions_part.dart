@@ -1,4 +1,4 @@
-part of 'family_info_controller.dart';
+part of 'family_info_controller_library.dart';
 
 extension FamilyInfoControllerActionsPart on FamilyInfoController {
   void showIlSec() {
@@ -290,16 +290,16 @@ extension FamilyInfoControllerActionsPart on FamilyInfoController {
               'fatherSurname': '',
               'fatherJob': '',
               'fatherPhone': '',
-              'fatherLiving': FamilyInfoController._selectValue,
+              'fatherLiving': _familyInfoSelectValue,
               'fatherSalary': '',
               'motherName': '',
               'motherSurname': '',
               'motherJob': '',
               'motherPhone': '',
-              'motherLiving': FamilyInfoController._selectValue,
+              'motherLiving': _familyInfoSelectValue,
               'motherSalary': '',
               'totalLiving': 0,
-              'evMulkiyeti': FamilyInfoController._selectHomeOwnership,
+              'evMulkiyeti': _familyInfoSelectHomeOwnership,
             },
           ),
           ...scopedUserUpdate(
@@ -317,16 +317,16 @@ extension FamilyInfoControllerActionsPart on FamilyInfoController {
       fatherSurname.value.clear();
       fatherSalary.value.clear();
       fatherPhoneNumber.value.clear();
-      fatherLiving.value = FamilyInfoController._selectValue;
-      fatherJob.value = FamilyInfoController._selectJob;
+      fatherLiving.value = _familyInfoSelectValue;
+      fatherJob.value = _familyInfoSelectJob;
       motherName.value.clear();
       motherSurname.value.clear();
       motherSalary.value.clear();
       motherPhoneNumber.value.clear();
-      motherLiving.value = FamilyInfoController._selectValue;
-      motherJob.value = FamilyInfoController._selectJob;
+      motherLiving.value = _familyInfoSelectValue;
+      motherJob.value = _familyInfoSelectJob;
       totalLiving.value.clear();
-      evMulkiyeti.value = FamilyInfoController._selectHomeOwnership;
+      evMulkiyeti.value = _familyInfoSelectHomeOwnership;
       city.value = '';
       town.value = '';
 

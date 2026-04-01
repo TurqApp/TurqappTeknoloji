@@ -272,7 +272,7 @@ extension PostCreatorToolbarPart on PostCreator {
                         controller.selectedIndex.value =
                             controller.postList.length - 1;
                         final nextController =
-                            CreatorContentController.ensure(tag: newTag);
+                            ensureCreatorContentController(tag: newTag);
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!nextController.focus.hasFocus) {
                             nextController.focus.requestFocus();

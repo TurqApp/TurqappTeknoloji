@@ -1,0 +1,420 @@
+import 'dart:convert';
+
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'cache_scope_namespace.dart';
+import 'cached_resource.dart';
+
+int _startupManifestAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+bool _startupManifestAsBool(Object? value) {
+  if (value is bool) return value;
+  final raw = (value ?? '').toString().trim().toLowerCase();
+  return raw == 'true' || raw == '1';
+}
+
+class StartupSnapshotSurfaceRecord {
+  const StartupSnapshotSurfaceRecord({
+    required this.surface,
+    required this.itemCount,
+    required this.hasLocalSnapshot,
+    required this.source,
+    required this.isStale,
+    required this.recordedAtMs,
+    this.snapshotAgeMs,
+    this.startupShardHydrated = false,
+    this.startupShardAgeMs,
+  });
+
+  final String surface;
+  final int itemCount;
+  final bool hasLocalSnapshot;
+  final String source;
+  final bool isStale;
+  final int recordedAtMs;
+  final int? snapshotAgeMs;
+  final bool startupShardHydrated;
+  final int? startupShardAgeMs;
+
+  bool get isValid => surface.trim().isNotEmpty && source.trim().isNotEmpty;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'surface': surface,
+      'itemCount': itemCount,
+      'hasLocalSnapshot': hasLocalSnapshot,
+      'source': source,
+      'isStale': isStale,
+      'recordedAtMs': recordedAtMs,
+      'snapshotAgeMs': snapshotAgeMs,
+      'startupShardHydrated': startupShardHydrated,
+      'startupShardAgeMs': startupShardAgeMs,
+    };
+  }
+
+  factory StartupSnapshotSurfaceRecord.fromJson(Map<String, dynamic> json) {
+    return StartupSnapshotSurfaceRecord(
+      surface: (json['surface'] ?? '').toString().trim(),
+      itemCount: _startupManifestAsInt(json['itemCount']),
+      hasLocalSnapshot: _startupManifestAsBool(json['hasLocalSnapshot']),
+      source:
+          (json['source'] ?? CachedResourceSource.none.name).toString().trim(),
+      isStale: _startupManifestAsBool(json['isStale']),
+      recordedAtMs: _startupManifestAsInt(json['recordedAtMs']),
+      snapshotAgeMs: json.containsKey('snapshotAgeMs')
+          ? _startupManifestAsInt(json['snapshotAgeMs'])
+          : null,
+      startupShardHydrated:
+          _startupManifestAsBool(json['startupShardHydrated']),
+      startupShardAgeMs: json.containsKey('startupShardAgeMs')
+          ? _startupManifestAsInt(json['startupShardAgeMs'])
+          : null,
+    );
+  }
+}
+
+class StartupSnapshotManifest {
+  StartupSnapshotManifest({
+    required this.schemaVersion,
+    required this.actorId,
+    required this.savedAtMs,
+    required this.routeHint,
+    required this.loggedIn,
+    required this.minimumStartupPrepared,
+    required Map<String, StartupSnapshotSurfaceRecord> surfaces,
+    this.launchToRouteMs,
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  })  : surfaces = Map<String, StartupSnapshotSurfaceRecord>.from(surfaces),
+        extra = _sanitizeExtraMap(extra);
+
+  final int schemaVersion;
+  final String actorId;
+  final int savedAtMs;
+  final String routeHint;
+  final bool loggedIn;
+  final bool minimumStartupPrepared;
+  final int? launchToRouteMs;
+  final Map<String, StartupSnapshotSurfaceRecord> surfaces;
+  final Map<String, dynamic> extra;
+
+  bool get isValid => actorId.trim().isNotEmpty;
+
+  StartupSnapshotManifest copyWith({
+    int? schemaVersion,
+    String? actorId,
+    int? savedAtMs,
+    String? routeHint,
+    bool? loggedIn,
+    bool? minimumStartupPrepared,
+    int? launchToRouteMs,
+    Map<String, StartupSnapshotSurfaceRecord>? surfaces,
+    Map<String, dynamic>? extra,
+  }) {
+    return StartupSnapshotManifest(
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      actorId: actorId ?? this.actorId,
+      savedAtMs: savedAtMs ?? this.savedAtMs,
+      routeHint: routeHint ?? this.routeHint,
+      loggedIn: loggedIn ?? this.loggedIn,
+      minimumStartupPrepared:
+          minimumStartupPrepared ?? this.minimumStartupPrepared,
+      launchToRouteMs: launchToRouteMs ?? this.launchToRouteMs,
+      surfaces: surfaces ?? this.surfaces,
+      extra: extra ?? this.extra,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'schemaVersion': schemaVersion,
+      'actorId': actorId,
+      'savedAtMs': savedAtMs,
+      'routeHint': routeHint,
+      'loggedIn': loggedIn,
+      'minimumStartupPrepared': minimumStartupPrepared,
+      'launchToRouteMs': launchToRouteMs,
+      'surfaces': surfaces.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
+      'extra': extra,
+    };
+  }
+
+  factory StartupSnapshotManifest.fromJson(Map<String, dynamic> json) {
+    final rawSurfaces = Map<String, dynamic>.from(
+        json['surfaces'] as Map? ?? const <String, dynamic>{});
+    final surfaces = <String, StartupSnapshotSurfaceRecord>{};
+    rawSurfaces.forEach((key, value) {
+      if (value is! Map) return;
+      final record = StartupSnapshotSurfaceRecord.fromJson(
+        Map<String, dynamic>.from(value),
+      );
+      if (!record.isValid) return;
+      surfaces[key] = record;
+    });
+
+    return StartupSnapshotManifest(
+      schemaVersion: _startupManifestAsInt(json['schemaVersion']) == 0
+          ? 1
+          : _startupManifestAsInt(json['schemaVersion']),
+      actorId: (json['actorId'] ?? CacheScopeNamespace.guestActorId)
+          .toString()
+          .trim(),
+      savedAtMs: _startupManifestAsInt(json['savedAtMs']),
+      routeHint: (json['routeHint'] ?? '').toString().trim(),
+      loggedIn: _startupManifestAsBool(json['loggedIn']),
+      minimumStartupPrepared:
+          _startupManifestAsBool(json['minimumStartupPrepared']),
+      launchToRouteMs: json.containsKey('launchToRouteMs')
+          ? _startupManifestAsInt(json['launchToRouteMs'])
+          : null,
+      surfaces: surfaces,
+      extra: _sanitizeExtraMap(
+        Map<String, dynamic>.from(
+            json['extra'] as Map? ?? const <String, dynamic>{}),
+      ),
+    );
+  }
+}
+
+class StartupSnapshotManifestStore extends GetxService {
+  static const int schemaVersion = 1;
+  static const String _keyPrefix = 'startup_snapshot_manifest_v1';
+  static const String _defaultRouteHint = 'unknown';
+
+  SharedPreferences? _prefs;
+
+  Future<SharedPreferences> _prefsInstance() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
+
+  Future<StartupSnapshotManifest?> load({
+    String? userId,
+  }) async {
+    final storageKey = _storageKey(userId);
+    final normalizedActorId = _normalizeActorId(userId);
+    try {
+      final prefs = await _prefsInstance();
+      final raw = prefs.getString(storageKey);
+      if (raw == null || raw.trim().isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        await prefs.remove(storageKey);
+        return null;
+      }
+      final json = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
+      final rawSurfaceCount = (json['surfaces'] as Map?)?.length ?? 0;
+      final manifest = StartupSnapshotManifest.fromJson(json);
+      if (manifest.schemaVersion != schemaVersion ||
+          manifest.actorId != normalizedActorId ||
+          !manifest.isValid) {
+        await prefs.remove(storageKey);
+        return null;
+      }
+      if (rawSurfaceCount != manifest.surfaces.length) {
+        await _write(manifest);
+      }
+      return manifest;
+    } catch (_) {
+      try {
+        final prefs = await _prefsInstance();
+        await prefs.remove(storageKey);
+      } catch (_) {}
+      return null;
+    }
+  }
+
+  Future<void> recordSurface({
+    required String surface,
+    required String userId,
+    required CachedResource<dynamic> resource,
+    required int itemCount,
+    bool startupShardHydrated = false,
+    int? startupShardAgeMs,
+  }) async {
+    await recordSurfaceState(
+      surface: surface,
+      userId: userId,
+      itemCount: itemCount,
+      hasLocalSnapshot: resource.hasLocalSnapshot,
+      source: resource.source.name,
+      isStale: resource.isStale,
+      snapshotAgeMs: resource.snapshotAt == null
+          ? null
+          : DateTime.now().difference(resource.snapshotAt!).inMilliseconds,
+      startupShardHydrated: startupShardHydrated,
+      startupShardAgeMs: startupShardAgeMs,
+    );
+  }
+
+  Future<void> recordSurfaceState({
+    required String surface,
+    required String userId,
+    required int itemCount,
+    required bool hasLocalSnapshot,
+    required String source,
+    bool isStale = false,
+    int? snapshotAgeMs,
+    bool startupShardHydrated = false,
+    int? startupShardAgeMs,
+  }) async {
+    final normalizedSurface = surface.trim();
+    if (normalizedSurface.isEmpty) return;
+
+    try {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final existing = await load(userId: userId);
+      final surfaces = <String, StartupSnapshotSurfaceRecord>{
+        ...?existing?.surfaces,
+      };
+      surfaces[normalizedSurface] = StartupSnapshotSurfaceRecord(
+        surface: normalizedSurface,
+        itemCount: itemCount < 0 ? 0 : itemCount,
+        hasLocalSnapshot: hasLocalSnapshot,
+        source: source.trim().isEmpty ? CachedResourceSource.none.name : source,
+        isStale: isStale,
+        recordedAtMs: nowMs,
+        snapshotAgeMs: snapshotAgeMs,
+        startupShardHydrated: startupShardHydrated,
+        startupShardAgeMs: startupShardAgeMs,
+      );
+
+      await _write(
+        StartupSnapshotManifest(
+          schemaVersion: schemaVersion,
+          actorId: _normalizeActorId(userId),
+          savedAtMs: nowMs,
+          routeHint: existing?.routeHint ?? _defaultRouteHint,
+          loggedIn: existing?.loggedIn ?? userId.trim().isNotEmpty,
+          minimumStartupPrepared: existing?.minimumStartupPrepared ?? false,
+          launchToRouteMs: existing?.launchToRouteMs,
+          surfaces: surfaces,
+          extra: existing?.extra ?? const <String, dynamic>{},
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> markNavigation({
+    required String userId,
+    required String routeHint,
+    required bool loggedIn,
+    required bool minimumStartupPrepared,
+    int? launchToRouteMs,
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  }) async {
+    try {
+      final existing = await load(userId: userId);
+      await _write(
+        StartupSnapshotManifest(
+          schemaVersion: schemaVersion,
+          actorId: _normalizeActorId(userId),
+          savedAtMs: DateTime.now().millisecondsSinceEpoch,
+          routeHint:
+              routeHint.trim().isEmpty ? _defaultRouteHint : routeHint.trim(),
+          loggedIn: loggedIn,
+          minimumStartupPrepared: minimumStartupPrepared,
+          launchToRouteMs: launchToRouteMs,
+          surfaces: existing?.surfaces ??
+              const <String, StartupSnapshotSurfaceRecord>{},
+          extra: _sanitizeExtraMap(
+            <String, dynamic>{
+              ...?existing?.extra,
+              ...extra,
+            },
+          ),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> updateRouteHint({
+    required String userId,
+    required String routeHint,
+    bool loggedIn = true,
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  }) async {
+    try {
+      final existing = await load(userId: userId);
+      await _write(
+        StartupSnapshotManifest(
+          schemaVersion: schemaVersion,
+          actorId: _normalizeActorId(userId),
+          savedAtMs: DateTime.now().millisecondsSinceEpoch,
+          routeHint:
+              routeHint.trim().isEmpty ? _defaultRouteHint : routeHint.trim(),
+          loggedIn: loggedIn,
+          minimumStartupPrepared: existing?.minimumStartupPrepared ?? false,
+          launchToRouteMs: existing?.launchToRouteMs,
+          surfaces: existing?.surfaces ??
+              const <String, StartupSnapshotSurfaceRecord>{},
+          extra: _sanitizeExtraMap(
+            <String, dynamic>{
+              ...?existing?.extra,
+              ...extra,
+            },
+          ),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> clear({
+    String? userId,
+  }) async {
+    try {
+      final prefs = await _prefsInstance();
+      await prefs.remove(_storageKey(userId));
+    } catch (_) {}
+  }
+
+  Future<void> _write(StartupSnapshotManifest manifest) async {
+    final prefs = await _prefsInstance();
+    await prefs.setString(
+      _storageKey(manifest.actorId),
+      jsonEncode(manifest.toJson()),
+    );
+  }
+
+  String _storageKey(String? userId) {
+    return '$_keyPrefix::${_normalizeActorId(userId)}';
+  }
+
+  String _normalizeActorId(String? userId) {
+    final normalized = userId?.trim() ?? '';
+    if (normalized.isEmpty) return CacheScopeNamespace.guestActorId;
+    return normalized;
+  }
+}
+
+StartupSnapshotManifestStore? maybeFindStartupSnapshotManifestStore() {
+  final isRegistered = Get.isRegistered<StartupSnapshotManifestStore>();
+  if (!isRegistered) return null;
+  return Get.find<StartupSnapshotManifestStore>();
+}
+
+StartupSnapshotManifestStore ensureStartupSnapshotManifestStore() {
+  final existing = maybeFindStartupSnapshotManifestStore();
+  if (existing != null) return existing;
+  return Get.put(StartupSnapshotManifestStore(), permanent: true);
+}
+
+Map<String, dynamic> _sanitizeExtraMap(Map<String, dynamic> raw) {
+  final sanitized = <String, dynamic>{};
+  raw.forEach((key, value) {
+    final normalizedKey = key.trim();
+    if (normalizedKey.isEmpty) return;
+    if (value == null || value is String || value is num || value is bool) {
+      sanitized[normalizedKey] = value;
+    } else {
+      sanitized[normalizedKey] = value.toString();
+    }
+  });
+  return sanitized;
+}

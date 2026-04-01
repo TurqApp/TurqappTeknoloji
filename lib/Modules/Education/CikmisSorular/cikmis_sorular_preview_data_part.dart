@@ -28,6 +28,7 @@ extension CikmisSorularPreviewDataPart on _CikmisSorularPreviewState {
       yil: widget.yil,
       baslik2: widget.baslik2,
       baslik3: widget.baslik3,
+      sira: widget.sira,
     );
     if (docId != null && docId.isNotEmpty) {
       await _getData(docId);

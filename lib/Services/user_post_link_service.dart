@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 import '../Models/posts_model.dart';
 import '../Models/user_post_reference.dart';
@@ -22,13 +23,14 @@ class UserPostLinkService {
 
   UserPostLinkService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance,
-        _userSubcollectionRepository = UserSubcollectionRepository.ensure(),
+        _userSubcollectionRepository = ensureUserSubcollectionRepository(),
         _postRepository = PostRepository.ensure();
 
   final FirebaseFirestore _firestore;
   final UserSubcollectionRepository _userSubcollectionRepository;
   final PostRepository _postRepository;
-  static const int _maxRefsPerFetch = 240;
+  static const int _maxRefsPerFetch =
+      ReadBudgetRegistry.savedPostRefsInitialLimit;
 
   Stream<List<UserPostReference>> listenLikedPosts(String userId) =>
       _listenUserRefs(userId, 'liked_posts');
@@ -52,13 +54,15 @@ class UserPostLinkService {
         userId,
         subcollection: collection,
         orderByField: 'timeStamp',
+        limit: _maxRefsPerFetch,
         descending: true,
         preferCache: true,
       );
       if (cached.isNotEmpty) {
         yield cached
             .map(
-              (entry) => UserPostReference.fromMap(entry.data, entry.id),
+              (entry) =>
+                  UserPostReference.fromMap(_cloneUserRefData(entry.data), entry.id),
             )
             .toList(growable: false);
       }
@@ -75,7 +79,7 @@ class UserPostLinkService {
             .map(
               (doc) => UserSubcollectionEntry(
                 id: doc.id,
-                data: Map<String, dynamic>.from(doc.data()),
+                data: _cloneUserRefData(doc.data()),
               ),
             )
             .toList(growable: false);
@@ -206,6 +210,27 @@ class UserPostLinkService {
         cacheOnly: cacheOnly,
       );
 
+  Map<String, dynamic> _cloneUserRefData(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneUserRefValue(value)),
+    );
+  }
+
+  dynamic _cloneUserRefValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneUserRefValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneUserRefValue).toList(growable: false);
+    }
+    return value;
+  }
+
   Future<List<PostsModel>> fetchResharedPosts(
     String userId,
     List<UserPostReference> refs, {
@@ -216,6 +241,7 @@ class UserPostLinkService {
         userId,
         'reshared_posts',
         refs,
+        removeMissing: false,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );

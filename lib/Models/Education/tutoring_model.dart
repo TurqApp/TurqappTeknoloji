@@ -30,7 +30,37 @@ class TutoringModel {
   final String avatarUrl;
   final String displayName;
   final String nickname;
+  final String shortId;
+  final String shortUrl;
   final String rozet;
+
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
+  static List<String>? _cloneNullableStringList(List<String>? source) {
+    if (source == null) return null;
+    return _cloneStringList(source);
+  }
+
+  static num _asNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse('$value') ?? 0;
+  }
+
+  static double? _asDoubleOrNull(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value');
+  }
+
+  static Map<String, List<String>>? _cloneAvailability(
+    Map<String, List<String>>? source,
+  ) {
+    if (source == null) return null;
+    return source.map(
+      (key, value) => MapEntry(key, _cloneStringList(value)),
+    );
+  }
 
   TutoringModel({
     required this.docID,
@@ -38,11 +68,11 @@ class TutoringModel {
     required this.baslik,
     required this.brans,
     required this.cinsiyet,
-    required this.dersYeri,
+    required List<String> dersYeri,
     required this.end,
-    required this.favorites,
+    required List<String> favorites,
     required this.fiyat,
-    required this.imgs,
+    required List<String>? imgs,
     required this.ilce,
     required this.onayVerildi,
     required this.sehir,
@@ -56,16 +86,22 @@ class TutoringModel {
     this.applicationCount,
     this.averageRating,
     this.reviewCount,
-    this.availability,
+    Map<String, List<String>>? availability,
     this.lat,
     this.long,
     this.verified,
-    this.verificationDocs,
+    List<String>? verificationDocs,
     this.avatarUrl = '',
     this.displayName = '',
     this.nickname = '',
+    this.shortId = '',
+    this.shortUrl = '',
     this.rozet = '',
-  });
+  })  : dersYeri = _cloneStringList(dersYeri),
+        favorites = _cloneStringList(favorites),
+        imgs = _cloneNullableStringList(imgs),
+        availability = _cloneAvailability(availability),
+        verificationDocs = _cloneNullableStringList(verificationDocs);
 
   factory TutoringModel.fromJson(Map<String, dynamic> json, String documentId) {
     Map<String, List<String>>? parsedAvailability;
@@ -85,32 +121,40 @@ class TutoringModel {
       brans: json['brans'] as String? ?? '',
       cinsiyet: json['cinsiyet'] as String? ?? '',
       dersYeri: (json['dersYeri'] as List<dynamic>?)?.cast<String>() ?? [],
-      end: json['end'] as num? ?? 0,
+      end: _asNum(json['end']),
       favorites: (json['favorites'] as List<dynamic>?)?.cast<String>() ?? [],
-      fiyat: json['fiyat'] as num? ?? 0,
+      fiyat: _asNum(json['fiyat']),
       imgs: (json['imgs'] as List<dynamic>?)?.cast<String>(),
       ilce: json['ilce'] as String? ?? '',
       onayVerildi: json['onayVerildi'] as bool? ?? false,
       sehir: json['sehir'] as String? ?? '',
       telefon: json['telefon'] as bool? ?? false,
-      timeStamp: json['timeStamp'] as num? ?? 0,
+      timeStamp: _asNum(json['timeStamp']),
       userID: json['userID'] as String? ?? '',
       whatsapp: json['whatsapp'] as bool? ?? false,
       ended: json['ended'] as bool?,
-      endedAt: json['endedAt'] as num?,
-      viewCount: json['viewCount'] as num?,
-      applicationCount: json['applicationCount'] as num?,
-      averageRating: json['averageRating'] as num?,
-      reviewCount: json['reviewCount'] as num?,
+      endedAt: json.containsKey('endedAt') ? _asNum(json['endedAt']) : null,
+      viewCount:
+          json.containsKey('viewCount') ? _asNum(json['viewCount']) : null,
+      applicationCount: json.containsKey('applicationCount')
+          ? _asNum(json['applicationCount'])
+          : null,
+      averageRating: json.containsKey('averageRating')
+          ? _asNum(json['averageRating'])
+          : null,
+      reviewCount:
+          json.containsKey('reviewCount') ? _asNum(json['reviewCount']) : null,
       availability: parsedAvailability,
-      lat: (json['lat'] as num?)?.toDouble(),
-      long: (json['long'] as num?)?.toDouble(),
+      lat: _asDoubleOrNull(json['lat']),
+      long: _asDoubleOrNull(json['long']),
       verified: json['verified'] as bool?,
       verificationDocs:
           (json['verificationDocs'] as List<dynamic>?)?.cast<String>(),
       avatarUrl: json['avatarUrl'] as String? ?? '',
       displayName: json['displayName'] as String? ?? '',
       nickname: json['nickname'] as String? ?? '',
+      shortId: json['shortId'] as String? ?? '',
+      shortUrl: json['shortUrl'] as String? ?? '',
       rozet: json['rozet'] as String? ?? '',
     );
   }
@@ -118,7 +162,10 @@ class TutoringModel {
   factory TutoringModel.fromTypesenseHit(Map<String, dynamic> hit) {
     List<String> asStringList(dynamic value) {
       if (value is List) {
-        return value.map((e) => '$e').where((e) => e.trim().isNotEmpty).toList();
+        return value
+            .map((e) => '$e')
+            .where((e) => e.trim().isNotEmpty)
+            .toList();
       }
       return const <String>[];
     }
@@ -171,6 +218,8 @@ class TutoringModel {
       avatarUrl: (hit['avatarUrl'] ?? '').toString(),
       displayName: (hit['displayName'] ?? '').toString(),
       nickname: (hit['nickname'] ?? '').toString(),
+      shortId: (hit['shortId'] ?? '').toString(),
+      shortUrl: (hit['shortUrl'] ?? '').toString(),
       rozet: (hit['rozet'] ?? '').toString(),
     );
   }
@@ -181,11 +230,11 @@ class TutoringModel {
       'baslik': baslik,
       'brans': brans,
       'cinsiyet': cinsiyet,
-      'dersYeri': dersYeri,
+      'dersYeri': _cloneStringList(dersYeri),
       'end': end,
-      if (favorites.isNotEmpty) 'favorites': favorites,
+      if (favorites.isNotEmpty) 'favorites': _cloneStringList(favorites),
       'fiyat': fiyat,
-      'imgs': imgs,
+      'imgs': _cloneNullableStringList(imgs),
       'ilce': ilce,
       'onayVerildi': onayVerildi,
       'sehir': sehir,
@@ -199,14 +248,18 @@ class TutoringModel {
       if (applicationCount != null) 'applicationCount': applicationCount,
       if (averageRating != null) 'averageRating': averageRating,
       if (reviewCount != null) 'reviewCount': reviewCount,
-      if (availability != null) 'availability': availability,
+      if (availability != null)
+        'availability': _cloneAvailability(availability),
       if (lat != null) 'lat': lat,
       if (long != null) 'long': long,
       if (verified != null) 'verified': verified,
-      if (verificationDocs != null) 'verificationDocs': verificationDocs,
+      if (verificationDocs != null)
+        'verificationDocs': _cloneNullableStringList(verificationDocs),
       if (avatarUrl.isNotEmpty) 'avatarUrl': avatarUrl,
       if (displayName.isNotEmpty) 'displayName': displayName,
       if (nickname.isNotEmpty) 'nickname': nickname,
+      if (shortId.isNotEmpty) 'shortId': shortId,
+      if (shortUrl.isNotEmpty) 'shortUrl': shortUrl,
       if (rozet.isNotEmpty) 'rozet': rozet,
     };
   }

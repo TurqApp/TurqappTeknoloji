@@ -1,0 +1,192 @@
+part of 'admob_unit_config_service.dart';
+
+class _AdmobPlatformUnitConfig {
+  _AdmobPlatformUnitConfig({
+    required List<String> squareIds,
+    required List<String> interstitialIds,
+  }) : squareIds = List<String>.from(squareIds, growable: false),
+       interstitialIds = List<String>.from(
+         interstitialIds,
+         growable: false,
+       );
+
+  final List<String> squareIds;
+  final List<String> interstitialIds;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'kare': List<String>.from(squareIds, growable: false),
+      'gecis': List<String>.from(interstitialIds, growable: false),
+    };
+  }
+}
+
+class _AdmobUnitConfig {
+  const _AdmobUnitConfig({
+    required this.ios,
+    required this.android,
+  });
+
+  static const List<String> defaultIosSquareIds = <String>[
+    'ca-app-pub-4558422035199571/8122867409',
+    'ca-app-pub-4558422035199571/8962191459',
+    'ca-app-pub-4558422035199571/3881293152',
+    'ca-app-pub-4558422035199571/9209603468',
+    'ca-app-pub-4558422035199571/9672675885',
+  ];
+
+  static const List<String> defaultIosInterstitialIds = <String>[
+    'ca-app-pub-4558422035199571/5999655265',
+    'ca-app-pub-4558422035199571/8523207750',
+    'ca-app-pub-4558422035199571/2987562624',
+    'ca-app-pub-4558422035199571/1674480958',
+    'ca-app-pub-4558422035199571/3877385732',
+  ];
+
+  static const List<String> defaultAndroidSquareIds = <String>[
+    'ca-app-pub-4558422035199571/2790203845',
+    'ca-app-pub-4558422035199571/9097922825',
+    'ca-app-pub-4558422035199571/9648587166',
+    'ca-app-pub-4558422035199571/2340942782',
+    'ca-app-pub-4558422035199571/3689721460',
+  ];
+
+  static const List<String> defaultAndroidInterstitialIds = <String>[
+    'ca-app-pub-4558422035199571/8183250889',
+    'ca-app-pub-4558422035199571/6503549079',
+    'ca-app-pub-4558422035199571/9552970979',
+    'ca-app-pub-4558422035199571/8359594210',
+    'ca-app-pub-4558422035199571/6926807632',
+  ];
+
+  static final _AdmobUnitConfig defaults = _AdmobUnitConfig(
+    ios: _AdmobPlatformUnitConfig(
+      squareIds: defaultIosSquareIds,
+      interstitialIds: defaultIosInterstitialIds,
+    ),
+    android: _AdmobPlatformUnitConfig(
+      squareIds: defaultAndroidSquareIds,
+      interstitialIds: defaultAndroidInterstitialIds,
+    ),
+  );
+
+  final _AdmobPlatformUnitConfig ios;
+  final _AdmobPlatformUnitConfig android;
+
+  factory _AdmobUnitConfig.fromMap(Map<String, dynamic>? data) {
+    final source = data ?? const <String, dynamic>{};
+    final iosRaw = Map<String, dynamic>.from(
+      source['ios'] as Map? ?? const <String, dynamic>{},
+    );
+    final androidRaw = Map<String, dynamic>.from(
+      source['android'] as Map? ?? const <String, dynamic>{},
+    );
+
+    if (source['iosSquare'] is Iterable) {
+      iosRaw['square'] = source['iosSquare'];
+    }
+    if (source['iosInterstitial'] is Iterable) {
+      iosRaw['interstitial'] = source['iosInterstitial'];
+    }
+    if (source['androidSquare'] is Iterable) {
+      androidRaw['square'] = source['androidSquare'];
+    }
+    if (source['androidInterstitial'] is Iterable) {
+      androidRaw['interstitial'] = source['androidInterstitial'];
+    }
+
+    return _AdmobUnitConfig(
+      ios: _AdmobPlatformUnitConfig(
+        squareIds: _sanitizeIds(
+          _extractIds(
+            iosRaw,
+            keys: const <String>[
+              'square',
+              'kare',
+              'squareIds',
+              'kareIds',
+            ],
+          ),
+          fallback: defaultIosSquareIds,
+        ),
+        interstitialIds: _sanitizeIds(
+          _extractIds(
+            iosRaw,
+            keys: const <String>[
+              'interstitial',
+              'transition',
+              'gecis',
+              'geçiş',
+              'interstitialIds',
+              'transitionIds',
+              'gecisIds',
+            ],
+          ),
+          fallback: defaultIosInterstitialIds,
+        ),
+      ),
+      android: _AdmobPlatformUnitConfig(
+        squareIds: _sanitizeIds(
+          _extractIds(
+            androidRaw,
+            keys: const <String>[
+              'square',
+              'kare',
+              'squareIds',
+              'kareIds',
+            ],
+          ),
+          fallback: defaultAndroidSquareIds,
+        ),
+        interstitialIds: _sanitizeIds(
+          _extractIds(
+            androidRaw,
+            keys: const <String>[
+              'interstitial',
+              'transition',
+              'gecis',
+              'geçiş',
+              'interstitialIds',
+              'transitionIds',
+              'gecisIds',
+            ],
+          ),
+          fallback: defaultAndroidInterstitialIds,
+        ),
+      ),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'ios': ios.toMap(),
+      'android': android.toMap(),
+    };
+  }
+
+  static List<String> _extractIds(
+    Map<String, dynamic> map, {
+    required List<String> keys,
+  }) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value is Iterable) {
+        return value.map((e) => e.toString()).toList(growable: false);
+      }
+    }
+    return const <String>[];
+  }
+
+  static List<String> _sanitizeIds(
+    Iterable<String> rawIds, {
+    required List<String> fallback,
+  }) {
+    final cleaned = LinkedHashSet<String>.from(
+      rawIds.map((e) => e.trim()).where((e) => e.isNotEmpty).take(10),
+    ).toList(growable: false);
+    if (cleaned.isNotEmpty) {
+      return cleaned;
+    }
+    return List<String>.from(fallback, growable: false);
+  }
+}

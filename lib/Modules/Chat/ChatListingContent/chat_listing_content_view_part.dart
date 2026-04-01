@@ -2,7 +2,7 @@ part of 'chat_listing_content.dart';
 
 extension ChatListingContentViewPart on ChatListingContent {
   Widget _buildTile(BuildContext context) {
-    controller = ChatListingContentController.ensure(
+    controller = ensureChatListingContentController(
       userID: model.userID,
       model: model,
       tag: model.chatID,
@@ -193,7 +193,7 @@ extension ChatListingContentViewPart on ChatListingContent {
     );
     controller.notReadCounter.value = 0;
     model.unreadCount = 0;
-    UnreadMessagesController.maybeFind()?.updateConversationUnreadLocal(
+    maybeFindUnreadMessagesController()?.updateConversationUnreadLocal(
       otherUid: model.userID,
       unreadCount: 0,
       chatId: model.chatID,

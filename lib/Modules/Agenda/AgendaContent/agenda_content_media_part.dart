@@ -21,27 +21,20 @@ extension _AgendaContentMediaPart on _AgendaContentState {
   }
 
   Widget _buildVideoThumbnail({double? aspectRatio}) {
-    final thumb = widget.model.thumbnail.trim().isNotEmpty
-        ? widget.model.thumbnail.trim()
-        : (widget.model.img.isNotEmpty
-            ? widget.model.img.first.trim()
-            : '');
+    final thumb = widget.model.preferredVideoPosterUrl.trim();
     final fallback = _buildVideoPosterFallback(aspectRatio: aspectRatio);
     final cacheHeight = aspectRatio != null
         ? _feedCacheHeightForAspectRatio(aspectRatio)
         : (_feedCacheWidth * 1.4).round();
     final image = thumb.isNotEmpty
-        ? CachedNetworkImage(
+        ? CacheFirstNetworkImage(
             imageUrl: thumb,
+            candidateUrls: widget.model.preferredVideoPosterUrls,
             cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
+            fallback: fallback,
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
-            fadeInDuration: Duration.zero,
-            fadeOutDuration: Duration.zero,
-            placeholderFadeInDuration: Duration.zero,
-            placeholder: (_, __) => fallback,
-            errorWidget: (_, __, ___) => fallback,
           )
         : fallback;
     if (aspectRatio == null) return image;
@@ -53,7 +46,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       videoController?.pause();
     } catch (_) {}
     try {
-      videoStateManager.pauseAllVideos();
+      playbackRuntimeService.pauseAll();
     } catch (_) {}
   }
 
@@ -77,7 +70,8 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       } catch (_) {}
     }
 
-    final savedState = videoStateManager.getVideoState(widget.model.docID);
+    final savedState =
+        playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     return savedState?.position ?? Duration.zero;
   }
 
@@ -131,6 +125,30 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       return;
     }
 
+    final floodController = maybeFindFloodListingController();
+    final isFloodSurface =
+        floodController != null &&
+        (widget.instanceTag?.startsWith('flood_') ?? false);
+
+    if (isFloodSurface) {
+      floodController.capturePendingCenteredEntry(model: widget.model);
+      _pauseFeedBeforeFullscreen();
+      final visibleList = floodController.floods
+          .where((val) =>
+              val.deletedPost == false &&
+              val.arsiv == false &&
+              val.gizlendi == false &&
+              val.img.isNotEmpty)
+          .toList();
+
+      await Get.to(() => PhotoShorts(
+            fetchedList: visibleList.isNotEmpty ? visibleList : [widget.model],
+            startModel: widget.model,
+          ));
+      floodController.resumeCenteredPost();
+      return;
+    }
+
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
     if (modelIndex >= 0) {
@@ -140,7 +158,10 @@ extension _AgendaContentMediaPart on _AgendaContentState {
 
     if (widget.model.floodCount > 1) {
       _pauseFeedBeforeFullscreen();
-      await Get.to(() => FloodListing(mainModel: widget.model));
+      await Get.to(() => FloodListing(
+            mainModel: widget.model,
+            hostSurface: widget.floodHostSurface,
+          ));
       _restoreAgendaFeedCenter();
       return;
     }
@@ -178,13 +199,10 @@ extension _AgendaContentMediaPart on _AgendaContentState {
     final type = _AgendaContentState._ctaNavigationService
         .resolveMeta(widget.model.reshareMap)
         .type;
-    final preserveScholarshipFrame =
-        type == 'scholarship' && widget.model.img.length == 1;
-    final singleImageAspectRatio = widget.model.floodCount > 1
-        ? 1.0
-        : (preserveScholarshipFrame
-            ? widget.model.aspectRatio.toDouble().clamp(0.65, 1.8)
-            : 0.80);
+    final sharedFeedAspectRatio =
+        widget.model.img.length == 1 ? _sharedFeedAspectRatioFor(type) : null;
+    final singleImageAspectRatio =
+        widget.model.floodCount > 1 ? 1.0 : (sharedFeedAspectRatio ?? 0.80);
 
     switch (images.length) {
       case 1:
@@ -390,15 +408,15 @@ extension _AgendaContentMediaPart on _AgendaContentState {
         onTap: () => _AgendaContentState._ctaNavigationService
             .openFromPostMeta(widget.model.reshareMap),
         child: Container(
-          width: 132,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          width: 106,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: palette,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
             boxShadow: [
               BoxShadow(
@@ -413,13 +431,27 @@ extension _AgendaContentMediaPart on _AgendaContentState {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 13,
               fontFamily: 'MontserratBold',
             ),
           ),
         ),
       ),
     );
+  }
+
+  double? _sharedFeedAspectRatioFor(String type) {
+    switch (type) {
+      case 'market':
+      case 'practice-exam':
+      case 'tutoring':
+      case 'job':
+        return 1.0;
+      case 'scholarship':
+        return 4 / 3;
+      default:
+        return null;
+    }
   }
 
   List<Color> _feedCtaPaletteFor({

@@ -3,7 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
-import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
+import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -38,9 +39,12 @@ part 'agenda_view_header_part.dart';
 class AgendaView extends StatelessWidget {
   AgendaView({super.key});
   static bool _androidVisibilityTuned = false;
+  static bool _feedEntryWarmQueued = false;
+  static bool _primarySurfaceBootstrapQueued = false;
+  static bool _unreadListenersStarted = false;
 
   AgendaController get controller {
-    return AgendaController.ensure();
+    return ensureAgendaController();
   }
 
   GlobalLoaderController get loader {
@@ -49,11 +53,11 @@ class AgendaView extends StatelessWidget {
 
   // ⚠️ CRITICAL FIX: Safe lazy loading for UnreadMessagesController
   UnreadMessagesController get unreadController {
-    return UnreadMessagesController.ensure();
+    return ensureUnreadMessagesController();
   }
 
   RecommendedUserListController get recommendedController {
-    return RecommendedUserListController.ensure();
+    return ensureRecommendedUserListController();
   }
 
   InAppNotificationsController get notificationsController {
@@ -62,16 +66,29 @@ class AgendaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    unawaited(AdmobBannerWarmupService.ensure().warmForFeedEntry());
+    if (!_primarySurfaceBootstrapQueued) {
+      _primarySurfaceBootstrapQueued = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (controller.isClosed) return;
+        unawaited(controller.onPrimarySurfaceVisible());
+      });
+    }
+    if (!_feedEntryWarmQueued) {
+      _feedEntryWarmQueued = true;
+      unawaited(ensureAdmobBannerWarmupService().warmForFeedEntry());
+    }
     if (GetPlatform.isAndroid && !_androidVisibilityTuned) {
       // Feed'de fazla sık visibility callback'i scroll sırasında jank üretebiliyor.
       VisibilityDetectorController.instance.updateInterval =
-          const Duration(milliseconds: 120);
+          const Duration(milliseconds: 160);
       _androidVisibilityTuned = true;
     }
 
     // Feed açıldığında unread listener kesin aktif olsun (idempotent guard var)
-    unreadController.startListeners();
+    if (!_unreadListenersStarted) {
+      _unreadListenersStarted = true;
+      unreadController.startListeners();
+    }
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenFeed),

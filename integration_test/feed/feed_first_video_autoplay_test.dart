@@ -4,6 +4,7 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
+import '../core/helpers/test_state_probe.dart';
 
 void main() {
   ensureIntegrationBinding();
@@ -18,7 +19,7 @@ void main() {
           await launchTurqApp(tester);
           await expectFeedScreen(tester);
 
-          final controller = AgendaController.ensure();
+          final controller = ensureAgendaController();
           await _waitForInitialAutoplaySelection(
             tester,
             controller: controller,
@@ -80,13 +81,26 @@ Future<void> _waitForCurrentPlayingDoc(
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    if (manager.currentPlayingDocID == expectedDocId) {
+    if (_matchesExpectedFeedPlaybackKey(
+      manager.currentPlayingDocID,
+      expectedDocId,
+    )) {
       return;
     }
   }
 
   throw TestFailure(
     'Feed did not start expected autoplay doc '
-    '(expected=$expectedDocId, current=${manager.currentPlayingDocID}).',
+    '(expected=$expectedDocId, current=${manager.currentPlayingDocID}, '
+    'probe=${readIntegrationProbe()}).',
   );
+}
+
+bool _matchesExpectedFeedPlaybackKey(
+  String? currentPlayingDocId,
+  String expectedDocId,
+) {
+  final current = currentPlayingDocId?.trim() ?? '';
+  final expected = expectedDocId.trim();
+  return current == expected || current == 'feed:$expected';
 }

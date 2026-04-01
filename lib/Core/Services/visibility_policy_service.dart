@@ -3,6 +3,10 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'visibility_policy_service_facade_part.dart';
+part 'visibility_policy_service_fields_part.dart';
+part 'visibility_policy_service_support_part.dart';
+
 class VisibilityPolicyService extends GetxService {
   static VisibilityPolicyService? maybeFind() {
     final isRegistered = Get.isRegistered<VisibilityPolicyService>();
@@ -16,58 +20,5 @@ class VisibilityPolicyService extends GetxService {
     return Get.put(VisibilityPolicyService(), permanent: true);
   }
 
-  final UserSummaryResolver _resolver = UserSummaryResolver.ensure();
-  final FollowRepository _followRepository = FollowRepository.ensure();
-
-  Future<Set<String>> loadViewerFollowingIds({
-    String? viewerUserId,
-    bool preferCache = true,
-    bool forceRefresh = false,
-  }) async {
-    final viewerUid =
-        (viewerUserId ?? CurrentUserService.instance.effectiveUserId).trim();
-    if (viewerUid.isEmpty) return <String>{};
-    return _followRepository.getFollowingIds(
-      viewerUid,
-      preferCache: preferCache,
-      forceRefresh: forceRefresh,
-    );
-  }
-
-  Future<bool> canViewerSeeAuthor({
-    required String authorUserId,
-    required Set<String> followingIds,
-    bool preferCache = true,
-  }) async {
-    final uid = authorUserId.trim();
-    if (uid.isEmpty) return false;
-
-    final me = CurrentUserService.instance.effectiveUserId;
-    if (me.isNotEmpty && me == uid) return true;
-
-    final summary = await _resolver.resolve(
-      uid,
-      preferCache: preferCache,
-    );
-    if (summary == null) return false;
-    if (summary.isDeleted) return false;
-    if (!summary.isPrivate) return true;
-    return followingIds.contains(uid);
-  }
-
-  bool canViewerSeeAuthorFromSummary({
-    required String authorUserId,
-    required Set<String> followingIds,
-    required bool isPrivate,
-    required bool isDeleted,
-  }) {
-    final uid = authorUserId.trim();
-    if (uid.isEmpty) return false;
-    if (isDeleted) return false;
-
-    final me = CurrentUserService.instance.effectiveUserId;
-    if (me.isNotEmpty && me == uid) return true;
-    if (!isPrivate) return true;
-    return followingIds.contains(uid);
-  }
+  final _state = _VisibilityPolicyServiceState();
 }

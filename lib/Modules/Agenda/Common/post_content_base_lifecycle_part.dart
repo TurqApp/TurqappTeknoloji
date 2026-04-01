@@ -1,0 +1,256 @@
+part of 'post_content_base.dart';
+
+extension PostContentBaseLifecyclePart<T extends PostContentBase>
+    on PostContentBaseState<T> {
+  void _handleLifecycleInit() {
+    controller = ensurePostContentController(
+      tag: controllerTag,
+      create: widget.createController,
+    );
+
+    if (widget.showArchivePost) {
+      controller.arsiv.value = false;
+    }
+
+    if (widget.model.hasPlayableVideo && widget.shouldPlay) {
+      final prefersImmediateVideoInit =
+          isStandalonePostInstance || _isFeedStyleInlineSurfaceInstance;
+      final delay = isStandalonePostInstance
+          ? Duration.zero
+          : (prefersImmediateVideoInit
+              ? Duration.zero
+              : const Duration(milliseconds: 150));
+      _lazyInitTimer = Timer(delay, () {
+        if (!mounted) return;
+        if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
+          _initVideoController();
+          if (isStandalonePostInstance) {
+            Future.delayed(const Duration(milliseconds: 220), () {
+              if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
+                return;
+              }
+              _applyPlaybackVolume();
+              _resumePlaybackIfEligible(source: 'standalone_init_delay');
+              Future.delayed(const Duration(milliseconds: 220), () {
+                if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
+                  return;
+                }
+                _applyPlaybackVolume();
+              });
+            });
+          }
+        }
+      });
+    }
+
+    if (widget.showComments) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          controller.showPostCommentsBottomSheet();
+          _videoAdapter?.setLooping(false);
+        });
+      });
+    }
+
+    onPostInitialized();
+  }
+
+  void _handleDidChangeDependencies() {
+    final route = ModalRoute.of(context);
+    if (route != null) routeObserver.subscribe(this, route);
+  }
+
+  void _handleLifecycleDispose() {
+    try {
+      final route = ModalRoute.of(context);
+      if (route != null) routeObserver.unsubscribe(this);
+    } catch (_) {}
+
+    _lazyInitTimer?.cancel();
+    _playbackRecoveryTimer?.cancel();
+    _autoplaySegmentGateTimer?.cancel();
+    _replayAdHideTimer?.cancel();
+    _videoAdapter?.removeListener(_onVideoUpdate);
+    if (isStandalonePostInstance) {
+      _playbackRuntimeService.exitExclusiveMode();
+    }
+    _playbackRuntimeService.unregisterPlaybackHandle(playbackHandleKey);
+    final adapter = _videoAdapter;
+    if (adapter != null) {
+      unawaited(adapterPool.release(adapter));
+    }
+    _muteWorker?.dispose();
+    _pauseAllWorker?.dispose();
+    _playbackSuspendedWorker?.dispose();
+    _navSelectionWorker?.dispose();
+    videoValueNotifier.dispose();
+  }
+
+  void _handleDidUpdateWidget(T oldWidget) {
+    if (oldWidget.shouldPlay != widget.shouldPlay) {
+      if (widget.shouldPlay) {
+        _resetAutoplaySegmentGate();
+        _lazyInitTimer?.cancel();
+        if (isStandalonePostInstance) {
+          _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
+        }
+        _resumePlaybackIfEligible(source: 'widget_should_play_changed');
+      } else {
+        _manualPauseRequested = false;
+        _resetAutoplaySegmentGate();
+        _lazyInitTimer?.cancel();
+        if (_blockPause) return;
+        if (_skipNextPause) {
+          _skipNextPause = false;
+          return;
+        }
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            _isPrimaryFeedSurfaceInstance) {
+          unawaited(_disposePlaybackForSurfaceLoss());
+          return;
+        }
+        _safePauseVideo();
+      }
+    }
+  }
+
+  void _handleDidPushNext() {
+    _manualPauseRequested = false;
+    if (_blockPause) return;
+    if (_skipNextPause) {
+      _skipNextPause = false;
+      return;
+    }
+    _safePauseVideo();
+  }
+
+  void _handleDidPopNext() {
+    if (!widget.shouldPlay) return;
+    if (isStandalonePostInstance) {
+      if (_videoAdapter == null) return;
+      _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
+      _resumePlaybackIfEligible(source: 'route_did_pop_next');
+      return;
+    }
+    if (_controllerOwnsInlinePlayback) {
+      agendaController.resumeFeedPlayback();
+      return;
+    }
+    if (_videoAdapter != null) {
+      _resumePlaybackIfEligible(source: 'route_did_pop_next');
+    }
+  }
+
+  void _handleVideoUpdate() {
+    if (!mounted) return;
+    final v = _videoAdapter!.value;
+    final remaining =
+        v.duration > Duration.zero ? v.duration - v.position : null;
+    const replayAdWarmupLead = Duration(seconds: 2);
+    final replayAdWarmupTarget =
+        Theme.of(context).platform == TargetPlatform.iOS ? 4 : 3;
+
+    if (_isReplayOverlayEnabled &&
+        !_replayAdPrewarmed &&
+        remaining != null &&
+        remaining <= replayAdWarmupLead &&
+        remaining > Duration.zero) {
+      _replayAdPrewarmed = true;
+      unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+    }
+
+    if (_isReplayOverlayEnabled && v.isCompleted) {
+      if (!_replayOverlayLatched) {
+        _replayOverlayLatched = true;
+        _replayAdHideTimer?.cancel();
+        _replayAdVisible = AdmobKare.hasRenderableBanner;
+        _replayButtonVisible = !_replayAdVisible;
+        _replayAdImpressionReceived = false;
+        if (!isStandalonePostInstance) {
+          unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+        }
+        if (_replayAdVisible) {
+          _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
+            if (!mounted) return;
+            _replayAdVisible = false;
+            _replayButtonVisible = true;
+            _markPostContentDirty();
+          });
+        }
+        _markPostContentDirty();
+      }
+    } else if (_isReplayOverlayEnabled &&
+        _replayOverlayLatched &&
+        v.isPlaying) {
+      _replayOverlayLatched = false;
+      _replayAdPrewarmed = false;
+      _replayAdVisible = false;
+      _replayButtonVisible = false;
+      _replayAdImpressionReceived = false;
+      _replayAdHideTimer?.cancel();
+    }
+
+    if (v.isInitialized && !_hasAutoPlayed) {
+      if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
+        if (!_manualPauseRequested) {
+          _startPlaybackWhenReady(source: 'video_initialized');
+        }
+      } else {
+        _applyPlaybackVolume();
+      }
+    }
+
+    final shouldRecoverPlayback = !_useLegacyIosFeedBehavior &&
+        widget.shouldPlay &&
+        _isSurfacePlaybackAllowed &&
+        !_manualPauseRequested &&
+        v.isInitialized &&
+        !v.isPlaying &&
+        !v.isBuffering &&
+        !v.isCompleted &&
+        v.position > Duration.zero;
+    if (shouldRecoverPlayback) {
+      _playbackRecoveryTimer ??= Timer(const Duration(milliseconds: 260), () {
+        _playbackRecoveryTimer = null;
+        if (!mounted) return;
+        final adapter = _videoAdapter;
+        final current = adapter?.value;
+        if (adapter == null || current == null) return;
+        final stillNeedsRecovery = widget.shouldPlay &&
+            _isSurfacePlaybackAllowed &&
+            current.isInitialized &&
+            !current.isPlaying &&
+            !current.isBuffering &&
+            !current.isCompleted;
+        if (!stillNeedsRecovery) return;
+        _startPlayback(source: 'recovery_timer');
+      });
+    } else {
+      _playbackRecoveryTimer?.cancel();
+      _playbackRecoveryTimer = null;
+    }
+
+    if (v.isInitialized && v.duration.inMilliseconds > 0) {
+      final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
+      if (progress > 0) {
+        try {
+          _segmentCacheRuntimeService.ensureNextSegmentReady(
+            widget.model.docID,
+            progress,
+          );
+        } catch (_) {}
+        try {
+          _segmentCacheRuntimeService.updateWatchProgress(
+            widget.model.docID,
+            progress,
+          );
+        } catch (_) {}
+      }
+    }
+
+    if (_shouldSyncVideoNotifier(v)) {
+      videoValueNotifier.value = v;
+    }
+  }
+}

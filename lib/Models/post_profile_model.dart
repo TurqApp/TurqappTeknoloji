@@ -11,9 +11,22 @@ class PostProfileModel {
   num timeStamp;
   List<String>? goruntuleme;
 
+  static List<String> _cloneStringList(List<String> source) {
+    if (source.isEmpty) return const <String>[];
+    return source
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static List<String>? _cloneNullableStringList(List<String>? source) {
+    if (source == null) return null;
+    return _cloneStringList(source);
+  }
+
   PostProfileModel({
     required this.docID,
-    required this.img,
+    required List<String> img,
     required this.video,
     required this.thumbnasilOfVideo,
     required this.metin,
@@ -22,6 +35,7 @@ class PostProfileModel {
     required this.userID,
     required this.izBirakYayinTarihi,
     required this.timeStamp,
-    this.goruntuleme,
-  });
+    List<String>? goruntuleme,
+  })  : img = _cloneStringList(img),
+        goruntuleme = _cloneNullableStringList(goruntuleme);
 }

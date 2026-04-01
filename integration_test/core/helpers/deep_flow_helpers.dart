@@ -4,12 +4,38 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import '../bootstrap/test_app_bootstrap.dart';
 import 'test_state_probe.dart';
+import 'transient_error_policy.dart';
 
 Finder findItKeyPrefix(String prefix) {
   return find.byWidgetPredicate((widget) {
     final key = widget.key;
     return key is ValueKey<String> && key.value.startsWith(prefix);
   });
+}
+
+Future<String> _waitForVisibleFeedCommentKey(
+  WidgetTester tester, {
+  int maxScrolls = 8,
+  Duration step = const Duration(milliseconds: 250),
+}) async {
+  final feedScrollable = find.descendant(
+    of: byItKey(IntegrationTestKeys.screenFeed),
+    matching: find.byType(Scrollable),
+  );
+
+  for (var i = 0; i <= maxScrolls; i++) {
+    final value = firstValueKeyString(findItKeyPrefix('it-feed-comment-'));
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+    if (i == maxScrolls || feedScrollable.evaluate().isEmpty) {
+      break;
+    }
+    await tester.drag(feedScrollable.first, const Offset(0, -260));
+    await tester.pump(step);
+  }
+
+  throw TestFailure('No integration key found with prefix: it-feed-comment-');
 }
 
 String? firstValueKeyString(Finder finder) {
@@ -58,18 +84,22 @@ Future<Map<String, dynamic>> waitForSurfaceProbe(
   String? reason,
 }) async {
   for (var i = 0; i < maxPumps; i++) {
+    drainExpectedTesterExceptions(tester, context: reason ?? surface);
     final payload = readSurfaceProbe(surface);
     if (predicate(payload)) {
       return payload;
     }
     await tester.pump(step);
+    drainExpectedTesterExceptions(tester, context: reason ?? surface);
   }
+  drainExpectedTesterExceptions(tester, context: reason ?? surface);
   final payload = readSurfaceProbe(surface);
   if (predicate(payload)) {
     return payload;
   }
-  throw TestFailure(
-      reason ?? 'Surface probe did not reach expected state: $surface');
+  final detail =
+      reason ?? 'Surface probe did not reach expected state: $surface';
+  throw TestFailure('$detail Last payload: $payload');
 }
 
 Future<String> openCommentsForFirstFeedPost(WidgetTester tester) async {
@@ -77,23 +107,27 @@ Future<String> openCommentsForFirstFeedPost(WidgetTester tester) async {
     tester,
     'feed',
     (payload) {
+      final centeredDocId = (payload['centeredDocId'] as String? ?? '').trim();
       final docIds = payload['docIds'];
-      return docIds is List && docIds.isNotEmpty;
+      return centeredDocId.isNotEmpty || (docIds is List && docIds.isNotEmpty);
     },
     reason: 'Feed did not expose any docIds for comments flow.',
   );
-  final docIds = (feedPayload['docIds'] as List<dynamic>)
-      .map((item) => item?.toString() ?? '')
-      .where((item) => item.isNotEmpty)
-      .toList(growable: false);
-  final firstPostId = docIds.first;
-  await tapItKey(
-    tester,
-    IntegrationTestKeys.feedCommentButton(firstPostId),
-    settlePumps: 10,
-  );
+  final centeredDocId = (feedPayload['centeredDocId'] as String? ?? '').trim();
+  if (centeredDocId.isNotEmpty) {
+    final centeredKey = IntegrationTestKeys.feedCommentButton(centeredDocId);
+    if (byItKey(centeredKey).evaluate().isNotEmpty) {
+      await tapItKey(tester, centeredKey, settlePumps: 10);
+      expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
+      return centeredDocId;
+    }
+  }
+
+  final visibleCommentKey = await _waitForVisibleFeedCommentKey(tester);
+  final postId = visibleCommentKey.replaceFirst('it-feed-comment-', '');
+  await tapItKey(tester, visibleCommentKey, settlePumps: 10);
   expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
-  return firstPostId;
+  return postId;
 }
 
 Future<void> confirmCupertinoDialog(WidgetTester tester) async {

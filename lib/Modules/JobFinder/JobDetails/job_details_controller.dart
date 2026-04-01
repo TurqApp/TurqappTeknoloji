@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -28,62 +29,6 @@ import '../ApplicationReview/application_review.dart';
 
 part 'job_details_controller_data_part.dart';
 part 'job_details_controller_actions_part.dart';
-
-class JobDetailsController extends GetxController {
-  static JobDetailsController ensure({
-    required JobModel model,
-    String? tag,
-    bool permanent = false,
-  }) {
-    final existing = maybeFind(tag: tag);
-    if (existing != null) return existing;
-    return Get.put(
-      JobDetailsController(model: model),
-      tag: tag,
-      permanent: permanent,
-    );
-  }
-
-  static JobDetailsController? maybeFind({String? tag}) {
-    final isRegistered = Get.isRegistered<JobDetailsController>(tag: tag);
-    if (!isRegistered) return null;
-    return Get.find<JobDetailsController>(tag: tag);
-  }
-
-  final Rx<JobModel> model;
-  final saved = false.obs;
-  final basvuruldu = false.obs;
-  final cvVar = false.obs;
-  final nickname = ''.obs;
-  final avatarUrl = kDefaultAvatarUrl.obs;
-  final fullname = ''.obs;
-  final RxList<JobModel> list = <JobModel>[].obs;
-  final reviews = <JobReviewModel>[].obs;
-  final reviewUsers = <String, Map<String, dynamic>>{}.obs;
-  final UserRepository _userRepository = UserRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-  final CvRepository _cvRepository = CvRepository.ensure();
-  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
-      JobHomeSnapshotRepository.ensure();
-  final JobRepository _jobRepository = JobRepository.ensure();
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
-
-  JobDetailsController({required JobModel model}) : model = model.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    unawaited(_initialize());
-  }
-
-  Future<void> _initialize() async {
-    unawaited(refreshJob());
-    unawaited(cvCheck());
-    unawaited(getUserData(model.value.userID));
-    unawaited(checkSaved(model.value.docID));
-    unawaited(checkBasvuru(model.value.docID));
-    unawaited(bootstrapSimilar());
-    unawaited(bootstrapReviews());
-    unawaited(incrementViewCount());
-  }
-}
+part 'job_details_controller_facade_part.dart';
+part 'job_details_controller_fields_part.dart';
+part 'job_details_controller_runtime_part.dart';

@@ -15,7 +15,7 @@ class CikmisSorularRoad extends StatefulWidget {
 }
 
 class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> sinavTurleri = [];
   static const _english = 'İngilizce';
   static const _german = 'Almanca';
@@ -82,9 +82,9 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
     super.initState();
     _repository
         .distinctValues(
-          where: (doc) => (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik,
-          field: 'sinavTuru',
-        )
+      where: (doc) => (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik,
+      field: 'sinavTuru',
+    )
         .then((sinavTurleriList) {
       final normalized = <String>[];
       for (final sinavTuru in sinavTurleriList) {

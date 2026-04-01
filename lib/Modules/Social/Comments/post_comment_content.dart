@@ -23,6 +23,7 @@ class PostCommentContent extends StatefulWidget {
     super.key,
     required this.model,
     required this.postID,
+    required this.postOwnerUserId,
     required this.commentControllerTag,
     this.isPending = false,
     this.onReplyTap,
@@ -30,6 +31,7 @@ class PostCommentContent extends StatefulWidget {
 
   final PostCommentModel model;
   final String postID;
+  final String postOwnerUserId;
   final String commentControllerTag;
   final bool isPending;
   final void Function(String commentId, String nickname)? onReplyTap;
@@ -45,6 +47,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
 
   PostCommentModel get model => widget.model;
   String get postID => widget.postID;
+  String get postOwnerUserId => widget.postOwnerUserId;
   bool get isPending => widget.isPending;
   String get commentControllerTag => widget.commentControllerTag;
   void Function(String commentId, String nickname)? get onReplyTap =>
@@ -56,8 +59,8 @@ class _PostCommentContentState extends State<PostCommentContent> {
     _controllerTag =
         'post_comment_content_${widget.postID}_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        PostCommentContentController.maybeFind(tag: _controllerTag) == null;
-    controller = PostCommentContentController.ensure(
+        maybeFindPostCommentContentController(tag: _controllerTag) == null;
+    controller = ensurePostCommentContentController(
       model: widget.model,
       postID: widget.postID,
       commentControllerTag: widget.commentControllerTag,
@@ -69,7 +72,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
   void dispose() {
     if (_ownsController &&
         identical(
-          PostCommentContentController.maybeFind(tag: _controllerTag),
+          maybeFindPostCommentContentController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PostCommentContentController>(tag: _controllerTag);
@@ -79,26 +82,25 @@ class _PostCommentContentState extends State<PostCommentContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final currentUID = CurrentUserService.instance.effectiveUserId;
-      final hasLiked =
-          currentUID.isNotEmpty && controller.likes.contains(currentUID);
-      return Padding(
-        key: ValueKey(IntegrationTestKeys.commentItem(model.docID)),
-        padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: () {
-                if (model.userID != currentUID) {
-                  Get.to(() => SocialProfile(userID: model.userID));
-                }
-              },
-              child: SizedBox(
-                width: 34,
-                height: 34,
-                child: CachedUserAvatar(
+    final userService = CurrentUserService.instance;
+    final currentUID = _resolveViewerUid(userService);
+    return Padding(
+      key: ValueKey(IntegrationTestKeys.commentItem(model.docID)),
+      padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () {
+              if (model.userID != currentUID) {
+                Get.to(() => SocialProfile(userID: model.userID));
+              }
+            },
+            child: SizedBox(
+              width: 34,
+              height: 34,
+              child: Obx(
+                () => CachedUserAvatar(
                   userId: model.userID,
                   imageUrl: controller.avatarUrl.value,
                   radius: 17,
@@ -106,21 +108,23 @@ class _PostCommentContentState extends State<PostCommentContent> {
                 ),
               ),
             ),
-            10.pw,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (model.userID != currentUID) {
-                            Get.to(() => SocialProfile(userID: model.userID));
-                          }
-                        },
-                        child: Text(
+          ),
+          10.pw,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (model.userID != currentUID) {
+                          Get.to(() => SocialProfile(userID: model.userID));
+                        }
+                      },
+                      child: Obx(
+                        () => Text(
                           controller.nickname.value,
                           style: TextStyle(
                             color: AppColors.textBlack,
@@ -129,84 +133,90 @@ class _PostCommentContentState extends State<PostCommentContent> {
                           ),
                         ),
                       ),
-                      RozetContent(size: 12, userID: model.userID),
-                      12.pw,
-                      Text(
-                        timeAgoMetin(model.timeStamp),
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 11,
-                          fontFamily: AppFontFamilies.mmedium,
-                        ),
-                      ),
-                      if (isPending) ...[
-                        8.pw,
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'comments.sending'.tr,
-                            style: TextStyle(
-                              color: Colors.orange,
-                              fontSize: 10,
-                              fontFamily: AppFontFamilies.mmedium,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  2.ph,
-                  if (model.text.trim().isNotEmpty)
+                    ),
+                    RozetContent(size: 12, userID: model.userID),
+                    12.pw,
                     Text(
-                      model.text,
+                      timeAgoMetin(model.timeStamp),
                       style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: AppFontFamilies.mregular,
-                        height: 1.2,
+                        color: Colors.black54,
+                        fontSize: 11,
+                        fontFamily: AppFontFamilies.mmedium,
                       ),
                     ),
-                  if (model.imgs.isNotEmpty) ...[
-                    6.ph,
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: CachedNetworkImage(
-                        imageUrl: model.imgs.first,
-                        cacheManager: TurqImageCacheManager.instance,
+                    if (isPending) ...[
+                      8.pw,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'comments.sending'.tr,
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 10,
+                            fontFamily: AppFontFamilies.mmedium,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                2.ph,
+                if (model.text.trim().isNotEmpty)
+                  Text(
+                    model.text,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontFamily: AppFontFamilies.mregular,
+                      height: 1.2,
+                    ),
+                  ),
+                if (model.imgs.isNotEmpty) ...[
+                  6.ph,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: model.imgs.first,
+                      cacheManager: TurqImageCacheManager.instance,
+                      width: 140,
+                      height: 140,
+                      fit: BoxFit.cover,
+                      fadeInDuration: Duration.zero,
+                      fadeOutDuration: Duration.zero,
+                      placeholderFadeInDuration: Duration.zero,
+                      placeholder: (context, _) => Container(
                         width: 140,
                         height: 140,
-                        fit: BoxFit.cover,
-                        fadeInDuration: Duration.zero,
-                        fadeOutDuration: Duration.zero,
-                        placeholderFadeInDuration: Duration.zero,
-                        placeholder: (context, _) => Container(
-                          width: 140,
-                          height: 140,
-                          color: Colors.grey.shade100,
-                          child: const Center(
-                            child: CupertinoActivityIndicator(),
-                          ),
+                        color: Colors.grey.shade100,
+                        child: const Center(
+                          child: CupertinoActivityIndicator(),
                         ),
-                        errorWidget: (_, __, ___) => Container(
-                          width: 140,
-                          height: 140,
-                          color: Colors.grey.shade100,
-                          child: const Icon(
-                            Icons.broken_image_outlined,
-                            color: Colors.black38,
-                          ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        width: 140,
+                        height: 140,
+                        color: Colors.grey.shade100,
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: Colors.black38,
                         ),
                       ),
                     ),
-                  ],
-                  4.ph,
-                  if (!isPending)
-                    Row(
+                  ),
+                ],
+                4.ph,
+                if (!isPending)
+                  Obx(() {
+                    final viewerUid = _resolveViewerUid(userService);
+                    final canDeleteComment = viewerUid.isNotEmpty &&
+                        (model.userID == viewerUid ||
+                            postOwnerUserId.trim() == viewerUid);
+                    return Row(
                       children: [
                         GestureDetector(
                           key: ValueKey(
@@ -214,11 +224,12 @@ class _PostCommentContentState extends State<PostCommentContent> {
                           ),
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
+                            final nickname = controller.nickname.value.trim();
                             onReplyTap?.call(
                               model.docID,
-                              controller.nickname.value.trim().isEmpty
+                              nickname.isEmpty
                                   ? 'common.unknown_user'.tr
-                                  : controller.nickname.value.trim(),
+                                  : nickname,
                             );
                           },
                           child: Text(
@@ -230,7 +241,7 @@ class _PostCommentContentState extends State<PostCommentContent> {
                             ),
                           ),
                         ),
-                        if (model.userID == currentUID) ...[
+                        if (canDeleteComment) ...[
                           10.pw,
                           GestureDetector(
                             key: ValueKey(
@@ -251,12 +262,36 @@ class _PostCommentContentState extends State<PostCommentContent> {
                           ),
                         ],
                       ],
+                    );
+                  }),
+                Obx(() {
+                  if (controller.replies.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  final viewerUid = _resolveViewerUid(userService);
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Column(
+                      children: controller.replies
+                          .map(
+                            (reply) => _buildReplyItem(
+                              reply,
+                              viewerUid: viewerUid,
+                            ),
+                          )
+                          .toList(growable: false),
                     ),
-                ],
-              ),
+                  );
+                }),
+              ],
             ),
-            if (!isPending)
-              GestureDetector(
+          ),
+          if (!isPending)
+            Obx(() {
+              final viewerUid = _resolveViewerUid(userService);
+              final hasLiked =
+                  viewerUid.isNotEmpty && controller.likes.contains(viewerUid);
+              return GestureDetector(
                 key: ValueKey(
                   IntegrationTestKeys.commentLikeButton(model.docID),
                 ),
@@ -292,11 +327,11 @@ class _PostCommentContentState extends State<PostCommentContent> {
                     ],
                   ),
                 ),
-              ),
-          ],
-        ),
-      );
-    });
+              );
+            }),
+        ],
+      ),
+    );
   }
 
   void _confirmDelete(PostCommentContentController controller) {
@@ -312,5 +347,116 @@ class _PostCommentContentState extends State<PostCommentContent> {
         }
       },
     );
+  }
+
+  Widget _buildReplyItem(
+    SubCommentModel reply, {
+    required String viewerUid,
+  }) {
+    final replyNickname =
+        controller.replyNicknames[reply.userID]?.trim().isNotEmpty == true
+            ? controller.replyNicknames[reply.userID]!.trim()
+            : 'common.unknown_user'.tr;
+    final replyAvatarUrl =
+        controller.replyAvatarUrls[reply.userID]?.trim() ?? '';
+    final canDeleteReply = viewerUid.isNotEmpty &&
+        (reply.userID == viewerUid || postOwnerUserId.trim() == viewerUid);
+    return Padding(
+      padding: const EdgeInsets.only(left: 14, top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 26,
+            height: 26,
+            child: CachedUserAvatar(
+              userId: reply.userID,
+              imageUrl: replyAvatarUrl.isNotEmpty ? replyAvatarUrl : null,
+              radius: 13,
+              backgroundColor: Colors.grey.shade200,
+            ),
+          ),
+          8.pw,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        replyNickname,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textBlack,
+                          fontSize: 12,
+                          fontFamily: AppFontFamilies.mbold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      timeAgoMetin(reply.timeStamp),
+                      style: TextStyle(
+                        color: Colors.black45,
+                        fontSize: 10,
+                        fontFamily: AppFontFamilies.mmedium,
+                      ),
+                    ),
+                  ],
+                ),
+                2.ph,
+                if (reply.text.trim().isNotEmpty)
+                  Text(
+                    reply.text,
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontFamily: AppFontFamilies.mregular,
+                      height: 1.2,
+                    ),
+                  ),
+                if (canDeleteReply) ...[
+                  4.ph,
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _confirmReplyDelete(reply),
+                    child: Text(
+                      'common.delete'.tr,
+                      style: TextStyle(
+                        color: AppColors.deleteText,
+                        fontSize: 11,
+                        fontFamily: AppFontFamilies.mmedium,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmReplyDelete(SubCommentModel reply) {
+    noYesAlert(
+      title: 'common.delete'.tr,
+      message: 'comments.delete_message'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'common.delete'.tr,
+      onYesPressed: () async {
+        final ok = await controller.deleteReply(reply.docID);
+        if (!ok) {
+          AppSnackbar('common.error'.tr, 'comments.delete_failed'.tr);
+        }
+      },
+    );
+  }
+
+  String _resolveViewerUid(CurrentUserService userService) {
+    final cachedUid = (userService.currentUserRx.value?.userID ?? '').trim();
+    if (cachedUid.isNotEmpty) return cachedUid;
+    return userService.authUserId.trim();
   }
 }

@@ -17,14 +17,6 @@ seed_integration_fixture_if_enabled() {
     return 0
   fi
 
-  if [[ ! -d "functions/node_modules/firebase-admin" ]]; then
-    echo "[integration-seed] functions/node_modules missing; seed skipped" >&2
-    if [[ "$require_seed" == "1" ]]; then
-      return 1
-    fi
-    return 0
-  fi
-
   mkdir -p "$(dirname "$state_file")"
   export INTEGRATION_SEED_STATE_FILE="$state_file"
   echo "[integration-seed] applying fixture: $fixture_file"
@@ -38,11 +30,6 @@ reset_integration_fixture_if_enabled() {
 
   local state_file="${INTEGRATION_SEED_STATE_FILE:-artifacts/integration_seed/seed_state.json}"
   if [[ ! -f "$state_file" ]]; then
-    return 0
-  fi
-
-  if [[ ! -d "functions/node_modules/firebase-admin" ]]; then
-    echo "[integration-seed] reset skipped; functions/node_modules missing" >&2
     return 0
   fi
 

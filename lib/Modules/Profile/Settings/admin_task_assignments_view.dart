@@ -25,7 +25,7 @@ class AdminTaskAssignmentsView extends StatefulWidget {
 class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   final TextEditingController _nicknameController = TextEditingController();
   final AdminTaskAssignmentRepository _assignmentRepository =
-      AdminTaskAssignmentRepository.ensure();
+      ensureAdminTaskAssignmentRepository();
   final UserRepository _userRepository = UserRepository.ensure();
   late final Future<bool> _canAccessFuture;
 
@@ -54,8 +54,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
     setState(updater);
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -103,4 +102,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) => _buildPage(context);
 }

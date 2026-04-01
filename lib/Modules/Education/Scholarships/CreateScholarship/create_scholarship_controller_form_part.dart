@@ -27,7 +27,7 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
     currentSection.value = 1;
     basvuruYapilacakYer.value = isEditing.value
         ? basvuruYapilacakYer.value
-        : CreateScholarshipController.applicationPlaceTurqAppValue;
+        : applicationPlaceTurqAppValue;
     basvuruYapilacakYerController.text =
         applicationPlaceDisplayLabel(basvuruYapilacakYer.value);
     basvuruKosullariController.text =
@@ -153,12 +153,11 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
 
   List<String> getUniversitiesForSelectedCities() {
     final List<String> universities = [
-      CreateScholarshipController.allUniversitiesValue,
+      allUniversitiesValue,
     ];
 
     if (lisansTuru.isEmpty) {
-      if (hedefKitle.value ==
-          CreateScholarshipController.targetAudienceAllTurkeyValue) {
+      if (hedefKitle.value == targetAudienceAllTurkeyValue) {
         universities.addAll(tumUniversiteler);
       } else {
         for (var il in sehirler) {
@@ -167,34 +166,33 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
       }
       return universities.toSet().toList()
         ..sort(
-          (a, b) => a == CreateScholarshipController.allUniversitiesValue
+          (a, b) => a == allUniversitiesValue
               ? -1
-              : b == CreateScholarshipController.allUniversitiesValue
+              : b == allUniversitiesValue
                   ? 1
                   : a.compareTo(b),
         );
     }
 
-    if (hedefKitle.value ==
-        CreateScholarshipController.targetAudienceAllTurkeyValue) {
+    if (hedefKitle.value == targetAudienceAllTurkeyValue) {
       for (var uni in tumUniversiteler) {
         bool shouldAdd = false;
         for (var item in higherEducationData) {
           if (item['universite'] == uni) {
             String tip = item['tip'];
             if (lisansTuru.contains(
-                  CreateScholarshipController.degreeAssociateValue,
+                  degreeAssociateValue,
                 ) &&
                 tip == 'ÖN LİSANS') {
               shouldAdd = true;
             } else if ((lisansTuru.contains(
-                      CreateScholarshipController.degreeBachelorValue,
+                      degreeBachelorValue,
                     ) ||
                     lisansTuru.contains(
-                      CreateScholarshipController.degreeMasterValue,
+                      degreeMasterValue,
                     ) ||
                     lisansTuru.contains(
-                      CreateScholarshipController.degreePhdValue,
+                      degreePhdValue,
                     )) &&
                 tip == 'LİSANS') {
               shouldAdd = true;
@@ -213,18 +211,18 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
             if (item['universite'] == uni && item['il'] == il) {
               String tip = item['tip'];
               if (lisansTuru.contains(
-                    CreateScholarshipController.degreeAssociateValue,
+                    degreeAssociateValue,
                   ) &&
                   tip == 'ÖN LİSANS') {
                 shouldAdd = true;
               } else if ((lisansTuru.contains(
-                        CreateScholarshipController.degreeBachelorValue,
+                        degreeBachelorValue,
                       ) ||
                       lisansTuru.contains(
-                        CreateScholarshipController.degreeMasterValue,
+                        degreeMasterValue,
                       ) ||
                       lisansTuru.contains(
-                        CreateScholarshipController.degreePhdValue,
+                        degreePhdValue,
                       )) &&
                   tip == 'LİSANS') {
                 shouldAdd = true;
@@ -240,9 +238,9 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
 
     return universities.toSet().toList()
       ..sort(
-        (a, b) => a == CreateScholarshipController.allUniversitiesValue
+        (a, b) => a == allUniversitiesValue
             ? -1
-            : b == CreateScholarshipController.allUniversitiesValue
+            : b == allUniversitiesValue
                 ? 1
                 : compareTurkishStrings(a, b),
       );
@@ -258,8 +256,7 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
     aciklama.value = '';
     aciklamaController.text = '';
     basvuruURL.value = '';
-    basvuruYapilacakYer.value =
-        CreateScholarshipController.applicationPlaceTurqAppValue;
+    basvuruYapilacakYer.value = applicationPlaceTurqAppValue;
     baslangicTarihi.value = DateFormat('dd.MM.yyyy').format(DateTime.now());
     bitisTarihi.value =
         DateFormat('dd.MM.yyyy').format(DateTime.now().add(Duration(days: 1)));
@@ -269,9 +266,8 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
     ogrenciSayisiController.text = '';
     egitimKitlesi.value = '';
     lisansTuru.clear();
-    geriOdemeli.value = CreateScholarshipController.repayableNoValue;
-    mukerrerDurumu.value =
-        CreateScholarshipController.duplicateStatusCanReceiveValue;
+    geriOdemeli.value = repayableNoValue;
+    mukerrerDurumu.value = duplicateStatusCanReceiveValue;
     hedefKitle.value = '';
     sehirler.clear();
     ilceler.clear();
@@ -291,7 +287,7 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
 
     basvuruURLController.text = 'https://';
     basvuruYapilacakYerController.text = applicationPlaceDisplayLabel(
-      CreateScholarshipController.applicationPlaceTurqAppValue,
+      applicationPlaceTurqAppValue,
     );
     websiteController.text = 'https://';
     basvuruKosullariController.text = '';

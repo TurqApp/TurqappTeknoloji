@@ -50,6 +50,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private let playbackHealthMonitor = PlaybackHealthMonitor(tag: "AVPlaybackHealth")
     private var playbackHealthProbe: AVPlayerPlaybackProbe?
     private var playbackWatchdog: PlaybackWatchdog?
+    private var wasMutedBeforeBackground: Bool = false
+    private var volumeBeforeBackground: Float = 1.0
 
     private func log(_ message: String) {
         print("[HLSPlayerView] \(message)")
@@ -94,10 +96,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Parse arguments
         if let params = args as? [String: Any] {
-            if let url = params["url"] as? String {
+            if params["url"] as? String != nil {
                 isAutoPlay = params["autoPlay"] as? Bool ?? true
                 isLooping = params["loop"] as? Bool ?? false
-                loadVideo(url: url)
             }
         }
 
@@ -117,7 +118,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     // MARK: - Video Loading
-    func loadVideo(url: String) {
+    func loadVideo(url: String, autoPlay: Bool? = nil, loop: Bool? = nil) {
+        if let autoPlay = autoPlay {
+            isAutoPlay = autoPlay
+        }
+        if let loop = loop {
+            isLooping = loop
+        }
         log("loadVideo url=\(url)")
         guard let videoURL = URL(string: url) else {
             log("invalidUrl url=\(url)")
@@ -186,8 +193,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         log("play url=\(currentUrl ?? "-")")
         playbackHealthMonitor.onPlaybackRequested()
         player?.play()
-        scheduleVisualLayerStabilization(forceReattach: true)
-        sendEvent(["event": "play"])
+        scheduleVisualLayerStabilization(forceReattach: false)
     }
 
     func pause() {
@@ -195,7 +201,6 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         captureCurrentFrameSnapshot(showOverlay: false)
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()
-        sendEvent(["event": "pause"])
     }
 
     func seek(to seconds: Double) {
@@ -212,7 +217,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     func setVolume(_ volume: Double) {
-        player?.volume = Float(volume)
+        let normalizedVolume = Float(max(0.0, min(1.0, volume)))
+        player?.volume = normalizedVolume
+        player?.isMuted = normalizedVolume <= 0.0001
     }
 
     func setLoop(_ loop: Bool) {
@@ -345,7 +352,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 switch item.status {
                 case .readyToPlay:
                     self?.log("readyToPlay url=\(self?.currentUrl ?? "-") duration=\(item.duration.seconds)")
-                    self?.refreshPlayerLayer(forceReattach: true)
+                    self?.refreshPlayerLayer(forceReattach: false)
                     self?.requestAutoplayIfNeeded(force: true)
                     self?.sendEvent([
                         "event": "ready",
@@ -388,8 +395,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                     switch player.timeControlStatus {
                 case .playing:
                         self?.log("timeControlStatus=playing url=\(self?.currentUrl ?? "-")")
-                        self?.refreshPlayerLayer(forceReattach: false)
-                        self?.scheduleVisualLayerStabilization(forceReattach: false)
+                        if self?.didRenderFirstFrame == false {
+                            self?.scheduleVisualLayerStabilization(forceReattach: false)
+                        }
                         self?.sendEvent(["event": "play"])
                     case .paused:
                         self?.log("timeControlStatus=paused url=\(self?.currentUrl ?? "-")")
@@ -412,8 +420,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             let currentTime = time.seconds
             let totalDuration = duration.seconds
 
-            if currentTime >= 0.0 && currentTime < 1.2 && !self.didStabilizeVisualLayer {
-                self.scheduleVisualLayerStabilization(forceReattach: true)
+            if currentTime >= 0.0 &&
+                currentTime < 1.2 &&
+                !self.didRenderFirstFrame &&
+                !self.didStabilizeVisualLayer {
+                self.scheduleVisualLayerStabilization(forceReattach: false)
             }
 
             if currentTime.isFinite && totalDuration.isFinite {
@@ -474,6 +485,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     private func handlePlaybackEnded() {
+        playbackHealthMonitor.onPlaybackCompleted()
         sendEvent(["event": "completed"])
 
         if isLooping {
@@ -484,6 +496,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     // MARK: - Lifecycle Observers
     private func setupLifecycleObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(appDidEnterBackground),
@@ -499,13 +518,44 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         )
     }
 
+    @objc private func appWillResignActive() {
+        forceBackgroundSilence()
+    }
+
     @objc private func appDidEnterBackground() {
         playbackHealthMonitor.onAppDidEnterBackground()
-        player?.pause()
+        forceBackgroundSilence()
     }
 
     @objc private func appWillEnterForeground() {
         playbackHealthMonitor.onAppWillEnterForeground()
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(true)
+        } catch {
+            log("Audio session reactivate failed: \(error)")
+        }
+
+        player?.isMuted = wasMutedBeforeBackground
+        player?.volume = volumeBeforeBackground
+    }
+
+    private func forceBackgroundSilence() {
+        wasMutedBeforeBackground = player?.isMuted ?? false
+        volumeBeforeBackground = player?.volume ?? 1.0
+
+        player?.pause()
+        player?.isMuted = true
+        player?.volume = 0
+        player?.rate = 0
+        playbackHealthMonitor.onPlaybackPaused()
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            log("Audio session deactivate failed: \(error)")
+        }
     }
 
     // MARK: - Layout
@@ -522,23 +572,22 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 playerLayer.player = self.player
                 playerLayer.isHidden = false
                 playerLayer.frame = self._view.bounds
-                let shouldForceReattach = forceReattach && !self.didRenderFirstFrame
                 let needsAttach = playerLayer.superlayer == nil || playerLayer.superlayer !== self._view.layer
-                if shouldForceReattach {
-                    playerLayer.removeFromSuperlayer()
+                if needsAttach {
+                    if playerLayer.superlayer != nil {
+                        playerLayer.removeFromSuperlayer()
+                    }
                     self._view.layer.addSublayer(playerLayer)
-                    self.playbackHealthMonitor.onPlayerLayerAttached()
-                } else if needsAttach {
-                    self._view.layer.addSublayer(playerLayer)
-                    self.playbackHealthMonitor.onPlayerLayerAttached()
                 }
                 self._view.linkedPlayerLayer = playerLayer
-                self.playbackHealthProbe?.attachPlayerLayer(playerLayer)
+                self.playbackHealthProbe?.attachPlayerLayer(playerLayer, didAttach: needsAttach)
             }
-            self._view.setNeedsLayout()
-            self._view.layoutIfNeeded()
-            self.playerLayer?.setNeedsDisplay()
-            self._view.layer.setNeedsDisplay()
+            if forceReattach || !self.didRenderFirstFrame {
+                self._view.setNeedsLayout()
+                self._view.layoutIfNeeded()
+                self.playerLayer?.setNeedsDisplay()
+                self._view.layer.setNeedsDisplay()
+            }
             CATransaction.commit()
         }
     }
@@ -635,7 +684,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         let delays: [Double] = [0.0, 0.08, 0.22]
         for delay in delays {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                self?.refreshPlayerLayer(forceReattach: forceReattach)
+                guard let self = self else { return }
+                if self.didRenderFirstFrame && delay > 0 && !forceReattach {
+                    return
+                }
+                self.refreshPlayerLayer(forceReattach: forceReattach)
             }
         }
     }

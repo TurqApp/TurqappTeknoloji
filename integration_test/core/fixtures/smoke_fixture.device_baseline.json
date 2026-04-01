@@ -1,6 +1,9 @@
 {
   "feed": {
-    "minCount": 1
+    "minCount": 1,
+    "docIds": [
+      "it_seed_feed_post_1"
+    ]
   },
   "profile": {
     "minCount": 1
@@ -9,6 +12,9 @@
     "minCount": 0
   },
   "notifications": {
-    "maxUnread": 250
+    "maxUnread": 250,
+    "docIds": [
+      "it_notification_follow_profile"
+    ]
   }
 }

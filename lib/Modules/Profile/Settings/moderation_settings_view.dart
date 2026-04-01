@@ -38,9 +38,42 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return _buildModerationSettingsScaffold(context);
-  }
+  Widget build(BuildContext context) => Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              BackButtons(text: 'admin.moderation.title'.tr),
+              Expanded(
+                child: FutureBuilder<bool>(
+                  future: _canAccessFuture,
+                  builder: (context, accessSnap) {
+                    if (accessSnap.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (accessSnap.data != true) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            'admin.no_access'.tr,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'MontserratMedium',
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return _buildModerationSettingsContent(context);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
   void _updateModerationSettingsState(VoidCallback fn) {
     if (!mounted) return;

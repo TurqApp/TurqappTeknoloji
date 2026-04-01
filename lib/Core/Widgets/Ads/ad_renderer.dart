@@ -33,7 +33,7 @@ class AdRenderer extends StatelessWidget {
           const Icon(Icons.campaign_outlined, size: 18),
           const SizedBox(width: 8),
           Text(
-            '${title.isEmpty ? 'ads.sponsored'.tr : title} • ${slot.placement.name.toUpperCase()}',
+            '${title.isEmpty ? 'ads.sponsored'.tr : title} • ${slot.placement.displayName}',
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 13,

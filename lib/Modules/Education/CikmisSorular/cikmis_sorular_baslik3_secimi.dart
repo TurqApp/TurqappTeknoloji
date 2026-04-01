@@ -9,14 +9,18 @@ class CikmisSorularBaslik3Secimi extends StatefulWidget {
   final String anaBaslik;
   final String sinavTuru;
   final String yil;
+  final String denemeLabel;
   final String baslik2;
+  final int? sira;
 
   const CikmisSorularBaslik3Secimi({
     super.key,
     required this.anaBaslik,
     required this.sinavTuru,
     required this.yil,
+    this.denemeLabel = '',
     required this.baslik2,
+    this.sira,
   });
 
   @override
@@ -26,7 +30,7 @@ class CikmisSorularBaslik3Secimi extends StatefulWidget {
 
 class _CikmisSorularBaslik3SecimiState
     extends State<CikmisSorularBaslik3Secimi> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> basliklar = [];
 
   String _localizedExamType(String raw) {
@@ -45,13 +49,15 @@ class _CikmisSorularBaslik3SecimiState
     super.initState();
     _repository
         .distinctValues(
-          where: (doc) =>
-              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
-              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
-              (doc['yil'] ?? '').toString() == widget.yil &&
-              (doc['baslik2'] ?? '').toString() == widget.baslik2,
-          field: 'baslik3',
-        )
+      where: (doc) =>
+          (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+          (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
+          (doc['yil'] ?? '').toString() == widget.yil &&
+          (doc['baslik2'] ?? '').toString() == widget.baslik2 &&
+          (widget.sira == null ||
+              ((doc['sira'] as num?)?.toInt() ?? 0) == widget.sira),
+      field: 'baslik3',
+    )
         .then((items) {
       if (mounted) {
         setState(() {
@@ -81,8 +87,9 @@ class _CikmisSorularBaslik3SecimiState
                   const SizedBox(width: 8),
                   Expanded(
                     child: AppPageTitle(
-                      'past_questions.sessions_by_year'
-                          .trParams({'year': widget.yil}),
+                      widget.denemeLabel.isEmpty
+                          ? widget.yil
+                          : '${widget.denemeLabel} Oturumlar',
                       fontSize: 25,
                     ),
                   ),
@@ -120,6 +127,7 @@ class _CikmisSorularBaslik3SecimiState
                                     yil: widget.yil,
                                     baslik2: widget.baslik2,
                                     baslik3: basliklar[index],
+                                    sira: widget.sira,
                                   ),
                                 ),
                               );

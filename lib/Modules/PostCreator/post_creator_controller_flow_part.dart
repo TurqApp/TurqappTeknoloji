@@ -86,12 +86,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
   }
 
   void _initializeServices() {
-    try {
-      _errorService = ErrorHandlingService.ensure();
-      _networkService = NetworkAwarenessService.ensure();
-      _uploadQueueService = UploadQueueService.ensure();
-      _draftService = DraftService.ensure();
-    } catch (_) {}
+    try {} catch (_) {}
   }
 
   Map<String, dynamic> _normalizePollForSave(
@@ -144,10 +139,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
 
   void _showModerationSnackbarOnce(String title, String message) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    if (nowMs - PostCreatorController._lastModerationSnackbarAtMs < 1500) {
+    if (nowMs - _lastModerationSnackbarAtMs < 1500) {
       return;
     }
-    PostCreatorController._lastModerationSnackbarAtMs = nowMs;
+    _lastModerationSnackbarAtMs = nowMs;
     AppSnackbar(title, message);
   }
 
@@ -190,6 +185,24 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           );
           return false;
         }
+      }
+    }
+    return true;
+  }
+
+  bool _validateCaptionLengths() {
+    final maxCaptionLength = PostCaptionLimits.forCurrentUser();
+    for (final postModel in postList) {
+      final controller = ensureComposerControllerFor(postModel.index);
+      final validation = UploadValidationService.validateTextLength(
+        controller.textEdit.text,
+        maxLength: maxCaptionLength,
+      );
+      if (!validation.isValid) {
+        UploadValidationService.showValidationError(
+          validation.errorMessage ?? 'upload_validation.error_title'.tr,
+        );
+        return false;
       }
     }
     return true;
@@ -242,7 +255,11 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
     if (isPublishing.value) return;
     isPublishing.value = true;
     try {
-      if (!_networkService.isConnected) {
+      if (!_validateCaptionLengths()) {
+        return;
+      }
+
+      if (!_networkRuntimeService.isConnected) {
         await _errorService.handleError(
           'No internet connection',
           category: ErrorCategory.network,
@@ -254,7 +271,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         return;
       }
 
-      final progressController = UploadProgressController.ensure();
+      final progressController = ensureUploadProgressController();
       final allImages = <File>[];
       final allVideos = <File>[];
 
@@ -275,6 +292,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
                   c.reusedImageUrls.isNotEmpty)
               ? 'media'
               : c.textEdit.text.trim(),
+          maxTextLength: PostCaptionLimits.forCurrentUser(),
         );
         if (!perPostValidation.isValid) {
           await _errorService.handleError(
@@ -292,9 +310,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final fileSize = await image.length();
         final fileSizeMB = (fileSize / (1024 * 1024)).round();
 
-        if (!_networkService.shouldAllowUpload(fileSizeMB: fileSizeMB)) {
-          final recommendation =
-              _networkService.getUploadRecommendation(fileSizeMB: fileSizeMB);
+        if (!_networkRuntimeService.shouldAllowUpload(fileSizeMB: fileSizeMB)) {
+          final recommendation = _networkRuntimeService.getUploadRecommendation(
+            fileSizeMB: fileSizeMB,
+          );
           await _errorService.handleError(
             'Upload not recommended',
             category: ErrorCategory.network,
@@ -336,8 +355,8 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         initialStatus: 'post_creator.uploading_media'.tr,
       );
 
-      if (_networkService.isOnCellular &&
-          !_networkService.settings.autoUploadOnWiFi) {
+      if (_networkRuntimeService.isOnCellular &&
+          !_networkRuntimeService.settings.autoUploadOnWiFi) {
         await _addToUploadQueue(progressController);
       } else {
         await _uploadDirectly(progressController);
@@ -367,6 +386,13 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       if (!_validatePollRequirements()) return;
       var addedCount = 0;
       final queueUuid = const Uuid().v4();
+      final batchCreatedAt = DateTime.now();
+      final normalizedScheduledAt =
+          _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0;
+      final batchTimeStamp =
+          normalizedScheduledAt != 0
+              ? normalizedScheduledAt
+              : batchCreatedAt.millisecondsSinceEpoch;
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
         final controller = ensureComposerControllerFor(postModel.index);
@@ -428,8 +454,8 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUsername : '',
           'quotedSourceAvatarUrl':
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceAvatarUrl : '',
-          'scheduledAt':
-              _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0,
+          'scheduledAt': normalizedScheduledAt,
+          'timeStamp': batchTimeStamp,
         };
 
         final imagePaths = <String>[];
@@ -457,9 +483,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final pollPayload = (poll.isNotEmpty)
             ? _normalizePollForSave(
                 poll,
-                scheduledAt > 0
-                    ? scheduledAt
-                    : DateTime.now().millisecondsSinceEpoch,
+                scheduledAt > 0 ? scheduledAt : batchTimeStamp,
               )
             : null;
         if (pollPayload != null) {
@@ -471,10 +495,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           postData: jsonEncode(postData),
           imagePaths: imagePaths,
           videoPath: controller.selectedVideo.value?.path,
-          createdAt: DateTime.now(),
+          createdAt: batchCreatedAt,
         );
 
-        final added = await _uploadQueueService.addToQueue(
+        final added = await _uploadQueueRuntimeService.addToQueue(
           queuedUpload,
           startProcessing: false,
         );
@@ -488,7 +512,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         return;
       }
 
-      _uploadQueueService.processPendingQueue();
+      _uploadQueueRuntimeService.processPendingQueue();
 
       progressController.complete('post_creator.queue_added_complete'.tr);
       AppSnackbar(
@@ -512,7 +536,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
     nav?.uploadingPosts.value = true;
     _queueRingTimer?.cancel();
     _queueRingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final stats = _uploadQueueService.getQueueStats();
+      final stats = _uploadQueueRuntimeService.getQueueStats();
       final pending = (stats['pending'] as int?) ?? 0;
       final processing = (stats['processing'] as bool?) ?? false;
       if (!processing && pending == 0) {

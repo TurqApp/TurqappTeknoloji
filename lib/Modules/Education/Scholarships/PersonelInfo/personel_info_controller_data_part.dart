@@ -50,40 +50,38 @@ extension PersonelInfoControllerDataPart on PersonelInfoController {
           data,
           key: "medeniHal",
           scope: "profile",
-          fallback: PersonelInfoController._single,
+          fallback: _single,
         );
         county.value = originalCounty.value = userString(
           data,
           key: "ulke",
           scope: "profile",
-          fallback: PersonelInfoController._turkey,
+          fallback: _turkey,
         ).trim();
         cinsiyet.value = originalCinsiyet.value = userString(
           data,
           key: "cinsiyet",
           scope: "profile",
-          fallback: PersonelInfoController._selectValue,
+          fallback: _selectValue,
         );
         engelliRaporu.value = originalEngelliRaporu.value = userString(
           data,
           key: "engelliRaporu",
           scope: "family",
-          fallback: PersonelInfoController._none,
+          fallback: _none,
         );
         calismaDurumu.value = originalCalismaDurumu.value = userString(
           data,
           key: "calismaDurumu",
           scope: "profile",
-          fallback: PersonelInfoController._notWorking,
+          fallback: _notWorking,
         );
-        city.value = originalCity.value =
-            county.value == PersonelInfoController._turkey
-                ? userString(data, key: "nufusSehir", scope: "profile")
-                : "";
-        town.value = originalTown.value =
-            county.value == PersonelInfoController._turkey
-                ? userString(data, key: "nufusIlce", scope: "profile")
-                : "";
+        city.value = originalCity.value = county.value == _turkey
+            ? userString(data, key: "nufusSehir", scope: "profile")
+            : "";
+        town.value = originalTown.value = county.value == _turkey
+            ? userString(data, key: "nufusIlce", scope: "profile")
+            : "";
 
         final dateStr = userString(data, key: "dogumTarihi", scope: "profile");
         if (dateStr.isNotEmpty) {
@@ -138,8 +136,7 @@ extension PersonelInfoControllerDataPart on PersonelInfoController {
       return;
     }
 
-    if (county.value == PersonelInfoController._turkey &&
-        (city.value.isEmpty || town.value.isEmpty)) {
+    if (county.value == _turkey && (city.value.isEmpty || town.value.isEmpty)) {
       AppSnackbar('common.error'.tr, 'personal_info.fill_city_district'.tr);
       return;
     }
@@ -161,12 +158,8 @@ extension PersonelInfoControllerDataPart on PersonelInfoController {
             "tc": tc.value,
             "medeniHal": medeniHal.value,
             "ulke": county.value,
-            "nufusSehir": county.value == PersonelInfoController._turkey
-                ? city.value
-                : "",
-            "nufusIlce": county.value == PersonelInfoController._turkey
-                ? town.value
-                : "",
+            "nufusSehir": county.value == _turkey ? city.value : "",
+            "nufusIlce": county.value == _turkey ? town.value : "",
             "cinsiyet": cinsiyet.value,
             "calismaDurumu": calismaDurumu.value,
             "dogumTarihi": formattedDate,
@@ -180,10 +173,8 @@ extension PersonelInfoControllerDataPart on PersonelInfoController {
       originalCinsiyet.value = cinsiyet.value;
       originalEngelliRaporu.value = engelliRaporu.value;
       originalCalismaDurumu.value = calismaDurumu.value;
-      originalCity.value =
-          county.value == PersonelInfoController._turkey ? city.value : "";
-      originalTown.value =
-          county.value == PersonelInfoController._turkey ? town.value : "";
+      originalCity.value = county.value == _turkey ? city.value : "";
+      originalTown.value = county.value == _turkey ? town.value : "";
       originalSelectedDate.value = selectedDate.value;
       Get.back();
 

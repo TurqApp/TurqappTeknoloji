@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
+import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/typesense_post_service.dart';
@@ -19,8 +21,17 @@ import 'package:uuid/uuid.dart';
 class MarketFeedPostShareService {
   const MarketFeedPostShareService();
 
+  Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
+
   Future<void> shareItem(MarketItemModel item) async {
-    final currentUid = CurrentUserService.instance.effectiveUserId;
+    final currentUid = await _resolveCurrentUid();
     if (currentUid.isEmpty) {
       AppSnackbar(
           'login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);
@@ -39,6 +50,8 @@ class MarketFeedPostShareService {
         final postId = const Uuid().v4();
         final now = DateTime.now().millisecondsSinceEpoch;
         final imageUrls = [item.coverImageUrl.trim()];
+        final locationText = item.locationText.trim();
+        final locationCity = item.city.trim();
         final reshareMap = {
           'visibility': 0,
           'ctaLabel': 'education_feed.cta_listing'.tr,
@@ -64,6 +77,7 @@ class MarketFeedPostShareService {
           'isAd': false,
           'ad': false,
           'izBirakYayinTarihi': now,
+          'locationCity': locationCity,
           'stats': {
             'commentCount': 0,
             'likeCount': 0,
@@ -72,7 +86,7 @@ class MarketFeedPostShareService {
             'savedCount': 0,
             'statsCount': 0,
           },
-          'konum': '',
+          'konum': locationText,
           'mainFlood': '',
           'metin': _caption(item),
           'reshareMap': reshareMap,
@@ -113,7 +127,8 @@ class MarketFeedPostShareService {
           img: imageUrls,
           isAd: false,
           izBirakYayinTarihi: now,
-          konum: '',
+          konum: locationText,
+          locationCity: locationCity,
           mainFlood: '',
           metin: _caption(item),
           originalPostID: '',
@@ -136,7 +151,7 @@ class MarketFeedPostShareService {
           yorumMap: const {'visibility': 0},
         );
 
-        final agendaController = AgendaController.maybeFind();
+        final agendaController = maybeFindAgendaController();
         if (agendaController != null) {
           agendaController.addUploadedPostsAtTop([newPost]);
           if (agendaController.scrollController.hasClients) {
@@ -148,6 +163,7 @@ class MarketFeedPostShareService {
           }
         }
 
+        await _persistToHomeFeedSnapshot(currentUid, newPost);
         ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
 
         AppSnackbar('common.success'.tr, 'market_feed_share.shared'.tr);
@@ -165,5 +181,30 @@ class MarketFeedPostShareService {
       '${item.price.toStringAsFixed(0)} ${marketCurrencyLabel(item.currency)}',
       if (item.locationText.trim().isNotEmpty) item.locationText.trim(),
     ].join('\n');
+  }
+
+  Future<void> _persistToHomeFeedSnapshot(
+      String userId, PostsModel post) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty || post.docID.trim().isEmpty) return;
+
+    final repository = ensureFeedSnapshotRepository();
+    final snapshot = await repository.bootstrapHome(
+      userId: normalizedUserId,
+      limit: 40,
+    );
+    final merged = <String, PostsModel>{post.docID: post};
+    for (final existing in snapshot.data ?? const <PostsModel>[]) {
+      merged.putIfAbsent(existing.docID, () => existing);
+    }
+
+    final ordered = merged.values.toList(growable: false)
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    await repository.persistHomeSnapshot(
+      userId: normalizedUserId,
+      posts: ordered,
+      limit: 40,
+      source: CachedResourceSource.memory,
+    );
   }
 }

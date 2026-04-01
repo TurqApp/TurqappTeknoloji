@@ -1,6 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -43,9 +42,6 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
   bool _isLoadingTracks = true;
   String _currentPreviewUrl = '';
 
-  CollectionReference<Map<String, dynamic>> get _collection =>
-      FirebaseFirestore.instance.collection('storyMusic');
-
   @override
   void initState() {
     super.initState();
@@ -72,8 +68,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
     setState(updater);
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -121,4 +116,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) => _buildPage(context);
 }

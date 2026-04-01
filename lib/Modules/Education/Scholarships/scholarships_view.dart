@@ -8,10 +8,15 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart';
@@ -20,20 +25,25 @@ import 'package:turqappv2/Modules/Education/Scholarships/Applications/applicatio
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_listing_card.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_service.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
 part 'scholarships_view_body_part.dart';
+part 'scholarships_view_list_part.dart';
 part 'scholarships_view_actions_part.dart';
+part 'scholarships_view_user_part.dart';
 
 class ScholarshipsView extends StatefulWidget {
   const ScholarshipsView({
@@ -51,7 +61,7 @@ class ScholarshipsView extends StatefulWidget {
 
 class _ScholarshipsViewState extends State<ScholarshipsView> {
   final ScholarshipsController controller =
-      ScholarshipsController.ensure(permanent: true);
+      ensureScholarshipsController(permanent: true);
   final DateTime startTime = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
 
@@ -90,21 +100,27 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       );
     }
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _buildHeader(),
-                _buildSearchField(),
-                _buildBody(),
-              ],
-            ),
-            _buildScrollToTopButton(),
-            _buildActionButton(context),
-          ],
+    return SearchResetOnPageReturnScope(
+      onReset: () {
+        _searchController.clear();
+        controller.resetSearch();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  _buildHeader(),
+                  _buildSearchField(),
+                  _buildBody(),
+                ],
+              ),
+              _buildScrollToTopButton(),
+              _buildActionButton(context),
+            ],
+          ),
         ),
       ),
     );

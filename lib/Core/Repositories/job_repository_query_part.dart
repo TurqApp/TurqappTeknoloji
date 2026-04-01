@@ -1,6 +1,18 @@
 part of 'job_repository.dart';
 
 extension JobRepositoryQueryPart on JobRepository {
+  int _applicationAsInt(Object? value) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return 0;
+  }
+
   Future<JobModel?> fetchById(
     String docId, {
     bool preferCache = true,
@@ -13,11 +25,12 @@ extension JobRepositoryQueryPart on JobRepository {
       if (memory != null && memory.isNotEmpty) return memory.first;
       final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null && disk.items.isNotEmpty) {
+        final cloned = _cloneJobs(disk.items);
         _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
+          items: cloned,
           cachedAt: disk.cachedAt,
         );
-        return disk.items.first;
+        return _cloneJob(cloned.first);
       }
     }
 
@@ -32,7 +45,7 @@ extension JobRepositoryQueryPart on JobRepository {
   }
 
   Future<List<JobModel>> fetchLatestJobs({
-    int limit = 150,
+    int limit = ReadBudgetRegistry.jobHomeInitialLimit,
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
@@ -42,11 +55,12 @@ extension JobRepositoryQueryPart on JobRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
+        final cloned = _cloneJobs(disk.items);
         _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
+          items: cloned,
           cachedAt: disk.cachedAt,
         );
-        return List<JobModel>.from(disk.items);
+        return _cloneJobs(cloned);
       }
     }
 
@@ -82,11 +96,12 @@ extension JobRepositoryQueryPart on JobRepository {
         }
         final disk = await _getFromPrefsEntry('doc:$id');
         if (disk != null && disk.items.isNotEmpty) {
+          final cloned = _cloneJobs(disk.items);
           _memory['doc:$id'] = _TimedJobs(
-            items: List<JobModel>.from(disk.items),
+            items: cloned,
             cachedAt: disk.cachedAt,
           );
-          resolved[id] = disk.items.first;
+          resolved[id] = _cloneJob(cloned.first);
           continue;
         }
         missing.add(id);
@@ -120,41 +135,6 @@ extension JobRepositoryQueryPart on JobRepository {
         .toList(growable: false);
   }
 
-  Future<List<JobModel>> fetchByOwnerAndEnded(
-    String uid, {
-    required bool ended,
-    bool preferCache = true,
-    bool forceRefresh = false,
-    bool cacheOnly = false,
-  }) async {
-    final cacheKey = 'owner:$uid:ended:$ended';
-    if (!forceRefresh && preferCache) {
-      final memory = _getFromMemory(cacheKey);
-      if (memory != null) return memory;
-      final disk = await _getFromPrefsEntry(cacheKey);
-      if (disk != null) {
-        _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
-          cachedAt: disk.cachedAt,
-        );
-        return List<JobModel>.from(disk.items);
-      }
-    }
-
-    if (cacheOnly) return const <JobModel>[];
-
-    final snapshot = await _firestore
-        .collection(JobCollection.name)
-        .where('userID', isEqualTo: uid)
-        .where('ended', isEqualTo: ended)
-        .get(const GetOptions(source: Source.serverAndCache));
-    final items = snapshot.docs
-        .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-        .toList(growable: false);
-    await _store(cacheKey, items);
-    return items;
-  }
-
   Future<List<JobModel>> fetchSimilarByProfession(
     String meslek, {
     int limit = 15,
@@ -168,11 +148,12 @@ extension JobRepositoryQueryPart on JobRepository {
       if (memory != null) return memory;
       final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
+        final cloned = _cloneJobs(disk.items);
         _memory[cacheKey] = _TimedJobs(
-          items: List<JobModel>.from(disk.items),
+          items: cloned,
           cachedAt: disk.cachedAt,
         );
-        return List<JobModel>.from(disk.items);
+        return _cloneJobs(cloned);
       }
     }
 
@@ -235,9 +216,8 @@ extension JobRepositoryQueryPart on JobRepository {
                       (data['applicantNickname'] ?? '').toString(),
                   applicantPfImage: (data['applicantPfImage'] ?? '').toString(),
                   status: (data['status'] ?? 'pending').toString(),
-                  timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
-                  statusUpdatedAt:
-                      (data['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+                  timeStamp: _applicationAsInt(data['timeStamp']),
+                  statusUpdatedAt: _applicationAsInt(data['statusUpdatedAt']),
                   note: (data['note'] ?? '').toString(),
                 ))
             .toList(growable: false);
@@ -267,8 +247,8 @@ extension JobRepositoryQueryPart on JobRepository {
               applicantNickname: (data['applicantNickname'] ?? '').toString(),
               applicantPfImage: (data['applicantPfImage'] ?? '').toString(),
               status: (data['status'] ?? 'pending').toString(),
-              timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
-              statusUpdatedAt: (data['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+              timeStamp: _applicationAsInt(data['timeStamp']),
+              statusUpdatedAt: _applicationAsInt(data['statusUpdatedAt']),
               note: (data['note'] ?? '').toString(),
             ))
         .toList(growable: false);

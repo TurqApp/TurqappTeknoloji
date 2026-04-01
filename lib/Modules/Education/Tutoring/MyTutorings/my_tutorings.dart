@@ -24,14 +24,14 @@ class _MyTutoringsState extends State<MyTutorings> {
   @override
   void initState() {
     super.initState();
-    _ownsController = MyTutoringsController.maybeFind() == null;
-    controller = MyTutoringsController.ensure();
+    _ownsController = maybeFindMyTutoringsController() == null;
+    controller = ensureMyTutoringsController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(MyTutoringsController.maybeFind(), controller)) {
+        identical(maybeFindMyTutoringsController(), controller)) {
       Get.delete<MyTutoringsController>(force: true);
     }
     super.dispose();
@@ -40,7 +40,7 @@ class _MyTutoringsState extends State<MyTutorings> {
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
-        ViewModeController.ensure(permanent: true);
+        ensureViewModeController(permanent: true);
 
     return Obx(
       () {

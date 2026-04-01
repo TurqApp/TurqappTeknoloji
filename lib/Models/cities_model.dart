@@ -4,11 +4,10 @@ class CitiesModel {
 
   CitiesModel({required this.il, required this.ilce});
 
-  factory CitiesModel.fromJson(Map<String, dynamic> json) {
-    return CitiesModel(il: json['il'], ilce: json['ilce']);
-  }
+  factory CitiesModel.fromJson(Map<String, dynamic> json) => CitiesModel(
+        il: (json['il'] ?? '').toString(),
+        ilce: (json['ilce'] ?? '').toString(),
+      );
 
-  Map<String, dynamic> toJson() {
-    return {'il': il, 'ilce': ilce};
-  }
+  Map<String, dynamic> toJson() => {'il': il, 'ilce': ilce};
 }

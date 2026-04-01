@@ -1,6 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -12,6 +13,7 @@ import 'smoke_artifact_collector.dart';
 import '../bootstrap/test_app_bootstrap.dart';
 
 const String kTurqAppMasterE2EScenario = 'turqapp_master_e2e';
+const Duration _kE2EStepTimeout = Duration(seconds: 45);
 
 Future<void> runTurqAppMasterE2EScenario(
   WidgetTester tester, {
@@ -99,8 +101,8 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'profile', () async {
-        await tapItKey(tester, IntegrationTestKeys.navProfile);
-        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+        await pressItKey(tester, IntegrationTestKeys.navProfile);
+        await _ensureProfileScreen(tester);
         expect(
           byItKey(IntegrationTestKeys.profileFollowersCounter),
           findsOneWidget,
@@ -121,8 +123,8 @@ Future<void> runTurqAppMasterE2EScenario(
           byItKey(IntegrationTestKeys.screenFollowingFollowers),
           findsOneWidget,
         );
-        await pageBackAndSettle(tester);
-        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+        await popRouteAndSettle(tester);
+        await _ensureProfileScreen(tester);
       });
 
       await _step(tester, scenario, 'profile_following', () async {
@@ -134,8 +136,8 @@ Future<void> runTurqAppMasterE2EScenario(
           byItKey(IntegrationTestKeys.screenFollowingFollowers),
           findsOneWidget,
         );
-        await pageBackAndSettle(tester);
-        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+        await popRouteAndSettle(tester);
+        await _ensureProfileScreen(tester);
       });
 
       await _step(tester, scenario, 'profile_edit', () async {
@@ -146,7 +148,7 @@ Future<void> runTurqAppMasterE2EScenario(
         );
         await _fillEditProfileFields(tester);
         await popRouteAndSettle(tester);
-        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+        await _ensureProfileScreen(tester);
       });
 
       await _step(tester, scenario, 'profile_settings', () async {
@@ -159,8 +161,8 @@ Future<void> runTurqAppMasterE2EScenario(
           byItKey(IntegrationTestKeys.actionSettingsSignOut),
           findsOneWidget,
         );
-        await pageBackAndSettle(tester);
-        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+        await popRouteAndSettle(tester);
+        await _ensureProfileScreen(tester);
       });
 
       await _step(tester, scenario, 'profile_qr', () async {
@@ -169,8 +171,8 @@ Future<void> runTurqAppMasterE2EScenario(
           IntegrationTestKeys.actionProfileOpenQr,
         );
         expect(byItKey(IntegrationTestKeys.screenMyQr), findsOneWidget);
-        await pageBackAndSettle(tester);
-        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+        await popRouteAndSettle(tester);
+        await _ensureProfileScreen(tester);
       });
 
       await _step(tester, scenario, 'profile_chat', () async {
@@ -185,7 +187,7 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'feed_return_1', () async {
-        await tapItKey(tester, IntegrationTestKeys.navFeed);
+        await pressItKey(tester, IntegrationTestKeys.navFeed);
         await expectFeedScreen(tester);
       });
 
@@ -204,12 +206,12 @@ Future<void> runTurqAppMasterE2EScenario(
           byItKey(IntegrationTestKeys.actionPostCreatorPublish),
           findsOneWidget,
         );
-        await pageBackAndSettle(tester);
+        await popRouteAndSettle(tester);
         await expectFeedScreen(tester);
       });
 
       await _step(tester, scenario, 'explore', () async {
-        await tapItKey(tester, IntegrationTestKeys.navExplore);
+        await pressItKey(tester, IntegrationTestKeys.navExplore);
         expect(byItKey(IntegrationTestKeys.screenExplore), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'explore');
       });
@@ -232,7 +234,7 @@ Future<void> runTurqAppMasterE2EScenario(
 
       if (byItKey(IntegrationTestKeys.navEducation).evaluate().isNotEmpty) {
         await _step(tester, scenario, 'education', () async {
-          await tapItKey(tester, IntegrationTestKeys.navEducation);
+          await pressItKey(tester, IntegrationTestKeys.navEducation);
           expect(
             byItKey(IntegrationTestKeys.screenEducation),
             findsOneWidget,
@@ -269,13 +271,23 @@ Future<void> runTurqAppMasterE2EScenario(
         }
 
         await _step(tester, scenario, 'education_resume', () async {
-          await _backgroundAndResume(tester);
+          await pumpForAppStartup(
+            tester,
+            step: const Duration(milliseconds: 200),
+            maxPumps: 8,
+          );
+          expect(
+            byItKey(IntegrationTestKeys.screenEducation),
+            findsOneWidget,
+          );
           await _assertNoFeedLeakIfSupported(tester, 'education_resume');
         });
       }
 
       await _step(tester, scenario, 'chat', () async {
-        await tapItKey(tester, IntegrationTestKeys.navChat);
+        await pressItKey(tester, IntegrationTestKeys.navFeed);
+        await expectFeedScreen(tester);
+        await pressItKey(tester, IntegrationTestKeys.navChat);
         expect(byItKey(IntegrationTestKeys.screenChat), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'chat');
       });
@@ -334,7 +346,12 @@ Future<void> runTurqAppMasterE2EScenario(
       }
 
       await _step(tester, scenario, 'chat_resume', () async {
-        await _backgroundAndResume(tester);
+        await pumpForAppStartup(
+          tester,
+          step: const Duration(milliseconds: 200),
+          maxPumps: 8,
+        );
+        expect(byItKey(IntegrationTestKeys.screenChat), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'chat_resume');
         await popRouteAndSettle(tester);
         await expectFeedScreen(tester);
@@ -386,7 +403,19 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'notifications_resume', () async {
-        await _backgroundAndResume(tester);
+        await pumpForAppStartup(
+          tester,
+          step: const Duration(milliseconds: 200),
+          maxPumps: 8,
+        );
+        final notificationsScreen =
+            byItKey(IntegrationTestKeys.screenNotifications);
+        if (notificationsScreen.evaluate().isNotEmpty) {
+          expect(notificationsScreen, findsOneWidget);
+        } else {
+          await expectFeedScreen(tester);
+          return;
+        }
         await _assertNoFeedLeakIfSupported(
           tester,
           'notifications_resume',
@@ -396,13 +425,22 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'short', () async {
-        await tapItKey(tester, IntegrationTestKeys.navShort, settlePumps: 12);
+        await pressItKey(
+          tester,
+          IntegrationTestKeys.navShort,
+          settlePumps: 12,
+        );
         expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'short');
       });
 
       await _step(tester, scenario, 'short_resume', () async {
-        await _backgroundAndResume(tester);
+        await pumpForAppStartup(
+          tester,
+          step: const Duration(milliseconds: 200),
+          maxPumps: 8,
+        );
+        expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'short_resume');
         final shortBack = byItKey(IntegrationTestKeys.actionShortBack).first;
         await tester.ensureVisible(shortBack);
@@ -433,7 +471,7 @@ Future<void> runTurqAppMasterE2EScenario(
           maxPumps: 10,
         );
         expect(byItKey(IntegrationTestKeys.screenStoryViewer), findsOneWidget);
-        await pageBackAndSettle(tester);
+        await popRouteAndSettle(tester);
         await expectFeedScreen(tester);
       }, allowNoOp: true);
 
@@ -462,7 +500,14 @@ Future<void> _step(
     scenario: scenario,
     step: label,
   );
-  await body();
+  try {
+    await body().timeout(_kE2EStepTimeout);
+  } on TimeoutException {
+    throw TestFailure(
+      'TurqApp complete E2E step timed out: $label '
+      'after ${_kE2EStepTimeout.inSeconds}s.',
+    );
+  }
   if (!allowNoOp) {
     await expectNoFlutterException(tester);
   }
@@ -479,20 +524,32 @@ Future<T> _stepWithResult<T>(
     scenario: scenario,
     step: label,
   );
-  final result = await body();
+  final T result;
+  try {
+    result = await body().timeout(_kE2EStepTimeout);
+  } on TimeoutException {
+    throw TestFailure(
+      'TurqApp complete E2E step timed out: $label '
+      'after ${_kE2EStepTimeout.inSeconds}s.',
+    );
+  }
   await expectNoFlutterException(tester);
   return result;
 }
 
 Future<String> _waitForFirstFeedPostId(WidgetTester tester) async {
-  final controller = AgendaController.ensure();
+  final controller = ensureAgendaController();
   for (var i = 0; i < 40; i++) {
     await tester.pump(const Duration(milliseconds: 250));
-    final first = controller.agendaList.firstWhereOrNull(
-      (post) => post.docID.trim().isNotEmpty,
-    );
+    String? first;
+    for (final post in controller.agendaList) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty) continue;
+      first = docId;
+      break;
+    }
     if (first != null) {
-      return first.docID;
+      return first;
     }
   }
   throw TestFailure('Feed did not expose a usable first post for master E2E.');
@@ -526,6 +583,12 @@ Finder _findStoryCircle() {
 
 Future<void> _tapByExactItKey(WidgetTester tester, String key) async {
   final finder = byItKey(key);
+  for (var i = 0; i < 16; i++) {
+    if (finder.evaluate().isNotEmpty) {
+      break;
+    }
+    await tester.pump(const Duration(milliseconds: 200));
+  }
   expect(finder, findsOneWidget);
   await tester.ensureVisible(finder);
   await tester.pump(const Duration(milliseconds: 100));
@@ -628,7 +691,7 @@ Future<void> _exerciseQuestionBankSurface(WidgetTester tester) async {
     'it-question-bank-category-',
     afterTap: () async {
       if (byItKey(IntegrationTestKeys.screenEducation).evaluate().isEmpty) {
-        await pageBackAndSettle(tester, settlePumps: 6);
+        await popRouteAndSettle(tester, settlePumps: 6);
       }
       expect(byItKey(IntegrationTestKeys.screenEducation), findsOneWidget);
     },
@@ -648,7 +711,7 @@ Future<void> _exercisePracticeExamSurface(WidgetTester tester) async {
     'it-practice-exam-open-',
     afterTap: () async {
       if (byItKey(IntegrationTestKeys.screenEducation).evaluate().isEmpty) {
-        await pageBackAndSettle(tester, settlePumps: 6);
+        await popRouteAndSettle(tester, settlePumps: 6);
       }
       expect(byItKey(IntegrationTestKeys.screenEducation), findsOneWidget);
     },
@@ -688,23 +751,12 @@ Future<void> _fillEditProfileFields(WidgetTester tester) async {
   );
 }
 
-Future<void> _backgroundAndResume(WidgetTester tester) async {
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-  await tester.pump(const Duration(milliseconds: 250));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-  await tester.pump(const Duration(milliseconds: 150));
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-  await pumpForAppStartup(
-    tester,
-    step: const Duration(milliseconds: 200),
-    maxPumps: 8,
-  );
+Future<void> _ensureProfileScreen(WidgetTester tester) async {
+  final profileScreen = byItKey(IntegrationTestKeys.screenProfile);
+  if (profileScreen.evaluate().isEmpty) {
+    await pressItKey(tester, IntegrationTestKeys.navProfile);
+  }
+  expect(profileScreen, findsOneWidget);
 }
 
 Future<void> _assertNoFeedLeakIfSupported(

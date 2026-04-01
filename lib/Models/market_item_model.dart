@@ -1,6 +1,54 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MarketItemModel {
+  static int _asInt(Object? value) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return 0;
+  }
+
+  static double _asDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = double.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toDouble();
+    }
+    return 0;
+  }
+
+  static bool _asBool(Object? value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   MarketItemModel({
     required this.id,
     required this.userId,
@@ -9,16 +57,18 @@ class MarketItemModel {
     required this.price,
     required this.currency,
     required this.categoryKey,
-    required this.categoryPath,
+    required List<String> categoryPath,
     required this.locationText,
     required this.city,
     required this.district,
     required this.coverImageUrl,
-    required this.imageUrls,
+    required List<String> imageUrls,
     required this.sellerName,
     this.sellerUsername = '',
     this.sellerPhotoUrl = '',
     this.sellerRozet = '',
+    this.shortId = '',
+    this.shortUrl = '',
     this.sellerPhoneNumber = '',
     this.showPhone = false,
     required this.contactPreference,
@@ -28,8 +78,10 @@ class MarketItemModel {
     this.offerCount = 0,
     this.viewCount = 0,
     this.isNegotiable = false,
-    this.attributes = const <String, dynamic>{},
-  });
+    Map<String, dynamic> attributes = const <String, dynamic>{},
+  })  : categoryPath = List<String>.from(categoryPath, growable: false),
+        imageUrls = List<String>.from(imageUrls, growable: false),
+        attributes = _cloneAttributes(attributes);
 
   final String id;
   final String userId;
@@ -48,6 +100,8 @@ class MarketItemModel {
   final String sellerUsername;
   final String sellerPhotoUrl;
   final String sellerRozet;
+  final String shortId;
+  final String shortUrl;
   final String sellerPhoneNumber;
   final bool showPhone;
   final String contactPreference;
@@ -58,6 +112,27 @@ class MarketItemModel {
   final int viewCount;
   final bool isNegotiable;
   final Map<String, dynamic> attributes;
+
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneAttributes(Map source) {
+    return source.map(
+      (key, value) => MapEntry(key.toString(), _cloneValue(value)),
+    );
+  }
 
   String get categoryLabel {
     if (categoryPath.isNotEmpty) return categoryPath.last;
@@ -85,7 +160,7 @@ class MarketItemModel {
       userId: (json['userId'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
-      price: (json['price'] as num?)?.toDouble() ?? 0,
+      price: _asDouble(json['price']),
       currency: (json['currency'] ?? 'TRY').toString(),
       categoryKey: (json['categoryKey'] ?? '').toString(),
       categoryPath: categoryPath,
@@ -115,23 +190,23 @@ class MarketItemModel {
       sellerRozet:
           (seller['rozet'] ?? json['sellerRozet'] ?? json['sellerBadge'] ?? '')
               .toString(),
+      shortId: (json['shortId'] ?? '').toString(),
+      shortUrl: (json['shortUrl'] ?? '').toString(),
       sellerPhoneNumber: (seller['phoneNumber'] ??
               json['sellerPhoneNumber'] ??
               json['phoneNumber'] ??
               '')
           .toString(),
-      showPhone: json['showPhone'] == true,
+      showPhone: _asBool(json['showPhone']),
       contactPreference:
           (json['contactPreference'] ?? 'message_only').toString(),
       status: (json['status'] ?? 'active').toString(),
       createdAt: _toMillis(json['createdAt']),
-      favoriteCount: (json['favoriteCount'] as num?)?.toInt() ?? 0,
-      offerCount: (json['offerCount'] as num?)?.toInt() ?? 0,
-      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
-      isNegotiable: json['isNegotiable'] == true,
-      attributes: Map<String, dynamic>.from(
-        json['attributes'] as Map? ?? const {},
-      ),
+      favoriteCount: _asInt(json['favoriteCount']),
+      offerCount: _asInt(json['offerCount']),
+      viewCount: _asInt(json['viewCount']),
+      isNegotiable: _asBool(json['isNegotiable']),
+      attributes: _cloneAttributes(json['attributes'] as Map? ?? const {}),
     );
   }
 
@@ -148,16 +223,18 @@ class MarketItemModel {
       'price': price,
       'currency': currency,
       'categoryKey': categoryKey,
-      'categoryPath': categoryPath,
+      'categoryPath': List<String>.from(categoryPath, growable: false),
       'locationText': locationText,
       'city': city,
       'district': district,
       'coverImageUrl': coverImageUrl,
-      'imageUrls': imageUrls,
+      'imageUrls': List<String>.from(imageUrls, growable: false),
       'sellerName': sellerName,
       'sellerUsername': sellerUsername,
       'sellerPhotoUrl': sellerPhotoUrl,
       'sellerRozet': sellerRozet,
+      'shortId': shortId,
+      'shortUrl': shortUrl,
       'sellerPhoneNumber': sellerPhoneNumber,
       'showPhone': showPhone,
       'contactPreference': contactPreference,
@@ -167,7 +244,7 @@ class MarketItemModel {
       'offerCount': offerCount,
       'viewCount': viewCount,
       'isNegotiable': isNegotiable,
-      'attributes': attributes,
+      'attributes': _cloneAttributes(attributes),
     };
   }
 
@@ -189,6 +266,8 @@ class MarketItemModel {
     String? sellerUsername,
     String? sellerPhotoUrl,
     String? sellerRozet,
+    String? shortId,
+    String? shortUrl,
     String? sellerPhoneNumber,
     bool? showPhone,
     String? contactPreference,
@@ -218,6 +297,8 @@ class MarketItemModel {
       sellerUsername: sellerUsername ?? this.sellerUsername,
       sellerPhotoUrl: sellerPhotoUrl ?? this.sellerPhotoUrl,
       sellerRozet: sellerRozet ?? this.sellerRozet,
+      shortId: shortId ?? this.shortId,
+      shortUrl: shortUrl ?? this.shortUrl,
       sellerPhoneNumber: sellerPhoneNumber ?? this.sellerPhoneNumber,
       showPhone: showPhone ?? this.showPhone,
       contactPreference: contactPreference ?? this.contactPreference,
@@ -234,6 +315,13 @@ class MarketItemModel {
   static int _toMillis(dynamic value) {
     if (value is Timestamp) return value.millisecondsSinceEpoch;
     if (value is num) return value.toInt();
+    if (value is String) {
+      final normalized = value.trim();
+      final parsed = int.tryParse(normalized);
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(normalized);
+      if (parsedNum != null) return parsedNum.toInt();
+    }
     return 0;
   }
 }

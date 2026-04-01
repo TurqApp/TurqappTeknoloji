@@ -1,6 +1,31 @@
 part of 'profile_view.dart';
 
 extension _ProfileViewLifecyclePart on _ProfileViewState {
+  bool _isProfileSurfaceActive() {
+    final nav = maybeFindNavBarController();
+    if (nav == null) {
+      final route = Get.currentRoute.trim();
+      if (route == '/NavBarView' || route == 'NavBarView') {
+        return false;
+      }
+      return true;
+    }
+    final settings = maybeFindSettingsController();
+    final hasEducation = settings?.educationScreenIsOn.value ?? false;
+    final profileIndex = hasEducation ? 4 : 3;
+    return nav.selectedIndex.value == profileIndex;
+  }
+
+  void _refreshProfileSurfaceMetaIfActive({bool force = false}) {
+    if (!_isProfileSurfaceActive()) return;
+    unawaited(_refreshProfileSurfaceMeta(force: force));
+  }
+
+  void _refreshProfileSupplementalMetaIfActive({bool force = false}) {
+    if (!_isProfileSurfaceActive()) return;
+    unawaited(_refreshProfileSupplementalMeta(force: force));
+  }
+
   void _initializeProfileView() {
     final existingController = ProfileController.maybeFind();
     if (existingController != null) {
@@ -9,11 +34,11 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       controller = ProfileController.ensure();
       _ownsController = true;
     }
-    final existingSocialMediaController = SocialMediaController.maybeFind();
+    final existingSocialMediaController = maybeFindSocialMediaController();
     if (existingSocialMediaController != null) {
       socialMediaController = existingSocialMediaController;
     } else {
-      socialMediaController = SocialMediaController.ensure();
+      socialMediaController = ensureSocialMediaController();
       _ownsSocialMediaController = true;
     }
     try {
@@ -22,36 +47,38 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
-    try {
-      AgendaController.ensure().isMuted.value = false;
-    } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_refreshProfileSurfaceMeta(force: false));
+      unawaited(controller.onPrimarySurfaceVisible());
+      _refreshProfileSupplementalMetaIfActive(force: false);
     });
     _marketUserWorker = ever(userService.currentUserRx, (_) {
-      unawaited(_refreshProfileSurfaceMeta(force: false));
+      _refreshProfileSurfaceMetaIfActive(force: false);
     });
-
-    final highlightsController = _ensureProfileHighlightsController();
-    if (highlightsController != null) {
-      unawaited(highlightsController.loadHighlights());
+    final nav = maybeFindNavBarController();
+    if (nav != null) {
+      _profileTabWorker = ever<int>(nav.selectedIndex, (_) {
+        _refreshProfileSurfaceMetaIfActive(force: false);
+      });
     }
   }
 
   void _disposeProfileView() {
     _marketUserWorker?.dispose();
+    _profileTabWorker?.dispose();
+    _scrollSettleDebounce?.cancel();
+    _linksHighlightsScrollController.dispose();
     if (_ownsHighlightsController) {
       final uid = _myUserId;
       final tag = uid.isEmpty ? '' : 'highlights_$uid';
       if (tag.isNotEmpty &&
-          StoryHighlightsController.maybeFind(tag: tag) != null) {
+          maybeFindStoryHighlightsController(tag: tag) != null) {
         Get.delete<StoryHighlightsController>(tag: tag, force: true);
       }
     }
     if (_ownsSocialMediaController &&
         identical(
-          SocialMediaController.maybeFind(),
+          maybeFindSocialMediaController(),
           socialMediaController,
         )) {
       Get.delete<SocialMediaController>(force: true);
@@ -62,10 +89,22 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     }
   }
 
-  void _refreshUserState() {
-    userService.forceRefresh();
-    StoryRowController.refreshStoriesGlobally();
-    unawaited(_loadMarketItems(force: true));
+  void _refreshUserState({
+    bool refreshStories = true,
+    bool refreshSurface = true,
+    bool refreshEmailVerification = false,
+  }) {
+    if (refreshEmailVerification) {
+      unawaited(
+        userService.refreshEmailVerificationStatus(reloadAuthUser: false),
+      );
+    }
+    if (refreshStories) {
+      refreshStoryRowGlobally();
+    }
+    if (refreshSurface) {
+      _refreshProfileSurfaceMetaIfActive(force: false);
+    }
   }
 
   void _showProfileImagePreview() {
@@ -103,10 +142,9 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       _marketLoading = true;
     });
     try {
-      final items = await _marketRepository.fetchByOwner(
+      final items = await _loadProfileMarketItems(
         uid,
-        preferCache: !force,
-        forceRefresh: force,
+        force: force,
       );
       _updateViewState(() {
         _marketItems = items
@@ -124,19 +162,70 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     }
   }
 
+  Future<List<MarketItemModel>> _loadProfileMarketItems(
+    String userId, {
+    required bool force,
+  }) async {
+    if (force) {
+      final resource = await _marketSnapshotRepository.loadOwner(
+        userId: userId,
+        forceSync: true,
+      );
+      return resource.data ?? const <MarketItemModel>[];
+    }
+
+    final cached = await _marketSnapshotRepository.loadCachedOwner(
+      userId: userId,
+    );
+    if (cached.hasLocalSnapshot && cached.data != null) {
+      return cached.data!;
+    }
+
+    final live = await _marketSnapshotRepository.loadOwner(
+      userId: userId,
+      forceSync: true,
+    );
+    return live.data ?? const <MarketItemModel>[];
+  }
+
   void _onScroll() {
     _scrollProbeScheduled = false;
     if (!mounted) return;
-    final activeScrollController = controller.currentScrollController;
-    if (!activeScrollController.hasClients) return;
-
-    final position = activeScrollController.position;
+    final position = controller.currentScrollPosition;
+    if (position == null) return;
+    final currentOffset = position.pixels;
+    final scrollDelta =
+        (currentOffset - controller.lastObservedScrollOffset).abs();
+    final startupLockActive =
+        GetPlatform.isIOS && controller.hasStartupPlaybackLock;
+    final startupUnlockThreshold = startupLockActive ? 12.0 : 1.0;
+    final hasMeaningfulScrollMovement =
+        currentOffset.abs() > startupUnlockThreshold ||
+            scrollDelta > startupUnlockThreshold;
+    if (!controller.hasStartupScrollStarted && hasMeaningfulScrollMovement) {
+      controller.markStartupScrollBegan();
+    }
+    controller.lastObservedScrollOffset = currentOffset;
     if (position.pixels >= position.maxScrollExtent - 300) {
       controller.fetchPosts();
       controller.fetchPhotos();
       controller.fetchVideos();
     }
     if (controller.postSelection.value == 0) {
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          if (!mounted || controller.postSelection.value != 0) return;
+          controller.clearStartupScrollTracking();
+          final centered = controller.centeredIndex.value;
+          if (centered >= 0 && centered < controller.mergedPosts.length) {
+            controller.ensureCenteredPlaybackForCurrentSelection();
+          } else {
+            controller.resumeCenteredPost();
+          }
+        },
+      );
       return;
     }
     final merged = controller.mergedPosts;

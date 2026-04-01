@@ -85,6 +85,98 @@ export const recordViewBatch = functions
     return { ok: true, processed: items.length };
   });
 
+/**
+ * toggleLikeBatch — load test ve kontrollü backend kullanımında
+ * beğeni durumunu atomik olarak aç/kapatır.
+ * Input: { items: Array<{ postId: string; value?: boolean }> }
+ */
+export const toggleLikeBatch = functions
+  .region("europe-west1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Auth required");
+    }
+
+    const uid = context.auth.uid;
+    const items: Array<{ postId: string; value?: boolean }> =
+      Array.isArray(data?.items) ? data.items : [];
+
+    if (items.length === 0 || items.length > 50) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "items: 1-50 arası"
+      );
+    }
+
+    const results: Array<{ postId: string; liked: boolean; changed: boolean }> = [];
+
+    for (const item of items) {
+      const postId = String(item?.postId ?? "").trim();
+      if (!postId) continue;
+      const requestedValue =
+        typeof item?.value === "boolean" ? item.value : undefined;
+
+      const result = await db.runTransaction(async (tx) => {
+        const postRef = db.collection("Posts").doc(postId);
+        const likeRef = postRef.collection("likes").doc(uid);
+        const userLikeRef = db
+          .collection("users")
+          .doc(uid)
+          .collection("likedPosts")
+          .doc(postId);
+
+        const [postSnap, likeSnap] = await Promise.all([
+          tx.get(postRef),
+          tx.get(likeRef),
+        ]);
+
+        if (!postSnap.exists) {
+          throw new functions.https.HttpsError("not-found", "post_not_found");
+        }
+
+        const currentlyLiked = likeSnap.exists;
+        const nextLiked =
+          requestedValue === undefined ? !currentlyLiked : requestedValue;
+
+        if (nextLiked === currentlyLiked) {
+          return { postId, liked: currentlyLiked, changed: false };
+        }
+
+        const currentCount = Math.max(
+          0,
+          Number(postSnap.get("stats.likeCount") || 0)
+        );
+        const nextCount = nextLiked
+          ? currentCount + 1
+          : Math.max(currentCount - 1, 0);
+        const now = Date.now();
+
+        if (nextLiked) {
+          tx.set(
+            likeRef,
+            { userID: uid, timeStamp: now },
+            { merge: true }
+          );
+          tx.set(
+            userLikeRef,
+            { postDocID: postId, timeStamp: now },
+            { merge: true }
+          );
+        } else {
+          tx.delete(likeRef);
+          tx.delete(userLikeRef);
+        }
+
+        tx.update(postRef, { "stats.likeCount": nextCount });
+        return { postId, liked: nextLiked, changed: true };
+      });
+
+      results.push(result);
+    }
+
+    return { ok: true, processed: results.length, results };
+  });
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⏱️ SCHEDULED: Shard toplamlarını her dakika ana belgeye yaz
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

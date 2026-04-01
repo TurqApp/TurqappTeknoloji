@@ -199,14 +199,9 @@ async function ensureUsersCollection() {
       const fields: Array<{ name?: string }> = Array.isArray(existing.data?.fields) ? existing.data.fields : [];
       const required = [
         { name: "nickname", type: "string", optional: true },
-        { name: "firstName", type: "string", optional: true },
-        { name: "lastName", type: "string", optional: true },
         { name: "displayName", type: "string", optional: true },
         { name: "avatarUrl", type: "string", optional: true },
         { name: "rozet", type: "string", optional: true },
-        { name: "bio", type: "string", optional: true },
-        { name: "adres", type: "string", optional: true },
-        { name: "meslekKategori", type: "string", optional: true },
         { name: "isPrivate", type: "bool", optional: true },
         { name: "isDeleted", type: "bool", optional: true },
         { name: "isApproved", type: "bool", optional: true },
@@ -232,14 +227,9 @@ async function ensureUsersCollection() {
         fields: [
           { name: "id", type: "string" },
           { name: "nickname", type: "string", optional: true },
-          { name: "firstName", type: "string", optional: true },
-          { name: "lastName", type: "string", optional: true },
           { name: "displayName", type: "string", optional: true },
           { name: "avatarUrl", type: "string", optional: true },
           { name: "rozet", type: "string", optional: true },
-          { name: "bio", type: "string", optional: true },
-          { name: "adres", type: "string", optional: true },
-          { name: "meslekKategori", type: "string", optional: true },
           { name: "isPrivate", type: "bool", optional: true },
           { name: "isDeleted", type: "bool", optional: true },
           { name: "isApproved", type: "bool", optional: true },
@@ -433,14 +423,9 @@ async function deleteDoc(postId: string) {
 type UserSearchDoc = {
   id: string;
   nickname: string;
-  firstName: string;
-  lastName: string;
   displayName: string;
   avatarUrl: string;
   rozet: string;
-  bio: string;
-  adres: string;
-  meslekKategori: string;
   isPrivate: boolean;
   isDeleted: boolean;
   isApproved: boolean;
@@ -449,6 +434,9 @@ type UserSearchDoc = {
 
 function buildUserSearchDoc(userId: string, data: Record<string, unknown>): UserSearchDoc {
   const profile = ((data as any).profile as Record<string, unknown> | undefined) || {};
+  const firstName = asString((data as any).firstName) || asString(profile.firstName);
+  const lastName = asString((data as any).lastName) || asString(profile.lastName);
+  const joinedName = [firstName, lastName].filter((value: string) => value.trim().length > 0).join(" ").trim();
   const createdDateRaw = Number((data as any).createdDate || 0);
   const createdDateTs = Number.isFinite(createdDateRaw) && createdDateRaw > 0
     ? Math.floor(createdDateRaw / 1000)
@@ -458,18 +446,13 @@ function buildUserSearchDoc(userId: string, data: Record<string, unknown>): User
   return {
     id: userId,
     nickname: asString(data.nickname),
-    firstName: asString((data as any).firstName) || asString(profile.firstName),
-    lastName: asString((data as any).lastName) || asString(profile.lastName),
     displayName:
       asString((data as any).displayName) ||
       asString(profile.displayName) ||
-      asString((data as any).fullName),
+      asString((data as any).fullName) ||
+      joinedName,
     avatarUrl: asString((data as any).avatarUrl) || asString(profile.avatarUrl),
     rozet: asString((data as any).rozet) || asString(profile.rozet),
-    bio: asString((data as any).bio) || asString(profile.bio),
-    adres: asString((data as any).adres) || asString(profile.adres),
-    meslekKategori:
-      asString((data as any).meslekKategori) || asString(profile.meslekKategori),
     isPrivate: asBool((data as any).isPrivate),
     isDeleted:
       asBool((data as any).isDeleted) ||
@@ -639,12 +622,12 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
     timeout: 10000,
     params: {
       q,
-      query_by: "nickname,displayName,firstName,lastName,meslekKategori",
+      query_by: "nickname,displayName",
       per_page: limit,
       page,
       sort_by: "updatedAtTs:desc",
       filter_by: "isDeleted:=false && isPrivate:=false",
-      prefix: "true,true,true,true,true",
+      prefix: "true,true",
       typo_tokens_threshold: 1,
     },
   });
@@ -664,14 +647,9 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
       .map((h: any) => ({
         id: h?.document?.id,
         nickname: h?.document?.nickname || "",
-        firstName: h?.document?.firstName || "",
-        lastName: h?.document?.lastName || "",
         displayName: h?.document?.displayName || "",
         avatarUrl: h?.document?.avatarUrl || "",
         rozet: h?.document?.rozet || "",
-        bio: h?.document?.bio || "",
-        adres: h?.document?.adres || "",
-        meslekKategori: h?.document?.meslekKategori || "",
         isPrivate: h?.document?.isPrivate === true,
         isDeleted: h?.document?.isDeleted === true,
         isApproved: h?.document?.isApproved === true,
@@ -1340,7 +1318,7 @@ export const f15_reindexUsersToTypesenseScheduled = onSchedule(
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    schedule: "every 5 minutes",
+    schedule: "every 60 minutes",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async () => {
@@ -1355,6 +1333,11 @@ export const f15_reindexUsersToTypesenseScheduled = onSchedule(
     const stateRef = db.collection("adminConfig").doc("typesenseUsersReindex");
     const stateSnap = await stateRef.get();
     const state = (stateSnap.data() || {}) as Record<string, unknown>;
+    const enabled = state.enabled === true;
+    if (!enabled) {
+      console.log("typesense_users_reindex_scheduled_disabled");
+      return;
+    }
     const cursor = String(state.cursor || "").trim();
     const batchSize = 300;
 
@@ -1368,6 +1351,7 @@ export const f15_reindexUsersToTypesenseScheduled = onSchedule(
           cursor: "",
           doneAt: Date.now(),
           done: true,
+          enabled: false,
         },
         { merge: true }
       );
@@ -1398,6 +1382,7 @@ export const f15_reindexUsersToTypesenseScheduled = onSchedule(
         cursor: done ? "" : (last?.id || ""),
         lastRunAt: Date.now(),
         done,
+        enabled: done ? false : true,
         scanned,
         upserted,
         skipped,

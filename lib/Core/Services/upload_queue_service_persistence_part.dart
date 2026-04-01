@@ -60,24 +60,50 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
     _failedCount.value = 0;
 
     if (queueString != null) {
-      final queueJson = jsonDecode(queueString) as List;
-      _queue.assignAll(
-        queueJson.map((item) => QueuedUpload.fromJson(item)).toList(),
-      );
+      try {
+        final decoded = jsonDecode(queueString);
+        if (decoded is! List) {
+          await prefs.remove(_queueKey);
+          return;
+        }
+        var shouldPrune = false;
+        final restored = <QueuedUpload>[];
+        for (final item in decoded) {
+          if (item is! Map) {
+            shouldPrune = true;
+            continue;
+          }
+          try {
+            restored.add(
+              QueuedUpload.fromJson(
+                Map<String, dynamic>.from(item.cast<dynamic, dynamic>()),
+              ),
+            );
+          } catch (_) {
+            shouldPrune = true;
+          }
+        }
+        _queue.assignAll(restored);
 
-      for (final upload
-          in _queue.where((item) => item.status == UploadStatus.uploading)) {
-        upload.status = UploadStatus.pending;
-        upload.progress = 0.0;
+        for (final upload
+            in _queue.where((item) => item.status == UploadStatus.uploading)) {
+          upload.status = UploadStatus.pending;
+          upload.progress = 0.0;
+        }
+
+        _completedCount.value = _queue
+            .where((item) => item.status == UploadStatus.completed)
+            .length;
+        _failedCount.value =
+            _queue.where((item) => item.status == UploadStatus.failed).length;
+
+        if (shouldPrune || restored.length != decoded.length) {
+          await _saveQueueToStorage();
+        }
+        _notifyQueueUpdated();
+      } catch (_) {
+        await prefs.remove(_queueKey);
       }
-
-      _completedCount.value =
-          _queue.where((item) => item.status == UploadStatus.completed).length;
-      _failedCount.value =
-          _queue.where((item) => item.status == UploadStatus.failed).length;
-
-      await _saveQueueToStorage();
-      _notifyQueueUpdated();
     }
   }
 

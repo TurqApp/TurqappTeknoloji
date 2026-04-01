@@ -10,17 +10,22 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
+import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 import 'package:turqappv2/Core/Localization/app_translations.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
+import 'package:turqappv2/hls_player/hls_controller.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final RouteObserver<ModalRoute<void>> routeObserver =
@@ -30,8 +35,31 @@ late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
 
+Duration get _startupBootstrapWait => IntegrationTestMode.enabled
+    ? const Duration(seconds: 20)
+    : const Duration(seconds: 5);
+
+Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
+    ? const Duration(seconds: 18)
+    : const Duration(seconds: 4);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kDebugMode) {
+    await HLSController.disposeAllNativePlayers();
+  }
+  ensureQALabIfEnabled();
+  if (QALabMode.freshStartOnLaunch && !IntegrationTestMode.enabled) {
+    await prepareQALabFreshStartIfNeeded(trigger: 'app_launch').timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {
+        debugPrint('[qa-lab] fresh-start cleanup timed out; continuing.');
+      },
+    );
+  }
+  if (QALabMode.enabled && !IntegrationTestMode.enabled) {
+    WidgetsBinding.instance.addTimingsCallback(recordQALabFrameTimings);
+  }
   ErrorWidget.builder = (FlutterErrorDetails details) {
     _reportStartupFallbackError(details);
     return Material(
@@ -69,19 +97,26 @@ Future<void> main() async {
   // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
   // cagrilip startup fallback ekranina dusuyordu.
   firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
-  await firebaseBootstrapFuture;
+  await firebaseBootstrapFuture.timeout(
+    _startupBootstrapWait,
+    onTimeout: () {
+      debugPrint('[bootstrap] startup timed out before runApp; continuing.');
+    },
+  );
 
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   VideoStateManager.instance;
   NetworkAwarenessService.ensure();
-  await AppLanguageService.ensureInitialized();
+  await ensureInitializedAppLanguageService();
 
   runApp(const MyApp());
+  scheduleQALabAutoOpenOnLaunch();
 
   _appLifecycleListener = AppLifecycleListener(
-    onInactive: _handleAppBackgroundTransition,
-    onPause: _handleAppBackgroundTransition,
-    onDetach: _handleAppBackgroundTransition,
+    onResume: _handleAppResumeTransition,
+    onInactive: () => _handleAppBackgroundTransition('inactive'),
+    onPause: () => _handleAppBackgroundTransition('pause'),
+    onDetach: () => _handleAppBackgroundTransition('detach'),
   );
 
   // Ilk frame sonrasi yalnizca sistem UI ayarlari.
@@ -97,6 +132,11 @@ Future<void> main() async {
 
 void _reportStartupFallbackError(FlutterErrorDetails details) {
   final error = details.exception;
+  recordQALabFlutterError(
+    details,
+    suppressed: _isExpectedNonFatalNoise(error),
+    sourceLabel: 'startup_fallback',
+  );
   if (_isExpectedNonFatalNoise(error)) {
     debugPrint('Suppressed fallback error: $error');
     return;
@@ -122,13 +162,29 @@ void _clearConsumedCacheIfNeeded() {
   } catch (_) {}
 }
 
-void _handleAppBackgroundTransition() {
+void _handleAppResumeTransition() {
+  recordQALabLifecycleState('resume');
+  unawaited(
+    refreshQALabPermissionSnapshot(trigger: 'resume'),
+  );
+  unawaited(_restorePlaybackAfterAppResume());
+}
+
+Future<void> _restorePlaybackAfterAppResume() async {
+  await Future<void>.delayed(const Duration(milliseconds: 260));
+  try {
+    maybeFindAgendaController()?.resumeFeedPlayback();
+  } catch (_) {}
+}
+
+void _handleAppBackgroundTransition(String state) {
+  recordQALabLifecycleState(state);
   _clearConsumedCacheIfNeeded();
   try {
-    VideoStateManager.maybeFind()?.pauseAllVideos(force: true);
+    maybeFindVideoStateManager()?.pauseAllVideos(force: true);
   } catch (_) {}
   try {
-    final agendaController = AgendaController.maybeFind();
+    final agendaController = maybeFindAgendaController();
     if (agendaController != null) {
       unawaited(agendaController.persistWarmLaunchCache());
     }
@@ -139,41 +195,72 @@ void _handleAppBackgroundTransition() {
 }
 
 Future<void> _bootstrapFirebaseAndCrashlytics() async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await _activateAppCheck();
+  var firebaseReady = false;
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).timeout(_firebaseInitTimeout);
+    firebaseReady = true;
+  } catch (e, st) {
+    debugPrint('[bootstrap] Firebase.initializeApp failed: $e');
+    debugPrintStack(stackTrace: st);
+  }
+
+  if (firebaseReady) {
+    try {
+      await _activateAppCheck().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('[AppCheck] activation timed out.');
+        },
+      );
+    } catch (e, st) {
+      debugPrint('[AppCheck] activation failed before handlers: $e');
+      debugPrintStack(stackTrace: st);
+    }
+  }
 
   FlutterError.onError = (FlutterErrorDetails details) {
     final error = details.exception;
     final stack = details.stack;
+    recordQALabFlutterError(
+      details,
+      suppressed: _isExpectedNonFatalNoise(error),
+      sourceLabel: 'flutter_on_error',
+    );
     if (_isExpectedNonFatalNoise(error)) {
       debugPrint('Suppressed non-fatal: $error');
       return;
     }
     FlutterError.presentError(details);
-    FirebaseCrashlytics.instance.recordFlutterError(details);
+    if (firebaseReady) {
+      FirebaseCrashlytics.instance.recordFlutterError(details);
+    }
     debugPrint('FlutterError captured: $error');
     if (stack != null) {
       debugPrintStack(stackTrace: stack);
     }
   };
   PlatformDispatcher.instance.onError = (error, stack) {
+    recordQALabPlatformError(
+      error,
+      stack,
+      suppressed: _isExpectedNonFatalNoise(error),
+      sourceLabel: 'platform_dispatcher',
+    );
     if (_isExpectedNonFatalNoise(error)) {
       debugPrint('Platform suppressed non-fatal: $error');
       return true;
     }
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
+    if (firebaseReady) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
+    }
     return true;
   };
 }
 
 Future<void> _activateAppCheck() async {
-  if (kDebugMode) {
-    debugPrint('[AppCheck] debug mode: activation skipped.');
-    return;
-  }
-
   try {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
@@ -220,19 +307,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final languageService = AppLanguageService.maybeFind();
+    final languageService = maybeFindAppLanguageService();
     return GetMaterialApp(
       navigatorKey: navigatorKey,
-      navigatorObservers: [routeObserver],
+      navigatorObservers: [routeObserver, searchResetNavigatorObserver],
       routingCallback: (routing) {
         if (routing == null) return;
         final current = routing.current;
         final previous = routing.previous;
         if (current == previous) return;
+        recordQALabRouteChange(
+          current: current,
+          previous: previous,
+        );
       },
       defaultTransition: Transition.fade,
       translations: AppTranslations(),
-      locale: languageService?.currentLocale ?? AppLanguageService.fallbackLocale,
+      locale:
+          languageService?.currentLocale ?? AppLanguageService.fallbackLocale,
       fallbackLocale: AppLanguageService.fallbackLocale,
       supportedLocales: AppLanguageService.supportedLocales,
       localizationsDelegates: const [
@@ -370,6 +462,8 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          titleSpacing: 8,
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark,

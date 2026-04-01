@@ -37,65 +37,6 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     }
   }
 
-  Future<bool> _performHandleExclusiveSessionIfNeeded(
-    String uid,
-    Map<String, dynamic> data,
-  ) async {
-    if (_handlingSessionDisplacement) return false;
-    if (data['singleDeviceSessionEnabled'] != true) return false;
-    final activeDeviceKey =
-        (data['activeSessionDeviceKey'] ?? '').toString().trim();
-    if (activeDeviceKey.isEmpty) return false;
-    final localDeviceKey =
-        await DeviceSessionService.instance.getOrCreateDeviceKey();
-    if (activeDeviceKey == localDeviceKey) return false;
-    if (DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) {
-      try {
-        await AccountCenterService.ensure()
-            .registerCurrentDeviceSessionIfEnabled();
-        return false;
-      } catch (_) {}
-    }
-    if (DeviceSessionService.instance.hasPendingSessionClaim(uid)) {
-      try {
-        await AccountCenterService.ensure()
-            .registerCurrentDeviceSessionIfEnabled();
-        return false;
-      } catch (_) {}
-    }
-    final legacyDeviceKey =
-        (await DeviceSessionService.instance.getLegacyDeviceKey() ?? '').trim();
-    if (legacyDeviceKey.isNotEmpty && activeDeviceKey == legacyDeviceKey) {
-      try {
-        await AccountCenterService.ensure()
-            .registerCurrentDeviceSessionIfEnabled();
-        return false;
-      } catch (_) {}
-    }
-
-    _handlingSessionDisplacement = true;
-    try {
-      await AccountCenterService.ensure().markSessionState(
-        uid: uid,
-        isSessionValid: false,
-        requiresReauth: true,
-      );
-      await AccountSessionVault.instance.delete(uid);
-      AppSnackbar(
-        'Oturum Kapatıldı',
-        'Bu hesap başka bir telefonda açıldı. Yeniden giriş için şifre gerekir.',
-      );
-      await _signOutToSignIn(
-        initialIdentifier: (data['email'] ?? '').toString().trim(),
-      );
-      return true;
-    } catch (_) {
-      return true;
-    } finally {
-      _handlingSessionDisplacement = false;
-    }
-  }
-
   bool _performPublishResolvedUser(CurrentUserModel user) {
     viewSelectionRx.value = user.viewSelection;
     final nextSignature = jsonEncode(user.toJson());
@@ -104,7 +45,9 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     }
     _lastReactiveSignature = nextSignature;
     currentUserRx.value = user;
-    _emitUserEvent(user);
+    if (!_userStreamController.isClosed) {
+      _userStreamController.add(user);
+    }
     return true;
   }
 
@@ -133,11 +76,9 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
 
   Future<void> _performLogout() async {
     try {
-      final oldUid = _currentUser?.userID;
       await _stopFirebaseSync();
-      await _clearCache(oldUid);
-      _purgeUserScopedCaches(oldUid);
-      await FollowRepository.maybeFind()?.clearAll();
+      await _clearActiveCachePointer();
+      await maybeFindFollowRepository()?.clearAll();
       _silentLogAt.clear();
 
       _cacheSaveTimer?.cancel();
@@ -150,7 +91,9 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
       _currentUser = null;
       viewSelectionRx.value = 1;
       currentUserRx.value = null;
-      _emitUserEvent(null);
+      if (!_userStreamController.isClosed) {
+        _userStreamController.add(null);
+      }
 
       _isInitialized = false;
       _isSyncing = false;

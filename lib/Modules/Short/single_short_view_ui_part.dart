@@ -25,19 +25,13 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 child: CupertinoActivityIndicator(color: Colors.white),
               );
             }
-            return GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onVerticalDragStart: _handleManualVerticalDragStart,
-              onVerticalDragUpdate: _handleManualVerticalDragUpdate,
-              onVerticalDragEnd: _handleManualVerticalDragEnd,
-              child: PageView.builder(
+            return PageView.builder(
                 controller: pageController,
                 scrollDirection: Axis.vertical,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const MomentumPageScrollPhysics(),
                 itemCount: shorts.length,
                 onPageChanged: _handlePageChanged,
                 itemBuilder: (_, idx) => _buildShortPage(idx),
-              ),
             );
           }),
         ),
@@ -78,39 +72,44 @@ extension SingleShortViewUiPart on _SingleShortViewState {
         _buildFullscreenVideoSurface(
           injected,
           'injected-${shorts[idx].docID}-${injected.hashCode}',
-          overrideAutoPlay: true,
+          overrideAutoPlay: false,
           modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
         ),
         AnimatedBuilder(
           animation: injected,
           builder: (_, __) {
             final v = injected.value;
-            final hideThumb = v.hasRenderedFirstFrame;
-            if (hideThumb || injThumb.isEmpty) {
+            final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                !v.isBuffering &&
+                (v.isPlaying || v.position > const Duration(milliseconds: 180));
+            if (!_hasThumbCandidate(shorts[idx], overrideUrl: injThumb)) {
               return const SizedBox.shrink();
             }
-            if (shorts[idx].aspectRatio >= 0.8) {
-              return Align(
-                alignment: Alignment.center,
-                child: AspectRatio(
-                  aspectRatio: shorts[idx].aspectRatio > 1.2
-                      ? shorts[idx].aspectRatio.toDouble()
-                      : 1.0,
-                  child: _cachedThumb(injThumb),
-                ),
-              );
-            }
-            return SizedBox.expand(child: _cachedThumb(injThumb));
+            final thumb = shorts[idx].aspectRatio >= 0.8
+                ? Align(
+                    alignment: Alignment.center,
+                    child: AspectRatio(
+                      aspectRatio: shorts[idx].aspectRatio > 1.2
+                          ? shorts[idx].aspectRatio.toDouble()
+                          : 1.0,
+                      child: _cachedThumb(shorts[idx], overrideUrl: injThumb),
+                    ),
+                  )
+                : SizedBox.expand(child: _cachedThumb(shorts[idx], overrideUrl: injThumb));
+            return IgnorePointer(
+              ignoring: true,
+              child: AnimatedOpacity(
+                opacity: hasStableVideoFrame ? 0 : 1,
+                duration: AppDuration.thumbnailFadeOut,
+                curve: Curves.easeOut,
+                child: thumb,
+              ),
+            );
           },
         ),
         AnimatedBuilder(
           animation: injected,
           builder: (_, __) {
-            if (!injected.value.isInitialized) {
-              return const Center(
-                child: CupertinoActivityIndicator(color: Colors.white),
-              );
-            }
             return const SizedBox.shrink();
           },
         ),
@@ -124,21 +123,18 @@ extension SingleShortViewUiPart on _SingleShortViewState {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (thumb.isNotEmpty)
+        if (_hasThumbCandidate(shorts[idx], overrideUrl: thumb))
           if (loadingThumbAr >= 0.8)
             Center(
               child: AspectRatio(
                 aspectRatio: loadingThumbAr > 1.2 ? loadingThumbAr : 1.0,
-                child: _cachedThumb(thumb),
+                child: _cachedThumb(shorts[idx], overrideUrl: thumb),
               ),
             )
           else
-            _cachedThumb(thumb)
+            _cachedThumb(shorts[idx], overrideUrl: thumb)
         else
           const SizedBox.shrink(),
-        const Center(
-          child: CupertinoActivityIndicator(color: Colors.white),
-        ),
       ],
     );
   }
@@ -150,16 +146,16 @@ extension SingleShortViewUiPart on _SingleShortViewState {
         ? Stack(
             fit: StackFit.expand,
             children: [
-              if (thumb.isNotEmpty)
+              if (_hasThumbCandidate(shorts[idx], overrideUrl: thumb))
                 if (thumbAr >= 0.8)
                   Center(
                     child: AspectRatio(
                       aspectRatio: thumbAr > 1.2 ? thumbAr : 1.0,
-                      child: _cachedThumb(thumb),
+                      child: _cachedThumb(shorts[idx], overrideUrl: thumb),
                     ),
                   )
                 else
-                  _cachedThumb(thumb),
+                  _cachedThumb(shorts[idx], overrideUrl: thumb),
             ],
           )
         : Stack(
@@ -174,32 +170,38 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 animation: vp,
                 builder: (_, __) {
                   final v = vp.value;
-                  final hideThumb = v.hasRenderedFirstFrame;
-                  if (hideThumb || thumb.isEmpty) {
+                  final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                      !v.isBuffering &&
+                      (v.isPlaying ||
+                          v.position > const Duration(milliseconds: 180));
+                  if (!_hasThumbCandidate(shorts[idx], overrideUrl: thumb)) {
                     return const SizedBox.shrink();
                   }
-                  if (shorts[idx].aspectRatio >= 0.8) {
-                    return Align(
-                      alignment: Alignment.center,
-                      child: AspectRatio(
-                        aspectRatio: shorts[idx].aspectRatio > 1.2
-                            ? shorts[idx].aspectRatio.toDouble()
-                            : 1.0,
-                        child: _cachedThumb(thumb),
-                      ),
-                    );
-                  }
-                  return SizedBox.expand(child: _cachedThumb(thumb));
+                  final overlay = shorts[idx].aspectRatio >= 0.8
+                      ? Align(
+                          alignment: Alignment.center,
+                          child: AspectRatio(
+                            aspectRatio: shorts[idx].aspectRatio > 1.2
+                                ? shorts[idx].aspectRatio.toDouble()
+                                : 1.0,
+                            child: _cachedThumb(shorts[idx], overrideUrl: thumb),
+                          ),
+                        )
+                      : SizedBox.expand(child: _cachedThumb(shorts[idx], overrideUrl: thumb));
+                  return IgnorePointer(
+                    ignoring: true,
+                    child: AnimatedOpacity(
+                      opacity: hasStableVideoFrame ? 0 : 1,
+                      duration: AppDuration.thumbnailFadeOut,
+                      curve: Curves.easeOut,
+                      child: overlay,
+                    ),
+                  );
                 },
               ),
               AnimatedBuilder(
                 animation: vp,
                 builder: (_, __) {
-                  if (!vp.value.isInitialized) {
-                    return const Center(
-                      child: CupertinoActivityIndicator(color: Colors.white),
-                    );
-                  }
                   return const SizedBox.shrink();
                 },
               ),
@@ -384,10 +386,15 @@ extension SingleShortViewUiPart on _SingleShortViewState {
     int? preferredIndex,
     HLSVideoAdapter? preferredController,
   }) async {
+    final preserveController = _resolveFullscreenReturnPreservedController(
+      preferredIndex: preferredIndex,
+      preferredController: preferredController,
+    );
+    _fullscreenReturnPreservedController = preserveController;
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
-    await _pauseAllControllers();
+    await _pauseAllControllers(preserveController: preserveController);
     if (!mounted) return;
     Navigator.of(context).pop(
       _buildPopResult(

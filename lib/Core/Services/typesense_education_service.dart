@@ -52,6 +52,44 @@ class TypesenseEducationSearchService {
       <String, _CachedEducationSearchResult>{};
   SharedPreferences? _prefs;
 
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneHitMap(Map<String, dynamic> source) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneValue(value)),
+    );
+  }
+
+  static List<Map<String, dynamic>> _cloneHits(
+    List<Map<String, dynamic>> hits,
+  ) {
+    return hits.map(_cloneHitMap).toList(growable: false);
+  }
+
+  static EducationTypesenseSearchResult _cloneResult(
+    EducationTypesenseSearchResult result,
+  ) {
+    return EducationTypesenseSearchResult(
+      hits: _cloneHits(result.hits),
+      found: result.found,
+      page: result.page,
+      limit: result.limit,
+    );
+  }
+
   static String quoteFilterValue(String value) {
     final normalized = value.trim().replaceAll('`', r'\`');
     return '`$normalized`';
@@ -93,7 +131,7 @@ class TypesenseEducationSearchService {
       final disk = await _getCachedFromPrefs(cacheKey);
       if (disk != null) {
         _memory[cacheKey] = disk;
-        return disk.result;
+        return _cloneResult(disk.result);
       }
     }
 
@@ -125,7 +163,7 @@ class TypesenseEducationSearchService {
     final data = Map<String, dynamic>.from(response.data as Map? ?? {});
     final hits = ((data['hits'] as List<dynamic>?) ?? const <dynamic>[])
         .whereType<Map>()
-        .map((raw) => Map<String, dynamic>.from(raw))
+        .map((raw) => _cloneHitMap(Map<String, dynamic>.from(raw)))
         .toList(growable: false);
     final result = EducationTypesenseSearchResult(
       hits: hits,
@@ -200,36 +238,92 @@ class TypesenseEducationSearchService {
       _memory.remove(key);
       return null;
     }
-    return entry.result;
+    return _cloneResult(entry.result);
+  }
+
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
   }
 
   Future<_CachedEducationSearchResult?> _getCachedFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_prefsKey(key));
+    final prefs = _prefs;
+    final prefsKey = _prefsKey(key);
+    final raw = prefs?.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      final decoded = Map<String, dynamic>.from(
+        decodedRaw.cast<dynamic, dynamic>(),
+      );
+      final ts = _asInt(decoded['t']);
       final data = Map<String, dynamic>.from(
         decoded['d'] as Map? ?? const <String, dynamic>{},
       );
-      if (ts <= 0) return null;
+      if (ts <= 0) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
-      if (DateTime.now().difference(cachedAt) > _ttl) return null;
-      final hits = ((data['hits'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map>()
-          .map((raw) => Map<String, dynamic>.from(raw))
-          .toList(growable: false);
+      if (DateTime.now().difference(cachedAt) > _ttl) {
+        await prefs?.remove(prefsKey);
+        return null;
+      }
+      var shouldPrune = false;
+      final hits = <Map<String, dynamic>>[];
+      for (final rawHit
+          in ((data['hits'] as List<dynamic>?) ?? const <dynamic>[])) {
+        if (rawHit is! Map) {
+          shouldPrune = true;
+          continue;
+        }
+        final hit = _cloneHitMap(Map<String, dynamic>.from(rawHit));
+        if (hit.isEmpty) {
+          shouldPrune = true;
+          continue;
+        }
+        hits.add(hit);
+      }
+      if (shouldPrune) {
+        if (hits.isEmpty) {
+          await prefs?.remove(prefsKey);
+          return null;
+        }
+        await prefs?.setString(
+          prefsKey,
+          jsonEncode(<String, dynamic>{
+            't': ts,
+            'd': <String, dynamic>{
+              'hits': hits,
+              'found': _asInt(data['found'], fallback: hits.length),
+              'page': _asInt(data['page'], fallback: 1),
+              'limit': _asInt(data['limit'], fallback: hits.length),
+            },
+          }),
+        );
+      }
       return _CachedEducationSearchResult(
         result: EducationTypesenseSearchResult(
           hits: hits,
-          found: (data['found'] as num?)?.toInt() ?? hits.length,
-          page: (data['page'] as num?)?.toInt() ?? 1,
-          limit: (data['limit'] as num?)?.toInt() ?? hits.length,
+          found: _asInt(data['found'], fallback: hits.length),
+          page: _asInt(data['page'], fallback: 1),
+          limit: _asInt(data['limit'], fallback: hits.length),
         ),
         cachedAt: cachedAt,
       );
     } catch (_) {
+      await prefs?.remove(prefsKey);
       return null;
     }
   }
@@ -239,8 +333,9 @@ class TypesenseEducationSearchService {
     EducationTypesenseSearchResult result,
   ) async {
     final cachedAt = DateTime.now();
+    final clonedResult = _cloneResult(result);
     _memory[key] = _CachedEducationSearchResult(
-      result: result,
+      result: clonedResult,
       cachedAt: cachedAt,
     );
     _prefs ??= await SharedPreferences.getInstance();
@@ -249,10 +344,10 @@ class TypesenseEducationSearchService {
       jsonEncode(<String, dynamic>{
         't': cachedAt.millisecondsSinceEpoch,
         'd': <String, dynamic>{
-          'hits': result.hits,
-          'found': result.found,
-          'page': result.page,
-          'limit': result.limit,
+          'hits': clonedResult.hits,
+          'found': clonedResult.found,
+          'page': clonedResult.page,
+          'limit': clonedResult.limit,
         },
       }),
     );
@@ -280,22 +375,22 @@ class TypesenseEducationSearchService {
 }
 
 class _CachedEducationSearchResult {
-  const _CachedEducationSearchResult({
-    required this.result,
+  _CachedEducationSearchResult({
+    required EducationTypesenseSearchResult result,
     required this.cachedAt,
-  });
+  }) : result = TypesenseEducationSearchService._cloneResult(result);
 
   final EducationTypesenseSearchResult result;
   final DateTime cachedAt;
 }
 
 class EducationTypesenseSearchResult {
-  const EducationTypesenseSearchResult({
-    required this.hits,
+  EducationTypesenseSearchResult({
+    required List<Map<String, dynamic>> hits,
     required this.found,
     required this.page,
     required this.limit,
-  });
+  }) : hits = TypesenseEducationSearchService._cloneHits(hits);
 
   final List<Map<String, dynamic>> hits;
   final int found;

@@ -7,7 +7,7 @@ class OfflineIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final offlineService = OfflineModeService.maybeFind();
+    final offlineService = maybeFindOfflineModeService();
     if (offlineService == null) {
       return const SizedBox.shrink();
     }

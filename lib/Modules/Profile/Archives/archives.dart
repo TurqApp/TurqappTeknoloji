@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 
 import '../../Agenda/AgendaContent/agenda_content.dart';
 import 'archives_controller.dart';
@@ -21,11 +22,11 @@ class _ArchivesState extends State<Archives> {
   @override
   void initState() {
     super.initState();
-    final existingController = ArchiveController.maybeFind();
+    final existingController = maybeFindArchiveController();
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = ArchiveController.ensure();
+      controller = ensureArchiveController();
       _ownsController = true;
     }
   }
@@ -33,7 +34,7 @@ class _ArchivesState extends State<Archives> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(ArchiveController.maybeFind(), controller)) {
+        identical(maybeFindArchiveController(), controller)) {
       Get.delete<ArchiveController>(force: true);
     }
     super.dispose();
@@ -55,62 +56,70 @@ class _ArchivesState extends State<Archives> {
                     child: CircularProgressIndicator(color: Colors.black),
                   );
                 }
-                return controller.list.isNotEmpty
-                    ? RefreshIndicator(
-                        backgroundColor: Colors.black,
-                        color: Colors.white,
-                        onRefresh: controller.fetchData,
-                        child: ListView.builder(
-                          controller: controller.scrollController,
-                          itemCount: controller.list.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: BackButtons(text: "settings.archive".tr),
-                              );
-                            }
-
-                            final actualIndex = index - 1;
-
-                            final model = controller.list[actualIndex];
-                            final itemKey =
-                                controller.getAgendaKey(docId: model.docID);
-                            final isCentered =
-                                controller.centeredIndex.value == actualIndex;
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 5),
-                              child: Column(
-                                children: [
-                                  AgendaContent(
-                                    key: itemKey,
-                                    model: model,
-                                    isPreview: false,
-                                    shouldPlay: isCentered,
-                                    instanceTag: controller
-                                        .agendaInstanceTag(model.docID),
-                                    showArchivePost: true,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Divider(color: Colors.grey.withAlpha(50)),
-                                  const SizedBox(height: 12),
-                                ],
-                              ),
-                            );
-                          },
-                        ))
-                    : Column(
-                        children: [
-                          BackButtons(text: "settings.archive".tr),
-                          EmptyRow(text: "common.no_results".tr),
-                        ],
-                      );
+                if (controller.list.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return _buildArchiveList();
               }),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildArchiveList() {
+    return RefreshIndicator(
+      backgroundColor: Colors.black,
+      color: Colors.white,
+      onRefresh: () => runSurfaceRefresh(
+        primaryRefresh: controller.fetchData,
+      ),
+      child: ListView.builder(
+        controller: controller.scrollController,
+        itemCount: controller.list.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: BackButtons(text: "settings.archive".tr),
+            );
+          }
+
+          final actualIndex = index - 1;
+          final model = controller.list[actualIndex];
+          final itemKey = controller.getAgendaKey(docId: model.docID);
+          final isCentered = controller.centeredIndex.value == actualIndex;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Column(
+              children: [
+                AgendaContent(
+                  key: itemKey,
+                  model: model,
+                  isPreview: false,
+                  shouldPlay: isCentered,
+                  instanceTag: controller.agendaInstanceTag(model.docID),
+                  showArchivePost: true,
+                ),
+                const SizedBox(height: 2),
+                Divider(color: Colors.grey.withAlpha(50)),
+                const SizedBox(height: 12),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Column(
+      children: [
+        BackButtons(text: "settings.archive".tr),
+        EmptyRow(text: "common.no_results".tr),
+      ],
     );
   }
 }

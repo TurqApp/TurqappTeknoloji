@@ -19,15 +19,15 @@ class _SinavSonuclarimState extends State<SinavSonuclarim> {
   @override
   void initState() {
     super.initState();
-    final existing = SinavSonuclarimController.maybeFind();
+    final existing = maybeFindSinavSonuclarimController();
     _ownsController = existing == null;
-    controller = existing ?? SinavSonuclarimController.ensure();
+    controller = existing ?? ensureSinavSonuclarimController();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        identical(SinavSonuclarimController.maybeFind(), controller)) {
+        identical(maybeFindSinavSonuclarimController(), controller)) {
       Get.delete<SinavSonuclarimController>();
     }
     super.dispose();
@@ -35,79 +35,85 @@ class _SinavSonuclarimState extends State<SinavSonuclarim> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: 'practice.results_title'.tr),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(
-                    child: CupertinoActivityIndicator(radius: 20),
-                  );
-                }
-                if (controller.list.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.lightbulb_outline,
-                            size: 60,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'practice.results_empty_title'.tr,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 20,
-                              fontFamily: "MontserratBold",
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'practice.results_empty_body'.tr,
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                              fontFamily: "MontserratMedium",
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return RefreshIndicator(
-                  color: Colors.white,
-                  backgroundColor: Colors.black,
-                  onRefresh: controller.findAndGetSinavlar,
-                  child: Container(
-                    color: Colors.white,
-                    child: ListView.builder(
-                      controller: controller.scrollController,
-                      itemCount: controller.list.length,
-                      itemBuilder: (context, index) {
-                        return DenemeGecmisSonucContent(
-                          index: index,
-                          model: controller.list[index],
-                        );
-                      },
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ],
-        ),
+    return Scaffold(body: _buildSinavSonuclarimBody());
+  }
+
+  Widget _buildSinavSonuclarimBody() {
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          BackButtons(text: 'practice.results_title'.tr),
+          Expanded(child: _buildSinavSonuclarimContent()),
+        ],
       ),
     );
+  }
+
+  Widget _buildSinavSonuclarimContent() {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(
+          child: CupertinoActivityIndicator(radius: 20),
+        );
+      }
+
+      if (controller.list.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.lightbulb_outline,
+                  size: 60,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'practice.results_empty_title'.tr,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontFamily: "MontserratBold",
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'practice.results_empty_body'.tr,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                    fontFamily: "MontserratMedium",
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return RefreshIndicator(
+        color: Colors.white,
+        backgroundColor: Colors.black,
+        onRefresh: controller.findAndGetSinavlar,
+        child: Container(
+          color: Colors.white,
+          child: ListView.builder(
+            controller: controller.scrollController,
+            itemCount: controller.list.length,
+            itemBuilder: (context, index) {
+              return DenemeGecmisSonucContent(
+                index: index,
+                model: controller.list[index],
+              );
+            },
+          ),
+        ),
+      );
+    });
   }
 }

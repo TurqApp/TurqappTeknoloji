@@ -1,13 +1,14 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
-import '../../../Core/Services/SegmentCache/cache_manager.dart';
+import '../../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
-import '../../../Core/Services/video_state_manager.dart';
+import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
@@ -23,7 +24,12 @@ import '../../SocialProfile/social_profile_controller.dart';
 import '../../Agenda/TopTags/top_tags_contoller.dart';
 import '../../Agenda/TagPosts/tag_posts_controller.dart';
 import '../../Agenda/FloodListing/flood_listing_controller.dart';
+import '../../PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'post_content_controller.dart';
+
+part 'post_content_base_lifecycle_part.dart';
+part 'post_content_base_playback_part.dart';
+part 'post_content_base_visibility_part.dart';
 
 /// Base widget/state that encapsulates the shared behaviour between
 /// Modern (AgendaContent) and Classic content cards.
@@ -57,12 +63,19 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     implements RouteAware {
   late final AgendaController agendaController = _resolveAgendaController();
   late final GlobalVideoAdapterPool adapterPool =
-      GlobalVideoAdapterPool.ensure();
-  final videoStateManager = VideoStateManager.instance;
+      ensureGlobalVideoAdapterPool();
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
+  final SegmentCacheRuntimeService _segmentCacheRuntimeService =
+      const SegmentCacheRuntimeService();
+  PlaybackRuntimeService get playbackRuntimeService => _playbackRuntimeService;
+  SegmentCacheRuntimeService get segmentCacheRuntimeService =>
+      _segmentCacheRuntimeService;
 
   late final PostContentController controller;
   HLSVideoAdapter? _videoAdapter;
   bool _hasAutoPlayed = false;
+  bool _manualPauseRequested = false;
   bool _skipNextPause = false;
   bool _blockPause = false;
   bool _replayOverlayLatched = false;
@@ -77,15 +90,24 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _navSelectionWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
+  Timer? _autoplaySegmentGateTimer;
   bool _playbackIntentTracked = false;
+  DateTime? _autoplaySegmentGateStartedAt;
+  bool _autoplaySegmentGateTimedOut = false;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
   final ValueNotifier<HLSVideoValue> videoValueNotifier =
       ValueNotifier(const HLSVideoValue());
+  static const Duration _stableFramePositionThreshold =
+      Duration(milliseconds: 180);
+  static const Duration _autoplaySegmentGateTimeout =
+      Duration(milliseconds: 950);
+  static const Duration _autoplaySegmentGatePollInterval =
+      Duration(milliseconds: 120);
 
   AgendaController _resolveAgendaController() {
-    return AgendaController.ensure();
+    return ensureAgendaController();
   }
 
   /// videoController benzeri erişim — mevcut widget'lar uyumlu çalışır
@@ -94,12 +116,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get isVideoFromCache {
     if (!widget.model.hasPlayableVideo) return false;
     try {
-      final entry =
-          SegmentCacheManager.maybeFind()?.getEntry(widget.model.docID);
-      if (entry == null) return false;
-      return entry.cachedSegmentCount > 0;
+      return cachedSegmentCountForCurrentVideo > 0;
     } catch (_) {
       return false;
+    }
+  }
+
+  int get cachedSegmentCountForCurrentVideo {
+    if (!widget.model.hasPlayableVideo) return 0;
+    try {
+      return _segmentCacheRuntimeService.cachedSegmentCount(widget.model.docID);
+    } catch (_) {
+      return 0;
     }
   }
 
@@ -113,83 +141,155 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   /// Playback handle identity must be unique per mounted video surface.
   /// Otherwise feed card and SinglePost can fight over the same player slot.
-  String get playbackHandleKey => widget.instanceTag ?? widget.model.docID;
+  String get playbackHandleKey {
+    final instanceTag = widget.instanceTag?.trim() ?? '';
+    if (instanceTag.isNotEmpty) return instanceTag;
+    return 'feed:${widget.model.docID.trim()}';
+  }
 
   bool get isStandalonePostInstance =>
       (widget.instanceTag ?? '').startsWith('single_');
 
+  String get _surfaceInstanceTag => widget.instanceTag ?? '';
+
   bool get _isProfileSurfaceInstance =>
-      (widget.instanceTag ?? '').startsWith('profile_');
+      _surfaceInstanceTag.startsWith('profile_');
+
+  bool get _isFloodSurfaceInstance => _surfaceInstanceTag.startsWith('flood_');
+
+  bool get _isExploreSeriesSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('explore_series_');
+
+  bool get _isProfileFamilySurfaceInstance =>
+      _surfaceInstanceTag.startsWith('profile_') ||
+      _surfaceInstanceTag.startsWith('archives_') ||
+      _surfaceInstanceTag.startsWith('liked_post_') ||
+      _surfaceInstanceTag.startsWith('social_');
+
+  bool get _isFeedStyleInlineSurfaceInstance =>
+      _isPrimaryFeedSurfaceInstance ||
+      _isProfileFamilySurfaceInstance ||
+      _isFloodSurfaceInstance ||
+      _isExploreSeriesSurfaceInstance;
+
+  bool get _isPrimaryFeedSurfaceInstance =>
+      !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
+
+  bool get _useLegacyIosFeedBehavior =>
+      defaultTargetPlatform == TargetPlatform.iOS &&
+      !isStandalonePostInstance &&
+      !_isFeedStyleInlineSurfaceInstance;
+
+  bool get _isReplayOverlayEnabled =>
+      !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
+
+  bool get isReplayOverlayBlockingTap =>
+      _replayOverlayLatched || _replayAdVisible || _replayButtonVisible;
+
+  bool get _controllerOwnsInlinePlayback =>
+      !isStandalonePostInstance &&
+      !_isFloodSurfaceInstance &&
+      (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
+
+  bool get shouldAutoResumeInlinePlatformView {
+    if (isStandalonePostInstance) return widget.shouldPlay;
+    if (_useLegacyIosFeedBehavior) return widget.shouldPlay;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
+    if (_manualPauseRequested) return false;
+    final adapter = _videoAdapter;
+    if (adapter == null) return false;
+    if (_playbackRuntimeService.currentPlayingDocId == playbackHandleKey) {
+      return true;
+    }
+    final value = adapter.value;
+    return value.isPlaying ||
+        value.hasRenderedFirstFrame ||
+        value.position > Duration.zero;
+  }
 
   bool get _isSurfacePlaybackAllowed {
+    if (_isFloodSurfaceInstance) {
+      final route = ModalRoute.of(context);
+      return route?.isCurrent ?? false;
+    }
+    if (_isExploreSeriesSurfaceInstance) {
+      final nav = maybeFindNavBarController();
+      if (nav != null) {
+        return nav.selectedIndex.value == 1;
+      }
+      final route = Get.currentRoute.trim();
+      return route == '/ExploreView' ||
+          route == 'ExploreView' ||
+          route == '/NavBarView' ||
+          route == 'NavBarView';
+    }
     if (isStandalonePostInstance) return true;
-    if (!_isProfileSurfaceInstance) {
+    if (_surfaceInstanceTag.startsWith('social_')) {
+      final route = Get.currentRoute.trim();
+      if (route == '/SocialProfile' || route == 'SocialProfile') {
+        return true;
+      }
+    }
+    if (!_isProfileFamilySurfaceInstance) {
       return agendaController.canClaimPlaybackNow;
     }
-    final nav = NavBarController.maybeFind();
-    final settings = SettingsController.maybeFind();
+    final nav = maybeFindNavBarController();
+    final settings = maybeFindSettingsController();
     final hasEducation = settings?.educationScreenIsOn.value ?? false;
     final profileIndex = hasEducation ? 4 : 3;
     return nav?.selectedIndex.value == profileIndex;
   }
 
-  bool get shouldLoopVideo => isStandalonePostInstance;
+  bool get shouldLoopVideo =>
+      isStandalonePostInstance || _useLegacyIosFeedBehavior;
+
+  String get _qaSurfaceName {
+    if (isStandalonePostInstance) return 'feed';
+    if (_isFloodSurfaceInstance) return 'flood';
+    if (_isProfileFamilySurfaceInstance) return 'profile';
+    return 'feed';
+  }
+
+  String get _qaScrollToken {
+    if (_qaSurfaceName != 'feed') return '';
+    return agendaController.latestQAScrollToken;
+  }
+
+  void _recordPlaybackDispatch(
+    String stage, {
+    String source = '',
+    bool dispatchIssued = true,
+    String skipReason = '',
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    recordQALabPlaybackDispatch(
+      surface: _qaSurfaceName,
+      stage: stage,
+      metadata: <String, dynamic>{
+        'docId': widget.model.docID,
+        'instanceTag': widget.instanceTag ?? '',
+        'shouldPlay': widget.shouldPlay,
+        'isStandalone': isStandalonePostInstance,
+        'isProfileSurface': _isProfileSurfaceInstance,
+        'isProfileFamilySurface': _isProfileFamilySurfaceInstance,
+        'adapterInitialized': _videoAdapter?.value.isInitialized ?? false,
+        'adapterPlaying': _videoAdapter?.value.isPlaying ?? false,
+        'dispatchIssued': dispatchIssued,
+        'dispatchSource': source,
+        'callerSignature': source,
+        'skipReason': skipReason,
+        'scrollToken': _qaScrollToken,
+        'currentPlayingDocId':
+            _playbackRuntimeService.currentPlayingDocId ?? '',
+        ...metadata,
+      },
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-
-    controller = PostContentController.ensure(
-      tag: controllerTag,
-      create: widget.createController,
-    );
-
-    if (widget.showArchivePost) {
-      controller.arsiv.value = false;
-    }
-
-    // iOS'ta aynı anda çok sayıda native player açılması "ses var görüntü yok"
-    // ve raster crash'e yol açabiliyor. Player'ı yalnızca oynatma gerektiğinde aç.
-    // Hızlı scroll sırasında native view oluşturmayı engellemek için kısa gecikme.
-    if (widget.model.hasPlayableVideo && widget.shouldPlay) {
-      final delay = isStandalonePostInstance
-          ? Duration.zero
-          : const Duration(milliseconds: 150);
-      _lazyInitTimer = Timer(delay, () {
-        if (!mounted) return;
-        if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
-          _initVideoController();
-          if (isStandalonePostInstance) {
-            Future.delayed(const Duration(milliseconds: 220), () {
-              if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
-                return;
-              }
-              _videoAdapter!.setVolume(1.0);
-              _videoAdapter!.play();
-              videoStateManager.playOnlyThis(playbackHandleKey);
-              Future.delayed(const Duration(milliseconds: 220), () {
-                if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
-                  return;
-                }
-                _videoAdapter!.setVolume(1.0);
-              });
-            });
-          }
-        }
-      });
-    }
-
-    if (widget.showComments) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          controller.showPostCommentsBottomSheet();
-          _videoAdapter?.setLooping(false);
-        });
-      });
-    }
-
-    onPostInitialized();
+    _handleLifecycleInit();
   }
 
   void _initVideoController() {
@@ -197,20 +297,19 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _videoAdapter = adapterPool.acquire(
       cacheKey: playbackHandleKey,
       url: widget.model.playbackUrl,
-      // Feed/SinglePost playback tek yerden (_startPlayback) yönetilsin.
-      // Native autoPlay + sonradan gelen play() dalgası Android'de
-      // ses sürerken görüntü freeze davranışı üretebiliyor.
-      autoPlay: false,
+      // iOS feed, eski daha akıcı davranışı korusun; Android ise manual
+      // dispatch ile çift-play dalgasından kaçınsın.
+      autoPlay: _useLegacyIosFeedBehavior ? widget.shouldPlay : false,
       loop: shouldLoopVideo,
     );
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
 
-    videoStateManager.registerPlaybackHandle(
+    _playbackRuntimeService.registerPlaybackHandle(
       playbackHandleKey,
       HLSAdapterPlaybackHandle(_videoAdapter!),
     );
     if (isStandalonePostInstance) {
-      videoStateManager.enterExclusiveMode(playbackHandleKey);
+      _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
     }
 
     _videoAdapter!.addListener(_onVideoUpdate);
@@ -229,6 +328,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       _pauseAllWorker = ever(agendaController.pauseAll, (value) {
         if (value == true) {
           _safePauseVideo();
+        } else {
+          if (_controllerOwnsInlinePlayback) return;
+          _resumePlaybackIfEligible(source: 'pause_all_released');
         }
       });
 
@@ -236,16 +338,27 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         agendaController.playbackSuspended,
         (suspended) {
           if (suspended || !_isSurfacePlaybackAllowed) {
-            _safePauseVideo();
+            if (suspended &&
+                defaultTargetPlatform == TargetPlatform.iOS &&
+                _isPrimaryFeedSurfaceInstance) {
+              unawaited(_disposePlaybackForSurfaceLoss());
+              return;
+            }
+            _stopPlaybackForSurfaceLoss();
+          } else {
+            if (_controllerOwnsInlinePlayback) return;
+            _resumePlaybackIfEligible(source: 'playback_suspension_released');
           }
         },
       );
 
-      final nav = NavBarController.maybeFind();
+      final nav = maybeFindNavBarController();
       if (nav != null) {
         _navSelectionWorker = ever<int>(nav.selectedIndex, (_) {
           if (!_isSurfacePlaybackAllowed) {
-            _safePauseVideo();
+            _stopPlaybackForSurfaceLoss();
+          } else {
+            _resumePlaybackIfEligible(source: 'nav_selection_changed');
           }
         });
       }
@@ -259,587 +372,80 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final route = ModalRoute.of(context);
-    if (route != null) routeObserver.subscribe(this, route);
+    _handleDidChangeDependencies();
   }
 
   @override
   void dispose() {
-    try {
-      final route = ModalRoute.of(context);
-      if (route != null) routeObserver.unsubscribe(this);
-    } catch (_) {}
-
-    _lazyInitTimer?.cancel();
-    _playbackRecoveryTimer?.cancel();
-    _replayAdHideTimer?.cancel();
-    _videoAdapter?.removeListener(_onVideoUpdate);
-    if (isStandalonePostInstance) {
-      videoStateManager.exitExclusiveMode();
-    }
-    videoStateManager.unregisterVideoController(playbackHandleKey);
-    final adapter = _videoAdapter;
-    if (adapter != null) {
-      unawaited(adapterPool.release(adapter));
-    }
-    _muteWorker?.dispose();
-    _pauseAllWorker?.dispose();
-    _playbackSuspendedWorker?.dispose();
-    _navSelectionWorker?.dispose();
-    videoValueNotifier.dispose();
+    _handleLifecycleDispose();
     super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant T oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.shouldPlay != widget.shouldPlay) {
-      if (widget.shouldPlay) {
-        _lazyInitTimer?.cancel();
-        if (_videoAdapter == null && widget.model.hasPlayableVideo) {
-          _initVideoController();
-        }
-        if (isStandalonePostInstance) {
-          videoStateManager.enterExclusiveMode(playbackHandleKey);
-        }
-        if (_videoAdapter?.value.isInitialized == true) {
-          _startPlayback();
-        }
-      } else {
-        // Bekleyen lazy init varsa iptal et
-        _lazyInitTimer?.cancel();
-        if (_blockPause) return;
-        // Fullscreen geçişi sırasında pause etme
-        if (_skipNextPause) {
-          _skipNextPause = false;
-          return;
-        }
-        _safePauseVideo();
-      }
-    }
+    _handleDidUpdateWidget(oldWidget);
   }
 
   @override
-  void didPushNext() {
-    if (_blockPause) return;
-    if (_skipNextPause) {
-      _skipNextPause = false;
-      return;
-    }
-    _safePauseVideo();
-  }
+  void didPushNext() => _handleDidPushNext();
 
   @override
-  void didPopNext() {
-    if (widget.shouldPlay && _videoAdapter != null) {
-      if (isStandalonePostInstance) {
-        videoStateManager.enterExclusiveMode(playbackHandleKey);
-      }
-      if (_videoAdapter!.value.isInitialized) {
-        _startPlayback();
-      }
-    }
-  }
+  void didPopNext() => _handleDidPopNext();
 
   @override
-  void didPush() {}
+  void didPush() {
+    _resumePlaybackIfEligible(source: 'route_did_push');
+  }
 
   @override
   void didPop() {}
 
-  void _onVideoUpdate() {
+  void _onVideoUpdate() => _handleVideoUpdate();
+
+  bool _hasStableVideoFrame(HLSVideoValue value) {
+    return value.hasRenderedFirstFrame &&
+        !value.isBuffering &&
+        (value.isPlaying ||
+            value.isCompleted ||
+            value.position > _stableFramePositionThreshold);
+  }
+
+  int _remainingSecondsBucket(HLSVideoValue value) {
+    if (value.duration <= Duration.zero) return -1;
+    final remaining = value.duration - value.position;
+    final safeRemaining = remaining.isNegative ? Duration.zero : remaining;
+    return safeRemaining.inSeconds;
+  }
+
+  bool _shouldSyncVideoNotifier(HLSVideoValue next) {
+    final previous = videoValueNotifier.value;
+    if (previous.isInitialized != next.isInitialized ||
+        previous.isPlaying != next.isPlaying ||
+        previous.isBuffering != next.isBuffering ||
+        previous.isCompleted != next.isCompleted ||
+        previous.hasRenderedFirstFrame != next.hasRenderedFirstFrame) {
+      return true;
+    }
+    if (_hasStableVideoFrame(previous) != _hasStableVideoFrame(next)) {
+      return true;
+    }
+    return _remainingSecondsBucket(previous) != _remainingSecondsBucket(next);
+  }
+
+  void _markPostContentDirty() {
     if (!mounted) return;
-    final v = _videoAdapter!.value;
-    final remaining =
-        v.duration > Duration.zero ? v.duration - v.position : null;
-    const replayAdWarmupLead = Duration(seconds: 2);
-    final replayAdWarmupTarget =
-        Theme.of(context).platform == TargetPlatform.iOS ? 4 : 3;
-
-    if (!isStandalonePostInstance &&
-        !_replayAdPrewarmed &&
-        remaining != null &&
-        remaining <= replayAdWarmupLead &&
-        remaining > Duration.zero) {
-      _replayAdPrewarmed = true;
-      unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
-    }
-
-    if (v.isCompleted) {
-      if (!_replayOverlayLatched) {
-        _replayOverlayLatched = true;
-        _replayAdHideTimer?.cancel();
-        _replayAdVisible = AdmobKare.hasRenderableBanner;
-        _replayButtonVisible = !_replayAdVisible;
-        _replayAdImpressionReceived = false;
-        if (!isStandalonePostInstance) {
-          unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
-        }
-        if (_replayAdVisible) {
-          _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
-            if (!mounted) return;
-            setState(() {
-              _replayAdVisible = false;
-              _replayButtonVisible = true;
-            });
-          });
-        }
-        if (mounted) {
-          setState(() {});
-        }
-      }
-    } else if (_replayOverlayLatched &&
-        (v.isPlaying || v.position == Duration.zero)) {
-      _replayOverlayLatched = false;
-      _replayAdPrewarmed = false;
-      _replayAdVisible = false;
-      _replayButtonVisible = false;
-      _replayAdImpressionReceived = false;
-      _replayAdHideTimer?.cancel();
-    }
-
-    // İlk kez ready olduğunda ses ayarla
-    if (v.isInitialized && !_hasAutoPlayed) {
-      if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
-        _startPlayback();
-      } else {
-        _applyPlaybackVolume();
-      }
-    }
-
-    final shouldRecoverPlayback = widget.shouldPlay &&
-        _isSurfacePlaybackAllowed &&
-        v.isInitialized &&
-        !v.isPlaying &&
-        !v.isBuffering &&
-        !v.isCompleted &&
-        v.position > Duration.zero;
-    if (shouldRecoverPlayback) {
-      _playbackRecoveryTimer ??=
-          Timer(const Duration(milliseconds: 260), () {
-        _playbackRecoveryTimer = null;
-        if (!mounted) return;
-        final adapter = _videoAdapter;
-        final current = adapter?.value;
-        if (adapter == null || current == null) return;
-        final stillNeedsRecovery = widget.shouldPlay &&
-            _isSurfacePlaybackAllowed &&
-            current.isInitialized &&
-            !current.isPlaying &&
-            !current.isBuffering &&
-            !current.isCompleted;
-        if (!stillNeedsRecovery) return;
-        _startPlayback();
-      });
-    } else {
-      _playbackRecoveryTimer?.cancel();
-      _playbackRecoveryTimer = null;
-    }
-
-    // Watch progress bildirimi (feed videoları için)
-    if (v.isInitialized && v.duration.inMilliseconds > 0) {
-      final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
-      if (progress > 0) {
-        try {
-          SegmentCacheManager.maybeFind()
-              ?.updateWatchProgress(widget.model.docID, progress);
-        } catch (_) {}
-      }
-    }
-
-    // Sadece video overlay'lerini güncelle — tüm post'u rebuild etme
-    videoValueNotifier.value = v;
-  }
-
-  void _safePauseVideo() {
-    final v = _videoAdapter;
-    if (v != null) {
-      v.pause();
-      _hasAutoPlayed = false;
-      _playbackIntentTracked = false;
-      _syncRuntimeHints(hasStableFocus: false);
-    }
-  }
-
-  void pauseVideo() => _safePauseVideo();
-
-  void _applyPlaybackVolume() {
-    _videoAdapter?.setVolume(
-      isStandalonePostInstance
-          ? 1.0
-          : (agendaController.isMuted.value ? 0.0 : 1.0),
-    );
-    _syncRuntimeHints(isAudible: _currentIsAudible());
-  }
-
-  void _startPlayback() {
-    final adapter = _videoAdapter;
-    if (adapter == null) return;
-    if (!_isSurfacePlaybackAllowed) return;
-    unawaited(adapter.setLooping(shouldLoopVideo));
-    _applyPlaybackVolume();
-    _hasAutoPlayed = true;
-    unawaited(adapter.play());
-    if (isStandalonePostInstance) {
-      videoStateManager.playOnlyThis(playbackHandleKey);
-    } else {
-      // Feed card already issues adapter.play() above. Using requestPlayVideo
-      // here avoids VideoStateManager's delayed second play wave, which can
-      // stall the renderer while audio keeps flowing on some Android devices.
-      videoStateManager.requestPlayVideo(
-        playbackHandleKey,
-        HLSAdapterPlaybackHandle(adapter),
-      );
-    }
-    _syncRuntimeHints(
-      isAudible: _currentIsAudible(),
-      hasStableFocus: true,
-    );
-    Future.delayed(const Duration(milliseconds: 140), () {
-      if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
-      if (!_isSurfacePlaybackAllowed) return;
-      _applyPlaybackVolume();
-    });
-    _trackPlaybackIntent();
-    try {
-      SegmentCacheManager.maybeFind()?.markPlaying(widget.model.docID);
-    } catch (_) {}
-  }
-
-  /// Alt sınıflar route geçişinde bir sonraki otomatik pause'u atlamak istediğinde çağırır.
-  void markSkipNextPause() {
-    _skipNextPause = true;
-  }
-
-  /// Fullscreen route açıkken feed tarafında aynı controller'a pause gitmesini engeller.
-  void setPauseBlocked(bool value) {
-    _blockPause = value;
-    if (!value) {
-      _skipNextPause = false;
-    }
-  }
-
-  void tryAutoPlayWhenBuffered() {
-    // Adapter initialize olmadan çağrı gelirse pending-play kuyruğa alınır.
-    if (_videoAdapter != null) {
-      unawaited(_videoAdapter!.setLooping(shouldLoopVideo));
-      _videoAdapter!.play();
-    }
-  }
-
-  Future<void> replayVideoFromStart() async {
-    final adapter = _videoAdapter;
-    if (adapter == null) return;
-    _replayOverlayLatched = false;
-    _replayAdPrewarmed = false;
-    _replayAdVisible = false;
-    _replayButtonVisible = false;
-    _replayAdImpressionReceived = false;
-    _replayAdHideTimer?.cancel();
-    await adapter.setLooping(shouldLoopVideo);
-    await adapter.seekTo(Duration.zero);
-    _startPlayback();
-  }
-
-  void _onReplayAdImpression() {
-    if (_replayAdImpressionReceived) return;
-    _replayAdImpressionReceived = true;
-  }
-
-  Widget buildFeedReplayOverlay(HLSVideoValue value) {
-    if (isStandalonePostInstance) return const SizedBox.shrink();
-    if (!_replayOverlayLatched && !_replayAdVisible && !_replayButtonVisible) {
-      return const SizedBox.shrink();
-    }
-    final showReplayButton = _replayButtonVisible;
-    final showAdPanel = _replayAdVisible;
-    return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: false,
-        child: ColoredBox(
-          color: Colors.black.withValues(alpha: showReplayButton ? 0.28 : 0.18),
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 320),
-                child: AspectRatio(
-                  aspectRatio: 9 / 16,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (showAdPanel) ...[
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 300,
-                                height: 250,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: AdmobKare(
-                                  showChrome: false,
-                                  onImpression: _onReplayAdImpression,
-                                ),
-                              ),
-                              if (showReplayButton) const SizedBox(height: 16),
-                              if (showReplayButton)
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => unawaited(replayVideoFromStart()),
-                                  child: Container(
-                                    width: 148,
-                                    height: 44,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(22),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        'Tekrar izle',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 14,
-                                          fontFamily: 'MontserratSemiBold',
-                                          height: 1.0,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          ColoredBox(
-                            color: Colors.black.withValues(alpha: 0.10),
-                          ),
-                        ],
-                        if (showReplayButton && !showAdPanel)
-                          Center(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => unawaited(replayVideoFromStart()),
-                              child: Container(
-                                width: 148,
-                                height: 44,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 18),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'Tekrar izle',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                      fontFamily: 'MontserratSemiBold',
-                                      height: 1.0,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void reportMediaVisibility(double visibleFraction) {
-    final modelIndex = agendaController.agendaList
-        .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex >= 0) {
-      agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
-    }
-
-    final surfaceTag = widget.instanceTag ?? '';
-    if (visibleFraction < 0.55) return;
-
-    final profileController = ProfileController.maybeFind();
-    if (surfaceTag.startsWith('profile_') && profileController != null) {
-      final profileIndex = profileController.indexOfMergedEntry(
-        docId: widget.model.docID,
-        isReshare: widget.isReshared,
-      );
-      if (profileIndex >= 0) {
-        profileController.currentVisibleIndex.value = profileIndex;
-        profileController.capturePendingCenteredEntry(
-          preferredIndex: profileIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          profileController.centeredIndex.value = profileIndex;
-          profileController.lastCenteredIndex = profileIndex;
-        }
-      }
-    }
-
-    final socialProfileController = SocialProfileController.maybeFind();
-    if (surfaceTag.startsWith('social_') && socialProfileController != null) {
-      final socialIndex = socialProfileController.indexOfCombinedEntry(
-        docId: widget.model.docID,
-        isReshare: widget.isReshared,
-      );
-      if (socialIndex >= 0) {
-        socialProfileController.currentVisibleIndex.value = socialIndex;
-        socialProfileController.capturePendingCenteredEntry(
-          preferredIndex: socialIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          socialProfileController.centeredIndex.value = socialIndex;
-          socialProfileController.lastCenteredIndex = socialIndex;
-        }
-      }
-    }
-
-    if (surfaceTag.startsWith('archives_')) {
-      final archiveController = ArchiveController.maybeFind();
-      if (archiveController == null) return;
-      final archiveIndex = archiveController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (archiveIndex >= 0) {
-        archiveController.currentVisibleIndex.value = archiveIndex;
-        archiveController.capturePendingCenteredEntry(
-          preferredIndex: archiveIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          archiveController.centeredIndex.value = archiveIndex;
-          archiveController.lastCenteredIndex = archiveIndex;
-        }
-      }
-    }
-
-    if (surfaceTag.startsWith('liked_post_')) {
-      final likedController = LikedPostControllers.maybeFind();
-      if (likedController == null) return;
-      final likedIndex =
-          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
-      if (likedIndex >= 0) {
-        likedController.currentVisibleIndex.value = likedIndex;
-        likedController.capturePendingCenteredEntry(preferredIndex: likedIndex);
-        if (visibleFraction >= 0.72) {
-          likedController.centeredIndex.value = likedIndex;
-          likedController.lastCenteredIndex = likedIndex;
-        }
-      }
-    }
-
-    if (surfaceTag.startsWith('top_tag_')) {
-      final topTagsController = TopTagsController.maybeFind();
-      if (topTagsController == null) return;
-      final topTagsIndex = topTagsController.agendaList
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (topTagsIndex >= 0) {
-        topTagsController.currentVisibleIndex.value = topTagsIndex;
-        topTagsController.capturePendingCenteredEntry(
-          preferredIndex: topTagsIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          topTagsController.centeredIndex.value = topTagsIndex;
-          topTagsController.lastCenteredIndex = topTagsIndex;
-        }
-      }
-    }
-
-    if (surfaceTag.startsWith('tag_post_')) {
-      final tagPostsController = TagPostsController.maybeFind();
-      if (tagPostsController == null) return;
-      final tagPostIndex = tagPostsController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (tagPostIndex >= 0) {
-        tagPostsController.currentVisibleIndex.value = tagPostIndex;
-        tagPostsController.capturePendingCenteredEntry(
-          preferredIndex: tagPostIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          tagPostsController.centeredIndex.value = tagPostIndex;
-          tagPostsController.lastCenteredIndex = tagPostIndex;
-        }
-      }
-    }
-
-    if (surfaceTag.startsWith('flood_')) {
-      final floodController = FloodListingController.maybeFind();
-      if (floodController == null) return;
-      final floodIndex = floodController.floods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (floodIndex >= 0) {
-        floodController.currentVisibleIndex.value = floodIndex;
-        floodController.capturePendingCenteredEntry(preferredIndex: floodIndex);
-        if (visibleFraction >= 0.72) {
-          floodController.centeredIndex.value = floodIndex;
-          floodController.lastCenteredIndex = floodIndex;
-        }
-      }
-    }
-
-    final exploreController = ExploreController.maybeFind();
-    if (surfaceTag.startsWith('explore_series_') && exploreController != null) {
-      final exploreIndex = exploreController.exploreFloods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (exploreIndex >= 0) {
-        exploreController.floodsVisibleIndex.value = exploreIndex;
-        exploreController.capturePendingFloodEntry(
-          preferredIndex: exploreIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          exploreController.lastFloodVisibleIndex = exploreIndex;
-        }
-      }
-    }
+    setState(() {});
   }
 
   void onPostInitialized() {}
-
-  bool _currentIsAudible() {
-    if (isStandalonePostInstance) return true;
-    return !agendaController.isMuted.value;
-  }
-
-  void _syncRuntimeHints({
-    bool? isAudible,
-    bool? hasStableFocus,
-  }) {
-    VideoTelemetryService.instance.updateRuntimeHints(
-      widget.model.docID,
-      isAudible: isAudible,
-      hasStableFocus: hasStableFocus,
-    );
-  }
-
-  void _trackPlaybackIntent() {
-    if (_playbackIntentTracked) return;
-    final playbackKpi = PlaybackKpiService.maybeFind();
-    if (playbackKpi == null) return;
-    _playbackIntentTracked = true;
-    playbackKpi.track(
-      PlaybackKpiEventType.playbackIntent,
-      {
-        'surface': isStandalonePostInstance ? 'single_post' : 'feed_post',
-        'videoId': widget.model.docID,
-        'audible': _currentIsAudible(),
-        'stableFocus': true,
-      },
-    );
-  }
+  void onPostFrameBound() {}
+  Future<void> onReshareAdded(
+    String? uid, {
+    String? targetPostId,
+  }) async {}
+  Future<void> onReshareRemoved(
+    String? uid, {
+    String? targetPostId,
+  }) async {}
 }

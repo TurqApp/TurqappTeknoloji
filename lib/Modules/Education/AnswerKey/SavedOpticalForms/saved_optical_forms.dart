@@ -22,14 +22,14 @@ class _SavedOpticalFormsState extends State<SavedOpticalForms> {
     super.initState();
     _controllerTag = 'saved_optical_forms_${identityHashCode(this)}';
     _ownsController =
-        SavedOpticalFormsController.maybeFind(tag: _controllerTag) == null;
-    controller = SavedOpticalFormsController.ensure(tag: _controllerTag);
+        maybeFindSavedOpticalFormsController(tag: _controllerTag) == null;
+    controller = ensureSavedOpticalFormsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = SavedOpticalFormsController.maybeFind(
+      final registeredController = maybeFindSavedOpticalFormsController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

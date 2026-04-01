@@ -81,7 +81,6 @@ const SCHOLARSHIP_TYPESENSE_REDUCED_FIELDS = new Set([
     "authorDisplayName",
     "authorAvatarUrl",
     "detailsJson",
-    "logo",
     "img",
 ]);
 const TUTORING_TYPESENSE_REDUCED_FIELDS = new Set([
@@ -380,6 +379,7 @@ function requiredFields(entity) {
         { name: "country", type: "string", optional: true },
         { name: "tags", type: "string[]", optional: true },
         { name: "cover", type: "string", optional: true },
+        { name: "logo", type: "string", optional: true },
         { name: "nickname", type: "string", optional: true },
         { name: "displayName", type: "string", optional: true },
         { name: "avatarUrl", type: "string", optional: true },
@@ -638,6 +638,7 @@ function buildScholarshipDoc(docId, data) {
         displayName,
         avatarUrl,
         rozet: asString(data.rozet),
+        logo: asString(data.logo),
         shortDescription: asString(data.shortDescription),
         aciklama: asString(data.aciklama),
         img2: asString(data.img2),
@@ -878,6 +879,66 @@ function buildSearchDoc(entity, docId, data) {
             return buildPastQuestionDoc(docId, data);
     }
 }
+function buildComparableIndexedDoc(entity, docId, data) {
+    const doc = buildSearchDoc(entity, docId, data);
+    if (entity === "scholarship") {
+        const nickname = doc.nickname ||
+            asString(data.nickname) ||
+            asString(data.authorNickname);
+        const displayName = doc.displayName ||
+            asString(data.displayName) ||
+            asString(data.authorDisplayName) ||
+            nickname;
+        const avatarUrl = doc.avatarUrl ||
+            asString(data.avatarUrl) ||
+            asString(data.authorAvatarUrl);
+        const rozet = doc.rozet || asString(data.rozet);
+        return {
+            ...doc,
+            nickname,
+            displayName,
+            avatarUrl,
+            rozet,
+        };
+    }
+    if (entity === "tutoring") {
+        const nickname = doc.nickname || asString(data.nickname);
+        const displayName = doc.displayName ||
+            asString(data.displayName) ||
+            nickname;
+        const avatarUrl = asString(data.avatarUrl) ||
+            doc.avatarUrl;
+        const rozet = doc.rozet || asString(data.rozet);
+        return {
+            ...doc,
+            nickname,
+            displayName,
+            avatarUrl,
+            rozet,
+        };
+    }
+    if (entity !== "job")
+        return doc;
+    const nickname = doc.nickname || asString(data.nickname);
+    const displayName = doc.displayName ||
+        asString(data.displayName) ||
+        nickname;
+    const avatarUrl = asString(data.avatarUrl) ||
+        doc.avatarUrl;
+    const rozet = doc.rozet || asString(data.rozet);
+    return {
+        ...doc,
+        nickname,
+        displayName,
+        avatarUrl,
+        rozet,
+    };
+}
+function educationDocsEqual(left, right) {
+    if (!left || !right)
+        return false;
+    return JSON.stringify(left) === JSON.stringify(right);
+}
 async function buildSearchDocForIndexing(entity, docId, data) {
     const doc = buildSearchDoc(entity, docId, data);
     if (entity === "scholarship") {
@@ -989,9 +1050,30 @@ function shouldIndex(doc) {
         (doc.detailsText || "").trim().length > 0;
     return doc.active && hasCoreText;
 }
-async function syncEducationDoc(entity, rawDocId, afterData) {
+async function syncEducationDoc(entity, rawDocId, beforeData, afterData) {
+    const beforeComparable = beforeData
+        ? buildComparableIndexedDoc(entity, rawDocId, beforeData)
+        : null;
+    const afterComparable = afterData
+        ? buildComparableIndexedDoc(entity, rawDocId, afterData)
+        : null;
+    const beforeIndexed = !!beforeComparable && shouldIndex(beforeComparable);
+    const afterIndexed = !!afterComparable && shouldIndex(afterComparable);
     if (!afterData) {
+        if (!beforeIndexed) {
+            return;
+        }
         await deleteDoc(entity, rawDocId);
+        return;
+    }
+    if (!afterIndexed) {
+        if (!beforeIndexed) {
+            return;
+        }
+        await deleteDoc(entity, rawDocId);
+        return;
+    }
+    if (beforeIndexed && educationDocsEqual(beforeComparable, afterComparable)) {
         return;
     }
     const doc = await buildSearchDocForIndexing(entity, rawDocId, afterData);
@@ -1028,7 +1110,7 @@ function toHitOutput(hitRaw, collection) {
         aciklama: String(doc.aciklama || ""),
         img: String(doc.cover || ""),
         img2: String(doc.img2 || ""),
-        logo: "",
+        logo: String(doc.logo || ""),
         baslangicTarihi: String(doc.baslangicTarihi || ""),
         bitisTarihi: String(doc.bitisTarihi || ""),
         basvuruKosullari: String(doc.basvuruKosullari || ""),
@@ -1246,8 +1328,9 @@ exports.f21_syncScholarshipsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncEducationDoc("scholarship", docId, afterData);
+    await syncEducationDoc("scholarship", docId, beforeData, afterData);
 });
 exports.f21_syncPracticeExamsToTypesense = (0, firestore_1.onDocumentWritten)({
     document: "practiceExams/{docId}",
@@ -1260,8 +1343,9 @@ exports.f21_syncPracticeExamsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncEducationDoc("practice_exam", docId, afterData);
+    await syncEducationDoc("practice_exam", docId, beforeData, afterData);
 });
 exports.f21_syncAnswerKeysToTypesense = (0, firestore_1.onDocumentWritten)({
     document: "books/{docId}",
@@ -1274,8 +1358,9 @@ exports.f21_syncAnswerKeysToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncEducationDoc("answer_key", docId, afterData);
+    await syncEducationDoc("answer_key", docId, beforeData, afterData);
 });
 exports.f21_syncTutoringsToTypesense = (0, firestore_1.onDocumentWritten)({
     document: "educators/{docId}",
@@ -1288,8 +1373,9 @@ exports.f21_syncTutoringsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncEducationDoc("tutoring", docId, afterData);
+    await syncEducationDoc("tutoring", docId, beforeData, afterData);
 });
 exports.f21_syncJobsToTypesense = (0, firestore_1.onDocumentWritten)({
     document: "isBul/{docId}",
@@ -1302,8 +1388,9 @@ exports.f21_syncJobsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncEducationDoc("job", docId, afterData);
+    await syncEducationDoc("job", docId, beforeData, afterData);
 });
 exports.f21_syncWorkoutsToTypesense = (0, firestore_1.onDocumentWritten)({
     document: "questionBank/{docId}",
@@ -1316,8 +1403,9 @@ exports.f21_syncWorkoutsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncEducationDoc("workout", docId, afterData);
+    await syncEducationDoc("workout", docId, beforeData, afterData);
 });
 exports.f21_syncPastQuestionsToTypesense = (0, firestore_1.onDocumentWritten)({
     document: "questions/{docId}",
@@ -1330,8 +1418,9 @@ exports.f21_syncPastQuestionsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (!typesenseReady())
         return;
     const docId = String(event.params.docId || "");
+    const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    await syncEducationDoc("past_question", docId, afterData);
+    await syncEducationDoc("past_question", docId, beforeData, afterData);
 });
 exports.f21_ensureEducationTypesenseCollectionCallable = (0, https_1.onCall)({
     region: REGION,

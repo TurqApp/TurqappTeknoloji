@@ -1,0 +1,219 @@
+part of 'short_controller.dart';
+
+const bool _verboseShortLogs = false;
+const int _initialPreloadCount = 3;
+const double _shortLandscapeAspectThreshold = 1.2;
+final double _activeBufferSeconds =
+    defaultTargetPlatform == TargetPlatform.android ? 5.0 : 4.8;
+final double _neighborBufferSeconds =
+    defaultTargetPlatform == TargetPlatform.android ? 3.6 : 3.6;
+final double _prepBufferSeconds =
+    defaultTargetPlatform == TargetPlatform.android ? 2.8 : 3.0;
+
+ShortController _ensureShortController() {
+  final existing = _maybeFindShortController();
+  if (existing != null) return existing;
+  return Get.put(ShortController());
+}
+
+ShortController? _maybeFindShortController() {
+  final isRegistered = Get.isRegistered<ShortController>();
+  if (!isRegistered) return null;
+  return Get.find<ShortController>();
+}
+
+extension _ShortControllerRuntimeX on ShortController {
+  void log(String message) {
+    if (_verboseShortLogs) debugPrint(message);
+  }
+
+  bool isEligibleShortPost(PostsModel post) {
+    if (!post.hasPlayableVideo) return false;
+    if (post.isFloodSeriesContent) return false;
+    final ar = post.aspectRatio.toDouble();
+    if (ar > _shortLandscapeAspectThreshold) {
+      return false;
+    }
+    return true;
+  }
+
+  void handleOnInit() {
+    applyUserCacheQuota();
+    _log('[Shorts] 🔄 ShortController.onInit() called');
+    _bindFollowingListener();
+  }
+
+  Future<void> applyUserCacheQuota() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
+      final quotaGb = (savedGb + 1).clamp(4, 7);
+      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
+      await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
+    } catch (e) {
+      _log('Shorts cache quota apply error: $e');
+    }
+  }
+
+  void handleOnClose() {
+    _log('[Shorts] ❌ ShortController.onClose() called');
+    _playbackCoordinator.reset();
+    clearCache();
+    _state.followingSub?.cancel();
+  }
+}
+
+extension ShortControllerPublicApiPart on ShortController {
+  Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
+        allowBackgroundRefresh:
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts),
+      );
+
+  Future<void> prepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) {
+    final active = _startupPrepareFuture;
+    if (active != null) {
+      return active;
+    }
+    final future = _performPrepareStartupSurface(
+      allowBackgroundRefresh: allowBackgroundRefresh,
+    );
+    _startupPrepareFuture = future;
+    return future.whenComplete(() {
+      if (identical(_startupPrepareFuture, future)) {
+        _startupPrepareFuture = null;
+      }
+    });
+  }
+
+  Future<void> _performPrepareStartupSurface({
+    bool? allowBackgroundRefresh,
+  }) async {
+    final allowRefresh = allowBackgroundRefresh ??
+        ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
+    if (shorts.isEmpty) {
+      if (_backgroundPreloadFuture != null) {
+        await _backgroundPreloadFuture;
+      } else {
+        await _runInitialLoadOnce();
+      }
+    }
+    if (shorts.isNotEmpty) {
+      await preloadRange(0, range: 0);
+    }
+    await _recordShortStartupSurface(
+      source: 'short_surface_ready',
+    );
+    if (!allowRefresh || shorts.isEmpty) return;
+    unawaited(backgroundPreload());
+  }
+
+  Future<void> persistStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final ordered = shorts.toList(growable: false);
+    await _persistShortStartupShardOnly(
+      userId: userId,
+      ordered: ordered,
+      snapshotAt: DateTime.now(),
+      source: 'short_runtime',
+    );
+  }
+
+  Future<void> persistStartupArtifacts() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final snapshotAt = DateTime.now();
+    final ordered = shorts.toList(growable: false);
+    if (ordered.isEmpty) {
+      await _persistShortStartupShardOnly(
+        userId: userId,
+        ordered: ordered,
+        snapshotAt: snapshotAt,
+        source: 'none',
+      );
+      return;
+    }
+    final snapshotLimit =
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
+    await _shortSnapshotRepository.persistHomeSnapshot(
+      userId: userId,
+      posts: ordered,
+      limit: snapshotLimit,
+      source: CachedResourceSource.memory,
+      snapshotAt: snapshotAt,
+    );
+    await _persistShortStartupShardOnly(
+      userId: userId,
+      ordered: ordered,
+      snapshotAt: snapshotAt,
+      source: 'short_runtime',
+    );
+  }
+
+  Future<void> _recordShortStartupSurface({
+    required String source,
+    int? itemCount,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final count = itemCount ?? shorts.length;
+    bool startupShardHydrated = false;
+    int? startupShardAgeMs;
+    if (count > 0) {
+      try {
+        final existingManifest =
+            await ensureStartupSnapshotManifestStore().load(userId: userId);
+        final existingRecord = existingManifest?.surfaces['short'];
+        startupShardHydrated = existingRecord?.startupShardHydrated == true;
+        startupShardAgeMs = existingRecord?.startupShardAgeMs;
+      } catch (_) {}
+    }
+    await ensureStartupSnapshotManifestStore().recordSurfaceState(
+      surface: 'short',
+      userId: userId,
+      itemCount: count,
+      hasLocalSnapshot: count > 0,
+      source: count > 0 ? source : 'none',
+      startupShardHydrated: startupShardHydrated,
+      startupShardAgeMs: startupShardAgeMs,
+    );
+  }
+
+  Future<void> _persistShortStartupShardOnly({
+    required String userId,
+    required List<PostsModel> ordered,
+    required DateTime snapshotAt,
+    required String source,
+  }) async {
+    final shardLimit = ordered.length >= 6 ? 6 : ordered.length;
+    if (shardLimit <= 0) {
+      await ensureStartupSnapshotShardStore().clear(
+        surface: 'short',
+        userId: userId,
+      );
+      await _recordShortStartupSurface(
+        source: 'none',
+        itemCount: 0,
+      );
+      return;
+    }
+    await ensureStartupSnapshotShardStore().save(
+      surface: 'short',
+      userId: userId,
+      itemCount: ordered.length,
+      limit: shardLimit,
+      source: source,
+      snapshotAt: snapshotAt,
+      payload: _shortSnapshotRepository.encodeHomeStartupPayload(
+        ordered,
+        limit: shardLimit,
+      ),
+    );
+    await _recordShortStartupSurface(
+      source: source,
+      itemCount: ordered.length,
+    );
+  }
+}

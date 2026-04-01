@@ -1,0 +1,31 @@
+part of 'sign_in_controller.dart';
+
+final UserRepository _userRepository = UserRepository.ensure();
+final UserSubdocRepository _userSubdocRepository = ensureUserSubdocRepository();
+final SignInApplicationService _signInApplicationService =
+    SignInApplicationService();
+const DeviceSessionRuntimeService _deviceSessionRuntimeService =
+    DeviceSessionRuntimeService();
+SignInRemoteService get _remoteService => SignInRemoteService.ensure();
+const String _loginWord = 'TurqApp';
+
+void _logSignupOtp(String stage, [Map<String, Object?> details = const {}]) {
+  debugPrint('[SignupOtp] $stage ${details.isEmpty ? "" : details}');
+}
+
+void _ensureFeedTabSelected() {
+  final nav = maybeFindNavBarController() ?? ensureNavBarController();
+  nav.selectedIndex.value = 0;
+}
+
+String _formatSeconds(int seconds) {
+  final safe = seconds < 0 ? 0 : seconds;
+  final m = (safe ~/ 60).toString().padLeft(2, '0');
+  final s = (safe % 60).toString().padLeft(2, '0');
+  return '$m:$s';
+}
+
+Future<void> _clearSessionCachesAfterAccountSwitch() async {
+  // User switch should preserve global content caches.
+  // Warmup methods refresh user-scoped overlays and controllers afterward.
+}

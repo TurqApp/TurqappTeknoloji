@@ -209,7 +209,29 @@ extension InAppNotificationsControllerActionsPart
 
   Future<void> bildirimleriTopluSil() async {
     final uid = _currentUid;
-    await _notificationsRepository.deleteAll(uid);
+    if (uid.isEmpty) return;
+    final previousAll = List<NotificationModel>.from(_allNotifications);
+    _clearNotificationState();
+    await _notificationsSnapshotRepository.persistInboxSnapshot(
+      userId: uid,
+      notifications: const <NotificationModel>[],
+      source: CachedResourceSource.scopedDisk,
+    );
+    try {
+      await _notificationsRepository.deleteAll(uid);
+    } catch (_) {
+      _allNotifications
+        ..clear()
+        ..addAll(previousAll);
+      _applyFilters();
+      _refreshUnreadTotal();
+      unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
+        userId: uid,
+        notifications: previousAll,
+        source: CachedResourceSource.scopedDisk,
+      ));
+      rethrow;
+    }
   }
 
   bool isMentionNotification(NotificationModel model) {

@@ -21,16 +21,15 @@ class _MyTestResultsState extends State<MyTestResults> {
   void initState() {
     super.initState();
     _controllerTag = 'tests_results_${identityHashCode(this)}';
-    final existing = MyTestResultsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindMyTestResultsController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller =
-        existing ?? MyTestResultsController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureMyTestResultsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = MyTestResultsController.maybeFind(
+      final registeredController = maybeFindMyTestResultsController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {
@@ -42,59 +41,69 @@ class _MyTestResultsState extends State<MyTestResults> {
 
   @override
   Widget build(BuildContext context) {
+    return _buildPage();
+  }
+
+  Widget _buildPage() {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "tests.results_title".tr),
+            BackButtons(text: 'tests.results_title'.tr),
             Expanded(
               child: RefreshIndicator(
                 color: Colors.white,
                 backgroundColor: Colors.black,
                 onRefresh: controller.findAndGetTestler,
-                child: Obx(
-                  () => controller.isLoading.value
-                      ? const Center(child: CupertinoActivityIndicator())
-                      : controller.list.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.only(top: 15),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.black,
-                                    size: 40,
-                                  ),
-                                  SizedBox(height: 10),
-                                  Text(
-                                    "tests.my_results_empty".tr,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "Montserrat",
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              itemCount: controller.list.length,
-                              itemBuilder: (context, index) {
-                                return TestPastResultContent(
-                                  index: index,
-                                  model: controller.list[index],
-                                );
-                              },
-                            ),
-                ),
+                child: Obx(() => _buildContent()),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (controller.isLoading.value) {
+      return const Center(child: CupertinoActivityIndicator());
+    }
+
+    if (controller.list.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.info_outline,
+              color: Colors.black,
+              size: 40,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'tests.my_results_empty'.tr,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 15,
+                fontFamily: 'Montserrat',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: controller.list.length,
+      itemBuilder: (context, index) {
+        return TestPastResultContent(
+          index: index,
+          model: controller.list[index],
+        );
+      },
     );
   }
 }

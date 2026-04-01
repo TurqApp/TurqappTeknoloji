@@ -12,6 +12,12 @@ enum IndexPoolKind {
   story,
 }
 
+int _indexPoolAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
 class IndexPoolEntry {
   final String docID;
   final String kind;
@@ -22,21 +28,24 @@ class IndexPoolEntry {
   final String caption;
   final int updatedAt;
 
+  bool get isValid =>
+      docID.trim().isNotEmpty && kind.trim().isNotEmpty && cardData.isNotEmpty;
+
   IndexPoolEntry({
     required this.docID,
     required this.kind,
-    required this.cardData,
+    required Map<String, dynamic> cardData,
     required this.userID,
     required this.nickname,
     required this.avatarUrl,
     required this.caption,
     required this.updatedAt,
-  });
+  }) : cardData = _cloneIndexPoolMap(cardData);
 
   Map<String, dynamic> toJson() => {
         'docID': docID,
         'kind': kind,
-        'cardData': cardData,
+        'cardData': _cloneIndexPoolMap(cardData),
         'userID': userID,
         'nickname': nickname,
         'avatarUrl': avatarUrl,
@@ -48,14 +57,38 @@ class IndexPoolEntry {
     return IndexPoolEntry(
       docID: (json['docID'] ?? '').toString(),
       kind: (json['kind'] ?? '').toString(),
-      cardData: (json['cardData'] as Map?)?.cast<String, dynamic>() ?? {},
+      cardData: _cloneIndexPoolMap(
+        (json['cardData'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ),
       userID: (json['userID'] ?? '').toString(),
       nickname: (json['nickname'] ?? '').toString(),
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
       caption: (json['caption'] ?? '').toString(),
-      updatedAt: (json['updatedDate'] as num?)?.toInt() ?? 0,
+      updatedAt: _indexPoolAsInt(json['updatedDate']),
     );
   }
+}
+
+Map<String, dynamic> _cloneIndexPoolMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneIndexPoolValue(value)),
+  );
+}
+
+dynamic _cloneIndexPoolValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneIndexPoolValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneIndexPoolValue).toList(growable: false);
+  }
+  return value;
 }
 
 class IndexPoolStore {
@@ -71,7 +104,7 @@ class IndexPoolStore {
     return Get.put(IndexPoolStore(), permanent: permanent);
   }
 
-  static const int _schemaVersion = 4;
+  static const int _schemaVersion = 5;
   static const int _maxEntriesPerKind = 250;
   static const Duration _poolFileTtl = Duration(hours: 24);
   static const Duration _fallbackTtl = Duration(minutes: 5);
@@ -134,13 +167,13 @@ class IndexPoolStore {
         // Legacy format (v1): plain entries list.
         entriesRaw = raw;
       } else if (raw is Map<String, dynamic>) {
-        final version = (raw['schemaVersion'] as num?)?.toInt() ?? 0;
+        final version = _indexPoolAsInt(raw['schemaVersion']);
         if (version != _schemaVersion) {
           await _deletePoolFile();
           return const [];
         }
         entriesRaw = (raw['entries'] as List?) ?? const [];
-        updatedAtMs = (raw['updatedDate'] as num?)?.toInt() ?? 0;
+        updatedAtMs = _indexPoolAsInt(raw['updatedDate']);
       } else {
         await _deletePoolFile();
         return const [];
@@ -149,15 +182,35 @@ class IndexPoolStore {
       if (updatedAtMs > 0 && !allowStale) {
         final ageMs = DateTime.now().millisecondsSinceEpoch - updatedAtMs;
         if (ageMs > _poolFileTtl.inMilliseconds) {
+          await _deletePoolFile();
           return const [];
         }
       }
 
-      return entriesRaw
-          .whereType<Map>()
-          .map((m) => IndexPoolEntry.fromJson(m.cast<String, dynamic>()))
-          .where((e) => e.docID.isNotEmpty && e.kind.isNotEmpty)
-          .toList();
+      var shouldPersist = false;
+      final entries = <IndexPoolEntry>[];
+      for (final rawEntry in entriesRaw) {
+        if (rawEntry is! Map) {
+          shouldPersist = true;
+          continue;
+        }
+        try {
+          final entry = IndexPoolEntry.fromJson(
+            Map<String, dynamic>.from(rawEntry.cast<dynamic, dynamic>()),
+          );
+          if (!entry.isValid) {
+            shouldPersist = true;
+            continue;
+          }
+          entries.add(entry);
+        } catch (_) {
+          shouldPersist = true;
+        }
+      }
+      if (shouldPersist) {
+        await _persistAll(entries);
+      }
+      return entries;
     } catch (_) {
       await _deletePoolFile();
       return const [];
@@ -215,16 +268,41 @@ class IndexPoolStore {
     final all = await _loadAll(allowStale: allowStale);
     final now = DateTime.now().millisecondsSinceEpoch;
     final ttlMs = (_kindTtl[kind] ?? _fallbackTtl).inMilliseconds;
+    final staleIds = <String>{};
     final filtered = all.where((e) => e.kind == k).where((entry) {
       if (allowStale) return true;
-      if (entry.updatedAt <= 0) return false;
-      return (now - entry.updatedAt) <= ttlMs;
+      if (entry.updatedAt <= 0) {
+        staleIds.add(entry.docID);
+        return false;
+      }
+      final isFresh = (now - entry.updatedAt) <= ttlMs;
+      if (!isFresh) {
+        staleIds.add(entry.docID);
+      }
+      return isFresh;
     }).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return filtered
-        .take(limit)
-        .map((e) => PostsModel.fromMap(e.cardData, e.docID))
-        .toList();
+    final malformedIds = <String>{};
+    final output = <PostsModel>[];
+    for (final entry in filtered) {
+      try {
+        output.add(PostsModel.fromMap(entry.cardData, entry.docID));
+      } catch (_) {
+        malformedIds.add(entry.docID);
+      }
+      if (output.length >= limit) {
+        break;
+      }
+    }
+    final idsToPrune = <String>{...staleIds, ...malformedIds};
+    if (idsToPrune.isNotEmpty) {
+      final repaired = all
+          .where(
+              (entry) => !(entry.kind == k && idsToPrune.contains(entry.docID)))
+          .toList(growable: false);
+      await _persistAll(repaired);
+    }
+    return output;
   }
 
   Future<void> savePosts(
@@ -281,6 +359,17 @@ class IndexPoolStore {
     final filtered = all
         .where((e) => !(e.kind == k && removeSet.contains(e.docID)))
         .toList();
+    await _persistAll(filtered);
+  }
+
+  Future<void> clearKind(IndexPoolKind kind) async {
+    final k = kind.name;
+    final all = await _loadAll(allowStale: true);
+    final filtered =
+        all.where((entry) => entry.kind != k).toList(growable: false);
+    if (filtered.length == all.length) {
+      return;
+    }
     await _persistAll(filtered);
   }
 

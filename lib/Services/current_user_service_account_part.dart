@@ -1,6 +1,33 @@
 part of 'current_user_service.dart';
 
 extension CurrentUserServiceAccountPart on CurrentUserService {
+  List<String> _normalizeLocalUserIdList(
+    Iterable<dynamic> source, {
+    int? maxItems,
+  }) {
+    final seen = <String>{};
+    final next = <String>[];
+    for (final raw in source) {
+      final value = raw.toString().trim();
+      if (value.isEmpty) continue;
+      if (!seen.add(value)) continue;
+      next.add(value);
+      if (maxItems != null && next.length >= maxItems) {
+        break;
+      }
+    }
+    return next;
+  }
+
+  bool _sameStringList(List<String> left, List<String> right) {
+    if (identical(left, right)) return true;
+    if (left.length != right.length) return false;
+    for (var i = 0; i < left.length; i++) {
+      if (left[i] != right[i]) return false;
+    }
+    return true;
+  }
+
   Future<void> restorePendingDeletionIfNeededForCurrentUser() async {
     final firebaseUser = currentAuthUser;
     if (firebaseUser == null) return;
@@ -66,10 +93,116 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
       await _applyOptimisticLocalPatch(normalizedFields);
       _purgeUserScopedCaches(firebaseUser.uid);
-      await UserProfileCacheService.invalidateIfRegistered(firebaseUser.uid);
+      await invalidateUserProfileCacheIfRegistered(firebaseUser.uid);
+      if (normalizedFields.containsKey('isPrivate')) {
+        await ViewerSurfaceInvalidationService.invalidateForViewer(
+          firebaseUser.uid,
+        );
+      }
     } catch (_) {
       rethrow;
     }
+  }
+
+  Future<void> applyLocalFields(Map<String, dynamic> fields) async {
+    if (fields.isEmpty) return;
+    final normalizedFields = _normalizeUserWriteFields(fields);
+    final requestedViewSelection =
+        _extractRequestedViewSelection(normalizedFields);
+    final firebaseUser = currentAuthUser;
+    if (requestedViewSelection != null && firebaseUser != null) {
+      await _persistViewSelection(
+        firebaseUser.uid,
+        requestedViewSelection,
+      );
+    }
+    await _applyOptimisticLocalPatch(normalizedFields);
+  }
+
+  Future<void> applyLocalCounterDelta({
+    int postsDelta = 0,
+    int likesDelta = 0,
+    int followersDelta = 0,
+    int followingsDelta = 0,
+  }) async {
+    final current = _currentUser;
+    if (current == null) return;
+    if (postsDelta == 0 &&
+        likesDelta == 0 &&
+        followersDelta == 0 &&
+        followingsDelta == 0) {
+      return;
+    }
+
+    int clampNonNegative(int value) => value < 0 ? 0 : value;
+
+    await _updateUser(
+      current.copyWith(
+        counterOfPosts: clampNonNegative(current.counterOfPosts + postsDelta),
+        counterOfLikes: clampNonNegative(current.counterOfLikes + likesDelta),
+        counterOfFollowers:
+            clampNonNegative(current.counterOfFollowers + followersDelta),
+        counterOfFollowings:
+            clampNonNegative(current.counterOfFollowings + followingsDelta),
+      ),
+    );
+  }
+
+  Future<void> addBlockedUserLocal(String userId) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = _normalizeLocalUserIdList([
+      ...current.blockedUsers,
+      cleanUserId,
+    ]);
+    if (_sameStringList(next, current.blockedUsers)) return;
+    await _updateUser(current.copyWith(blockedUsers: next));
+  }
+
+  Future<void> removeBlockedUserLocal(String userId) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = current.blockedUsers
+        .where((entry) => entry.trim() != cleanUserId)
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+    if (_sameStringList(next, current.blockedUsers)) return;
+    await _updateUser(current.copyWith(blockedUsers: next));
+  }
+
+  Future<void> addRecentSearchLocal(
+    String userId, {
+    int maxEntries = 100,
+  }) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = _normalizeLocalUserIdList(
+      [cleanUserId, ...current.lastSearchList],
+      maxItems: maxEntries,
+    );
+    if (_sameStringList(next, current.lastSearchList)) return;
+    await _updateUser(current.copyWith(lastSearchList: next));
+  }
+
+  Future<void> removeRecentSearchLocal(String userId) async {
+    final current = _currentUser;
+    final cleanUserId = userId.trim();
+    if (current == null || cleanUserId.isEmpty) return;
+
+    final next = current.lastSearchList
+        .where((entry) => entry.trim() != cleanUserId)
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+    if (_sameStringList(next, current.lastSearchList)) return;
+    await _updateUser(current.copyWith(lastSearchList: next));
   }
 
   Future<void> _applyOptimisticLocalPatch(
@@ -104,7 +237,9 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       if (raw is int) return raw;
       if (raw is num) return raw.toInt();
       if (raw == null || isDeleteMarker(raw)) return fallback;
-      return int.tryParse(raw.toString()) ?? fallback;
+      final value = raw.toString().trim();
+      if (value.isEmpty) return fallback;
+      return int.tryParse(value) ?? num.tryParse(value)?.toInt() ?? fallback;
     }
 
     bool boolValue(
@@ -341,12 +476,11 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
   /// Is verified account
   bool get isVerified => _currentUser?.isVerified ?? false;
-  bool get isEmailVerified => emailVerifiedRx.value;
 
   String? _emailPromptTimestampKey() {
     final uid = authUserId;
     if (uid.isEmpty) return null;
-    return '${CurrentUserService._emailPromptTimestampKeyPrefix}:$uid';
+    return '$_emailPromptTimestampKeyPrefix:$uid';
   }
 
   Future<void> _loadLastEmailPromptAt() async {
@@ -371,7 +505,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
   Future<void> _loadEmailVerifyConfig() async {
     try {
-      final data = await ConfigRepository.ensure().getAdminConfigDoc(
+      final data = await ensureConfigRepository().getAdminConfigDoc(
             'emailVerify',
             preferCache: true,
             ttl: const Duration(hours: 6),
@@ -402,8 +536,9 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
         try {
           final uid = user?.uid;
           if (uid != null && uid.isNotEmpty) {
-            final data = await _readRootUserData(uid, preferCache: true);
-            isVerified = data['emailVerified'] == true;
+            final data = await _readCachedRootUserDataSilently(uid);
+            isVerified =
+                parseAccountFlag(data['emailVerified'], fallback: false);
           }
         } catch (e, st) {
           _logSilently('email.verify.root-check', e, st);
@@ -420,8 +555,9 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       try {
         final uid = authUserId;
         if (uid.isNotEmpty) {
-          final data = await _readRootUserData(uid, preferCache: true);
-          emailVerifiedRx.value = data['emailVerified'] == true;
+          final data = await _readCachedRootUserDataSilently(uid);
+          emailVerifiedRx.value =
+              parseAccountFlag(data['emailVerified'], fallback: false);
           return;
         }
       } catch (inner, innerSt) {

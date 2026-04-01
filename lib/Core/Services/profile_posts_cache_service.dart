@@ -5,13 +5,28 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_poli
 import 'package:turqappv2/Models/posts_model.dart';
 
 class ProfilePostsCacheService {
-  static const String _keyPrefix = 'profile_posts_cache_v1';
+  static const String _keyPrefix = 'profile_posts_cache_v2';
   static const int _maxItemsPerBucket = 250;
 
   Duration get _ttl =>
       MetadataCachePolicy.ttlFor(MetadataCacheBucket.profilePostsBucket);
 
   SharedPreferences? _prefs;
+
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return fallback;
+  }
+
+  String _asTrimmedString(dynamic value) {
+    return value?.toString().trim() ?? '';
+  }
 
   Future<SharedPreferences> _prefsInstance() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -27,41 +42,58 @@ class ProfilePostsCacheService {
     required String bucket,
   }) async {
     if (uid.isEmpty || bucket.isEmpty) return const <PostsModel>[];
+    final key = _bucketKey(uid, bucket);
     try {
       final prefs = await _prefsInstance();
-      final raw = prefs.getString(_bucketKey(uid, bucket));
+      final raw = prefs.getString(key);
       if (raw == null || raw.trim().isEmpty) return const <PostsModel>[];
 
       final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return const <PostsModel>[];
+      if (decoded is! Map<String, dynamic>) {
+        await prefs.remove(key);
+        return const <PostsModel>[];
+      }
 
-      final fetchedAtMs = (decoded['fetchedAt'] as num?)?.toInt() ?? 0;
+      final fetchedAtMs = _asInt(decoded['fetchedAt']);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       if (fetchedAtMs <= 0 || (nowMs - fetchedAtMs) > _ttl.inMilliseconds) {
+        await prefs.remove(key);
         return const <PostsModel>[];
       }
 
       final items = decoded['items'];
-      if (items is! List) return const <PostsModel>[];
+      if (items is! List) {
+        await prefs.remove(key);
+        return const <PostsModel>[];
+      }
 
       final out = <PostsModel>[];
       for (final item in items) {
         if (item is! Map) continue;
         final map = item.cast<String, dynamic>();
-        final docId = (map['docID'] ?? '').toString().trim();
+        final docId = _asTrimmedString(map['docID']);
         final data = map['data'];
         if (docId.isEmpty || data is! Map) continue;
         try {
           out.add(
             PostsModel.fromMap(
-              Map<String, dynamic>.from(data.cast<String, dynamic>()),
+              _cloneProfilePostPayloadMap(
+                Map<String, dynamic>.from(data.cast<String, dynamic>()),
+              ),
               docId,
             ),
           );
         } catch (_) {}
       }
+      if (out.isEmpty && items.isNotEmpty) {
+        await prefs.remove(key);
+      }
       return out;
     } catch (_) {
+      try {
+        final prefs = await _prefsInstance();
+        await prefs.remove(key);
+      } catch (_) {}
       return const <PostsModel>[];
     }
   }
@@ -80,8 +112,8 @@ class ProfilePostsCacheService {
         'items': capped
             .map(
               (p) => <String, dynamic>{
-                'docID': p.docID,
-                'data': p.toMap(),
+                'docID': _asTrimmedString(p.docID),
+                'data': _cloneProfilePostPayloadMap(p.toMap()),
               },
             )
             .toList(growable: false),
@@ -126,13 +158,19 @@ class ProfilePostsCacheService {
         if (raw == null || raw.trim().isEmpty) continue;
 
         final decoded = jsonDecode(raw);
-        if (decoded is! Map<String, dynamic>) continue;
+        if (decoded is! Map<String, dynamic>) {
+          await prefs.remove(key);
+          continue;
+        }
         final items = decoded['items'];
-        if (items is! List) continue;
+        if (items is! List) {
+          await prefs.remove(key);
+          continue;
+        }
 
         final filtered = items.where((item) {
           if (item is! Map) return false;
-          return (item['docID'] ?? '').toString().trim() != docId;
+          return _asTrimmedString(item['docID']) != docId;
         }).toList(growable: false);
 
         if (filtered.length == items.length) continue;
@@ -146,5 +184,28 @@ class ProfilePostsCacheService {
         await prefs.setString(key, jsonEncode(decoded));
       }
     } catch (_) {}
+  }
+
+  Map<String, dynamic> _cloneProfilePostPayloadMap(
+    Map<String, dynamic> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(key, _cloneProfilePostPayloadValue(value)),
+    );
+  }
+
+  dynamic _cloneProfilePostPayloadValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneProfilePostPayloadValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneProfilePostPayloadValue).toList(growable: false);
+    }
+    return value;
   }
 }

@@ -89,15 +89,13 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                   setState(() {
                     _isHoldPaused = true;
                   });
-                  _timer?.cancel();
-                  unawaited(_pauseStoryAudio());
+                  unawaited(_pauseCurrentStoryPlayback());
                 },
                 onLongPressEnd: (_) {
                   setState(() {
                     _isHoldPaused = false;
                   });
-                  _startProgress();
-                  unawaited(_resumeStoryAudio());
+                  unawaited(_resumeCurrentStoryPlayback());
                 },
                 child: _waitingForMusic
                     ? const Center(child: CupertinoActivityIndicator())
@@ -174,10 +172,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
             ),
           ),
         ),
-        if (currentStory.userId == _currentUid)
-          myToolBar()
-        else
-          otherToolBar()
+        if (currentStory.userId == _currentUid) myToolBar() else otherToolBar()
       ],
     );
   }
@@ -230,11 +225,13 @@ extension UserStoryContentViewPart on _UserStoryContentState {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () {
-              unawaited(_pauseStoryAudio());
+            onTap: () async {
+              await _pauseCurrentStoryPlayback();
               Get.to(() => SocialProfile(userID: currentUser.userID))
                   ?.then((_) {
-                unawaited(_resumeStoryAudio());
+                if (mounted) {
+                  unawaited(_resumeCurrentStoryPlayback());
+                }
               });
             },
             child: CachedUserAvatar(
@@ -260,12 +257,14 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          unawaited(_pauseStoryAudio());
+                        onTap: () async {
+                          await _pauseCurrentStoryPlayback();
                           Get.to(() =>
                                   SocialProfile(userID: currentUser.userID))
                               ?.then((_) {
-                            unawaited(_resumeStoryAudio());
+                            if (mounted) {
+                              unawaited(_resumeCurrentStoryPlayback());
+                            }
                           });
                         },
                         child: Text(
@@ -310,14 +309,14 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                       onTap: currentStory.musicId.trim().isEmpty
                           ? null
                           : () async {
-                              await _pauseStoryAudio();
+                              await _pauseCurrentStoryPlayback();
                               await Get.to(
                                 () => StoryMusicProfileView(
                                   musicId: currentStory.musicId,
                                 ),
                               );
                               if (mounted) {
-                                await _resumeStoryAudio();
+                                await _resumeCurrentStoryPlayback();
                               }
                             },
                       child: SingleChildScrollView(

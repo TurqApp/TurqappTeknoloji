@@ -138,8 +138,12 @@ extension JobCreatorControllerSubmissionPart on JobCreatorController {
         "lat": lat.value,
         "long": long.value,
         "logo": existingJob?.logo ?? "",
-        "maas1": maasOpen.value ? parseMoneyInput(maas1.text) : 0,
-        "maas2": maasOpen.value ? parseMoneyInput(maas2.text) : 0,
+        "maas1": maasOpen.value
+            ? JobCreatorControllerRuntimeX(this).parseMoneyInput(maas1.text)
+            : 0,
+        "maas2": maasOpen.value
+            ? JobCreatorControllerRuntimeX(this).parseMoneyInput(maas2.text)
+            : 0,
         "meslek": meslek.value,
         "nickname": nickname,
         "authorAvatarUrl": avatarUrl,

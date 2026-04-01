@@ -10,12 +10,16 @@ class CikmisSorularBaslik2Secimi extends StatefulWidget {
   final String anaBaslik;
   final String sinavTuru;
   final String yil;
+  final String denemeLabel;
+  final int? sira;
 
   const CikmisSorularBaslik2Secimi({
     super.key,
     required this.anaBaslik,
     required this.sinavTuru,
     required this.yil,
+    this.denemeLabel = '',
+    this.sira,
   });
 
   @override
@@ -27,7 +31,7 @@ class _CikmisSorularBaslik2SecimiState
     extends State<CikmisSorularBaslik2Secimi> {
   static const _undergraduate = 'Lisans';
 
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularRepository _repository = ensureCikmisSorularRepository();
   List<String> basliklar = [];
 
   String _localizedExamType(String raw) {
@@ -57,12 +61,14 @@ class _CikmisSorularBaslik2SecimiState
     super.initState();
     _repository
         .distinctValues(
-          where: (doc) =>
-              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
-              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
-              (doc['yil'] ?? '').toString() == widget.yil,
-          field: 'baslik2',
-        )
+      where: (doc) =>
+          (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+          (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
+          (doc['yil'] ?? '').toString() == widget.yil &&
+          (widget.sira == null ||
+              ((doc['sira'] as num?)?.toInt() ?? 0) == widget.sira),
+      field: 'baslik2',
+    )
         .then((basliklarList) {
       if (mounted) {
         setState(() {
@@ -80,10 +86,8 @@ class _CikmisSorularBaslik2SecimiState
         child: Column(
           children: [
             BackButtons(
-              text: 'past_questions.tests_by_year'.trParams({
-                'type': _localizedExamType(widget.sinavTuru),
-                'year': widget.yil,
-              }),
+              text:
+                  '${_localizedExamType(widget.sinavTuru)} ${widget.denemeLabel.isEmpty ? widget.yil : widget.denemeLabel}',
             ),
             Expanded(
               child: Container(
@@ -114,7 +118,9 @@ class _CikmisSorularBaslik2SecimiState
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       yil: widget.yil,
+                                      denemeLabel: widget.denemeLabel,
                                       baslik2: basliklar[index],
+                                      sira: widget.sira,
                                     ),
                                   ),
                                 );
@@ -128,6 +134,7 @@ class _CikmisSorularBaslik2SecimiState
                                       yil: widget.yil,
                                       baslik2: basliklar[index],
                                       baslik3: widget.sinavTuru,
+                                      sira: widget.sira,
                                     ),
                                   ),
                                 );

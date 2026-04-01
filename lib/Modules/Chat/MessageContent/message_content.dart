@@ -30,6 +30,7 @@ part 'message_content_body_parts.dart';
 part 'message_content_post_parts.dart';
 part 'message_content_layout_part.dart';
 part 'message_content_media_part.dart';
+part 'message_content_text_part.dart';
 
 class MessageContent extends StatelessWidget {
   final String mainID;
@@ -44,7 +45,7 @@ class MessageContent extends StatelessWidget {
       this.dateSeparatorText});
   late final MessageContentController controller;
   late final ChatController chatController;
-  final ExploreController? explore = ExploreController.maybeFind();
+  final ExploreController? explore = maybeFindExploreController();
   final ValueNotifier<Offset?> _lastLongPressGlobal =
       ValueNotifier<Offset?>(null);
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
@@ -119,12 +120,12 @@ class MessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller = MessageContentController.ensure(
+    controller = ensureMessageContentController(
       model: model,
       mainID: mainID,
       tag: model.docID,
     );
-    chatController = ChatController.ensure(
+    chatController = ensureChatController(
       chatID: mainID,
       userID: model.userID,
       tag: mainID,

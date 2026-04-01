@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
@@ -28,16 +29,16 @@ class _PersonalizedViewState extends State<PersonalizedView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_personalized_${identityHashCode(this)}';
-    final existing = PersonalizedController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindPersonalizedController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? PersonalizedController.ensure(tag: _controllerTag);
+    controller = existing ?? ensurePersonalizedController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          PersonalizedController.maybeFind(tag: _controllerTag),
+          maybeFindPersonalizedController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PersonalizedController>(tag: _controllerTag, force: true);
@@ -183,7 +184,9 @@ class _PersonalizedViewState extends State<PersonalizedView> {
   Widget _buildCarouselIndicators(PersonalizedController controller) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: controller.vitrin.take(30).map((item) {
+      children: controller.vitrin
+          .take(ReadBudgetRegistry.scholarshipPersonalizedShowcaseLimit)
+          .map((item) {
         int index = controller.vitrin.indexOf(item);
         return Obx(
           () => Container(

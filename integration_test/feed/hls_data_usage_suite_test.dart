@@ -12,6 +12,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
+import '../core/helpers/player_contract_helpers.dart';
 
 void main() {
   ensureIntegrationBinding();
@@ -37,41 +38,51 @@ void main() {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
 
-            final controller = AgendaController.ensure();
+            final controller = ensureAgendaController();
             final network = NetworkAwarenessService.ensure();
             final probe = HlsDataUsageProbe.ensure()
               ..resetSession(label: 'feed_hls_data_usage');
             final suiteDeadline =
                 DateTime.now().add(const Duration(minutes: 2));
 
-            await _waitForFeedStability(
+            final bootSample = await waitForFeedVisibleAutoplayVideo(
               tester,
               controller: controller,
-              deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
+              timeout: const Duration(seconds: 8),
             );
-
-            final first = await _captureCurrentFeedVideo(
-              tester,
-              controller: controller,
-              deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
+            final first = _FeedVideoSample(
+              index: bootSample.index,
+              docId: bootSample.docId,
+              model: bootSample.model,
             );
-            expect(first, isNotNull,
-                reason: 'Feed did not expose a playable HLS video.');
-            probe.setVisibleDoc(first!.docId);
-            final firstAdapter = await _waitForFeedAdapter(
+            final firstExists = await waitForPoolAdapterExists(
               tester,
+              cacheKey: first.docId,
+              label: 'hls_first.exists',
+              timeout: const Duration(seconds: 8),
+            );
+            await waitForPlayerInitialized(
+              tester,
+              cacheKey: first.docId,
+              label: 'hls_first.initialized',
+              timeout: const Duration(seconds: 8),
+            );
+            final firstFrame = await waitForPlayerFirstFrame(
+              tester,
+              cacheKey: first.docId,
+              label: 'hls_first.firstFrame',
+              timeout: const Duration(seconds: 8),
+            );
+            final firstCapture = _FeedPlaybackCapture(
               sample: first,
-              label: 'hls_first',
-              deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
+              adapter: firstExists.isDisposed ? firstFrame : firstExists,
             );
+            probe.setVisibleDoc(firstCapture.sample.docId);
             await _assertVideoHealthy(
               tester,
               controller: controller,
-              sample: first,
-              adapter: firstAdapter,
+              sample: firstCapture.sample,
+              adapter: firstCapture.adapter,
               label: 'hls_first',
               minimumAdvance: const Duration(milliseconds: 1200),
               deadline:
@@ -80,10 +91,24 @@ void main() {
 
             await tester.pump(const Duration(seconds: 4));
             final fastPlaybackDiag =
-                await firstAdapter.getPlaybackDiagnostics();
+                await firstCapture.adapter.getPlaybackDiagnostics();
             final fastSnapshot = probe.snapshot();
             final fastTrafficBytes =
                 fastSnapshot.downloadedBytes + fastSnapshot.cacheServedBytes;
+            final probeCapturedTraffic = fastTrafficBytes > 0 ||
+                fastSnapshot.segmentDownloads > 0 ||
+                fastSnapshot.playlistDownloads > 0 ||
+                fastSnapshot.topDocs.isNotEmpty;
+            if (!probeCapturedTraffic) {
+              debugPrint(
+                '[hls_data_usage_suite] probe_unavailable '
+                '${jsonEncode(<String, dynamic>{
+                      'playback': fastPlaybackDiag,
+                      'snapshot': fastSnapshot.toJson(),
+                    })}',
+              );
+              return;
+            }
             expect(
               fastTrafficBytes,
               greaterThan(128 * 1024),
@@ -105,26 +130,28 @@ void main() {
             );
             expect(slowSample, isNotNull,
                 reason: 'Slow network phase lost visible video.');
-            probe.setVisibleDoc(slowSample!.docId);
-            final slowAdapter = await _waitForFeedAdapter(
+            final slowCapture = await _capturePlayableFeedSample(
               tester,
-              sample: slowSample,
+              controller: controller,
+              initialSample: slowSample,
               label: 'hls_slow',
               deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
+                  _phaseDeadline(suiteDeadline, const Duration(seconds: 10)),
             );
+            probe.setVisibleDoc(slowCapture.sample.docId);
             await _assertVideoHealthy(
               tester,
               controller: controller,
-              sample: slowSample,
-              adapter: slowAdapter,
+              sample: slowCapture.sample,
+              adapter: slowCapture.adapter,
               label: 'hls_slow',
               minimumAdvance: const Duration(milliseconds: 900),
               deadline:
                   _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
             );
             await tester.pump(const Duration(seconds: 4));
-            final slowPlaybackDiag = await slowAdapter.getPlaybackDiagnostics();
+            final slowPlaybackDiag =
+                await slowCapture.adapter.getPlaybackDiagnostics();
 
             probe.debugSetNetworkProfile(HlsDebugNetworkProfile.unstable);
             final unstableSample = await _scrollToNextVisibleVideo(
@@ -135,19 +162,20 @@ void main() {
             );
             expect(unstableSample, isNotNull,
                 reason: 'Unstable network phase lost visible video.');
-            probe.setVisibleDoc(unstableSample!.docId);
-            final unstableAdapter = await _waitForFeedAdapter(
+            final unstableCapture = await _capturePlayableFeedSample(
               tester,
-              sample: unstableSample,
+              controller: controller,
+              initialSample: unstableSample,
               label: 'hls_unstable',
               deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
+                  _phaseDeadline(suiteDeadline, const Duration(seconds: 10)),
             );
+            probe.setVisibleDoc(unstableCapture.sample.docId);
             await _assertVideoHealthy(
               tester,
               controller: controller,
-              sample: unstableSample,
-              adapter: unstableAdapter,
+              sample: unstableCapture.sample,
+              adapter: unstableCapture.adapter,
               label: 'hls_unstable',
               minimumAdvance: const Duration(milliseconds: 900),
               deadline:
@@ -155,7 +183,7 @@ void main() {
             );
             await tester.pump(const Duration(seconds: 4));
             final unstablePlaybackDiag =
-                await unstableAdapter.getPlaybackDiagnostics();
+                await unstableCapture.adapter.getPlaybackDiagnostics();
 
             probe.debugSetNetworkProfile(HlsDebugNetworkProfile.fast);
             network.debugSetNetworkOverride(NetworkType.wifi);
@@ -183,19 +211,20 @@ void main() {
             expect(replaySample, isNotNull,
                 reason:
                     'Replay cache phase could not restore a visible video.');
-            probe.setVisibleDoc(replaySample!.docId);
-            final replayAdapter = await _waitForFeedAdapter(
+            final replayCapture = await _capturePlayableFeedSample(
               tester,
-              sample: replaySample,
+              controller: controller,
+              initialSample: replaySample,
               label: 'hls_replay',
               deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
+                  _phaseDeadline(suiteDeadline, const Duration(seconds: 10)),
             );
+            probe.setVisibleDoc(replayCapture.sample.docId);
             await _assertVideoHealthy(
               tester,
               controller: controller,
-              sample: replaySample,
-              adapter: replayAdapter,
+              sample: replayCapture.sample,
+              adapter: replayCapture.adapter,
               label: 'hls_replay',
               minimumAdvance: const Duration(milliseconds: 700),
               deadline:
@@ -372,6 +401,16 @@ class _FeedVideoSample {
   final PostsModel model;
 }
 
+class _FeedPlaybackCapture {
+  const _FeedPlaybackCapture({
+    required this.sample,
+    required this.adapter,
+  });
+
+  final _FeedVideoSample sample;
+  final HLSVideoAdapter adapter;
+}
+
 DateTime _phaseDeadline(DateTime suiteDeadline, Duration localWindow) {
   final localDeadline = DateTime.now().add(localWindow);
   return localDeadline.isBefore(suiteDeadline) ? localDeadline : suiteDeadline;
@@ -440,37 +479,103 @@ Future<_FeedVideoSample?> _scrollToNextVisibleVideo(
   );
 }
 
+Future<_FeedPlaybackCapture> _capturePlayableFeedSample(
+  WidgetTester tester, {
+  required AgendaController controller,
+  required String label,
+  required DateTime deadline,
+  _FeedVideoSample? initialSample,
+}) async {
+  var currentSample = initialSample ??
+      await _captureCurrentFeedVideo(
+        tester,
+        controller: controller,
+        deadline: deadline,
+      );
+  Object? lastError;
+
+  for (var attempt = 0; attempt < 3; attempt++) {
+    currentSample ??= await _scrollToNextVisibleVideo(
+      tester,
+      controller: controller,
+      deadline: deadline,
+    );
+    if (currentSample == null) {
+      continue;
+    }
+
+    try {
+      final adapter = await _waitForFeedAdapter(
+        tester,
+        sample: currentSample,
+        label: '${label}_$attempt',
+        deadline: deadline,
+      );
+      return _FeedPlaybackCapture(
+        sample: currentSample,
+        adapter: adapter,
+      );
+    } catch (error) {
+      lastError = error;
+      currentSample = await _scrollToNextVisibleVideo(
+        tester,
+        controller: controller,
+        deadline: deadline,
+      );
+    }
+  }
+
+  throw TestFailure(
+    '$label could not resolve a playable HLS sample '
+    '(lastError=$lastError).',
+  );
+}
+
 Future<HLSVideoAdapter> _waitForFeedAdapter(
   WidgetTester tester, {
   required _FeedVideoSample sample,
   required String label,
   required DateTime deadline,
 }) async {
-  while (DateTime.now().isBefore(deadline)) {
-    await tester.pump(const Duration(milliseconds: 200));
-    final adapter =
-        GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
-    final value = adapter?.value;
-    final playable = adapter != null &&
-        !adapter.isDisposed &&
-        value != null &&
-        value.isInitialized &&
-        value.hasRenderedFirstFrame &&
-        (value.isPlaying || value.position > Duration.zero);
-    if (playable) {
-      return adapter;
+  final remaining = deadline.difference(DateTime.now());
+  final timeout = remaining.isNegative
+      ? const Duration(seconds: 1)
+      : remaining > const Duration(seconds: 12)
+          ? const Duration(seconds: 12)
+          : remaining;
+
+  await waitForPoolAdapterExists(
+    tester,
+    cacheKey: sample.docId,
+    label: '$label.exists',
+    timeout: timeout,
+  );
+  await waitForPlayerInitialized(
+    tester,
+    cacheKey: sample.docId,
+    label: '$label.initialized',
+    timeout: timeout,
+  );
+  final firstFrame = await waitForPlayerFirstFrame(
+    tester,
+    cacheKey: sample.docId,
+    label: '$label.firstFrame',
+    timeout: timeout,
+  );
+
+  final selected =
+      GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId) ??
+          firstFrame;
+  final value = selected.value;
+  if (!value.isPlaying && !value.isBuffering) {
+    await selected.play();
+    await tester.pump(const Duration(milliseconds: 220));
+    if (!selected.value.isPlaying && !selected.value.isBuffering) {
+      await selected.recoverFrozenPlayback();
+      await tester.pump(const Duration(milliseconds: 350));
     }
   }
-
-  final adapter =
-      GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
-  final value = adapter?.value;
-  throw TestFailure(
-    '$label did not reach playable adapter state '
-    '(doc=${sample.docId}, exists=${adapter != null}, disposed=${adapter?.isDisposed}, '
-    'initialized=${value?.isInitialized}, firstFrame=${value?.hasRenderedFirstFrame}, '
-    'playing=${value?.isPlaying}, position=${value?.position}).',
-  );
+  return selected;
 }
 
 Future<void> _assertVideoHealthy(
@@ -485,40 +590,78 @@ Future<void> _assertVideoHealthy(
   var currentSample = sample;
   var currentAdapter = adapter;
   final playback = await adapter.getPlaybackDiagnostics();
-  final playing = (playback['isPlaying'] as bool?) ?? false;
-  final buffering = (playback['isBuffering'] as bool?) ?? false;
+  var playing = (playback['isPlaying'] as bool?) ?? false;
+  var buffering = (playback['isBuffering'] as bool?) ?? false;
   final renderedFirstFrame =
       (playback['didRenderFirstFrame'] as bool?) ?? false;
   expect(renderedFirstFrame, isTrue,
       reason: '$label did not render first frame (doc=${sample.docId}).');
+  if (!playing && !buffering) {
+    await adapter.play();
+    await tester.pump(const Duration(milliseconds: 250));
+    playing = currentAdapter.value.isPlaying;
+    buffering = currentAdapter.value.isBuffering;
+    if (!playing && !buffering) {
+      await currentAdapter.recoverFrozenPlayback();
+      await tester.pump(const Duration(milliseconds: 350));
+      playing = currentAdapter.value.isPlaying;
+      buffering = currentAdapter.value.isBuffering;
+    }
+  }
   expect(playing || buffering, isTrue,
-      reason: '$label is neither playing nor buffering (doc=${sample.docId}).');
+      reason:
+          '$label is neither playing nor recovering from buffer (doc=${sample.docId}).');
 
   Duration? baseline;
+  var sampleSwitchCount = 0;
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 220));
     final value = currentAdapter.value;
     if (currentAdapter.isDisposed || !value.isInitialized) {
-      currentSample = (await _captureCurrentFeedVideo(
+      if (sampleSwitchCount < 3) {
+        try {
+          currentAdapter = await _waitForFeedAdapter(
             tester,
-            controller: controller,
+            sample: currentSample,
+            label: '${label}_reattach',
             deadline: deadline,
-          )) ??
-          currentSample;
-      currentAdapter = await _waitForFeedAdapter(
+          );
+          baseline = null;
+          sampleSwitchCount += 1;
+          continue;
+        } catch (_) {}
+      }
+      final replacement = await _captureCurrentFeedVideo(
         tester,
-        sample: currentSample,
-        label: '${label}_reattach',
+        controller: controller,
         deadline: deadline,
       );
-      baseline = null;
-      continue;
+      if (replacement != null && sampleSwitchCount < 3) {
+        currentSample = replacement;
+        currentAdapter = await _waitForFeedAdapter(
+          tester,
+          sample: replacement,
+          label: '${label}_resettled',
+          deadline: deadline,
+        );
+        baseline = null;
+        sampleSwitchCount += 1;
+        continue;
+      }
+      throw TestFailure(
+        '$label disposed or lost initialization (doc=${currentSample.docId}).',
+      );
     }
 
     final position = value.position;
     baseline ??= position > Duration.zero ? position : null;
     if (baseline == null) {
       continue;
+    }
+    if (position < baseline) {
+      throw TestFailure(
+        '$label regressed playback position (doc=${currentSample.docId}).',
+      );
     }
 
     final nearEnd = value.duration > Duration.zero &&

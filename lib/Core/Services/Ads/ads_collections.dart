@@ -1,4 +1,5 @@
 class AdsCollections {
+  static const surfaceSlots = 'ads';
   static const campaigns = 'ads_campaigns';
   static const creatives = 'ads_creatives';
   static const impressions = 'ads_impressions';
@@ -9,6 +10,7 @@ class AdsCollections {
   static const deliveryLogs = 'ads_delivery_logs';
   static const adminConfig = 'adminConfig';
   static const adsFlagsDoc = 'adsFlags';
+  static const admobUnitsDoc = 'reklam';
 
   static const legacySystemFlags = 'system_flags';
   static const systemFlagsGlobalDoc = 'global';

@@ -23,6 +23,10 @@
 		A1B1C1D10001000000000002 /* HLSPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B1C1D10001000000000012 /* HLSPlayerView.swift */; };
 		A1B1C1D10001000000000003 /* HLSPlayerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B1C1D10001000000000013 /* HLSPlayerFactory.swift */; };
 		A1B1C1D10001000000000004 /* GlobalHLSPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B1C1D10001000000000014 /* GlobalHLSPlayerManager.swift */; };
+		A1B1C1D10001000000000005 /* AVPlayerPlaybackProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B1C1D10001000000000015 /* AVPlayerPlaybackProbe.swift */; };
+		A1B1C1D10001000000000006 /* PlaybackHealthMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B1C1D10001000000000016 /* PlaybackHealthMonitor.swift */; };
+		A1B1C1D10001000000000007 /* PlaybackHealthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B1C1D10001000000000017 /* PlaybackHealthStore.swift */; };
+		A1B1C1D10001000000000008 /* PlaybackWatchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B1C1D10001000000000018 /* PlaybackWatchdog.swift */; };
 		F837373D356EAA9DD59262DA /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71C483417D213D14C1E26B28 /* Pods_Runner.framework */; };
 /* End PBXBuildFile section */
 
@@ -99,6 +103,10 @@
 		A1B1C1D10001000000000012 /* HLSPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HLSPlayerView.swift; sourceTree = "<group>"; };
 		A1B1C1D10001000000000013 /* HLSPlayerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HLSPlayerFactory.swift; sourceTree = "<group>"; };
 		A1B1C1D10001000000000014 /* GlobalHLSPlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHLSPlayerManager.swift; sourceTree = "<group>"; };
+		A1B1C1D10001000000000015 /* AVPlayerPlaybackProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVPlayerPlaybackProbe.swift; sourceTree = "<group>"; };
+		A1B1C1D10001000000000016 /* PlaybackHealthMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackHealthMonitor.swift; sourceTree = "<group>"; };
+		A1B1C1D10001000000000017 /* PlaybackHealthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackHealthStore.swift; sourceTree = "<group>"; };
+		A1B1C1D10001000000000018 /* PlaybackWatchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackWatchdog.swift; sourceTree = "<group>"; };
 		B2E9BC8D264E0D61BAFD8F8D /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		CF7A8C0B869C4EEDFFE9D045 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D62557E5732AF9B39F921AB5 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
@@ -240,6 +248,10 @@
 				A1B1C1D10001000000000012 /* HLSPlayerView.swift */,
 				A1B1C1D10001000000000013 /* HLSPlayerFactory.swift */,
 				A1B1C1D10001000000000014 /* GlobalHLSPlayerManager.swift */,
+				A1B1C1D10001000000000015 /* AVPlayerPlaybackProbe.swift */,
+				A1B1C1D10001000000000016 /* PlaybackHealthMonitor.swift */,
+				A1B1C1D10001000000000017 /* PlaybackHealthStore.swift */,
+				A1B1C1D10001000000000018 /* PlaybackWatchdog.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -447,7 +459,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin\n/bin/sh \"$SOURCE_ROOT/repair_objective_c_native_asset.sh\"\n\nNATIVE_OBJECTIVE_C_FRAMEWORK=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/objective_c.framework\"\nif [ -d \"$NATIVE_OBJECTIVE_C_FRAMEWORK\" ] && [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ]; then\n  /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements \"$NATIVE_OBJECTIVE_C_FRAMEWORK\"\nfi";
 		};
 		91E300EEC7343C03A4EA2A7A /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -559,6 +571,10 @@
 				A1B1C1D10001000000000002 /* HLSPlayerView.swift in Sources */,
 				A1B1C1D10001000000000003 /* HLSPlayerFactory.swift in Sources */,
 				A1B1C1D10001000000000004 /* GlobalHLSPlayerManager.swift in Sources */,
+				A1B1C1D10001000000000005 /* AVPlayerPlaybackProbe.swift in Sources */,
+				A1B1C1D10001000000000006 /* PlaybackHealthMonitor.swift in Sources */,
+				A1B1C1D10001000000000007 /* PlaybackHealthStore.swift in Sources */,
+				A1B1C1D10001000000000008 /* PlaybackWatchdog.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

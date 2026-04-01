@@ -6,7 +6,15 @@ class MarketReviewService {
   const MarketReviewService();
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
+  Future<String> _resolveCurrentUserId() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
 
   CollectionReference<Map<String, dynamic>> _reviewsRef(String itemId) {
     return _firestore
@@ -36,7 +44,7 @@ class MarketReviewService {
     required int rating,
     required String comment,
   }) async {
-    final uid = _currentUserId;
+    final uid = await _resolveCurrentUserId();
     if (uid.isEmpty) {
       throw Exception('auth_required');
     }
@@ -51,36 +59,16 @@ class MarketReviewService {
       'comment': comment.trim(),
       'timeStamp': now,
     });
-    await _refreshAverageRating(itemId);
   }
 
   Future<void> deleteReview({
     required String itemId,
     required String reviewId,
   }) async {
-    final uid = _currentUserId;
+    final uid = await _resolveCurrentUserId();
     if (uid.isEmpty || uid != reviewId) {
       throw Exception('forbidden');
     }
     await _reviewsRef(itemId).doc(reviewId).delete();
-    await _refreshAverageRating(itemId);
-  }
-
-  Future<void> _refreshAverageRating(String itemId) async {
-    final reviews = await fetchReviews(itemId);
-    final itemRef = _firestore.collection('marketStore').doc(itemId);
-    if (reviews.isEmpty) {
-      await itemRef.update({'averageRating': null, 'reviewCount': 0});
-      return;
-    }
-    double total = 0;
-    for (final review in reviews) {
-      total += review.rating.toDouble();
-    }
-    final avg = total / reviews.length;
-    await itemRef.update({
-      'averageRating': double.parse(avg.toStringAsFixed(1)),
-      'reviewCount': reviews.length,
-    });
   }
 }

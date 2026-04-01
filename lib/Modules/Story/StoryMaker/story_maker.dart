@@ -64,15 +64,15 @@ class _StoryMakerState extends State<StoryMaker> {
   void initState() {
     super.initState();
     _controllerTag = 'story_maker_${identityHashCode(this)}';
-    controller = StoryMakerController.maybeFind(tag: _controllerTag) ??
-        StoryMakerController.ensure(tag: _controllerTag);
+    controller = maybeFindStoryMakerController(tag: _controllerTag) ??
+        ensureStoryMakerController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (StoryMakerController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindStoryMakerController(tag: _controllerTag) != null &&
         identical(
-          StoryMakerController.maybeFind(tag: _controllerTag),
+          maybeFindStoryMakerController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<StoryMakerController>(tag: _controllerTag);

@@ -23,7 +23,7 @@ void main() {
   test('StoredAccount encode/decode round-trip preserves valid entries only',
       () {
     final encoded = StoredAccount.encodeList([
-      const StoredAccount(
+      StoredAccount(
         uid: 'user_1',
         email: 'user_1@mail.com',
         username: 'user_1',
@@ -39,7 +39,7 @@ void main() {
         sortOrder: 1,
         lastSuccessfulSignInAt: 10,
       ),
-      const StoredAccount(
+      StoredAccount(
         uid: '',
         email: '',
         username: '',

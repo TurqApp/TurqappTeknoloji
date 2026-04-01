@@ -27,7 +27,7 @@ check_literal() {
   local label="$1"
   local pattern="$2"
 
-  if rg -n --fixed-strings "${COMMON_EXCLUDES[@]}" "$pattern" .; then
+  if rg -n --no-ignore --fixed-strings "${COMMON_EXCLUDES[@]}" "$pattern" .; then
     echo
     echo "[FAIL] $label"
     return 1
@@ -72,6 +72,9 @@ failures=0
 
 check_literal "Hardcoded legacy NETGSM usercode bulunmadi" "3326062598" || failures=$((failures + 1))
 check_literal "Hardcoded legacy NETGSM parola bulunmadi" "BursCity42@" || failures=$((failures + 1))
+check_literal "Repo icinde Firebase service account private key bulunmadi" '"private_key": "-----BEGIN PRIVATE KEY-----' || failures=$((failures + 1))
+check_literal "Repo icinde Firebase service account tipi bulunmadi" '"type": "service_account"' || failures=$((failures + 1))
+check_literal "Repo icinde Firebase admin client_email bulunmadi" '"client_email": "firebase-adminsdk-' || failures=$((failures + 1))
 check_literal "Hardcoded App Check debug token setenv geri gelmedi" 'setenv("FIRAAppCheckDebugToken"' || failures=$((failures + 1))
 check_literal "Runner scheme icinde App Check debug env geri gelmedi" "FIRAAppCheckDebugToken" || failures=$((failures + 1))
 check_literal "Genis iOS ATS acilimi geri gelmedi" "NSAllowsArbitraryLoads" || failures=$((failures + 1))

@@ -8,6 +8,8 @@ import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+part 'editor_nickname_content_part.dart';
+
 class EditorNickname extends StatefulWidget {
   const EditorNickname({super.key});
 
@@ -23,12 +25,12 @@ class _EditorNicknameState extends State<EditorNickname> {
   @override
   void initState() {
     super.initState();
-    final existingController = EditorNicknameController.maybeFind();
+    final existingController = maybeFindEditorNicknameController();
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = EditorNicknameController.ensure();
+      controller = ensureEditorNicknameController();
       _ownsController = true;
     }
   }
@@ -36,7 +38,7 @@ class _EditorNicknameState extends State<EditorNickname> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(EditorNicknameController.maybeFind(), controller)) {
+        identical(maybeFindEditorNicknameController(), controller)) {
       Get.delete<EditorNicknameController>(force: true);
     }
     super.dispose();
@@ -53,170 +55,9 @@ class _EditorNicknameState extends State<EditorNickname> {
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Obx(() {
-                      final current = userService.currentUserRx.value;
-                      final rozet = current?.rozet ?? '';
-                      final nickname = current?.nickname ?? '';
-                      return Column(
-                        children: [
-                          if (rozet == "")
-                            Container(
-                              height: 50,
-                              alignment: Alignment.centerLeft,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(12)),
-                              ),
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 15),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextField(
-                                        controller:
-                                            controller.nicknameController,
-                                        autofocus: true,
-                                        inputFormatters: [
-                                          LengthLimitingTextInputFormatter(20),
-                                          CustomNicknameFormatter(),
-                                        ],
-                                        decoration: InputDecoration(
-                                          hintText: 'editor_nickname.hint'.tr,
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey,
-                                              fontFamily: "MontserratMedium"),
-                                          border: InputBorder.none,
-                                        ),
-                                        style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium"),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          if (rozet == "")
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Obx(() {
-                                final checking = controller.isChecking.value;
-                                final available = controller.isAvailable.value;
-                                final text = controller.statusText.value;
-                                Color color;
-                                if (checking) {
-                                  color = Colors.grey;
-                                } else if (available == true) {
-                                  color = Colors.green;
-                                } else if (available == false) {
-                                  color = Colors.red;
-                                } else {
-                                  color = Colors.grey;
-                                }
-                                return Row(
-                                  children: [
-                                    if (checking)
-                                      SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CupertinoActivityIndicator(
-                                            radius: 7),
-                                      ),
-                                    if (checking) SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        text,
-                                        style: TextStyle(
-                                          color: color,
-                                          fontSize: 13,
-                                          fontFamily: "MontserratMedium",
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }),
-                            )
-                          else
-                            Container(
-                              height: 50,
-                              alignment: Alignment.centerLeft,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(12)),
-                              ),
-                              child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 15),
-                                  child: Text(
-                                    nickname,
-                                    style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium"),
-                                  )),
-                            ),
-                          if (rozet != "")
-                            Padding(
-                              padding: EdgeInsets.only(top: 12),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    'editor_nickname.verified_locked'.tr,
-                                    style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium"),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else
-                            Padding(
-                              padding: EdgeInsets.only(top: 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'editor_nickname.mimic_warning'.tr,
-                                    style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 14,
-                                        fontFamily: "Montserrat"),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'editor_nickname.tr_char_info'.tr,
-                                    style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 12,
-                                        fontFamily: "Montserrat"),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          Obx(() {
-                            final canSave = controller.canSave;
-                            return TurqAppButton(
-                              onTap: () {
-                                if (canSave) controller.setData();
-                              },
-                              bgColor: canSave
-                                  ? Colors.black
-                                  : Colors.black.withValues(alpha: 0.3),
-                            );
-                          })
-                        ],
-                      );
-                    })),
+                  padding: const EdgeInsets.all(15),
+                  child: Obx(() => _buildEditorNicknameContent()),
+                ),
               ),
             ),
           ],

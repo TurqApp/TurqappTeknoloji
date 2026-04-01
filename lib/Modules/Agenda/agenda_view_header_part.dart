@@ -6,15 +6,15 @@ extension _AgendaViewHeaderPart on AgendaView {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 380;
         final horizontalPadding = compact ? 12.0 : 15.0;
-        final trailingGap = compact ? 1.0 : AppIconSurface.kGap;
-        final actionSize = compact ? 34.0 : AppIconSurface.kSize;
+        const trailingGap = 6.0;
+        const actionSize = 36.0;
 
         return Column(
           children: [
             Padding(
               padding: EdgeInsets.only(
                 left: horizontalPadding,
-                right: compact ? 8 : 10,
+                right: 15,
                 top: Get.mediaQuery.padding.top + 3,
                 bottom: 8,
               ),
@@ -27,9 +27,10 @@ extension _AgendaViewHeaderPart on AgendaView {
                   SizedBox(width: compact ? 4 : 8),
                   _buildViewToggle(actionSize: actionSize),
                   SizedBox(width: trailingGap),
-                  _buildInboxActions(
+                  _DeferredNotificationInboxActions(
                     actionSize: actionSize,
                     trailingGap: trailingGap,
+                    agendaController: controller,
                   ),
                 ],
               ),
@@ -195,52 +196,6 @@ extension _AgendaViewHeaderPart on AgendaView {
     });
   }
 
-  Widget _buildInboxActions({
-    required double actionSize,
-    required double trailingGap,
-  }) {
-    return Obx(() {
-      final hasChatUnread = unreadController.totalUnreadCount.value > 0;
-      final hasNotificationUnread = notificationsController.unreadCount > 0;
-      return FeedInboxActionsRow(
-        actionSize: actionSize,
-        spacing: trailingGap,
-        showChatBadge: hasChatUnread,
-        showNotificationBadge: hasNotificationUnread,
-        onChatTap: () async {
-          final unreadChatIds = notificationsController.list
-              .where(
-                  (n) => n.postType == kNotificationPostTypeChat && !n.isRead)
-              .map((n) => n.docID)
-              .toList(growable: false);
-          if (unreadChatIds.isNotEmpty) {
-            await notificationsController.markManyAsRead(unreadChatIds);
-          }
-          final prevIndex = controller.lastCenteredIndex;
-          controller.lastCenteredIndex = prevIndex;
-          controller.suspendPlaybackForOverlay();
-          Get.to(() => ChatListing())?.then((_) {
-            controller.resumePlaybackAfterOverlay();
-            try {
-              recommendedController.getUsers();
-            } catch (_) {}
-          });
-        },
-        onNotificationsTap: () {
-          final prevIndex = controller.lastCenteredIndex;
-          controller.lastCenteredIndex = prevIndex;
-          controller.suspendPlaybackForOverlay();
-          Get.to(() => InAppNotifications())?.then((_) {
-            controller.resumePlaybackAfterOverlay();
-            try {
-              recommendedController.getUsers();
-            } catch (_) {}
-          });
-        },
-      );
-    });
-  }
-
   Widget _feedLoadingSkeleton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
@@ -312,5 +267,88 @@ extension _AgendaViewHeaderPart on AgendaView {
         ],
       ),
     );
+  }
+}
+
+class _DeferredNotificationInboxActions extends StatefulWidget {
+  const _DeferredNotificationInboxActions({
+    required this.actionSize,
+    required this.trailingGap,
+    required this.agendaController,
+  });
+
+  final double actionSize;
+  final double trailingGap;
+  final AgendaController agendaController;
+
+  @override
+  State<_DeferredNotificationInboxActions> createState() =>
+      _DeferredNotificationInboxActionsState();
+}
+
+class _DeferredNotificationInboxActionsState
+    extends State<_DeferredNotificationInboxActions> {
+  InAppNotificationsController? _notificationsController;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future<void>.delayed(const Duration(milliseconds: 650), () {
+        if (!mounted) return;
+        setState(() {
+          _notificationsController = InAppNotificationsController.ensure();
+        });
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unreadController = ensureUnreadMessagesController();
+    return Obx(() {
+      final hasChatUnread = unreadController.totalUnreadCount.value > 0;
+      final hasNotificationUnread =
+          (_notificationsController?.unreadCount ?? 0) > 0;
+      return FeedInboxActionsRow(
+        actionSize: widget.actionSize,
+        spacing: widget.trailingGap,
+        showChatBadge: hasChatUnread,
+        showNotificationBadge: hasNotificationUnread,
+        onChatTap: () async {
+          final notificationsController =
+              _notificationsController ?? InAppNotificationsController.ensure();
+          final unreadChatIds = notificationsController.list
+              .where(
+                  (n) => n.postType == kNotificationPostTypeChat && !n.isRead)
+              .map((n) => n.docID)
+              .toList(growable: false);
+          if (unreadChatIds.isNotEmpty) {
+            await notificationsController.markManyAsRead(unreadChatIds);
+          }
+          final prevIndex = widget.agendaController.lastCenteredIndex;
+          widget.agendaController.lastCenteredIndex = prevIndex;
+          widget.agendaController.suspendPlaybackForOverlay();
+          Get.to(() => ChatListing())?.then((_) {
+            widget.agendaController.resumePlaybackAfterOverlay();
+            try {
+              ensureRecommendedUserListController().getUsers();
+            } catch (_) {}
+          });
+        },
+        onNotificationsTap: () {
+          _notificationsController ??= InAppNotificationsController.ensure();
+          final prevIndex = widget.agendaController.lastCenteredIndex;
+          widget.agendaController.lastCenteredIndex = prevIndex;
+          widget.agendaController.suspendPlaybackForOverlay();
+          Get.to(() => InAppNotifications())?.then((_) {
+            widget.agendaController.resumePlaybackAfterOverlay();
+            try {
+              ensureRecommendedUserListController().getUsers();
+            } catch (_) {}
+          });
+        },
+      );
+    });
   }
 }

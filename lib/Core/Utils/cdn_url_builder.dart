@@ -44,6 +44,14 @@ class CdnUrlBuilder {
   static String buildThumbnailUrl(String docID) =>
       _buildStorageUrl('Posts/$docID/thumbnail.webp');
 
+  /// Post thumbnail için olası dosya uzantılarını döndürür.
+  static List<String> buildThumbnailUrlCandidates(String docID) => <String>[
+        _buildStorageUrl('Posts/$docID/thumbnail.webp'),
+        _buildStorageUrl('Posts/$docID/thumbnail.jpg'),
+        _buildStorageUrl('Posts/$docID/thumbnail.jpeg'),
+        _buildStorageUrl('Posts/$docID/thumbnail.png'),
+      ];
+
   /// Genel storage path'i CDN URL'sine çevirir.
   static String buildFromPath(String storagePath) =>
       _buildStorageUrl(storagePath);

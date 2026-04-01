@@ -35,8 +35,8 @@ class _StoryCommentsState extends State<StoryComments> {
     super.initState();
     _controllerTag =
         'story_comments_${widget.storyID}_${identityHashCode(this)}';
-    controller = StoryCommentsController.maybeFind(tag: _controllerTag) ??
-        StoryCommentsController.ensure(
+    controller = maybeFindStoryCommentsController(tag: _controllerTag) ??
+        ensureStoryCommentsController(
           nickname: widget.nickname,
           storyID: widget.storyID,
           tag: _controllerTag,
@@ -46,9 +46,9 @@ class _StoryCommentsState extends State<StoryComments> {
 
   @override
   void dispose() {
-    if (StoryCommentsController.maybeFind(tag: _controllerTag) != null &&
+    if (maybeFindStoryCommentsController(tag: _controllerTag) != null &&
         identical(
-          StoryCommentsController.maybeFind(tag: _controllerTag),
+          maybeFindStoryCommentsController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<StoryCommentsController>(tag: _controllerTag);

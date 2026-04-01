@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
+import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
 import 'package:turqappv2/Core/Services/integration_media_test_harness.dart';
 import 'package:turqappv2/Core/Services/integration_permission_test_harness.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -20,6 +21,7 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 
 class IntegrationTestStateProbe {
   const IntegrationTestStateProbe._();
@@ -60,6 +62,7 @@ class IntegrationTestStateProbe {
       'testHarnesses': _testHarnessSnapshot(),
       'snackbar': readLastSnackbarDebugState(),
       'navBar': _navBarSnapshot(),
+      'videoPlayback': _videoPlaybackSnapshot(),
       'currentRoute': Get.currentRoute,
       'previousRoute': routing.previous,
       'isBack': routing.isBack,
@@ -69,7 +72,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _navBarSnapshot() {
-    final controller = NavBarController.maybeFind();
+    final controller = maybeFindNavBarController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -81,27 +84,48 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _feedSnapshot() {
-    final controller = AgendaController.maybeFind();
+    final controller = maybeFindAgendaController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
     final centeredIndex = controller.centeredIndex.value;
     final items = controller.agendaList;
+    final centeredItem = centeredIndex >= 0 && centeredIndex < items.length
+        ? items[centeredIndex]
+        : null;
     return <String, dynamic>{
       'registered': true,
       'count': items.length,
       'centeredIndex': centeredIndex,
-      'centeredDocId': centeredIndex >= 0 && centeredIndex < items.length
-          ? items[centeredIndex].docID
-          : '',
+      'centeredDocId': centeredItem?.docID ?? '',
+      'centeredHasPlayableVideo': centeredItem?.hasPlayableVideo == true,
+      'centeredHasRenderableVideoCard':
+          centeredItem?.hasRenderableVideoCard == true,
       'docIds':
           items.take(24).map((item) => item.docID).toList(growable: false),
       'lastCenteredIndex': controller.lastCenteredIndex,
+      'playbackSuspended': controller.playbackSuspended.value,
+      'pauseAll': controller.pauseAll.value,
+      'canClaimPlaybackNow': controller.canClaimPlaybackNow,
+      'feedViewMode': controller.feedViewMode.value.name,
+      'usesPrimaryFeedPaging': controller.debugUsesPrimaryFeedPaging,
+      'feedContractId': FeedHomeContract.primaryHybridV1.contractId,
+    };
+  }
+
+  static Map<String, dynamic> _videoPlaybackSnapshot() {
+    final manager = maybeFindVideoStateManager();
+    if (manager == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    return <String, dynamic>{
+      'registered': true,
+      ...manager.debugSnapshot(),
     };
   }
 
   static Map<String, dynamic> _shortSnapshot() {
-    final controller = ShortController.maybeFind();
+    final controller = maybeFindShortController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -119,7 +143,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _exploreSnapshot() {
-    final controller = ExploreController.maybeFind();
+    final controller = maybeFindExploreController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -143,7 +167,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _educationSnapshot() {
-    final controller = EducationController.maybeFind();
+    final controller = maybeFindEducationController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -174,7 +198,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _chatConversationSnapshot() {
-    final controller = ChatController.maybeFind();
+    final controller = maybeFindChatController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -222,10 +246,11 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _commentsSnapshot() {
-    final controller = PostCommentController.maybeFind();
+    final controller = maybeFindPostCommentController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     return <String, dynamic>{
       'registered': true,
       'count': controller.list.length,
@@ -233,6 +258,13 @@ class IntegrationTestStateProbe {
           .take(24)
           .map((item) => item.docID)
           .toList(growable: false),
+      'likedByMeDocIds': currentUid.isEmpty
+          ? const <String>[]
+          : controller.list
+              .where((item) => item.likes.contains(currentUid))
+              .take(24)
+              .map((item) => item.docID)
+              .toList(growable: false),
       'replyingToCommentId': controller.replyingToCommentId.value,
       'replyingToNickname': controller.replyingToNickname.value,
       'selectedGifUrl': controller.selectedGifUrl.value,
@@ -253,6 +285,7 @@ class IntegrationTestStateProbe {
     final items = controller.mergedPosts;
     return <String, dynamic>{
       'registered': true,
+      'selection': controller.postSelection.value,
       'count': items.length,
       'centeredIndex': index,
       'centeredDocId': index >= 0 && index < items.length
@@ -267,7 +300,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _socialProfileSnapshot() {
-    final controller = SocialProfileController.maybeFind();
+    final controller = maybeFindSocialProfileController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -290,7 +323,7 @@ class IntegrationTestStateProbe {
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
-    final notifyReader = NotifyReaderController.maybeFind();
+    final notifyReader = maybeFindNotifyReaderController();
     return <String, dynamic>{
       'registered': true,
       'count': controller.list.length,
@@ -333,7 +366,7 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _storyCommentsSnapshot() {
-    final controller = StoryCommentsController.maybeFind();
+    final controller = maybeFindStoryCommentsController();
     if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
@@ -349,7 +382,7 @@ class IntegrationTestStateProbe {
 
   static Map<String, dynamic> _authSnapshot() {
     final currentUserService = CurrentUserService.instance;
-    final accountCenter = AccountCenterService.maybeFind();
+    final accountCenter = maybeFindAccountCenterService();
     final activeUid = accountCenter?.activeUid.value.trim() ?? '';
     final lastUsedUid = accountCenter?.lastUsedUid.value.trim() ?? '';
     String currentUid;

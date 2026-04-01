@@ -12,6 +12,7 @@ class AppHeaderActionButton extends StatelessWidget {
     this.badgeKey,
     this.badgeColor = const Color(0xFF00C853),
     this.size = AppIconSurface.kSize,
+    this.radius = AppIconSurface.kRadius,
     this.opacity = 1,
     this.surfaceColor = const Color(0xFFFFFFFF),
   });
@@ -22,6 +23,7 @@ class AppHeaderActionButton extends StatelessWidget {
   final Key? badgeKey;
   final Color badgeColor;
   final double size;
+  final double radius;
   final double opacity;
   final Color surfaceColor;
 
@@ -31,6 +33,7 @@ class AppHeaderActionButton extends StatelessWidget {
       opacity: opacity,
       child: AppIconSurface(
         size: size,
+        radius: radius,
         color: surfaceColor,
         child: Stack(
           clipBehavior: Clip.none,

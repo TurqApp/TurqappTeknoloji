@@ -1,114 +1,60 @@
 part of 'current_user_service.dart';
 
 extension CurrentUserServiceAuthPart on CurrentUserService {
-  String _performEffectiveUserId() {
-    final serviceUid = userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return authUserId;
-  }
+  CurrentUserAuthRole get _authRole => CurrentUserAuthRole(this);
 
-  User? _performCurrentAuthUser() => FirebaseAuth.instance.currentUser;
+  String _performEffectiveUserId() => _authRole.effectiveUserId();
 
-  bool _performHasAuthUser() => currentAuthUser != null;
+  User? _performCurrentAuthUser() => _authRole.currentAuthUser();
 
-  String _performAuthUserId() => currentAuthUser?.uid.trim() ?? '';
+  bool _performHasAuthUser() => _authRole.hasAuthUser();
 
-  String _performAuthEmail() => currentAuthUser?.email?.trim() ?? '';
+  String _performAuthUserId() => _authRole.authUserId();
 
-  String _performAuthDisplayName() =>
-      currentAuthUser?.displayName?.trim() ?? '';
+  String _performAuthEmail() => _authRole.authEmail();
 
-  String _performEffectiveEmail() {
-    final cached = email.trim();
-    if (cached.isNotEmpty) return cached;
-    return authEmail;
-  }
+  String _performAuthDisplayName() => _authRole.authDisplayName();
 
-  String _performEffectivePhoneNumber() {
-    final cached = phoneNumber.trim();
-    if (cached.isNotEmpty) return cached;
-    return currentAuthUser?.phoneNumber?.trim() ?? '';
-  }
+  String _performEffectiveEmail() => _authRole.effectiveEmail();
 
-  String _performEffectiveDisplayName() {
-    final cachedFullName = fullName.trim();
-    if (cachedFullName.isNotEmpty) return cachedFullName;
-    final cachedNickname = nickname.trim();
-    if (cachedNickname.isNotEmpty) return cachedNickname;
-    return authDisplayName;
-  }
+  String _performEffectivePhoneNumber() => _authRole.effectivePhoneNumber();
 
-  Stream<User?> _performAuthStateChanges() =>
-      FirebaseAuth.instance.authStateChanges();
+  String _performEffectiveDisplayName() => _authRole.effectiveDisplayName();
+
+  Stream<User?> _performAuthStateChanges() => _authRole.authStateChanges();
 
   Future<User?> _performResolveAuthUser({
     bool waitForAuthState = false,
     Duration timeout = const Duration(seconds: 3),
-  }) async {
-    final existing = currentAuthUser;
-    if (existing != null) return existing;
-    if (!waitForAuthState) return null;
-    try {
-      return await authStateChanges()
-          .firstWhere((candidate) => candidate != null)
-          .timeout(timeout);
-    } catch (_) {
-      return currentAuthUser;
-    }
-  }
+  }) =>
+      _authRole.resolveAuthUser(
+        waitForAuthState: waitForAuthState,
+        timeout: timeout,
+      );
 
-  Future<User?> _performReloadCurrentAuthUser() async {
-    final user = currentAuthUser;
-    if (user == null) return null;
-    await user.reload();
-    return currentAuthUser;
-  }
+  Future<User?> _performReloadCurrentAuthUser() =>
+      _authRole.reloadCurrentAuthUser();
 
   Future<String?> _performEnsureAuthReady({
     bool waitForAuthState = false,
     bool forceTokenRefresh = false,
     Duration timeout = const Duration(seconds: 3),
-  }) async {
-    final user = await resolveAuthUser(
-      waitForAuthState: waitForAuthState,
-      timeout: timeout,
-    );
-    if (user == null) return null;
-    if (forceTokenRefresh) {
-      try {
-        await user.getIdToken(true);
-      } catch (_) {
-        // Best effort refresh only.
-      }
-    }
-    final uid = user.uid.trim();
-    return uid.isEmpty ? null : uid;
-  }
+  }) =>
+      _authRole.ensureAuthReady(
+        waitForAuthState: waitForAuthState,
+        forceTokenRefresh: forceTokenRefresh,
+        timeout: timeout,
+      );
 
   Future<void> _performRefreshAuthTokenIfNeeded({
     bool waitForAuthState = true,
-  }) async {
-    try {
-      await ensureAuthReady(
+  }) =>
+      _authRole.refreshAuthTokenIfNeeded(
         waitForAuthState: waitForAuthState,
-        forceTokenRefresh: true,
       );
-    } catch (_) {
-      // Best effort only.
-    }
-  }
 
-  Future<void> _performSignOutAuth() async {
-    await FirebaseAuth.instance.signOut();
-  }
+  Future<void> _performSignOutAuth() => _authRole.signOutAuth();
 
-  Future<void> _performDeleteAuthUserIfPresent() async {
-    final user = currentAuthUser;
-    if (user == null) return;
-    try {
-      await user.delete();
-    } catch (_) {
-      rethrow;
-    }
-  }
+  Future<void> _performDeleteAuthUserIfPresent() =>
+      _authRole.deleteAuthUserIfPresent();
 }

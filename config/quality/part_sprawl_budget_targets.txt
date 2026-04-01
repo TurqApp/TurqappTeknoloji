@@ -1,0 +1,9 @@
+# cluster|mode|max|patterns|note
+micro_part_total|guard|613|lib/**/*.dart|Tracked micro part baseline for facade/fields/class/base/members parts must not regrow above the post-M1 baseline.
+cache_snapshot_hot|guard|0|lib/Core/Services/CacheFirst/*.dart,lib/Core/Services/CacheFirst/**/*.dart,lib/Core/Repositories/feed_snapshot_repository_*.dart,lib/Core/Repositories/profile_posts_snapshot_repository_*.dart,lib/Core/Repositories/short_snapshot_repository_*.dart,lib/Services/current_user_service_*.dart|Protected by M1 cache/snapshot cleanup wave; this cluster should not reintroduce guarded micro parts.
+startup_auth_session_hot|guard|0|lib/Modules/SignIn/sign_in_*.dart,lib/Services/current_user_service_*.dart,lib/Services/account_center_service_*.dart|Protected by F2-011 startup/auth/session simplification wave.
+profile_social_hot|guard|4|lib/Modules/Profile/MyProfile/*.dart,lib/Modules/Profile/MyProfile/**/*.dart,lib/Modules/SocialProfile/*.dart,lib/Modules/SocialProfile/**/*.dart|Protected by F3-003 profile/social simplification wave.
+feed_playback_hot|guard|37|lib/Modules/Agenda/*.dart,lib/Modules/Agenda/**/*.dart,lib/Modules/Short/*.dart,lib/Modules/Short/**/*.dart,lib/Modules/Story/*.dart,lib/Modules/Story/**/*.dart|Protected by F3-004 feed/playback simplification wave.
+education_pasaj_watch|watch|190|lib/Modules/Education/*.dart,lib/Modules/Education/**/*.dart|Largest remaining micro-part cluster; watch target only until a dedicated education cleanup wave starts.
+core_services_watch|watch|100|lib/Core/Services/*.dart,lib/Core/Services/**/*.dart,lib/Services/*.dart,lib/Services/**/*.dart|Watch target only until a dedicated core-services cleanup wave starts.
+profile_settings_admin_watch|watch|8|lib/Modules/Profile/Settings/*.dart,lib/Modules/Profile/Settings/**/*.dart,lib/Modules/Admin/*.dart,lib/Modules/Admin/**/*.dart|Watch target only until a dedicated settings/admin cleanup wave starts.

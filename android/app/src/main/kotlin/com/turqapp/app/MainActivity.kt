@@ -15,9 +15,11 @@ class MainActivity : FlutterActivity() {
         super.onResume()
         PlaybackHealthStore.installStatusLabel(this)
         PlaybackHealthStore.dispatchAppForegrounded(applicationContext)
+        ExoPlayerPlugin.instance?.handleAppForegrounded()
     }
 
     override fun onPause() {
+        ExoPlayerPlugin.instance?.handleAppBackgrounded()
         PlaybackHealthStore.dispatchAppBackgrounded(applicationContext)
         super.onPause()
     }

@@ -43,15 +43,18 @@ extension TutoringDetailSectionsPart on TutoringDetail {
                           child: SizedBox(
                             height: (Get.height * 0.135).clamp(96.0, 112.0),
                             width: double.infinity,
-                            child: CachedNetworkImage(
+                            child: CacheFirstNetworkImage(
                               imageUrl:
                                   item.imgs != null && item.imgs!.isNotEmpty
                                       ? item.imgs!.first
                                       : '',
+                              cacheManager: TurqImageCacheManager.instance,
                               fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => Container(
+                              memCacheWidth: 360,
+                              memCacheHeight: 240,
+                              fallback: Container(
                                 color: Colors.grey.shade200,
-                                child: Icon(CupertinoIcons.photo),
+                                child: const Icon(CupertinoIcons.photo),
                               ),
                             ),
                           ),

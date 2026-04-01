@@ -74,8 +74,8 @@ class _CreateBookState extends State<CreateBook> {
     _controllerTag =
         'create_book_${existingBook?.docID ?? 'new'}_${identityHashCode(this)}';
     _ownsController =
-        CreateBookController.maybeFind(tag: _controllerTag) == null;
-    controller = CreateBookController.ensure(
+        maybeFindCreateBookController(tag: _controllerTag) == null;
+    controller = ensureCreateBookController(
       onBack,
       existingBook: existingBook,
       tag: _controllerTag,
@@ -85,7 +85,7 @@ class _CreateBookState extends State<CreateBook> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = CreateBookController.maybeFind(
+      final registeredController = maybeFindCreateBookController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

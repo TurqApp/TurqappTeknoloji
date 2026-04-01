@@ -17,21 +17,28 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
         .map((post) => post.userID)
         .where((id) => id.isNotEmpty)
         .toSet();
-    final summaries = await _userSummaryResolver.resolveMany(
-      authorIds.toList(growable: false),
-      preferCache: true,
+    final summaries = await _loadDiscoverySummaries(
+      authorIds: authorIds,
+      currentUserId: currentUserId,
+      followingIds: followingIds,
     );
 
     final visible = <PostsModel>[];
     final dropLogs = <String>[];
     for (final post in normalized) {
       final reasons = <String>[];
+      if (post.isFloodMember) {
+        reasons.add('flood_child');
+      }
       if (hiddenPostIds.contains(post.docID)) {
         reasons.add('hidden');
       }
       if (post.deletedPost == true) reasons.add('deleted');
       if (post.gizlendi) reasons.add('gizlendi');
-      if (post.isUploading) reasons.add('uploading');
+      if (post.shouldHideWhileUploading) {
+        if (post.isUploading) reasons.add('uploading');
+        if (post.isCompletelyEmptyPost) reasons.add('empty_content');
+      }
       if (reasons.isNotEmpty) {
         if (kDebugMode && dropLogs.length < 12) {
           dropLogs.add('${post.docID}:${reasons.join('+')}');
@@ -65,15 +72,17 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
         }
         continue;
       }
-      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final canSeeAuthor =
+          _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: post.userID,
         followingIds: followingIds,
-        isPrivate: summary.isPrivate,
+        rozet: summary.rozet,
+        isApproved: summary.isApproved,
         isDeleted: summary.isDeleted,
       );
       if (!canSeeAuthor) {
         if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:private_not_following:${post.userID}');
+          dropLogs.add('${post.docID}:not_following_unbadged:${post.userID}');
         }
         continue;
       }
@@ -108,7 +117,42 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     return visible;
   }
 
+  Future<Map<String, UserSummary>> _loadDiscoverySummaries({
+    required Set<String> authorIds,
+    required String currentUserId,
+    required Set<String> followingIds,
+  }) async {
+    if (authorIds.isEmpty) return const <String, UserSummary>{};
+    final cached = await _userSummaryResolver.resolveMany(
+      authorIds.toList(growable: false),
+      preferCache: true,
+    );
+    final viewerUid = currentUserId.trim();
+    final refreshIds = authorIds.where((authorId) {
+      final uid = authorId.trim();
+      if (uid.isEmpty) return false;
+      if (viewerUid.isNotEmpty && uid == viewerUid) return false;
+      if (followingIds.contains(uid)) return false;
+      final summary = cached[uid];
+      if (summary == null) return true;
+      if (summary.isDeleted) return false;
+      return !isDiscoveryPublicAuthor(
+        rozet: summary.rozet,
+        isApproved: summary.isApproved,
+      );
+    }).toList(growable: false);
+    if (refreshIds.isEmpty) return cached;
+
+    final fresh = await _userSummaryResolver.resolveMany(
+      refreshIds,
+      preferCache: false,
+    );
+    if (fresh.isEmpty) return cached;
+    return <String, UserSummary>{...cached, ...fresh};
+  }
+
   bool _isRenderablePost(PostsModel post) {
+    if (post.isCompletelyEmptyPost) return false;
     if (!post.hasVideoSignal) return true;
     return post.hasRenderableVideoCard;
   }
@@ -129,10 +173,19 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     return true;
   }
 
+  bool _shouldDropIntegrationSeedPost(PostsModel post) {
+    if (IntegrationTestMode.enabled) return false;
+    final docId = post.docID.trim();
+    if (docId.startsWith('it_seed_')) return true;
+    final userId = post.userID.trim();
+    return userId.startsWith('it_seed_');
+  }
+
   List<PostsModel> _normalizePosts(List<PostsModel> posts) {
     final seen = <String>{};
     final normalized = <PostsModel>[];
     for (final post in posts) {
+      if (_shouldDropIntegrationSeedPost(post)) continue;
       if (post.docID.isEmpty || !seen.add(post.docID)) continue;
       normalized.add(post);
     }

@@ -3,7 +3,7 @@ part of 'scholarship_detail_view.dart';
 extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
   Widget buildContent(BuildContext context) {
     final ScholarshipDetailController controller =
-        ScholarshipDetailController.ensure();
+        ensureScholarshipDetailController();
 
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData == null || scholarshipData['model'] == null) {
@@ -12,7 +12,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
         body: Center(
           child: Text(
             'scholarship.detail_missing'.tr,
-            style: TextStyle(fontSize: 16, fontFamily: "MontserratMedium"),
+            style:
+                const TextStyle(fontSize: 16, fontFamily: 'MontserratMedium'),
           ),
         ),
       );
@@ -29,577 +30,356 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
             <String, dynamic>{};
     final bool isOwnScholarship = userData['userID']?.toString() ==
         CurrentUserService.instance.effectiveUserId;
-    final userImage = (userData['avatarUrl'] ?? '').toString();
-    final userNick = (userData['displayName'] ??
+    final String userImage = (userData['avatarUrl'] ?? '').toString();
+    final String userNick = (userData['displayName'] ??
             userData['username'] ??
             userData['nickname'] ??
             'common.user'.tr)
         .toString();
-    // Yeni ScrollController tanımlıyoruz
     final ScrollController detailScrollController = ScrollController();
 
     return Obx(() {
       final model = controller.resolvedModel.value ?? baseModel;
-      final universityCount = model.universiteler.length;
+      final int universityCount = model.universiteler.length;
       if (controller.hiddenUniversityCount.value !=
           (universityCount > 10 ? universityCount - 10 : 0)) {
         controller.hiddenUniversityCount.value =
             universityCount > 10 ? universityCount - 10 : 0;
       }
 
+      final List<String> galleryImages = <String>[
+        model.img.trim(),
+        model.img2.trim(),
+      ].where((image) => image.isNotEmpty).toList(growable: false);
+      final String providerName =
+          model.bursVeren.trim().isNotEmpty ? model.bursVeren.trim() : userNick;
+      final List<String> metaParts = <String>[
+        if (providerName.trim().isNotEmpty) providerName.trim(),
+        if (model.bitisTarihi.trim().isNotEmpty)
+          'education_feed.application_deadline'
+              .trParams({'date': model.bitisTarihi.trim()}),
+      ];
+      final String metaText = metaParts.join('  •  ');
+      final String applicationDates = [
+        model.baslangicTarihi.trim(),
+        model.bitisTarihi.trim(),
+      ].where((value) => value.isNotEmpty).join(' - ');
+      final String requiredDocs =
+          model.belgeler.map((e) => '• $e').join('\n').trim();
+      final String awardMonths = model.aylar.map((ay) => '• $ay').join('\n');
+      final String otherInfo =
+          '• ${'scholarship.duplicate_status_label'.tr}: ${model.mukerrerDurumu.isNotEmpty ? model.mukerrerDurumu : 'common.unspecified'.tr}\n'
+          '• ${'scholarship.repayable_label'.tr}: ${model.geriOdemeli.isNotEmpty ? model.geriOdemeli : 'common.unspecified'.tr}';
+
       return Scaffold(
         key: const ValueKey(IntegrationTestKeys.screenScholarshipDetail),
-        body: SafeArea(
-          bottom: false,
-          child: Stack(children: [
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: BackButtons(text: 'scholarship.detail_title'.tr),
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leadingWidth: 52,
+          titleSpacing: 8,
+          leading: const AppBackButton(),
+          title: AppPageTitle('scholarship.detail_title'.tr),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 2),
+              child: EducationFeedShareIconButton(
+                onTap: () => shareService.shareScholarship(scholarshipData),
+                size: 36,
+                iconSize: 20,
+              ),
+            ),
+            if (!isOwnScholarship && scholarshipDocId.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Obx(
+                  () => AppHeaderActionButton(
+                    onTap: () => scholarshipsController.toggleBookmark(
+                      scholarshipDocId,
+                      type,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: EducationFeedShareIconButton(
-                        onTap: () => shareService.shareScholarship(
-                          scholarshipData,
-                        ),
-                        size: 36,
-                        iconSize: 20,
-                      ),
-                    ),
-                    if (!isOwnScholarship && scholarshipDocId.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Obx(
-                          () => AppHeaderActionButton(
-                            onTap: () => scholarshipsController.toggleBookmark(
-                                scholarshipDocId, type),
-                            child: Icon(
-                              (scholarshipsController.bookmarkedScholarships[
-                                          scholarshipDocId] ??
-                                      false)
-                                  ? CupertinoIcons.bookmark_fill
-                                  : CupertinoIcons.bookmark,
-                              color: (scholarshipsController
-                                              .bookmarkedScholarships[
-                                          scholarshipDocId] ??
-                                      false)
-                                  ? Colors.orange
-                                  : Colors.black,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4, right: 10),
-                      child: PullDownButton(
-                        itemBuilder: (context) => [
-                          if (isOwnScholarship)
-                            PullDownMenuItem(
-                              onTap: () {
-                                noYesAlert(
-                                  title: 'scholarship.delete_title'.tr,
-                                  message: 'scholarship.delete_confirm'.tr,
-                                  onYesPressed: () async {
-                                    await controller.deleteScholarship(
-                                      scholarshipDocId,
-                                      type,
-                                    );
-                                  },
-                                );
-                              },
-                              title: 'common.delete'.tr,
-                              icon: CupertinoIcons.trash,
-                              isDestructive: true,
-                            ),
-                        ],
-                        buttonBuilder: (context, showMenu) =>
-                            AppHeaderActionButton(
-                          onTap: showMenu,
-                          child: Icon(
-                            AppIcons.ellipsisVertical,
-                            color: Colors.black,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: detailScrollController,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (model.img.isNotEmpty)
-                          Column(
-                            children: [
-                              model.img2.isNotEmpty
-                                  ? Column(
-                                      children: [
-                                        AspectRatio(
-                                          aspectRatio: 4 / 3,
-                                          child: PageView.builder(
-                                            itemCount: 2,
-                                            itemBuilder: (context, pageIndex) {
-                                              final imageUrl = pageIndex == 0
-                                                  ? model.img
-                                                  : model.img2;
-                                              return CachedNetworkImage(
-                                                memCacheHeight: 1000,
-                                                imageUrl: imageUrl,
-                                                width: double.infinity,
-                                                fit: BoxFit.cover,
-                                                placeholder: (context, url) =>
-                                                    Center(
-                                                  child:
-                                                      CupertinoActivityIndicator(),
-                                                ),
-                                                errorWidget:
-                                                    (context, url, error) =>
-                                                        Icon(
-                                                  Icons.error,
-                                                  color: Colors.red,
-                                                  size: 40,
-                                                ),
-                                              );
-                                            },
-                                            onPageChanged: (pageIndex) {
-                                              controller
-                                                  .updatePageIndex(pageIndex);
-                                            },
-                                          ),
-                                        ),
-                                        8.ph,
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children:
-                                              List.generate(2, (dotIndex) {
-                                            return Obx(
-                                              () => Container(
-                                                margin: EdgeInsets.symmetric(
-                                                  horizontal: 4,
-                                                ),
-                                                width: 8,
-                                                height: 8,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: controller
-                                                              .currentPageIndex
-                                                              .value ==
-                                                          dotIndex
-                                                      ? Colors.black
-                                                      : Colors.grey,
-                                                ),
-                                              ),
-                                            );
-                                          }),
-                                        ),
-                                      ],
-                                    )
-                                  : AspectRatio(
-                                      aspectRatio: 4 / 3,
-                                      child: CachedNetworkImage(
-                                        imageUrl: model.img,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) => Center(
-                                          child: CupertinoActivityIndicator(),
-                                        ),
-                                        errorWidget: (context, url, error) =>
-                                            Icon(
-                                          Icons.error,
-                                          color: Colors.red,
-                                          size: 40,
-                                        ),
-                                      ),
-                                    ),
-                            ],
-                          ),
-                        Padding(
-                          padding: EdgeInsets.all(15),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'scholarship.applications_heading'
-                                    .trParams({'title': model.baslik}),
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                              8.ph,
-                              Text.rich(
-                                ScholarshipRichText.build(
-                                  model.aciklama,
-                                  baseStyle: TextStyle(
-                                    fontSize: 16,
-                                    fontFamily: "Montserrat",
-                                  ),
-                                ),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontFamily: "Montserrat",
-                                ),
-                              ),
-                              appDivider(),
-                              if (model.basvuruKosullari.isNotEmpty) ...[
-                                _buildDetail('scholarship.conditions_label'.tr,
-                                    model.basvuruKosullari),
-                                appDivider(),
-                              ],
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "scholarship.published_at".tr,
-                                    style: TextStyles.bold18Black,
-                                  ),
-                                  Text(
-                                    controller.formatTimestamp(model.timeStamp),
-                                    style: TextStyles.rBlack16,
-                                  ),
-                                ],
-                              ),
-                              appDivider(),
-                              _buildDetail(
-                                'scholarship.application_dates_label'.tr,
-                                '${model.baslangicTarihi} - ${model.bitisTarihi}',
-                              ),
-                              if (model.belgeler.isNotEmpty) ...[
-                                appDivider(),
-                                _buildDetail(
-                                  'scholarship.required_docs_label'.tr,
-                                  model.belgeler.map((e) => '• $e').join('\n'),
-                                ),
-                              ],
-                              if (model.aylar.isNotEmpty) ...[
-                                appDivider(),
-                                _buildDetail(
-                                  'scholarship.award_months_label'.tr,
-                                  model.aylar.map((ay) => '• $ay').join('\n'),
-                                ),
-                              ],
-                              // appDivider(),
-                              // _buildDetail(
-                              //   'Eğitim Kitlesi',
-                              //   '• ${model.egitimKitlesi.isNotEmpty ? model.egitimKitlesi : 'Belirtilmemiş'}',
-                              // ),
-                              // ...[
-                              //   appDivider(),
-                              //   _buildDetail(
-                              //     'Eğitim Düzeyi',
-                              //     model.altEgitimKitlesi.isNotEmpty
-                              //         ? '• ${model.altEgitimKitlesi.join('\n• ')}'
-                              //         : 'Belirtilmemiş',
-                              //   ),
-                              // ],
-                              if (model.universiteler.isNotEmpty) ...[
-                                appDivider(),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'scholarship.universities_label'.tr,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                        ),
-                                        if (model.universiteler.length > 10)
-                                          Obx(
-                                            () => GestureDetector(
-                                              onTap: () {
-                                                controller
-                                                    .toggleUniversityList();
-                                                controller.hiddenUniversityCount
-                                                    .refresh();
-                                              },
-                                              child: Text(
-                                                controller.showAllUniversities
-                                                        .value
-                                                    ? 'scholarship.show_less'.tr
-                                                    : 'scholarship.show_all'.tr,
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                  color: Colors.black,
-                                                  fontFamily:
-                                                      "MontserratMedium",
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    8.ph,
-                                    Obx(
-                                      () => Text(
-                                        controller.showAllUniversities.value
-                                            ? model.universiteler
-                                                .map((e) => '• $e')
-                                                .join('\n')
-                                            : model.universiteler
-                                                .take(10)
-                                                .map((e) => '• $e')
-                                                .join('\n'),
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontFamily: "Montserrat",
-                                        ),
-                                      ),
-                                    ),
-                                    if (model.universiteler.length > 10)
-                                      Obx(
-                                        () => Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 8.0),
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              controller.toggleUniversityList();
-                                              controller.hiddenUniversityCount
-                                                  .refresh();
-                                            },
-                                            child: Text(
-                                              controller
-                                                      .showAllUniversities.value
-                                                  ? 'scholarship.show_less'.tr
-                                                  : 'scholarship.more_universities'
-                                                      .trParams({
-                                                      'count': controller
-                                                          .hiddenUniversityCount
-                                                          .value
-                                                          .toString(),
-                                                    }),
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                color: Colors.black,
-                                                fontFamily: "MontserratMedium",
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                              ...[
-                                appDivider(),
-                                _buildDetail(
-                                  'scholarship.other_info'.tr,
-                                  '• ${'scholarship.duplicate_status_label'.tr}: ${model.mukerrerDurumu.isNotEmpty ? model.mukerrerDurumu : 'common.unspecified'.tr}\n'
-                                  '• ${'scholarship.repayable_label'.tr}: ${model.geriOdemeli.isNotEmpty ? model.geriOdemeli : 'common.unspecified'.tr}',
-                                ),
-                              ],
-                              ...[
-                                appDivider(),
-                                _buildDetail(
-                                    "scholarship.application_how".tr,
-                                    model.basvuruYapilacakYer ==
-                                            CreateScholarshipController
-                                                .applicationPlaceTurqAppValue
-                                        ? Text.rich(
-                                            TextSpan(
-                                              children: [
-                                                TextSpan(
-                                                  text:
-                                                      "scholarship.application_via_turqapp_prefix"
-                                                          .tr,
-                                                  style: TextStyle(
-                                                    fontFamily: "Montserrat",
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                TextSpan(
-                                                  text:
-                                                      "scholarship.application_received_status"
-                                                          .tr,
-                                                  style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontFamily:
-                                                        "MontserratBold",
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : Text.rich(
-                                            TextSpan(
-                                              children: [
-                                                TextSpan(
-                                                  text:
-                                                      "scholarship.application_via_turqapp_prefix"
-                                                          .tr,
-                                                  style: TextStyle(
-                                                    fontFamily: "Montserrat",
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                TextSpan(
-                                                  text:
-                                                      "scholarship.application_not_received_status"
-                                                          .tr,
-                                                  style: TextStyle(
-                                                    color: Colors.red.shade700,
-                                                    fontFamily:
-                                                        "MontserratBold",
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          )),
-                              ],
-                              appDivider(),
-                              GestureDetector(
-                                onTap: () => _handleProviderCardTap(
-                                  website: model.website,
-                                  userId: userData['userID']?.toString() ?? '',
-                                ),
-                                child: Container(
-                                  padding: EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: Colors.black, width: 1)),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 35,
-                                        child: userImage.isNotEmpty
-                                            ? ClipOval(
-                                                child: CachedNetworkImage(
-                                                  memCacheHeight: 500,
-                                                  imageUrl: userImage,
-                                                  placeholder: (context, url) =>
-                                                      CupertinoActivityIndicator(),
-                                                  errorWidget:
-                                                      (context, url, error) =>
-                                                          Icon(Icons.error),
-                                                  width: 72,
-                                                  height: 72,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              )
-                                            : Icon(Icons.person, size: 36),
-                                      ),
-                                      12.pw,
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Align(
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    child: Wrap(
-                                                      spacing: 0,
-                                                      crossAxisAlignment:
-                                                          WrapCrossAlignment
-                                                              .center,
-                                                      children: [
-                                                        Text(
-                                                          (userData['userID']
-                                                                          ?.toString() ??
-                                                                      '')
-                                                                  .isNotEmpty
-                                                              ? '${_truncateLabel(userNick, maxChars: 34)} '
-                                                              : _truncateLabel(
-                                                                  userNick,
-                                                                  maxChars: 34,
-                                                                ),
-                                                          style: TextStyle(
-                                                            fontSize: 16,
-                                                            fontFamily:
-                                                                "MontserratBold",
-                                                            color: Colors.black,
-                                                          ),
-                                                          maxLines: 1,
-                                                          overflow:
-                                                              TextOverflow.clip,
-                                                          softWrap: false,
-                                                        ),
-                                                        if ((userData['userID']
-                                                                    ?.toString() ??
-                                                                '')
-                                                            .isNotEmpty)
-                                                          RozetContent(
-                                                            size: 14,
-                                                            userID: userData[
-                                                                        'userID']
-                                                                    ?.toString() ??
-                                                                '',
-                                                            leftSpacing: 0,
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            Text(
-                                              'Web sitesini ziyaret et',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontFamily: "Montserrat",
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              16.ph,
-                              _buildActionSection(
-                                context: context,
-                                controller: controller,
-                                model: model,
-                                scholarshipData: scholarshipData,
-                                scholarshipDocId: scholarshipDocId,
-                                type: type,
-                                userData: userData,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    child: Icon(
+                      (scholarshipsController
+                                  .bookmarkedScholarships[scholarshipDocId] ??
+                              false)
+                          ? CupertinoIcons.bookmark_fill
+                          : CupertinoIcons.bookmark,
+                      color: (scholarshipsController
+                                  .bookmarkedScholarships[scholarshipDocId] ??
+                              false)
+                          ? Colors.orange
+                          : Colors.black,
+                      size: 20,
                     ),
                   ),
                 ),
-              ],
             ),
-            if (controller.detailLoading.value)
-              const Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: LinearProgressIndicator(minHeight: 2),
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: _buildReportMenu(
+                userId: userData['userID']?.toString() ?? model.userID,
+                scholarshipDocId: scholarshipDocId,
               ),
-            ScrollTotopButton(
-              scrollController: detailScrollController, // Yeni ScrollController
-              visibilityThreshold: 200,
             ),
-          ]),
+          ],
+        ),
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: Stack(
+            children: [
+              ListView(
+                controller: detailScrollController,
+                padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                children: [
+                  if (galleryImages.isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AspectRatio(
+                        aspectRatio: 4 / 3,
+                        child: galleryImages.length == 1
+                            ? _buildGalleryImage(galleryImages.first)
+                            : PageView.builder(
+                                itemCount: galleryImages.length,
+                                itemBuilder: (context, pageIndex) {
+                                  return _buildGalleryImage(
+                                    galleryImages[pageIndex],
+                                  );
+                                },
+                                onPageChanged: controller.updatePageIndex,
+                              ),
+                      ),
+                    ),
+                    if (galleryImages.length > 1) ...[
+                      const SizedBox(height: 10),
+                      _buildPageIndicator(
+                        controller: controller,
+                        count: galleryImages.length,
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                  ],
+                  Text(
+                    model.baslik.trim().isEmpty
+                        ? 'scholarship.detail_title'.tr
+                        : model.baslik.trim(),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                  if (metaText.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      metaText,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 13,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  _buildSectionTitle('common.description'.tr),
+                  const SizedBox(height: 8),
+                  Text.rich(
+                    ScholarshipRichText.build(
+                      model.aciklama,
+                      baseStyle: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontFamily: 'Montserrat',
+                        height: 1.45,
+                      ),
+                    ),
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 14,
+                      fontFamily: 'Montserrat',
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildInfoCard(
+                    title: 'scholarship.application_info'.tr,
+                    children: [
+                      _buildInfoRow(
+                        'scholarship.published_at'.tr,
+                        controller.formatTimestamp(model.timeStamp),
+                      ),
+                      _buildInfoRow(
+                        'scholarship.application_dates_label'.tr,
+                        applicationDates,
+                      ),
+                      if (model.basvuruKosullari.isNotEmpty)
+                        _buildInfoRow(
+                          'scholarship.conditions_label'.tr,
+                          model.basvuruKosullari,
+                          rich: true,
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'scholarship.application_how'.tr,
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 14,
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        'scholarship.application_via_turqapp_prefix'
+                                            .tr,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 14,
+                                      fontFamily: 'MontserratMedium',
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: model.basvuruYapilacakYer ==
+                                            applicationPlaceTurqAppValue
+                                        ? 'scholarship.application_received_status'
+                                            .tr
+                                        : 'scholarship.application_not_received_status'
+                                            .tr,
+                                    style: TextStyle(
+                                      color: model.basvuruYapilacakYer ==
+                                              applicationPlaceTurqAppValue
+                                          ? Colors.black
+                                          : Colors.red.shade700,
+                                      fontSize: 14,
+                                      fontFamily: 'MontserratBold',
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  _buildInfoCard(
+                    title: 'scholarship.extra_info'.tr,
+                    children: [
+                      if (requiredDocs.isNotEmpty)
+                        _buildInfoRow(
+                          'scholarship.required_docs_label'.tr,
+                          requiredDocs,
+                        ),
+                      if (awardMonths.isNotEmpty)
+                        _buildInfoRow(
+                          'scholarship.award_months_label'.tr,
+                          awardMonths,
+                        ),
+                      _buildInfoRow(
+                        'scholarship.other_info'.tr,
+                        otherInfo,
+                      ),
+                    ],
+                  ),
+                  if (model.universiteler.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    _buildInfoCard(
+                      title: 'scholarship.universities_label'.tr,
+                      children: [
+                        Obx(
+                          () => Text(
+                            controller.showAllUniversities.value
+                                ? model.universiteler
+                                    .map((e) => '• $e')
+                                    .join('\n')
+                                : model.universiteler
+                                    .take(10)
+                                    .map((e) => '• $e')
+                                    .join('\n'),
+                            style: const TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                              fontFamily: 'MontserratMedium',
+                              height: 1.45,
+                            ),
+                          ),
+                        ),
+                        if (model.universiteler.length > 10) ...[
+                          const SizedBox(height: 10),
+                          Obx(
+                            () => GestureDetector(
+                              onTap: () {
+                                controller.toggleUniversityList();
+                                controller.hiddenUniversityCount.refresh();
+                              },
+                              child: Text(
+                                controller.showAllUniversities.value
+                                    ? 'scholarship.show_less'.tr
+                                    : 'scholarship.more_universities'.trParams({
+                                        'count': controller
+                                            .hiddenUniversityCount.value
+                                            .toString(),
+                                      }),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  PasajOwnerCard(
+                    onTap: () => _handleProviderCardTap(
+                      website: model.website,
+                      userId: userData['userID']?.toString() ?? '',
+                    ),
+                    title: _truncateLabel(userNick, maxChars: 34),
+                    userId: userData['userID']?.toString().trim() ?? '',
+                    imageUrl: userImage,
+                    subtitle: 'scholarship.visit_website'.tr,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildActionSection(
+                    context: context,
+                    controller: controller,
+                    model: model,
+                    scholarshipData: scholarshipData,
+                    scholarshipDocId: scholarshipDocId,
+                    type: type,
+                    userData: userData,
+                  ),
+                ],
+              ),
+              if (controller.detailLoading.value)
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+              ScrollTotopButton(
+                scrollController: detailScrollController,
+                visibilityThreshold: 200,
+              ),
+            ],
+          ),
         ),
       );
     });

@@ -35,6 +35,7 @@ class IntegrationTestKeys {
   static const String screenPracticeExamPreview =
       'it-screen-practice-exam-preview';
   static const String screenMyQr = 'it-screen-my-qr';
+  static const String screenQaLab = 'it-screen-qa-lab';
   static const String storyRow = 'it-story-row';
 
   static const String actionOpenNotifications = 'it-action-open-notifications';
@@ -50,6 +51,8 @@ class IntegrationTestKeys {
       'it-action-settings-open-account-center';
   static const String actionSettingsOpenPermissions =
       'it-action-settings-open-permissions';
+  static const String actionSettingsOpenQaLab =
+      'it-action-settings-open-qa-lab';
   static const String actionEditProfileUpdate = 'it-action-edit-profile-update';
   static const String actionPostCreatorPublish =
       'it-action-post-creator-publish';
@@ -81,6 +84,11 @@ class IntegrationTestKeys {
   static const String actionStoryCommentClearGif =
       'it-action-story-comment-clear-gif';
   static const String actionStoryLike = 'it-action-story-like';
+  static const String actionQaCaptureCheckpoint =
+      'it-action-qa-capture-checkpoint';
+  static const String actionQaExportReport = 'it-action-qa-export-report';
+  static const String actionQaShareReport = 'it-action-qa-share-report';
+  static const String actionQaResetSession = 'it-action-qa-reset-session';
   static const String actionAccountCenterSingleDeviceToggle =
       'it-action-account-center-single-device-toggle';
   static const String profileFollowersCounter = 'it-profile-followers-counter';

@@ -1,6 +1,164 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
+  int get _initialHeadSyncLimit => ReadBudgetRegistry.feedHomeInitialLimitValue;
+
+  List<PostsModel> _initialVisibleVideoWarmupWindow(
+    List<PostsModel> posts, {
+    int limit = 4,
+  }) {
+    if (posts.isEmpty || limit <= 0) return const <PostsModel>[];
+    return posts
+        .where((post) => post.hasRenderableVideoCard)
+        .take(limit)
+        .toList(growable: false);
+  }
+
+  Future<void> _warmInitialFeedVideoPosters(List<PostsModel> posts) async {
+    final videoPosts = posts
+        .where((post) => post.hasRenderableVideoCard)
+        .toList(growable: false);
+    if (videoPosts.isEmpty) return;
+
+    await Future.wait(
+      videoPosts.map(_warmFeedPosterForPost),
+      eagerError: false,
+    );
+  }
+
+  Future<void> _warmFeedPosterForPost(PostsModel post) async {
+    for (final url in post.preferredVideoPosterUrls) {
+      if (url.trim().isEmpty) continue;
+      try {
+        await TurqImageCacheManager.warmUrl(url)
+            .timeout(const Duration(seconds: 2));
+        return;
+      } catch (_) {}
+    }
+  }
+
+  void _scheduleInitialFeedVideoPosterWarmup(List<PostsModel> posts) {
+    if (posts.isEmpty) return;
+    unawaited(_warmInitialFeedVideoPosters(posts));
+  }
+
+  void _resumeFeedPlaybackAfterRefresh({
+    required int expectedEpoch,
+  }) {
+    if (agendaList.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed ||
+          pauseAll.value ||
+          agendaList.isEmpty ||
+          _feedMutationEpoch != expectedEpoch) {
+        return;
+      }
+      resumeFeedPlayback();
+    });
+  }
+
+  void _prepareFeedSurfaceAfterDataReady({
+    required String playbackBootstrapSource,
+  }) {
+    if (agendaList.isEmpty) return;
+
+    _prefetchThumbnailBatches();
+    _prefetchUpcomingImages();
+
+    if (centeredIndex.value == -1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          primeInitialCenteredPost();
+        }
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed || agendaList.isEmpty) return;
+        final target = centeredIndex.value;
+        if (target < 0 || target >= agendaList.length) return;
+        if (!_canAutoplayVideoPost(agendaList[target])) return;
+        if (_isPlaybackTargetCurrent(target)) return;
+        _ensureFeedPlaybackForIndex(target);
+      });
+    }
+
+    if (IntegrationTestMode.skipBackgroundStartupWork) {
+      return;
+    }
+  }
+
+  void _performResetSurfaceForTabTransition() {
+    _cancelDeferredInitialNetworkBootstrap();
+    _cancelPendingPlaybackReassert();
+    _pendingCenteredDocId = null;
+    _startupLockedFeedDocId = null;
+    _lastPlaybackCommandDocId = null;
+    _lastPlaybackCommandAt = null;
+    lastCenteredIndex = agendaList.isEmpty ? null : 0;
+    centeredIndex.value = -1;
+    _visibleFractions.clear();
+    pauseAll.value = false;
+
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+
+    void resetNow() {
+      if (!scrollController.hasClients) return;
+      try {
+        scrollController.jumpTo(0);
+      } catch (_) {}
+    }
+
+    resetNow();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      resetNow();
+    });
+  }
+
+  void _cancelDeferredInitialNetworkBootstrap() {
+    _deferredInitialNetworkBootstrapTimer?.cancel();
+    _deferredInitialNetworkBootstrapTimer = null;
+  }
+
+  void _scheduleDeferredInitialNetworkBootstrap() {
+    if (_deferredInitialNetworkBootstrapTimer?.isActive == true) return;
+    final now = DateTime.now();
+    if (_lastDeferredInitialNetworkBootstrapAt != null &&
+        now.difference(_lastDeferredInitialNetworkBootstrapAt!) <
+            const Duration(seconds: 8)) {
+      return;
+    }
+    _lastDeferredInitialNetworkBootstrapAt = now;
+    _deferredInitialNetworkBootstrapTimer = Timer(
+      const Duration(milliseconds: 3200),
+      () {
+        _deferredInitialNetworkBootstrapTimer = null;
+        if (isClosed || isLoading.value || !hasMore.value) return;
+        if (agendaList.isEmpty) {
+          unawaited(
+            fetchAgendaBigData(
+              initial: true,
+              trigger: 'deferred_initial_bootstrap',
+            ),
+          );
+          return;
+        }
+        unawaited(
+          fetchAgendaBigData(
+            pageLimit: ReadBudgetRegistry.feedHomeInitialLimitValue,
+            trigger: 'deferred_initial_bootstrap',
+          ),
+        );
+      },
+    );
+  }
+
+  bool _shouldDeferInitialNetworkBootstrap() {
+    return false;
+  }
+
   bool _isTransientAgendaUnavailable(Object error) {
     if (error is FirebaseException && error.code == 'unavailable') {
       return true;
@@ -10,6 +168,15 @@ extension AgendaControllerLoadingPart on AgendaController {
         message.contains('unable to resolve host firestore.googleapis.com') ||
         message.contains('unknownhostexception') ||
         message.contains('the service is currently unavailable');
+  }
+
+  bool _isTransientAgendaPermissionDenied(Object error) {
+    if (error is FirebaseException && error.code == 'permission-denied') {
+      return true;
+    }
+    final message = normalizeLowercase(error.toString());
+    return message.contains('cloud_firestore/permission-denied') ||
+        message.contains('permission denied');
   }
 
   void _clearAgendaRetry() {
@@ -25,7 +192,12 @@ extension AgendaControllerLoadingPart on AgendaController {
     _agendaRetryTimer = Timer(Duration(seconds: delaySeconds), () {
       _agendaRetryTimer = null;
       if (isClosed) return;
-      unawaited(fetchAgendaBigData(initial: initial));
+      unawaited(
+        fetchAgendaBigData(
+          initial: initial,
+          trigger: 'retry_timer',
+        ),
+      );
     });
   }
 
@@ -41,13 +213,36 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
-  Future<void> fetchAgendaBigData({bool initial = false}) async {
+  Future<void> fetchAgendaBigData({
+    bool initial = false,
+    int? pageLimit,
+    String trigger = 'manual',
+  }) async {
+    recordQALabFeedFetchEvent(
+      stage: 'requested',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'initial': initial,
+        'pageLimit': pageLimit ?? 0,
+        'isLoading': isLoading.value,
+        'hasMore': hasMore.value,
+        'currentCount': agendaList.length,
+      },
+    );
+    _cancelDeferredInitialNetworkBootstrap();
     final previousAgenda = agendaList.toList(growable: false);
     final previousReshares = publicReshareEvents.toList(growable: false);
     final previousFeedReshares = feedReshareEntries.toList(growable: false);
     final previousLastDoc = lastDoc;
     final previousHasMore = hasMore.value;
     final previousUsePrimaryFeedPaging = _usePrimaryFeedPaging;
+    final preserveVisibleFeedOnInitialBootstrap =
+        initial && previousAgenda.isNotEmpty && trigger != 'refresh_agenda';
+
+    if (preserveVisibleFeedOnInitialBootstrap) {
+      await syncFeedHeadAfterSurfaceOpen();
+      return;
+    }
 
     if (initial) {
       lastDoc = null;
@@ -71,8 +266,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         // print("quick cache fill error: $e");
       }
 
-      // İlk yüklemede reshare eventlerini arka planda getir (feed'i bloklamasın)
-      unawaited(_fetchAndMergeReshareEvents(eventLimit: 200));
+      // Reshare yüklemelerini ilk render sonrasına ertele; launch jank'i azaltır.
+      _scheduleInitialReshareMerge();
 
       if (agendaList.isNotEmpty &&
           !ContentPolicy.shouldBootstrapNetwork(
@@ -86,12 +281,31 @@ extension AgendaControllerLoadingPart on AgendaController {
         });
         return;
       }
+
+      if (agendaList.isNotEmpty && _shouldDeferInitialNetworkBootstrap()) {
+        _scheduleDeferredInitialNetworkBootstrap();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+            primeInitialCenteredPost();
+          }
+        });
+        return;
+      }
     }
 
     // Eğer shuffle edilmiş postlar varsa onlardan devam et
     if (_shuffleCache.hasBufferedItems) {
       if (!hasMore.value || isLoading.value) return;
       isLoading.value = true;
+      recordQALabFeedFetchEvent(
+        stage: 'buffered_page',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'currentCount': agendaList.length,
+        },
+      );
 
       try {
         final nextBatch = _shuffleCache.takeNext(fetchLimit);
@@ -105,22 +319,59 @@ extension AgendaControllerLoadingPart on AgendaController {
       return;
     }
 
-    if (!hasMore.value || isLoading.value) return;
+    if (!hasMore.value || isLoading.value) {
+      recordQALabFeedFetchEvent(
+        stage: 'skipped',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'isLoading': isLoading.value,
+          'hasMore': hasMore.value,
+          'currentCount': agendaList.length,
+        },
+      );
+      return;
+    }
 
     isLoading.value = true;
+    recordQALabFeedFetchEvent(
+      stage: 'started',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'initial': initial,
+        'pageLimit': pageLimit ?? 0,
+        'currentCount': agendaList.length,
+      },
+    );
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      final loadLimit = initial ? 30 : fetchLimit;
+      final loadLimit = initial
+          ? ReadBudgetRegistry.feedLivePageLimit
+          : (pageLimit ?? fetchLimit);
+      final liveConnected = ContentPolicy.isConnected;
+      final shouldPreferCacheOnOpen =
+          !liveConnected || (initial && agendaList.isEmpty);
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         limit: loadLimit,
+        preferCache: shouldPreferCacheOnOpen,
+        cacheOnly: !liveConnected,
       );
       final visibleItems = page.items;
+      final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
+        currentItems: agendaList.toList(growable: false),
+        pageItems: visibleItems,
+        nowMs: nowMs,
+        loadLimit: loadLimit,
+        lastDoc: page.lastDoc,
+        usesPrimaryFeed: page.usesPrimaryFeed,
+      );
 
-      _usePrimaryFeedPaging = page.usesPrimaryFeed;
-      lastDoc = page.lastDoc;
+      _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
+      lastDoc = pageApplyPlan.lastDoc;
 
       if (visibleItems.isNotEmpty) {
         unawaited(
@@ -129,39 +380,46 @@ extension AgendaControllerLoadingPart on AgendaController {
             const <String, Map<String, dynamic>>{},
           ),
         );
-        // Yeni eklenecekler içinde "zamanlıydı ve yeni görünür oldu" olanları vurgula
-        final existingIDs = agendaList.map((e) => e.docID).toSet();
-        final toAdd = <PostsModel>[];
-        final freshScheduled = <String>[];
-        final tenMinAgo = nowMs - const Duration(minutes: 15).inMilliseconds;
-        for (final p in visibleItems) {
-          final isNew = !existingIDs.contains(p.docID);
-          if (!isNew) continue;
-          toAdd.add(p);
-          final wasScheduled = p.timeStamp != 0;
-          final justBecameVisible = wasScheduled && p.timeStamp >= tenMinAgo;
-          if (justBecameVisible) {
-            freshScheduled.add(p.docID);
-          }
-        }
-        if (freshScheduled.isNotEmpty) {
-          markHighlighted(freshScheduled,
+        if (pageApplyPlan.freshScheduledIds.isNotEmpty) {
+          markHighlighted(pageApplyPlan.freshScheduledIds,
               keepFor: const Duration(milliseconds: 900));
         }
-        if (toAdd.isNotEmpty) {
-          _addUniqueToAgenda(toAdd);
-          // Fetch recent reshare events for these posts (followers or public users)
-          // Fire and forget
-          fetchResharesForPosts(toAdd, perPostLimit: 1);
+        if (pageApplyPlan.itemsToAdd.isNotEmpty) {
+          _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
+          _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
+          _scheduleReshareFetchForPosts(
+            pageApplyPlan.itemsToAdd,
+            perPostLimit: 1,
+          );
         }
       }
 
-      if (page.lastDoc == null || visibleItems.length < loadLimit) {
-        hasMore.value = false;
-      }
+      hasMore.value = pageApplyPlan.hasMore;
       _clearAgendaRetry();
+      recordQALabFeedFetchEvent(
+        stage: 'completed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'loadLimit': loadLimit,
+          'visibleItemCount': visibleItems.length,
+          'agendaCount': agendaList.length,
+          'hasMore': hasMore.value,
+          'usesPrimaryFeed': page.usesPrimaryFeed,
+        },
+      );
     } catch (e) {
       print("fetchAgendaBigData error: $e");
+      recordQALabFeedFetchEvent(
+        stage: 'failed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'error': e.toString(),
+          'currentCount': agendaList.length,
+        },
+      );
       if (_isTransientAgendaUnavailable(e)) {
         if (agendaList.isEmpty && previousAgenda.isNotEmpty) {
           agendaList.assignAll(previousAgenda);
@@ -192,9 +450,15 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> ensureInitialFeedLoaded() async {
-    if (agendaList.isNotEmpty ||
-        isLoading.value ||
-        _ensureInitialLoadInFlight) {
+    if (agendaList.isNotEmpty) {
+      return;
+    }
+    final inFlight = _ensureInitialLoadFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+    if (isLoading.value || _ensureInitialLoadInFlight) {
       return;
     }
 
@@ -206,360 +470,190 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
     _lastEnsureInitialLoadAt = now;
     _ensureInitialLoadInFlight = true;
+    final future = fetchAgendaBigData(
+      initial: true,
+      trigger: 'ensure_initial_load',
+    );
+    _ensureInitialLoadFuture = future;
     try {
-      await fetchAgendaBigData(initial: true);
+      await future;
     } finally {
       _ensureInitialLoadInFlight = false;
-    }
-  }
-
-  // Cache-first: başlangıçta cache'te varsa hızlıca ilk 10 gönderiyi doldur
-  Future<void> _tryQuickFillFromCache() async {
-    await _tryQuickFillFromPool();
-    if (agendaList.isNotEmpty) return;
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final cutoffMs = _agendaCutoffMs(nowMs);
-    final page = await _loadAgendaSourcePage(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: fetchLimit,
-      preferCache: true,
-      cacheOnly: true,
-    );
-    final filtered = page.items;
-    if (filtered.isEmpty) return;
-    // Duplicate'e düşmemek için mevcut ID'leri kontrol et
-    final existingIDs = agendaList.map((e) => e.docID).toSet();
-    final toAdd =
-        filtered.where((p) => !existingIDs.contains(p.docID)).toList();
-    if (toAdd.isNotEmpty) {
-      _addUniqueToAgenda(toAdd);
-      unawaited(_revalidateQuickFilledAgenda(toAdd));
-      // Reshare'leri gecikmeli getir (açılışta bant genişliğini kritik sorgulara bırak)
-      Future.delayed(const Duration(seconds: 2), () {
-        fetchResharesForPosts(toAdd, perPostLimit: 1);
-      });
-
-      // 🎯 INSTAGRAM STYLE: Cache'den yüklendiğinde de ilk videoyu centered yap
-      if (agendaList.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-            primeInitialCenteredPost();
-          }
-        });
+      if (identical(_ensureInitialLoadFuture, future)) {
+        _ensureInitialLoadFuture = null;
       }
     }
   }
 
-  Future<void> _tryQuickFillFromPool() async {
-    final me = CurrentUserService.instance.effectiveUserId;
-    if (me.isEmpty) return;
-    final snapshot = await _feedSnapshotRepository.bootstrapHome(
-      userId: me,
-      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
-    );
-    final quickFiltered = snapshot.data ?? const <PostsModel>[];
-    if (quickFiltered.isEmpty) return;
-
-    _addUniqueToAgenda(quickFiltered);
-    unawaited(_revalidateQuickFilledAgenda(quickFiltered));
-
-    if (agendaList.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-          primeInitialCenteredPost();
-        }
-      });
-    }
-  }
-
-  Future<void> _revalidateQuickFilledAgenda(List<PostsModel> shown) async {
-    if (shown.isEmpty ||
-        !ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
+  Future<void> ensureFeedSurfaceReady() async {
+    final inFlight = _surfaceBootstrapFuture;
+    if (inFlight != null) {
+      await inFlight;
       return;
     }
+    final future = _performEnsureFeedSurfaceReady();
+    _surfaceBootstrapFuture = future;
     try {
-      final valid = await _validatePoolPostsAndPrune(shown);
-      final validIds = valid.map((p) => p.docID).toSet();
-      if (validIds.length == shown.length) return;
-
-      final toRemove = shown
-          .where((post) => !validIds.contains(post.docID))
-          .map((post) => post.docID)
-          .toSet();
-      if (toRemove.isEmpty) return;
-
-      agendaList.removeWhere((post) => toRemove.contains(post.docID));
-    } catch (_) {}
+      await future;
+    } finally {
+      if (identical(_surfaceBootstrapFuture, future)) {
+        _surfaceBootstrapFuture = null;
+      }
+    }
   }
 
-  /// Pool fill sonrası arka planda: validasyon, gizlilik prune, reshare fetch
-  // ignore: unused_element
-  Future<void> _postPoolFillCleanup(
-      List<PostsModel> originalPool, List<PostsModel> shown) async {
-    try {
-      // Validasyon: silinmiş/arşivlenmiş postları pool'dan temizle
-      final valid = await _validatePoolPostsAndPrune(originalPool);
-      final validIds = valid.map((p) => p.docID).toSet();
-
-      // Toplu gizlilik kontrolü (whereIn ile, tek tek değil)
-      final uniqueUserIDs = valid.map((e) => e.userID).toSet().toList();
-      final Map<String, bool> userPrivacy = {};
-      final Map<String, bool> userDeactivated = {};
-      final userMeta = <String, Map<String, dynamic>>{};
-      final unresolved = _primeAgendaUserStateFromCaches(
-        uniqueUserIDs,
-        userPrivacy,
-        userDeactivated,
-        userMeta,
+  Future<void> _performEnsureFeedSurfaceReady() async {
+    if (agendaList.isEmpty && !isLoading.value) {
+      await hydrateInitialFeedFromCache(
+        targetCount: FeedSnapshotRepository.startupHomeLimitValue,
       );
-      if (unresolved.isNotEmpty) {
-        await _fillAgendaUserStateFromProfiles(
-          unresolved,
-          userPrivacy,
-          userDeactivated,
-          userMeta,
-          includeMeta: false,
+    }
+
+    if (agendaList.isNotEmpty) {
+      _prepareFeedSurfaceAfterDataReady(
+        playbackBootstrapSource: 'ensure_feed_surface_ready',
+      );
+      return;
+    }
+
+    if (!isLoading.value) {
+      await ensureInitialFeedLoaded();
+      _prepareFeedSurfaceAfterDataReady(
+        playbackBootstrapSource: 'ensure_feed_surface_ready_after_load',
+      );
+    }
+  }
+
+  Future<void> syncFeedHeadAfterSurfaceOpen() async {
+    if (!ContentPolicy.isConnected || agendaList.isEmpty || isLoading.value) {
+      return;
+    }
+
+    final inFlight = _headSyncFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastHeadSyncAt != null &&
+        now.difference(_lastHeadSyncAt!) < const Duration(seconds: 12)) {
+      return;
+    }
+    _lastHeadSyncAt = now;
+
+    final future = _performSyncFeedHeadAfterSurfaceOpen();
+    _headSyncFuture = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_headSyncFuture, future)) {
+        _headSyncFuture = null;
+      }
+    }
+  }
+
+  Future<void> _performSyncFeedHeadAfterSurfaceOpen() async {
+    final mutationEpoch = _feedMutationEpoch;
+    final playbackAnchor = _agendaFeedApplicationService.capturePlaybackAnchor(
+      agendaList: agendaList.toList(growable: false),
+      centeredIndex: centeredIndex.value,
+      lastCenteredIndex: lastCenteredIndex,
+    );
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cutoffMs = _agendaCutoffMs(nowMs);
+    _AgendaSourcePage page;
+    try {
+      page = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: _initialHeadSyncLimit,
+        startAfter: null,
+        useStoredCursor: false,
+        preferCache: false,
+        cacheOnly: false,
+      );
+    } catch (error) {
+      final signedOut =
+          CurrentUserService.instance.effectiveUserId.trim().isEmpty;
+      if (signedOut && _isTransientAgendaPermissionDenied(error)) {
+        debugPrint(
+          '[agenda] ignored head sync permission loss after sign-out: $error',
         );
+        return;
       }
+      rethrow;
+    }
+    final visibleItems = page.items;
 
-      // Gösterilen ama aslında geçersiz/gizli olan postları feed'den kaldır
-      final toRemove = <String>[];
-      for (final post in shown) {
-        if (!validIds.contains(post.docID)) {
-          toRemove.add(post.docID);
-          continue;
-        }
-        if (userDeactivated[post.userID] == true) {
-          toRemove.add(post.docID);
-          continue;
-        }
-        final isPrivate = userPrivacy[post.userID] ?? false;
-        final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
-          authorUserId: post.userID,
-          followingIds: followingIDs,
-          isPrivate: isPrivate,
-          isDeleted: false,
-        );
-        if (!canSeeAuthor) {
-          toRemove.add(post.docID);
-        }
-      }
+    _usePrimaryFeedPaging = page.usesPrimaryFeed;
+    if (page.lastDoc != null) {
+      lastDoc = page.lastDoc;
+      hasMore.value = true;
+    } else if (visibleItems.length < _initialHeadSyncLimit) {
+      hasMore.value = false;
+    }
 
-      if (toRemove.isNotEmpty) {
-        agendaList.removeWhere((p) => toRemove.contains(p.docID));
-      }
+    if (visibleItems.isEmpty) {
+      return;
+    }
+    if (mutationEpoch != _feedMutationEpoch) {
+      return;
+    }
 
-      // Reshare'leri gecikmeli getir (bant genişliği çakışmasını önle)
-      Future.delayed(const Duration(seconds: 2), () {
-        fetchResharesForPosts(agendaList.take(10).toList(), perPostLimit: 1);
+    final existingIds = agendaList.map((post) => post.docID).toSet();
+    final added = visibleItems
+        .where((post) => !existingIds.contains(post.docID))
+        .toList(growable: false);
+    final liveHeadIds = visibleItems.map((post) => post.docID).toSet();
+    final mergedAgenda = <PostsModel>[
+      ...visibleItems,
+      ...agendaList.where((post) => !liveHeadIds.contains(post.docID)),
+    ];
+    agendaList.assignAll(mergedAgenda);
+    _scheduleInitialFeedVideoPosterWarmup(visibleItems);
+    if (playbackAnchor != null && playbackAnchor.isNotEmpty) {
+      _pendingCenteredDocId = playbackAnchor;
+    }
+
+    if (added.isNotEmpty) {
+      _scheduleFeedPrefetch();
+      _scheduleReshareFetchForPosts(added, perPostLimit: 1);
+    }
+
+    if (playbackAnchor != null &&
+        playbackAnchor.isNotEmpty &&
+        !pauseAll.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed ||
+            pauseAll.value ||
+            agendaList.isEmpty ||
+            mutationEpoch != _feedMutationEpoch) {
+          return;
+        }
+        resumeFeedPlayback();
       });
-    } catch (_) {}
-  }
-
-  Future<List<PostsModel>> _validatePoolPostsAndPrune(
-      List<PostsModel> posts) async {
-    if (posts.isEmpty) return const <PostsModel>[];
-
-    final postIds =
-        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet();
-    final userIds =
-        posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
-
-    final validPostIds = <String>{};
-    final preferCache = !ContentPolicy.isConnected;
-    final cacheOnly = !ContentPolicy.isConnected;
-    for (final chunk in _chunkList(postIds.toList(), 10)) {
-      final postsById = await _postRepository.fetchPostCardsByIds(
-        chunk,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      for (final entry in postsById.entries) {
-        final post = entry.value;
-        final deleted = post.deletedPost == true;
-        final archived = post.arsiv == true;
-        final timeStamp = post.timeStamp.toInt();
-        if (!deleted && !archived && _isInAgendaWindow(timeStamp, nowMs)) {
-          validPostIds.add(entry.key);
-        }
-      }
     }
 
-    final validUserIds = <String>{};
-    for (final chunk in _chunkList(userIds.toList(), 20)) {
-      final users = await _profileCache.getProfiles(
-        chunk,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      for (final entry in users.entries) {
-        final data = entry.value;
-        final deactivated = _isUserMarkedDeactivated(data);
-        _userDeactivatedCache[entry.key] = deactivated;
-        _userPrivacyCache[entry.key] = (data['isPrivate'] ?? false) == true;
-        if (!deactivated) {
-          validUserIds.add(entry.key);
-        }
-      }
-    }
-
-    final valid = posts
-        .where((p) =>
-            validPostIds.contains(p.docID) && validUserIds.contains(p.userID))
-        .toList();
-    if (valid.length == posts.length) return valid;
-
-    final invalidIds = posts
-        .where((p) =>
-            !validPostIds.contains(p.docID) || !validUserIds.contains(p.userID))
-        .map((p) => p.docID)
-        .toList();
-    final indexPool = IndexPoolStore.maybeFind();
-    if (invalidIds.isNotEmpty && indexPool != null) {
-      await indexPool.removePosts(IndexPoolKind.feed, invalidIds);
-    }
-
-    return valid;
-  }
-
-  Future<void> _saveFeedPostsToPool(
-    List<PostsModel> posts,
-    Map<String, Map<String, dynamic>> _,
-  ) async {
-    if (posts.isEmpty) return;
-    final userId = CurrentUserService.instance.effectiveUserId;
-    if (userId.isEmpty) return;
-    await _feedSnapshotRepository.persistHomeSnapshot(
-      userId: userId,
-      posts: posts,
-      limit: 40,
+    await _saveFeedPostsToPool(
+      _buildOrderedAgendaSnapshot(
+        limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+      ),
+      const <String, Map<String, dynamic>>{},
       source: CachedResourceSource.server,
     );
   }
 
-  Future<void> persistWarmLaunchCache() async {
-    try {
-      if (agendaList.isEmpty) return;
-      final indexPool = IndexPoolStore.maybeFind();
-      if (indexPool == null) return;
-
-      final posts = agendaList.take(40).toList(growable: false);
-      if (posts.isEmpty) return;
-
-      final userIds = <String>{
-        for (final post in posts) post.userID,
-        for (final post in posts)
-          if (post.originalUserID.isNotEmpty) post.originalUserID,
-      }.toList();
-
-      final userMeta = <String, Map<String, dynamic>>{};
-      if (userIds.isNotEmpty) {
-        final profileCache = UserProfileCacheService.ensure();
-        final cachedProfiles = await profileCache.getProfiles(
-          userIds,
-          preferCache: true,
-          cacheOnly: true,
-        );
-        userMeta.addAll(cachedProfiles);
-      }
-
-      await _saveFeedPostsToPool(posts, userMeta);
-    } catch (_) {}
-  }
-
-  Future<_AgendaSourcePage> _loadAgendaSourcePage({
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    bool preferCache = true,
-    bool cacheOnly = false,
-  }) async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      return _loadLegacyAgendaSourcePage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-    }
-
-    final page = await _feedSnapshotRepository.fetchHomePage(
-      userId: uid,
-      followingIds: followingIDs.toSet(),
-      hiddenPostIds: hiddenPosts.toSet(),
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      startAfter: lastDoc is DocumentSnapshot<Map<String, dynamic>>
-          ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
-          : null,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-      usePrimaryFeedPaging: _usePrimaryFeedPaging,
-    );
-    return _AgendaSourcePage(
-      items: page.items,
-      lastDoc: page.lastDoc,
-      usesPrimaryFeed: page.usesPrimaryFeed,
-    );
-  }
-
-  Future<_AgendaSourcePage> _loadLegacyAgendaSourcePage({
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    bool preferCache = true,
-    bool cacheOnly = false,
-  }) async {
-    final page = await _postRepository.fetchAgendaWindowPage(
-      cutoffMs: cutoffMs,
-      nowMs: nowMs,
-      limit: limit,
-      startAfter: lastDoc,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    return _AgendaSourcePage(
-      items: page.items
-          .where((p) => _isEligibleAgendaPost(p, nowMs))
-          .where((p) => p.deletedPost != true)
-          .toList(growable: false),
-      lastDoc: page.lastDoc,
-      usesPrimaryFeed: false,
-    );
-  }
-
-  List<List<T>> _chunkList<T>(List<T> input, int size) {
-    if (input.isEmpty) return <List<T>>[];
-    final chunks = <List<T>>[];
-    for (int i = 0; i < input.length; i += size) {
-      final end = (i + size > input.length) ? input.length : i + size;
-      chunks.add(input.sublist(i, end));
-    }
-    return chunks;
-  }
-
   Future<void> refreshAgenda() async {
+    final refreshEpoch = _feedMutationEpoch + 1;
+    _feedMutationEpoch = refreshEpoch;
     try {
-      // Refresh başlarken tüm oynatımları kesin durdur.
-      pauseAll.value = true;
-      final currentCentered = centeredIndex.value;
-      if (currentCentered >= 0 && currentCentered < agendaList.length) {
-        _pendingCenteredDocId = agendaList[currentCentered].docID;
-      } else if (lastCenteredIndex != null &&
-          lastCenteredIndex! >= 0 &&
-          lastCenteredIndex! < agendaList.length) {
-        _pendingCenteredDocId = agendaList[lastCenteredIndex!].docID;
-      }
-      centeredIndex.value = -1;
-      try {
-        VideoStateManager.instance.pauseAllVideos(force: true);
-      } catch (_) {}
+      _cancelDeferredInitialNetworkBootstrap();
+      _feedRefreshInFlight = true;
+      _pendingCenteredDocId = null;
+      _startupLockedFeedDocId = null;
+      _lastPlaybackCommandDocId = null;
+      _lastPlaybackCommandAt = null;
 
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
@@ -569,184 +663,113 @@ extension AgendaControllerLoadingPart on AgendaController {
       final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
-      // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.
-      await fetchAgendaBigData(initial: true);
-      await _fetchAndMergeReshareEvents(eventLimit: 500);
-      pauseAll.value = false;
+      await _refreshAgendaFromLiveSource(refreshEpoch: refreshEpoch);
+      await _fetchAndMergeReshareEvents(
+        eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
+      );
+      _feedRefreshInFlight = false;
+      _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
     } catch (e) {
       print("refreshAgenda error: $e");
-      pauseAll.value = false;
+      _feedRefreshInFlight = false;
+      _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
     }
   }
 
-  // Refresh sırasında karışık gönderi getir - HIZLI VERSİYON
-  Future<void> fetchRandomizedAgendaData() async {
+  Future<void> _refreshAgendaFromLiveSource({
+    required int refreshEpoch,
+  }) async {
+    if (isLoading.value) return;
+
+    isLoading.value = true;
     try {
-      // Cache kontrolü - eğer cache geçerliyse ve karışık postlar varsa hızlı yükle
-      if (_shuffleCache.isFresh && _shuffleCache.hasBufferedItems) {
-        print("Cache'den hızlı yükleme yapılıyor...");
-        _shuffleCache.reshuffle();
-
-        final initialItems = _shuffleCache.takeNext(fetchLimit);
-        _addUniqueToAgenda(initialItems);
-        hasMore.value = _shuffleCache.hasMore;
-
-        // 🎯 INSTAGRAM STYLE: Cache'den yüklendiğinde ilk videoyu centered yap
-        if (agendaList.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-              primeInitialCenteredPost();
-            }
-          });
-        }
+      final previousAgenda = agendaList.toList(growable: false);
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final cutoffMs = _agendaCutoffMs(nowMs);
+      const loadLimit = ReadBudgetRegistry.feedLivePageLimit;
+      final page = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: loadLimit,
+        startAfter: null,
+        useStoredCursor: false,
+        preferCache: false,
+        cacheOnly: false,
+        usePrimaryFeedPaging: true,
+      );
+      if (page.items.isEmpty) {
         return;
       }
 
-      print("Yeni veri çekiliyor...");
-
-      // İlk olarak küçük bir batch çek (hızlı görünüm için)
-      await _fetchInitialShuffledBatch();
-
-      // Arka planda daha fazla veri çek
-      _fetchMoreShuffledDataInBackground();
-    } catch (e) {
-      print("fetchRandomizedAgendaData error: $e");
-    }
-  }
-
-  // İlk küçük batch'i hızlıca getir
-  Future<void> _fetchInitialShuffledBatch() async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final cutoffMs = _agendaCutoffMs(nowMs);
-    final page = await _postRepository.fetchAgendaWindowPage(
-      cutoffMs: cutoffMs,
-      nowMs: nowMs,
-      limit: _shuffleCache.initialFetchSize,
-    );
-
-    final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: _shuffleCache.initialFetchSize,
-    );
-
-    final items = <PostsModel>[
-      ...page.items,
-      ...publicIzBirakPosts,
-    ]
-        .where((p) => _isEligibleAgendaPost(p, nowMs))
-        .where((p) => p.deletedPost != true)
-        .toList();
-
-    // Gizlilik kontrolü - sadece gerekli kullanıcılar için
-    final visibleItemsRaw = await _filterPrivateItems(items);
-
-    // DocID bazında tekilleştir
-    final Map<String, PostsModel> uniqueMap = {
-      for (final p in visibleItemsRaw) p.docID: p,
-    };
-    final visibleItems = uniqueMap.values.toList();
-
-    // Karıştır ve göster
-    visibleItems.shuffle(Random());
-    _shuffleCache.replace(visibleItems);
-
-    final initialItems = _shuffleCache.takeNext(fetchLimit);
-    _addUniqueToAgenda(initialItems);
-    hasMore.value = _shuffleCache.hasMore;
-
-    // 🎯 INSTAGRAM STYLE: İlk batch yüklendiğinde ilk videoyu centered yap
-    if (agendaList.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-          primeInitialCenteredPost();
-        }
-      });
-    }
-  }
-
-  // Arka planda daha fazla veri çek
-  void _fetchMoreShuffledDataInBackground() async {
-    try {
-      // 2-3 saniye bekle ki kullanıcı hızlı görünümü görsün
-      await Future.delayed(const Duration(seconds: 2));
-
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final cutoffMs = _agendaCutoffMs(nowMs);
-      final page = await _postRepository.fetchAgendaWindowPage(
-        cutoffMs: cutoffMs,
+      final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
+        currentItems: previousAgenda,
+        pageItems: page.items,
         nowMs: nowMs,
-        limit: _shuffleCache.backgroundFetchSize,
+        loadLimit: loadLimit,
+        lastDoc: page.lastDoc,
+        usesPrimaryFeed: page.usesPrimaryFeed,
       );
-
-      final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: _shuffleCache.backgroundFetchSize,
+      final liveHeadIds = page.items.map((post) => post.docID).toSet();
+      await _warmInitialFeedVideoPosters(
+        _initialVisibleVideoWarmupWindow(page.items),
       );
-
-      final items = <PostsModel>[
+      final mergedAgenda = <PostsModel>[
         ...page.items,
-        ...publicIzBirakPosts,
-      ]
-          .where((p) => _isEligibleAgendaPost(p, nowMs))
-          .where((p) => p.deletedPost != true)
-          .toList();
-
-      final visibleItemsRaw = await _filterPrivateItems(items);
-      // DocID bazında tekilleştir
-      final Map<String, PostsModel> uniqueMap = {
-        for (final p in visibleItemsRaw) p.docID: p,
-      };
-      final visibleItems = uniqueMap.values.toList();
-
-      // Mevcut gösterilenleri koru, kalanları güncelle
-      visibleItems.shuffle(Random());
-      _shuffleCache.mergeBackground(visibleItems);
-      hasMore.value = _shuffleCache.hasMore;
-      print(
-          "Arka plan yüklemesi tamamlandı: ${_shuffleCache.takeCurrentVisible().length} görünür, buffer hazır");
-    } catch (e) {
-      print("Background fetch error: $e");
-    }
-  }
-
-  // Gizlilik filtreleme - optimize edilmiş
-  Future<List<PostsModel>> _filterPrivateItems(List<PostsModel> items) async {
-    final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
-    Map<String, bool> userPrivacy = {};
-    Map<String, bool> userDeactivated = {};
-
-    if (uniqueUserIDs.isNotEmpty) {
-      final unresolved = _primeAgendaUserStateFromCaches(
-        uniqueUserIDs,
-        userPrivacy,
-        userDeactivated,
-        <String, Map<String, dynamic>>{},
+        ...previousAgenda.where((post) => !liveHeadIds.contains(post.docID)),
+      ];
+      final refreshTargetIndex = mergedAgenda.indexWhere(
+        (post) => _canAutoplayVideoPost(post),
       );
-      if (unresolved.isNotEmpty) {
-        await _fillAgendaUserStateFromProfiles(
-          unresolved,
-          userPrivacy,
-          userDeactivated,
-          <String, Map<String, dynamic>>{},
-          includeMeta: false,
+      final refreshTargetDocId =
+          refreshTargetIndex >= 0 && refreshTargetIndex < mergedAgenda.length
+              ? mergedAgenda[refreshTargetIndex].docID
+              : (mergedAgenda.isNotEmpty ? mergedAgenda.first.docID : null);
+
+      _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
+      lastDoc = pageApplyPlan.lastDoc;
+      hasMore.value = pageApplyPlan.hasMore;
+      _prefetchedThumbnailPostCount = 0;
+      _shuffleCache.clear();
+      publicReshareEvents.clear();
+      feedReshareEntries.clear();
+      highlightDocIDs.clear();
+      agendaList.assignAll(mergedAgenda);
+      if (refreshEpoch == _feedMutationEpoch) {
+        _pendingCenteredDocId = refreshTargetDocId;
+        _startupLockedFeedDocId = refreshTargetDocId;
+        _lastPlaybackCommandDocId = null;
+        _lastPlaybackCommandAt = null;
+        _visibleFractions.clear();
+        _visibleUpdatedAt.clear();
+        _lastPlaybackWindowSignature = null;
+        _lastPlaybackRowUpdateDocId = null;
+        lastCenteredIndex = refreshTargetIndex >= 0 ? refreshTargetIndex : 0;
+        centeredIndex.value = -1;
+      }
+
+      if (pageApplyPlan.freshScheduledIds.isNotEmpty) {
+        markHighlighted(
+          pageApplyPlan.freshScheduledIds,
+          keepFor: const Duration(milliseconds: 900),
         );
       }
-    }
 
-    return items.where((post) {
-      if (hiddenPosts.contains(post.docID)) return false;
-      if (post.deletedPost == true) return false;
-      if (!_isRenderablePost(post)) return false;
-      if (userDeactivated[post.userID] == true) return false;
-      final isPrivate = userPrivacy[post.userID] ?? false;
-      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
-        authorUserId: post.userID,
-        followingIds: followingIDs,
-        isPrivate: isPrivate,
-        isDeleted: false,
+      await _saveFeedPostsToPool(
+        _buildOrderedAgendaSnapshot(
+          limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+        ),
+        const <String, Map<String, dynamic>>{},
+        source: CachedResourceSource.server,
       );
-    }).toList();
+
+      if (agendaList.isNotEmpty && pageApplyPlan.itemsToAdd.isNotEmpty) {
+        _scheduleReshareFetchForPosts(
+          pageApplyPlan.itemsToAdd,
+          perPostLimit: 1,
+        );
+      }
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

@@ -3,13 +3,91 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewPlaybackPart on _SingleShortViewState {
+  void _resetSingleShortAutoplaySegmentGate() {
+    _autoplaySegmentGateTimer?.cancel();
+    _autoplaySegmentGateTimer = null;
+    _autoplaySegmentGateStartedAt = null;
+    _autoplaySegmentGateTimedOut = false;
+  }
+
+  bool _hasReadySingleShortSegment(int index) {
+    if (index < 0 || index >= shorts.length) return true;
+    try {
+      return _segmentCacheRuntimeService.hasReadySegment(shorts[index].docID);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  void _boostSingleShortSegments(int index) {
+    if (index < 0 || index >= shorts.length) return;
+    try {
+      ensurePrefetchScheduler().boostDoc(
+        shorts[index].docID,
+        readySegments: 2,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _playSingleShortWhenReady(
+    int index,
+    HLSVideoAdapter ctrl, {
+    required String source,
+  }) async {
+    if (!mounted || ctrl.isDisposed || index < 0 || index >= shorts.length) {
+      return;
+    }
+    _boostSingleShortSegments(index);
+    final shouldGate = !_autoplaySegmentGateTimedOut &&
+        ctrl.value.position <= Duration.zero &&
+        !ctrl.value.isPlaying &&
+        !_hasReadySingleShortSegment(index);
+    if (shouldGate) {
+      _autoplaySegmentGateStartedAt ??= DateTime.now();
+      final elapsed = DateTime.now().difference(_autoplaySegmentGateStartedAt!);
+      if (elapsed < _SingleShortViewState._autoplaySegmentGateTimeout) {
+        _autoplaySegmentGateTimer?.cancel();
+        _autoplaySegmentGateTimer = Timer(
+          _SingleShortViewState._autoplaySegmentGatePollInterval,
+          () {
+            _autoplaySegmentGateTimer = null;
+            if (!mounted || ctrl.isDisposed || index != currentPage) return;
+            unawaited(
+              _playSingleShortWhenReady(
+                index,
+                ctrl,
+                source: source,
+              ),
+            );
+          },
+        );
+        return;
+      }
+      _autoplaySegmentGateTimedOut = true;
+    } else {
+      _resetSingleShortAutoplaySegmentGate();
+    }
+
+    ctrl.setVolume(volume ? 1 : 0);
+    _scheduleVolumeRestore(ctrl);
+    await ctrl.play();
+    _requestExclusivePlayback(shorts[index].docID);
+    if (index == currentPage) {
+      _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);
+      _beginTelemetryForCurrentPage(ctrl);
+    }
+  }
+
   void _initializeSingleShortView() {
+    try {
+      maybeFindNavBarController()?.pushMediaOverlayLock();
+    } catch (_) {}
     final hasInjectedPlayingController = widget.injectedController != null &&
         !widget.injectedController!.isDisposed &&
         widget.injectedController!.value.isInitialized;
     if (!hasInjectedPlayingController) {
       try {
-        VideoStateManager.instance.pauseAllVideos(force: true);
+        _playbackRuntimeService.pauseAll(force: true);
       } catch (_) {}
     }
 
@@ -49,11 +127,14 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
     currentPage = page;
     showControls = true;
+    _resetSingleShortAutoplaySegmentGate();
     _pageActivatedAt = DateTime.now();
     if (currentPage >= 0 && currentPage < shorts.length) {
       try {
-        VideoStateManager.instance
-            .updateExclusiveModeDoc(shorts[currentPage].docID);
+        _playbackRuntimeService
+            .updateExclusiveModeDoc(
+              _playbackHandleKeyForDoc(shorts[currentPage].docID),
+            );
       } catch (_) {}
     }
 
@@ -86,69 +167,16 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
       if (currentPage < shorts.length) {
         try {
-          final cm = SegmentCacheManager.maybeFind();
-          if (cm != null) {
-            cm.markPlaying(shorts[currentPage].docID);
-            for (var i = 1; i <= 5; i++) {
-              final behindIdx = currentPage - i;
-              if (behindIdx < 0) break;
-              if (behindIdx < shorts.length) {
-                cm.touchEntry(shorts[behindIdx].docID);
-              }
-            }
-          }
+          _segmentCacheRuntimeService.markPlayingAndTouchRecent(
+            shorts.map((short) => short.docID).toList(growable: false),
+            currentPage,
+          );
         } catch (_) {}
       }
     }
     _preloadRange(currentPage);
     _disposeOutsideRange(currentPage);
     setState(() {});
-  }
-
-  void _handleManualVerticalDragStart(DragStartDetails details) {
-    _manualGestureDragDy = 0.0;
-  }
-
-  void _handleManualVerticalDragUpdate(DragUpdateDetails details) {
-    _manualGestureDragDy += details.primaryDelta ?? 0.0;
-  }
-
-  void _handleManualVerticalDragEnd(DragEndDetails details) {
-    final delta = _manualGestureDragDy;
-    final velocity = details.primaryVelocity ?? 0.0;
-    _manualGestureDragDy = 0.0;
-
-    if (!mounted || _manualSnapInProgress || shorts.isEmpty) return;
-
-    final goForward =
-        velocity < -_SingleShortViewState._manualGestureTriggerVelocity ||
-            delta < -_SingleShortViewState._manualGestureTriggerDistance;
-    final goBackward =
-        velocity > _SingleShortViewState._manualGestureTriggerVelocity ||
-            delta > _SingleShortViewState._manualGestureTriggerDistance;
-    if (goForward == goBackward) return;
-
-    final targetPage = goForward
-        ? (currentPage + 1).clamp(0, shorts.length - 1)
-        : (currentPage - 1).clamp(0, shorts.length - 1);
-    if (targetPage == currentPage) return;
-
-    unawaited(_animateManualPage(targetPage));
-  }
-
-  Future<void> _animateManualPage(int targetPage) async {
-    if (!mounted || _manualSnapInProgress || !pageController.hasClients) return;
-    _manualSnapInProgress = true;
-    try {
-      await pageController.animateToPage(
-        targetPage,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-      );
-    } catch (_) {
-    } finally {
-      _manualSnapInProgress = false;
-    }
   }
 
   void _disposeSingleShortView() {
@@ -159,35 +187,39 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     pageController.dispose();
     unawaited(_endActiveTelemetrySession());
     _fullscreenPlaybackGuardTimer?.cancel();
+    _autoplaySegmentGateTimer?.cancel();
     _fullscreenPlaybackGuardTimer = null;
+    _fullscreenReturnPreservedController = null;
     _clearAllControllers();
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      maybeFindNavBarController()?.popMediaOverlayLock();
+    } catch (_) {}
+    try {
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
   }
 
   void _handleDidPop() {
+    final preserved = _fullscreenReturnPreservedController;
+    _fullscreenReturnPreservedController = null;
     try {
       if (currentPage >= 0 && currentPage < shorts.length) {
         final currentModel = shorts[currentPage];
         final ctrl = _videoControllers[currentPage];
 
         if (ctrl != null && ctrl.value.isInitialized) {
-          final videoStateManager = VideoStateManager.maybeFind();
-          if (videoStateManager != null) {
-            videoStateManager.saveVideoState(
-              currentModel.docID,
-              HLSAdapterPlaybackHandle(ctrl),
-            );
-          }
+          _playbackRuntimeService.savePlaybackState(
+            _playbackHandleKeyForDoc(currentModel.docID),
+            HLSAdapterPlaybackHandle(ctrl),
+          );
         }
       }
     } catch (_) {}
 
     unawaited(_endActiveTelemetrySession());
-    _pauseAllControllers();
+    _pauseAllControllers(preserveController: preserved);
     try {
-      VideoStateManager.instance.exitExclusiveMode();
+      _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
   }
 
@@ -205,7 +237,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     if (vp == null || vp.isDisposed) return;
 
     try {
-      VideoStateManager.instance.enterExclusiveMode(shorts[currentPage].docID);
+      _playbackRuntimeService.enterExclusiveMode(
+        _playbackHandleKeyForDoc(shorts[currentPage].docID),
+      );
     } catch (_) {}
     _primePlaybackForIndex(currentPage);
   }

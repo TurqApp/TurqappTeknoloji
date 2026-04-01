@@ -32,16 +32,16 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_family_${identityHashCode(this)}';
-    final existing = FamilyInfoController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindFamilyInfoController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? FamilyInfoController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureFamilyInfoController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-            FamilyInfoController.maybeFind(tag: _controllerTag), controller)) {
+            maybeFindFamilyInfoController(tag: _controllerTag), controller)) {
       Get.delete<FamilyInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();

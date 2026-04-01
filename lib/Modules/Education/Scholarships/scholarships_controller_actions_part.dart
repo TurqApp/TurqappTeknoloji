@@ -4,9 +4,13 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
   Future<void> _toggleFollowImpl(String followedId) async {
     final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) return;
+    final wasFollowing = followedUsers[followedId] ?? false;
     followLoading[followedId] = true;
     try {
-      final outcome = await FollowService.toggleFollow(followedId);
+      final outcome = await FollowService.toggleFollowFromLocalState(
+        followedId,
+        assumedFollowing: wasFollowing,
+      );
       if (outcome.limitReached) {
         AppSnackbar(
           'common.warning'.tr,
@@ -198,30 +202,20 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
     final shareImageUrl = _pickScholarshipImageFromData(scholarshipData, burs);
     try {
       await ShareActionGuard.run(() async {
-        var shortUrl = '';
-        try {
-          shortUrl = await ShortLinkService().getEducationPublicUrl(
-            shareId: shareId,
-            title: title,
-            desc: desc,
-            imageUrl: shareImageUrl,
-          );
-          if (shortUrl.trim().isNotEmpty &&
-              shortUrl.trim() != 'https://turqapp.com') {
-            _shortLinkCache[shareId] = shortUrl;
-          }
-        } catch (_) {
-          shortUrl = fallbackUrl;
-        }
-
-        if (shortUrl.trim().isEmpty ||
-            shortUrl.trim() == 'https://turqapp.com') {
-          shortUrl =
-              existingShortUrl.isNotEmpty ? existingShortUrl : fallbackUrl;
-        }
+        final shortUrl = await ShortLinkService().getEducationPublicUrl(
+          shareId: shareId,
+          title: title,
+          desc: desc,
+          imageUrl: shareImageUrl,
+          existingShortUrl: existingShortUrl,
+        );
+        final resolvedUrl = shortUrl.trim().isNotEmpty &&
+                shortUrl.trim() != 'https://turqapp.com'
+            ? shortUrl
+            : (existingShortUrl.isNotEmpty ? existingShortUrl : fallbackUrl);
 
         await ShareLinkService.shareUrl(
-          url: shortUrl,
+          url: resolvedUrl,
           title: title,
           subject: title,
         );
@@ -232,8 +226,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
   }
 
   void _prefetchShortLinksForList(List<Map<String, dynamic>> list) {
-    final items =
-        list.take(ScholarshipsController._shortLinkPrefetchLimit).toList();
+    final items = list.take(_scholarshipShortLinkPrefetchLimit).toList();
     for (final item in items) {
       final docId = (item['docId'] ?? '').toString();
       if (docId.isEmpty) continue;
@@ -258,6 +251,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
                 ? _pickScholarshipShareDesc(model)
                 : 'scholarship.share_fallback_desc'.tr,
             imageUrl: imageUrl,
+            existingShortUrl: _readTextField(item, 'shortUrl'),
           );
           if (shortUrl.trim().isNotEmpty &&
               shortUrl.trim() != 'https://turqapp.com') {
@@ -278,7 +272,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
     if (img2.isNotEmpty) return img2;
     final logo = model.logo.trim();
     if (logo.isNotEmpty) return logo;
-    return ScholarshipsController._defaultOgImage;
+    return _scholarshipDefaultOgImage;
   }
 
   String _readTextField(Map<String, dynamic> data, String key) {

@@ -1,10 +1,55 @@
 part of 'short_controller.dart';
 
 extension ShortControllerLoadingPart on ShortController {
+  bool get _shouldPreferOfflineCache =>
+      NetworkAwarenessService.maybeFind()?.isConnected == false;
+
+  Future<bool> _tryApplyOfflineCachedShorts({
+    required int limit,
+    required String trigger,
+    bool persistSnapshot = true,
+  }) async {
+    final offlineFallback = await _loadOfflineCachedShorts(
+      limit: limit,
+      trigger: trigger,
+    );
+    if (offlineFallback.isEmpty) {
+      return false;
+    }
+
+    _log('[Shorts] Offline cache tercih edildi ($trigger)');
+    _replaceShorts(offlineFallback);
+    _lastDoc = null;
+    hasMore.value = false;
+    if (persistSnapshot) {
+      await _shortSnapshotRepository.persistHomeSnapshot(
+        userId: _currentUserId,
+        posts: offlineFallback,
+        limit: limit,
+        source: CachedResourceSource.scopedDisk,
+      );
+    }
+    await preloadRange(0, range: 0);
+    return true;
+  }
+
+  void _recordShortFetchEvent({
+    required String stage,
+    required String trigger,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    recordQALabFeedFetchEvent(
+      surface: 'short',
+      stage: stage,
+      trigger: trigger,
+      metadata: metadata,
+    );
+  }
+
   void _bindFollowingListener() {
     final myUid = CurrentUserService.instance.effectiveUserId;
     if (myUid.isEmpty) return;
-    _followingSub?.cancel();
+    _state.followingSub?.cancel();
     _fetchFollowingList(myUid);
   }
 
@@ -24,6 +69,7 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<_ShortPageResult> _fetchPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+    String trigger = 'manual',
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
@@ -43,9 +89,31 @@ extension ShortControllerLoadingPart on ShortController {
 
       if (page.posts.isEmpty) {
         return _ShortPageResult(
-          posts: const [],
-          lastDoc: cursor,
-          hasMore: false,
+          const [],
+          cursor,
+          false,
+        );
+      }
+
+      final sourceNotReady = page.posts
+          .where(
+              (post) => post.hasRenderableVideoCard && !post.hasPlayableVideo)
+          .toList(growable: false);
+      if (sourceNotReady.isNotEmpty) {
+        _recordShortFetchEvent(
+          stage: 'source_not_ready',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'count': sourceNotReady.length,
+            'docIds': sourceNotReady
+                .take(6)
+                .map((post) => post.docID)
+                .toList(growable: false),
+            'hlsStatuses': sourceNotReady
+                .take(6)
+                .map((post) => post.hlsStatus)
+                .toList(growable: false),
+          },
         );
       }
 
@@ -61,28 +129,12 @@ extension ShortControllerLoadingPart on ShortController {
           .toList(growable: false);
 
       if (finalFiltered.isNotEmpty) {
-        final authorIds = finalFiltered.map((e) => e.userID).toSet().toList();
-        final userPrivacy = await _fetchUsersPrivacy(authorIds);
-
-        final filtered = <PostsModel>[];
-        for (final p in finalFiltered) {
-          final isPrivate = userPrivacy[p.userID] == true;
-          final include = _visibilityPolicy.canViewerSeeAuthorFromSummary(
-            authorUserId: p.userID,
-            followingIds: _followingIDs,
-            isPrivate: isPrivate,
-            isDeleted: false,
-          );
-          if (include) {
-            filtered.add(p);
-          }
-        }
-
+        final filtered = await _filterVisibleShortPosts(finalFiltered);
         if (filtered.isNotEmpty) {
           return _ShortPageResult(
-            posts: filtered,
-            lastDoc: lastDoc,
-            hasMore: hasMoreDocs,
+            filtered,
+            lastDoc,
+            hasMoreDocs,
           );
         }
       }
@@ -94,10 +146,120 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     return _ShortPageResult(
-      posts: const [],
-      lastDoc: lastDoc,
-      hasMore: hasMoreDocs,
+      const [],
+      lastDoc,
+      hasMoreDocs,
     );
+  }
+
+  Future<List<PostsModel>> _filterVisibleShortPosts(
+    List<PostsModel> posts,
+  ) async {
+    if (posts.isEmpty) return const <PostsModel>[];
+    final authorIds =
+        posts.map((e) => e.userID).toSet().toList(growable: false);
+    final userSummaries = await _fetchUserSummaries(authorIds);
+
+    final filtered = <PostsModel>[];
+    for (final p in posts) {
+      final summary = userSummaries[p.userID];
+      if (summary == null) {
+        final includeFromPost =
+            _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
+          authorUserId: p.userID,
+          followingIds: _followingIDs,
+          rozet: p.rozet,
+          isApproved: false,
+          isDeleted: false,
+        );
+        if (!includeFromPost) {
+          continue;
+        }
+        filtered.add(p);
+        continue;
+      }
+      if (summary.isDeleted) {
+        continue;
+      }
+      final include = _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
+        authorUserId: p.userID,
+        followingIds: _followingIDs,
+        rozet: summary.rozet,
+        isApproved: summary.isApproved,
+        isDeleted: summary.isDeleted,
+      );
+      if (include) {
+        filtered.add(
+          p.copyWith(
+            authorNickname: p.authorNickname.isNotEmpty
+                ? p.authorNickname
+                : summary.nickname,
+            authorDisplayName: p.authorDisplayName.isNotEmpty
+                ? p.authorDisplayName
+                : summary.displayName,
+            authorAvatarUrl: p.authorAvatarUrl.isNotEmpty
+                ? p.authorAvatarUrl
+                : summary.avatarUrl,
+            rozet: p.rozet.isNotEmpty ? p.rozet : summary.rozet,
+          ),
+        );
+      }
+    }
+
+    return filtered;
+  }
+
+  Future<List<PostsModel>> _loadOfflineCachedShorts({
+    required int limit,
+    required String trigger,
+  }) async {
+    final cacheManager = SegmentCacheManager.maybeFind();
+    if (cacheManager == null || !cacheManager.isReady)
+      return const <PostsModel>[];
+
+    final docIds = cacheManager.getOfflineReadyDocIds(limit: limit);
+    if (docIds.isEmpty) {
+      _recordShortFetchEvent(
+        stage: 'offline_cache_empty',
+        trigger: trigger,
+      );
+      return const <PostsModel>[];
+    }
+
+    final cachedPosts = cacheManager.getOfflineReadyPosts(limit: limit);
+    final byId = <String, PostsModel>{
+      for (final post in cachedPosts) post.docID: post,
+    };
+    final missingDocIds = docIds
+        .where((docId) => !byId.containsKey(docId))
+        .toList(growable: false);
+    if (missingDocIds.isNotEmpty) {
+      byId.addAll(
+        await _shortRepository.fetchByIds(
+          missingDocIds,
+          preferCache: true,
+        ),
+      );
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final ordered = docIds
+        .map((docId) => byId[docId])
+        .whereType<PostsModel>()
+        .where(_isEligibleShortPost)
+        .where((post) => post.timeStamp <= nowMs)
+        .where((post) => !post.arsiv && post.deletedPost != true)
+        .toList(growable: false);
+    final filtered = await _filterVisibleShortPosts(ordered);
+    _recordShortFetchEvent(
+      stage: filtered.isEmpty ? 'offline_cache_miss' : 'offline_cache_hit',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'candidateCount': docIds.length,
+        'resolvedCount': byId.length,
+        'returnedCount': filtered.length,
+      },
+    );
+    return filtered;
   }
 
   Future<void> backgroundPreload() async {
@@ -139,37 +301,70 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<void> _performInitialLoad() async {
     _log(
-      '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: ${ShortController._globalShuffleCompleted})',
+      '[Shorts] loadInitialShorts - BAŞLADI',
     );
     _log(
       '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}',
     );
 
+    final initialLimit =
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
+    if (_shouldPreferOfflineCache) {
+      final appliedOfflineCache = await _tryApplyOfflineCachedShorts(
+        limit: initialLimit,
+        trigger: shorts.isEmpty
+            ? 'initial_offline_cache_preferred'
+            : 'existing_list_offline_cache_preferred',
+      );
+      if (appliedOfflineCache) {
+        return;
+      }
+    }
+
     if (shorts.isEmpty) {
       final snapshot = await _shortSnapshotRepository.loadHome(
         userId: _currentUserId,
-        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+        limit: initialLimit,
       );
-      final applied = _applySnapshotResource(snapshot);
-      if (applied) {
+      final initialPlan = _shortFeedApplicationService.buildInitialLoadPlan(
+        currentShorts: shorts.toList(growable: false),
+        snapshotPosts: snapshot.data ?? const <PostsModel>[],
+        isEligiblePost: _isEligibleShortPost,
+      );
+      if (initialPlan.replacementItems != null) {
+        _replaceShorts(initialPlan.replacementItems!);
         await preloadRange(0, range: 0);
-        if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
-          unawaited(_loadNextPage());
+        if (initialPlan.shouldScheduleBackgroundRefresh &&
+            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
+          unawaited(_loadNextPage(trigger: 'background_refresh'));
         }
         return;
       }
-      _log('[Shorts] Liste boş - sıfırlama yapılıyor');
-      isLoading.value = false;
-      hasMore.value = true;
-      _lastDoc = null;
-      clearCache();
-      _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
-      await _loadNextPage();
+      if (initialPlan.shouldResetPagination) {
+        _log('[Shorts] Liste boş - sıfırlama yapılıyor');
+        isLoading.value = false;
+        hasMore.value = true;
+        _lastDoc = null;
+        clearCache();
+      }
+      if (await _tryApplyOfflineCachedShorts(
+        limit: initialLimit,
+        trigger: 'initial_offline_cache_fallback',
+      )) {
+        return;
+      }
+      if (initialPlan.shouldBootstrapNextPage) {
+        _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
+        await _loadNextPage(trigger: 'initial_empty_bootstrap');
+      }
     } else {
-      final sanitized =
-          shorts.where(_isEligibleShortPost).toList(growable: false);
-      if (sanitized.length != shorts.length) {
-        _replaceShorts(sanitized, remapCache: true);
+      final initialPlan = _shortFeedApplicationService.buildInitialLoadPlan(
+        currentShorts: shorts.toList(growable: false),
+        snapshotPosts: const <PostsModel>[],
+        isEligiblePost: _isEligibleShortPost,
+      );
+      if (initialPlan.replacementItems != null) {
+        _replaceShorts(initialPlan.replacementItems!, remapCache: true);
       }
       _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
       await preloadRange(0, range: 0);
@@ -187,8 +382,7 @@ extension ShortControllerLoadingPart on ShortController {
     if (shorts.isNotEmpty) {
       _log(
           '[Shorts] 🔄 Liste zaten mevcut (${shorts.length} video), ilk 5 preload');
-      final initialCount =
-          math.min(ShortController._initialPreloadCount, shorts.length);
+      final initialCount = math.min(_initialPreloadCount, shorts.length);
       final futures = <Future>[];
       for (int i = 0; i < initialCount; i++) {
         if (!cache.containsKey(i)) {
@@ -198,7 +392,7 @@ extension ShortControllerLoadingPart on ShortController {
       await Future.wait(futures);
       for (int i = 0; i < initialCount; i++) {
         cache[i]?.setPreferredBufferDuration(
-          ShortController._neighborBufferSeconds,
+          _neighborBufferSeconds,
         );
         _tiers[i] = _CacheTier.hot;
       }
@@ -210,8 +404,7 @@ extension ShortControllerLoadingPart on ShortController {
       await _runInitialLoadOnce();
 
       if (shorts.isNotEmpty) {
-        final initialCount =
-            math.min(ShortController._initialPreloadCount, shorts.length);
+        final initialCount = math.min(_initialPreloadCount, shorts.length);
         _log('[Shorts] ⚡ İlk $initialCount video preload ediliyor...');
         final futures = <Future>[];
         for (int i = 0; i < initialCount; i++) {
@@ -222,7 +415,7 @@ extension ShortControllerLoadingPart on ShortController {
         await Future.wait(futures);
         for (int i = 0; i < initialCount; i++) {
           cache[i]?.setPreferredBufferDuration(
-            ShortController._neighborBufferSeconds,
+            _neighborBufferSeconds,
           );
           _tiers[i] = _CacheTier.hot;
         }
@@ -257,11 +450,12 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       final previousShorts = shorts.toList(growable: false);
-      final previousIndex = lastIndex.value
-          .clamp(0, previousShorts.isEmpty ? 0 : previousShorts.length - 1);
-      final previousDocId =
-          previousShorts.isEmpty ? '' : previousShorts[previousIndex].docID;
-      final newList = List<PostsModel>.from(result.posts);
+      final refreshPlan = _shortFeedApplicationService.buildRefreshPlan(
+        previousShorts: previousShorts,
+        fetchedPosts: result.posts,
+        previousIndex: lastIndex.value,
+      );
+      final newList = refreshPlan.replacementItems;
 
       _replaceShorts(newList, remapCache: false);
       await _remapCacheForNewList(
@@ -271,12 +465,7 @@ extension ShortControllerLoadingPart on ShortController {
 
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
-      final remappedIndex = previousDocId.isEmpty
-          ? 0
-          : newList.indexWhere((item) => item.docID == previousDocId);
-      lastIndex.value = remappedIndex >= 0
-          ? remappedIndex
-          : math.min(previousIndex, newList.length - 1);
+      lastIndex.value = refreshPlan.remappedIndex;
       if (newList.isNotEmpty && !cache.containsKey(lastIndex.value)) {
         await _preloadSingleVideoWithCache(
           lastIndex.value,
@@ -308,7 +497,7 @@ extension ShortControllerLoadingPart on ShortController {
     }
     if (currentIndex >= shorts.length - 3) {
       _log('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
-      await _loadNextPage();
+      await _loadNextPage(trigger: 'scroll_near_end');
     } else {
       _log(
         '[Shorts] loadMoreIfNeeded - Not yet time to load (need ${shorts.length - 3} but at $currentIndex)',
@@ -330,23 +519,91 @@ extension ShortControllerLoadingPart on ShortController {
       }
       int loops = 0;
       while (shorts.length < targetCount && hasMore.value && loops < maxPages) {
-        await _loadNextPage();
+        await _loadNextPage(trigger: 'warm_start');
         loops++;
       }
     } catch (_) {}
   }
 
-  Future<void> _loadNextPage() async {
+  Future<void> _loadNextPage({String trigger = 'manual'}) async {
     _log(
       '[Shorts] _loadNextPage başladı - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
     );
-    if (isLoading.value || !hasMore.value) return;
+    _recordShortFetchEvent(
+      stage: 'requested',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'isLoading': isLoading.value,
+        'hasMore': hasMore.value,
+        'currentCount': shorts.length,
+      },
+    );
+    if (isLoading.value || !hasMore.value) {
+      _recordShortFetchEvent(
+        stage: 'skipped',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'isLoading': isLoading.value,
+          'hasMore': hasMore.value,
+          'currentCount': shorts.length,
+        },
+      );
+      return;
+    }
     isLoading.value = true;
+    _recordShortFetchEvent(
+      stage: 'started',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'currentCount': shorts.length,
+      },
+    );
     try {
-      final result = await _fetchPage(startAfter: _lastDoc);
+      final result = await _fetchPage(
+        startAfter: _lastDoc,
+        trigger: trigger,
+      );
 
       if (result.posts.isEmpty) {
+        if (shorts.isEmpty) {
+          final offlineFallback = await _loadOfflineCachedShorts(
+            limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+            trigger: '${trigger}_offline_cache_fallback',
+          );
+          if (offlineFallback.isNotEmpty) {
+            _replaceShorts(offlineFallback);
+            await _shortSnapshotRepository.persistHomeSnapshot(
+              userId: _currentUserId,
+              posts: offlineFallback,
+              limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+              source: CachedResourceSource.scopedDisk,
+            );
+            hasMore.value = result.hasMore;
+            _recordShortFetchEvent(
+              stage: 'completed',
+              trigger: trigger,
+              metadata: <String, dynamic>{
+                'returnedCount': 0,
+                'addedCount': offlineFallback.length,
+                'currentCount': shorts.length,
+                'hasMore': result.hasMore,
+                'source': 'offline_cache',
+              },
+            );
+            return;
+          }
+        }
         hasMore.value = result.hasMore;
+        _recordShortFetchEvent(
+          stage: 'completed',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'returnedCount': 0,
+            'addedCount': 0,
+            'currentCount': shorts.length,
+            'hasMore': result.hasMore,
+          },
+        );
         if (!result.hasMore) {
           _log('[Shorts] Yeni sayfa bulunamadı, hasMore=false');
         }
@@ -354,40 +611,50 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       _lastDoc = result.lastDoc;
-
-      final existingIds = shorts.map((post) => post.docID).toSet();
-      final incoming = result.posts
-          .where(_isEligibleShortPost)
-          .where((post) => !existingIds.contains(post.docID))
-          .toList(growable: false);
-      if (incoming.isNotEmpty) {
-        if (shorts.isEmpty && !ShortController._globalShuffleCompleted) {
-          final shuffled = List<PostsModel>.from(incoming);
-          shuffled.shuffle();
-          shorts.addAll(shuffled);
-          unawaited(_persistVisibleSnapshot());
-          ShortController._globalShuffleCompleted = true;
-        } else {
-          shorts.addAll(incoming);
-          unawaited(_persistVisibleSnapshot());
-        }
+      final appendPlan = _shortFeedApplicationService.buildAppendPlan(
+        currentShorts: shorts.toList(growable: false),
+        fetchedPosts: result.posts,
+        isEligiblePost: _isEligibleShortPost,
+      );
+      if (appendPlan.itemsToAppend.isNotEmpty) {
+        shorts.addAll(appendPlan.itemsToAppend);
+        unawaited(_persistVisibleSnapshot());
       }
 
       hasMore.value = result.hasMore;
+      _recordShortFetchEvent(
+        stage: 'completed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'returnedCount': result.posts.length,
+          'addedCount': appendPlan.itemsToAppend.length,
+          'currentCount': shorts.length,
+          'hasMore': result.hasMore,
+        },
+      );
     } catch (e) {
+      _recordShortFetchEvent(
+        stage: 'failed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'currentCount': shorts.length,
+          'error': '$e',
+        },
+      );
       _log('loadNextPage error: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<Map<String, bool>> _fetchUsersPrivacy(List<String> uids) async {
+  Future<Map<String, UserSummary>> _fetchUserSummaries(
+      List<String> uids) async {
     if (uids.isEmpty) return {};
 
-    final result = <String, bool>{};
+    final result = <String, UserSummary>{};
     final missing = <String>[];
     for (final uid in uids) {
-      final cached = _privacyCache.get(uid);
+      final cached = _authorSummaryCache.get(uid);
       if (cached != null) {
         result[uid] = cached;
       } else {
@@ -407,33 +674,15 @@ extension ShortControllerLoadingPart on ShortController {
         );
 
         for (final entry in users.entries) {
-          final isPrivate = entry.value.isPrivate;
-          result[entry.key] = isPrivate;
-          _privacyCache.put(entry.key, isPrivate);
+          result[entry.key] = entry.value;
+          _authorSummaryCache.put(entry.key, entry.value);
         }
       } catch (e) {
-        _log('_fetchUsersPrivacy chunk error: $e');
-      }
-
-      for (final uid in part) {
-        result.putIfAbsent(uid, () => false);
-        if (!_privacyCache.containsKey(uid)) {
-          _privacyCache.put(uid, false);
-        }
+        _log('_fetchUserSummaries chunk error: $e');
       }
     }
 
     return result;
-  }
-
-  bool _applySnapshotResource(CachedResource<List<PostsModel>> resource) {
-    final data = resource.data;
-    if (data == null || data.isEmpty) return false;
-    final filtered = data.where(_isEligibleShortPost).toList(growable: false);
-    if (filtered.isEmpty) return false;
-    _replaceShorts(filtered);
-    hasMore.value = true;
-    return true;
   }
 
   void _replaceShorts(
@@ -523,6 +772,7 @@ extension ShortControllerLoadingPart on ShortController {
     final releaseTasks = <Future<void>>[];
     for (final entry in adaptersByDocId.entries) {
       if (retainedDocIds.contains(entry.key)) continue;
+      _unregisterPlaybackHandleForIndex(-1, docIdOverride: entry.key);
       releaseTasks.add(_videoPool.release(entry.value));
     }
 

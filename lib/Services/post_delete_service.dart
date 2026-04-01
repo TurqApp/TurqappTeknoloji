@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../Models/posts_model.dart';
+import '../Core/Repositories/feed_snapshot_repository.dart';
 import '../Core/Repositories/post_repository.dart';
 import '../Core/Repositories/user_repository.dart';
 import '../Core/Services/IndexPool/index_pool_store.dart';
@@ -30,6 +31,30 @@ class PostDeleteService {
 
   static PostDeleteService get instance => ensure();
 
+  bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
   Future<void> softDelete(PostsModel model) async {
     final firestore = FirebaseFirestore.instance;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -39,7 +64,7 @@ class PostDeleteService {
     bool alreadyDeleted = false;
     try {
       final preSnap = await postRef.get();
-      alreadyDeleted = (preSnap.data()?['deletedPost'] ?? false) == true;
+      alreadyDeleted = _asBool(preSnap.data()?['deletedPost']);
     } catch (_) {}
 
     // 1) Firestore soft delete
@@ -58,6 +83,9 @@ class PostDeleteService {
           {'counterOfPosts': FieldValue.increment(-1)},
           mergeIntoCache: false,
         );
+        await CurrentUserService.instance.applyLocalCounterDelta(
+          postsDelta: -1,
+        );
       }
     } catch (_) {}
 
@@ -67,7 +95,7 @@ class PostDeleteService {
       'deletedPost': true,
       'deletedPostTime': nowMs,
     });
-    await ProfileRepository.ensure().removePostFromCaches(
+    await ensureProfileRepository().removePostFromCaches(
       uid: model.userID,
       docId: model.docID,
     );
@@ -139,10 +167,10 @@ class PostDeleteService {
     final Set<String> sharedPostIds = {
       ...sharedSnap.docs.where((doc) {
         final data = doc.data();
-        return (data['quotedPost'] ?? false) != true;
+        return !_asBool(data['quotedPost']);
       }).map((doc) => doc.id),
       ...postSharersSnap.docs
-          .where((doc) => (doc.data()['quotedPost'] ?? false) != true)
+          .where((doc) => !_asBool(doc.data()['quotedPost']))
           .map((doc) => (doc.data()['sharedPostID'] ?? '').toString().trim())
           .where((id) => id.isNotEmpty),
     };
@@ -186,7 +214,7 @@ class PostDeleteService {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Agenda akışı
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null) {
       agenda.agendaList.removeWhere((e) => e.docID == docID);
       agenda.mergedFeedEntries
@@ -200,7 +228,7 @@ class PostDeleteService {
     }
 
     // Explore listeleri
-    final explore = ExploreController.maybeFind();
+    final explore = maybeFindExploreController();
     if (explore != null) {
       final i1 = explore.explorePosts.indexWhere((e) => e.docID == docID);
       if (i1 != -1) {
@@ -245,7 +273,7 @@ class PostDeleteService {
     }
 
     // Shorts listesi
-    final shorts = ShortController.maybeFind();
+    final shorts = maybeFindShortController();
     if (shorts != null) {
       shorts.shorts.removeWhere((e) => e.docID == docID);
       shorts.shorts.refresh();
@@ -255,6 +283,7 @@ class PostDeleteService {
   Future<void> _invalidatePostCaches(Iterable<String> docIds) async {
     final ids = docIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
     if (ids.isEmpty) return;
+    final viewerUserId = CurrentUserService.instance.effectiveUserId.trim();
 
     try {
       final pool = IndexPoolStore.maybeFind();
@@ -270,8 +299,24 @@ class PostDeleteService {
     } catch (_) {}
 
     try {
-      AgendaShuffleCacheService.maybeFind()?.removePosts(ids);
+      maybeFindAgendaShuffleCacheService()?.removePosts(ids);
     } catch (_) {}
+
+    if (viewerUserId.isNotEmpty) {
+      try {
+        await ensureFeedSnapshotRepository().pruneHomeSnapshots(
+          userId: viewerUserId,
+          docIds: ids,
+        );
+      } catch (_) {}
+
+      try {
+        await ensureFeedSnapshotRepository().pruneHomeStartupShard(
+          userId: viewerUserId,
+          docIds: ids,
+        );
+      } catch (_) {}
+    }
 
     for (final docId in ids) {
       try {

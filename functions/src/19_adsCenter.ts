@@ -8,12 +8,45 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 
-type Placement = "feed" | "shorts" | "explore";
+type Placement =
+  | "feed"
+  | "shorts"
+  | "explore"
+  | "profile"
+  | "market"
+  | "scholarship"
+  | "answerKey"
+  | "job"
+  | "practiceExam"
+  | "tutoring"
+  | "topMarket"
+  | "topAnswerKey"
+  | "topJob"
+  | "topPracticeExam"
+  | "topTutoring"
+  | "topPreviousQuestions";
 
 const enumValues = {
   campaignStatus: new Set(["draft", "pendingReview", "approved", "paused", "active", "ended", "rejected"]),
   moderationStatus: new Set(["pending", "approved", "rejected"]),
-  placements: new Set(["feed", "shorts", "explore"]),
+  placements: new Set([
+    "feed",
+    "shorts",
+    "explore",
+    "profile",
+    "market",
+    "scholarship",
+    "answerKey",
+    "job",
+    "practiceExam",
+    "tutoring",
+    "topMarket",
+    "topAnswerKey",
+    "topJob",
+    "topPracticeExam",
+    "topTutoring",
+    "topPreviousQuestions",
+  ]),
 };
 
 function ensureAuth(context: functions.https.CallableContext) {
@@ -54,6 +87,7 @@ async function getFlags() {
   return {
     adsInfrastructureEnabled: data.adsInfrastructureEnabled !== false,
     adsAdminPanelEnabled: data.adsAdminPanelEnabled !== false,
+    adsAdminTestModeEnabled: data.adsAdminTestModeEnabled !== false,
     adsDeliveryEnabled: data.adsDeliveryEnabled === true,
     adsPublicVisibilityEnabled: data.adsPublicVisibilityEnabled === true,
     adsPreviewModeEnabled: data.adsPreviewModeEnabled !== false,
@@ -75,6 +109,19 @@ function normalizePlacement(value: unknown): Placement {
   const raw = normalizeString(value).toLowerCase();
   if (raw === "shorts") return "shorts";
   if (raw === "explore") return "explore";
+  if (raw === "profile") return "profile";
+  if (raw === "market") return "market";
+  if (raw === "scholarship") return "scholarship";
+  if (raw === "answerkey") return "answerKey";
+  if (raw === "job") return "job";
+  if (raw === "practiceexam") return "practiceExam";
+  if (raw === "tutoring") return "tutoring";
+  if (raw === "topmarket") return "topMarket";
+  if (raw === "topanswerkey") return "topAnswerKey";
+  if (raw === "topjob") return "topJob";
+  if (raw === "toppracticeexam") return "topPracticeExam";
+  if (raw === "toptutoring") return "topTutoring";
+  if (raw === "toppreviousquestions") return "topPreviousQuestions";
   return "feed";
 }
 
@@ -458,7 +505,12 @@ export const adsSimulateDelivery = functions.region("europe-west3").https.onCall
 });
 
 export const adsLogEvent = functions.region("europe-west3").https.onCall(async (data, context) => {
-  await ensureAdmin(context);
+  const isPreview = data?.isPreview === true;
+  if (isPreview) {
+    await ensureAdmin(context);
+  } else {
+    ensureAuth(context);
+  }
 
   const flags = await getFlags();
   if (!flags.adsInfrastructureEnabled) {
@@ -469,8 +521,10 @@ export const adsLogEvent = functions.region("europe-west3").https.onCall(async (
   const campaignId = normalizeString(data?.campaignId);
   const creativeId = normalizeString(data?.creativeId);
   const placement = normalizePlacement(data?.placement);
-  const isPreview = data?.isPreview === true;
-  const userId = normalizeString(data?.userId || context.auth?.uid);
+  const authUserId = normalizeString(context.auth?.uid);
+  const userId = isPreview
+    ? normalizeString(data?.userId || authUserId)
+    : authUserId;
   const destinationUrl = normalizeString(data?.destinationUrl);
   const extras = typeof data?.extras === "object" && data.extras ? data.extras : {};
 
@@ -502,6 +556,90 @@ export const adsLogEvent = functions.region("europe-west3").https.onCall(async (
   return { ok: true };
 });
 
+export const adsLogManagedSliderView = functions.region("europe-west3").https.onCall(async (data, context) => {
+  ensureAuth(context);
+
+  const flags = await getFlags();
+  if (!flags.adsInfrastructureEnabled) {
+    return { ok: false, reason: "ads_infrastructure_disabled" };
+  }
+
+  const sliderId = normalizeString(data?.sliderId);
+  const itemId = normalizeString(data?.itemId);
+  const surfaceId = normalizeString(data?.surfaceId);
+  const sourceType = normalizeString(data?.sourceType);
+  const userId = normalizeString(context.auth?.uid);
+  if (!sliderId || !itemId || !surfaceId || !sourceType || !userId) {
+    throw new functions.https.HttpsError("invalid-argument", "missing_required_fields");
+  }
+
+  const itemRef = db.collection("sliders").doc(sliderId).collection("items").doc(itemId);
+  const viewerRef = itemRef.collection("viewers").doc(userId);
+  const logRef = db.collection("ads_delivery_logs").doc();
+  const nowMs = Date.now();
+
+  await db.runTransaction(async (tx) => {
+    const itemSnap = await tx.get(itemRef);
+    if (!itemSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "slider_item_not_found");
+    }
+
+    const itemData = itemSnap.data() ?? {};
+    const startDate = parseDateMs(itemData.startDate ?? 0);
+    const endDate = parseDateMs(itemData.endDate ?? 0);
+    const startsLater = startDate > 0 && startDate > nowMs;
+    const ended = endDate > 0 && endDate < nowMs;
+    if (startsLater || ended) {
+      return;
+    }
+
+    const viewerSnap = await tx.get(viewerRef);
+    const isFirstViewer = !viewerSnap.exists;
+
+    tx.set(
+      itemRef,
+      {
+        viewCount: admin.firestore.FieldValue.increment(1),
+        uniqueViewCount: isFirstViewer
+          ? admin.firestore.FieldValue.increment(1)
+          : admin.firestore.FieldValue.increment(0),
+        lastViewDate: nowMs,
+        updatedDate: nowMs,
+      },
+      { merge: true }
+    );
+
+    tx.set(
+      viewerRef,
+      {
+        userId,
+        sliderId,
+        itemId,
+        surfaceId,
+        sourceType,
+        createdAt: viewerSnap.exists
+          ? (viewerSnap.data()?.createdAt ?? nowMs)
+          : nowMs,
+        lastViewDate: nowMs,
+      },
+      { merge: true }
+    );
+
+    tx.set(logRef, {
+      event: "managed_slider_view",
+      sliderId,
+      itemId,
+      surfaceId,
+      sourceType,
+      userId,
+      createdAt: nowMs,
+      isPreview: false,
+    });
+  });
+
+  return { ok: true };
+});
+
 export const syncAdsTargetingIndex = functions
   .region("europe-west3")
   .firestore.document("ads_campaigns/{campaignId}")
@@ -524,23 +662,32 @@ export const adsAggregateDailyStats = functions
   .region("europe-west3")
   .pubsub.schedule("every 60 minutes")
   .onRun(async () => {
+    const flags = await getFlags();
+    if (!flags.adsInfrastructureEnabled || !flags.adsDeliveryEnabled) {
+      return null;
+    }
+
     const now = new Date();
     const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const dayEnd = new Date(dayStart.getTime());
     dayEnd.setDate(dayEnd.getDate() + 1);
 
-    const [impSnap, clickSnap] = await Promise.all([
-      db
-        .collection("ads_impressions")
-        .where("createdAt", ">=", dayStart.getTime())
-        .where("createdAt", "<", dayEnd.getTime())
-        .get(),
-      db
-        .collection("ads_clicks")
-        .where("createdAt", ">=", dayStart.getTime())
-        .where("createdAt", "<", dayEnd.getTime())
-        .get(),
-    ]);
+    const campaignSnap = await db
+      .collection("ads_campaigns")
+      .where("campaignStatus", "==", "active")
+      .where("moderationStatus", "==", "approved")
+      .get();
+
+    if (campaignSnap.empty) {
+      return null;
+    }
+
+    const campaignIds = campaignSnap.docs
+      .map((doc) => normalizeString(doc.id))
+      .filter((id) => id.length > 0);
+    if (campaignIds.length === 0) {
+      return null;
+    }
 
     type Stat = {
       impressions: number;
@@ -552,6 +699,7 @@ export const adsAggregateDailyStats = functions
     };
 
     const byCampaign = new Map<string, Stat>();
+    const spentByCampaign = new Map<string, number>();
 
     const ensure = (campaignId: string) => {
       if (!byCampaign.has(campaignId)) {
@@ -567,47 +715,78 @@ export const adsAggregateDailyStats = functions
       return byCampaign.get(campaignId)!;
     };
 
-    for (const d of impSnap.docs) {
-      const data = d.data();
-      const campaignId = normalizeString(data.campaignId);
-      if (!campaignId) continue;
-      const st = ensure(campaignId);
-      st.impressions += 1;
-      const uid = normalizeString(data.userId);
-      if (uid) st.uniqueUsers.add(uid);
-    }
-
-    for (const d of clickSnap.docs) {
-      const data = d.data();
-      const campaignId = normalizeString(data.campaignId);
-      if (!campaignId) continue;
-      const st = ensure(campaignId);
-      st.clicks += 1;
-      const uid = normalizeString(data.userId);
-      if (uid) st.uniqueUsers.add(uid);
-    }
-
-    const eventSnap = await db
-      .collection("ads_delivery_logs")
-      .where("createdAt", ">=", dayStart.getTime())
-      .where("createdAt", "<", dayEnd.getTime())
-      .get();
-
-    for (const d of eventSnap.docs) {
-      const data = d.data();
-      const campaignId = normalizeString(data.campaignId || data.selectedCampaignId);
-      if (!campaignId) continue;
-      const event = normalizeString(data.event);
-      const st = ensure(campaignId);
-      if (event === "videoStart") st.videoStarts += 1;
-      if (event === "video100" || event === "complete") st.videoCompletes += 1;
-    }
-
-    const campaignSpendSnap = await db.collection("ads_campaigns").get();
-    const spentByCampaign = new Map<string, number>();
-    for (const c of campaignSpendSnap.docs) {
+    for (const c of campaignSnap.docs) {
       const spent = Number(c.data().spentAmount ?? 0) || 0;
       spentByCampaign.set(c.id, spent);
+    }
+
+    for (let i = 0; i < campaignIds.length; i += 10) {
+      const chunk = campaignIds.slice(i, i + 10);
+      const [impSnap, clickSnap, eventSnap, selectedEventSnap] = await Promise.all([
+        db
+          .collection("ads_impressions")
+          .where("campaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+        db
+          .collection("ads_clicks")
+          .where("campaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+        db
+          .collection("ads_delivery_logs")
+          .where("campaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+        db
+          .collection("ads_delivery_logs")
+          .where("selectedCampaignId", "in", chunk)
+          .where("createdAt", ">=", dayStart.getTime())
+          .where("createdAt", "<", dayEnd.getTime())
+          .get(),
+      ]);
+
+      for (const d of impSnap.docs) {
+        const data = d.data();
+        const campaignId = normalizeString(data.campaignId);
+        if (!campaignId) continue;
+        const st = ensure(campaignId);
+        st.impressions += 1;
+        const uid = normalizeString(data.userId);
+        if (uid) st.uniqueUsers.add(uid);
+      }
+
+      for (const d of clickSnap.docs) {
+        const data = d.data();
+        const campaignId = normalizeString(data.campaignId);
+        if (!campaignId) continue;
+        const st = ensure(campaignId);
+        st.clicks += 1;
+        const uid = normalizeString(data.userId);
+        if (uid) st.uniqueUsers.add(uid);
+      }
+
+      const seenEventDocIds = new Set<string>();
+      for (const snap of [eventSnap, selectedEventSnap]) {
+        for (const d of snap.docs) {
+          if (seenEventDocIds.has(d.id)) continue;
+          seenEventDocIds.add(d.id);
+          const data = d.data();
+          const campaignId = normalizeString(
+            data.campaignId || data.selectedCampaignId
+          );
+          if (!campaignId) continue;
+          const event = normalizeString(data.event);
+          const st = ensure(campaignId);
+          if (event === "videoStart") st.videoStarts += 1;
+          if (event === "video100" || event === "complete") {
+            st.videoCompletes += 1;
+          }
+        }
+      }
     }
 
     const batch = db.batch();

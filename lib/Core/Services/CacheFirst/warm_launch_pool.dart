@@ -7,25 +7,30 @@ import 'package:turqappv2/Models/posts_model.dart';
 /// This layer makes the intended role explicit:
 /// fast warm launches for renderable post cards, not the long-term scoped
 /// snapshot contract used by primary surfaces.
-class WarmLaunchPool extends GetxService {
-  WarmLaunchPool({
-    IndexPoolStore? delegate,
-  }) : _delegate = delegate ?? IndexPoolStore();
+abstract class _WarmLaunchPoolBase extends GetxService {
+  _WarmLaunchPoolBase(this._delegate);
 
   final IndexPoolStore _delegate;
+}
 
-  static WarmLaunchPool? maybeFind() {
-    final isRegistered = Get.isRegistered<WarmLaunchPool>();
-    if (!isRegistered) return null;
-    return Get.find<WarmLaunchPool>();
-  }
+class WarmLaunchPool extends _WarmLaunchPoolBase {
+  WarmLaunchPool({IndexPoolStore? delegate})
+      : super(delegate ?? IndexPoolStore());
+}
 
-  static WarmLaunchPool ensure() {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(WarmLaunchPool(), permanent: true);
-  }
+WarmLaunchPool? maybeFindWarmLaunchPool() {
+  final isRegistered = Get.isRegistered<WarmLaunchPool>();
+  if (!isRegistered) return null;
+  return Get.find<WarmLaunchPool>();
+}
 
+WarmLaunchPool ensureWarmLaunchPool() {
+  final existing = maybeFindWarmLaunchPool();
+  if (existing != null) return existing;
+  return Get.put(WarmLaunchPool(), permanent: true);
+}
+
+extension WarmLaunchPoolFacadePart on WarmLaunchPool {
   Future<void> init() => _delegate.init();
 
   Future<List<PostsModel>> loadPosts(
@@ -58,6 +63,8 @@ class WarmLaunchPool extends GetxService {
   ) {
     return _delegate.removePosts(kind, docIds);
   }
+
+  Future<void> clearKind(IndexPoolKind kind) => _delegate.clearKind(kind);
 
   Future<void> clear() => _delegate.clear();
 }

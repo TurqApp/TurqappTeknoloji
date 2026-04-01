@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Themes/app_tokens.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
@@ -36,10 +37,8 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
 
   TextStyle get _labelStyle =>
       widget.style ??
-      const TextStyle(
+      AppTypography.postAttribution.copyWith(
         color: Colors.grey,
-        fontSize: 12,
-        fontFamily: 'MontserratMedium',
       );
 
   @override

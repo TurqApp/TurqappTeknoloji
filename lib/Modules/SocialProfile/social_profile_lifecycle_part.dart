@@ -16,22 +16,20 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       _ownsChatListingController = true;
     }
     final existingController =
-        SocialProfileController.maybeFind(tag: widget.userID);
+        maybeFindSocialProfileController(tag: widget.userID);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = SocialProfileController.ensure(
+      controller = ensureSocialProfileController(
         userID: widget.userID,
         tag: widget.userID,
       );
       _ownsController = true;
     }
     final highlightsTag = 'highlights_${widget.userID}';
-    if (StoryHighlightsController.maybeFind(tag: highlightsTag) == null) {
-      StoryHighlightsController.ensure(
-        userId: widget.userID,
-        tag: highlightsTag,
-      );
+    if (maybeFindStoryHighlightsController(tag: highlightsTag) == null) {
+      ensureStoryHighlightsController(
+          userId: widget.userID, tag: highlightsTag);
       _ownsHighlightsController = true;
     }
     for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
@@ -41,12 +39,14 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
   }
 
   void _disposeSocialProfile() {
+    _scrollSettleDebounce?.cancel();
+    _linksHighlightsScrollController.dispose();
     for (final scrollController in _scrollControllers.values) {
       scrollController.dispose();
     }
     if (_ownsHighlightsController) {
       final highlightsTag = 'highlights_${widget.userID}';
-      if (StoryHighlightsController.maybeFind(tag: highlightsTag) != null) {
+      if (maybeFindStoryHighlightsController(tag: highlightsTag) != null) {
         Get.delete<StoryHighlightsController>(
           tag: highlightsTag,
           force: true,
@@ -55,7 +55,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
     }
     if (_ownsController &&
         identical(
-          SocialProfileController.maybeFind(tag: widget.userID),
+          maybeFindSocialProfileController(tag: widget.userID),
           controller,
         )) {
       Get.delete<SocialProfileController>(tag: widget.userID, force: true);
@@ -106,11 +106,30 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
     if (activeFeedLength == 0) return;
 
     if (scrollController.offset <= 0) {
+      controller.currentVisibleIndex.value = 0;
       if (controller.centeredIndex.value != 0) {
         _updateSocialProfileState(() {
           controller.centeredIndex.value = 0;
           controller.lastCenteredIndex = 0;
         });
+      } else {
+        controller.lastCenteredIndex = 0;
+      }
+      if (controller.postSelection.value == 0) {
+        _scrollSettleDebounce?.cancel();
+        _scrollSettleDebounce = Timer(
+          FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+          () {
+            if (!mounted || controller.postSelection.value != 0) return;
+            final centered = controller.centeredIndex.value;
+            if (centered >= 0 &&
+                centered < controller.combinedFeedEntries.length) {
+              controller.ensureCenteredPlaybackForCurrentSelection();
+            } else {
+              controller.resumeCenteredPost();
+            }
+          },
+        );
       }
       return;
     }
@@ -121,6 +140,23 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
         controller.centeredIndex.value = safeLastIndex;
         controller.lastCenteredIndex = safeLastIndex;
       });
+    }
+
+    if (controller.postSelection.value == 0) {
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          if (!mounted || controller.postSelection.value != 0) return;
+          final centered = controller.centeredIndex.value;
+          if (centered >= 0 &&
+              centered < controller.combinedFeedEntries.length) {
+            controller.ensureCenteredPlaybackForCurrentSelection();
+          } else {
+            controller.resumeCenteredPost();
+          }
+        },
+      );
     }
   }
 

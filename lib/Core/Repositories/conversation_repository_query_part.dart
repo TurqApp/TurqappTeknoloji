@@ -1,6 +1,18 @@
 part of 'conversation_repository.dart';
 
 extension ConversationRepositoryQueryPart on ConversationRepository {
+  bool _asConversationBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
+  int _asConversationInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
   Future<Map<String, bool>> fetchArchiveOverrides(
     String uid, {
     required bool preferCache,
@@ -19,7 +31,7 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
         final data = doc.data();
         final userId = (data["userID"] ?? "").toString();
         if (userId.isEmpty) continue;
-        map[userId] = data["archived"] == true;
+        map[userId] = _asConversationBool(data["archived"]);
       }
       return map;
     } catch (_) {
@@ -45,10 +57,7 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
         final data = doc.data();
         final userId = (data["userID"] ?? "").toString();
         if (userId.isEmpty) continue;
-        final rawDeletedAt = data["deletedAt"];
-        final deletedAt = rawDeletedAt is num
-            ? rawDeletedAt.toInt()
-            : int.tryParse("$rawDeletedAt") ?? 0;
+        final deletedAt = _asConversationInt(data["deletedAt"]);
         if (deletedAt > 0) {
           map[userId] = deletedAt;
         }
@@ -85,7 +94,7 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
       _firestore.collection("conversations").where(
             "participants",
             arrayContains: uid,
-          ),
+          ).limit(200),
     );
 
     if (includeLegacy) {
@@ -93,13 +102,13 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
         _firestore.collection("conversations").where(
               "userID1",
               isEqualTo: uid,
-            ),
+            ).limit(200),
       );
       await mergeQuery(
         _firestore.collection("conversations").where(
               "userID2",
               isEqualTo: uid,
-            ),
+            ).limit(200),
       );
     }
 
@@ -117,6 +126,7 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
             Filter("userID2", isEqualTo: uid),
           ),
         )
+        .limit(200)
         .snapshots();
   }
 

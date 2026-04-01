@@ -4,6 +4,8 @@ import android.content.Context
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import org.json.JSONArray
+import org.json.JSONObject
 
 class ExoPlayerPlugin private constructor(
     private val methodChannel: MethodChannel
@@ -38,10 +40,29 @@ class ExoPlayerPlugin private constructor(
         playerViews[viewId] = view
     }
 
+    fun handleAppBackgrounded() {
+        playerViews.values.toList().forEach { it.onAppBackgrounded() }
+    }
+
+    fun handleAppForegrounded() {
+        playerViews.values.toList().forEach { it.onAppForegrounded() }
+    }
+
+    private fun handleDisposeAllPlayers(result: MethodChannel.Result) {
+        val views = playerViews.values.toList()
+        playerViews.clear()
+        views.forEach { it.dispose() }
+        result.success(null)
+    }
+
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         val args = call.arguments as? Map<String, Any>
         if (call.method == "getActiveSmokeSnapshot") {
             result.success(ExoPlayerSmokeBridge.readActiveSnapshot())
+            return
+        }
+        if (call.method == "disposeAllPlayers") {
+            handleDisposeAllPlayers(result)
             return
         }
 
@@ -145,7 +166,7 @@ class ExoPlayerPlugin private constructor(
 }
 
 private object ExoPlayerSmokeBridge {
-    fun readActiveSnapshot(): Map<String, Any> {
+    fun readActiveSnapshot(): Map<String, Any?> {
         val snapshot = com.turqapp.app.qa.ExoPlayerSmokeRegistry.readSnapshot(
             ExoPlayerPlugin.appContext()
         )
@@ -159,10 +180,29 @@ private object ExoPlayerSmokeBridge {
         return mapOf(
             "supported" to true,
             "active" to snapshot.active,
+            "status" to snapshot.status,
             "firstFrameRendered" to snapshot.firstFrameRendered,
             "errors" to snapshot.errors,
-            "snapshot" to snapshot.snapshot,
+            "snapshot" to snapshot.snapshot.mapValues { (_, value) -> codecSafe(value) },
             "raw" to snapshot.raw,
         )
+    }
+
+    private fun codecSafe(value: Any?): Any? {
+        return when (value) {
+            null -> null
+            is JSONObject -> value.keys().asSequence().associateWith { key ->
+                codecSafe(value.opt(key))
+            }
+            is JSONArray -> List(value.length()) { index ->
+                codecSafe(value.opt(index))
+            }
+            is Map<*, *> -> value.entries.associate { (key, nestedValue) ->
+                key.toString() to codecSafe(nestedValue)
+            }
+            is Iterable<*> -> value.map { nestedValue -> codecSafe(nestedValue) }
+            is Array<*> -> value.map { nestedValue -> codecSafe(nestedValue) }
+            else -> value
+        }
     }
 }

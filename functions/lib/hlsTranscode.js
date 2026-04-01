@@ -4,6 +4,7 @@ exports.onVideoUpload = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const child_process_1 = require("child_process");
+const crypto_1 = require("crypto");
 const util_1 = require("util");
 const path = require("path");
 const os = require("os");
@@ -15,6 +16,35 @@ if (admin.apps.length === 0) {
 const db = admin.firestore();
 const storage = admin.storage();
 const CDN_DOMAIN = "cdn.turqapp.com";
+const buildTokenizedCdnUrl = (bucketName, storagePath, token) => `https://${CDN_DOMAIN}/v0/b/${bucketName}/o/${encodeURIComponent(storagePath)}?alt=media&token=${encodeURIComponent(token)}`;
+const extractDownloadToken = (metadata) => {
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+        return "";
+    }
+    const raw = String(metadata
+        .firebaseStorageDownloadTokens || "").trim();
+    if (!raw)
+        return "";
+    return raw
+        .split(",")
+        .map((item) => item.trim())
+        .find(Boolean) || "";
+};
+const buildProtectedAssetUrl = async (bucket, storagePath) => {
+    const file = bucket.file(storagePath);
+    const [metadata] = await file.getMetadata();
+    let token = extractDownloadToken(metadata.metadata);
+    if (!token) {
+        token = (0, crypto_1.randomUUID)();
+        await file.setMetadata({
+            metadata: {
+                ...(metadata.metadata || {}),
+                firebaseStorageDownloadTokens: token,
+            },
+        });
+    }
+    return buildTokenizedCdnUrl(bucket.name, storagePath, token);
+};
 const TURQ_CLEAN_VISION = Object.freeze({
     brightness: 0.05,
     contrast: 0.88,
@@ -80,33 +110,10 @@ const buildForceKeyFrames = (durationSeconds, firstSegmentSeconds, restSegmentSe
     return marks.join(",");
 };
 const buildTurqCleanVisionFilterComplex = (renditionLabel, scaleFilter) => {
-    const baseLabel = `${renditionLabel}base`;
-    const bloomSourceLabel = `${renditionLabel}bloomsrc`;
-    const bloomLabel = `${renditionLabel}bloom`;
     const outputLabel = `${renditionLabel}out`;
-    const baseChain = [
-        scaleFilter,
-        `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
-        "curves=all='0/0.04 0.22/0.30 0.58/0.75 0.84/0.95 1/1'",
-        "colorbalance=rs=-0.01:bs=0.02",
-        `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
-    ].join(",");
-    const bloomIsolation = [
-        "curves=all='0/0 0.70/0 0.80/0.42 0.90/0.82 1/1'",
-        `gblur=sigma=${TURQ_CLEAN_VISION.bloomSigma}:steps=1`,
-    ].join(",");
-    return [
-        `[0:v]${baseChain},split=2[${baseLabel}][${bloomSourceLabel}]`,
-        `[${bloomSourceLabel}]${bloomIsolation}[${bloomLabel}]`,
-        `[${baseLabel}][${bloomLabel}]blend=all_mode='screen':all_opacity=${TURQ_CLEAN_VISION.bloomOpacity}[${outputLabel}]`,
-    ].join(";");
+    return `[0:v]${scaleFilter}[${outputLabel}]`;
 };
-const buildTurqCleanVisionThumbnailFilter = () => [
-    `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
-    "curves=all='0/0 0.28/0.33 0.62/0.78 0.82/0.94 1/1'",
-    "colorbalance=rs=-0.01:bs=0.02",
-    `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
-].join(",");
+const buildTurqCleanVisionThumbnailFilter = () => "null";
 function resolveTarget(filePath) {
     // Pattern 1: Posts (mevcut)
     const postMatch = filePath.match(/^posts\/([^/]+)\/video[^/]*\.mp4$/i);
@@ -182,9 +189,16 @@ exports.onVideoUpload = functions
     if (!target)
         return;
     const bucket = storage.bucket(object.bucket);
+    const migrationMode = target.type === "post" &&
+        String(object.metadata?.migrationMode || "").toLowerCase() === "true";
     console.log(`[HLS] Processing video for ${target.type}`);
+    if (migrationMode) {
+        console.log("[HLS] Migration mode enabled: Firestore writes disabled");
+    }
     // Firestore'da processing durumunu set et.
-    await db.doc(target.firestoreDoc).set(target.buildProcessingData(), { merge: true });
+    if (!migrationMode) {
+        await db.doc(target.firestoreDoc).set(target.buildProcessingData(), { merge: true });
+    }
     const tempDir = path.join(os.tmpdir(), `hls_${target.id}`);
     try {
         // Segment konfigürasyonu oku
@@ -348,7 +362,7 @@ exports.onVideoUpload = functions
                         },
                     }).catch((e) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
                 ]);
-                thumbnailUrl = `https://${CDN_DOMAIN}/${target.thumbnailStoragePath}`;
+                thumbnailUrl = await buildProtectedAssetUrl(bucket, thumbnailWebpStoragePath);
                 console.log(`[HLS] Thumbnails uploaded: JPEG + WebP`);
             }
             catch (thumbErr) {
@@ -357,10 +371,15 @@ exports.onVideoUpload = functions
         }
         // Firestore güncelle
         const hlsUrl = `https://${CDN_DOMAIN}/${target.hlsOutputPrefix}/master.m3u8`;
-        await db.doc(target.firestoreDoc).set(target.buildSuccessData(hlsUrl, hlsSegmentCount, thumbnailUrl), { merge: true });
+        if (!migrationMode) {
+            await db.doc(target.firestoreDoc).set(target.buildSuccessData(hlsUrl, hlsSegmentCount, thumbnailUrl), { merge: true });
+        }
         // Story'de ilgili video element URL'sini HLS master URL'e çevir.
         // Böylece dokümanda MP4 URL kalmaz.
-        if (target.type === "story" && target.storyUid && target.storyId) {
+        if (!migrationMode &&
+            target.type === "story" &&
+            target.storyUid &&
+            target.storyId) {
             try {
                 const sourceFileName = path.posix.basename(filePath).toLowerCase();
                 const storyPathNeedle = `/stories/${target.storyUid}/${target.storyId}/`.toLowerCase();
@@ -413,7 +432,9 @@ exports.onVideoUpload = functions
             type: target.type,
             error,
         });
-        await db.doc(target.firestoreDoc).set(target.buildFailData(), { merge: true });
+        if (!migrationMode) {
+            await db.doc(target.firestoreDoc).set(target.buildFailData(), { merge: true });
+        }
         // Temp temizle
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });

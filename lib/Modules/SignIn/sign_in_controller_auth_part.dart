@@ -7,109 +7,8 @@ extension SignInControllerAuthPart on SignInController {
     Get.offAll(() => NavBarView());
   }
 
-  void _startPostAuthTasks({
-    required String email,
-    required String password,
-  }) {
-    unawaited(() async {
-      Future<void> runStep(
-        String label,
-        Future<void> Function() action, {
-        Duration timeout = const Duration(seconds: 6),
-      }) async {
-        try {
-          await action().timeout(timeout);
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('[SignIn] post-auth step skipped ($label): $e');
-          }
-        }
-      }
-
-      await runStep(
-        'refreshEmailVerificationStatus',
-        () => CurrentUserService.instance.refreshEmailVerificationStatus(
-          reloadAuthUser: true,
-        ),
-      );
-      unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
-      unawaited(_postLoginWarmup());
-      await runStep(
-          '_trackCurrentAccountForDevice', _trackCurrentAccountForDevice);
-      await runStep(
-        'registerCurrentDeviceSessionIfEnabled',
-        () => AccountCenterService.ensure()
-            .registerCurrentDeviceSessionIfEnabled(),
-      );
-      await runStep(
-        '_persistStoredSessionCredential',
-        () => _persistStoredSessionCredential(
-          email: email,
-          password: password,
-        ),
-        timeout: const Duration(seconds: 3),
-      );
-
-      try {
-        UnreadMessagesController.maybeFind()?.startListeners();
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('[SignIn] unread listener skipped: $e');
-        }
-      }
-    }());
-  }
-
   Future<bool> signInWithStoredAccount(StoredAccount account) async {
-    if (!account.hasPasswordProvider) return false;
-    if (account.requiresReauth) return false;
-    final credential = await AccountSessionVault.instance.read(account.uid);
-    if (credential == null) return false;
-
-    wait.value = true;
-    try {
-      final userService = CurrentUserService.instance;
-      final currentUid = userService.authUserId;
-      if (currentUid.isNotEmpty && currentUid != account.uid) {
-        try {
-          await _userRepository.updateUserFields(currentUid, {'token': ''});
-        } catch (_) {}
-        try {
-          await userService.logout();
-          await userService.signOutAuth();
-        } catch (_) {}
-      }
-
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: credential.email,
-        password: credential.password,
-      );
-      final signedUid = CurrentUserService.instance.authUserId;
-      if (signedUid.isNotEmpty) {
-        DeviceSessionService.instance.beginSessionClaim(signedUid);
-      }
-      try {
-        TextInput.finishAutofillContext(shouldSave: true);
-      } catch (_) {}
-      _startPostAuthTasks(
-        email: credential.email,
-        password: credential.password,
-      );
-      _finalizeSuccessfulSignInNavigation();
-      return true;
-    } on FirebaseAuthException catch (_) {
-      wait.value = false;
-      await AccountSessionVault.instance.delete(account.uid);
-      await AccountCenterService.ensure().markSessionState(
-        uid: account.uid,
-        isSessionValid: false,
-        requiresReauth: true,
-      );
-      return false;
-    } catch (_) {
-      wait.value = false;
-      return false;
-    }
+    return _signInApplicationService.signInWithStoredAccount(account);
   }
 
   Future<void> sendOtpCodeForReset() async {
@@ -130,11 +29,7 @@ extension SignInControllerAuthPart on SignInController {
     wait.value = true;
     resetOtpRequestInFlight.value = true;
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
-          .httpsCallable('sendPasswordResetSmsCode')
-          .call({
-        "email": targetEmail,
-      });
+      await _remoteService.sendPasswordResetSmsCode(email: targetEmail);
       startOtpTimerForTimer();
       resetCodeRequested.value = true;
       AppSnackbar(
@@ -236,12 +131,10 @@ extension SignInControllerAuthPart on SignInController {
 
     wait.value = true;
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
-          .httpsCallable('verifyPasswordResetSmsCode')
-          .call({
-        "email": targetEmail,
-        "verificationCode": code,
-      });
+      await _remoteService.verifyPasswordResetSmsCode(
+        email: targetEmail,
+        verificationCode: code,
+      );
       selection.value = 6;
       resetOtpFocus.value.unfocus();
       resetMailFocus.value.unfocus();
@@ -284,7 +177,7 @@ extension SignInControllerAuthPart on SignInController {
       );
       final signedUid = userCredential.user?.uid ?? '';
       if (signedUid.isNotEmpty) {
-        DeviceSessionService.instance.beginSessionClaim(signedUid);
+        _deviceSessionRuntimeService.beginSessionClaim(signedUid);
       }
       try {
         TextInput.finishAutofillContext(shouldSave: true);
@@ -299,19 +192,24 @@ extension SignInControllerAuthPart on SignInController {
       await CurrentUserService.instance.initialize();
       await NotificationService.instance.initialize();
       await _clearSessionCachesAfterAccountSwitch();
-      await CurrentUserService.instance.forceRefresh();
+      await CurrentUserService.instance.ensureResolvedCurrentUser(
+        expectedUid: signedUid,
+        reloadEmailVerification: true,
+      );
       await _trackCurrentAccountForDevice();
-      await AccountCenterService.ensure()
+      await ensureAccountCenterService()
           .registerCurrentDeviceSessionIfEnabled();
-      await _persistStoredSessionCredential(
+      await _persistStoredSessionHint(
         email: resetMail.value,
-        password: newPassword,
       );
 
       try {
-        final storyController = StoryRowController.maybeFind();
+        final storyController = maybeFindStoryRowController();
         if (storyController == null) return;
-        await storyController.loadStories(limit: 100, cacheFirst: false);
+        await storyController.loadStories(
+          limit: storyController.fullLimit,
+          cacheFirst: false,
+        );
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
         }
@@ -319,7 +217,7 @@ extension SignInControllerAuthPart on SignInController {
 
       late AgendaController agendaController;
       try {
-        agendaController = AgendaController.ensure();
+        agendaController = ensureAgendaController();
 
         await agendaController.refreshAgenda();
 
@@ -332,11 +230,11 @@ extension SignInControllerAuthPart on SignInController {
           retries++;
         }
       } catch (_) {
-        agendaController = AgendaController.ensure();
+        agendaController = ensureAgendaController();
       }
 
       try {
-        UnreadMessagesController.maybeFind()?.startListeners();
+        maybeFindUnreadMessagesController()?.startListeners();
       } catch (_) {}
 
       wait.value = false;
@@ -362,109 +260,54 @@ extension SignInControllerAuthPart on SignInController {
   }
 
   Future<bool> signIn() async {
-    bool authSucceeded = false;
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _resolvedSignInEmail(),
-        password: password.value,
-      );
-      final signedUid = CurrentUserService.instance.authUserId;
-      if (signedUid.isNotEmpty) {
-        DeviceSessionService.instance.beginSessionClaim(signedUid);
-        try {
-          await AccountCenterService.ensure()
-              .registerCurrentDeviceSessionIfEnabled();
-        } catch (_) {}
-      }
-      authSucceeded = true;
+    final result = await _signInApplicationService.signInWithPassword(
+      email: _resolvedSignInEmail(),
+      password: password.value,
+    );
+    if (result.isSuccess) {
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
-      _startPostAuthTasks(
-        email: _resolvedSignInEmail(),
-        password: password.value,
-      );
       _finalizeSuccessfulSignInNavigation();
       return true;
-    } on FirebaseAuthException catch (e) {
-      wait.value = false;
+    }
+
+    wait.value = false;
+    final failureCode = result.failureCode;
+    if (failureCode != null) {
       String message;
-      switch (e.code) {
+      switch (failureCode) {
         case 'invalid-credential':
         case 'wrong-password':
         case 'user-not-found':
-          message = "${'sign_in.auth_invalid_credential'.tr} (${e.code})";
+          message = "${'sign_in.auth_invalid_credential'.tr} ($failureCode)";
           break;
         case 'invalid-email':
-          message = "${'sign_in.auth_invalid_email'.tr} (${e.code})";
+          message = "${'sign_in.auth_invalid_email'.tr} ($failureCode)";
           break;
         case 'too-many-requests':
-          message = "${'sign_in.auth_too_many_requests'.tr} (${e.code})";
+          message = "${'sign_in.auth_too_many_requests'.tr} ($failureCode)";
           break;
         case 'network-request-failed':
-          message = "${'sign_in.auth_network_failed'.tr} (${e.code})";
+          message = "${'sign_in.auth_network_failed'.tr} ($failureCode)";
           break;
         case 'user-disabled':
-          message = "${'sign_in.auth_user_disabled'.tr} (${e.code})";
+          message = "${'sign_in.auth_user_disabled'.tr} ($failureCode)";
           break;
         default:
           message =
-              "${e.message ?? 'sign_in.auth_generic_error'.tr} (${e.code})";
+              "${result.failureMessage ?? 'sign_in.auth_generic_error'.tr} "
+              "($failureCode)";
       }
       AppSnackbar('sign_in.sign_in_failed_title'.tr, message);
       return false;
-    } catch (_) {
-      wait.value = false;
-      if (authSucceeded || CurrentUserService.instance.hasAuthUser) {
-        try {
-          TextInput.finishAutofillContext(shouldSave: true);
-        } catch (_) {}
-        _ensureFeedTabSelected();
-        Get.offAll(() => NavBarView());
-        return true;
-      }
-      AppSnackbar(
-        'sign_in.sign_in_failed_title'.tr,
-        'sign_in.sign_in_failed_body'.tr,
-      );
-      return false;
     }
-  }
 
-  Future<void> _postLoginWarmup() async {
-    try {
-      await Future.any([
-        CurrentUserService.instance.initialize(),
-        Future.delayed(const Duration(seconds: 3)),
-      ]);
-      unawaited(NotificationService.instance.initialize());
-      unawaited(_clearSessionCachesAfterAccountSwitch());
-      unawaited(CurrentUserService.instance.forceRefresh());
-
-      try {
-        final storyController = StoryRowController.maybeFind();
-        if (storyController == null) return;
-        await Future.any([
-          storyController.loadStories(limit: 100, cacheFirst: false),
-          Future.delayed(const Duration(seconds: 3)),
-        ]);
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-      } catch (_) {}
-
-      try {
-        final agendaController =
-            AgendaController.maybeFind() ?? AgendaController.ensure();
-        await Future.any([
-          agendaController.refreshAgenda(),
-          Future.delayed(const Duration(seconds: 3)),
-        ]);
-        if (agendaController.agendaList.isEmpty) {
-          unawaited(agendaController.fetchAgendaBigData(initial: true));
-        }
-      } catch (_) {}
-    } catch (_) {}
+    AppSnackbar(
+      'sign_in.sign_in_failed_title'.tr,
+      'sign_in.sign_in_failed_body'.tr,
+    );
+    return false;
   }
 
   Future<void> nicknameFinder() async {

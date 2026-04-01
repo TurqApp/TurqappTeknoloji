@@ -29,6 +29,7 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
     String? moderationBanReason,
     int? moderationUpdatedAt,
     List<String>? blockedUsers,
+    List<String>? lastSearchList,
     List<String>? readStories,
     Map<String, int>? readStoriesTimes,
   }) {
@@ -148,7 +149,7 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
       settings: settings,
       themeSettings: themeSettings,
       canliYayin: canliYayin,
-      lastSearchList: lastSearchList,
+      lastSearchList: lastSearchList ?? this.lastSearchList,
       readStories: readStories ?? this.readStories,
       readStoriesTimes: readStoriesTimes ?? this.readStoriesTimes,
       mail: mail,

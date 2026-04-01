@@ -6,13 +6,13 @@ enum TelemetryThresholdSeverity {
 }
 
 class TelemetryThresholdIssue {
-  const TelemetryThresholdIssue({
+  TelemetryThresholdIssue({
     required this.surface,
     required this.code,
     required this.message,
     required this.severity,
-    this.metrics = const <String, dynamic>{},
-  });
+    Map<String, dynamic> metrics = const <String, dynamic>{},
+  }) : metrics = _cloneTelemetryMetrics(metrics);
 
   final String surface;
   final String code;
@@ -26,7 +26,7 @@ class TelemetryThresholdIssue {
       'code': code,
       'message': message,
       'severity': severity.name,
-      'metrics': metrics,
+      'metrics': _cloneTelemetryMetrics(metrics),
     };
   }
 }
@@ -43,6 +43,11 @@ class SurfaceTelemetrySnapshot {
   final CacheFirstSurfaceSummary? cacheFirst;
   final RenderDiffSurfaceSummary? renderDiff;
   final PlaybackWindowSurfaceSummary? playbackWindow;
+
+  bool get hasSignals =>
+      (cacheFirst?.eventCount ?? 0) > 0 ||
+      (renderDiff?.eventCount ?? 0) > 0 ||
+      (playbackWindow?.eventCount ?? 0) > 0;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -110,9 +115,9 @@ class SurfaceTelemetrySnapshot {
 }
 
 class TelemetryThresholdReport {
-  const TelemetryThresholdReport({
-    required this.issues,
-  });
+  TelemetryThresholdReport({
+    required List<TelemetryThresholdIssue> issues,
+  }) : issues = issues.toList(growable: false);
 
   final List<TelemetryThresholdIssue> issues;
 
@@ -128,6 +133,27 @@ class TelemetryThresholdReport {
       'issues': issues.map((issue) => issue.toJson()).toList(growable: false),
     };
   }
+}
+
+Map<String, dynamic> _cloneTelemetryMetrics(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _cloneTelemetryMetricValue(value)),
+  );
+}
+
+dynamic _cloneTelemetryMetricValue(dynamic value) {
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(
+        key.toString(),
+        _cloneTelemetryMetricValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(_cloneTelemetryMetricValue).toList(growable: false);
+  }
+  return value;
 }
 
 class _SurfaceThresholds {
@@ -169,10 +195,29 @@ class _SurfaceThresholds {
 class TelemetryThresholdPolicy {
   const TelemetryThresholdPolicy._();
 
+  static const _SurfaceThresholds _cacheOnlySurfaceThresholds =
+      _SurfaceThresholds(
+    minCacheEvents: 2,
+    warnLocalHitRatio: 0.25,
+    blockLocalHitRatio: 0.10,
+    warnLiveFailCount: 1,
+    blockLiveFailCount: 2,
+    minRenderPatchEvents: 99,
+    warnRenderAverageOps: 999,
+    blockRenderAverageOps: 999,
+    warnRenderMaxOps: 999,
+    blockRenderMaxOps: 999,
+    minPlaybackEvents: 99,
+    warnActiveLostCount: 99,
+    blockActiveLostCount: 99,
+    warnAttachedPlayers: 99,
+    blockAttachedPlayers: 99,
+  );
+
   static const Map<String, _SurfaceThresholds> _defaults =
       <String, _SurfaceThresholds>{
     'feed': _SurfaceThresholds(
-      minCacheEvents: 3,
+      minCacheEvents: 4,
       warnLocalHitRatio: 0.45,
       blockLocalHitRatio: 0.20,
       warnLiveFailCount: 1,
@@ -205,6 +250,17 @@ class TelemetryThresholdPolicy {
       warnAttachedPlayers: 5,
       blockAttachedPlayers: 8,
     ),
+    'story': _cacheOnlySurfaceThresholds,
+    'profile': _cacheOnlySurfaceThresholds,
+    'notifications': _cacheOnlySurfaceThresholds,
+    'market': _cacheOnlySurfaceThresholds,
+    'jobs': _cacheOnlySurfaceThresholds,
+    'scholarship': _cacheOnlySurfaceThresholds,
+    'practice_exam': _cacheOnlySurfaceThresholds,
+    'answer_key': _cacheOnlySurfaceThresholds,
+    'past_question': _cacheOnlySurfaceThresholds,
+    'tutoring': _cacheOnlySurfaceThresholds,
+    'workout': _cacheOnlySurfaceThresholds,
   };
 
   static TelemetryThresholdReport evaluateSnapshots(

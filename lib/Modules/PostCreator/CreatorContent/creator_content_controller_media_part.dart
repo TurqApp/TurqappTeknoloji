@@ -8,7 +8,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
       return;
     }
 
-    final postCreator = PostCreatorController.ensure();
+    final postCreator = ensurePostCreatorController();
     final isSeries = postCreator.postList.length > 1;
     final existingCount = selectedImages.length;
     final maxImages = UploadConstants.maxImagesPerPost;
@@ -85,8 +85,8 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
     reusedImageUrls.clear();
 
     try {
-      final network = NetworkAwarenessService.ensure();
-      final optimalQuality = network.getOptimalCompressionQuality();
+      final optimalQuality =
+          const NetworkRuntimeService().getOptimalCompressionQuality();
       final compressionResults = await MediaCompressionService.compressImages(
         imageFiles: files,
         quality: optimalQuality,
@@ -106,7 +106,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
             final newModel = postCreator.insertComposerItemAfter(insertCursor);
             insertCursor++;
             final newTag = newModel.index.toString();
-            targetController = CreatorContentController.ensure(tag: newTag);
+            targetController = ensureCreatorContentController(tag: newTag);
           }
 
           await targetController._replaceWithSingleImage(
@@ -240,10 +240,10 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
       croppedImages.clear();
       _enforceImageCap();
 
-      final network = NetworkAwarenessService.ensure();
       final compressionResult = await MediaCompressionService.compressImage(
         imageFile: file,
-        targetQuality: network.getOptimalCompressionQuality(),
+        targetQuality:
+            const NetworkRuntimeService().getOptimalCompressionQuality(),
       );
 
       if (kDebugMode) {
@@ -303,7 +303,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
   }
 
   Future<void> _performPickVideo({required ImageSource source}) async {
-    final postCreator = PostCreatorController.ensure();
+    final postCreator = ensurePostCreatorController();
     final isSeries = postCreator.postList.length > 1;
 
     if (source != ImageSource.gallery &&
@@ -335,7 +335,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
             final newModel = postCreator.insertComposerItemAfter(insertCursor);
             insertCursor++;
             final newTag = newModel.index.toString();
-            targetController = CreatorContentController.ensure(tag: newTag);
+            targetController = ensureCreatorContentController(tag: newTag);
           }
 
           await targetController._replaceWithSingleVideo(file);
@@ -493,7 +493,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
     List<String> imageUrls, {
     required double aspectRatio,
   }) async {
-    final isThread = PostCreatorController.ensure().postList.length > 1;
+    final isThread = ensurePostCreatorController().postList.length > 1;
     final uniqueUrls =
         imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (uniqueUrls.isEmpty) return;
@@ -520,7 +520,7 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
   }
 
   void _performSetVideoLookPreset(String preset) {
-    if (!CreatorContentController.supportedVideoLookPresets.contains(preset)) {
+    if (!kCreatorSupportedVideoLookPresets.contains(preset)) {
       return;
     }
     videoLookPreset.value = preset;

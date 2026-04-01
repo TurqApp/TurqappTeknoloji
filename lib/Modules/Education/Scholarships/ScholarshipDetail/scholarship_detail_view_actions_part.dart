@@ -1,6 +1,40 @@
 part of 'scholarship_detail_view.dart';
 
 extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
+  Widget _buildReportMenu({
+    required String userId,
+    required String scholarshipDocId,
+  }) {
+    final trimmedUserId = userId.trim();
+    final trimmedScholarshipId = scholarshipDocId.trim();
+    return PullDownButton(
+      itemBuilder: (context) => [
+        PullDownMenuItem(
+          onTap: () {
+            if (trimmedUserId.isEmpty || trimmedScholarshipId.isEmpty) return;
+            Get.to(
+              () => ReportUser(
+                userID: trimmedUserId,
+                postID: trimmedScholarshipId,
+                commentID: '',
+              ),
+            );
+          },
+          title: 'tutoring.report_listing'.tr,
+          icon: CupertinoIcons.exclamationmark_circle,
+        ),
+      ],
+      buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+        onTap: showMenu,
+        child: const Icon(
+          AppIcons.ellipsisVertical,
+          color: Colors.black,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionSection({
     required BuildContext context,
     required ScholarshipDetailController controller,
@@ -39,6 +73,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
               padding: EdgeInsets.symmetric(vertical: 8.0),
               child: AdmobKare(
                 key: ValueKey('sch-detail-ad-owner'),
+                suggestionPlacementId: 'scholarship',
               ),
             ),
             Row(
@@ -77,31 +112,13 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                       ),
                       child: isLoading
                           ? CupertinoActivityIndicator()
-                          : scholarshipDocId.isEmpty
-                              ? Text(
-                                  'scholarship.applications_title'
-                                      .trParams({'count': '0'}),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyles.bold16White,
-                                )
-                              : FutureBuilder<int>(
-                                  future: controller.getApplicantCount(
-                                    scholarshipDocId,
-                                  ),
-                                  builder: (ctx, snap) {
-                                    final count = snap.hasData ? snap.data! : 0;
-                                    return Text(
-                                      'scholarship.applications_title'
-                                          .trParams({'count': '$count'}),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyles.bold16White,
-                                    );
-                                  },
-                                ),
+                          : _buildOwnerActionText(
+                              'common.applications'.tr,
+                            ),
                     ),
                   ),
                 ),
-                10.pw,
+                8.pw,
                 Expanded(
                   child: GestureDetector(
                     onTap: isLoading
@@ -127,14 +144,40 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                       ),
                       child: isLoading
                           ? CupertinoActivityIndicator()
-                          : Text(
-                              'scholarship.edit_button'.tr,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontFamily: "MontserratBold",
-                              ),
+                          : _buildOwnerActionText(
+                              'common.edit'.tr,
+                            ),
+                    ),
+                  ),
+                ),
+                8.pw,
+                Expanded(
+                  child: GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () {
+                            noYesAlert(
+                              title: 'scholarship.delete_title'.tr,
+                              message: 'scholarship.delete_confirm'.tr,
+                              onYesPressed: () async {
+                                await controller.deleteScholarship(
+                                  scholarshipDocId,
+                                  type,
+                                );
+                              },
+                            );
+                          },
+                    child: Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade800,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: isLoading
+                          ? CupertinoActivityIndicator()
+                          : _buildOwnerActionText(
+                              'common.remove'.tr,
                             ),
                     ),
                   ),
@@ -152,6 +195,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: AdmobKare(
               key: ValueKey('sch-detail-ad-apply'),
+              suggestionPlacementId: 'scholarship',
             ),
           ),
           Row(
@@ -405,5 +449,23 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
         ],
       );
     });
+  }
+
+  Widget _buildOwnerActionText(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontFamily: "MontserratBold",
+          ),
+        ),
+      ),
+    );
   }
 }

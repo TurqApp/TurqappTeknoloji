@@ -1,4 +1,7 @@
+import 'package:turqappv2/Core/Services/AppPolicy/surface_policy.dart';
+import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_registry.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 enum ContentScreenKind {
   feed,
@@ -9,12 +12,15 @@ enum ContentScreenKind {
 }
 
 class ContentPolicy {
-  static const int feedInitialFromPool = 5;
-  static const int mobileWarmWindow = 20;
-  static const int mobileNextWindow = 10;
-  static const int minGlobalCachedVideos = 50;
-  static const int mobileInitialSegments = 2;
-  static const int mobileAheadSegments = 3; // n + 3
+  static int get feedInitialFromPool =>
+      ReadBudgetRegistry.feedHomeInitialLimitValue;
+  static int get mobileWarmWindow => ReadBudgetRegistry.mobileWarmWindow;
+  static int get mobileNextWindow => ReadBudgetRegistry.mobileNextWindow;
+  static int get minGlobalCachedVideos =>
+      ReadBudgetRegistry.minGlobalCachedVideos;
+  static int get mobileInitialSegments =>
+      ReadBudgetRegistry.mobileInitialSegments;
+  static int get mobileAheadSegments => ReadBudgetRegistry.mobileAheadSegments;
 
   static bool get isOnWiFi {
     return NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false;
@@ -28,46 +34,37 @@ class ContentPolicy {
     return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 
-  // Kullanıcı kararı: mobilde arka plan güncelleme olmasın.
-  static bool allowBackgroundRefresh(ContentScreenKind screen) {
-    if (screen == ContentScreenKind.story) {
-      return isOnWiFi;
+  static SurfacePolicy _surfacePolicy(ContentScreenKind screen) {
+    switch (screen) {
+      case ContentScreenKind.feed:
+        return SurfacePolicyRegistry.feedHomeSurface;
+      case ContentScreenKind.shorts:
+        return SurfacePolicyRegistry.shortHomeSurface;
+      case ContentScreenKind.explore:
+        return SurfacePolicyRegistry.exploreSurface;
+      case ContentScreenKind.story:
+        return SurfacePolicyRegistry.storySurface;
+      case ContentScreenKind.profile:
+        return SurfacePolicyRegistry.profilePostsSurface;
     }
-    return isOnWiFi;
+  }
+
+  static bool allowBackgroundRefresh(ContentScreenKind screen) {
+    return _surfacePolicy(screen).allowBackgroundRefresh(onWiFi: isOnWiFi);
   }
 
   static bool shouldBootstrapNetwork(
     ContentScreenKind screen, {
     required bool hasLocalContent,
   }) {
-    if (!isConnected) return false;
-    if (isOnWiFi) return true;
-    return !hasLocalContent;
+    return _surfacePolicy(screen).shouldBootstrapNetwork(
+      isConnected: isConnected,
+      onWiFi: isOnWiFi,
+      hasLocalContent: hasLocalContent,
+    );
   }
 
   static int initialPoolLimit(ContentScreenKind screen) {
-    if (isOnWiFi) {
-      switch (screen) {
-        case ContentScreenKind.feed:
-          return 12;
-        case ContentScreenKind.shorts:
-        case ContentScreenKind.explore:
-        case ContentScreenKind.profile:
-          return 30;
-        case ContentScreenKind.story:
-          return 10;
-      }
-    }
-
-    switch (screen) {
-      case ContentScreenKind.feed:
-        return feedInitialFromPool;
-      case ContentScreenKind.shorts:
-      case ContentScreenKind.explore:
-      case ContentScreenKind.profile:
-        return mobileWarmWindow;
-      case ContentScreenKind.story:
-        return 10;
-    }
+    return _surfacePolicy(screen).initialPoolLimitFor(onWiFi: isOnWiFi);
   }
 }

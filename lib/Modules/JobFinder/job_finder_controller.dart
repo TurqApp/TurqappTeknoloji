@@ -9,11 +9,16 @@ import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_manifest_store.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_shard_store.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -22,202 +27,9 @@ import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
 part 'job_finder_controller_data_part.dart';
+part 'job_finder_controller_facade_part.dart';
+part 'job_finder_controller_fields_part.dart';
 part 'job_finder_controller_sheet_part.dart';
-
-class JobFinderController extends GetxController {
-  static JobFinderController ensure({bool permanent = false}) {
-    final existing = maybeFind();
-    if (existing != null) return existing;
-    return Get.put(JobFinderController(), permanent: permanent);
-  }
-
-  static JobFinderController? maybeFind() {
-    final isRegistered = Get.isRegistered<JobFinderController>();
-    if (!isRegistered) return null;
-    return Get.find<JobFinderController>();
-  }
-
-  static const int _fullBootstrapLimit = 150;
-  static const String _listingSelectionPrefKeyPrefix =
-      'pasaj_job_listing_selection';
-  static const String _allTurkeyRaw = 'Tüm Türkiye';
-
-  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
-      JobHomeSnapshotRepository.ensure();
-  final JobRepository _jobRepository = JobRepository.ensure();
-  final CityDirectoryService _cityDirectoryService =
-      CityDirectoryService.ensure();
-  final List<String> imgList = [
-    AppAssets.practice1,
-    AppAssets.practice2,
-    AppAssets.practice3,
-  ];
-
-  // Tab management
-  final innerTabIndex = 0.obs;
-  final innerPageController = PageController();
-  List<String> get innerTabTitles => [
-        'pasaj.job_finder.tab.explore'.tr,
-        'pasaj.job_finder.tab.create'.tr,
-        'pasaj.job_finder.tab.applications'.tr,
-        'pasaj.job_finder.tab.career_profile'.tr,
-      ];
-
-  RxList<JobModel> allJobs = <JobModel>[].obs;
-  RxList<JobModel> list = <JobModel>[].obs;
-  RxList<JobModel> aramaSonucu = <JobModel>[].obs;
-
-  TextEditingController search = TextEditingController();
-  var listingSelection = 0.obs;
-  final RxBool listingSelectionReady = false.obs;
-  var sehir = "".obs;
-  final sehirler = <String>[].obs;
-  var short = 0.obs;
-  var filtre = false.obs;
-  var isLoading = true.obs;
-  final sehirlerVeIlcelerData = <CitiesModel>[].obs;
-  var kullaniciSehiri = "".obs;
-  int _searchRequestId = 0;
-  double? _userLat;
-  double? _userLong;
-  Position? _lastResolvedPosition;
-  StreamSubscription<CachedResource<List<JobModel>>>? _homeSnapshotSub;
-  Timer? _deferredLocationTimer;
-
-  bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
-    final currentKeys = current
-        .map(
-          (job) => [
-            job.docID,
-            job.logo,
-            job.brand,
-            job.meslek,
-            job.ilanBasligi,
-            job.city,
-            job.town,
-            job.timeStamp,
-            job.viewCount,
-            job.applicationCount,
-            job.kacKm.toStringAsFixed(2),
-            job.calismaTuru.join('|'),
-          ].join('::'),
-        )
-        .toList(growable: false);
-    final nextKeys = next
-        .map(
-          (job) => [
-            job.docID,
-            job.logo,
-            job.brand,
-            job.meslek,
-            job.ilanBasligi,
-            job.city,
-            job.town,
-            job.timeStamp,
-            job.viewCount,
-            job.applicationCount,
-            job.kacKm.toStringAsFixed(2),
-            job.calismaTuru.join('|'),
-          ].join('::'),
-        )
-        .toList(growable: false);
-    return listEquals(currentKeys, nextKeys);
-  }
-
-  bool _sameJobList(List<JobModel> next) => _sameJobEntries(list, next);
-
-  String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
-  bool isAllTurkeySelection(String value) =>
-      value.trim().isEmpty ||
-      value == _allTurkeyRaw ||
-      value == _allTurkeyLabel;
-
-  String _listingSelectionKeyFor(String uid) =>
-      '${_listingSelectionPrefKeyPrefix}_$uid';
-
-  Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
-      listingSelection.value = 0;
-      listingSelectionReady.value = true;
-      return;
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
-      listingSelection.value = stored == 1 ? 1 : 0;
-    } catch (_) {
-      listingSelection.value = 0;
-    } finally {
-      listingSelectionReady.value = true;
-    }
-  }
-
-  Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        _listingSelectionKeyFor(uid),
-        listingSelection.value == 1 ? 1 : 0,
-      );
-    } catch (_) {}
-  }
-
-  @override
-  void onInit() {
-    super.onInit();
-    unawaited(_restoreListingSelection());
-    loadSehirler();
-    unawaited(bootstrapStartData());
-    search.addListener(_searchListener);
-  }
-
-  @override
-  void onClose() {
-    _homeSnapshotSub?.cancel();
-    _deferredLocationTimer?.cancel();
-    innerPageController.dispose();
-    search.dispose();
-    super.onClose();
-  }
-
-  void onInnerTabTap(int index) {
-    innerTabIndex.value = index;
-    innerPageController.jumpToPage(index);
-  }
-
-  void onInnerPageChanged(int index) {
-    innerTabIndex.value = index;
-  }
-
-  void toggleListingSelection() {
-    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
-    unawaited(_persistListingSelection());
-  }
-
-  Future<void> refreshJob(String docID) async {
-    try {
-      final updatedJob = await _jobRepository.fetchById(docID,
-          preferCache: false, forceRefresh: true);
-      if (updatedJob != null) {
-        final index = list.indexWhere((e) => e.docID == docID);
-        if (index != -1) {
-          list[index] = _attachDistance(updatedJob);
-          list.refresh();
-        }
-      }
-    } catch (_) {}
-  }
-
-  void _searchListener() {
-    final query = search.text.trim();
-    if (query.length >= 2) {
-      searchFromTypesense(query);
-    } else {
-      _searchRequestId++;
-      aramaSonucu.clear();
-    }
-  }
-}
+part 'job_finder_controller_lifecycle_part.dart';
+part 'job_finder_controller_support_part.dart';
+part 'job_finder_controller_class_part.dart';

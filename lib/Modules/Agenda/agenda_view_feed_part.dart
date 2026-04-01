@@ -5,52 +5,26 @@ extension _AgendaViewFeedPart on AgendaView {
     return RefreshIndicator(
       backgroundColor: Colors.black,
       color: Colors.white,
-      onRefresh: () async {
-        await controller.refreshAgenda();
-        try {
-          await unreadController.refreshUnreadCount();
-        } catch (e) {
-          print("Unread messages refresh error: $e");
-        }
-        try {
-          await StoryRowController.maybeFind()?.loadStories();
-        } catch (e) {
-          print("Story refresh error: $e");
-        }
-        try {
-          await recommendedController.getUsers();
-        } catch (_) {}
-      },
+      onRefresh: () => runSurfaceRefresh(
+        primaryRefresh: controller.refreshAgenda,
+        backgroundRefreshes: [
+          unreadController.refreshUnreadCount,
+          () async {
+            await maybeFindStoryRowController()?.loadStories();
+          },
+          () async {
+            await recommendedController.getUsers();
+          },
+        ],
+      ),
       child: Obx(() {
-        final _ = controller.mergedFeedEntries.length;
-        final __ = controller.filteredFeedEntries.length;
-        controller.feedViewMode.value;
-        final display = controller.mergedFeedEntries.toList(growable: false);
-        var filteredDisplay =
-            controller.filteredFeedEntries.toList(growable: false);
-        var renderDisplay =
-            controller.renderFeedEntries.toList(growable: false);
+        final display = controller.mergedFeedEntries;
+        final filteredDisplay = controller.filteredFeedEntries;
+        final renderDisplay = controller.renderFeedEntries;
+        final displayCount = display.length;
+        final filteredCount = filteredDisplay.length;
 
-        final shouldFallbackToForYou = display.isNotEmpty &&
-            filteredDisplay.isEmpty &&
-            !controller.isLoading.value &&
-            (controller.isFollowingMode || controller.isCityMode);
-        if (shouldFallbackToForYou) {
-          filteredDisplay = display;
-          renderDisplay = FeedRenderCoordinator.ensure().buildRenderEntries(
-            filteredEntries: filteredDisplay,
-          );
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final agendaController = AgendaController.maybeFind();
-            if (agendaController == null) return;
-            if (agendaController.feedViewMode.value != FeedViewMode.forYou) {
-              agendaController.setFeedViewMode(FeedViewMode.forYou);
-            }
-          });
-        }
-
-        if (display.isEmpty) {
-          unawaited(controller.ensureInitialFeedLoaded());
+        if (displayCount == 0) {
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
@@ -66,7 +40,7 @@ extension _AgendaViewFeedPart on AgendaView {
           );
         }
 
-        if (filteredDisplay.isEmpty) {
+        if (filteredCount == 0) {
           final emptyText = controller.isCityMode
               ? 'feed.empty_city'.tr
               : 'feed.empty_following'.tr;
@@ -90,9 +64,6 @@ extension _AgendaViewFeedPart on AgendaView {
 
             final actualIndex = index - 1;
             if (actualIndex >= renderDisplay.length) {
-              if (controller.hasMore.value && !controller.isLoading.value) {
-                controller.fetchAgendaBigData();
-              }
               return const SizedBox.shrink();
             }
 
@@ -261,44 +232,80 @@ extension _AgendaViewFeedPart on AgendaView {
       });
     }
 
-    return Obx(() {
-      final isCentered = controller.centeredIndex.value == agendaIndex;
-      final viewSelection = CurrentUserService.instance.effectiveViewSelection;
-      if (viewSelection == 1) {
-        return AgendaContent(
-          key: ValueKey(stableKeyString),
-          model: model,
-          isPreview: false,
-          shouldPlay: isCentered,
-          isYenidenPaylasilanPost: isReshare,
-          reshareUserID: reshareUserID,
+    return GetBuilder<AgendaController>(
+      id: controller.feedPlaybackRowUpdateId(model.docID),
+      builder: (agendaController) {
+        final isCentered = agendaController.centeredIndex.value == agendaIndex;
+        final shouldPlay = FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+          isCentered: isCentered,
         );
-      }
-      return ClassicContent(
-        key: ValueKey(stableKeyString),
-        model: model,
-        isPreview: false,
-        shouldPlay: isCentered,
-        isYenidenPaylasilanPost: isReshare,
-        reshareUserID: reshareUserID,
-      );
-    });
+        return Obx(() {
+          final viewSelection =
+              CurrentUserService.instance.effectiveViewSelection;
+          if (viewSelection == 1) {
+            return AgendaContent(
+              key: ValueKey(stableKeyString),
+              model: model,
+              isPreview: false,
+              shouldPlay: shouldPlay,
+              isYenidenPaylasilanPost: isReshare,
+              reshareUserID: reshareUserID,
+            );
+          }
+          return ClassicContent(
+            key: ValueKey(stableKeyString),
+            model: model,
+            isPreview: false,
+            shouldPlay: shouldPlay,
+            isYenidenPaylasilanPost: isReshare,
+            reshareUserID: reshareUserID,
+          );
+        });
+      },
+    );
   }
 
   Widget _buildPromoSlot(Map<String, dynamic> entry) {
     final promoType = (entry['promoType'] ?? '').toString();
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
+    final isModernView =
+        CurrentUserService.instance.effectiveViewSelection == 1;
+    final liveAdOffsetX = isModernView ? 5.0 : 5.0;
+    final edgeInsets = isModernView
+        ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
+        : const EdgeInsets.fromLTRB(5, 8, 5, 0);
     if (promoType == 'ad') {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: AdmobKare(
-          key: ValueKey('agenda-feed-ad-$slotNumber'),
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: edgeInsets,
+            child: AdmobKare(
+              key: ValueKey('agenda-feed-ad-$slotNumber'),
+              contentPadding: EdgeInsets.zero,
+              liveAdOffsetX: liveAdOffsetX,
+              promoFallbackOffsetX: 0,
+              promoFallbackExtraWidth: 0,
+              forceSingleLinePromoChips: true,
+              suggestionPlacementId: 'feed',
+            ),
+          ),
+          if (!isModernView) ...[
+            const SizedBox(height: 7),
+            Divider(
+              color: Colors.grey.withAlpha(20),
+              height: 3,
+            ),
+            const SizedBox(height: 13),
+          ],
+        ],
       );
     }
     final recommendedBatch = (entry['recommendedBatch'] ?? 0) as int;
     return Padding(
-      padding: const EdgeInsets.only(top: 2, bottom: 10),
+      padding: isModernView
+          ? const EdgeInsets.fromLTRB(5, 2, 5, 10)
+          : const EdgeInsets.only(top: 2, bottom: 10),
       child: RecommendedUserList(
         key: ValueKey('recommendedUserList-$recommendedBatch'),
         batch: recommendedBatch,

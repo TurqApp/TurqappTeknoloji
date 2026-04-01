@@ -1,15 +1,11 @@
 class TestReadinessModel {
-  num id;
-  String img;
-  String dogruCevap;
-  num max;
-  String docID;
+  num id, max;
+  String img, dogruCevap, docID;
 
-  TestReadinessModel({
-    required this.id,
-    required this.img,
-    required this.max,
-    required this.dogruCevap,
-    required this.docID,
-  });
+  TestReadinessModel(
+      {required this.id,
+      required this.img,
+      required this.max,
+      required this.dogruCevap,
+      required this.docID});
 }

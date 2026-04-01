@@ -3,12 +3,14 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:video_player/video_player.dart';
+import 'package:turqappv2/Core/Services/post_caption_limits.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -38,7 +40,7 @@ class _EditPostState extends State<EditPost> {
     super.initState();
     model = EditPostModel.fromMap(widget.post.toMap(), widget.post.docID);
     _controllerTag = 'edit_post_${widget.post.docID}_${identityHashCode(this)}';
-    controller = EditPostController.ensure(
+    controller = ensureEditPostController(
       model: model,
       tag: _controllerTag,
     );
@@ -46,7 +48,7 @@ class _EditPostState extends State<EditPost> {
 
   @override
   void dispose() {
-    final existing = EditPostController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindEditPostController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<EditPostController>(tag: _controllerTag);
     }
@@ -118,7 +120,21 @@ class _EditPostState extends State<EditPost> {
                                   ),
                                   child: TextField(
                                     controller: controller.text,
-                                    maxLength: 1000,
+                                    maxLength:
+                                        PostCaptionLimits.forCurrentUser(),
+                                    buildCounter: (
+                                      BuildContext context, {
+                                      required int currentLength,
+                                      required bool isFocused,
+                                      required int? maxLength,
+                                    }) {
+                                      return null;
+                                    },
+                                    inputFormatters: [
+                                      LengthLimitingTextInputFormatter(
+                                        PostCaptionLimits.forCurrentUser(),
+                                      ),
+                                    ],
                                     maxLines: null,
                                     keyboardType: TextInputType.multiline,
                                     decoration: InputDecoration(

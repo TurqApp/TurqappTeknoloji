@@ -5,9 +5,6 @@ class AdmobTesting extends StatelessWidget {
   const AdmobTesting({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(child: AdmobKare()),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: AdmobKare()));
 }

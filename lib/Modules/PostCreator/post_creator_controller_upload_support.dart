@@ -25,15 +25,70 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
     }
   }
 
+  Future<Map<String, String>> _awaitGeneratedPostShortLink(String docID) async {
+    final ref = FirebaseFirestore.instance.collection("Posts").doc(docID);
+    const retryDelays = <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 500),
+      Duration(milliseconds: 900),
+      Duration(milliseconds: 1400),
+    ];
+
+    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        final snap = await ref.get(const GetOptions(source: Source.server));
+        final data = snap.data() ?? const <String, dynamic>{};
+        final shortId = (data["shortId"] ?? "").toString().trim();
+        final shortUrl = (data["shortUrl"] ?? "").toString().trim();
+        if (shortUrl.isNotEmpty) {
+          return {
+            "shortId": shortId,
+            "shortUrl": shortUrl,
+          };
+        }
+      } catch (_) {}
+
+      if (attempt < retryDelays.length) {
+        await Future<void>.delayed(retryDelays[attempt]);
+      }
+    }
+
+    return const <String, String>{};
+  }
+
+  Future<void> _hydrateUploadedPostShortLinks(
+    List<PostsModel> posts, {
+    AgendaController? agendaController,
+  }) async {
+    if (posts.isEmpty) return;
+
+    var changed = false;
+    for (final post in posts) {
+      if (post.docID.trim().isEmpty || post.shortUrl.trim().isNotEmpty) {
+        continue;
+      }
+      final resolved = await _awaitGeneratedPostShortLink(post.docID);
+      final shortUrl = (resolved["shortUrl"] ?? "").trim();
+      if (shortUrl.isEmpty) continue;
+      post.shortId = (resolved["shortId"] ?? "").trim();
+      post.shortUrl = shortUrl;
+      changed = true;
+    }
+
+    if (!changed) return;
+    agendaController?.agendaList.refresh();
+    await persistUploadedPostsToHomeFeed(posts);
+  }
+
   Future<void> _preparePostShellForStorageUpload({
     required String docID,
     required String uid,
-    required int nowMs,
+    required int timeStamp,
   }) async {
     final ref = FirebaseFirestore.instance.collection("Posts").doc(docID);
     await ref.set({
       "userID": uid,
-      "timeStamp": nowMs,
+      "timeStamp": timeStamp,
       "isUploading": true,
       "hlsStatus": "none",
     }, SetOptions(merge: true));
@@ -88,5 +143,5 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
     throw lastError!;
   }
 
-  NavBarController? _maybeNavBarController() => NavBarController.maybeFind();
+  NavBarController? _maybeNavBarController() => maybeFindNavBarController();
 }

@@ -1,6 +1,33 @@
 part of 'agenda_content.dart';
 
 extension _AgendaContentQuotePart on _AgendaContentState {
+  double _quotedPhotoPreviewAspectRatio() {
+    final raw = widget.model.aspectRatio.toDouble();
+    if (raw.isFinite && raw > 0) return raw;
+    return _quotedFeedPreviewAspectRatio();
+  }
+
+  double _quotedFeedPreviewAspectRatio() {
+    if (_isIzBirakPost) return 0.92;
+    if (widget.model.floodCount > 1) return 1.0;
+    if (widget.model.hasPlayableVideo) return 0.80;
+
+    final type = _AgendaContentState._ctaNavigationService
+        .resolveMeta(widget.model.reshareMap)
+        .type;
+    switch (type) {
+      case 'market':
+      case 'practice-exam':
+      case 'tutoring':
+      case 'job':
+        return 1.0;
+      case 'scholarship':
+        return 4 / 3;
+      default:
+        return 0.80;
+    }
+  }
+
   void _refreshQuotedSourceFuture() {
     final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
         ? widget.model.quotedSourceUserID.trim()
@@ -15,7 +42,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
       return;
     }
 
-    final profileCache = UserProfileCacheService.ensure();
+    final profileCache = ensureUserProfileCacheService();
     final postRepository = PostRepository.ensure();
 
     _quotedSourceFuture = Future.wait<dynamic>([
@@ -48,10 +75,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 const SizedBox(width: 3),
                 Text(
                   widget.model.konum,
-                  style: const TextStyle(
+                  style: AppTypography.postMeta.copyWith(
                     color: Colors.black,
-                    fontSize: 13,
-                    fontFamily: "MontserratMedium",
                   ),
                 ),
               ],
@@ -65,7 +90,11 @@ extension _AgendaContentQuotePart on _AgendaContentState {
         Padding(
           padding: EdgeInsets.only(top: actionTopSpacing),
           child: Obx(() {
-            if (_currentUid.isEmpty) return const SizedBox.shrink();
+            final currentUser = controller.userService.currentUserRx.value;
+            final me = currentUser?.userID.trim().isNotEmpty == true
+                ? currentUser!.userID.trim()
+                : controller.userService.effectiveUserId.trim();
+            if (me.isEmpty) return const SizedBox.shrink();
             return Transform.translate(
               offset: const Offset(17, 0),
               child: SizedBox(
@@ -73,37 +102,27 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: commentButton(context)),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: likeButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: reshareButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: statButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: saveButton()),
-                        )),
-                    SizedBox(width: 58, child: Center(child: sendButton())),
+                    _buildActionSlot(
+                      commentButton(context),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      likeButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      reshareButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      statButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      saveButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(sendButton()),
                   ],
                 ),
               ),
@@ -141,11 +160,9 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                       quotedText,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF3A434D),
-                        fontSize: 13,
+                      style: AppTypography.postCaption.copyWith(
+                        color: const Color(0xFF3A434D),
                         height: 1.35,
-                        fontFamily: "Montserrat",
                       ),
                     ),
                   ],
@@ -246,10 +263,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                       displayName.isEmpty ? 'common.user'.tr : displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppTypography.postName.copyWith(
                         color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold",
                       ),
                     ),
                   ),
@@ -260,10 +275,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                         '@$username',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: AppTypography.postHandle.copyWith(
                           color: Colors.grey,
-                          fontSize: 15,
-                          fontFamily: "Montserrat",
                         ),
                       ),
                     ),
@@ -277,10 +290,8 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                         displayTime,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: AppTypography.postMeta.copyWith(
                           color: Colors.grey,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
                         ),
                       ),
                     ),
@@ -310,11 +321,10 @@ extension _AgendaContentQuotePart on _AgendaContentState {
     switch (images.length) {
       case 1:
         return AspectRatio(
-          aspectRatio: 0.80,
+          aspectRatio: _quotedPhotoPreviewAspectRatio(),
           child: _buildImage(
             images[0],
             radius: BorderRadius.circular(12),
-            showShareCta: false,
           ),
         );
       case 2:
@@ -334,7 +344,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
-          aspectRatio: 0.80,
+          aspectRatio: _quotedFeedPreviewAspectRatio(),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -353,6 +363,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 const ColoredBox(
                   color: _AgendaContentState._videoFallbackColor,
                 ),
+              if (_hasEducationFeedCta()) _buildFeedShareCta(),
               Positioned.fill(
                 child: Center(
                   child: Container(
@@ -425,14 +436,17 @@ extension _AgendaContentQuotePart on _AgendaContentState {
 
       if (model.floodCount > 1) {
         _suspendAgendaFeedForRoute();
-        await Get.to(() => FloodListing(mainModel: model));
+        await Get.to(() => FloodListing(
+              mainModel: model,
+              hostSurface: widget.floodHostSurface,
+            ));
         _restoreAgendaFeedCenter();
         return;
       }
 
       _suspendAgendaFeedForRoute();
       try {
-        videoStateManager.pauseAllVideos(force: true);
+        playbackRuntimeService.pauseAll(force: true);
       } catch (_) {}
       try {
         agendaController.pauseAll.value = false;
@@ -488,7 +502,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
 
     if (sourceUserId.isNotEmpty) {
       try {
-        final profileCache = UserProfileCacheService.ensure();
+        final profileCache = ensureUserProfileCacheService();
         final profile = (await profileCache.getProfile(
               sourceUserId,
               preferCache: true,

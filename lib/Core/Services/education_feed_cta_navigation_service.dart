@@ -20,11 +20,11 @@ class EducationFeedCtaNavigationService {
 
   UserRepository get _userRepository => UserRepository.ensure();
   PracticeExamRepository get _practiceExamRepository =>
-      PracticeExamRepository.ensure();
+      ensurePracticeExamRepository();
   ScholarshipRepository get _scholarshipRepository =>
-      ScholarshipRepository.ensure();
+      ensureScholarshipRepository();
   NotifyLookupRepository get _notifyLookupRepository =>
-      NotifyLookupRepository.ensure();
+      ensureNotifyLookupRepository();
 
   Future<bool> openFromInternalUrl(String url) async {
     final target = _parseInternalEducationTarget(url);
@@ -71,8 +71,8 @@ class EducationFeedCtaNavigationService {
     }
 
     final resolved = resolveMeta(meta ?? const <String, dynamic>{});
-    final hasEducationCta = resolved.type.isNotEmpty ||
-        isTurqAppEducationLink(normalized);
+    final hasEducationCta =
+        resolved.type.isNotEmpty || isTurqAppEducationLink(normalized);
     if (!hasEducationCta) {
       return normalized;
     }
@@ -131,7 +131,8 @@ class EducationFeedCtaNavigationService {
         await _openMarket(docId);
         return;
       default:
-        AppSnackbar('common.error'.tr, 'education_feed.content_type_unsupported'.tr);
+        AppSnackbar(
+            'common.error'.tr, 'education_feed.content_type_unsupported'.tr);
     }
   }
 
@@ -260,7 +261,7 @@ class EducationFeedCtaNavigationService {
   }
 
   Future<void> _openMarket(String docId) async {
-    final item = await MarketRepository.ensure().fetchById(
+    final item = await ensureMarketRepository().fetchById(
       docId,
       preferCache: true,
     );

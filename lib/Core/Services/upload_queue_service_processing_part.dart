@@ -1,6 +1,33 @@
 part of 'upload_queue_service.dart';
 
 extension UploadQueueServiceProcessingPart on UploadQueueService {
+  bool _uploadQueueProcessingAsBool(
+    Object? value, {
+    required bool fallback,
+  }) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+    return fallback;
+  }
+
+  int _uploadQueueProcessingAsInt(Object? value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final normalized = value?.toString().trim() ?? '';
+    if (normalized.isEmpty) return fallback;
+    return int.tryParse(normalized) ??
+        num.tryParse(normalized)?.toInt() ??
+        fallback;
+  }
+
   Future<void> _performRefreshAuthTokenIfNeeded() async {
     try {
       await CurrentUserService.instance.refreshAuthTokenIfNeeded();
@@ -17,162 +44,10 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
     try {
       return await ref.putFile(file, metadata);
     } on FirebaseException catch (e) {
-      if (!_isAuthRetryableStorageError(e)) rethrow;
-      await _refreshAuthTokenIfNeeded();
+      if (!_isUploadQueueAuthRetryableStorageError(e)) rethrow;
+      await _performRefreshAuthTokenIfNeeded();
       return await ref.putFile(file, metadata);
     }
-  }
-
-  Future<void> _performCreatePendingPostShell(QueuedUpload upload) async {
-    final postDataMap = jsonDecode(upload.postData) as Map<String, dynamic>;
-    final String userID = _resolveActiveUserId(postDataMap);
-    if (userID.isEmpty) return;
-
-    final String text = (postDataMap['text'] ?? '')
-        .toString()
-        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
-        .trim();
-    final String location = (postDataMap['location'] ?? '').toString().trim();
-    final Map<String, dynamic> yorumMap =
-        Map<String, dynamic>.from(postDataMap['yorumMap'] ?? {});
-    final Map<String, dynamic> reshareMap =
-        Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
-    final Map<String, dynamic> poll =
-        Map<String, dynamic>.from(postDataMap['poll'] ?? {});
-    final bool sharedAsPost = (postDataMap['sharedAsPost'] ?? false) == true;
-    final String originalUserID =
-        (postDataMap['originalUserID'] ?? '').toString().trim();
-    final String originalPostID =
-        (postDataMap['originalPostID'] ?? '').toString().trim();
-    final String sourcePostID =
-        (postDataMap['sourcePostID'] ?? '').toString().trim();
-    final bool quotedPost = (postDataMap['quotedPost'] ?? false) == true;
-    final String quotedOriginalText =
-        (postDataMap['quotedOriginalText'] ?? '').toString().trim();
-    final String quotedSourceUserID =
-        (postDataMap['quotedSourceUserID'] ?? '').toString().trim();
-    final String quotedSourceDisplayName =
-        (postDataMap['quotedSourceDisplayName'] ?? '').toString().trim();
-    final String quotedSourceUsername =
-        (postDataMap['quotedSourceUsername'] ?? '').toString().trim();
-    final String quotedSourceAvatarUrl =
-        (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
-    final currentUser = CurrentUserService.instance;
-    final String authorNickname = _firstNonEmptyValue([
-      normalizeHandleInput(postDataMap['nickname']?.toString() ?? ''),
-      normalizeHandleInput(postDataMap['authorNickname']?.toString() ?? ''),
-      normalizeHandleInput(currentUser.nickname),
-    ]);
-    final String username = _firstNonEmptyValue([
-      normalizeHandleInput(postDataMap['username']?.toString() ?? ''),
-    ]);
-    final String fullName = _firstNonEmptyValue([
-      postDataMap['fullName'],
-      postDataMap['authorDisplayName'],
-      postDataMap['displayName'],
-      currentUser.fullName,
-      authorNickname,
-    ]);
-    final String authorDisplayName = _firstNonEmptyValue([
-      postDataMap['authorDisplayName'],
-      postDataMap['displayName'],
-      fullName,
-      authorNickname,
-    ]);
-    final String authorAvatarUrl =
-        (postDataMap['authorAvatarUrl'] ?? currentUser.avatarUrl)
-            .toString()
-            .trim();
-    final String authorRozet = _firstNonEmptyValue([
-      postDataMap['rozet'],
-      currentUser.currentUser?.rozet.trim() ?? '',
-    ]);
-    final int scheduledAt =
-        int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
-
-    bool flood = false;
-    String mainFlood = '';
-    try {
-      final idxStr = upload.id.substring(upload.id.lastIndexOf('_') + 1);
-      final idx = int.tryParse(idxStr) ?? 0;
-      flood = idx != 0;
-      if (flood) {
-        final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-        mainFlood = '${base}_0';
-      }
-    } catch (_) {}
-
-    int floodCount = 1;
-    try {
-      final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-      floodCount = _queue.where((q) => q.id.startsWith('${base}_')).length;
-      if (floodCount <= 0) floodCount = 1;
-    } catch (_) {}
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final publishTime = scheduledAt != 0 ? scheduledAt : nowMs;
-
-    await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
-      "arsiv": true,
-      "debugMode": false,
-      "deletedPost": false,
-      "deletedPostTime": 0,
-      "flood": flood,
-      "floodCount": floodCount,
-      "gizlendi": false,
-      "img": const <String>[],
-      "imgMap": const <Map<String, dynamic>>[],
-      "isAd": false,
-      "ad": false,
-      "izBirakYayinTarihi": publishTime,
-      "konum": location,
-      "mainFlood": mainFlood,
-      "metin": text,
-      "scheduledAt": scheduledAt,
-      "sikayetEdildi": false,
-      "stabilized": false,
-      "stats": {
-        "commentCount": 0,
-        "likeCount": 0,
-        "reportedCount": 0,
-        "retryCount": 0,
-        "savedCount": 0,
-        "statsCount": 0
-      },
-      "tags": const <String>[],
-      "thumbnail": "",
-      "timeStamp": nowMs,
-      "userID": userID,
-      "authorNickname": authorNickname,
-      "authorDisplayName": authorDisplayName,
-      "authorAvatarUrl": authorAvatarUrl,
-      "nickname": authorNickname,
-      "username": username,
-      "fullName": fullName,
-      "displayName": authorDisplayName,
-      "avatarUrl": authorAvatarUrl,
-      "rozet": authorRozet,
-      "video": "",
-      "isUploading": true,
-      "yorumMap": yorumMap,
-      "reshareMap": reshareMap,
-      if (poll.isNotEmpty) "poll": poll,
-      "originalUserID": sharedAsPost ? originalUserID : "",
-      "originalPostID": sharedAsPost ? originalPostID : "",
-      "sourcePostID": sharedAsPost ? sourcePostID : "",
-      "sharedAsPost": sharedAsPost,
-      "quotedPost": sharedAsPost ? quotedPost : false,
-      "quotedOriginalText":
-          (sharedAsPost && quotedPost) ? quotedOriginalText : "",
-      "quotedSourceUserID":
-          (sharedAsPost && quotedPost) ? quotedSourceUserID : "",
-      "quotedSourceDisplayName":
-          (sharedAsPost && quotedPost) ? quotedSourceDisplayName : "",
-      "quotedSourceUsername":
-          (sharedAsPost && quotedPost) ? quotedSourceUsername : "",
-      "quotedSourceAvatarUrl":
-          (sharedAsPost && quotedPost) ? quotedSourceAvatarUrl : "",
-    }, SetOptions(merge: true));
   }
 
   void _performProcessQueue() async {
@@ -220,7 +95,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           .trim();
       final String location = (postDataMap['location'] ?? '').toString();
       final String gif = (postDataMap['gif'] ?? '').toString();
-      final String userID = _resolveActiveUserId(postDataMap);
+      final String userID = _resolveUploadQueueActiveUserId(postDataMap);
       if (userID.isEmpty) {
         throw Exception('userID boş: upload sırasında oturum bulunamadı');
       }
@@ -230,14 +105,20 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
       final Map<String, dynamic> poll =
           Map<String, dynamic>.from(postDataMap['poll'] ?? {});
-      final bool sharedAsPost = (postDataMap['sharedAsPost'] ?? false) == true;
+      final bool sharedAsPost = _uploadQueueProcessingAsBool(
+        postDataMap['sharedAsPost'],
+        fallback: false,
+      );
       final String originalUserID =
           (postDataMap['originalUserID'] ?? '').toString().trim();
       final String originalPostID =
           (postDataMap['originalPostID'] ?? '').toString().trim();
       final String sourcePostID =
           (postDataMap['sourcePostID'] ?? '').toString().trim();
-      final bool quotedPost = (postDataMap['quotedPost'] ?? false) == true;
+      final bool quotedPost = _uploadQueueProcessingAsBool(
+        postDataMap['quotedPost'],
+        fallback: false,
+      );
       final String quotedOriginalText =
           (postDataMap['quotedOriginalText'] ?? '').toString().trim();
       final String quotedSourceUserID =
@@ -249,22 +130,22 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       final String quotedSourceAvatarUrl =
           (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
       final currentUser = CurrentUserService.instance;
-      final String authorNickname = _firstNonEmptyValue([
+      final String authorNickname = _uploadQueueFirstNonEmptyValue([
         normalizeHandleInput(postDataMap['nickname']?.toString() ?? ''),
         normalizeHandleInput(postDataMap['authorNickname']?.toString() ?? ''),
         normalizeHandleInput(currentUser.nickname),
       ]);
-      final String username = _firstNonEmptyValue([
+      final String username = _uploadQueueFirstNonEmptyValue([
         normalizeHandleInput(postDataMap['username']?.toString() ?? ''),
       ]);
-      final String fullName = _firstNonEmptyValue([
+      final String fullName = _uploadQueueFirstNonEmptyValue([
         postDataMap['fullName'],
         postDataMap['authorDisplayName'],
         postDataMap['displayName'],
         currentUser.fullName,
         authorNickname,
       ]);
-      final String authorDisplayName = _firstNonEmptyValue([
+      final String authorDisplayName = _uploadQueueFirstNonEmptyValue([
         postDataMap['authorDisplayName'],
         postDataMap['displayName'],
         fullName,
@@ -274,31 +155,38 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           (postDataMap['authorAvatarUrl'] ?? currentUser.avatarUrl)
               .toString()
               .trim();
-      final String authorRozet = _firstNonEmptyValue([
+      final String authorRozet = _uploadQueueFirstNonEmptyValue([
         postDataMap['rozet'],
         currentUser.currentUser?.rozet.trim() ?? '',
       ]);
       if (yorumMap.isEmpty) {
-        final bool comment = (postDataMap['comment'] ?? true) == true;
+        final bool comment = _uploadQueueProcessingAsBool(
+          postDataMap['comment'],
+          fallback: true,
+        );
         yorumMap['visibility'] = comment ? 0 : 3;
       }
       if (reshareMap.isEmpty) {
-        final int paylasGizliligi =
-            int.tryParse('${postDataMap['paylasGizliligi'] ?? 0}') ?? 0;
+        final int paylasGizliligi = _uploadQueueProcessingAsInt(
+          postDataMap['paylasGizliligi'],
+        );
         reshareMap['visibility'] = paylasGizliligi;
       }
-      final int scheduledAt =
-          int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
+      final int scheduledAt = _uploadQueueProcessingAsInt(
+        postDataMap['scheduledAt'],
+      );
+      final int postTimeStamp = _uploadQueueProcessingAsInt(
+        postDataMap['timeStamp'],
+      );
 
       bool flood = false;
       String mainFlood = '';
       try {
         final idxStr = upload.id.substring(upload.id.lastIndexOf('_') + 1);
-        final idx = int.tryParse(idxStr) ?? 0;
+        final idx = _uploadQueueProcessingAsInt(idxStr);
         flood = idx != 0;
         if (flood) {
-          final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-          mainFlood = '${base}_0';
+          mainFlood = '${upload.id}_0';
         }
       } catch (_) {}
 
@@ -310,7 +198,9 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       } catch (_) {}
 
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final publishTime = scheduledAt != 0 ? scheduledAt : nowMs;
+      final publishTime = scheduledAt != 0
+          ? scheduledAt
+          : (postTimeStamp != 0 ? postTimeStamp : nowMs);
 
       for (final imagePath in upload.imagePaths) {
         final file = File(imagePath);
@@ -356,7 +246,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           final effectiveVideoFile = checkedVideoFile ?? rawVideoFile;
 
           final videoSize = await effectiveVideoFile.length();
-          if (videoSize > UploadQueueService._maxVideoBytesForStorageRule) {
+          if (videoSize > _maxVideoBytesForStorageRule) {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'upload_queue.video_too_large'.tr;
             await FirebaseFirestore.instance
@@ -437,7 +327,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         },
         "tags": const <String>[],
         "thumbnail": "",
-        "timeStamp": nowMs,
+        "timeStamp": postTimeStamp != 0 ? postTimeStamp : publishTime,
         "userID": userID,
         "authorNickname": authorNickname,
         "authorDisplayName": authorDisplayName,
@@ -528,7 +418,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
             debugPrint('[UploadPreflight][Queue] postExists=${postDoc.exists}');
           }
 
-          final uploadTask = await _putFileWithAuthRetry(
+          final uploadTask = await _performPutFileWithAuthRetry(
             ref: ref,
             file: videoFile,
             metadata: SettableMetadata(
@@ -672,7 +562,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         },
         "tags": flood ? [] : allTags,
         "thumbnail": thumbnailUrl,
-        "timeStamp": nowMs,
+        "timeStamp": postTimeStamp != 0 ? postTimeStamp : publishTime,
         "userID": userID,
         "video": videoUrl,
         "isUploading": false,
@@ -701,6 +591,15 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           .doc(upload.id)
           .set(data, SetOptions(merge: true));
       PostRepository.ensure().mergeCachedPostData(upload.id, data);
+      if (!flood && scheduledAt == 0) {
+        try {
+          if (CurrentUserService.instance.effectiveUserId.trim() == userID) {
+            await CurrentUserService.instance.applyLocalCounterDelta(
+              postsDelta: 1,
+            );
+          }
+        } catch (_) {}
+      }
       unawaited(
         TypesensePostService.instance
             .syncPostById(upload.id)
@@ -748,7 +647,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
     } catch (e) {
       upload.retryCount++;
 
-      if (upload.retryCount >= UploadQueueService._maxRetries) {
+      if (upload.retryCount >= _maxRetries) {
         upload.status = UploadStatus.failed;
         upload.errorMessage = e.toString();
         _failedCount.value++;
@@ -761,7 +660,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       } else {
         upload.status = UploadStatus.pending;
         upload.errorMessage =
-            'Retry ${upload.retryCount}/${UploadQueueService._maxRetries}: ${e.toString()}';
+            'Retry ${upload.retryCount}/$_maxRetries: ${e.toString()}';
 
         await Future.delayed(Duration(seconds: upload.retryCount * 2));
       }

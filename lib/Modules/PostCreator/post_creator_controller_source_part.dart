@@ -1,6 +1,32 @@
 part of 'post_creator_controller.dart';
 
 extension PostCreatorControllerSourcePart on PostCreatorController {
+  Future<String> _normalizeSharedOriginalPostId({
+    required String originalPostId,
+    required String sourcePostId,
+  }) async {
+    final original = originalPostId.trim();
+    final source = sourcePostId.trim();
+    final candidate = source.isNotEmpty ? source : original;
+    if (candidate.isEmpty) return original;
+
+    final raw = await _postRepository.fetchPostRawById(
+          candidate,
+          preferCache: true,
+        ) ??
+        const <String, dynamic>{};
+    if (raw.isEmpty) {
+      return original;
+    }
+
+    final mainFlood = (raw['mainFlood'] ?? '').toString().trim();
+    final isFlood = raw['flood'] == true;
+    if (isFlood && mainFlood.isNotEmpty) {
+      return mainFlood;
+    }
+    return original.isNotEmpty ? original : candidate;
+  }
+
   Future<String> resolveQuoteCounterTargetPostId() async {
     final sourcePostId = _sharedSourcePostID.trim();
     final originalPostId = _sharedOriginalPostID.trim();
@@ -86,9 +112,14 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     _sharedSourceApplied = true;
     _sharedSourceFingerprint = fingerprint;
 
+    final normalizedOriginalPostId = await _normalizeSharedOriginalPostId(
+      originalPostId: (originalPostID ?? '').trim(),
+      sourcePostId: (sourcePostID ?? '').trim(),
+    );
+
     _isSharedAsPost = true;
     _sharedOriginalUserID = (originalUserID ?? '').trim();
-    _sharedOriginalPostID = (originalPostID ?? '').trim();
+    _sharedOriginalPostID = normalizedOriginalPostId;
     _sharedSourcePostID = (sourcePostID ?? '').trim();
     _isQuotedPost = quotedPost;
     _quotedOriginalText = (quotedOriginalText ?? '').trim();
@@ -99,7 +130,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     await _hydrateQuotedSourceIfNeeded();
 
     const tag = '0';
-    final c = CreatorContentController.ensure(tag: tag);
+    final c = ensureCreatorContentController(tag: tag);
     if (cleanUrl.isNotEmpty) {
       await c.setReusedVideoSource(
         videoUrl: cleanUrl,
@@ -132,7 +163,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     paylasimSelection.value = editPost.paylasimVisibility;
 
     const tag = '0';
-    final c = CreatorContentController.ensure(tag: tag);
+    final c = ensureCreatorContentController(tag: tag);
     c.textEdit.text = editPost.metin;
     c.textEdit.selection = TextSelection.fromPosition(
       TextPosition(offset: c.textEdit.text.length),
@@ -151,7 +182,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     }
 
     const tag = '0';
-    final c = CreatorContentController.maybeFind(tag: tag);
+    final c = maybeFindCreatorContentController(tag: tag);
     if (c == null) {
       AppSnackbar(
         'common.error'.tr,
@@ -197,7 +228,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
             .update(update);
       }
 
-      final agenda = AgendaController.maybeFind();
+      final agenda = maybeFindAgendaController();
       if (agenda != null) {
         final idx = agenda.agendaList
             .indexWhere((e) => e.docID == docID || e.docID == targetDocID);

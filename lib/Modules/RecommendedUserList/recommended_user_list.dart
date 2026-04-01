@@ -22,10 +22,13 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   @override
   void initState() {
     super.initState();
-    controller = RecommendedUserListController.ensure();
+    controller = ensureRecommendedUserListController();
     _scrollController = ScrollController(keepScrollOffset: false);
     // İlk frame’den sonra görünürlüğe yakınsa prefetch et
-    WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _tryPrefetch();
+    });
   }
 
   @override
@@ -37,17 +40,16 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   @override
   Widget build(BuildContext context) {
     // Her build sonrası konumu tekrar kontrol et (scroll ile tetiklenir)
-    WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _tryPrefetch();
+    });
 
     return Obx(() {
-      // Slot akışta sabit kalsın; veri gelene kadar placeholder göster.
-      if (controller.list.isEmpty && !controller.hasError.value) {
-        return _buildLoadingPlaceholder();
-      }
-
-      // Hata varsa sessizce gizle
+      // Slot akışta sabit kalsın; ilk yük ve geçici hata anlarında
+      // akışı boş bırakmak yerine placeholder korunsun.
       if (controller.list.isEmpty) {
-        return const SizedBox.shrink();
+        return _buildLoadingPlaceholder();
       }
 
       final List<RecommendedUserModel> items = controller.list;
@@ -105,7 +107,12 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   }
 
   void _tryPrefetch() {
+    if (!mounted) return;
     if (_prefetchRequested) return;
+    if (controller.list.length >= controller.usersWarmCount) {
+      _prefetchRequested = true;
+      return;
+    }
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.attached) return;
     final pos = box.localToGlobal(Offset.zero);
@@ -115,7 +122,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     if (pos.dy < screenH + lookahead) {
       _prefetchRequested = true;
       try {
-        controller.ensureLoaded(limit: controller.usersLimitInitial);
+        controller.ensureLoaded(limit: controller.usersWarmCount);
       } catch (_) {
         _prefetchRequested = false; // controller bulunamazsa tekrar dene
       }

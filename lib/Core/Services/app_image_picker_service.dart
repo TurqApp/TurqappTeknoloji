@@ -50,11 +50,8 @@ class AppImagePickerService {
     BuildContext context, {
     required int maxAssets,
   }) async {
-    if (Platform.isAndroid) {
-      final photoStatus = await Permission.photos.request();
-      if (photoStatus.isDenied || photoStatus.isPermanentlyDenied) {
-        return <File>[];
-      }
+    if (!await _ensureVideoPermission()) {
+      return <File>[];
     }
     final picked = await _picker.pickMultipleMedia(limit: maxAssets);
     if (picked.isEmpty) return <File>[];
@@ -66,14 +63,23 @@ class AppImagePickerService {
   }
 
   static Future<File?> pickSingleVideo(BuildContext context) async {
-    if (Platform.isAndroid) {
-      final photoStatus = await Permission.photos.request();
-      if (photoStatus.isDenied || photoStatus.isPermanentlyDenied) {
-        return null;
-      }
+    if (!await _ensureVideoPermission()) {
+      return null;
     }
-    final files = await pickVideos(context, maxAssets: 1);
-    if (files.isEmpty) return null;
-    return files.first;
+    final picked = await _picker.pickVideo(source: ImageSource.gallery);
+    if (picked == null) return null;
+    return File(picked.path);
+  }
+
+  static Future<bool> _ensureVideoPermission() async {
+    if (!Platform.isAndroid) return true;
+
+    final videoStatus = await Permission.videos.request();
+    if (videoStatus.isGranted || videoStatus.isLimited) {
+      return true;
+    }
+
+    final photoStatus = await Permission.photos.request();
+    return photoStatus.isGranted || photoStatus.isLimited;
   }
 }

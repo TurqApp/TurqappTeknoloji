@@ -5,6 +5,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
@@ -36,6 +37,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SinavHazirla/sinav_haz
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSonuclarim/sinav_sonuclarim.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular.dart';
+import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_soru_sonuclar.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_view.dart';
@@ -70,12 +72,16 @@ part 'education_view_body_part.dart';
 class EducationView extends StatelessWidget {
   EducationView({super.key});
 
-  final EducationController controller = EducationController.ensure(
+  final EducationController controller = ensureEducationController(
     permanent: true,
   );
 
   @override
   Widget build(BuildContext context) {
-    return _buildEducationScaffold(context);
+    controller.ensureVisibleSurfaceReset();
+    return SearchResetOnPageReturnScope(
+      onReset: controller.resetVisibleSearchOnReturn,
+      child: _buildEducationScaffold(context),
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:turqappv2/Core/Services/Ads/ads_feature_flags_service.dart';
+import 'package:turqappv2/Core/Services/Ads/ads_admin_guard.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 
 class AdSlotService {
@@ -6,39 +7,25 @@ class AdSlotService {
 
   AdSlot buildFeedSlot(int index) {
     final enabled = _isEnabledForPlacement(AdPlacementType.feed);
-    return AdSlot(
-      slotId: 'feed_$index',
-      placement: AdPlacementType.feed,
-      indexHint: index,
-      enabled: enabled,
-    );
+    return AdSlot('feed_$index', AdPlacementType.feed, index, enabled);
   }
 
   AdSlot buildShortsSlot(int index) {
     final enabled = _isEnabledForPlacement(AdPlacementType.shorts);
-    return AdSlot(
-      slotId: 'shorts_$index',
-      placement: AdPlacementType.shorts,
-      indexHint: index,
-      enabled: enabled,
-    );
+    return AdSlot('shorts_$index', AdPlacementType.shorts, index, enabled);
   }
 
   AdSlot buildExploreSlot(int index) {
     final enabled = _isEnabledForPlacement(AdPlacementType.explore);
-    return AdSlot(
-      slotId: 'explore_$index',
-      placement: AdPlacementType.explore,
-      indexHint: index,
-      enabled: enabled,
-    );
+    return AdSlot('explore_$index', AdPlacementType.explore, index, enabled);
   }
 
   bool _isEnabledForPlacement(AdPlacementType _) {
-    final flags = AdsFeatureFlagsService.to.flags.value;
-    // Public visibility kapalıysa kullanıcıya inject etme.
+    final flags = ensureAdsFeatureFlagsService().flags.value;
+    final allowAdminTest =
+        flags.adsAdminTestModeEnabled && AdsAdminGuard.canAccessAdsCenterSync();
     return flags.adsInfrastructureEnabled &&
         flags.adsDeliveryEnabled &&
-        flags.adsPublicVisibilityEnabled;
+        (flags.adsPublicVisibilityEnabled || allowAdminTest);
   }
 }

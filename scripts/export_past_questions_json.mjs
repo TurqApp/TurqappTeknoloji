@@ -38,6 +38,16 @@ function asInt(value) {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
 }
 
+function asEpochMillis(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value > 1e12 ? Math.trunc(value) : Math.trunc(value * 1000);
+  }
+  if (value && typeof value.toMillis === 'function') return value.toMillis();
+  if (value && typeof value._seconds === 'number') return value._seconds * 1000;
+  if (value && typeof value.seconds === 'number') return value.seconds * 1000;
+  return 0;
+}
+
 function buildQuestionItem(doc) {
   const data = doc.data() || {};
   return {
@@ -47,9 +57,46 @@ function buildQuestionItem(doc) {
     iptal: asBool(data.iptal),
     kacCevap: asInt(data.kacCevap),
     soru: asString(data.soru),
+    soruFormat: asString(data.soruFormat),
     soruNo: asString(data.soruNo),
     soruStoragePath: asString(data.soruStoragePath),
   };
+}
+
+function buildManifestItem(doc) {
+  const data = doc.data() || {};
+  return {
+    _docId: doc.id,
+    anaBaslik: asString(data.anaBaslik),
+    sinavTuru: asString(data.sinavTuru),
+    yil: asString(data.yil),
+    baslik2: asString(data.baslik2),
+    baslik3: asString(data.baslik3),
+    dil: asString(data.dil),
+    sira: asInt(data.sira),
+    title: asString(data.title),
+    subtitle: asString(data.subtitle),
+    description: asString(data.description),
+    cover: asString(data.cover) || asString(data.soru) || asString(data.img),
+    timeStamp: asEpochMillis(data.timeStamp) || asEpochMillis(data.createdDate),
+    active: data.active === false ? false : true,
+    iptal: asBool(data.iptal),
+    deleted: asBool(data.deleted),
+    questionJsonPath: `questions/${doc.id}/questions.json`,
+  };
+}
+
+function compareManifestItems(a, b) {
+  const seqA = asInt(a.sira);
+  const seqB = asInt(b.sira);
+  const bySeq = seqA - seqB;
+  if (bySeq !== 0) return bySeq;
+  return asInt(b.timeStamp) - asInt(a.timeStamp);
+}
+
+function isActiveManifestItem(item) {
+  if (item.active === false) return false;
+  return item.iptal !== true && item.deleted !== true;
 }
 
 async function readQuestionDocs(rootRef) {
@@ -81,6 +128,7 @@ async function run() {
   let exported = 0;
   let skipped = 0;
   let lastDoc = null;
+  const manifestItems = [];
 
   if (startAfterId) {
     const startDoc = await rootCol.doc(startAfterId).get();
@@ -97,6 +145,10 @@ async function run() {
 
     for (const doc of snap.docs) {
       scanned += 1;
+      const manifestItem = buildManifestItem(doc);
+      if (isActiveManifestItem(manifestItem)) {
+        manifestItems.push(manifestItem);
+      }
       const path = `questions/${doc.id}/questions.json`;
       const exists = overwrite ? false : await remoteJsonExists(path);
       if (exists) {
@@ -126,10 +178,22 @@ async function run() {
     }
   }
 
+  manifestItems.sort(compareManifestItems);
+
+  const canWriteManifest = !isDryRun && !limit && !startAfterId;
+  if (canWriteManifest) {
+    await writeJson('questions/questions_manifest.json', {
+      type: 'past_questions_root_manifest',
+      exportedAt: Date.now(),
+      count: manifestItems.length,
+      items: manifestItems,
+    });
+  }
+
   console.log(
     isDryRun
       ? `Dry run complete. Would export ${exported} question sets, skipped ${skipped}, scanned ${scanned}.`
-      : `Export complete. Exported ${exported} question sets, skipped ${skipped}, scanned ${scanned}.`
+      : `Export complete. Exported ${exported} question sets, skipped ${skipped}, scanned ${scanned}.${canWriteManifest ? ` Wrote questions/questions_manifest.json (${manifestItems.length} items).` : ' Manifest write skipped (partial run or dry-run).'}`,
   );
 }
 

@@ -4,28 +4,15 @@ extension _DenemeGridActionsPart on DenemeGrid {
   Future<void> _shareExternally() async {
     await ShareActionGuard.run(() async {
       final shareId = 'practice-exam:${model.docID}';
-      final shortTail =
-          model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
-      final fallbackId = 'practice-exam-$shortTail';
-      final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
-
-      String shortUrl = fallbackUrl;
-      try {
-        shortUrl = await ShortLinkService().getEducationPublicUrl(
-          shareId: shareId,
-          title: model.sinavAdi,
-          desc: model.sinavAciklama.isNotEmpty
-              ? model.sinavAciklama
-              : model.sinavTuru,
-          imageUrl: model.cover.isNotEmpty ? model.cover : null,
-        );
-      } catch (_) {
-        shortUrl = fallbackUrl;
-      }
-
-      if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
-        shortUrl = fallbackUrl;
-      }
+      final shortUrl = await ShortLinkService().getEducationPublicUrl(
+        shareId: shareId,
+        title: model.sinavAdi,
+        desc: model.sinavAciklama.isNotEmpty
+            ? model.sinavAciklama
+            : model.sinavTuru,
+        imageUrl: model.cover.isNotEmpty ? model.cover : null,
+        existingShortUrl: model.shortUrl,
+      );
 
       await ShareLinkService.shareUrl(
         url: shortUrl,
@@ -77,10 +64,9 @@ extension _DenemeGridActionsPart on DenemeGrid {
                     cancelText: 'common.cancel'.tr,
                     yesText: 'common.delete'.tr,
                     onYesPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('practiceExams')
-                          .doc(model.docID)
-                          .delete();
+                      await ensurePracticeExamRepository().deletePracticeExam(
+                        model.docID,
+                      );
                       await getData();
                     },
                   );
@@ -135,58 +121,5 @@ extension _DenemeGridActionsPart on DenemeGrid {
         ),
       ),
     );
-  }
-
-  String _formattedApplicationText(int count) {
-    final scaled = count * 3;
-    String value;
-    if (scaled / 1000000 > 1) {
-      value = '${(scaled / 1000000).toStringAsFixed(2)}M';
-    } else if (scaled / 1000 > 1) {
-      value = '${(scaled / 1000).toStringAsFixed(1)}B';
-    } else {
-      value = '$scaled';
-    }
-    return '${'practice.application_count'.tr}: $value';
-  }
-
-  Color _ctaColor(DenemeGridController controller) {
-    if (_isOwner) {
-      return Colors.indigo;
-    }
-    if (controller.currentTime.value <
-        controller.examTime.value - controller.fifteenMinutes) {
-      return Colors.green;
-    }
-    if (controller.currentTime.value >=
-            controller.examTime.value - controller.fifteenMinutes &&
-        controller.currentTime.value < controller.examTime.value) {
-      return Colors.purple;
-    }
-    if (controller.currentTime.value >= controller.examTime.value &&
-        controller.currentTime.value < model.bitis) {
-      return Colors.black;
-    }
-    return Colors.pink;
-  }
-
-  String _ctaLabel(DenemeGridController controller) {
-    if (_isOwner) {
-      return 'common.view'.tr;
-    }
-    if (controller.currentTime.value <
-        controller.examTime.value - controller.fifteenMinutes) {
-      return 'practice.apply_now'.tr;
-    }
-    if (controller.currentTime.value >=
-            controller.examTime.value - controller.fifteenMinutes &&
-        controller.currentTime.value < controller.examTime.value) {
-      return 'scholarship.closed'.tr;
-    }
-    if (controller.currentTime.value >= controller.examTime.value &&
-        controller.currentTime.value < model.bitis) {
-      return 'practice.started'.tr;
-    }
-    return 'practice.start_now'.tr;
   }
 }

@@ -7,6 +7,10 @@ import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test_controller.dart';
 
+part 'solve_test_shell_part.dart';
+part 'solve_test_shell_content_part.dart';
+part 'solve_test_question_part.dart';
+
 class SolveTest extends StatefulWidget {
   final String testID;
   final Function showSucces;
@@ -26,9 +30,8 @@ class _SolveTestState extends State<SolveTest> {
   void initState() {
     super.initState();
     _controllerTag = 'solve_test_${widget.testID}_${identityHashCode(this)}';
-    _ownsController =
-        SolveTestController.maybeFind(tag: _controllerTag) == null;
-    controller = SolveTestController.ensure(
+    _ownsController = maybeFindSolveTestController(tag: _controllerTag) == null;
+    controller = ensureSolveTestController(
       testID: widget.testID,
       showSucces: widget.showSucces,
       tag: _controllerTag,
@@ -39,7 +42,7 @@ class _SolveTestState extends State<SolveTest> {
   void dispose() {
     if (_ownsController) {
       final registeredController =
-          SolveTestController.maybeFind(tag: _controllerTag);
+          maybeFindSolveTestController(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<SolveTestController>(tag: _controllerTag, force: true);
       }
@@ -52,237 +55,7 @@ class _SolveTestState extends State<SolveTest> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Obx(
-          () => controller.isLoading.value
-              ? Center(
-                  child: CupertinoActivityIndicator(),
-                )
-              : controller.soruList.isEmpty
-                  ? Padding(
-                      padding: EdgeInsets.all(15),
-                      child: EmptyRow(text: "tests.solve_no_questions".tr))
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            color: Colors.white,
-                            child: ListView.builder(
-                              itemCount: controller.soruList.length + 2,
-                              itemBuilder: (context, index) {
-                                if (index == 0) {
-                                  return SizedBox(
-                                    height: 50,
-                                    child: Padding(
-                                      padding: EdgeInsets.all(15.0),
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const AppBackButton(
-                                                icon: Icons.arrow_back,
-                                              ),
-                                              Obx(
-                                                () => Text(
-                                                  controller.formatDuration(
-                                                    controller
-                                                        .elapsedTime.value,
-                                                  ),
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 18,
-                                                    fontFamily:
-                                                        "MontserratMedium",
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(
-                                            width: MediaQuery.of(
-                                                  context,
-                                                ).size.width *
-                                                0.5,
-                                            child: Obx(
-                                              () => Text(
-                                                controller.fullname.value,
-                                                textAlign: TextAlign.center,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 18,
-                                                  fontFamily: "MontserratBold",
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                } else if (index ==
-                                    controller.soruList.length + 1) {
-                                  return GestureDetector(
-                                    onTap: controller.testiBitir,
-                                    child: Container(
-                                      height: 50,
-                                      color: Colors.green,
-                                      alignment: Alignment.center,
-                                      child: Text("tests.finish_test".tr,
-                                          style: TextStyles.medium15white),
-                                    ),
-                                  );
-                                } else {
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey
-                                              .withValues(alpha: 0.3),
-                                          blurRadius: 10,
-                                          spreadRadius: 2,
-                                          offset: Offset(4, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Stack(
-                                          alignment: Alignment.topLeft,
-                                          children: [
-                                            Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                vertical: 40,
-                                                horizontal: 20,
-                                              ),
-                                              child: CachedNetworkImage(
-                                                imageUrl: controller
-                                                    .soruList[index - 1].img,
-                                                fit: BoxFit.cover,
-                                                placeholder: (context, url) =>
-                                                    const Center(
-                                                  child:
-                                                      CupertinoActivityIndicator(),
-                                                ),
-                                                errorWidget:
-                                                    (context, url, error) =>
-                                                        const Icon(
-                                                  Icons.broken_image,
-                                                ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  EdgeInsets.only(left: 12),
-                                              child: Container(
-                                                width: 100,
-                                                height: 40,
-                                                alignment: Alignment.centerLeft,
-                                                child: Text(
-                                                  "tests.question_number"
-                                                      .trParams({
-                                                    'index': index.toString(),
-                                                  }),
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 20,
-                                                    fontFamily:
-                                                        "MontserratBold",
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Container(
-                                          height: 50,
-                                          color: Colors.pink
-                                              .withValues(alpha: 0.2),
-                                          alignment: Alignment.center,
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 30,
-                                            ),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                for (var choice in [
-                                                  'A',
-                                                  'B',
-                                                  'C',
-                                                  'D',
-                                                  'E',
-                                                ])
-                                                  GestureDetector(
-                                                    onTap: () =>
-                                                        controller.updateAnswer(
-                                                      index - 1,
-                                                      choice,
-                                                    ),
-                                                    child: Obx(
-                                                      () => Container(
-                                                        margin: EdgeInsets
-                                                            .symmetric(
-                                                          vertical: 5,
-                                                        ),
-                                                        height: 40,
-                                                        width: 40,
-                                                        alignment:
-                                                            Alignment.center,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: controller
-                                                                          .cevaplar[
-                                                                      index -
-                                                                          1] ==
-                                                                  choice
-                                                              ? Colors.black
-                                                              : Colors.white,
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                            50,
-                                                          ),
-                                                          border: Border.all(
-                                                            color: Colors.black,
-                                                          ),
-                                                        ),
-                                                        child: Text(
-                                                          choice,
-                                                          style: TextStyle(
-                                                            color: controller
-                                                                            .cevaplar[
-                                                                        index -
-                                                                            1] ==
-                                                                    choice
-                                                                ? Colors.white
-                                                                : Colors.black,
-                                                            fontSize: 20,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-        ),
+        child: _buildBody(context),
       ),
     );
   }

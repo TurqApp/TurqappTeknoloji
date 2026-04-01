@@ -1,9 +1,21 @@
 part of 'post_repository.dart';
 
 extension PostRepositorySharingPart on PostRepository {
+  int _asReshareInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  bool _asReshareBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   Future<List<PostReshareEntry>> fetchAllReshareEntries(
     String postId, {
-    int limit = 200,
+    int limit = ReadBudgetRegistry.reshareUserPreviewInitialLimit,
   }) async {
     if (postId.trim().isEmpty) return const <PostReshareEntry>[];
     final snap = await _firestore
@@ -16,8 +28,8 @@ extension PostRepositorySharingPart on PostRepository {
     return snap.docs
         .map((doc) => PostReshareEntry(
               userId: (doc.data()['userID'] ?? doc.id).toString().trim(),
-              timeStamp: ((doc.data()['timeStamp'] ?? 0) as num).toInt(),
-              quotedPost: doc.data()['quotedPost'] == true,
+              timeStamp: _asReshareInt(doc.data()['timeStamp']),
+              quotedPost: _asReshareBool(doc.data()['quotedPost']),
             ))
         .where((entry) => entry.userId.isNotEmpty)
         .toList(growable: false);
@@ -27,7 +39,7 @@ extension PostRepositorySharingPart on PostRepository {
     String uid, {
     bool preferCache = true,
     bool forceRefresh = false,
-    int limit = 200,
+    int limit = ReadBudgetRegistry.userReshareMapInitialLimit,
   }) async {
     if (uid.trim().isEmpty) return const <String, int>{};
     final entries = await _userSubcollectionRepository.getEntries(
@@ -37,15 +49,14 @@ extension PostRepositorySharingPart on PostRepository {
       descending: true,
       preferCache: preferCache,
       forceRefresh: forceRefresh,
+      limit: limit,
     );
     final map = <String, int>{};
     for (final entry in entries.take(limit)) {
       final data = entry.data;
       final postId = (data['post_docID'] ?? entry.id).toString().trim();
       if (postId.isEmpty) continue;
-      final ts = (data['timeStamp'] as num?)?.toInt() ??
-          int.tryParse('${data['timeStamp']}') ??
-          0;
+      final ts = _asReshareInt(data['timeStamp']);
       map[postId] = ts;
     }
     return map;
@@ -64,10 +75,10 @@ extension PostRepositorySharingPart on PostRepository {
           return <String, dynamic>{
             'postID': postId,
             'userID': doc.id,
-            'timeStamp': ((data['timeStamp'] ?? 0) as num).toInt(),
+            'timeStamp': _asReshareInt(data['timeStamp']),
             'originalUserID': (data['originalUserID'] ?? '').toString(),
             'originalPostID': (data['originalPostID'] ?? '').toString(),
-            'quotedPost': data['quotedPost'] == true,
+            'quotedPost': _asReshareBool(data['quotedPost']),
             'type': 'reshare',
           };
         })

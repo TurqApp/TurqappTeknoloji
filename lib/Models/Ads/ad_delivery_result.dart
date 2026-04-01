@@ -7,17 +7,20 @@ class AdEligibilityDecision {
   final bool eligible;
   final List<AdDeliveryRejectReason> reasons;
 
-  const AdEligibilityDecision({
+  AdEligibilityDecision({
     required this.campaignId,
     required this.eligible,
-    required this.reasons,
-  });
+    required List<AdDeliveryRejectReason> reasons,
+  }) : reasons = List<AdDeliveryRejectReason>.from(
+         reasons,
+         growable: false,
+       );
 
   Map<String, dynamic> toMap() {
     return {
       'campaignId': campaignId,
       'eligible': eligible,
-      'reasons': reasons.map(enumToShort).toList(),
+      'reasons': reasons.map(enumToShort).toList(growable: false),
     };
   }
 }
@@ -29,15 +32,18 @@ class AdDeliveryResult {
   final List<AdEligibilityDecision> decisions;
   final String message;
 
-  const AdDeliveryResult({
+  AdDeliveryResult({
     required this.hasAd,
     this.campaign,
     this.creative,
-    this.decisions = const <AdEligibilityDecision>[],
+    List<AdEligibilityDecision> decisions = const <AdEligibilityDecision>[],
     this.message = '',
-  });
+  }) : decisions = List<AdEligibilityDecision>.from(
+         decisions,
+         growable: false,
+       );
 
-  static const empty = AdDeliveryResult(hasAd: false);
+  static final empty = AdDeliveryResult(hasAd: false);
 
   Map<String, dynamic> toLogMap({
     required String userId,
@@ -58,7 +64,7 @@ class AdDeliveryResult {
       'selectedCampaignId': campaign?.id ?? '',
       'selectedCreativeId': creative?.id ?? '',
       'message': message,
-      'decisions': decisions.map((e) => e.toMap()).toList(),
+      'decisions': decisions.map((e) => e.toMap()).toList(growable: false),
       'createdAt': DateTime.now().millisecondsSinceEpoch,
     };
   }

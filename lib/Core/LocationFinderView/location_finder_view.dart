@@ -32,15 +32,15 @@ class _LocationFinderViewState extends State<LocationFinderView> {
     super.initState();
     _controllerTag = 'location_finder_${identityHashCode(this)}';
     _ownsController =
-        LocationFinderViewController.maybeFind(tag: _controllerTag) == null;
-    controller = LocationFinderViewController.ensure(tag: _controllerTag);
+        maybeFindLocationFinderViewController(tag: _controllerTag) == null;
+    controller = ensureLocationFinderViewController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
         identical(
-          LocationFinderViewController.maybeFind(tag: _controllerTag),
+          maybeFindLocationFinderViewController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<LocationFinderViewController>(tag: _controllerTag);

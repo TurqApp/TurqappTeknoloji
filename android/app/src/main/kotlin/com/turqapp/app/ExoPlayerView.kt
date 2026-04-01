@@ -7,6 +7,7 @@ import android.os.Debug
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
@@ -63,6 +64,8 @@ class ExoPlayerView(
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
+    private var appBackgroundSoftHeld = false
+    private var shouldResumeAfterAppForeground = false
     private var didRenderFirstFrame = false
     private var isPlayerReady = false
     private var hasVideoSize = false
@@ -76,18 +79,24 @@ class ExoPlayerView(
     private var firstVideoFrameAtMs = 0L
     private var lastWatchdogPositionMs = 0L
     private var stallRecoveries = 0
+    private var startupRecoveryAttempts = 0
     private var droppedVideoFrames = 0
     private var bufferingEvents = 0
     private var stallWatchdogRunnable: Runnable? = null
+    private var startupRecoveryRunnable: Runnable? = null
     private var lastBandwidthEstimateKbps = 0L
     private var selectedVideoBitrateKbps = 0L
     private var selectedVideoHeight = 0
     private var selectedVideoWidth = 0
     private val smokeMonitor = PlaybackHealthMonitor(tag = "PlaybackHealthMonitor#$viewId")
     private var smokeProbe: ExoPlayerPlaybackProbe? = null
+    private var isSmokeRegistryActive = false
 
     init {
-        smokeMonitor.stateListener = {
+        smokeMonitor.stateListener = monitor@{
+            if (!isSmokeRegistryActive) {
+                return@monitor
+            }
             val probeSnapshot = smokeProbe?.debugSnapshot().orEmpty()
             val runtimeSnapshot = mapOf(
                 "viewId" to viewId,
@@ -109,8 +118,9 @@ class ExoPlayerView(
             .inflate(layoutRes, container, false) as PlayerView).apply {
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            setShutterBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
-            setBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
+            setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
+            setShutterBackgroundColor(Color.TRANSPARENT)
+            setBackgroundColor(Color.TRANSPARENT)
             setKeepContentOnPlayerReset(true)
             alpha = if (forceFullscreen) 0f else 1f
             layoutParams = FrameLayout.LayoutParams(
@@ -149,6 +159,7 @@ class ExoPlayerView(
                         playerView.player = existing
                     }
                 }
+                isSmokeRegistryActive = true
                 smokeProbe?.onSurfaceAttached()
                 ExoPlayerSmokeRegistry.register(context, smokeMonitor)
             }
@@ -156,18 +167,26 @@ class ExoPlayerView(
             override fun onViewDetachedFromWindow(v: View) {
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
+                val preserveVisibleFrame =
+                    forceFullscreen && (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
+                didRenderFirstFrame = false
+                handler.post {
+                    pendingRevealRunnable?.let(handler::removeCallbacks)
+                    pendingRevealRunnable = null
+                    playerView.animate().cancel()
+                    playerView.alpha = if (preserveVisibleFrame) 1f else 0f
+                }
+                sendEvent(mapOf("event" to "surfaceDetached"))
                 smokeProbe?.onSurfaceDetached()
+                isSmokeRegistryActive = false
                 ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
                 softHold()
             }
         })
         eventChannel.setStreamHandler(this)
 
-        val url = args?.get("url") as? String
-        if (url != null) {
-            val autoPlay = args?.get("autoPlay") as? Boolean ?: true
+        if (args?.get("url") as? String != null) {
             isLooping = args?.get("loop") as? Boolean ?: false
-            loadVideo(url, autoPlay, isLooping)
         }
     }
 
@@ -179,6 +198,7 @@ class ExoPlayerView(
         if (existing != null && currentUrl == url) {
             existing.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             if (autoPlay) {
+                startupRecoveryAttempts = 0
                 play()
             } else {
                 softHold()
@@ -220,6 +240,7 @@ class ExoPlayerView(
                     setVideoFrameMetadataListener(
                         VideoFrameMetadataListener { _, _, _, _ ->
                             lastVideoFrameAtMs = System.currentTimeMillis()
+                            smokeMonitor.onFrameRenderedSample()
                         }
                     )
                 }
@@ -237,6 +258,8 @@ class ExoPlayerView(
 
         activePlayer.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         activePlayer.playWhenReady = autoPlay
+        val preserveVisibleFrameOnReset =
+            forceFullscreen && (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
         isSoftHeld = false
         didRenderFirstFrame = false
         isPlayerReady = false
@@ -250,13 +273,19 @@ class ExoPlayerView(
         firstVideoFrameAtMs = 0L
         lastWatchdogPositionMs = 0L
         stallRecoveries = 0
+        startupRecoveryAttempts = 0
         droppedVideoFrames = 0
         bufferingEvents = 0
         lastBandwidthEstimateKbps = 0L
         selectedVideoBitrateKbps = 0L
         selectedVideoHeight = 0
         selectedVideoWidth = 0
-        resetSurfaceVisibility()
+        resetSurfaceVisibility(preserveLastFrame = preserveVisibleFrameOnReset)
+        if (autoPlay) {
+            startStartupRecoveryWatchdog()
+        } else {
+            stopStartupRecoveryWatchdog()
+        }
 
         if (existing == null) {
             activePlayer.addListener(object : Player.Listener {
@@ -282,9 +311,11 @@ class ExoPlayerView(
                             isBufferingDispatched = false
                             sendEvent(mapOf("event" to "buffering", "isBuffering" to false))
                         }
+                        smokeMonitor.onPlaybackCompleted()
                         sendEvent(mapOf("event" to "completed"))
                         stopPositionUpdates()
                         stopStallWatchdog()
+                        stopStartupRecoveryWatchdog()
                     }
                     Player.STATE_BUFFERING -> {
                         bufferingEvents += 1
@@ -324,6 +355,7 @@ class ExoPlayerView(
                 ))
                 stopPositionUpdates()
                 stopStallWatchdog()
+                stopStartupRecoveryWatchdog()
             }
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
@@ -333,6 +365,7 @@ class ExoPlayerView(
 
             override fun onRenderedFirstFrame() {
                 didRenderFirstFrame = true
+                stopStartupRecoveryWatchdog()
                 lastVideoFrameAtMs = System.currentTimeMillis()
                 if (firstVideoFrameAtMs == 0L) {
                     firstVideoFrameAtMs = lastVideoFrameAtMs
@@ -409,24 +442,28 @@ class ExoPlayerView(
 
     fun play() {
         player?.let { p ->
-            smokeMonitor.resetForNewPlaybackSession()
             smokeProbe?.onAutoplayRequested()
             if (isSoftHeld) {
                 p.volume = heldVolume
                 isSoftHeld = false
             }
             p.play()
+            if (!didRenderFirstFrame) {
+                startStartupRecoveryWatchdog()
+            }
             startStallWatchdog()
         }
     }
 
     fun pause() {
         isSoftHeld = false
+        stopStartupRecoveryWatchdog()
         player?.pause()
         stopStallWatchdog()
     }
 
     fun softHold() {
+        stopStartupRecoveryWatchdog()
         player?.let { p ->
             if (!isSoftHeld) {
                 heldVolume = p.volume
@@ -436,6 +473,43 @@ class ExoPlayerView(
             isSoftHeld = true
         }
         stopStallWatchdog()
+    }
+
+    fun onAppBackgrounded() {
+        val p = player
+        if (p == null || currentUrl.isNullOrEmpty()) {
+            appBackgroundSoftHeld = false
+            shouldResumeAfterAppForeground = false
+            return
+        }
+        val shouldSoftHoldForBackground =
+            !isSoftHeld && (p.isPlaying || p.playWhenReady)
+        appBackgroundSoftHeld = shouldSoftHoldForBackground
+        shouldResumeAfterAppForeground = shouldSoftHoldForBackground
+        if (shouldSoftHoldForBackground) {
+            softHold()
+        }
+    }
+
+    fun onAppForegrounded() {
+        if (!appBackgroundSoftHeld) {
+            shouldResumeAfterAppForeground = false
+            return
+        }
+        appBackgroundSoftHeld = false
+        if (!shouldResumeAfterAppForeground) {
+            return
+        }
+        if (player == null || currentUrl.isNullOrEmpty()) {
+            shouldResumeAfterAppForeground = false
+            return
+        }
+        if (!container.isAttachedToWindow || !container.isShown || playerView.player !== player) {
+            shouldResumeAfterAppForeground = false
+            return
+        }
+        shouldResumeAfterAppForeground = false
+        play()
     }
 
     fun seek(seconds: Double) {
@@ -540,8 +614,18 @@ class ExoPlayerView(
     fun stopPlayback() {
         stopPositionUpdates()
         stopStallWatchdog()
-        player?.stop()
-        player?.clearMediaItems()
+        stopStartupRecoveryWatchdog()
+        isSoftHeld = false
+        heldVolume = 0f
+        appBackgroundSoftHeld = false
+        shouldResumeAfterAppForeground = false
+        player?.let { p ->
+            p.volume = 0f
+            p.playWhenReady = false
+            p.pause()
+            p.stop()
+            p.clearMediaItems()
+        }
         sendEvent(mapOf("event" to "stopped"))
     }
 
@@ -609,6 +693,10 @@ class ExoPlayerView(
                         frameSilenceMs >= 1800L
 
                 if (rendererFrozenAfterAdvance || playbackClockStalled) {
+                    Log.w(
+                        "ExoPlayerView#$viewId",
+                        "rendererStall kind=${if (playbackClockStalled) "clock_stalled" else "renderer_frozen"} position=${positionMs / 1000.0} frameSilenceMs=$frameSilenceMs firstFrameAgeMs=$firstFrameAgeMs advancedMs=$advancedMs recoveryAttempt=${stallRecoveries + 1}"
+                    )
                     sendEvent(
                         mapOf(
                             "event" to "rendererStall",
@@ -636,6 +724,39 @@ class ExoPlayerView(
         stallWatchdogRunnable = null
     }
 
+    private fun startStartupRecoveryWatchdog() {
+        stopStartupRecoveryWatchdog()
+        val runnable = object : Runnable {
+            override fun run() {
+                val p = player
+                if (p == null || isSoftHeld || didRenderFirstFrame || !container.isShown) {
+                    stopStartupRecoveryWatchdog()
+                    return
+                }
+                if (!p.playWhenReady || startupRecoveryAttempts >= 1) {
+                    stopStartupRecoveryWatchdog()
+                    return
+                }
+                val needsRecovery =
+                    !p.isPlaying &&
+                        (p.playbackState == Player.STATE_READY ||
+                            p.playbackState == Player.STATE_BUFFERING)
+                if (!needsRecovery) {
+                    stopStartupRecoveryWatchdog()
+                    return
+                }
+                recoverFromStartupTimeout()
+            }
+        }
+        startupRecoveryRunnable = runnable
+        handler.postDelayed(runnable, 1650)
+    }
+
+    private fun stopStartupRecoveryWatchdog() {
+        startupRecoveryRunnable?.let { handler.removeCallbacks(it) }
+        startupRecoveryRunnable = null
+    }
+
     private fun recoverFromRendererStall() {
         val p = player ?: return
         if (stallRecoveries >= 2) return
@@ -643,6 +764,15 @@ class ExoPlayerView(
         val currentPosition = p.currentPosition
         handler.post {
             try {
+                Log.w(
+                    "ExoPlayerView#$viewId",
+                    "surfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$stallRecoveries"
+                )
+                didRenderFirstFrame = false
+                pendingRevealRunnable?.let(handler::removeCallbacks)
+                pendingRevealRunnable = null
+                playerView.animate().cancel()
+                playerView.alpha = 0f
                 sendEvent(
                     mapOf(
                         "event" to "surfaceRebind",
@@ -650,9 +780,9 @@ class ExoPlayerView(
                         "recoveryAttempt" to stallRecoveries,
                     )
                 )
+                sendEvent(mapOf("event" to "surfaceDetached"))
                 playerView.player = null
                 playerView.player = p
-                revealSurface(immediate = true)
                 p.seekTo(currentPosition)
                 p.playWhenReady = true
                 p.play()
@@ -663,13 +793,54 @@ class ExoPlayerView(
         }
     }
 
+    private fun recoverFromStartupTimeout() {
+        val p = player ?: return
+        if (startupRecoveryAttempts >= 1) return
+        startupRecoveryAttempts += 1
+        val currentPosition = p.currentPosition
+        handler.post {
+            try {
+                Log.w(
+                    "ExoPlayerView#$viewId",
+                    "startupSurfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$startupRecoveryAttempts"
+                )
+                didRenderFirstFrame = false
+                pendingRevealRunnable?.let(handler::removeCallbacks)
+                pendingRevealRunnable = null
+                playerView.animate().cancel()
+                playerView.alpha = 0f
+                sendEvent(
+                    mapOf(
+                        "event" to "surfaceRebind",
+                        "position" to (currentPosition / 1000.0),
+                        "recoveryAttempt" to startupRecoveryAttempts,
+                        "recoveryKind" to "startup_timeout",
+                    )
+                )
+                sendEvent(mapOf("event" to "surfaceDetached"))
+                playerView.player = null
+                playerView.player = p
+                if (currentPosition > 0L) {
+                    p.seekTo(currentPosition)
+                }
+                p.playWhenReady = true
+                p.play()
+                lastVideoFrameAtMs = System.currentTimeMillis()
+                lastWatchdogPositionMs = p.currentPosition
+            } catch (_: Throwable) {
+            } finally {
+                stopStartupRecoveryWatchdog()
+            }
+        }
+    }
+
     private fun sendEvent(data: Map<String, Any>) {
         handler.post {
             eventSink?.success(data)
         }
     }
 
-    private fun resetSurfaceVisibility() {
+    private fun resetSurfaceVisibility(preserveLastFrame: Boolean = false) {
         if (!forceFullscreen) {
             // Feed kartlarında poster zaten ilk frame gelene kadar üstte tutuluyor.
             // Native view'i her load'ta tekrar alpha=0'a çekmek ikinci siyah dalga
@@ -686,14 +857,19 @@ class ExoPlayerView(
             pendingRevealRunnable?.let(handler::removeCallbacks)
             pendingRevealRunnable = null
             playerView.animate().cancel()
-            playerView.alpha = 0f
+            playerView.alpha = if (preserveLastFrame) 1f else 0f
         }
     }
 
     private fun scheduleSurfaceReveal() {
         if (!forceFullscreen) {
-            val canReveal = didRenderFirstFrame ||
-                (isPlayerReady && hasVideoSize && hasStableSurfaceLayout)
+            val needsFreshFrame = playerView.alpha < 1f
+            val canReveal = if (needsFreshFrame) {
+                didRenderFirstFrame
+            } else {
+                didRenderFirstFrame ||
+                    (isPlayerReady && hasVideoSize && hasStableSurfaceLayout)
+            }
             if (!canReveal) return
             handler.post {
                 pendingRevealRunnable?.let(handler::removeCallbacks)
@@ -707,7 +883,13 @@ class ExoPlayerView(
             }
             return
         }
-        if (!hasVideoSize || (!didRenderFirstFrame && !isPlayerReady)) {
+        val needsFreshFrame = playerView.alpha < 1f
+        val canReveal = if (needsFreshFrame) {
+            didRenderFirstFrame
+        } else {
+            didRenderFirstFrame || (hasVideoSize && isPlayerReady)
+        }
+        if (!canReveal) {
             return
         }
         handler.post {
@@ -743,8 +925,10 @@ class ExoPlayerView(
     private fun releasePlayer(fully: Boolean) {
         stopPositionUpdates()
         stopStallWatchdog()
+        stopStartupRecoveryWatchdog()
         player?.pause()
         resetSurfaceVisibility()
+        isSmokeRegistryActive = false
         ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
         if (fully) {
             smokeProbe?.detach()
@@ -753,6 +937,8 @@ class ExoPlayerView(
             player = null
             currentUrl = null
             isSoftHeld = false
+            appBackgroundSoftHeld = false
+            shouldResumeAfterAppForeground = false
         }
     }
 

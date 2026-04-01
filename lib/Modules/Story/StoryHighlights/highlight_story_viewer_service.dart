@@ -22,7 +22,7 @@ class HighlightStoryViewerService {
 
       List<StoryModel> stories = <StoryModel>[];
 
-      final rowController = StoryRowController.maybeFind();
+      final rowController = maybeFindStoryRowController();
       if (rowController != null) {
         final userModel =
             rowController.users.firstWhereOrNull((u) => u.userID == userId);

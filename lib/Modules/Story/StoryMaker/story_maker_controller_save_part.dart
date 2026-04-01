@@ -1,6 +1,125 @@
 part of 'story_maker_controller.dart';
 
 extension StoryMakerControllerSavePart on StoryMakerController {
+  bool _isRetryableStoryUploadAuthError(FirebaseException error) {
+    final code = error.code.trim().toLowerCase();
+    return code == 'permission-denied' ||
+        code == 'unauthenticated' ||
+        code == 'unauthorized';
+  }
+
+  Future<void> _refreshStoryUploadAuthIfPossible(
+    CurrentUserService currentUserService,
+  ) async {
+    try {
+      final authUser =
+          await currentUserService.resolveAuthUser(waitForAuthState: true);
+      if (authUser == null) return;
+      await authUser.getIdToken(true);
+    } catch (_) {
+      // Best effort only; original upload error will surface if refresh fails.
+    }
+  }
+
+  Future<TaskSnapshot> _uploadStoryVideoWithAuthRetry({
+    required Reference ref,
+    required File file,
+    required SettableMetadata metadata,
+    required CurrentUserService currentUserService,
+  }) async {
+    const retryDelays = <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 700),
+      Duration(milliseconds: 1400),
+    ];
+
+    FirebaseException? lastError;
+    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        return await ref.putFile(file, metadata);
+      } on FirebaseException catch (error) {
+        if (!_isRetryableStoryUploadAuthError(error)) rethrow;
+        lastError = error;
+        if (attempt == retryDelays.length) break;
+        await _refreshStoryUploadAuthIfPossible(currentUserService);
+        await Future<void>.delayed(retryDelays[attempt]);
+      }
+    }
+
+    throw lastError!;
+  }
+
+  Future<String> _uploadStoryImageWithAuthRetry({
+    required FirebaseStorage storage,
+    required File file,
+    required String storagePathWithoutExt,
+    required CurrentUserService currentUserService,
+  }) async {
+    const retryDelays = <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 700),
+      Duration(milliseconds: 1400),
+    ];
+
+    FirebaseException? lastError;
+    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        return await WebpUploadService.uploadFileAsWebp(
+          storage: storage,
+          file: file,
+          storagePathWithoutExt: storagePathWithoutExt,
+        );
+      } on FirebaseException catch (error) {
+        if (!_isRetryableStoryUploadAuthError(error)) rethrow;
+        lastError = error;
+        if (attempt == retryDelays.length) break;
+        await _refreshStoryUploadAuthIfPossible(currentUserService);
+        await Future<void>.delayed(retryDelays[attempt]);
+      }
+    }
+
+    throw lastError!;
+  }
+
+  Future<void> _saveStoryDocWithAuthRetry({
+    required DocumentReference<Map<String, dynamic>> docRef,
+    required Map<String, dynamic> storyData,
+    required CurrentUserService currentUserService,
+  }) async {
+    const retryDelays = <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 700),
+      Duration(milliseconds: 1400),
+    ];
+
+    FirebaseException? lastError;
+    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        await docRef.set(storyData);
+        return;
+      } on FirebaseException catch (e) {
+        final code = e.code.trim().toLowerCase();
+        if (code != 'permission-denied' &&
+            code != 'unauthenticated' &&
+            code != 'unauthorized') {
+          rethrow;
+        }
+        lastError = e;
+        if (attempt == retryDelays.length) break;
+        final authUser =
+            await currentUserService.resolveAuthUser(waitForAuthState: true);
+        if (authUser != null) {
+          try {
+            await authUser.getIdToken(true);
+          } catch (_) {}
+        }
+        await Future<void>.delayed(retryDelays[attempt]);
+      }
+    }
+
+    throw lastError!;
+  }
+
   void onScheduleStoryPressed() async {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishStory)) {
       return;
@@ -42,7 +161,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     final selectedMusicSnapshot = selectedMusic.value;
     final colorSnapshot = color.value;
 
-    StoryMakerController.isUploadingStory.value = true;
+    storyMakerIsUploadingStory.value = true;
     Get.back();
 
     _saveStoryBackground(
@@ -74,7 +193,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     final selectedMusicSnapshot = selectedMusic.value;
     final colorSnapshot = color.value;
 
-    StoryMakerController.isUploadingStory.value = true;
+    storyMakerIsUploadingStory.value = true;
     Get.back();
 
     _saveStoryBackground(
@@ -95,6 +214,27 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     DateTime? scheduledAt,
   }) async {
     try {
+      final currentUserService = CurrentUserService.instance;
+      final authUser =
+          await currentUserService.resolveAuthUser(waitForAuthState: true);
+      if (authUser == null) {
+        AppSnackbar("common.error".tr, "story.no_user".tr);
+        return;
+      }
+      try {
+        await authUser.getIdToken(true);
+      } on FirebaseAuthException catch (e) {
+        AppSnackbar(
+          "common.error".tr,
+          "story.save_failed".trParams({"error": e.code}),
+        );
+        return;
+      }
+      final resolvedUid = authUser.uid.trim();
+      if (resolvedUid.isEmpty) {
+        AppSnackbar("common.error".tr, "story.no_user".tr);
+        return;
+      }
       final docRef = FirebaseFirestore.instance.collection('stories').doc();
       final storyId = docRef.id;
 
@@ -124,22 +264,35 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           }
           final ts = DateTime.now().millisecondsSinceEpoch;
           if (e.type == StoryElementType.video) {
+            final validation =
+                await UploadValidationService.validateVideo(file);
+            if (!validation.isValid) {
+              AppSnackbar(
+                "common.error".tr,
+                validation.errorMessage ?? 'upload_validation.video_error'.tr,
+              );
+              return;
+            }
             final ext = path.extension(file.path);
-            final ref =
-                FirebaseStorage.instance.ref('stories/$uid/$storyId/$ts$ext');
-            final task = await ref.putFile(
-              file,
-              SettableMetadata(
+            final ref = FirebaseStorage.instance.ref(
+              'stories/$resolvedUid/$storyId/$ts$ext',
+            );
+            final task = await _uploadStoryVideoWithAuthRetry(
+              ref: ref,
+              file: file,
+              currentUserService: currentUserService,
+              metadata: SettableMetadata(
                 contentType: 'video/mp4',
                 cacheControl: 'public, max-age=31536000, immutable',
               ),
             );
             url = CdnUrlBuilder.toCdnUrl(await task.ref.getDownloadURL());
           } else {
-            final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+            final downloadUrl = await _uploadStoryImageWithAuthRetry(
               storage: FirebaseStorage.instance,
               file: file,
-              storagePathWithoutExt: 'stories/$uid/$storyId/$ts',
+              currentUserService: currentUserService,
+              storagePathWithoutExt: 'stories/$resolvedUid/$storyId/$ts',
             );
             url = CdnUrlBuilder.toCdnUrl(downloadUrl);
           }
@@ -178,8 +331,32 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         return;
       }
 
+      final writeAuthUser =
+          await currentUserService.resolveAuthUser(waitForAuthState: true);
+      if (writeAuthUser == null) {
+        AppSnackbar("common.error".tr, "story.no_user".tr);
+        return;
+      }
+      try {
+        await writeAuthUser.getIdToken(true);
+      } on FirebaseAuthException catch (e) {
+        AppSnackbar(
+          "common.error".tr,
+          "story.save_failed".trParams({"error": e.code}),
+        );
+        return;
+      }
+      final writeUid = writeAuthUser.uid.trim();
+      if (writeUid.isEmpty || writeUid != resolvedUid) {
+        AppSnackbar(
+          "common.error".tr,
+          "story.save_failed".trParams({"error": "auth_mismatch"}),
+        );
+        return;
+      }
+
       final storyData = <String, dynamic>{
-        'userId': uid,
+        'userId': writeUid,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': colorSnapshot.toARGB32(),
         'musicId': selectedMusicSnapshot?.docID ?? '',
@@ -195,13 +372,17 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         storyData['scheduledAt'] = scheduledAt.millisecondsSinceEpoch;
         storyData['deleteReason'] = 'scheduled';
       }
-      await docRef.set(storyData);
+      await _saveStoryDocWithAuthRetry(
+        docRef: docRef,
+        storyData: storyData,
+        currentUserService: currentUserService,
+      );
       if (selectedMusicSnapshot != null && scheduledAt == null) {
         unawaited(
           StoryMusicLibraryService.instance.recordStoryUsage(
             track: selectedMusicSnapshot,
             storyId: storyId,
-            userId: uid,
+            userId: writeUid,
             createdAt: storyData['createdDate'] as int? ??
                 DateTime.now().millisecondsSinceEpoch,
           ),
@@ -217,7 +398,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       }
 
       try {
-        await StoryRowController.maybeFind()?.loadStories();
+        await maybeFindStoryRowController()?.loadStories();
       } catch (e) {
         debugPrint("Story UI refresh error: $e");
       }
@@ -228,7 +409,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       );
       debugPrint("saveStory error: $err");
     } finally {
-      StoryMakerController.isUploadingStory.value = false;
+      storyMakerIsUploadingStory.value = false;
     }
   }
 }

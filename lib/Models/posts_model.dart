@@ -3,9 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 
-const bool _suppressPostsModelSmokeLogs =
-    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
-
 // Alt koleksiyonlar için model sınıfları
 class PostStats {
   num commentCount;
@@ -24,21 +21,34 @@ class PostStats {
     this.statsCount = 0,
   });
 
+  static num _asNum(dynamic value, {num fallback = 0}) {
+    if (value is num) return value;
+    if (value is Timestamp) {
+      return value.millisecondsSinceEpoch;
+    }
+    if (value is String) {
+      final parsed = num.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return fallback;
+  }
+
   factory PostStats.fromMap(Map<String, dynamic> data) {
     return PostStats(
-      commentCount: (data['commentCount'] ?? 0) as num,
-      likeCount: (data['likeCount'] ?? 0) as num,
-      reportedCount: (data['reportedCount'] ?? 0) as num,
-      retryCount: (data['retryCount'] ?? 0) as num,
-      savedCount: (data['savedCount'] ?? 0) as num,
-      statsCount: (data['statsCount'] ?? 0) as num,
+      commentCount: _asNum(data['commentCount']),
+      likeCount: _asNum(data['likeCount']),
+      reportedCount: _asNum(data['reportedCount']),
+      retryCount: _asNum(data['retryCount']),
+      savedCount: _asNum(data['savedCount']),
+      statsCount: _asNum(data['statsCount']),
     );
   }
 
   // Firebase'deki post verisinden stats oluşturur - sadece stats map kullanır
   factory PostStats.fromPostData(Map<String, dynamic> postData) {
     // Stats objesi içindeki değerleri al - zorunlu yapı
-    final statsData = postData['stats'] as Map<String, dynamic>?;
+    final rawStats = postData['stats'];
+    final statsData = rawStats is Map ? rawStats.cast<String, dynamic>() : null;
 
     if (statsData != null) {
       return PostStats.fromMap(statsData);
@@ -63,6 +73,30 @@ class PostStats {
     };
   }
 }
+
+List<String> _clonePostsStringList(List<String> values) =>
+    List<String>.from(values);
+
+dynamic _clonePostsDynamicValue(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return _clonePostsDynamicMap(value);
+  }
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) =>
+          MapEntry(key.toString(), _clonePostsDynamicValue(nestedValue)),
+    );
+  }
+  if (value is List) {
+    return value.map(_clonePostsDynamicValue).toList();
+  }
+  return value;
+}
+
+Map<String, dynamic> _clonePostsDynamicMap(Map<String, dynamic> value) =>
+    value.map(
+      (key, nestedValue) => MapEntry(key, _clonePostsDynamicValue(nestedValue)),
+    );
 
 class PostsModel {
   bool ad;
@@ -106,6 +140,8 @@ class PostsModel {
   String authorNickname;
   String authorDisplayName;
   String authorAvatarUrl;
+  String shortId;
+  String shortUrl;
   String rozet;
   String video;
   Map<String, dynamic> videoLook;
@@ -157,6 +193,8 @@ class PostsModel {
     this.authorNickname = '',
     this.authorDisplayName = '',
     this.authorAvatarUrl = '',
+    this.shortId = '',
+    this.shortUrl = '',
     this.rozet = '',
     required this.video,
     this.videoLook = const {
@@ -171,7 +209,14 @@ class PostsModel {
     this.yorumMap = const {},
     this.reshareMap = const {},
     this.poll = const {},
-  });
+  }) {
+    img = _clonePostsStringList(img);
+    tags = _clonePostsStringList(tags);
+    videoLook = _clonePostsDynamicMap(videoLook);
+    yorumMap = _clonePostsDynamicMap(yorumMap);
+    reshareMap = _clonePostsDynamicMap(reshareMap);
+    poll = _clonePostsDynamicMap(poll);
+  }
 
   bool get hasHls => hlsMasterUrl.trim().isNotEmpty;
 
@@ -185,7 +230,25 @@ class PostsModel {
   bool get hasRenderableVideoCard =>
       hasPlayableVideo || (thumbnail.trim().isNotEmpty && hasVideoSignal);
 
-  bool get shouldHideWhileUploading => isUploading;
+  bool get hasTextContent => metin.trim().isNotEmpty;
+
+  bool get hasImageContent =>
+      img.isNotEmpty || thumbnail.trim().isNotEmpty;
+
+  bool get hasQuoteContent =>
+      quotedPost || quotedOriginalText.trim().isNotEmpty;
+
+  bool get hasPollContent => poll.isNotEmpty;
+
+  bool get isCompletelyEmptyPost =>
+      !hasTextContent &&
+      !hasImageContent &&
+      !hasVideoSignal &&
+      !hasQuoteContent &&
+      !hasPollContent;
+
+  bool get shouldHideWhileUploading =>
+      isUploading || isCompletelyEmptyPost;
 
   int get yorumVisibility {
     final v = yorumMap['visibility'];
@@ -209,28 +272,11 @@ class PostsModel {
 
   String get playbackUrl {
     if (isHlsReady) {
-      final resolved = CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
-      if (kDebugMode && !_suppressPostsModelSmokeLogs) {
-        debugPrint(
-          '[PostsModel][$docID] playbackUrl=HLS ready status=$hlsStatus hlsMasterUrl=$hlsMasterUrl resolved=$resolved',
-        );
-      }
-      return resolved;
+      return CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
     }
     final v = video.trim();
     if (hlsStatus == 'ready' && isHlsPlaylistUrl(v)) {
-      final resolved = CdnUrlBuilder.toCdnUrl(v);
-      if (kDebugMode && !_suppressPostsModelSmokeLogs) {
-        debugPrint(
-          '[PostsModel][$docID] playbackUrl=legacy HLS status=$hlsStatus video=$v resolved=$resolved',
-        );
-      }
-      return resolved;
-    }
-    if (kDebugMode && !_suppressPostsModelSmokeLogs && v.isNotEmpty) {
-      debugPrint(
-        '[PostsModel][$docID] playbackUrl EMPTY status=$hlsStatus hlsMasterUrl=${hlsMasterUrl.trim()} video=$v thumbnail=${thumbnail.trim()}',
-      );
+      return CdnUrlBuilder.toCdnUrl(v);
     }
     return '';
   }
@@ -242,6 +288,38 @@ class PostsModel {
   String get cdnThumbnailUrl => CdnUrlBuilder.toCdnUrl(thumbnail);
 
   List<String> get cdnImgUrls => img.map(CdnUrlBuilder.toCdnUrl).toList();
+
+  List<String> get preferredVideoPosterUrls {
+    final urls = <String>[];
+
+    void addUrl(String url) {
+      final normalized = CdnUrlBuilder.toCdnUrl(url).trim();
+      if (normalized.isEmpty || urls.contains(normalized)) return;
+      urls.add(normalized);
+    }
+
+    addUrl(thumbnail);
+    if (img.isNotEmpty) {
+      addUrl(img.first);
+    }
+    if (hasVideoSignal) {
+      for (final candidate in CdnUrlBuilder.buildThumbnailUrlCandidates(docID)) {
+        addUrl(candidate);
+      }
+    }
+    return urls;
+  }
+
+  String get preferredVideoPosterUrl {
+    final urls = preferredVideoPosterUrls;
+    return urls.isEmpty ? '' : urls.first;
+  }
+
+  bool get isFloodMember => flood || mainFlood.trim().isNotEmpty;
+
+  bool get isFloodSeriesRoot => !isFloodMember && floodCount.toInt() > 1;
+
+  bool get isFloodSeriesContent => isFloodMember || isFloodSeriesRoot;
 
   factory PostsModel.fromMap(Map<String, dynamic> data, String docID) {
     List<String> parseList(dynamic field) {
@@ -255,10 +333,10 @@ class PostsModel {
       for (final item in field) {
         if (item is Map) {
           final url = (item['url'] ?? '').toString().trim();
-          if (url.isNotEmpty) out.add(url);
+          if (url.isNotEmpty) out.add(CdnUrlBuilder.toCdnUrl(url));
         } else {
           final url = item.toString().trim();
-          if (url.isNotEmpty) out.add(url);
+          if (url.isNotEmpty) out.add(CdnUrlBuilder.toCdnUrl(url));
         }
       }
       return out;
@@ -300,8 +378,11 @@ class PostsModel {
             authorMap['fullName'] ??
             resolvedAuthorNickname)
         .toString();
-    final resolvedAuthorAvatarUrl =
-        (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '').toString();
+    final resolvedAuthorAvatarUrl = CdnUrlBuilder.toCdnUrl(
+      (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '')
+          .toString()
+          .trim(),
+    );
     final resolvedRozet =
         (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
     final resolvedUserId = (data['userID'] ??
@@ -340,37 +421,53 @@ class PostsModel {
       quotedSourceDisplayName:
           (data['quotedSourceDisplayName'] ?? '').toString(),
       quotedSourceUsername: (data['quotedSourceUsername'] ?? '').toString(),
-      quotedSourceAvatarUrl: (data['quotedSourceAvatarUrl'] ?? '').toString(),
+      quotedSourceAvatarUrl: CdnUrlBuilder.toCdnUrl(
+        (data['quotedSourceAvatarUrl'] ?? '').toString().trim(),
+      ),
       paylasGizliligi: parseNum(data['paylasGizliligi'], 1),
       scheduledAt: parseNum(data['scheduledAt']),
       sikayetEdildi: data['sikayetEdildi'] ?? false,
       stabilized: data['stabilized'] ?? true,
       stats: PostStats.fromPostData(data),
       tags: parseList(data['tags']),
-      thumbnail: data['thumbnail'] ?? '',
+      thumbnail: CdnUrlBuilder.toCdnUrl(
+        (data['thumbnail'] ?? '').toString().trim(),
+      ),
       timeStamp: parseNum(data['timeStamp']),
       userID: resolvedUserId,
       authorNickname: resolvedAuthorNickname,
       authorDisplayName: resolvedAuthorDisplayName,
       authorAvatarUrl: resolvedAuthorAvatarUrl,
+      shortId: (data['shortId'] ?? '').toString(),
+      shortUrl: (data['shortUrl'] ?? '').toString(),
       rozet: resolvedRozet,
-      video: data['video'] ?? '',
+      video: CdnUrlBuilder.toCdnUrl((data['video'] ?? '').toString().trim()),
       videoLook: data['videoLook'] is Map<String, dynamic>
-          ? Map<String, dynamic>.from(data['videoLook'] as Map<String, dynamic>)
+          ? _clonePostsDynamicMap(data['videoLook'] as Map<String, dynamic>)
           : (data['videoLook'] is Map
-              ? Map<String, dynamic>.from(data['videoLook'] as Map)
+              ? _clonePostsDynamicMap(
+                  Map<String, dynamic>.from(data['videoLook'] as Map),
+                )
               : const {
                   'preset': 'original',
                   'version': 1,
                   'intensity': 1.0,
                 }),
-      hlsMasterUrl: data['hlsMasterUrl'] ?? '',
+      hlsMasterUrl: CdnUrlBuilder.toCdnUrl(
+        (data['hlsMasterUrl'] ?? '').toString().trim(),
+      ),
       hlsStatus: data['hlsStatus'] ?? 'none',
       hlsUpdatedAt: parseNum(data['hlsUpdatedAt']),
       yorum: data['yorum'] ?? true,
-      yorumMap: Map<String, dynamic>.from(data['yorumMap'] ?? {}),
-      reshareMap: Map<String, dynamic>.from(data['reshareMap'] ?? {}),
-      poll: Map<String, dynamic>.from(data['poll'] ?? {}),
+      yorumMap: _clonePostsDynamicMap(
+        Map<String, dynamic>.from(data['yorumMap'] ?? {}),
+      ),
+      reshareMap: _clonePostsDynamicMap(
+        Map<String, dynamic>.from(data['reshareMap'] ?? {}),
+      ),
+      poll: _clonePostsDynamicMap(
+        Map<String, dynamic>.from(data['poll'] ?? {}),
+      ),
     );
   }
 
@@ -386,7 +483,7 @@ class PostsModel {
       'flood': flood,
       'floodCount': floodCount,
       'gizlendi': gizlendi,
-      'img': img,
+      'img': _clonePostsStringList(img),
       'isAd': isAd,
       'isUploading': isUploading,
       'izBirakYayinTarihi': izBirakYayinTarihi,
@@ -407,23 +504,25 @@ class PostsModel {
       'sikayetEdildi': sikayetEdildi,
       'stabilized': stabilized,
       'stats': stats.toMap(),
-      'tags': tags,
+      'tags': _clonePostsStringList(tags),
       'thumbnail': thumbnail,
       'timeStamp': timeStamp,
       'userID': userID,
       if (authorNickname.isNotEmpty) 'authorNickname': authorNickname,
       if (authorDisplayName.isNotEmpty) 'authorDisplayName': authorDisplayName,
       if (authorAvatarUrl.isNotEmpty) 'authorAvatarUrl': authorAvatarUrl,
+      if (shortId.isNotEmpty) 'shortId': shortId,
+      if (shortUrl.isNotEmpty) 'shortUrl': shortUrl,
       if (rozet.isNotEmpty) 'rozet': rozet,
       'video': video,
-      'videoLook': videoLook,
+      'videoLook': _clonePostsDynamicMap(videoLook),
       'hlsMasterUrl': hlsMasterUrl,
       'hlsStatus': hlsStatus,
       'hlsUpdatedAt': hlsUpdatedAt,
       'yorum': yorum,
-      'yorumMap': yorumMap,
-      'reshareMap': reshareMap,
-      'poll': poll,
+      'yorumMap': _clonePostsDynamicMap(yorumMap),
+      'reshareMap': _clonePostsDynamicMap(reshareMap),
+      'poll': _clonePostsDynamicMap(poll),
     };
   }
 
@@ -465,6 +564,8 @@ class PostsModel {
       authorNickname: '',
       authorDisplayName: '',
       authorAvatarUrl: '',
+      shortId: '',
+      shortUrl: '',
       rozet: '',
       video: '',
       videoLook: const {
@@ -522,6 +623,8 @@ class PostsModel {
     String? authorNickname,
     String? authorDisplayName,
     String? authorAvatarUrl,
+    String? shortId,
+    String? shortUrl,
     String? rozet,
     String? video,
     Map<String, dynamic>? videoLook,
@@ -575,6 +678,8 @@ class PostsModel {
       authorNickname: authorNickname ?? this.authorNickname,
       authorDisplayName: authorDisplayName ?? this.authorDisplayName,
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      shortId: shortId ?? this.shortId,
+      shortUrl: shortUrl ?? this.shortUrl,
       rozet: rozet ?? this.rozet,
       video: video ?? this.video,
       videoLook: videoLook ?? this.videoLook,

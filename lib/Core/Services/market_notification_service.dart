@@ -7,7 +7,35 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class MarketNotificationService {
   MarketNotificationService._();
 
-  static String get _currentUid => CurrentUserService.instance.effectiveUserId;
+  static dynamic _cloneValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _cloneValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_cloneValue).toList(growable: false);
+    }
+    return value;
+  }
+
+  static Map<String, dynamic> _cloneMap(Map source) {
+    return source.map(
+      (key, value) => MapEntry(key.toString(), _cloneValue(value)),
+    );
+  }
+
+  static Future<String> _resolveCurrentUid() async {
+    final ensured = await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+      timeout: const Duration(seconds: 8),
+    );
+    return (ensured ?? CurrentUserService.instance.authUserId).trim();
+  }
 
   static String get _senderLabel {
     final fullName = CurrentUserService.instance.fullName.trim();
@@ -81,6 +109,27 @@ class MarketNotificationService {
     );
   }
 
+  static Future<bool> notifyConversationMessageIfNeeded({
+    required String targetUserId,
+    required String chatId,
+    required Map<String, dynamic>? conversationData,
+  }) async {
+    final marketContext = _cloneMap(
+      conversationData?['marketContext'] as Map? ?? const <String, dynamic>{},
+    );
+    final itemId = (marketContext['itemId'] ?? '').toString().trim();
+    if (itemId.isEmpty) return false;
+    await notifyMarketMessage(
+      targetUserId: targetUserId,
+      chatId: chatId,
+      sellerId: (marketContext['sellerId'] ?? '').toString(),
+      itemId: itemId,
+      itemTitle: (marketContext['title'] ?? '').toString(),
+      coverImageUrl: (marketContext['coverImageUrl'] ?? '').toString(),
+    );
+    return true;
+  }
+
   static Future<void> _writeNotification({
     required String targetUserId,
     required String type,
@@ -93,10 +142,11 @@ class MarketNotificationService {
     String postType = 'market',
     Map<String, dynamic> extra = const <String, dynamic>{},
   }) async {
-    final fromUid = _currentUid.trim();
+    final fromUid = await _resolveCurrentUid();
     final targetUid = targetUserId.trim();
     if (fromUid.isEmpty || targetUid.isEmpty || fromUid == targetUid) return;
     final now = DateTime.now().millisecondsSinceEpoch;
+    final clonedExtra = _cloneMap(extra);
     await NotificationsRepository.ensure().createInboxItem(targetUid, {
       'type': type,
       'fromUserID': fromUid,
@@ -110,7 +160,7 @@ class MarketNotificationService {
       'title': title,
       'body': body,
       'desc': desc.isEmpty ? body : desc,
-      ...extra,
+      ...clonedExtra,
     });
   }
 

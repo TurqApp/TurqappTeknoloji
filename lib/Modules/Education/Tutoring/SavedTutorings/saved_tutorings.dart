@@ -21,14 +21,14 @@ class _SavedTutoringsState extends State<SavedTutorings> {
   @override
   void initState() {
     super.initState();
-    _ownsSavedController = SavedTutoringsController.maybeFind() == null;
-    savedController = SavedTutoringsController.ensure();
+    _ownsSavedController = maybeFindSavedTutoringsController() == null;
+    savedController = ensureSavedTutoringsController();
   }
 
   @override
   void dispose() {
     if (_ownsSavedController &&
-        identical(SavedTutoringsController.maybeFind(), savedController)) {
+        identical(maybeFindSavedTutoringsController(), savedController)) {
       Get.delete<SavedTutoringsController>();
     }
     super.dispose();
@@ -37,8 +37,8 @@ class _SavedTutoringsState extends State<SavedTutorings> {
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
-        ViewModeController.ensure(permanent: true);
-    final TutoringController tutoringController = TutoringController.ensure();
+        ensureViewModeController(permanent: true);
+    final TutoringController tutoringController = ensureTutoringController();
 
     return Scaffold(
       backgroundColor: Colors.white,

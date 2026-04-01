@@ -28,8 +28,8 @@ class _CreateBookAnswerKeyState extends State<CreateBookAnswerKey> {
     _controllerTag =
         'create_book_answer_key_${model.sira}_${identityHashCode(this)}';
     _ownsController =
-        CreateBookAnswerKeyController.maybeFind(tag: _controllerTag) == null;
-    controller = CreateBookAnswerKeyController.ensure(
+        maybeFindCreateBookAnswerKeyController(tag: _controllerTag) == null;
+    controller = ensureCreateBookAnswerKeyController(
       model,
       onBack,
       tag: _controllerTag,
@@ -39,7 +39,7 @@ class _CreateBookAnswerKeyState extends State<CreateBookAnswerKey> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = CreateBookAnswerKeyController.maybeFind(
+      final registeredController = maybeFindCreateBookAnswerKeyController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {

@@ -1,6 +1,13 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
+  void _requeueJob(_PrefetchJob job) {
+    _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
+    _queue.add(job);
+    _jobEnqueuedAt[job.docID] = DateTime.now();
+    _queue.sort(_compareJobs);
+  }
+
   void pause() {
     _paused = true;
     _queue.clear();
@@ -30,6 +37,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       pause();
       return;
     }
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+    if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+      _publishPrefetchHealthIfNeeded(force: true);
+      return;
+    }
     if (_paused || _queue.isEmpty) return;
     if (_activeDownloads >= _maxConcurrent) return;
 
@@ -40,6 +53,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     }
 
     while (_queue.isNotEmpty && _activeDownloads < _maxConcurrent && !_paused) {
+      if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+        _publishPrefetchHealthIfNeeded(force: true);
+        return;
+      }
       final job = _queue.removeAt(0);
       _trackQueueDispatchLatency(job.docID);
       await _processJob(job);
@@ -56,7 +73,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (cacheManager == null) return;
 
     try {
-      final probe = HlsDataUsageProbe.ensure();
+      final probe = ensureHlsDataUsageProbe();
       final masterPath = 'Posts/${job.docID}/hls/master.m3u8';
       String? masterContent;
 
@@ -71,9 +88,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           cacheHit: true,
         );
       } else {
-        final url = '${PrefetchScheduler._cdnOrigin}/$masterPath';
+        final url = '$_prefetchSchedulerCdnOrigin/$masterPath';
         final response = await _httpClient
-            .get(Uri.parse(url), headers: PrefetchScheduler._cdnHeaders)
+            .get(Uri.parse(url), headers: _prefetchSchedulerCdnHeaders)
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           masterContent = response.body;
@@ -110,9 +127,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           cacheHit: true,
         );
       } else {
-        final url = '${PrefetchScheduler._cdnOrigin}/$variantPath';
+        final url = '$_prefetchSchedulerCdnOrigin/$variantPath';
         final response = await _httpClient
-            .get(Uri.parse(url), headers: PrefetchScheduler._cdnHeaders)
+            .get(Uri.parse(url), headers: _prefetchSchedulerCdnHeaders)
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           variantContent = response.body;
@@ -133,7 +150,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
       cacheManager.updateEntryMeta(
         job.docID,
-        '${PrefetchScheduler._cdnOrigin}/$masterPath',
+        '$_prefetchSchedulerCdnOrigin/$masterPath',
         segmentUris.length,
       );
 
@@ -151,9 +168,18 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final entryForPolicy = cacheManager.getEntry(job.docID);
       final watchedProgress = entryForPolicy?.watchProgress ?? 0.0;
       final isUnwatched = watchedProgress <= 0.01;
+      final fullOfflineDownload = _isOnWiFi && !_mobileSeedMode;
 
       final Iterable<String> toDownload;
-      if (_mobileSeedMode && isUnwatched) {
+      if (fullOfflineDownload) {
+        toDownload = _pickOfflinePrioritySegments(
+          docID: job.docID,
+          segmentUris: segmentUris,
+          variantDir: variantDir,
+          cacheManager: cacheManager,
+          watchProgress: watchedProgress,
+        );
+      } else if (_mobileSeedMode && isUnwatched) {
         final mobileOrdered = _pickMobileSeedSegments(
           docID: job.docID,
           segmentUris: segmentUris,
@@ -166,7 +192,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       } else if (isUnwatched) {
         final readyCap = job.maxSegments > 0
             ? job.maxSegments
-            : PrefetchScheduler._targetReadySegments;
+            : _prefetchSchedulerTargetReadySegments;
         toDownload = uncached.take(readyCap);
       } else {
         final preferred = _pickWatchedPrioritySegments(
@@ -175,15 +201,36 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           variantDir: variantDir,
           cacheManager: cacheManager,
           watchProgress: watchedProgress,
+          desiredReadySegments: job.maxSegments > 0 ? job.maxSegments : null,
         );
         toDownload = preferred.take(1);
       }
 
-      for (final segUri in toDownload) {
+      final orderedDownloads = toDownload.toList(growable: false);
+      if (orderedDownloads.isEmpty) return;
+
+      final availableSlots = (_maxConcurrent - _activeDownloads).clamp(
+        0,
+        orderedDownloads.length,
+      );
+      if (availableSlots <= 0) {
+        _requeueJob(job);
+        return;
+      }
+
+      final dispatchNow =
+          orderedDownloads.take(availableSlots).toList(growable: false);
+      final hasRemaining = orderedDownloads.length > dispatchNow.length;
+
+      for (final segUri in dispatchNow) {
         if (_paused) break;
+        if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+          _publishPrefetchHealthIfNeeded(force: true);
+          break;
+        }
 
         final segmentCdnUrl =
-            '${PrefetchScheduler._cdnOrigin}/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
+            '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey =
             '${variantDir.replaceFirst('Posts/${job.docID}/hls/', '')}$segUri';
 
@@ -200,8 +247,18 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           docID: job.docID,
         ));
       }
-    } catch (e) {
+
+      if (hasRemaining &&
+          !_paused &&
+          !_hasReachedWifiQuotaFillTarget(cacheManager)) {
+        _requeueJob(job);
+      }
+    } catch (e, stackTrace) {
       debugPrint('[Prefetch] Job failed for ${job.docID}: $e');
+      debugPrintStack(
+        label: '[Prefetch] Job failed stack for ${job.docID}',
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -212,7 +269,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (result.success) {
       final bytes = result.bytes!;
       _trackDownloadBytes(bytes.length);
-      HlsDataUsageProbe.ensure().recordSegmentTransfer(
+      ensureHlsDataUsageProbe().recordSegmentTransfer(
         docId: result.docID,
         segmentKey: result.segmentKey,
         bytes: bytes.length,
@@ -224,9 +281,16 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         unawaited(
           cacheManager
               .writeSegment(result.docID, result.segmentKey, bytes)
-              .then((_) => _updateFeedReadyRatio())
-              .catchError((_) {}),
+              .then((_) {
+            _updateFeedReadyRatio();
+            _publishPrefetchHealthIfNeeded();
+            _processQueue();
+          }).catchError((_) {
+            _publishPrefetchHealthIfNeeded();
+            _processQueue();
+          }),
         );
+        return;
       }
     } else {
       debugPrint(
@@ -285,7 +349,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final docID = _lastFeedDocIDs[idx];
       final entry = cacheManager.getEntry(docID);
       if (entry != null &&
-          entry.cachedSegmentCount >= PrefetchScheduler._targetReadySegments) {
+          entry.cachedSegmentCount >= _prefetchSchedulerTargetReadySegments) {
         ready++;
       }
     }
@@ -332,8 +396,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   void _publishPrefetchHealthIfNeeded({bool force = false}) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
+    final cacheManager = _getCacheManager();
+    final quotaReached =
+        cacheManager != null && _hasReachedWifiQuotaFillTarget(cacheManager);
+    final quotaBucket = cacheManager == null
+        ? 0
+        : (_wifiQuotaFillRatio(cacheManager) * 10).floor().clamp(0, 10);
 
     final readyBucket = (_lastFeedReadyRatio * 10).floor().clamp(0, 10);
     final latencyBucket = (_avgQueueDispatchLatencyMs / 250).floor().clamp(
@@ -347,6 +417,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       'a$_activeDownloads',
       'r$readyBucket',
       'l$latencyBucket',
+      'quota${quotaReached ? 'stop' : 'ok'}',
+      'qb$quotaBucket',
     ].join('|');
 
     if (!force && signature == _lastPrefetchHealthSignature) {
@@ -366,6 +438,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         'feedReadyCount': _lastFeedReadyCount,
         'feedWindowCount': _lastFeedWindowCount,
         'avgQueueDispatchLatencyMs': _avgQueueDispatchLatencyMs,
+        'wifiQuotaFillRatio':
+            cacheManager == null ? 0.0 : _wifiQuotaFillRatio(cacheManager),
+        'wifiQuotaFillTargetBytes': _wifiQuotaFillTargetBytes,
+        'wifiQuotaFillTargetReached': quotaReached,
       },
     );
   }

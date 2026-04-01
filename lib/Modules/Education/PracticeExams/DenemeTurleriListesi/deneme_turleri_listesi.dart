@@ -23,10 +23,10 @@ class _DenemeTurleriListesiState extends State<DenemeTurleriListesi> {
   void initState() {
     super.initState();
     _tag = 'practice_exam_type_${widget.sinavTuru}_${identityHashCode(this)}';
-    final existing = DenemeTurleriListesiController.maybeFind(tag: _tag);
+    final existing = maybeFindDenemeTurleriListesiController(tag: _tag);
     _ownsController = existing == null;
     controller = existing ??
-        DenemeTurleriListesiController.ensure(
+        ensureDenemeTurleriListesiController(
           tag: _tag,
           sinavTuru: widget.sinavTuru,
         );
@@ -36,7 +36,7 @@ class _DenemeTurleriListesiState extends State<DenemeTurleriListesi> {
   void dispose() {
     if (_ownsController &&
         identical(
-          DenemeTurleriListesiController.maybeFind(tag: _tag),
+          maybeFindDenemeTurleriListesiController(tag: _tag),
           controller,
         )) {
       Get.delete<DenemeTurleriListesiController>(tag: _tag);
@@ -46,79 +46,86 @@ class _DenemeTurleriListesiState extends State<DenemeTurleriListesi> {
 
   @override
   Widget build(BuildContext context) {
-    Widget buildExamGrid() {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 5.0,
-            mainAxisSpacing: 5.0,
-            childAspectRatio: 2 / 4,
-          ),
-          itemCount: controller.list.length,
-          itemBuilder: (context, index) {
-            return DenemeGrid(
-              model: controller.list[index],
-              getData: controller.getData,
-            );
-          },
-        ),
-      );
-    }
+    return Scaffold(body: _buildDenemeTurleriListesiBody());
+  }
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: widget.sinavTuru),
-            Expanded(
-              child: Obx(
-                () => controller.isLoading.value
-                    ? const Center(
-                        child: CupertinoActivityIndicator(radius: 20),
-                      )
-                    : controller.isInitialized.value && controller.list.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.lightbulb_outline,
-                                    color: Colors.black,
-                                    size: 40,
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'tests.not_found_in_type'
-                                        .trParams({'type': widget.sinavTuru}),
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "MontserratMedium",
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : RefreshIndicator(
-                            color: Colors.white,
-                            backgroundColor: Colors.black,
-                            onRefresh: controller.getData,
-                            child: ListView(children: [buildExamGrid()]),
-                          ),
-              ),
+  Widget _buildDenemeTurleriListesiBody() {
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          BackButtons(text: widget.sinavTuru),
+          Expanded(child: _buildDenemeTurleriListesiContent()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDenemeTurleriListesiContent() {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(
+          child: CupertinoActivityIndicator(radius: 20),
+        );
+      }
+
+      if (controller.isInitialized.value && controller.list.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.lightbulb_outline,
+                  color: Colors.black,
+                  size: 40,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'tests.not_found_in_type'
+                      .trParams({'type': widget.sinavTuru}),
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontFamily: "MontserratMedium",
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+          ),
+        );
+      }
+
+      return RefreshIndicator(
+        color: Colors.white,
+        backgroundColor: Colors.black,
+        onRefresh: controller.getData,
+        child: ListView(children: [_buildExamGrid()]),
+      );
+    });
+  }
+
+  Widget _buildExamGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 5.0,
+          mainAxisSpacing: 5.0,
+          childAspectRatio: 2 / 4,
         ),
+        itemCount: controller.list.length,
+        itemBuilder: (context, index) {
+          return DenemeGrid(
+            model: controller.list[index],
+            getData: controller.getData,
+          );
+        },
       ),
     );
   }

@@ -3,7 +3,8 @@ part of 'cikmis_sorular_yil_sectirme.dart';
 extension CikmisSorularYilSectirmeActionsPart
     on _CikmisSorularYilSectirmeState {
   void _openYear(BuildContext context, String yil) {
-    if (_isLanguageOrDirectBranch(widget.sinavTuru)) {
+    final denemeLabel = _denemeLabelForYear(yil);
+    if (_isLanguageOrDirectBranch(widget.baslik2)) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -11,6 +12,7 @@ extension CikmisSorularYilSectirmeActionsPart
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
             yil: yil,
+            denemeLabel: denemeLabel,
           ),
         ),
       );
@@ -26,7 +28,42 @@ extension CikmisSorularYilSectirmeActionsPart
             anaBaslik: widget.anaBaslik,
             sinavTuru: widget.sinavTuru,
             yil: yil,
+            denemeLabel: denemeLabel,
             baslik2: widget.baslik2,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.sinavTuru == _CikmisSorularYilSectirmeState._undergraduate &&
+        widget.baslik2 == _CikmisSorularYilSectirmeState._fieldKnowledge) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CikmisSorularPreview(
+            anaBaslik: widget.anaBaslik,
+            sinavTuru: widget.sinavTuru,
+            yil: yil,
+            baslik2: widget.baslik2,
+            baslik3: widget.baslik3,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.sinavTuru == _CikmisSorularYilSectirmeState._undergraduate &&
+        widget.baslik2 == _CikmisSorularYilSectirmeState._educationSciences) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CikmisSorularPreview(
+            anaBaslik: widget.anaBaslik,
+            sinavTuru: widget.sinavTuru,
+            yil: yil,
+            baslik2: widget.baslik2,
+            baslik3: widget.baslik3,
           ),
         ),
       );

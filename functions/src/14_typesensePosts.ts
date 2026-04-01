@@ -182,6 +182,10 @@ async function ensurePostsCollection() {
         { name: "locationCity", type: "string", optional: true },
         { name: "originalPostID", type: "string", optional: true },
         { name: "originalUserID", type: "string", optional: true },
+        { name: "ctaLabel", type: "string", optional: true },
+        { name: "ctaUrl", type: "string", optional: true },
+        { name: "ctaType", type: "string", optional: true },
+        { name: "ctaDocId", type: "string", optional: true },
         { name: "quotedPost", type: "bool", optional: true },
         { name: "mainFlood", type: "string", optional: true },
         { name: "contentType", type: "string", optional: true },
@@ -239,6 +243,10 @@ async function ensurePostsCollection() {
           { name: "locationCity", type: "string", optional: true },
           { name: "originalPostID", type: "string", optional: true },
           { name: "originalUserID", type: "string", optional: true },
+          { name: "ctaLabel", type: "string", optional: true },
+          { name: "ctaUrl", type: "string", optional: true },
+          { name: "ctaType", type: "string", optional: true },
+          { name: "ctaDocId", type: "string", optional: true },
           { name: "quotedPost", type: "bool", optional: true },
           { name: "mainFlood", type: "string", optional: true },
           { name: "contentType", type: "string", optional: true },
@@ -427,6 +435,10 @@ type PostSearchDoc = {
   locationCity: string;
   originalPostID: string;
   originalUserID: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  ctaType: string;
+  ctaDocId: string;
   quotedPost: boolean;
   mainFlood: string;
   contentType: string;
@@ -444,6 +456,8 @@ type AuthorSummary = {
 
 function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSearchDoc {
   const analysis = (data.analysis as Record<string, unknown> | undefined) || {};
+  const reshareMap =
+    ((data as any).reshareMap as Record<string, unknown> | undefined) || {};
   const stats = (data.stats as Record<string, unknown> | undefined) || {};
   const paylas = Number((data as any).paylasGizliligi);
   const paylasGizliligi = Number.isFinite(paylas) ? paylas : 0;
@@ -521,6 +535,10 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
     locationCity: asString((data as any).locationCity) || asString((data as any).konum),
     originalPostID: asString((data as any).originalPostID),
     originalUserID: asString((data as any).originalUserID),
+    ctaLabel: asString(reshareMap.ctaLabel),
+    ctaUrl: asString(reshareMap.ctaUrl),
+    ctaType: asString(reshareMap.ctaType),
+    ctaDocId: asString(reshareMap.ctaDocId),
     quotedPost: asBool((data as any).quotedPost),
     mainFlood: asString((data as any).mainFlood),
     contentType,
@@ -585,6 +603,37 @@ async function buildSearchDocForIndexing(
     authorAvatarUrl: doc.authorAvatarUrl || summary.authorAvatarUrl,
     rozet: doc.rozet || summary.rozet,
   };
+}
+
+function postDocsEqual(
+  left: PostSearchDoc | null | undefined,
+  right: PostSearchDoc | null | undefined
+): boolean {
+  if (!left || !right) return false;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function normalizeTagEntries(entries: TagEntry[]): TagEntry[] {
+  return entries
+    .map((entry) => ({
+      tag: normalizeTag(entry.tag),
+      hasHashtag: entry.hasHashtag === true,
+    }))
+    .filter((entry) => entry.tag.length > 0)
+    .sort((a, b) => a.tag.localeCompare(b.tag, "tr-TR"));
+}
+
+function tagEntriesEqual(left: TagEntry[], right: TagEntry[]): boolean {
+  const normalizedLeft = normalizeTagEntries(left);
+  const normalizedRight = normalizeTagEntries(right);
+  if (normalizedLeft.length !== normalizedRight.length) return false;
+  for (let i = 0; i < normalizedLeft.length; i += 1) {
+    if (normalizedLeft[i].tag !== normalizedRight[i].tag) return false;
+    if (normalizedLeft[i].hasHashtag !== normalizedRight[i].hasHashtag) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function shouldIndex(doc: PostSearchDoc): boolean {
@@ -823,20 +872,43 @@ async function deleteUserDoc(userId: string) {
   }
 }
 
-async function searchPostsFromTypesense(q: string, limit: number, page: number) {
+async function searchPostsFromTypesense(
+  q: string,
+  limit: number,
+  page: number,
+  options?: {
+    tag?: string;
+    includeNonPublic?: boolean;
+  }
+) {
   await ensurePostsCollection();
+
+  const normalizedTag = normalizeTag(options?.tag || "");
+  const includeNonPublic = options?.includeNonPublic === true;
+  const filterParts = [
+    "arsiv:=false",
+    "deletedPost:=false",
+    "gizlendi:=false",
+    "isUploading:=false",
+  ];
+  if (!includeNonPublic) {
+    filterParts.unshift("paylasGizliligi:=0");
+  }
+  if (normalizedTag) {
+    filterParts.push(`hashtags:=[${typesenseStringLiteral(normalizedTag)}]`);
+  }
 
   const baseUrl = getTypesenseBaseUrl();
   const resp = await axios.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
     headers: headers(),
     timeout: 10000,
     params: {
-      q,
+      q: q.trim() !== "" ? q : "*",
       query_by: "metin,hashtags,mentions,authorNickname,authorDisplayName",
       per_page: limit,
       page,
       sort_by: "timeStamp:desc",
-      filter_by: "paylasGizliligi:=0 && arsiv:=false && deletedPost:=false && gizlendi:=false && isUploading:=false",
+      filter_by: filterParts.join(" && "),
       prefix: "true,true,true,true,true",
       typo_tokens_threshold: 1,
     },
@@ -847,6 +919,7 @@ async function searchPostsFromTypesense(q: string, limit: number, page: number) 
 
   return {
     q,
+    tag: normalizedTag,
     page,
     limit,
     found: Number(body.found || 0),
@@ -1032,61 +1105,85 @@ export const f14_syncPostsToTypesense = onDocumentWritten(
     const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
 
-    const beforeDoc = beforeData ? await buildSearchDocForIndexing(postId, beforeData) : null;
-    const afterDoc = afterData ? await buildSearchDocForIndexing(postId, afterData) : null;
+    const beforeComparable = beforeData ? buildSearchDoc(postId, beforeData) : null;
+    const afterComparable = afterData ? buildSearchDoc(postId, afterData) : null;
 
-    const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
-    const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
+    const beforeIndexed = !!beforeComparable && shouldIndex(beforeComparable);
+    const afterIndexed = !!afterComparable && shouldIndex(afterComparable);
 
     const beforeTagEntries = beforeIndexed && beforeData ? extractPostTags(beforeData) : [];
     const afterTagEntries = afterIndexed && afterData ? extractPostTags(afterData) : [];
     const beforeTags = beforeTagEntries.map((x) => x.tag);
     const afterTags = afterTagEntries.map((x) => x.tag);
 
-    if (!afterData || !afterIndexed || !afterDoc) {
+    if (!afterData || !afterIndexed) {
       if (!afterData) {
+        if (!beforeIndexed) {
+          return;
+        }
         console.log("post_sync_delete", { postId });
-      } else if (afterDoc) {
+      } else if (afterComparable) {
         console.log("post_sync_skip", {
           postId,
-          reasons: collectSkipReasons(afterDoc),
-          hlsStatus: afterDoc.hlsStatus,
-          hasPlayableVideo: afterDoc.hasPlayableVideo,
-          thumbnail: !!afterDoc.thumbnail,
-          imgCount: afterDoc.img.length,
-          video: !!afterDoc.video,
-          hlsMasterUrl: !!afterDoc.hlsMasterUrl,
-          arsiv: afterDoc.arsiv,
-          deletedPost: afterDoc.deletedPost,
-          gizlendi: afterDoc.gizlendi,
-          isUploading: afterDoc.isUploading,
+          reasons: collectSkipReasons(afterComparable),
+          hlsStatus: afterComparable.hlsStatus,
+          hasPlayableVideo: afterComparable.hasPlayableVideo,
+          thumbnail: !!afterComparable.thumbnail,
+          imgCount: afterComparable.img.length,
+          video: !!afterComparable.video,
+          hlsMasterUrl: !!afterComparable.hlsMasterUrl,
+          arsiv: afterComparable.arsiv,
+          deletedPost: afterComparable.deletedPost,
+          gizlendi: afterComparable.gizlendi,
+          isUploading: afterComparable.isUploading,
         });
+        if (!beforeIndexed) {
+          return;
+        }
+      } else if (!beforeIndexed) {
+        return;
       }
       await deleteDoc(postId);
       if (beforeTags.length) await deleteTagDocs(postId, beforeTags);
       return;
     }
 
-    await upsertDoc(afterDoc);
-    console.log("post_sync_upsert", {
-      postId,
-      hlsStatus: afterDoc.hlsStatus,
-      hasPlayableVideo: afterDoc.hasPlayableVideo,
-      thumbnail: !!afterDoc.thumbnail,
-      imgCount: afterDoc.img.length,
-      video: !!afterDoc.video,
-      hlsMasterUrl: !!afterDoc.hlsMasterUrl,
-      flood: afterDoc.flood,
-      floodCount: afterDoc.floodCount,
-    });
+    const hasDocChanges = !beforeIndexed || !postDocsEqual(beforeComparable, afterComparable);
+    const hasTagChanges = !tagEntriesEqual(beforeTagEntries, afterTagEntries);
+    if (beforeIndexed &&
+        postDocsEqual(beforeComparable, afterComparable) &&
+        !hasTagChanges) {
+      return;
+    }
 
-    const beforeSet = new Set(beforeTags);
-    const afterSet = new Set(afterTags);
-    const toDelete = beforeTags.filter((t) => !afterSet.has(t));
-    const beforeHashtagMap = new Map(beforeTagEntries.map((x) => [x.tag, x.hasHashtag]));
+    const afterDoc = hasDocChanges
+      ? await buildSearchDocForIndexing(postId, afterData)
+      : afterComparable;
+    if (hasDocChanges) {
+      await upsertDoc(afterDoc);
+      console.log("post_sync_upsert", {
+        postId,
+        hlsStatus: afterDoc.hlsStatus,
+        hasPlayableVideo: afterDoc.hasPlayableVideo,
+        thumbnail: !!afterDoc.thumbnail,
+        imgCount: afterDoc.img.length,
+        video: !!afterDoc.video,
+        hlsMasterUrl: !!afterDoc.hlsMasterUrl,
+        flood: afterDoc.flood,
+        floodCount: afterDoc.floodCount,
+      });
+    }
+
+    const beforeSet = new Set(beforeTags.map(normalizeTag).filter(Boolean));
+    const afterSet = new Set(afterTags.map(normalizeTag).filter(Boolean));
+    const toDelete = beforeTags.filter((t) => !afterSet.has(normalizeTag(t)));
+    const beforeHashtagMap = new Map(
+      beforeTagEntries.map((x) => [normalizeTag(x.tag), x.hasHashtag]),
+    );
     const toUpsertEntries = afterTagEntries.filter((entry) => {
-      if (!beforeSet.has(entry.tag)) return true;
-      return beforeHashtagMap.get(entry.tag) !== entry.hasHashtag;
+      const normalizedTag = normalizeTag(entry.tag);
+      if (!beforeSet.has(normalizedTag)) return true;
+      return beforeHashtagMap.get(normalizedTag) !== entry.hasHashtag;
     });
 
     if (toDelete.length) await deleteTagDocs(postId, toDelete);
@@ -1166,7 +1263,9 @@ export const f14_searchPosts = onRequest(
     }
 
     const q = String(req.query.q || "").trim();
-    if (q.length < 2) {
+    const tag = normalizeTag(String(req.query.tag || ""));
+    const includeNonPublic = req.query.includeNonPublic === "true";
+    if (!tag && q.length < 2) {
       res.status(400).json({ error: "query_too_short", minLength: 2 });
       return;
     }
@@ -1175,7 +1274,12 @@ export const f14_searchPosts = onRequest(
     const page = Math.max(1, Number(req.query.page || 1));
 
     try {
-      res.json(await searchPostsFromTypesense(q, limit, page));
+      res.json(
+        await searchPostsFromTypesense(q, limit, page, {
+          tag,
+          includeNonPublic,
+        })
+      );
     } catch (err: any) {
       const status = err?.response?.status || 500;
       const detail = err?.response?.data || err?.message || "unknown_error";
@@ -1200,7 +1304,9 @@ export const f14_searchPostsCallable = onCall(
     }
 
     const q = String(request.data?.q || "").trim();
-    if (q.length < 2) {
+    const tag = normalizeTag(String(request.data?.tag || ""));
+    const includeNonPublic = request.data?.includeNonPublic === true;
+    if (!tag && q.length < 2) {
       throw new HttpsError("invalid-argument", "query_too_short");
     }
 
@@ -1208,7 +1314,10 @@ export const f14_searchPostsCallable = onCall(
     const page = Math.max(1, Number(request.data?.page || 1));
 
     try {
-      return await searchPostsFromTypesense(q, limit, page);
+      return await searchPostsFromTypesense(q, limit, page, {
+        tag,
+        includeNonPublic,
+      });
     } catch (err: any) {
       const detail = err?.response?.data || err?.message || "unknown_error";
       throw new HttpsError("internal", "typesense_search_failed", detail);

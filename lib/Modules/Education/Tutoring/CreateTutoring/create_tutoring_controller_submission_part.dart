@@ -284,7 +284,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
   }
 
   void _applyLocalTutoringPatch(TutoringModel patchedModel) {
-    final controller = TutoringController.maybeFind();
+    final controller = maybeFindTutoringController();
     if (controller != null) {
       final homeIndex = controller.tutoringList.indexWhere(
         (item) => item.docID == patchedModel.docID,
@@ -302,7 +302,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
       }
     }
 
-    final myTutoringsController = MyTutoringsController.maybeFind();
+    final myTutoringsController = maybeFindMyTutoringsController();
     if (myTutoringsController != null) {
       final ownerIndex = myTutoringsController.myTutorings.indexWhere(
         (item) => item.docID == patchedModel.docID,
@@ -314,7 +314,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
       }
     }
 
-    final tutoringDetailController = TutoringDetailController.maybeFind();
+    final tutoringDetailController = maybeFindTutoringDetailController();
     if (tutoringDetailController != null &&
         tutoringDetailController.tutoring.value.docID == patchedModel.docID) {
       tutoringDetailController.tutoring.value = patchedModel;

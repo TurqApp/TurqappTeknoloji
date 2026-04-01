@@ -16,8 +16,12 @@ import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
+import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+import 'package:turqappv2/Themes/app_tokens.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/formatters.dart';
@@ -31,6 +35,7 @@ import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 import '../../../Services/post_count_manager.dart';
 
 part 'photo_short_content_body_part.dart';
+part 'photo_short_content_state_part.dart';
 
 class PhotoShortContent extends StatefulWidget {
   final PostsModel model;
@@ -48,13 +53,47 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   int _currentPage = 0;
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
+  StoryUserModel? _resolveStoryUser() {
+    final rowController = maybeFindStoryRowController();
+    if (rowController == null) return null;
+    for (final user in rowController.users) {
+      if (user.userID == widget.model.userID && user.stories.isNotEmpty) {
+        return user;
+      }
+    }
+    return null;
+  }
+
+  List<StoryUserModel> _storyUsersSnapshot() {
+    final rowController = maybeFindStoryRowController();
+    if (rowController == null) return const <StoryUserModel>[];
+    return rowController.users.toList(growable: false);
+  }
+
+  Future<void> _openAuthorProfile() async {
+    if (widget.model.userID == _currentUserId) return;
+    await Get.to(() => SocialProfile(userID: widget.model.userID));
+  }
+
+  Future<void> _openAvatarStoryOrProfile() async {
+    final storyUser = _resolveStoryUser();
+    if (storyUser != null && storyUser.stories.isNotEmpty) {
+      await Get.to(() => StoryViewer(
+            startedUser: storyUser,
+            storyOwnerUsers: _storyUsersSnapshot(),
+          ));
+      return;
+    }
+    await _openAuthorProfile();
+  }
+
   @override
   void initState() {
     super.initState();
     _controllerTag = 'PhotoShortContent_${widget.model.docID}';
     _ownsController =
-        PhotoShortsContentController.maybeFind(tag: _controllerTag) == null;
-    controller = PhotoShortsContentController.ensure(
+        maybeFindPhotoShortsContentController(tag: _controllerTag) == null;
+    controller = ensurePhotoShortsContentController(
       model: widget.model,
       tag: _controllerTag,
     );
@@ -67,7 +106,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
     _pageController.dispose();
     if (_ownsController &&
         identical(
-          PhotoShortsContentController.maybeFind(tag: _controllerTag),
+          maybeFindPhotoShortsContentController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PhotoShortsContentController>(
@@ -164,7 +203,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                     children: [
                       SharedPostLabel(
                         originalUserID: widget.model.originalUserID,
-                        fontSize: 12,
+                        fontSize: AppTypography.postAttribution.fontSize!,
                         textColor: Colors.white,
                       ),
                     ],

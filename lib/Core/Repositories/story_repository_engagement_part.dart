@@ -165,7 +165,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required String currentUid,
   }) async {
     if (storyId.isEmpty) {
-      return const StoryEngagementSnapshot(
+      return StoryEngagementSnapshot(
         likeCount: 0,
         isLiked: false,
         reactionCounts: <String, int>{},

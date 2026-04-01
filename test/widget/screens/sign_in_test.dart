@@ -1,194 +1,102 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Models/stored_account.dart';
+import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 
 import '../../helpers/pump_app.dart';
 
-class _LoginFlowHarness extends StatefulWidget {
-  const _LoginFlowHarness();
-
-  @override
-  State<_LoginFlowHarness> createState() => _LoginFlowHarnessState();
-}
-
-class _LoginFlowHarnessState extends State<_LoginFlowHarness> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  bool _showForm = false;
-  bool _isLoading = false;
-  bool _isLoggedIn = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 1));
-
-    final isValidCredential =
-        _emailController.text == 'test@mail.com' &&
-        _passwordController.text == '123456';
-
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-      _isLoggedIn = isValidCredential;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoggedIn) {
-      return const Scaffold(
-        body: Center(
-          child: Text('Home'),
-        ),
-      );
-    }
-
-    if (!_showForm) {
-      return Scaffold(
-        body: Center(
-          child: ElevatedButton(
-            key: const Key('login_button'),
-            onPressed: () {
-              setState(() {
-                _showForm = true;
-              });
-            },
-            child: const Text('Login'),
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              key: const Key('email'),
-              controller: _emailController,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('password'),
-              controller: _passwordController,
-              obscureText: true,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              key: const Key('login_submit_button'),
-              onPressed: _submit,
-              child: const Text('Submit'),
-            ),
-            if (_isLoading) const Text('Loading'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  bool _showHome = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  void _login() {
-    if (_emailController.text == 'test@mail.com' &&
-        _passwordController.text == '123456') {
-      setState(() {
-        _showHome = true;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_showHome) {
-      return const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Text('Home'),
-          ),
-        ),
-      );
-    }
-
-    return MaterialApp(
-      home: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextField(
-                key: const Key('email'),
-                controller: _emailController,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                key: const Key('password'),
-                controller: _passwordController,
-                obscureText: true,
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                key: const Key('login_button'),
-                onPressed: _login,
-                child: const Text('Login'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 void main() {
-  testWidgets('Login button opens sign-in form', (tester) async {
-    await pumpApp(tester, const _LoginFlowHarness());
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    await tester.tap(find.byKey(const Key('login_button')));
-    await tester.pump();
-
-    expect(find.byKey(const Key('login_submit_button')), findsOneWidget);
+  setUp(() {
+    Get.testMode = true;
+    SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  testWidgets('Full login flow', (tester) async {
-    await tester.pumpWidget(const MyApp());
-    await tester.enterText(find.byKey(const Key('email')), 'test@mail.com');
-    await tester.enterText(find.byKey(const Key('password')), '123456');
-    await tester.tap(find.byKey(const Key('login_button')));
-    await tester.pumpAndSettle();
+  tearDown(() {
+    Get.reset();
+  });
 
-    expect(find.text('Home'), findsOneWidget);
+  testWidgets('real sign-in screen opens login form from start screen', (
+    tester,
+  ) async {
+    await pumpApp(tester, const SignIn());
+
+    expect(
+      find.byKey(const ValueKey(IntegrationTestKeys.screenSignIn)),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('login_button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('email')), findsNothing);
+    expect(find.byKey(const ValueKey('password')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('login_button')));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('email')), findsOneWidget);
+    expect(find.byKey(const ValueKey('password')), findsOneWidget);
+    expect(find.byKey(const ValueKey('login_submit_button')), findsOneWidget);
+  });
+
+  testWidgets('real sign-in screen keeps initial identifier in login form', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const SignIn(initialIdentifier: 'test@mail.com'),
+    );
+
+    expect(find.byKey(const ValueKey('login_button')), findsNothing);
+    expect(find.byKey(const ValueKey('email')), findsOneWidget);
+    expect(find.byKey(const ValueKey('password')), findsOneWidget);
+
+    final emailField = tester.widget<TextField>(
+      find.byKey(const ValueKey('email')),
+    );
+
+    expect(emailField.controller?.text, 'test@mail.com');
+    expect(find.byKey(const ValueKey('login_submit_button')), findsOneWidget);
+  });
+
+  testWidgets('stored account route opens login form after account center init',
+      (
+    tester,
+  ) async {
+    final account = StoredAccount(
+      uid: 'stored-1',
+      email: 'osman@example.com',
+      username: 'osman',
+      displayName: 'Osman',
+      rozet: '',
+      avatarUrl: '',
+      providers: <String>['password'],
+      lastUsedAt: 0,
+      isSessionValid: false,
+      requiresReauth: true,
+      accountState: 'reauth_required',
+      isPinned: false,
+      sortOrder: 1,
+      lastSuccessfulSignInAt: 0,
+    );
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'account_center.accounts': StoredAccount.encodeList(<StoredAccount>[
+        account,
+      ]),
+    });
+
+    await pumpApp(
+      tester,
+      const SignIn(storedAccountUid: 'stored-1'),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.byKey(const ValueKey('login_button')), findsNothing);
+    expect(find.byKey(const ValueKey('email')), findsOneWidget);
+    expect(find.byKey(const ValueKey('password')), findsOneWidget);
+    expect(find.byKey(const ValueKey('login_submit_button')), findsOneWidget);
   });
 }

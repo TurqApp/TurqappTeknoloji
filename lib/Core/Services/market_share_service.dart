@@ -22,6 +22,8 @@ class MarketShareService {
       imageUrl: item.coverImageUrl.isNotEmpty
           ? item.coverImageUrl
           : (item.imageUrls.isNotEmpty ? item.imageUrls.first : ''),
+      shortId: item.shortId,
+      existingShortUrl: item.shortUrl,
     );
 
     final url = shortUrl.trim().isNotEmpty ? shortUrl : buildPublicUrl(item.id);

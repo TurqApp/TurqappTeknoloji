@@ -39,7 +39,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
 
   final TextEditingController _nicknameController = TextEditingController();
   final VerifiedAccountRepository _verifiedAccountRepository =
-      VerifiedAccountRepository.ensure();
+      ensureVerifiedAccountRepository();
   final AdminApprovalRepository _approvalRepository =
       AdminApprovalRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
@@ -144,8 +144,49 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
     setState(fn);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return _buildBadgeAdminScaffold(context);
+  Widget _buildPage(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: 'admin.badges.title'.tr),
+            Expanded(
+              child: FutureBuilder<bool>(
+                future: _canAccessFuture,
+                builder: (context, accessSnap) {
+                  if (accessSnap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (accessSnap.data != true) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'admin.no_access'.tr,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'MontserratMedium',
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                    child: _buildBadgeAdminContent(context, theme),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+  @override
+  Widget build(BuildContext context) => _buildPage(context);
 }

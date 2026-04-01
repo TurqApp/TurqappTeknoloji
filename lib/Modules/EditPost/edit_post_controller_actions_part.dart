@@ -126,6 +126,17 @@ extension EditPostControllerActionsPart on EditPostController {
 
   Future<void> setData() async {
     try {
+      final textValidation = UploadValidationService.validateTextLength(
+        text.text,
+        maxLength: PostCaptionLimits.forCurrentUser(),
+      );
+      if (!textValidation.isValid) {
+        UploadValidationService.showValidationError(
+          textValidation.errorMessage ?? 'upload_validation.error_title'.tr,
+        );
+        return;
+      }
+
       bekle.value = true;
       final docRef =
           FirebaseFirestore.instance.collection('Posts').doc(model.docID);
@@ -243,7 +254,7 @@ extension EditPostControllerActionsPart on EditPostController {
       await docRef.update(data);
 
       try {
-        final agendaCtrl = AgendaController.maybeFind();
+        final agendaCtrl = maybeFindAgendaController();
         if (agendaCtrl != null) {
           final index =
               agendaCtrl.agendaList.indexWhere((e) => e.docID == model.docID);

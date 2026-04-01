@@ -13,7 +13,7 @@ extension StoryViewerStoryPart on _StoryViewerState {
 
   Future<void> _refreshStoryRowAndExit() async {
     try {
-      await StoryRowController.refreshStoriesGlobally();
+      await refreshStoryRowGlobally();
       print('🔄 Story row refreshed after viewing stories');
     } catch (_) {
     } finally {
@@ -93,7 +93,7 @@ extension StoryViewerStoryPart on _StoryViewerState {
         final latestStoryTime = _latestStoryMillis(user);
         final latestStoryId = user.stories.first.id;
 
-        await StoryInteractionOptimizer.to.markStoryViewed(
+        await ensureStoryInteractionOptimizer().markStoryViewed(
           targetUserId,
           latestStoryId,
           latestStoryTime,

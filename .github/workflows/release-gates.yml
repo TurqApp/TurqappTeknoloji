@@ -35,6 +35,12 @@ jobs:
           npm ci
 
       - name: Run Android release master suite
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -42,11 +48,6 @@ jobs:
           profile: pixel_7
           script: |
             export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
-            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
-            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
-            export INTEGRATION_AUTO_SEED=1
-            export INTEGRATION_REQUIRE_SEED=1
-            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
             bash scripts/run_turqapp_master_e2e.sh
 
   android-release-product-depth:
@@ -77,6 +78,12 @@ jobs:
           npm ci
 
       - name: Run Android release product-depth
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -84,11 +91,6 @@ jobs:
           profile: pixel_7
           script: |
             export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
-            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
-            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
-            export INTEGRATION_AUTO_SEED=1
-            export INTEGRATION_REQUIRE_SEED=1
-            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
             bash scripts/run_product_depth_e2e.sh
 
   android-release-process-death:
@@ -119,6 +121,12 @@ jobs:
           npm ci
 
       - name: Run Android release process-death
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -126,11 +134,6 @@ jobs:
           profile: pixel_7
           script: |
             export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
-            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
-            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
-            export INTEGRATION_AUTO_SEED=1
-            export INTEGRATION_REQUIRE_SEED=1
-            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
             bash scripts/run_process_death_restore_suite.sh
 
   android-release-permission-os-matrix:
@@ -161,6 +164,12 @@ jobs:
           npm ci
 
       - name: Run Android release permission matrix
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -168,16 +177,11 @@ jobs:
           profile: pixel_7
           script: |
             export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
-            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
-            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
-            export INTEGRATION_AUTO_SEED=1
-            export INTEGRATION_REQUIRE_SEED=1
-            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
             bash scripts/run_permission_os_matrix_suite.sh
 
   ios-release-product-depth:
     name: iOS Release Product Depth
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 130
     env:
       IOS_SIMULATOR_NAME: iPhone 16
@@ -199,9 +203,7 @@ jobs:
           npm ci
 
       - name: Install CocoaPods deps
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         run: |
@@ -227,7 +229,7 @@ jobs:
 
   ios-release-process-death:
     name: iOS Release Process Death
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 140
     env:
       IOS_SIMULATOR_NAME: iPhone 16
@@ -249,9 +251,7 @@ jobs:
           npm ci
 
       - name: Install CocoaPods deps
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         run: |
@@ -277,7 +277,7 @@ jobs:
 
   ios-release-permission-os-matrix:
     name: iOS Release Permission OS Matrix
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 110
     env:
       IOS_SIMULATOR_NAME: iPhone 16
@@ -299,9 +299,7 @@ jobs:
           npm ci
 
       - name: Install CocoaPods deps
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         run: |

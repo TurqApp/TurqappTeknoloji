@@ -1,6 +1,41 @@
 part of 'explore_controller.dart';
 
 extension ExploreControllerSearchPart on ExploreController {
+  void _performResetSurfaceForTabTransition() {
+    _performResetSearchToDefault();
+    floodsVisibleIndex.value = -1;
+    lastFloodVisibleIndex = null;
+    _pendingFloodDocId = null;
+    showScrollToTop.value = false;
+
+    void resetNow(ScrollController controller) {
+      if (!controller.hasClients) return;
+      try {
+        controller.jumpTo(0);
+      } catch (_) {}
+    }
+
+    for (final controller in <ScrollController>[
+      exploreScroll,
+      videoScroll,
+      photoScroll,
+      floodsScroll,
+    ]) {
+      resetNow(controller);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final controller in <ScrollController>[
+        exploreScroll,
+        videoScroll,
+        photoScroll,
+        floodsScroll,
+      ]) {
+        resetNow(controller);
+      }
+    });
+  }
+
   Future<dynamic> _performCallTypesenseCallable(
     String callableName,
     Map<String, dynamic> payload,
@@ -60,7 +95,7 @@ extension ExploreControllerSearchPart on ExploreController {
     }
 
     isSearchMode.value = true;
-    _searchDebounce = Timer(ExploreController._searchDebounceDuration, () {
+    _searchDebounce = Timer(_searchDebounceDuration, () {
       unawaited(search(normalized));
     });
   }
@@ -114,11 +149,7 @@ extension ExploreControllerSearchPart on ExploreController {
             final tag = (entry['tag'] ?? '').toString().trim();
             final count = (entry['count'] as num?) ?? 0;
             final hasHashtag = entry['hasHashtag'] == true;
-            return HashtagModel(
-              hashtag: tag,
-              count: count,
-              hasHashtag: hasHashtag,
-            );
+            return HashtagModel(tag, count, hasHashtag: hasHashtag);
           })
           .where((entry) => entry.hashtag.isNotEmpty)
           .toList();
@@ -143,8 +174,11 @@ extension ExploreControllerSearchPart on ExploreController {
           OgrenciModel(
             userID: uid,
             nickname: (row['nickname'] ?? '').toString(),
-            firstName: (row['firstName'] ?? '').toString(),
-            lastName: (row['lastName'] ?? '').toString(),
+            firstName: ((row['displayName'] ?? '').toString().trim().isNotEmpty
+                    ? row['displayName']
+                    : row['nickname'] ?? '')
+                .toString(),
+            lastName: '',
             avatarUrl: (row['avatarUrl'] ?? '').toString(),
           ),
         );

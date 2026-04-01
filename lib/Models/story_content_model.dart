@@ -14,11 +14,19 @@ class StoryContentModel {
   num aspectRatio;
   num seenCount;
 
+  static List<String> _cloneStringList(List<String> source) {
+    if (source.isEmpty) return const <String>[];
+    return source
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+  }
+
   StoryContentModel({
     required this.start,
     required this.end,
     required this.konum,
-    required this.begeniler,
+    required List<String> begeniler,
     required this.img,
     required this.cevaplanabilir,
     required this.music,
@@ -29,5 +37,5 @@ class StoryContentModel {
     required this.userID,
     required this.aspectRatio,
     required this.seenCount,
-  });
+  }) : begeniler = _cloneStringList(begeniler);
 }

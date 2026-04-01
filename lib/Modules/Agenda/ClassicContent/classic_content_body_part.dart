@@ -1,8 +1,7 @@
 part of 'classic_content.dart';
 
 extension ClassicContentBodyPart on _ClassicContentState {
-  double get _captionFontSize =>
-      Theme.of(context).platform == TargetPlatform.iOS ? 14 : 13;
+  double get _captionFontSize => AppTypography.postCaption.fontSize!;
 
   Widget textOnlyBody(BuildContext context) {
     final sanitizedCaption =
@@ -78,7 +77,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           ? widget.model.quotedSourceUserID
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
-                      fontSize: 12,
+                      fontSize: AppTypography.postAttribution.fontSize!,
                       textColor: Colors.red,
                       showBackdrop: true,
                     ),
@@ -90,14 +89,27 @@ extension ClassicContentBodyPart on _ClassicContentState {
         Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              SizedBox(width: 58, child: Center(child: commentButton(context))),
-              SizedBox(width: 58, child: Center(child: likeButton())),
-              SizedBox(width: 58, child: Center(child: saveButton())),
-              SizedBox(width: 58, child: Center(child: reshareButton())),
-              SizedBox(width: 58, child: Center(child: statButton())),
-              SizedBox(width: 58, child: Center(child: sendButton())),
+              _buildClassicActionSlot(
+                commentButton(context),
+                offsetX: -5,
+              ),
+              _buildClassicActionSlot(
+                likeButton(),
+              ),
+              _buildClassicActionSlot(
+                saveButton(),
+              ),
+              _buildClassicActionSlot(
+                reshareButton(),
+              ),
+              _buildClassicActionSlot(
+                statButton(),
+              ),
+              _buildClassicActionSlot(
+                sendButton(),
+                offsetX: 5,
+              ),
             ],
           ),
         ),
@@ -201,7 +213,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           labelSuffix:
                               widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
-                          fontSize: 12,
+                          fontSize: AppTypography.postAttribution.fontSize!,
                         ),
                       ),
                     _buildClassicMediaHeader(),
@@ -292,7 +304,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           labelSuffix:
                               widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
-                          fontSize: 12,
+                          fontSize: AppTypography.postAttribution.fontSize!,
                         ),
                       ),
                     _buildClassicMediaHeader(),
@@ -329,14 +341,15 @@ extension ClassicContentBodyPart on _ClassicContentState {
       final int? userVote = userVoteRaw is num
           ? userVoteRaw.toInt()
           : int.tryParse('${userVoteRaw ?? ''}');
+      final effectiveUserVote = userVote ?? controller.localPollSelection.value;
 
       final createdAt = (poll['createdDate'] ?? model.timeStamp) as num;
       final durationHours = (poll['durationHours'] ?? 24) as num;
       final expiresAt =
           createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
       final expired = DateTime.now().millisecondsSinceEpoch > expiresAt;
-      final canVote = !expired && userVote == null;
-      final showResults = userVote != null || expired;
+      final canVote = !expired && effectiveUserVote == null;
+      final showResults = effectiveUserVote != null || expired;
 
       return Padding(
         padding: const EdgeInsets.only(top: 8),
@@ -356,7 +369,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                 final votes = (options[i]['votes'] ?? 0) as num;
                 final pct = totalVotes > 0 ? (votes / totalVotes) : 0.0;
                 final label = '${String.fromCharCode(65 + i)}) ';
-                final isSelected = userVote == i;
+                final isSelected = effectiveUserVote == i;
 
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -382,9 +395,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             '$label$text',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: AppTypography.postCaption.copyWith(
                               color: Colors.black87,
-                              fontSize: 14,
                               fontFamily: "MontserratMedium",
                             ),
                           ),
@@ -393,9 +405,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         if (showResults)
                           Text(
                             '${(pct * 100).toStringAsFixed(0)}%',
-                            style: const TextStyle(
+                            style: AppTypography.postMeta.copyWith(
                               color: Colors.black54,
-                              fontSize: 12,
                               fontFamily: "MontserratMedium",
                             ),
                           ),
@@ -409,9 +420,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                 children: [
                   Text(
                     'Toplam ${totalVotes.toInt()} oy',
-                    style: const TextStyle(
+                    style: AppTypography.postMeta.copyWith(
                       color: Colors.black54,
-                      fontSize: 12,
                       fontFamily: "MontserratMedium",
                     ),
                   ),
@@ -421,9 +431,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       expired: expired,
                       expiresAtMs: expiresAt,
                     ),
-                    style: const TextStyle(
+                    style: AppTypography.postMeta.copyWith(
                       color: Colors.black54,
-                      fontSize: 12,
                       fontFamily: "MontserratMedium",
                     ),
                   ),
@@ -542,24 +551,41 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             key: ValueKey('classic-$controllerTag'),
                             aspectRatio: frameAspectRatio,
                             useAspectRatio: false,
+                            overrideAutoPlay:
+                                shouldAutoResumeInlinePlatformView,
                           ),
                   ),
                   // Thumbnail overlay - video hazır olana kadar göster
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
-                      final hasStableVideoFrame = v.hasRenderedFirstFrame &&
-                          !v.isCompleted &&
-                          (v.isPlaying ||
-                              v.position > const Duration(milliseconds: 180));
-                      if (hasStableVideoFrame) {
-                        return const SizedBox.shrink();
-                      }
-                      return child!;
+                      final atPlaybackEnd = v.isCompleted ||
+                          (v.duration > Duration.zero &&
+                              v.position >=
+                                  (v.duration -
+                                      const Duration(milliseconds: 350)));
+                      final reachedStablePlaybackPosition =
+                          v.position > const Duration(milliseconds: 450);
+                      final hasStableVideoFrame = atPlaybackEnd ||
+                          (v.hasRenderedFirstFrame &&
+                              !v.isBuffering &&
+                              (v.isPlaying || reachedStablePlaybackPosition) &&
+                              reachedStablePlaybackPosition);
+                      return IgnorePointer(
+                        ignoring: true,
+                        child: AnimatedOpacity(
+                          opacity: hasStableVideoFrame ? 0 : 1,
+                          duration: AppDuration.thumbnailFadeOut,
+                          curve: Curves.easeOut,
+                          child: child!,
+                        ),
+                      );
                     },
                     child: AspectRatio(
                       aspectRatio: frameAspectRatio,
-                      child: _buildVideoThumbnail(),
+                      child: _buildVideoThumbnail(
+                        aspectRatio: frameAspectRatio,
+                      ),
                     ),
                   ),
                   Positioned(
@@ -578,40 +604,6 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     top: 8,
                     right: 8,
                     child: buildUploadIndicator(),
-                  ),
-
-                // Süre göstergesi + Replay — sadece video state değiştiğinde rebuild
-                if (videoController != null && !_shouldBlurIzBirakPost)
-                  ValueListenableBuilder<HLSVideoValue>(
-                    valueListenable: videoValueNotifier,
-                    builder: (_, v, __) {
-                      if (!v.isInitialized) return const SizedBox.shrink();
-                      final remaining = v.duration - v.position;
-                      final safeRemaining =
-                          remaining.isNegative ? Duration.zero : remaining;
-                      return Positioned(
-                        top: 50,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _formatDuration(safeRemaining),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: "Montserrat",
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
 
                 if (videoController != null &&
@@ -644,7 +636,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
-                      fontSize: 12,
+                      fontSize: AppTypography.postAttribution.fontSize!,
                     ),
                   ),
                 _buildIzBirakBlurOverlay(),
@@ -653,32 +645,105 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        agendaController.isMuted.toggle();
-                        final vc = videoController;
-                        if (vc != null && vc.value.isInitialized) {
-                          vc.setVolume(agendaController.isMuted.value ? 0 : 1);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
+                    child: Row(
+                      children: [
+                        if (videoController != null)
+                          ValueListenableBuilder<HLSVideoValue>(
+                            valueListenable: videoValueNotifier,
+                            builder: (_, v, __) {
+                              final isPlaying = v.isPlaying && !v.isCompleted;
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  final vc = videoController;
+                                  if (vc == null || !vc.value.isInitialized) {
+                                    return;
+                                  }
+                                  if (isPlaying) {
+                                    pauseVideoManually();
+                                  } else {
+                                    resumeVideoManually();
+                                  }
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 6),
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isPlaying
+                                        ? CupertinoIcons.pause_fill
+                                        : CupertinoIcons.play_fill,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            agendaController.isMuted.toggle();
+                            final vc = videoController;
+                            if (vc != null && vc.value.isInitialized) {
+                              vc.setVolume(
+                                  agendaController.isMuted.value ? 0 : 1);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Obx(() => Icon(
+                                  agendaController.isMuted.value
+                                      ? CupertinoIcons.volume_off
+                                      : CupertinoIcons.volume_up,
+                                  color: Colors.white,
+                                  size: 14,
+                                )),
+                          ),
                         ),
-                        child: Obx(() => Icon(
-                              agendaController.isMuted.value
-                                  ? CupertinoIcons.volume_off
-                                  : CupertinoIcons.volume_up,
-                              color: Colors.white,
-                              size: 16,
-                            )),
-                      ),
+                      ],
                     ),
                   ),
                 _buildClassicMediaHeader(),
+                if (videoController != null && !_shouldBlurIzBirakPost)
+                  ValueListenableBuilder<HLSVideoValue>(
+                    valueListenable: videoValueNotifier,
+                    builder: (_, v, __) {
+                      if (!v.isInitialized) return const SizedBox.shrink();
+                      final remaining = v.duration - v.position;
+                      final safeRemaining =
+                          remaining.isNegative ? Duration.zero : remaining;
+                      return Positioned(
+                        top: 40,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _formatDuration(safeRemaining),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: "Montserrat",
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -686,6 +751,18 @@ extension ClassicContentBodyPart on _ClassicContentState {
         _buildClassicActionRow(context),
         _buildClassicMetaSection(),
       ],
+    );
+  }
+
+  Widget _buildClassicActionSlot(
+    Widget child, {
+    double offsetX = 0,
+  }) {
+    return Expanded(
+      child: Transform.translate(
+        offset: Offset(offsetX, 0),
+        child: Center(child: child),
+      ),
     );
   }
 }

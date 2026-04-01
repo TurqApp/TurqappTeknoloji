@@ -34,7 +34,7 @@ class _OpeningOverlayState extends State<OpeningOverlay>
   late Duration _maxDelay;
   late int _precacheCount;
 
-  AgendaController get _agenda => AgendaController.ensure();
+  AgendaController get _agenda => ensureAgendaController();
 
   @override
   void initState() {

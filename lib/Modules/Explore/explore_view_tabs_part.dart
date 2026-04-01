@@ -65,7 +65,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                   idx,
                 );
                 if (idx == 0 && controller.trendingTags.isEmpty) {
-                  controller.fetchTrendingTags();
+                  controller.fetchTrendingTags(forceRefresh: true);
                 } else if (idx == 1 &&
                     controller.explorePosts.isEmpty &&
                     !controller.exploreIsLoading.value) {
@@ -90,12 +90,14 @@ extension _ExploreViewTabsPart on _ExploreViewState {
 
   Widget _buildTrendingTab(BuildContext context) {
     return Obx(() {
-      final items = controller.trendingTags.take(30).toList();
+      final items = controller.trendingTags
+          .take(ReadBudgetRegistry.exploreTrendingTagsLimit)
+          .toList();
       return RefreshIndicator(
         backgroundColor: Colors.black,
         color: Colors.white,
         onRefresh: () async {
-          await controller.fetchTrendingTags();
+          await controller.fetchTrendingTags(forceRefresh: true);
         },
         child: items.isEmpty
             ? ListView(
@@ -236,7 +238,11 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                         );
                         if (model.floodCount > 1) {
                           await VideoControllerPool.pauseAll();
-                          await Get.to(() => FloodListing(mainModel: model));
+                          await Get.to(() => FloodListing(
+                                mainModel: model,
+                                hostSurface:
+                                    FloodListingHostSurface.exploreSeries,
+                              ));
                           controller.resumeExplorePreview();
                           return;
                         }
@@ -320,6 +326,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
   Widget _buildSeriesTab() {
     return Obx(() {
       final list = controller.exploreFloods;
+      final focusedIndex = controller.resolveFloodSeriesFocusIndex();
       final showLoader =
           controller.floodsHasMore.value && controller.floodsIsLoading.value;
       if (list.isEmpty && !controller.floodsIsLoading.value) {
@@ -349,6 +356,10 @@ extension _ExploreViewTabsPart on _ExploreViewState {
               );
             }
             final p = list[i];
+            final shouldPlay =
+                FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+              isCentered: focusedIndex == i,
+            );
             return RepaintBoundary(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -360,7 +371,8 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                   model: p,
                   isPreview: true,
                   instanceTag: 'explore_series_${p.docID}',
-                  shouldPlay: false,
+                  shouldPlay: shouldPlay,
+                  floodHostSurface: FloodListingHostSurface.exploreSeries,
                 ),
               ),
             );

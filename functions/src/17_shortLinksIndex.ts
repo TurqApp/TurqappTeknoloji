@@ -46,6 +46,21 @@ interface ShortRouteDoc {
   updatedAt: number;
 }
 
+interface InternalUpsertShortLinkOptions {
+  db: FirebaseFirestore.Firestore;
+  type: ShortLinkType;
+  entityId: string;
+  callerUid?: string;
+  requestedShortId?: string;
+  requestedSlug?: string;
+  title?: string;
+  desc?: string;
+  imageUrl?: string;
+  expiresAt?: number;
+  forcePersistToEntity?: boolean;
+  forceDisableRouteCustomization?: boolean;
+}
+
 async function findExistingRouteForEntity(
   db: FirebaseFirestore.Firestore,
   type: ShortLinkType,
@@ -229,6 +244,9 @@ function kvPrefix(type: ShortLinkType, entityId = ""): RouteKind {
 }
 
 function buildPublicUrl(routeKind: RouteKind, id: string): string {
+  if (routeKind === "u") {
+    return `https://${SHORT_LINK_DOMAIN}/${id}`;
+  }
   return `https://${SHORT_LINK_DOMAIN}/${routeKind}/${id}`;
 }
 
@@ -659,6 +677,315 @@ function normalizeMetaPayload(
   return { title: nextTitle, desc: nextDesc, imageUrl: nextImage };
 }
 
+async function persistShortLinkToEntityRoot(
+  db: FirebaseFirestore.Firestore,
+  type: ShortLinkType,
+  entityId: string,
+  shortId: string,
+  publicUrl: string,
+  now: number,
+  expiresAt: number,
+  slug: string
+) {
+  const commonPatch = {
+    shortId,
+    shortUrl: publicUrl,
+    shortLinkUpdatedAt: now,
+    shortLinkStatus: "active",
+  };
+
+  if (type === "post") {
+    await db.collection("Posts").doc(entityId).set(commonPatch, { merge: true });
+    return;
+  }
+
+  if (type === "job") {
+    await db.collection("isBul").doc(entityId.replace(/^job:/, "")).set(commonPatch, { merge: true });
+    return;
+  }
+
+  if (type === "market") {
+    await db.collection("marketStore").doc(entityId).set(commonPatch, { merge: true });
+    return;
+  }
+
+  if (type === "story") {
+    await db.collection("stories").doc(entityId).set(
+      {
+        ...commonPatch,
+        shortLinkExpiresAt: expiresAt,
+      },
+      { merge: true }
+    );
+    return;
+  }
+
+  if (type === "user") {
+    await db.collection("users").doc(entityId).set(
+      {
+        profileSlug: slug,
+        profileUrl: publicUrl,
+        shortLinkUpdatedAt: now,
+      },
+      { merge: true }
+    );
+    return;
+  }
+
+  if (entityId.startsWith("scholarship:")) {
+    await db
+      .collection("catalog")
+      .doc("education")
+      .collection("scholarships")
+      .doc(entityId.replace(/^scholarship:/, ""))
+      .set(commonPatch, { merge: true });
+    return;
+  }
+
+  if (entityId.startsWith("practice-exam:")) {
+    await db
+      .collection("practiceExams")
+      .doc(entityId.replace(/^practice-exam:/, ""))
+      .set(commonPatch, { merge: true });
+    return;
+  }
+
+  if (entityId.startsWith("answer-key:")) {
+    await db
+      .collection("books")
+      .doc(entityId.replace(/^answer-key:/, ""))
+      .set(commonPatch, { merge: true });
+    return;
+  }
+
+  if (entityId.startsWith("question:")) {
+    await db
+      .collection("questionBank")
+      .doc(entityId.replace(/^question:/, ""))
+      .set(commonPatch, { merge: true });
+    return;
+  }
+
+  if (entityId.startsWith("tutoring:")) {
+    await db
+      .collection("educators")
+      .doc(entityId.replace(/^tutoring:/, ""))
+      .set(commonPatch, { merge: true });
+  }
+}
+
+async function upsertShortLinkForEntity(
+  options: InternalUpsertShortLinkOptions
+) {
+  const db = options.db;
+  const type = normalizeType(options.type);
+  const entityId = normalizeText(options.entityId, 128);
+  if (!entityId) {
+    throw new HttpsError("invalid-argument", "entityId zorunlu.");
+  }
+
+  const entityTarget = parseEntityTarget(db, type, entityId);
+  if (!entityTarget) {
+    throw new HttpsError("not-found", "Entity bulunamadı.");
+  }
+  const entitySnap = await entityTarget.ref.get();
+  if (!entitySnap.exists) {
+    throw new HttpsError("not-found", "Entity bulunamadı.");
+  }
+
+  const entityData = (entitySnap.data() || {}) as Record<string, unknown>;
+  const ownerUid = pickOwnerUid(entityData);
+  const callerUid = normalizeText(options.callerUid, 128);
+  const isAdmin = callerUid ? await isAdminUid(db, callerUid) : false;
+  const canPersistToEntity = options.forcePersistToEntity == null
+    ? (!callerUid || isAdmin || ownerUid === callerUid)
+    : options.forcePersistToEntity;
+  const canCustomizeRoute = options.forceDisableRouteCustomization == true
+    ? false
+    : canPersistToEntity;
+
+  let title = normalizeText(options.title, 140);
+  let desc = normalizeText(options.desc, 280);
+  let imageUrl = normalizeText(options.imageUrl, 1024);
+  const expiresAt = normalizeExpiresAt(type, options.expiresAt);
+  const now = Date.now();
+
+  if (type === "post") {
+    const postMeta = await buildPostMeta(db, entityId);
+    title = postMeta.title;
+    if (!desc) desc = postMeta.desc;
+    imageUrl = postMeta.imageUrl || imageUrl;
+  } else if (type === "user") {
+    const userMeta = await buildUserMeta(db, entityId);
+    if (!title) title = userMeta.title;
+    if (!desc) desc = userMeta.desc;
+    if (!imageUrl) imageUrl = userMeta.imageUrl;
+  } else if (type === "story") {
+    const storyMeta = await buildStoryMeta(db, entityId);
+    if (!title) title = storyMeta.title;
+    if (!desc) desc = storyMeta.desc;
+    if (!imageUrl) imageUrl = storyMeta.imageUrl;
+  } else if (type === "job") {
+    const jobMeta = await buildJobMeta(db, entityId);
+    if (!title) title = jobMeta.title;
+    if (!desc) desc = jobMeta.desc;
+    if (!imageUrl) imageUrl = jobMeta.imageUrl;
+  } else if (type === "market") {
+    const marketMeta = await buildMarketMeta(db, entityId);
+    if (!title) title = marketMeta.title;
+    if (!desc) desc = marketMeta.desc;
+    if (!imageUrl) imageUrl = marketMeta.imageUrl;
+  } else if (type === "edu") {
+    const eduMeta = await buildEduMeta(db, entityId);
+    if (!title) title = eduMeta.title;
+    if (!desc) desc = eduMeta.desc;
+    if (!imageUrl) imageUrl = eduMeta.imageUrl;
+  }
+  if (!imageUrl) {
+    imageUrl = await buildEntityMetaImage(db, type, entityId);
+  }
+  if (type === "edu" && entityId.startsWith("scholarship:")) {
+    desc = "";
+  }
+
+  const normalizedMeta = normalizeMetaPayload(type, entityId, title, desc, imageUrl);
+  title = normalizedMeta.title;
+  desc = normalizedMeta.desc;
+  imageUrl = normalizedMeta.imageUrl;
+
+  let shortId = "";
+  let slug = "";
+  const existingEntityShortLinkSnap = await entityTarget.ref
+    .collection("shortLinks")
+    .doc("public")
+    .get();
+  const existingEntityShortLink = existingEntityShortLinkSnap.exists
+    ? (existingEntityShortLinkSnap.data() as Record<string, unknown>)
+    : null;
+
+  if (type === "user") {
+    const requestedSlug = normalizeSlug(options.requestedSlug);
+    const existingSlug = normalizeSlug(existingEntityShortLink?.shortId);
+    const canonicalSlug = resolveCanonicalUserSlug(entityData, entityId);
+    slug = canCustomizeRoute
+      ? (requestedSlug || existingSlug || canonicalSlug)
+      : (existingSlug || canonicalSlug);
+    validateSlug(slug);
+    shortId = slug;
+  } else {
+    shortId = normalizeText(options.requestedShortId, 24);
+    if (!canCustomizeRoute) {
+      shortId = "";
+    }
+    if (!shortId) {
+      const existingShortId = String(existingEntityShortLink?.shortId || "").trim();
+      if (isPreferredShortId(existingShortId)) {
+        shortId = existingShortId;
+      }
+    }
+    if (!shortId) {
+      const existingRoute = await findExistingRouteForEntity(db, type, entityId);
+      if (existingRoute?.shortId) {
+        shortId = existingRoute.shortId;
+      }
+    }
+    if (shortId) {
+      validateShortId(shortId);
+    } else {
+      shortId = await findFreeShortId(db);
+    }
+  }
+
+  const idForUrl = type === "user" ? slug : shortId;
+  const routeKind = routeKindFor(type, entityId);
+  const publicUrl = buildPublicUrl(routeKind, idForUrl);
+  const entityShortLinkDoc = buildEntityShortLinkDoc(
+    routeKind,
+    type,
+    entityId,
+    shortId,
+    publicUrl,
+    title,
+    desc,
+    imageUrl,
+    expiresAt,
+    now
+  );
+  const routeRef = db.collection(SHORT_LINK_ROUTE_COLLECTION).doc(`${routeKind}:${idForUrl}`);
+  const routeSnap = await routeRef.get();
+  if (routeSnap.exists) {
+    const routeData = routeSnap.data() as ShortRouteDoc;
+    if (routeData.entityId !== entityId) {
+      throw new HttpsError("already-exists", "Bu kısa link başka kayıt için kullanılıyor.");
+    }
+  }
+
+  if (canPersistToEntity) {
+    await persistShortLinkToEntityRoot(
+      db,
+      type,
+      entityId,
+      shortId,
+      publicUrl,
+      now,
+      expiresAt,
+      slug
+    );
+  }
+
+  await entityTarget.ref.collection("shortLinks").doc("public").set(
+    entityShortLinkDoc,
+    { merge: true }
+  );
+  await routeRef.set(
+    {
+      routeKind,
+      key: idForUrl,
+      type,
+      entityId,
+      entityPath: `${entityTarget.path}/shortLinks/public`,
+      shortId,
+      shortUrl: publicUrl,
+      status: "active",
+      expiresAt,
+      updatedAt: now,
+    } satisfies ShortRouteDoc,
+    { merge: true }
+  );
+
+  try {
+    await syncToCloudflareKV(type, entityId, idForUrl, {
+      type,
+      id: idForUrl,
+      entityId,
+      routeKind,
+      shortId,
+      slug,
+      title,
+      desc,
+      imageUrl,
+      expiresAt,
+      url: publicUrl,
+      updatedAt: now,
+      status: "active",
+    });
+  } catch (e) {
+    functions.logger.error("upsertShortLink cloudflare_kv_sync_error", { type, id: idForUrl, entityId, error: e });
+  }
+
+  return {
+    ok: true,
+    type,
+    id: idForUrl,
+    shortId,
+    slug,
+    entityId,
+    url: publicUrl,
+    routeCollection: SHORT_LINK_ROUTE_COLLECTION,
+    domain: SHORT_LINK_DOMAIN,
+  };
+}
+
 export const upsertShortLink = onCall(
   { region: REGION, invoker: "public" },
   async (req: CallableRequest<UpsertShortLinkPayload>) => {
@@ -668,247 +995,18 @@ export const upsertShortLink = onCall(
     const type = normalizeType(req.data?.type);
     const callerUid = ensureAuth(req);
     enforceRateLimit(callerUid, "short_link_upsert", 30, 600);
-    const entityId = normalizeText(req.data?.entityId, 128);
-    if (!entityId) throw new HttpsError("invalid-argument", "entityId zorunlu.");
-    const entityTarget = parseEntityTarget(db, type, entityId);
-    if (!entityTarget) {
-      throw new HttpsError("not-found", "Entity bulunamadı.");
-    }
-    const entitySnap = await entityTarget.ref.get();
-    if (!entitySnap.exists) {
-      throw new HttpsError("not-found", "Entity bulunamadı.");
-    }
-    const entityData = (entitySnap.data() || {}) as Record<string, unknown>;
-    const ownerUid = pickOwnerUid(entityData);
-    const isAdmin = await isAdminUid(db, callerUid);
-    const canPersistToEntity = isAdmin || ownerUid === callerUid;
-    const canCustomizeRoute = canPersistToEntity;
-
-    let title = normalizeText(req.data?.title, 140);
-    let desc = normalizeText(req.data?.desc, 280);
-    let imageUrl = normalizeText(req.data?.imageUrl, 1024);
-    const expiresAt = normalizeExpiresAt(type, req.data?.expiresAt);
-    const now = Date.now();
-
-    if (type === "post") {
-      const postMeta = await buildPostMeta(db, entityId);
-      title = postMeta.title;
-      if (!desc) desc = postMeta.desc;
-      // Post paylasiminda gorsel secimini backend tek kaynaktan belirler:
-      // foto: img[0], video: thumbnail
-      imageUrl = postMeta.imageUrl || imageUrl;
-    } else if (type === "user") {
-      const userMeta = await buildUserMeta(db, entityId);
-      if (!title) title = userMeta.title;
-      if (!desc) desc = userMeta.desc;
-      if (!imageUrl) imageUrl = userMeta.imageUrl;
-    } else if (type === "story") {
-      const storyMeta = await buildStoryMeta(db, entityId);
-      if (!title) title = storyMeta.title;
-      if (!desc) desc = storyMeta.desc;
-      if (!imageUrl) imageUrl = storyMeta.imageUrl;
-    } else if (type === "job") {
-      const jobMeta = await buildJobMeta(db, entityId);
-      if (!title) title = jobMeta.title;
-      if (!desc) desc = jobMeta.desc;
-      if (!imageUrl) imageUrl = jobMeta.imageUrl;
-    } else if (type === "market") {
-      const marketMeta = await buildMarketMeta(db, entityId);
-      if (!title) title = marketMeta.title;
-      if (!desc) desc = marketMeta.desc;
-      if (!imageUrl) imageUrl = marketMeta.imageUrl;
-    } else if (type === "edu") {
-      const eduMeta = await buildEduMeta(db, entityId);
-      if (!title) title = eduMeta.title;
-      if (!desc) desc = eduMeta.desc;
-      if (!imageUrl) imageUrl = eduMeta.imageUrl;
-    }
-    if (!imageUrl) {
-      imageUrl = await buildEntityMetaImage(db, type, entityId);
-    }
-    // Burs paylasimlarinda aciklama metnini kaldir:
-    // preview'de sadece baslik + gorsel gosterilsin.
-    if (type === "edu" && entityId.startsWith("scholarship:")) {
-      desc = "";
-    }
-    const normalizedMeta = normalizeMetaPayload(type, entityId, title, desc, imageUrl);
-    title = normalizedMeta.title;
-    desc = normalizedMeta.desc;
-    imageUrl = normalizedMeta.imageUrl;
-
-    let shortId = "";
-    let slug = "";
-    const existingEntityShortLinkSnap = await entityTarget.ref
-      .collection("shortLinks")
-      .doc("public")
-      .get();
-    const existingEntityShortLink = existingEntityShortLinkSnap?.exists
-      ? (existingEntityShortLinkSnap.data() as Record<string, unknown>)
-      : null;
-
-    if (type === "user") {
-      const requestedSlug = normalizeSlug(req.data?.slug);
-      const existingSlug = normalizeSlug(existingEntityShortLink?.shortId);
-      const canonicalSlug = resolveCanonicalUserSlug(entityData, entityId);
-      slug = canCustomizeRoute
-        ? (requestedSlug || existingSlug || canonicalSlug)
-        : (existingSlug || canonicalSlug);
-      validateSlug(slug);
-      shortId = slug;
-    } else {
-      shortId = normalizeText(req.data?.shortId, 24);
-      if (!canCustomizeRoute) {
-        shortId = "";
-      }
-      if (!shortId) {
-        const existingShortId = String(existingEntityShortLink?.shortId || "").trim();
-        if (isPreferredShortId(existingShortId)) {
-          shortId = existingShortId;
-        }
-      }
-      if (!shortId) {
-        const existingRoute = await findExistingRouteForEntity(db, type, entityId);
-        if (existingRoute?.shortId) {
-          shortId = existingRoute.shortId;
-        }
-      }
-      if (shortId) {
-        validateShortId(shortId);
-      } else {
-        // Ilk olusturmada kisa id random uretilir; sonra entity shortLinks/public
-        // ve shortRoutes uzerinden her zaman ayni id tekrar kullanilir.
-        shortId = await findFreeShortId(db);
-      }
-    }
-
-    const idForUrl = type === "user" ? slug : shortId;
-    const routeKind = routeKindFor(type, entityId);
-    const publicUrl = buildPublicUrl(routeKind, idForUrl);
-    const resolvedImageUrl = imageUrl;
-    const entityShortLinkDoc = buildEntityShortLinkDoc(
-      routeKind,
+    return upsertShortLinkForEntity({
+      db,
       type,
-      entityId,
-      shortId,
-      publicUrl,
-      title,
-      desc,
-      resolvedImageUrl,
-      expiresAt,
-      now
-    );
-    const routeRef = db.collection(SHORT_LINK_ROUTE_COLLECTION).doc(`${routeKind}:${idForUrl}`);
-    const routeSnap = await routeRef.get();
-    if (routeSnap.exists) {
-      const routeData = routeSnap.data() as ShortRouteDoc;
-      if (routeData.entityId !== entityId) {
-        throw new HttpsError("already-exists", "Bu kısa link başka kayıt için kullanılıyor.");
-      }
-    }
-
-    if (type === "post" && canPersistToEntity) {
-      await db.collection("Posts").doc(entityId).set(
-        {
-          shortId,
-          shortUrl: publicUrl,
-          shortLinkUpdatedAt: now,
-          shortLinkStatus: "active",
-        },
-        { merge: true }
-      );
-    } else if (type === "job" && canPersistToEntity) {
-      await db.collection("isBul").doc(entityId.replace(/^job:/, "")).set(
-        {
-          shortId,
-          shortUrl: publicUrl,
-          shortLinkUpdatedAt: now,
-          shortLinkStatus: "active",
-        },
-        { merge: true }
-      );
-    } else if (type === "market" && canPersistToEntity) {
-      await db.collection("marketStore").doc(entityId).set(
-        {
-          shortId,
-          shortUrl: publicUrl,
-          shortLinkUpdatedAt: now,
-          shortLinkStatus: "active",
-        },
-        { merge: true }
-      );
-    } else if (type === "story" && canPersistToEntity) {
-      await db.collection("stories").doc(entityId).set(
-        {
-          shortId,
-          shortUrl: publicUrl,
-          shortLinkUpdatedAt: now,
-          shortLinkStatus: "active",
-          shortLinkExpiresAt: expiresAt,
-        },
-        { merge: true }
-      );
-    } else if (type === "user" && canPersistToEntity) {
-      await db.collection("users").doc(entityId).set(
-        {
-          profileSlug: slug,
-          profileUrl: publicUrl,
-          shortLinkUpdatedAt: now,
-        },
-        { merge: true }
-      );
-    }
-
-    await entityTarget.ref.collection("shortLinks").doc("public").set(
-      entityShortLinkDoc,
-      { merge: true }
-    );
-    await routeRef.set(
-      {
-        routeKind,
-        key: idForUrl,
-        type,
-        entityId,
-        entityPath: `${entityTarget.path}/shortLinks/public`,
-        shortId,
-        shortUrl: publicUrl,
-        status: "active",
-        expiresAt,
-        updatedAt: now,
-      } satisfies ShortRouteDoc,
-      { merge: true }
-    );
-
-    try {
-      await syncToCloudflareKV(type, entityId, idForUrl, {
-        type,
-        id: idForUrl,
-        entityId,
-        routeKind,
-        shortId,
-        slug,
-        title,
-        desc,
-        imageUrl: resolvedImageUrl,
-        expiresAt,
-      url: publicUrl,
-      updatedAt: now,
-      status: "active",
+      entityId: req.data?.entityId || "",
+      callerUid,
+      requestedShortId: req.data?.shortId,
+      requestedSlug: req.data?.slug,
+      title: req.data?.title,
+      desc: req.data?.desc,
+      imageUrl: req.data?.imageUrl,
+      expiresAt: req.data?.expiresAt,
     });
-    } catch (e) {
-      functions.logger.error("upsertShortLink cloudflare_kv_sync_error", { type, id: idForUrl, entityId, error: e });
-    }
-
-    return {
-      ok: true,
-      type,
-      id: idForUrl,
-      shortId,
-      slug,
-      entityId,
-      url: publicUrl,
-      routeCollection: SHORT_LINK_ROUTE_COLLECTION,
-      domain: SHORT_LINK_DOMAIN,
-    };
   }
 );
 
@@ -1133,7 +1231,7 @@ export const shortLinkIndexConfig = onCall(
       ok: true,
       routeCollection: SHORT_LINK_ROUTE_COLLECTION,
       domain: SHORT_LINK_DOMAIN,
-      routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id", "/i/:id", "/m/:id"],
+      routes: ["/p/:id", "/s/:id", "/:nickname", "/u/:id", "/e/:id", "/i/:id", "/m/:id"],
       cloudflareKvSyncEnabled:
         !!getEnv("CF_API_TOKEN") &&
         !!getEnv("CF_ACCOUNT_ID") &&
@@ -1141,3 +1239,120 @@ export const shortLinkIndexConfig = onCall(
     };
   }
 );
+
+async function _ensureShortLinkOnCreate(
+  db: FirebaseFirestore.Firestore,
+  type: ShortLinkType,
+  entityId: string
+) {
+  try {
+    await upsertShortLinkForEntity({
+      db,
+      type,
+      entityId,
+      forcePersistToEntity: true,
+      forceDisableRouteCustomization: true,
+    });
+  } catch (error) {
+    functions.logger.error("ensureShortLinkOnCreate error", {
+      type,
+      entityId,
+      error,
+    });
+  }
+}
+
+export const ensurePostShortLinkOnCreate = functions.firestore
+  .document("Posts/{postId}")
+  .onCreate(async (snap, context) => {
+    await _ensureShortLinkOnCreate(getFirestore(), "post", context.params.postId);
+  });
+
+export const ensureMarketShortLinkOnCreate = functions.firestore
+  .document("marketStore/{itemId}")
+  .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate(getFirestore(), "market", context.params.itemId);
+  });
+
+export const ensureJobShortLinkOnCreate = functions.firestore
+  .document("isBul/{jobId}")
+  .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate(getFirestore(), "job", `job:${context.params.jobId}`);
+  });
+
+export const ensureScholarshipShortLinkOnCreate = functions.firestore
+  .document("catalog/education/scholarships/{scholarshipId}")
+  .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate(
+      getFirestore(),
+      "edu",
+      `scholarship:${context.params.scholarshipId}`
+    );
+  });
+
+export const ensurePracticeExamShortLinkOnCreate = functions.firestore
+  .document("practiceExams/{examId}")
+  .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate(
+      getFirestore(),
+      "edu",
+      `practice-exam:${context.params.examId}`
+    );
+  });
+
+export const ensureAnswerKeyShortLinkOnCreate = functions.firestore
+  .document("books/{bookId}")
+  .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate(
+      getFirestore(),
+      "edu",
+      `answer-key:${context.params.bookId}`
+    );
+  });
+
+export const ensureQuestionShortLinkOnCreate = functions.firestore
+  .document("questionBank/{questionId}")
+  .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate(
+      getFirestore(),
+      "edu",
+      `question:${context.params.questionId}`
+    );
+  });
+
+export const ensureTutoringShortLinkOnCreate = functions.firestore
+  .document("educators/{tutoringId}")
+  .onCreate(async (_snap, context) => {
+    await _ensureShortLinkOnCreate(
+      getFirestore(),
+      "edu",
+      `tutoring:${context.params.tutoringId}`
+    );
+  });
+
+function _shouldRefreshUserProfileLink(
+  beforeData: Record<string, unknown> | undefined,
+  afterData: Record<string, unknown>,
+  uid: string
+) {
+  const beforeSlug = beforeData
+    ? resolveCanonicalUserSlug(beforeData, uid)
+    : "";
+  const afterSlug = resolveCanonicalUserSlug(afterData, uid);
+  const profileUrl = String(afterData.profileUrl || "").trim();
+  return !profileUrl || beforeSlug !== afterSlug;
+}
+
+export const ensureUserShortLinkOnWrite = functions.firestore
+  .document("users/{uid}")
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return;
+    const afterData = (change.after.data() || {}) as Record<string, unknown>;
+    const beforeData = change.before.exists
+      ? (change.before.data() || {}) as Record<string, unknown>
+      : undefined;
+    const uid = String(context.params.uid || "").trim();
+    if (!uid) return;
+    if (!_shouldRefreshUserProfileLink(beforeData, afterData, uid)) return;
+    await _ensureShortLinkOnCreate(getFirestore(), "user", uid);
+  });

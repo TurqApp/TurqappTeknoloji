@@ -24,7 +24,10 @@ artifact_dir="artifacts/integration_smoke"
 android_package="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 android_remote_artifact_dir="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 
-mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
+suite_tests=()
+while IFS= read -r suite_entry; do
+  suite_tests+=("$suite_entry")
+done < <(load_suite_entries "$MANIFEST")
 
 seed_integration_fixture_if_enabled
 trap 'reset_integration_fixture_if_enabled' EXIT

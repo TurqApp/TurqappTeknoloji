@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_content.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
@@ -11,11 +11,13 @@ import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers
 class FollowingFollowers extends StatefulWidget {
   final int selection;
   final String userId;
+  final String nickname;
 
   const FollowingFollowers({
     super.key,
     required this.selection,
     required this.userId,
+    this.nickname = '',
   });
 
   @override
@@ -29,20 +31,31 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
   bool _ownsController = false;
   late int _currentPage;
 
-  String get _pageLineBarTag => '${kFollowersPageLineBarTag}_${widget.userId}';
+  String get _normalizedUserId => widget.userId.trim();
+
+  String get _pageLineBarTag => '$kFollowersPageLineBarTag$_normalizedUserId';
+
+  String get _headerNickname {
+    final direct = widget.nickname.trim();
+    if (direct.isNotEmpty) return direct;
+    final resolved = controller.nickname.value.trim();
+    if (resolved.isNotEmpty) return resolved;
+    return '';
+  }
 
   @override
   void initState() {
     super.initState();
+    final controllerTag = _normalizedUserId;
     final existingController =
-        FollowingFollowersController.maybeFind(tag: widget.userId);
+        maybeFindFollowingFollowersController(tag: controllerTag);
     if (existingController != null) {
       controller = existingController;
     } else {
-      controller = FollowingFollowersController.ensure(
-        userId: widget.userId,
+      controller = ensureFollowingFollowersController(
+        userId: _normalizedUserId,
         initialPage: widget.selection,
-        tag: widget.userId,
+        tag: controllerTag,
       );
       _ownsController = true;
     }
@@ -57,11 +70,11 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
     _followingScrollController.dispose();
     if (_ownsController &&
         identical(
-          FollowingFollowersController.maybeFind(tag: widget.userId),
+          maybeFindFollowingFollowersController(tag: _normalizedUserId),
           controller,
         )) {
       Get.delete<FollowingFollowersController>(
-        tag: widget.userId,
+        tag: _normalizedUserId,
         force: true,
       );
     }
@@ -70,8 +83,7 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
 
   @override
   Widget build(BuildContext context) {
-    // PageLineBarController is created inside PageLineBar; initial index is passed below.
-
+    final directNickname = widget.nickname.trim();
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenFollowingFollowers),
       body: SafeArea(
@@ -80,46 +92,42 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
           children: [
             Column(
               children: [
-                Obx(
-                  () => BackButtons(text: controller.nickname.value),
+                directNickname.isNotEmpty
+                    ? _buildHeader(directNickname)
+                    : Obx(
+                        () => _buildHeader(_headerNickname),
+                      ),
+                PageLineBar(
+                  barList: [
+                    'following.followers_tab'.tr,
+                    'following.following_tab'.tr,
+                  ],
+                  pageName: _pageLineBarTag,
+                  initialIndex: widget.selection,
+                  pageController: controller.pageController,
                 ),
-                Obx(() {
-                  return PageLineBar(
-                    barList: [
-                      'following.followers_tab'.tr,
-                      'following.following_tab'.tr,
-                    ],
-                    pageName: _pageLineBarTag,
-                    initialIndex: widget.selection,
-                    pageController: controller.pageController,
-                  );
-                }),
                 Expanded(
                   child: PageView(
                     controller: controller.pageController,
                     onPageChanged: (idx) {
-                      if (mounted && _currentPage != idx) {
-                        setState(() {
-                          _currentPage = idx;
-                        });
-                      }
+                      _setCurrentPage(idx);
                       syncPageLineBarSelection(_pageLineBarTag, idx);
                     },
                     children: [
-                      _buildList(context,
-                          list: controller.takipciler,
-                          isLoading: () => controller.isLoadingFollowers,
-                          hasMore: () => controller.hasMoreFollowers,
-                          scrollController: _followersScrollController,
-                          loadMore: () =>
-                              controller.getFollowers(initial: false)),
-                      _buildList(context,
-                          list: controller.takipEdilenler,
-                          isLoading: () => controller.isLoadingFollowing,
-                          hasMore: () => controller.hasMoreFollowing,
-                          scrollController: _followingScrollController,
-                          loadMore: () =>
-                              controller.getFollowing(initial: false)),
+                      _buildFollowersList(
+                        list: controller.takipciler,
+                        isLoading: () => controller.isLoadingFollowers,
+                        hasMore: () => controller.hasMoreFollowers,
+                        scrollController: _followersScrollController,
+                        loadMore: () => controller.getFollowers(initial: false),
+                      ),
+                      _buildFollowersList(
+                        list: controller.takipEdilenler,
+                        isLoading: () => controller.isLoadingFollowing,
+                        hasMore: () => controller.hasMoreFollowing,
+                        scrollController: _followingScrollController,
+                        loadMore: () => controller.getFollowing(initial: false),
+                      ),
                     ],
                   ),
                 ),
@@ -133,9 +141,11 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
                   final activeController = _currentPage == 0
                       ? _followersScrollController
                       : _followingScrollController;
-                  activeController.animateTo(0,
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.bounceIn);
+                  activeController.animateTo(
+                    0,
+                    duration: Duration(milliseconds: 300),
+                    curve: Curves.bounceIn,
+                  );
                 },
                 child: RoadToTop(),
               ),
@@ -146,8 +156,38 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
     );
   }
 
-  Widget _buildList(
-    BuildContext context, {
+  Widget _buildHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        children: [
+          const AppBackButton(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontFamily: 'MontserratBold',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _setCurrentPage(int index) {
+    if (!mounted || _currentPage == index) return;
+    setState(() {
+      _currentPage = index;
+    });
+  }
+
+  Widget _buildFollowersList({
     required RxList<String> list,
     required bool Function() isLoading,
     required bool Function() hasMore,
@@ -170,6 +210,12 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
           itemCount: list.isEmpty ? 1 : list.length + 1,
           itemBuilder: (ctx, i) {
             if (list.isEmpty) {
+              if (isLoading()) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: 30),
+                  child: Center(child: CupertinoActivityIndicator()),
+                );
+              }
               return Padding(
                 padding: EdgeInsets.only(top: 30),
                 child: Center(
@@ -186,28 +232,16 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
             }
 
             if (i == list.length) {
-              // ⬇️ Footer (yükleniyor veya tümü yüklendi)
               if (isLoading()) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(child: CupertinoActivityIndicator()),
                 );
-                // } else if (!hasMore()) {
-                //   return const Padding(
-                //     padding: EdgeInsets.symmetric(vertical: 24),
-                //     child: Center(
-                //       child: Text(
-                //         "Tüm kullanıcılar yüklendi",
-                //         style: TextStyle(color: Colors.grey),
-                //       ),
-                //     ),
-                //   );
               } else {
                 return const SizedBox.shrink();
               }
             }
 
-            // 👤 Kullanıcı içeriği (veriler)
             final id = list[i];
             return Padding(
               padding: EdgeInsets.only(top: i == 0 ? 15 : 0),

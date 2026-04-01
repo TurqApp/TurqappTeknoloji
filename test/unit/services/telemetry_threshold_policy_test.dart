@@ -29,6 +29,33 @@ void main() {
     );
   });
 
+  test('does not flag feed local hit ratio on tiny smoke samples', () {
+    final report = TelemetryThresholdPolicy.evaluateSnapshots(
+      const <SurfaceTelemetrySnapshot>[
+        SurfaceTelemetrySnapshot(
+          surface: 'feed',
+          cacheFirst: CacheFirstSurfaceSummary(
+            eventCount: 3,
+            localHitCount: 1,
+            warmHitCount: 0,
+            liveSuccessCount: 1,
+            liveFailCount: 0,
+            preservedPreviousCount: 0,
+          ),
+        ),
+      ],
+    );
+
+    expect(
+      report.issues.any((issue) => issue.code == 'local_hit_ratio_low'),
+      isFalse,
+    );
+    expect(
+      report.issues.any((issue) => issue.code == 'local_hit_ratio_critical'),
+      isFalse,
+    );
+  });
+
   test('flags warning when short attached players exceed warning threshold',
       () {
     final report = TelemetryThresholdPolicy.evaluateSnapshots(
@@ -81,5 +108,53 @@ void main() {
       report.issues.any((issue) => issue.surface == 'feed'),
       isTrue,
     );
+  });
+
+  test('builds cache-first snapshots for extended QA surfaces', () async {
+    final service = PlaybackKpiService();
+    service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
+      'surfaceKey': 'story_row_snapshot',
+      'event': 'scopedSnapshotHit',
+    });
+    service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
+      'surfaceKey': 'notifications_inbox_snapshot',
+      'event': 'liveSyncSucceeded',
+    });
+
+    await Future<void>.delayed(Duration.zero);
+
+    final snapshots = TelemetryThresholdPolicyAdapter.buildSnapshots(service);
+    final storySnapshot =
+        snapshots.firstWhere((item) => item.surface == 'story');
+    final notificationsSnapshot =
+        snapshots.firstWhere((item) => item.surface == 'notifications');
+
+    expect(storySnapshot.cacheFirst?.eventCount, 1);
+    expect(notificationsSnapshot.cacheFirst?.eventCount, 1);
+  });
+
+  test('reports telemetry coverage summary for observed and missing surfaces',
+      () async {
+    final service = PlaybackKpiService();
+    service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
+      'surfaceKey': 'feed_home_snapshot',
+      'event': 'scopedSnapshotHit',
+    });
+    service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
+      'surfaceKey': 'story_row_snapshot',
+      'event': 'scopedSnapshotHit',
+    });
+
+    await Future<void>.delayed(Duration.zero);
+
+    final coverage = TelemetryThresholdPolicyAdapter.buildCoverageSummary(
+      service,
+    );
+    final observed = coverage['observedSurfaces'] as List<dynamic>;
+    final missing = coverage['unobservedSurfaces'] as List<dynamic>;
+
+    expect(observed, containsAll(<String>['feed', 'story']));
+    expect(missing, contains('short'));
+    expect(coverage['configuredSurfaceCount'], greaterThan(5));
   });
 }

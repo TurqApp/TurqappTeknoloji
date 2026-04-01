@@ -32,7 +32,7 @@ class FollowService {
           nowFollowing: false, limitReached: false);
     }
 
-    final result = await FollowRepository.ensure().toggleRelation(
+    final result = await ensureFollowRepository().toggleRelation(
       currentUid: currentUserID,
       otherUid: otherUserID,
       dailyLimit: dailyLimit,
@@ -40,7 +40,7 @@ class FollowService {
     );
 
     // Agenda'nın followingIDs listesini lokal olarak güncelle (SWR)
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null) {
       if (result.nowFollowing) {
         agenda.followingIDs.add(otherUserID);
@@ -52,6 +52,45 @@ class FollowService {
       nowFollowing: result.nowFollowing,
       limitReached: result.limitReached,
     );
+  }
+
+  static Future<FollowToggleOutcome> toggleFollowFromLocalState(
+    String otherUserID, {
+    required bool assumedFollowing,
+  }) async {
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
+    if (currentUserID.isEmpty || currentUserID == otherUserID) {
+      return const FollowToggleOutcome(
+        nowFollowing: false,
+        limitReached: false,
+      );
+    }
+
+    final actualFollowing = await ensureFollowRepository().isFollowing(
+      otherUserID,
+      currentUid: currentUserID,
+      preferCache: false,
+    );
+    if (actualFollowing != assumedFollowing) {
+      await ensureFollowRepository().applyToggle(
+        currentUserID,
+        otherUserID,
+        nowFollowing: actualFollowing,
+      );
+      final agenda = maybeFindAgendaController();
+      if (agenda != null) {
+        if (actualFollowing) {
+          agenda.followingIDs.add(otherUserID);
+        } else {
+          agenda.followingIDs.remove(otherUserID);
+        }
+      }
+      return FollowToggleOutcome(
+        nowFollowing: actualFollowing,
+        limitReached: false,
+      );
+    }
+    return toggleFollow(otherUserID);
   }
 
   /// Ensure current user follows [otherUserID].
@@ -70,7 +109,7 @@ class FollowService {
     final currentUserID = CurrentUserService.instance.effectiveUserId;
     if (currentUserID.isEmpty || currentUserID == otherUserID) return false;
 
-    final created = await FollowRepository.ensure().ensureRelation(
+    final created = await ensureFollowRepository().ensureRelation(
       currentUid: currentUserID,
       otherUid: otherUserID,
       bypassDailyLimit: bypassDailyLimit,
@@ -78,7 +117,7 @@ class FollowService {
       todayKey: _todayKey(),
     );
 
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (created && agenda != null) {
       agenda.followingIDs.add(otherUserID);
     }
@@ -102,12 +141,12 @@ class FollowService {
         (currentUid ?? CurrentUserService.instance.effectiveUserId).trim();
     final other = otherUserID.trim();
     if (me.isEmpty || other.isEmpty || me == other) return;
-    await FollowRepository.ensure().createRelationPair(
+    await ensureFollowRepository().createRelationPair(
       currentUid: me,
       otherUid: other,
       timestampMs: timestampMs,
     );
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null && me == CurrentUserService.instance.effectiveUserId) {
       agenda.followingIDs.add(other);
     }
@@ -121,11 +160,11 @@ class FollowService {
         (currentUid ?? CurrentUserService.instance.effectiveUserId).trim();
     final other = otherUserID.trim();
     if (me.isEmpty || other.isEmpty || me == other) return;
-    await FollowRepository.ensure().deleteRelationPair(
+    await ensureFollowRepository().deleteRelationPair(
       currentUid: me,
       otherUid: other,
     );
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda != null && me == CurrentUserService.instance.effectiveUserId) {
       agenda.followingIDs.remove(other);
     }

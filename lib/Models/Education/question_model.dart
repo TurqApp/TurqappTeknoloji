@@ -9,6 +9,9 @@ class QuestionModel {
   final String soru;
   final List<String> yanitlayanlar;
 
+  static List<String> _cloneStringList(List<String> source) =>
+      List<String>.from(source, growable: false);
+
   QuestionModel({
     required this.docID,
     required this.ders,
@@ -16,8 +19,8 @@ class QuestionModel {
     required this.id,
     required this.konu,
     required this.soru,
-    required this.yanitlayanlar,
-  });
+    required List<String> yanitlayanlar,
+  }) : yanitlayanlar = _cloneStringList(yanitlayanlar);
 
   QuestionModel copyWith({
     String? docID,
@@ -35,7 +38,7 @@ class QuestionModel {
       id: id ?? this.id,
       konu: konu ?? this.konu,
       soru: soru ?? this.soru,
-      yanitlayanlar: yanitlayanlar ?? this.yanitlayanlar,
+      yanitlayanlar: yanitlayanlar ?? _cloneStringList(this.yanitlayanlar),
     );
   }
 
@@ -47,7 +50,7 @@ class QuestionModel {
       'id': id,
       'konu': konu,
       'soru': soru,
-      'yanitlayanlar': yanitlayanlar,
+      'yanitlayanlar': _cloneStringList(yanitlayanlar),
     };
   }
 

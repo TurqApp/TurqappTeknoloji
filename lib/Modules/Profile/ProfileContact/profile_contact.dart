@@ -22,12 +22,12 @@ class _ProfileContactState extends State<ProfileContact> {
     super.initState();
     _controllerTag = 'profile_contact_${identityHashCode(this)}';
     final existingController =
-        ProfileContactController.maybeFind(tag: _controllerTag);
+        maybeFindProfileContactController(tag: _controllerTag);
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;
     } else {
-      controller = ProfileContactController.ensure(tag: _controllerTag);
+      controller = ensureProfileContactController(tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -36,7 +36,7 @@ class _ProfileContactState extends State<ProfileContact> {
   void dispose() {
     if (_ownsController &&
         identical(
-          ProfileContactController.maybeFind(tag: _controllerTag),
+          maybeFindProfileContactController(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ProfileContactController>(tag: _controllerTag, force: true);
@@ -58,88 +58,77 @@ class _ProfileContactState extends State<ProfileContact> {
                   padding: const EdgeInsets.all(15),
                   child: Column(
                     children: [
-                      Obx(() {
-                        return Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withAlpha(20),
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.phone,
-                                          color: Colors.black),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        'profile_contact.call'.tr,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium",
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: controller.toggleCallVisibility,
-                                  child: TurqAppToggle(
-                                      isOn: controller.isCallVisible.value),
-                                )
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                      SizedBox(height: 12),
-                      Obx(() {
-                        return Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withAlpha(20),
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.at,
-                                          color: Colors.black),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        'profile_contact.email'.tr,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium",
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: controller.toggleEmailVisibility,
-                                  child: TurqAppToggle(
-                                    isOn: controller.isEmailVisible.value,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
+                      _buildCallVisibilityTile(),
+                      const SizedBox(height: 12),
+                      _buildEmailVisibilityTile(),
                     ],
                   ),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCallVisibilityTile() {
+    return Obx(() {
+      return _buildVisibilityTile(
+        icon: CupertinoIcons.phone,
+        label: 'profile_contact.call'.tr,
+        isOn: controller.isCallVisible.value,
+        onTap: controller.toggleCallVisibility,
+      );
+    });
+  }
+
+  Widget _buildEmailVisibilityTile() {
+    return Obx(() {
+      return _buildVisibilityTile(
+        icon: CupertinoIcons.at,
+        label: 'profile_contact.email'.tr,
+        isOn: controller.isEmailVisible.value,
+        onTap: controller.toggleEmailVisibility,
+      );
+    });
+  }
+
+  Widget _buildVisibilityTile({
+    required IconData icon,
+    required String label,
+    required bool isOn,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.grey.withAlpha(20),
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Icon(icon, color: Colors.black),
+                  const SizedBox(width: 12),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 15,
+                      fontFamily: "MontserratMedium",
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: onTap,
+              child: TurqAppToggle(isOn: isOn),
             ),
           ],
         ),

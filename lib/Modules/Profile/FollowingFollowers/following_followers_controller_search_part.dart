@@ -1,5 +1,12 @@
 part of 'following_followers_controller.dart';
 
+const Duration _followingFollowersSearchResultCacheTtl = Duration(seconds: 30);
+const Duration _followingFollowersRelationSearchCacheTtl =
+    Duration(seconds: 30);
+const Duration _followingFollowersSearchResultStaleRetention =
+    Duration(minutes: 3);
+const int _followingFollowersMaxSearchResultEntries = 400;
+
 extension FollowingFollowersControllerSearchPart
     on FollowingFollowersController {
   Future<void> searchTakipci() async {
@@ -31,7 +38,7 @@ extension FollowingFollowersControllerSearchPart
     final cached = _searchResultCache[cacheId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <=
-            FollowingFollowersController._searchResultCacheTtl) {
+            _followingFollowersSearchResultCacheTtl) {
       plan.assignResult(_normalizedIds(cached.ids));
       return;
     }
@@ -50,7 +57,7 @@ extension FollowingFollowersControllerSearchPart
     final cached = _relationIdSetCache[relation];
     if (cached != null &&
         now.difference(cached.cachedAt) <=
-            FollowingFollowersController._relationSearchCacheTtl) {
+            _followingFollowersRelationSearchCacheTtl) {
       return cached.ids;
     }
 
@@ -102,16 +109,16 @@ extension FollowingFollowersControllerSearchPart
     _searchResultCache.removeWhere(
       (_, entry) =>
           now.difference(entry.cachedAt) >
-          FollowingFollowersController._searchResultStaleRetention,
+          _followingFollowersSearchResultStaleRetention,
     );
     if (_searchResultCache.length <=
-        FollowingFollowersController._maxSearchResultEntries) {
+        _followingFollowersMaxSearchResultEntries) {
       return;
     }
     final entries = _searchResultCache.entries.toList()
       ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
-    final removeCount = _searchResultCache.length -
-        FollowingFollowersController._maxSearchResultEntries;
+    final removeCount =
+        _searchResultCache.length - _followingFollowersMaxSearchResultEntries;
     for (var i = 0; i < removeCount; i++) {
       _searchResultCache.remove(entries[i].key);
     }

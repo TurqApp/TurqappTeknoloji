@@ -1,8 +1,7 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentBodyPart on _AgendaContentState {
-  double get _feedCaptionFontSize =>
-      Theme.of(context).platform == TargetPlatform.iOS ? 14 : 13;
+  double get _feedCaptionFontSize => AppTypography.postCaption.fontSize!;
 
   Widget mainbody() {
     final hasHeaderSubline =
@@ -19,7 +18,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         headerUserInfoBar(),
-        if (!widget.model.hasRenderableVideoCard && widget.model.img.isEmpty)
+        if (!widget.model.hasRenderableVideoCard &&
+            widget.model.img.isEmpty &&
+            widget.model.poll.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 45),
             child: buildPollCard(),
@@ -35,10 +36,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                 SizedBox(width: 3),
                 Text(
                   widget.model.konum,
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: "MontserratMedium"),
+                  style: AppTypography.postMeta.copyWith(
+                    color: Colors.black,
+                  ),
                 )
               ],
             ),
@@ -75,6 +75,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                   child: GestureDetector(
                                     onDoubleTap: controller.like,
                                     onTap: () async {
+                                      if (isReplayOverlayBlockingTap) {
+                                        return;
+                                      }
                                       if (_shouldBlurIzBirakPost) {
                                         videoController?.pause();
                                         return;
@@ -83,6 +86,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         _suspendAgendaFeedForRoute();
                                         await Get.to(() => FloodListing(
                                               mainModel: widget.model,
+                                              hostSurface:
+                                                  widget.floodHostSurface,
                                             ));
                                         if (!mounted) return;
                                         _restoreAgendaFeedCenter();
@@ -214,10 +219,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                     },
                                     child: Builder(builder: (_) {
                                       if (_shouldBlurIzBirakPost) {
-                                        return _buildVideoThumbnail();
+                                        return _buildVideoThumbnail(
+                                          aspectRatio: displayAspect,
+                                        );
                                       }
                                       if (videoController == null) {
-                                        return _buildVideoThumbnail();
+                                        return _buildVideoThumbnail(
+                                          aspectRatio: displayAspect,
+                                        );
                                       }
                                       return Stack(
                                         fit: StackFit.expand,
@@ -229,6 +238,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       'agenda-$controllerTag'),
                                                   aspectRatio: displayAspect,
                                                   useAspectRatio: false,
+                                                  overrideAutoPlay:
+                                                      shouldAutoResumeInlinePlatformView,
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
@@ -236,18 +247,39 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
+                                              final atPlaybackEnd =
+                                                  v.isCompleted ||
+                                                      (v.duration >
+                                                              Duration.zero &&
+                                                          v.position >=
+                                                              (v.duration -
+                                                                  const Duration(
+                                                                      milliseconds:
+                                                                          350)));
+                                              final reachedStablePlaybackPosition =
+                                                  v.position >
+                                                  const Duration(
+                                                    milliseconds: 450,
+                                                  );
                                               final hasStableVideoFrame =
-                                                  v.hasRenderedFirstFrame &&
-                                                      !v.isCompleted &&
-                                                      (v.isPlaying ||
-                                                          v.position >
-                                                              const Duration(
-                                                                  milliseconds:
-                                                                      180));
-                                              if (hasStableVideoFrame) {
-                                                return const SizedBox.shrink();
-                                              }
-                                              return child!;
+                                                  atPlaybackEnd ||
+                                                      (v.hasRenderedFirstFrame &&
+                                                          !v.isBuffering &&
+                                                          (v.isPlaying ||
+                                                              reachedStablePlaybackPosition) &&
+                                                          reachedStablePlaybackPosition);
+                                              return IgnorePointer(
+                                                ignoring: true,
+                                                child: AnimatedOpacity(
+                                                  opacity: hasStableVideoFrame
+                                                      ? 0
+                                                      : 1,
+                                                  duration: AppDuration
+                                                      .thumbnailFadeOut,
+                                                  curve: Curves.easeOut,
+                                                  child: child!,
+                                                ),
+                                              );
                                             },
                                             child: _buildVideoThumbnail(
                                               aspectRatio: displayAspect,
@@ -334,7 +366,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 ? 'alıntılandı'
                                                 : '',
                                             textColor: Colors.white,
-                                            fontSize: 12,
+                                            fontSize:
+                                                AppTypography.postAttribution
+                                                    .fontSize!,
                                           ),
                                       ],
                                     ),
@@ -351,7 +385,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       onTap: () {
                                         _suspendAgendaFeedForRoute();
                                         Get.to(() => FloodListing(
-                                                mainModel: widget.model))
+                                              mainModel: widget.model,
+                                              hostSurface:
+                                                  widget.floodHostSurface,
+                                            ))
                                             ?.then((_) {
                                           if (!mounted) return;
                                           _restoreAgendaFeedCenter();
@@ -377,19 +414,16 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 final vc = videoController;
                                                 if (vc == null) return;
                                                 if (isPlaying) {
-                                                  vc.pause();
+                                                  pauseVideoManually();
                                                 } else {
-                                                  vc.play();
-                                                  videoStateManager
-                                                      .playOnlyThis(
-                                                          playbackHandleKey);
+                                                  resumeVideoManually();
                                                 }
                                               },
                                               child: Container(
                                                 margin: const EdgeInsets.only(
                                                     right: 6),
                                                 padding:
-                                                    const EdgeInsets.all(8),
+                                                    const EdgeInsets.all(7),
                                                 decoration: const BoxDecoration(
                                                   color: Colors.black54,
                                                   shape: BoxShape.circle,
@@ -401,7 +435,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       : CupertinoIcons
                                                           .play_fill,
                                                   color: Colors.white,
-                                                  size: 16,
+                                                  size: 14,
                                                 ),
                                               ),
                                             );
@@ -411,7 +445,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           onTap:
                                               agendaController.isMuted.toggle,
                                           child: Container(
-                                            padding: const EdgeInsets.all(8),
+                                            padding: const EdgeInsets.all(7),
                                             decoration: const BoxDecoration(
                                               color: Colors.black54,
                                               shape: BoxShape.circle,
@@ -422,7 +456,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                     ? CupertinoIcons.volume_off
                                                     : CupertinoIcons.volume_up,
                                                 color: Colors.white,
-                                                size: 16,
+                                                size: 14,
                                               );
                                             }),
                                           ),
@@ -451,7 +485,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
               child: buildImageGrid(widget.model.img),
             ),
           ),
-        if (widget.model.hasRenderableVideoCard || widget.model.img.isNotEmpty)
+        if ((widget.model.hasRenderableVideoCard ||
+                widget.model.img.isNotEmpty) &&
+            widget.model.poll.isNotEmpty)
           Transform.translate(
             offset: Offset(0, mediaVisualLift),
             child: Padding(
@@ -464,7 +500,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
         Padding(
           padding: EdgeInsets.only(top: actionTopSpacing),
           child: Obx(() {
-            final me = _currentUid;
+            final currentUser = controller.userService.currentUserRx.value;
+            final me = currentUser?.userID.trim().isNotEmpty == true
+                ? currentUser!.userID.trim()
+                : controller.userService.effectiveUserId.trim();
             if (me.isEmpty) return const SizedBox.shrink();
             return Transform.translate(
               offset: const Offset(17, 0),
@@ -473,37 +512,27 @@ extension AgendaContentBodyPart on _AgendaContentState {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: commentButton(context)),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: likeButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: reshareButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: statButton()),
-                        )),
-                    SizedBox(
-                        width: 58,
-                        child: Transform.translate(
-                          offset: const Offset(2, 0),
-                          child: Center(child: saveButton()),
-                        )),
-                    SizedBox(width: 58, child: Center(child: sendButton())),
+                    _buildActionSlot(
+                      commentButton(context),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      likeButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      reshareButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      statButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(
+                      saveButton(),
+                      pullTowardSend: true,
+                    ),
+                    _buildActionSlot(sendButton()),
                   ],
                 ),
               ),
@@ -538,6 +567,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
       urlColor: Colors.blue,
       interactiveColor: Colors.blue,
       expandButtonColor: AppColors.primaryColor,
+      expandOverlayRightInset: 3,
       onUrlTap: _handleFeedUrlTap,
       onHashtagTap: (tag) {
         if (tag.trim().isEmpty) return;
@@ -553,378 +583,6 @@ extension AgendaContentBodyPart on _AgendaContentState {
           await Get.to(() => SocialProfile(userID: targetUid));
         }
       },
-    );
-  }
-
-  Widget buildPollCard() {
-    return Obx(() {
-      final model = controller.currentModel.value ?? widget.model;
-      final poll = model.poll;
-      if (poll.isEmpty) return const SizedBox.shrink();
-      final options = (poll['options'] is List) ? poll['options'] as List : [];
-      if (options.isEmpty) return const SizedBox.shrink();
-
-      final totalVotes =
-          (poll['totalVotes'] is num) ? poll['totalVotes'] as num : 0;
-      final uid = controller.userService.effectiveUserId;
-      final userVotes = poll['userVotes'] is Map
-          ? Map<String, dynamic>.from(poll['userVotes'])
-          : <String, dynamic>{};
-      final userVoteRaw = userVotes[uid];
-      final int? userVote = userVoteRaw is num
-          ? userVoteRaw.toInt()
-          : int.tryParse('${userVoteRaw ?? ''}');
-
-      final createdAt = (poll['createdDate'] ?? model.timeStamp) as num;
-      final durationHours = (poll['durationHours'] ?? 24) as num;
-      final expiresAt =
-          createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
-      final expired = DateTime.now().millisecondsSinceEpoch > expiresAt;
-      final canVote = !expired && userVote == null;
-      final showResults = userVote != null || expired;
-
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...List.generate(options.length, (i) {
-              final text = (options[i]['text'] ?? '').toString();
-              final votes = (options[i]['votes'] ?? 0) as num;
-              final pct = totalVotes > 0 ? (votes / totalVotes) : 0.0;
-              final label = '${String.fromCharCode(65 + i)}) ';
-              final isSelected = userVote == i;
-
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: canVote ? () => controller.votePoll(i) : null,
-                child: Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected ? Colors.blue.withAlpha(18) : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: isSelected
-                            ? Colors.blueAccent
-                            : Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '$label$text',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontSize: 14,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (showResults)
-                        Text(
-                          '${(pct * 100).toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Text(
-                  'Toplam ${totalVotes.toInt()} oy',
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 12,
-                    fontFamily: "MontserratMedium",
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  _pollRemainingLabel(
-                    expired: expired,
-                    expiresAtMs: expiresAt,
-                  ),
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 12,
-                    fontFamily: "MontserratMedium",
-                  ),
-                ),
-              ],
-            )
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget buildUploadIndicator() {
-    final uploadService = UploadQueueService.ensure();
-
-    return Obx(() {
-      QueuedUpload? item;
-      for (final q in uploadService.queue) {
-        if (q.id == widget.model.docID &&
-            (q.status == UploadStatus.pending ||
-                q.status == UploadStatus.uploading)) {
-          item = q;
-          break;
-        }
-      }
-
-      double? progress;
-      if (item != null) {
-        progress = item.progress;
-      } else {
-        final hasVideo = widget.model.hasPlayableVideo ||
-            widget.model.video.trim().isNotEmpty ||
-            widget.model.hlsMasterUrl.trim().isNotEmpty ||
-            widget.model.thumbnail.trim().isNotEmpty;
-        final hlsNotReady = widget.model.hlsStatus != 'ready' ||
-            widget.model.hlsMasterUrl.trim().isEmpty;
-        if (hasVideo && hlsNotReady) {
-          final startMs = widget.model.hlsUpdatedAt > 0
-              ? widget.model.hlsUpdatedAt.toInt()
-              : widget.model.timeStamp.toInt();
-          final elapsedMin =
-              ((DateTime.now().millisecondsSinceEpoch - startMs) / 60000)
-                  .clamp(0, 30);
-          progress = 0.9 + (elapsedMin / 30) * 0.09;
-        }
-      }
-
-      if (progress == null) return const SizedBox.shrink();
-      if (progress <= 0) {
-        progress = 0.02;
-      }
-      return RingUploadProgressIndicator(
-        isUploading: true,
-        progress: progress,
-        child: Container(
-          width: 20,
-          height: 20,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.cloud_upload,
-            size: 12,
-            color: Colors.black54,
-          ),
-        ),
-      );
-    });
-  }
-
-  String _pollRemainingLabel(
-      {required bool expired, required int expiresAtMs}) {
-    if (expired) return 'Süre Doldu';
-    final remainingMs = expiresAtMs - DateTime.now().millisecondsSinceEpoch;
-    if (remainingMs <= 0) return 'Süre Doldu';
-    final totalMinutes = (remainingMs / 60000).floor();
-    final totalHours = (totalMinutes / 60).floor();
-    final days = (totalHours / 24).floor();
-    if (days >= 1) return '$days g';
-    final hours = totalHours;
-    final minutes = totalMinutes % 60;
-    return '$hours sa $minutes dk';
-  }
-
-  Widget gonderiGizlendi(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  CupertinoIcons.checkmark_seal,
-                  color: Colors.green,
-                  size: 30,
-                ),
-              ],
-            ),
-            12.ph,
-            Text(
-              'post_state.hidden_title'.tr,
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium"),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: Divider(
-                color: Colors.grey,
-              ),
-            ),
-            SizedBox(
-              height: 7,
-            ),
-            Text(
-              'post_state.hidden_body'.tr,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.black, fontSize: 12, fontFamily: "Montserrat"),
-            ),
-            const SizedBox(
-              height: 15,
-            ),
-            GestureDetector(
-              onTap: () {
-                controller.gizlemeyiGeriAl();
-                videoController?.play();
-              },
-              child: Text(
-                'common.undo'.tr,
-                style: TextStyle(
-                    color: Colors.blueAccent,
-                    fontSize: 15,
-                    fontFamily: "MontserratMedium"),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget gonderiArsivlendi(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  CupertinoIcons.checkmark_seal,
-                  color: Colors.green,
-                  size: 30,
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 12,
-            ),
-            Text(
-              'post_state.archived_title'.tr,
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium"),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: Divider(color: Colors.grey),
-            ),
-            SizedBox(
-              height: 7,
-            ),
-            Text(
-              'post_state.archived_body'.tr,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.black, fontSize: 12, fontFamily: "Montserrat"),
-            ),
-            const SizedBox(
-              height: 15,
-            ),
-            GestureDetector(
-              onTap: () {
-                controller.arsivdenCikart();
-                videoController?.play();
-              },
-              child: Text(
-                'common.undo'.tr,
-                style: TextStyle(
-                    color: Colors.blueAccent,
-                    fontSize: 15,
-                    fontFamily: "MontserratMedium"),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget gonderiSilindi(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  CupertinoIcons.checkmark_seal,
-                  color: Colors.green,
-                  size: 30,
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 12,
-            ),
-            Text(
-              'post_state.deleted_title'.tr,
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium"),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: Divider(color: Colors.grey),
-            ),
-            SizedBox(
-              height: 7,
-            ),
-            Text(
-              'post_state.deleted_body'.tr,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.black, fontSize: 12, fontFamily: "Montserrat"),
-            ),
-            const SizedBox(
-              height: 15,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

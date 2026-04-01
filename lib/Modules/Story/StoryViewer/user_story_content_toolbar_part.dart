@@ -44,106 +44,77 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
             );
           }),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () async {
-                    await _pauseStoryAudio();
-                    _timer?.cancel();
-                    await controller.showPostCommentsBottomSheet(
-                        currentStory.id,
-                        widget.user.nickname,
-                        widget.user.userID == _currentUid, onClosed: (v) {
-                      _startProgress();
-                      unawaited(_resumeStoryAudio());
-                    });
-                  },
-                  child: Container(
-                    height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: Colors.grey.withAlpha(50),
-                        borderRadius: BorderRadius.all(Radius.circular(50))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          CupertinoIcons.bubble_left_bubble_right,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              _buildMyStoryActionButton(
+                icon: CupertinoIcons.bubble_left_bubble_right,
+                onTap: () async {
+                  await _pauseCurrentStoryPlayback();
+                  await controller.showPostCommentsBottomSheet(
+                    currentStory.id,
+                    widget.user.nickname,
+                    widget.user.userID == _currentUid,
+                    onClosed: (v) {
+                      unawaited(_resumeCurrentStoryPlayback());
+                    },
+                  );
+                },
               ),
-              SizedBox(
-                width: 12,
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    unawaited(_pauseStoryAudio());
-                    _timer?.cancel();
-                    controller.showLikesBottomSheet(currentStory.id,
-                        onClosed: (v) {
-                      _startProgress();
-                      unawaited(_resumeStoryAudio());
-                    });
-                  },
-                  child: Container(
-                    height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: Colors.grey.withAlpha(50),
-                        borderRadius: BorderRadius.all(Radius.circular(50))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          CupertinoIcons.hand_thumbsup,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 12,
-              ),
-              GestureDetector(
+              _buildMyStoryActionButton(
+                icon: CupertinoIcons.hand_thumbsup,
                 onTap: () {
-                  unawaited(_pauseStoryAudio());
-                  _timer?.cancel();
-                  controller.showSeensBottomSheet(currentStory.id,
+                  unawaited(_pauseCurrentStoryPlayback());
+                  controller.showLikesBottomSheet(currentStory.id,
                       onClosed: (v) {
-                    _startProgress();
-                    unawaited(_resumeStoryAudio());
+                    unawaited(_resumeCurrentStoryPlayback());
                   });
                 },
-                child: Container(
-                  height: 50,
-                  width: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                      color: Colors.grey.withAlpha(50), shape: BoxShape.circle),
-                  child: Icon(
-                    CupertinoIcons.eyeglasses,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
               ),
-              const SizedBox(width: 12),
-              // One Cikar (Highlight) button
-              GestureDetector(
+              _buildMyStoryActionButton(
+                icon: CupertinoIcons.eyeglasses,
                 onTap: () {
-                  unawaited(_pauseStoryAudio());
-                  _timer?.cancel();
+                  unawaited(_pauseCurrentStoryPlayback());
+                  controller.showSeensBottomSheet(currentStory.id,
+                      onClosed: (v) {
+                    unawaited(_resumeCurrentStoryPlayback());
+                  });
+                },
+              ),
+              _buildMyStoryActionButton(
+                icon: Icons.star_rounded,
+                onTap: () async {
+                  unawaited(_pauseCurrentStoryPlayback());
+                  final rawStory = await StoryRepository.ensure().getStoryRaw(
+                    currentStory.id,
+                    preferCache: true,
+                  );
+                  String highlightPreviewImage = '';
+                  if (rawStory != null) {
+                    highlightPreviewImage = _extractHighlightPreviewImage(
+                      rawStory,
+                    );
+                  }
+                  if (highlightPreviewImage.isEmpty &&
+                      currentStory.elements.isNotEmpty) {
+                    final fallbackContent = currentStory.elements
+                        .firstWhere(
+                          (e) => e.type == StoryElementType.image,
+                          orElse: () => currentStory.elements.first,
+                        )
+                        .content
+                        .trim();
+                    if (looksLikeImageUrl(fallbackContent)) {
+                      highlightPreviewImage = fallbackContent;
+                    }
+                  }
+                  if (highlightPreviewImage.isEmpty) {
+                    highlightPreviewImage = currentStory.musicCoverUrl.trim();
+                  }
                   Get.bottomSheet(
-                    HighlightPickerSheet(storyId: currentStory.id),
+                    HighlightPickerSheet(
+                      storyId: currentStory.id,
+                      initialCoverUrl: highlightPreviewImage,
+                    ),
                     isScrollControlled: true,
                     ignoreSafeArea: false,
                     isDismissible: true,
@@ -154,28 +125,12 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     ),
                     backgroundColor: Colors.white,
                   ).then((_) {
-                    _startProgress();
-                    unawaited(_resumeStoryAudio());
+                    unawaited(_resumeCurrentStoryPlayback());
                   });
                 },
-                child: Container(
-                  height: 50,
-                  width: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.bookmark,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
               ),
-              const SizedBox(width: 12),
-              // Download button
-              GestureDetector(
+              _buildMyStoryActionButton(
+                icon: CupertinoIcons.arrow_down_to_line,
                 onTap: () async {
                   try {
                     _timer?.cancel();
@@ -206,97 +161,65 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     _startProgress();
                   }
                 },
-                child: Container(
-                  height: 50,
-                  width: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.arrow_down_to_line,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
               ),
-              const SizedBox(width: 12),
-              GestureDetector(
+              _buildMyStoryActionButton(
+                icon: CupertinoIcons.trash,
                 onTap: () {
                   final deletedStoriesController =
-                      DeletedStoriesController.maybeFind();
+                      maybeFindDeletedStoriesController();
                   final isDeletedStory = deletedStoriesController?.deletedAtById
                           .containsKey(currentStory.id) ==
                       true;
                   noYesAlert(
-                      title: isDeletedStory
-                          ? 'story.permanent_delete'.tr
-                          : 'common.delete'.tr,
-                      message: isDeletedStory
-                          ? 'story.permanent_delete_message'.tr
-                          : 'story.delete_message'.tr,
-                      onYesPressed: () async {
-                        final currentStory = widget.user.stories[storyIndex];
-                        if (isDeletedStory) {
-                          await StoryRepository.ensure()
-                              .permanentlyDeleteStory(currentStory.id);
-                          deletedStoriesController?.list
-                              .removeWhere((e) => e.id == currentStory.id);
-                          deletedStoriesController?.deletedAtById
-                              .remove(currentStory.id);
-                          deletedStoriesController?.deleteReasonById
-                              .remove(currentStory.id);
-                          unawaited(
-                            deletedStoriesController?.fetch(
-                                  initial: false,
-                                  forceRemote: true,
-                                ) ??
-                                Future<void>.value(),
-                          );
-                        } else {
-                          await deleteStory(
-                              userId: widget.user.userID,
-                              storyId: currentStory.id);
+                    title: isDeletedStory
+                        ? 'story.permanent_delete'.tr
+                        : 'common.delete'.tr,
+                    message: isDeletedStory
+                        ? 'story.permanent_delete_message'.tr
+                        : 'story.delete_message'.tr,
+                    onYesPressed: () async {
+                      final currentStory = widget.user.stories[storyIndex];
+                      if (isDeletedStory) {
+                        await StoryRepository.ensure()
+                            .permanentlyDeleteStory(currentStory.id);
+                        deletedStoriesController?.list
+                            .removeWhere((e) => e.id == currentStory.id);
+                        deletedStoriesController?.deletedAtById
+                            .remove(currentStory.id);
+                        deletedStoriesController?.deleteReasonById
+                            .remove(currentStory.id);
+                        unawaited(
+                          deletedStoriesController?.fetch(
+                                initial: false,
+                                forceRemote: true,
+                              ) ??
+                              Future<void>.value(),
+                        );
+                      } else {
+                        await deleteStory(
+                          userId: widget.user.userID,
+                          storyId: currentStory.id,
+                        );
+                      }
+
+                      setState(() {
+                        widget.user.stories.removeAt(storyIndex);
+                        if (widget.user.stories.isEmpty) {
+                          widget.onUserStoryFinished?.call();
+                          return;
                         }
-
-                        setState(() {
-                          widget.user.stories.removeAt(storyIndex);
-
-                          // --- Burayı daha güvenli hale getiriyoruz ---
-                          if (widget.user.stories.isEmpty) {
-                            // Hiç hikaye kalmadıysa
-                            widget.onUserStoryFinished?.call();
-                            return;
-                          }
-
-                          // Eğer index out of range olduysa, sonuncu hikayeye çek
-                          if (storyIndex >= widget.user.stories.length) {
-                            storyIndex = widget.user.stories.length - 1;
-                          }
-                        });
-
-                        // Kaldığı yerden devam et (artık stories boş değilse)
-                        if (widget.user.stories.isNotEmpty) {
-                          _updateController(); // Controller'ı güncelle
-                          _startOrWait();
+                        if (storyIndex >= widget.user.stories.length) {
+                          storyIndex = widget.user.stories.length - 1;
                         }
                       });
+
+                      if (widget.user.stories.isNotEmpty) {
+                        _updateController();
+                        _startOrWait();
+                      }
+                    },
+                  );
                 },
-                child: Container(
-                  height: 50,
-                  width: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.trash,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
               )
             ],
           ),
@@ -359,21 +282,20 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     IntegrationTestKeys.actionStoryOpenComments,
                   ),
                   onTap: () async {
-                    await _pauseStoryAudio();
-                    _timer?.cancel();
+                    await _pauseCurrentStoryPlayback();
+                    var resumed = false;
                     await controller.showPostCommentsBottomSheet(
                       currentStory.id,
                       widget.user.nickname,
                       false,
                       onClosed: (v) {
                         if (!mounted) return;
-                        _startProgress();
-                        unawaited(_resumeStoryAudio());
+                        resumed = true;
+                        unawaited(_resumeCurrentStoryPlayback());
                       },
                     );
-                    if (!mounted) return;
-                    _startProgress();
-                    await _resumeStoryAudio();
+                    if (!mounted || resumed) return;
+                    await _resumeCurrentStoryPlayback();
                   },
                   child: Container(
                     height: 50,
@@ -403,12 +325,10 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     controller.like(currentStory.id);
                   },
                   onLongPress: () {
-                    unawaited(_pauseStoryAudio());
-                    _timer?.cancel();
+                    unawaited(_pauseCurrentStoryPlayback());
                     controller.showLikesBottomSheet(currentStory.id,
                         onClosed: (v) {
-                      _startProgress();
-                      unawaited(_resumeStoryAudio());
+                      unawaited(_resumeCurrentStoryPlayback());
                     });
                   },
                   child: Container(
@@ -446,63 +366,68 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                   ),
                 );
               }),
-              const SizedBox(width: 8),
-              // Share button
-              GestureDetector(
-                onTap: () async {
-                  await _pauseStoryAudio();
-                  _timer?.cancel();
-                  await ShareActionGuard.run(() async {
-                    try {
-                      final currentStory = widget.user.stories[storyIndex];
-                      String previewImage = '';
-                      if (currentStory.elements.isNotEmpty) {
-                        previewImage = currentStory.elements
-                            .firstWhere(
-                              (e) => e.type == StoryElementType.image,
-                              orElse: () => currentStory.elements.first,
-                            )
-                            .content;
-                      }
-                      final shortUrl =
-                          await ShortLinkService().getStoryPublicUrl(
-                        storyId: currentStory.id,
-                        title: 'story.share_title'
-                            .trParams({'name': widget.user.nickname}),
-                        desc: 'story.share_desc'.tr,
-                        imageUrl: previewImage.isEmpty ? null : previewImage,
-                      );
-                      await ShareLinkService.shareUrl(
-                        url: shortUrl,
-                        title: 'story.share_title'
-                            .trParams({'name': widget.user.nickname}),
-                        subject: 'story.share_title'
-                            .trParams({'name': widget.user.nickname}),
-                      );
-                    } catch (_) {}
-                  });
-                  if (!mounted) return;
-                  _startProgress();
-                  await _resumeStoryAudio();
-                },
-                child: Container(
-                  height: 50,
-                  width: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.share_up,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  String _extractHighlightPreviewImage(Map<String, dynamic> data) {
+    final topLevelThumb = (data['thumbnail'] ??
+            data['thumbnailUrl'] ??
+            data['thumbUrl'] ??
+            data['previewUrl'] ??
+            data['coverUrl'] ??
+            data['musicCoverUrl'] ??
+            '')
+        .toString()
+        .trim();
+    if (looksLikeImageUrl(topLevelThumb)) return topLevelThumb;
+
+    final elements = data['elements'];
+    if (elements is! List) return '';
+    for (final raw in elements) {
+      if (raw is! Map) continue;
+      final entry = raw.map((key, value) => MapEntry('$key', value));
+      final thumb = (entry['thumbnail'] ??
+              entry['thumbnailUrl'] ??
+              entry['thumbUrl'] ??
+              entry['previewUrl'] ??
+              entry['coverUrl'] ??
+              '')
+          .toString()
+          .trim();
+      if (looksLikeImageUrl(thumb)) return thumb;
+    }
+    for (final raw in elements) {
+      if (raw is! Map) continue;
+      final entry = raw.map((key, value) => MapEntry('$key', value));
+      final content = (entry['content'] ?? '').toString().trim();
+      if (looksLikeImageUrl(content)) return content;
+    }
+    return '';
+  }
+
+  Widget _buildMyStoryActionButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 50,
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.grey.withAlpha(50),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 20,
+        ),
       ),
     );
   }
@@ -529,7 +454,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
 
     // Story refresh
     try {
-      await StoryRowController.maybeFind()?.loadStories();
+      await maybeFindStoryRowController()?.loadStories();
     } catch (e) {
       debugPrint("Story delete refresh error: $e");
     }

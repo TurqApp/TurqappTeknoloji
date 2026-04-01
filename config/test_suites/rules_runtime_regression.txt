@@ -1,0 +1,6 @@
+integration_test/auth/auth_startup_session_restore_test.dart
+integration_test/profile/profile_resume_test.dart
+integration_test/feed/feed_first_video_playback_test.dart
+integration_test/feed/feed_fullscreen_audio_smoke_test.dart
+integration_test/shorts/short_first_two_playback_test.dart
+integration_test/chat/chat_media_picker_upload_failure_e2e_test.dart

@@ -64,4 +64,128 @@ void main() {
     expect(service.recentEvents, hasLength(1));
     expect(service.recentEvents.single.payload['source'], 'build_phase');
   });
+
+  test('ignores bootstrap hydrate and reset patches in render diff summary',
+      () async {
+    final service = PlaybackKpiService();
+
+    service.track(
+      PlaybackKpiEventType.renderDiff,
+      const {
+        'surface': 'feed',
+        'stage': 'render_patch',
+        'previousCount': 0,
+        'nextCount': 13,
+        'operations': 13,
+        'insertCount': 13,
+        'updateCount': 0,
+        'removeCount': 0,
+        'moveCount': 0,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.renderDiff,
+      const {
+        'surface': 'feed',
+        'stage': 'render_patch',
+        'previousCount': 13,
+        'nextCount': 0,
+        'operations': 13,
+        'insertCount': 0,
+        'updateCount': 0,
+        'removeCount': 13,
+        'moveCount': 0,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.renderDiff,
+      const {
+        'surface': 'feed',
+        'stage': 'render_patch',
+        'previousCount': 13,
+        'nextCount': 13,
+        'operations': 3,
+        'insertCount': 0,
+        'updateCount': 3,
+        'removeCount': 0,
+        'moveCount': 0,
+      },
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    final summary = service.summarizeRenderDiff(surface: 'feed');
+    expect(summary.eventCount, 3);
+    expect(summary.patchEventCount, 1);
+    expect(summary.averageOperations, 3);
+    expect(summary.maxOperations, 3);
+  });
+
+  test('ignores off-surface feed playback loss in playback window summary',
+      () async {
+    final service = PlaybackKpiService();
+
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 0,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': 0,
+        'visibleCount': 1,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 1,
+      },
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    final summary = service.summarizePlaybackWindow(surface: 'feed');
+    expect(summary.eventCount, 3);
+    expect(summary.averageVisibleCount, closeTo(2 / 3, 0.0001));
+    expect(summary.activeLostCount, 1);
+  });
+
+  test('ignores feed playback loss while external owner is active', () async {
+    final service = PlaybackKpiService();
+
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 1,
+        'ownershipExpected': false,
+        'externalOwnerActive': true,
+      },
+    );
+    service.track(
+      PlaybackKpiEventType.playbackWindow,
+      const {
+        'surface': 'feed',
+        'activeIndex': -1,
+        'visibleCount': 1,
+        'ownershipExpected': true,
+      },
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    final summary = service.summarizePlaybackWindow(surface: 'feed');
+    expect(summary.eventCount, 2);
+    expect(summary.averageVisibleCount, closeTo(1, 0.0001));
+    expect(summary.activeLostCount, 1);
+  });
 }

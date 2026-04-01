@@ -1,6 +1,12 @@
 part of 'job_repository.dart';
 
 extension JobRepositoryActionPart on JobRepository {
+  int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Future<void> incrementViewCount(String jobDocId) async {
     if (jobDocId.trim().isEmpty) return;
     await _firestore.collection(JobCollection.name).doc(jobDocId.trim()).update(
@@ -74,7 +80,7 @@ extension JobRepositoryActionPart on JobRepository {
         .doc(jobDocId)
         .get(const GetOptions(source: Source.serverAndCache));
     if (!doc.exists) return 0;
-    final count = (doc.data()?['applicationCount'] as num?)?.toInt() ?? 0;
+    final count = _asInt(doc.data()?['applicationCount']);
     if (count >= 0) return count;
     await _firestore
         .collection(JobCollection.name)
@@ -266,10 +272,24 @@ extension JobRepositoryActionPart on JobRepository {
   }
 
   Future<void> unpublishJob(String jobDocId) async {
-    await _firestore.collection(JobCollection.name).doc(jobDocId).update({
+    final normalizedDocId = jobDocId.trim();
+    if (normalizedDocId.isEmpty) return;
+    final docRef =
+        _firestore.collection(JobCollection.name).doc(normalizedDocId);
+    final docSnap = await docRef.get(
+      const GetOptions(source: Source.serverAndCache),
+    );
+    final ownerUserId = (docSnap.data()?['userID'] ?? '').toString().trim();
+    await docRef.update({
       'ended': true,
       'endedAt': DateTime.now().millisecondsSinceEpoch,
     });
-    _memory.remove('doc:$jobDocId');
+    _memory.remove('doc:$normalizedDocId');
+    await TypesenseEducationSearchService.instance.invalidateEntity(
+      EducationTypesenseEntity.job,
+    );
+    await maybeFindJobHomeSnapshotRepository()?.invalidateUserScopedSurfaces(
+      ownerUserId,
+    );
   }
 }

@@ -1,0 +1,250 @@
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/models.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/playback_handle.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
+
+typedef SegmentCacheEntryReader = VideoCacheEntry? Function(String docId);
+typedef SegmentCacheDocAction = void Function(String docId);
+typedef SegmentCacheProgressAction = void Function(
+    String docId, double progress);
+typedef SegmentCacheReadySegmentsAction = void Function(
+    String docId, int readySegments);
+
+class PlaybackRuntimeService {
+  const PlaybackRuntimeService({
+    this.managerProvider,
+  });
+
+  final VideoStateManager Function()? managerProvider;
+
+  VideoStateManager get _manager =>
+      (managerProvider ?? _defaultManagerProvider).call();
+
+  static VideoStateManager _defaultManagerProvider() {
+    return VideoStateManager.instance;
+  }
+
+  String? get currentPlayingDocId => _manager.currentPlayingDocID;
+
+  void pauseAll({bool force = false}) {
+    _manager.pauseAllVideos(force: force);
+  }
+
+  void playOnlyThis(String docId) {
+    _manager.playOnlyThis(docId);
+  }
+
+  void requestPlay(String docId, PlaybackHandle handle) {
+    _manager.requestPlayVideo(docId, handle);
+  }
+
+  void registerPlaybackHandle(String docId, PlaybackHandle handle) {
+    _manager.registerPlaybackHandle(docId, handle);
+  }
+
+  void unregisterPlaybackHandle(String docId) {
+    _manager.unregisterVideoController(docId);
+  }
+
+  void savePlaybackState(String docId, PlaybackHandle handle) {
+    _manager.saveVideoState(docId, handle);
+  }
+
+  VideoState? getSavedPlaybackState(String docId) {
+    return _manager.getVideoState(docId);
+  }
+
+  void enterExclusiveMode(String docId) {
+    _manager.enterExclusiveMode(docId);
+  }
+
+  void updateExclusiveModeDoc(String docId) {
+    _manager.updateExclusiveModeDoc(docId);
+  }
+
+  void exitExclusiveMode() {
+    _manager.exitExclusiveMode();
+  }
+
+  bool hasPendingPlayFor(String docId) {
+    return _manager.hasPendingPlayFor(docId);
+  }
+
+  bool resumeCurrentPlaybackIfReady(String docId) {
+    return _manager.resumeCurrentPlaybackIfReady(docId);
+  }
+}
+
+class SegmentCacheRuntimeService {
+  const SegmentCacheRuntimeService({
+    this.entryReader,
+    this.markPlayingAction,
+    this.touchEntryAction,
+    this.touchUserEntryAction,
+    this.updateWatchProgressAction,
+    this.boostReadySegmentsAction,
+  });
+
+  final SegmentCacheEntryReader? entryReader;
+  final SegmentCacheDocAction? markPlayingAction;
+  final SegmentCacheDocAction? touchEntryAction;
+  final SegmentCacheDocAction? touchUserEntryAction;
+  final SegmentCacheProgressAction? updateWatchProgressAction;
+  final SegmentCacheReadySegmentsAction? boostReadySegmentsAction;
+
+  static final Map<String, int> _lastRequestedReadySegmentsByDoc =
+      <String, int>{};
+
+  VideoCacheEntry? _readEntry(String docId) {
+    final reader = entryReader;
+    if (reader != null) {
+      return reader(docId);
+    }
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return null;
+    return cache.getEntry(docId);
+  }
+
+  void _markPlaying(String docId) {
+    final action = markPlayingAction;
+    if (action != null) {
+      action(docId);
+      return;
+    }
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.markPlaying(docId);
+  }
+
+  void _touchEntry(String docId) {
+    final action = touchEntryAction;
+    if (action != null) {
+      action(docId);
+      return;
+    }
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.touchEntry(docId);
+  }
+
+  void _touchUserEntry(String docId) {
+    final action = touchUserEntryAction;
+    if (action != null) {
+      action(docId);
+      return;
+    }
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.touchUserEntry(docId);
+  }
+
+  void _updateWatchProgress(String docId, double progress) {
+    final action = updateWatchProgressAction;
+    if (action != null) {
+      action(docId, progress);
+      return;
+    }
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.updateWatchProgress(docId, progress);
+  }
+
+  int cachedSegmentCount(String docId) {
+    return _readEntry(docId)?.cachedSegmentCount ?? 0;
+  }
+
+  bool hasReadySegment(
+    String docId, {
+    int minimumSegmentCount = 1,
+  }) {
+    return cachedSegmentCount(docId) >= minimumSegmentCount;
+  }
+
+  void markPlaying(String docId) {
+    _markPlaying(docId);
+  }
+
+  void touchEntry(String docId) {
+    _touchEntry(docId);
+  }
+
+  void touchUserEntry(String docId) {
+    _touchUserEntry(docId);
+  }
+
+  void updateWatchProgress(String docId, double progress) {
+    _updateWatchProgress(docId, progress);
+  }
+
+  void ensureNextSegmentReady(
+    String docId,
+    double progress, {
+    int lookAheadSegments = 1,
+  }) {
+    final normalized = progress.clamp(0.0, 1.0);
+    if (normalized <= 0) return;
+    final entry = _readEntry(docId);
+    if (entry == null) return;
+
+    final totalSegmentCount = entry.totalSegmentCount;
+    if (totalSegmentCount <= 1) return;
+
+    final currentSegment = _estimateCurrentSegment(
+      progress: normalized,
+      totalSegments: totalSegmentCount,
+    );
+    final targetReadySegments =
+        (currentSegment + lookAheadSegments).clamp(1, totalSegmentCount);
+
+    if (entry.cachedSegmentCount >= targetReadySegments) {
+      final lastRequested = _lastRequestedReadySegmentsByDoc[docId] ?? 0;
+      if (lastRequested <= entry.cachedSegmentCount) {
+        _lastRequestedReadySegmentsByDoc.remove(docId);
+      }
+      return;
+    }
+
+    final lastRequested = _lastRequestedReadySegmentsByDoc[docId] ?? 0;
+    if (targetReadySegments <= lastRequested &&
+        lastRequested > entry.cachedSegmentCount) {
+      return;
+    }
+
+    final boostAction = boostReadySegmentsAction;
+    if (boostAction != null) {
+      _lastRequestedReadySegmentsByDoc[docId] = targetReadySegments;
+      boostAction(docId, targetReadySegments);
+      return;
+    }
+    final scheduler = maybeFindPrefetchScheduler();
+    if (scheduler == null) return;
+    _lastRequestedReadySegmentsByDoc[docId] = targetReadySegments;
+    scheduler.boostDoc(docId, readySegments: targetReadySegments);
+  }
+
+  void markPlayingAndTouchRecent(
+    List<String> orderedDocIds,
+    int currentIndex, {
+    int lookBehind = 5,
+  }) {
+    if (currentIndex < 0 || currentIndex >= orderedDocIds.length) return;
+
+    markPlaying(orderedDocIds[currentIndex]);
+    for (var i = 1; i <= lookBehind; i++) {
+      final behindIndex = currentIndex - i;
+      if (behindIndex < 0 || behindIndex >= orderedDocIds.length) {
+        break;
+      }
+      touchUserEntry(orderedDocIds[behindIndex]);
+    }
+  }
+
+  int _estimateCurrentSegment({
+    required double progress,
+    required int totalSegments,
+  }) {
+    final raw = (progress * totalSegments).floor();
+    return raw.clamp(1, totalSegments);
+  }
+}

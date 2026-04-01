@@ -547,46 +547,4 @@ extension ChatControllerMediaPart on ChatController {
       );
     }
   }
-
-  String _resolveMessageType({
-    required String text,
-    List<String>? imageUrls,
-    LatLng? latLng,
-    String? kisiAdSoyad,
-    String? postID,
-    String? gif,
-    String? videoUrl,
-    String? audioUrl,
-  }) {
-    if (videoUrl != null && videoUrl.isNotEmpty) return "video";
-    if (audioUrl != null && audioUrl.isNotEmpty) return "audio";
-    if (imageUrls != null && imageUrls.isNotEmpty) return "media";
-    if (gif != null && gif.isNotEmpty) return "gif";
-    if (latLng != null) return "location";
-    if (kisiAdSoyad != null && kisiAdSoyad.isNotEmpty) return "contact";
-    if (postID != null && postID.isNotEmpty) return "post";
-    if (text.isNotEmpty) return "text";
-    return "text";
-  }
-
-  String _buildLastMessageText({
-    required String text,
-    List<String>? imageUrls,
-    LatLng? latLng,
-    String? kisiAdSoyad,
-    String? postID,
-    String? gif,
-    String? videoUrl,
-    String? audioUrl,
-  }) {
-    if (text.isNotEmpty) return text;
-    if (videoUrl != null && videoUrl.isNotEmpty) return 'chat.video'.tr;
-    if (audioUrl != null && audioUrl.isNotEmpty) return 'chat.audio'.tr;
-    if (imageUrls != null && imageUrls.isNotEmpty) return 'chat.photo'.tr;
-    if (gif != null && gif.isNotEmpty) return 'chat.gif'.tr;
-    if (latLng != null) return 'chat.location'.tr;
-    if (kisiAdSoyad != null && kisiAdSoyad.isNotEmpty) return 'chat.person'.tr;
-    if (postID != null && postID.isNotEmpty) return 'chat.post'.tr;
-    return 'chat.message_hint'.tr;
-  }
 }

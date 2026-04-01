@@ -35,6 +35,15 @@ class ChatListingContent extends StatelessWidget {
     'pubblicazione',
     'пост',
   };
+  static const Set<String> _previewTranslationKeys = {
+    'chat.unsent_message',
+    'chat.video',
+    'chat.audio',
+    'chat.photo',
+    'chat.post',
+    'chat.person',
+    'chat.location',
+  };
 
   final ChatListingModel model;
   final bool isSearchResult;
@@ -52,6 +61,9 @@ class ChatListingContent extends StatelessWidget {
 
   String _buildSubtitle() {
     if (model.lastMessage.trim().isNotEmpty) {
+      if (_previewTranslationKeys.contains(model.lastMessage.trim())) {
+        return model.lastMessage.trim().tr;
+      }
       if (_postMessageMarkers.contains(
         normalizeSearchText(model.lastMessage),
       )) {

@@ -1,6 +1,64 @@
 part of 'post_repository.dart';
 
 extension PostRepositoryInteractionPart on PostRepository {
+  void _applyPostInteractionRollbackEvent(CacheInvalidationEvent event) {
+    final postId = event.scopeId.trim();
+    if (postId.isEmpty) return;
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
+    if (currentUid.isEmpty || event.actorUserId.trim() != currentUid) return;
+
+    final state = _states[postId];
+    final rollbackLike = event.payload['rollbackLike'] == true;
+    final rollbackSaved = event.payload['rollbackSaved'] == true;
+    final rollbackComment = event.payload['rollbackComment'] == true;
+
+    if (rollbackLike && state != null && state.liked.value) {
+      state.liked.value = false;
+      final likeRx = _countManager.getLikeCount(postId);
+      if (likeRx.value > 0) likeRx.value--;
+      _patchLatestPostCount(state, field: 'likeCount', value: likeRx.value);
+    }
+
+    if (rollbackSaved && state != null && state.saved.value) {
+      state.saved.value = false;
+      final savedRx = _countManager.getSavedCount(postId);
+      if (savedRx.value > 0) savedRx.value--;
+      _patchLatestPostCount(state, field: 'savedCount', value: savedRx.value);
+    }
+
+    if (rollbackComment) {
+      if (state != null) {
+        state.commented.value = false;
+      }
+      final commentRx = _countManager.getCommentCount(postId);
+      if (commentRx.value > 0) commentRx.value--;
+      if (state != null) {
+        _patchLatestPostCount(
+          state,
+          field: 'commentCount',
+          value: commentRx.value,
+        );
+      }
+    }
+  }
+
+  void _patchLatestPostCount(
+    PostRepositoryState state, {
+    required String field,
+    required int value,
+  }) {
+    final latest = state.latestPostData.value;
+    if (latest == null) return;
+    final next = Map<String, dynamic>.from(latest);
+    final stats = Map<String, dynamic>.from(
+      (next['stats'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+    );
+    stats[field] = value;
+    next['stats'] = stats;
+    next[field] = value;
+    state.latestPostData.value = next;
+  }
+
   PostRepositoryState _performAttachPost(
     PostsModel model, {
     required bool loadInteraction,
@@ -35,6 +93,7 @@ extension PostRepositoryInteractionPart on PostRepository {
     final state = attachPost(model);
     final wasLiked = state.liked.value;
     final target = !wasLiked;
+    state.interactionEpoch++;
     state.liked.value = target;
     _applyCountDelta(
       postId: model.docID,
@@ -77,6 +136,7 @@ extension PostRepositoryInteractionPart on PostRepository {
     final state = attachPost(model);
     final wasSaved = state.saved.value;
     final target = !wasSaved;
+    state.interactionEpoch++;
     state.saved.value = target;
     _applyCountDelta(
       postId: model.docID,
@@ -119,6 +179,7 @@ extension PostRepositoryInteractionPart on PostRepository {
     final state = attachPost(model);
     final wasReshared = state.reshared.value;
     final target = !wasReshared;
+    state.interactionEpoch++;
     state.reshared.value = target;
     _applyCountDelta(
       postId: model.docID,
@@ -180,6 +241,9 @@ extension PostRepositoryInteractionPart on PostRepository {
         },
         mergeIntoCache: false,
       );
+      await CurrentUserService.instance.applyLocalCounterDelta(
+        postsDelta: archived ? -1 : 1,
+      );
     }
 
     final state = _states[model.docID];
@@ -190,6 +254,73 @@ extension PostRepositoryInteractionPart on PostRepository {
         'arsiv': archived,
       };
     }
+  }
+
+  Map<String, dynamic>? _performBuildVotedPoll({
+    required Map<String, dynamic> poll,
+    required int optionIndex,
+    required int fallbackTimestampMs,
+    required String currentUid,
+  }) {
+    if (currentUid.trim().isEmpty || poll.isEmpty) return null;
+    final createdAt = (poll['createdDate'] ?? fallbackTimestampMs) as num;
+    final durationHours = (poll['durationHours'] ?? 24) as num;
+    final expiresAt = createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
+    if (DateTime.now().millisecondsSinceEpoch > expiresAt) return null;
+
+    final options = (poll['options'] is List)
+        ? List<Map<String, dynamic>>.from(
+            (poll['options'] as List)
+                .map((value) => Map<String, dynamic>.from(value)),
+          )
+        : <Map<String, dynamic>>[];
+    if (optionIndex < 0 || optionIndex >= options.length) return null;
+
+    final userVotes = poll['userVotes'] is Map
+        ? Map<String, dynamic>.from(poll['userVotes'])
+        : <String, dynamic>{};
+    if (userVotes.containsKey(currentUid)) return null;
+
+    final next = Map<String, dynamic>.from(poll);
+    final option = Map<String, dynamic>.from(options[optionIndex]);
+    final currentVotes = (option['votes'] ?? 0) as num;
+    option['votes'] = currentVotes.toInt() + 1;
+    options[optionIndex] = option;
+
+    final totalVotes = (next['totalVotes'] ?? 0) as num;
+    next['totalVotes'] = totalVotes.toInt() + 1;
+    userVotes[currentUid] = optionIndex;
+    next['options'] = options;
+    next['userVotes'] = userVotes;
+    return next;
+  }
+
+  Future<Map<String, dynamic>?> _performCommitPollVote({
+    required String postId,
+    required int optionIndex,
+    required int fallbackTimestampMs,
+    required String currentUid,
+  }) async {
+    if (postId.trim().isEmpty || currentUid.trim().isEmpty) return null;
+    final postRef = _firestore.collection('Posts').doc(postId);
+    Map<String, dynamic>? updatedPoll;
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(postRef);
+      final data = snap.data();
+      if (data == null) return;
+      final nextPoll = _performBuildVotedPoll(
+        poll: Map<String, dynamic>.from(
+            data['poll'] ?? const <String, dynamic>{}),
+        optionIndex: optionIndex,
+        fallbackTimestampMs:
+            ((data['timeStamp'] ?? fallbackTimestampMs) as num).toInt(),
+        currentUid: currentUid,
+      );
+      if (nextPoll == null) return;
+      tx.update(postRef, {'poll': nextPoll});
+      updatedPoll = nextPoll;
+    });
+    return updatedPoll;
   }
 
   void _performSeedCounts(PostRepositoryState state, PostsModel model) {
@@ -226,6 +357,13 @@ extension PostRepositoryInteractionPart on PostRepository {
       _countManager.getStatsCount(state.postId).value =
           ((stats['statsCount'] ?? data['statsCount'] ?? 0) as num).toInt();
       state.latestPostData.value = Map<String, dynamic>.from(data);
+    }, onError: (error) {
+      if (IntegrationTestMode.enabled &&
+          error is FirebaseException &&
+          error.code == 'permission-denied') {
+        return;
+      }
+      debugPrint('PostRepository post stream error (${state.postId}): $error');
     });
   }
 
@@ -246,6 +384,16 @@ extension PostRepositoryInteractionPart on PostRepository {
         .snapshots()
         .listen((snap) {
       state.commented.value = snap.docs.isNotEmpty;
+    }, onError: (error) {
+      state.commented.value = false;
+      if (IntegrationTestMode.enabled &&
+          error is FirebaseException &&
+          error.code == 'permission-denied') {
+        return;
+      }
+      debugPrint(
+        'PostRepository comments membership stream error (${state.postId}): $error',
+      );
     });
   }
 
@@ -265,16 +413,21 @@ extension PostRepositoryInteractionPart on PostRepository {
     if (!forceRefresh &&
         state.interactionFetchedAt != null &&
         DateTime.now().difference(state.interactionFetchedAt!) <
-            PostRepository._interactionTtl) {
+            _postRepositoryInteractionTtl) {
       return;
     }
     state.interactionLoading = true;
+    final requestedEpoch = state.interactionEpoch;
     try {
       final status =
           await _interactionService.getUserInteractionStatus(state.postId);
+      if (state.interactionEpoch != requestedEpoch) {
+        return;
+      }
       state.liked.value = status['liked'] ?? false;
       state.saved.value = status['saved'] ?? false;
       state.reshared.value = status['reshared'] ?? false;
+      state.commented.value = status['commented'] ?? false;
       state.reported.value = status['reported'] ?? false;
       state.interactionFetchedAt = DateTime.now();
     } finally {

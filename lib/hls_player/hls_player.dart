@@ -15,6 +15,7 @@ class HLSPlayer extends StatefulWidget {
   final Color? backgroundColor;
   final Widget? loadingWidget;
   final Widget? errorWidget;
+  final bool suppressLoadingOverlay;
   final BoxFit fit;
   final double aspectRatio;
   final bool useAspectRatio;
@@ -30,6 +31,7 @@ class HLSPlayer extends StatefulWidget {
     this.backgroundColor,
     this.loadingWidget,
     this.errorWidget,
+    this.suppressLoadingOverlay = false,
     this.fit = BoxFit.contain,
     this.aspectRatio = 16 / 9,
     this.useAspectRatio = true,
@@ -60,6 +62,12 @@ class _HLSPlayerState extends State<HLSPlayer> {
     // Update loop if changed
     if (oldWidget.loop != widget.loop && _isInitialized) {
       widget.controller.setLoop(widget.loop);
+    }
+
+    if (oldWidget.autoPlay != widget.autoPlay &&
+        _isInitialized &&
+        !widget.autoPlay) {
+      widget.controller.cancelPendingResume();
     }
   }
 
@@ -98,24 +106,25 @@ class _HLSPlayerState extends State<HLSPlayer> {
             _buildUnsupportedPlatform(),
 
           // Loading indicator
-          StreamBuilder<PlayerState>(
-            stream: widget.controller.onStateChanged,
-            initialData: widget.controller.state,
-            builder: (context, snapshot) {
-              final state = snapshot.data ?? PlayerState.idle;
+          if (!widget.suppressLoadingOverlay)
+            StreamBuilder<PlayerState>(
+              stream: widget.controller.onStateChanged,
+              initialData: widget.controller.state,
+              builder: (context, snapshot) {
+                final state = snapshot.data ?? PlayerState.idle;
 
-              if (state == PlayerState.loading) {
-                return Center(
-                  child: widget.loadingWidget ??
-                      const CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
-                );
-              }
+                if (state == PlayerState.loading) {
+                  return Center(
+                    child: widget.loadingWidget ??
+                        const CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
+                  );
+                }
 
-              return const SizedBox.shrink();
-            },
-          ),
+                return const SizedBox.shrink();
+              },
+            ),
 
           // Error widget
           StreamBuilder<PlayerState>(

@@ -1,85 +1,414 @@
 part of 'splash_view.dart';
 
 extension _SplashViewStartupPart on _SplashViewState {
-  Future<void> _performInitApp() async {
-    final startupStopwatch = Stopwatch()..start();
+  int? _asNullableManifestInt(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
+  Duration get _firebaseStartupWait => IntegrationTestMode.enabled
+      ? const Duration(seconds: 18)
+      : const Duration(seconds: 3);
+
+  SplashStartupOrchestrator get _startupOrchestrator =>
+      SplashStartupOrchestrator(
+        firebaseStartupWait: _firebaseStartupWait,
+        isMounted: () => mounted,
+        navigateToPrimaryRoute: _navigateToPrimaryRoute,
+        prepareSynchronizedStartupBeforeNav: ({required isFirstLaunch}) =>
+            _prepareSynchronizedStartupBeforeNav(
+          isFirstLaunch: isFirstLaunch,
+        ),
+        runCriticalWarmStartLoads: ({required isFirstLaunch}) =>
+            _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch),
+        runWarmStartLoads: ({required isFirstLaunch}) =>
+            _runWarmStartLoads(isFirstLaunch: isFirstLaunch),
+        markMinimumStartupPrepared: (value) {
+          _minimumStartupPrepared = value;
+        },
+        isMinimumStartupPrepared: () => _minimumStartupPrepared,
+        hydrateStartupManifestContext: ({required loggedIn}) =>
+            _hydrateStartupManifestContext(loggedIn: loggedIn),
+      );
+
+  Future<void> _performInitApp() async => _startupOrchestrator.initializeApp();
+
+  Future<void> _hydrateStartupManifestContext({
+    required bool loggedIn,
+  }) async {
+    _feedStartupShardHydrated = false;
+    _shortStartupShardHydrated = false;
+    _feedStartupShardAgeMs = null;
+    _shortStartupShardAgeMs = null;
     try {
-      late final SharedPreferences prefs;
-      await Future.wait([
-        (() async {
-          await firebaseBootstrapFuture.timeout(
-            const Duration(seconds: 3),
-            onTimeout: () {},
+      final effectiveUserId =
+          CurrentUserService.instance.effectiveUserId.trim();
+      final store = ensureStartupSnapshotManifestStore();
+      final manifest = await store.load(
+            userId: effectiveUserId.isEmpty ? null : effectiveUserId,
+          ) ??
+          (effectiveUserId.isNotEmpty ? await store.load(userId: null) : null);
+
+      _previousStartupRouteHint = manifest?.routeHint ?? 'unknown';
+      _previousStartupLoggedIn = manifest?.loggedIn ?? loggedIn;
+      _previousStartupMinimumPrepared =
+          manifest?.minimumStartupPrepared ?? false;
+      _previousStartupNavIndex =
+          _asNullableManifestInt(manifest?.extra['navSelectedIndex']);
+      final educationTabId =
+          (manifest?.extra['educationTabId'] ?? '').toString().trim();
+      _previousEducationTabId =
+          pasajTabs.contains(educationTabId) ? educationTabId : null;
+      _previousStartupSurfaces =
+          manifest?.surfaces ?? const <String, StartupSnapshotSurfaceRecord>{};
+      _previousStartupManifestAgeMs =
+          manifest == null || manifest.savedAtMs <= 0
+              ? null
+              : DateTime.now().millisecondsSinceEpoch - manifest.savedAtMs;
+      await _hydrateStartupPayloadShards(
+        loggedIn: loggedIn,
+        userId: effectiveUserId,
+      );
+    } catch (_) {
+      _previousStartupRouteHint = 'unknown';
+      _previousStartupLoggedIn = loggedIn;
+      _previousStartupMinimumPrepared = false;
+      _previousStartupNavIndex = null;
+      _previousEducationTabId = null;
+      _previousStartupSurfaces = const <String, StartupSnapshotSurfaceRecord>{};
+      _previousStartupManifestAgeMs = null;
+      _feedStartupShardHydrated = false;
+      _shortStartupShardHydrated = false;
+      _feedStartupShardAgeMs = null;
+      _shortStartupShardAgeMs = null;
+    }
+  }
+
+  Future<void> _hydrateStartupPayloadShards({
+    required bool loggedIn,
+    required String userId,
+  }) async {
+    if (!loggedIn || userId.trim().isEmpty) return;
+    final manifestAgeMs = _previousStartupManifestAgeMs;
+    if (manifestAgeMs == null || manifestAgeMs < 0) return;
+    if (manifestAgeMs >
+        _SplashViewState._startupManifestFreshWindow.inMilliseconds) {
+      return;
+    }
+
+    final shardStore = ensureStartupSnapshotShardStore();
+    final onWiFi = _isOnWiFiNow();
+    await _primeFeedStartupShard(
+      shardStore: shardStore,
+      userId: userId,
+    );
+    await _primeShortStartupShard(
+      shardStore: shardStore,
+      userId: userId,
+      onWiFi: onWiFi,
+    );
+  }
+
+  Future<void> _primeFeedStartupShard({
+    required StartupSnapshotShardStore shardStore,
+    required String userId,
+  }) async {
+    final shard = await shardStore.load(
+      surface: 'feed',
+      userId: userId,
+      maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+    );
+    if (shard == null || shard.itemCount <= 0) return;
+    final didPrime =
+        await ensureFeedSnapshotRepository().primeHomeFromStartupPayload(
+      userId: userId,
+      payload: shard.payload,
+      limit: _feedWarmPoolLimit(),
+      snapshotAt: shard.snapshotAt,
+    );
+    if (!didPrime) return;
+    _feedStartupShardHydrated = true;
+    _feedStartupShardAgeMs =
+        DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
+  }
+
+  Future<void> _primeShortStartupShard({
+    required StartupSnapshotShardStore shardStore,
+    required String userId,
+    required bool onWiFi,
+  }) async {
+    final shard = await shardStore.load(
+      surface: 'short',
+      userId: userId,
+      maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+    );
+    if (shard == null || shard.itemCount <= 0) return;
+    final didPrime =
+        await ensureShortSnapshotRepository().primeHomeFromStartupPayload(
+      userId: userId,
+      payload: shard.payload,
+      limit: _shortStartupShardLimit(onWiFi: onWiFi),
+      additionalLimits:
+          ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: onWiFi),
+      snapshotAt: shard.snapshotAt,
+    );
+    if (!didPrime) return;
+    _shortStartupShardHydrated = true;
+    _shortStartupShardAgeMs =
+        DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
+  }
+
+  int _shortStartupShardLimit({
+    required bool onWiFi,
+  }) {
+    return ReadBudgetRegistry.shortStartupShardLimit(onWiFi: onWiFi);
+  }
+
+  Future<void> _persistShortStartupShard(
+    CachedResource<List<PostsModel>> resource, {
+    required bool onWiFi,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final shardStore = ensureStartupSnapshotShardStore();
+    final posts = resource.data ?? const <PostsModel>[];
+    if (posts.isEmpty) {
+      await shardStore.clear(
+        surface: 'short',
+        userId: userId,
+      );
+      return;
+    }
+    final limit = _shortStartupShardLimit(onWiFi: onWiFi);
+    if (limit <= 0) return;
+    await shardStore.save(
+      surface: 'short',
+      userId: userId,
+      itemCount: posts.length < limit ? posts.length : limit,
+      limit: limit,
+      source: resource.source.name,
+      snapshotAt: resource.snapshotAt,
+      payload: ensureShortSnapshotRepository().encodeHomeStartupPayload(
+        posts,
+        limit: limit,
+      ),
+    );
+  }
+
+  String _requestedStartupRouteHint() {
+    final ageMs = _previousStartupManifestAgeMs;
+    if (ageMs == null || ageMs < 0) return 'unknown';
+    if (ageMs > _SplashViewState._startupManifestFreshWindow.inMilliseconds) {
+      return 'unknown';
+    }
+    return 'nav_feed';
+  }
+
+  String _effectiveStartupRouteHint() {
+    final requested = _requestedStartupRouteHint();
+    switch (requested) {
+      case 'nav_explore':
+      case 'nav_profile':
+      case 'nav_education':
+        return _isStartupRouteWarm(requested) ? requested : 'nav_feed';
+      default:
+        return requested;
+    }
+  }
+
+  bool _shouldRequireFeedReadiness() {
+    switch (_effectiveStartupRouteHint()) {
+      case 'nav_explore':
+      case 'nav_profile':
+      case 'nav_education':
+        return false;
+      default:
+        return true;
+    }
+  }
+
+  bool _shouldPrioritizeProfileWarmups() {
+    return _effectiveStartupRouteHint() == 'nav_profile';
+  }
+
+  bool _shouldPrioritizeExploreWarmups() {
+    return _effectiveStartupRouteHint() == 'nav_explore';
+  }
+
+  String? _effectiveEducationTabId() {
+    if (_effectiveStartupRouteHint() != 'nav_education') {
+      return null;
+    }
+    final tabId = (_previousEducationTabId ?? '').trim();
+    if (tabId.isEmpty || !pasajTabs.contains(tabId)) {
+      return null;
+    }
+    return tabId;
+  }
+
+  bool _shouldPrioritizeEducationMarketWarmups() {
+    final tabId = _effectiveEducationTabId();
+    return tabId == null || tabId == PasajTabIds.market;
+  }
+
+  bool _shouldPrioritizeEducationJobWarmups() {
+    final tabId = _effectiveEducationTabId();
+    return tabId == null || tabId == PasajTabIds.jobFinder;
+  }
+
+  StartupSnapshotSurfaceRecord? _startupSurfaceRecord(String surface) {
+    final normalized = surface.trim();
+    if (normalized.isEmpty) return null;
+    return _previousStartupSurfaces[normalized];
+  }
+
+  bool _surfaceRecordIsWarm(
+    StartupSnapshotSurfaceRecord? record, {
+    int minItemCount = 1,
+    bool allowHeaderOnly = false,
+  }) {
+    if (record == null) return false;
+    if (record.startupShardHydrated == true) return true;
+    if (!record.hasLocalSnapshot) return false;
+    if (allowHeaderOnly) return true;
+    return record.itemCount >= minItemCount;
+  }
+
+  bool _isStartupRouteWarm(String routeHint) {
+    switch (routeHint) {
+      case 'nav_explore':
+        return _surfaceRecordIsWarm(
+          _startupSurfaceRecord('explore'),
+        );
+      case 'nav_profile':
+        return _surfaceRecordIsWarm(
+          _startupSurfaceRecord('profile'),
+          minItemCount: 0,
+          allowHeaderOnly: true,
+        );
+      case 'nav_education':
+        final tabId = (_previousEducationTabId ?? '').trim();
+        if (tabId == PasajTabIds.market) {
+          return _surfaceRecordIsWarm(
+            _startupSurfaceRecord('market'),
           );
-          await FirestoreConfig.initialize().timeout(
-            const Duration(seconds: 2),
-            onTimeout: () {},
+        }
+        if (tabId == PasajTabIds.jobFinder) {
+          return _surfaceRecordIsWarm(
+            _startupSurfaceRecord('jobs'),
           );
-        })(),
-        SharedPreferences.getInstance().then((v) => prefs = v),
-        _initAudioContext().catchError((_) {}),
-      ]);
-
-      late final bool isFirstLaunch;
-      final userService = CurrentUserService.ensure();
-      final accountCenter = AccountCenterService.ensure();
-      await accountCenter.init();
-
-      if (Platform.isIOS) {
-        isFirstLaunch = await _handleFirstLaunchAuthCleanup(prefs: prefs)
-            .timeout(const Duration(milliseconds: 350), onTimeout: () => false);
-        unawaited(userService.initialize());
-      } else {
-        await Future.wait([
-          _handleFirstLaunchAuthCleanup(prefs: prefs)
-              .then((v) => isFirstLaunch = v),
-          userService.initialize(),
-        ]);
-      }
-
-      _registerDependencies();
-
-      if (userService.effectiveUserId.isNotEmpty) {
-        unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
-      }
-
-      final loggedIn = userService.effectiveUserId.isNotEmpty;
-      if (loggedIn) {
-        final firebaseUser = FirebaseAuth.instance.currentUser;
-        final currentUser = userService.currentUser;
-        if (firebaseUser != null && currentUser != null) {
-          unawaited(accountCenter.addCurrentAccount(
-            currentUser: currentUser,
-            firebaseUser: firebaseUser,
-          ));
         }
-        if (IntegrationTestMode.deterministicStartup) {
-          _minimumStartupPrepared = true;
-        } else if (Platform.isIOS) {
-          _minimumStartupPrepared = true;
-        } else {
-          await Future.any([
-            _prepareSynchronizedStartupBeforeNav(isFirstLaunch: isFirstLaunch),
-            Future.delayed(const Duration(milliseconds: 700)),
-          ]);
+        if (tabId.isNotEmpty && pasajTabs.contains(tabId)) {
+          return false;
         }
-      }
+        return _surfaceRecordIsWarm(_startupSurfaceRecord('market')) ||
+            _surfaceRecordIsWarm(_startupSurfaceRecord('jobs'));
+      case 'nav_feed':
+      case 'nav_home':
+        return true;
+      default:
+        return false;
+    }
+  }
 
-      if (IntegrationTestMode.skipBackgroundStartupWork) {
-        return;
-      }
-      if (Platform.isIOS) {
-        Future.delayed(const Duration(seconds: 3), () {
-          unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
-        });
-      } else {
-        unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
-      }
-    } catch (_, __) {}
+  String _resolvedStartupRouteHintForTelemetry({
+    required bool loggedIn,
+  }) {
+    if (!loggedIn) return 'sign_in';
+    return _resolvedLoggedInStartupRouteHint();
+  }
 
-    if (!mounted) return;
-    startupStopwatch.stop();
-    _navigateToPrimaryRoute();
+  Map<String, dynamic> _startupSurfaceTelemetryFields(
+    String surface, {
+    required String prefix,
+  }) {
+    final record = _startupSurfaceRecord(surface);
+    if (record == null) {
+      return <String, dynamic>{
+        '${prefix}Known': false,
+      };
+    }
+    final recordedAgeMs = record.recordedAtMs <= 0
+        ? null
+        : DateTime.now().millisecondsSinceEpoch - record.recordedAtMs;
+    return <String, dynamic>{
+      '${prefix}Known': true,
+      '${prefix}HasLocalSnapshot': record.hasLocalSnapshot,
+      '${prefix}ItemCount': record.itemCount,
+      '${prefix}Source': record.source,
+      '${prefix}IsStale': record.isStale,
+      '${prefix}SnapshotAgeMs': record.snapshotAgeMs,
+      '${prefix}StartupShardHydrated': record.startupShardHydrated,
+      '${prefix}StartupShardAgeMs': record.startupShardAgeMs,
+      '${prefix}RecordedAgeMs': recordedAgeMs,
+    };
+  }
+
+  Map<String, dynamic> _startupAnalyticsExtra({
+    required String surface,
+    required int launchToRouteMs,
+    required bool loggedIn,
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  }) {
+    return <String, dynamic>{
+      'launchToRouteMs': launchToRouteMs,
+      'resolvedStartupRouteHint': _resolvedStartupRouteHintForTelemetry(
+        loggedIn: loggedIn,
+      ),
+      'effectiveStartupRouteHint': _effectiveStartupRouteHint(),
+      'requestedStartupRouteHint': _requestedStartupRouteHint(),
+      'startupRouteFallbackApplied':
+          _requestedStartupRouteHint() != _effectiveStartupRouteHint(),
+      'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
+      'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
+      'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
+      'startupPrioritizeEducationWarmups': _shouldPrioritizeEducationWarmups(),
+      'previousStartupRouteHint': _previousStartupRouteHint,
+      'previousStartupLoggedIn': _previousStartupLoggedIn,
+      'previousStartupMinimumPrepared': _previousStartupMinimumPrepared,
+      'previousStartupNavIndex': _previousStartupNavIndex,
+      'previousEducationTabId': _previousEducationTabId,
+      'previousStartupManifestAgeMs': _previousStartupManifestAgeMs,
+      ..._startupSurfaceTelemetryFields(surface, prefix: 'manifest'),
+      ...extra,
+    };
+  }
+
+  bool _hasWarmStartupSurface(
+    String surface, {
+    int minItemCount = 1,
+    bool requirePositiveItems = true,
+  }) {
+    switch (surface.trim()) {
+      case 'feed':
+        if (_feedStartupShardHydrated) return true;
+        break;
+      case 'short':
+        if (_shortStartupShardHydrated) return true;
+        break;
+    }
+    return _surfaceRecordIsWarm(
+      _startupSurfaceRecord(surface),
+      minItemCount: minItemCount,
+      allowHeaderOnly: !requirePositiveItems,
+    );
+  }
+
+  String _resolvedLoggedInStartupRouteHint() {
+    final hasEducation =
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+    switch (_preferredStartupNavIndex()) {
+      case 1:
+        return 'nav_explore';
+      case 3:
+        return hasEducation ? 'nav_education' : 'nav_profile';
+      case 4:
+        return 'nav_profile';
+      case 0:
+      default:
+        return 'nav_feed';
+    }
   }
 
   Future<void> _performNavigateToPrimaryRoute() async {
@@ -96,26 +425,75 @@ extension _SplashViewStartupPart on _SplashViewState {
     if (!mounted || _didNavigate) return;
 
     var loggedIn = false;
+    var effectiveUserId = '';
     try {
-      loggedIn = CurrentUserService.instance.effectiveUserId.isNotEmpty;
-    } catch (_) {
+      effectiveUserId = CurrentUserService.instance.effectiveUserId.trim();
+      loggedIn = effectiveUserId.isNotEmpty;
+    } catch (error, stackTrace) {
+      StartupSessionFailureReporter.defaultReporter.record(
+        kind: StartupSessionFailureKind.primaryRouteReadiness,
+        operation: 'SplashView.readEffectiveUserId',
+        error: error,
+        stackTrace: stackTrace,
+      );
       loggedIn = false;
     }
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (loggedIn) {
+      await _ensureAuthenticatedPrimaryRouteReady();
+    }
+    final launchToRouteMs =
+        DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
+    final requestedStartupRouteHint = _requestedStartupRouteHint();
+    final effectiveStartupRouteHint = _effectiveStartupRouteHint();
+    final resolvedStartupRouteHint = _resolvedStartupRouteHintForTelemetry(
+      loggedIn: loggedIn,
+    );
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi != null) {
       playbackKpi.track(
         PlaybackKpiEventType.startup,
         {
-          'launchToRouteMs':
-              DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+          'launchToRouteMs': launchToRouteMs,
           'loggedIn': loggedIn,
+          'requestedStartupRouteHint': requestedStartupRouteHint,
+          'effectiveStartupRouteHint': effectiveStartupRouteHint,
+          'resolvedStartupRouteHint': resolvedStartupRouteHint,
+          'startupRouteFallbackApplied':
+              requestedStartupRouteHint != effectiveStartupRouteHint,
           'minimumStartupPrepared': _minimumStartupPrepared,
+          'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
+          'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
+          'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
+          'startupPrioritizeEducationWarmups':
+              _shouldPrioritizeEducationWarmups(),
           'feedWarmSnapshotHit': _feedWarmSnapshotHit,
           'feedWarmSnapshotSource': _feedWarmSnapshotSource,
           'feedWarmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
+          'feedStartupShardHydrated': _feedStartupShardHydrated,
+          'feedStartupShardAgeMs': _feedStartupShardAgeMs,
           'shortWarmSnapshotHit': _shortWarmSnapshotHit,
           'shortWarmSnapshotSource': _shortWarmSnapshotSource,
           'shortWarmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
+          'shortStartupShardHydrated': _shortStartupShardHydrated,
+          'shortStartupShardAgeMs': _shortStartupShardAgeMs,
+          'previousStartupRouteHint': _previousStartupRouteHint,
+          'previousStartupLoggedIn': _previousStartupLoggedIn,
+          'previousStartupMinimumPrepared': _previousStartupMinimumPrepared,
+          'previousStartupNavIndex': _previousStartupNavIndex,
+          'previousEducationTabId': _previousEducationTabId,
+          'previousStartupManifestAgeMs': _previousStartupManifestAgeMs,
+          ..._startupSurfaceTelemetryFields('feed', prefix: 'manifestFeed'),
+          ..._startupSurfaceTelemetryFields('short', prefix: 'manifestShort'),
+          ..._startupSurfaceTelemetryFields(
+            'explore',
+            prefix: 'manifestExplore',
+          ),
+          ..._startupSurfaceTelemetryFields(
+            'profile',
+            prefix: 'manifestProfile',
+          ),
+          ..._startupSurfaceTelemetryFields('market', prefix: 'manifestMarket'),
+          ..._startupSurfaceTelemetryFields('jobs', prefix: 'manifestJobs'),
         },
       );
       if (loggedIn) {
@@ -129,13 +507,18 @@ extension _SplashViewStartupPart on _SplashViewState {
             playbackWindow: playbackKpi.summarizePlaybackWindow(
               surface: 'feed',
             ),
-            extra: <String, dynamic>{
-              'launchToRouteMs':
-                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
-              'warmSnapshotHit': _feedWarmSnapshotHit,
-              'warmSnapshotSource': _feedWarmSnapshotSource,
-              'warmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
-            },
+            extra: _startupAnalyticsExtra(
+              surface: 'feed',
+              launchToRouteMs: launchToRouteMs,
+              loggedIn: loggedIn,
+              extra: <String, dynamic>{
+                'warmSnapshotHit': _feedWarmSnapshotHit,
+                'warmSnapshotSource': _feedWarmSnapshotSource,
+                'warmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
+                'startupShardHydrated': _feedStartupShardHydrated,
+                'startupShardAgeMs': _feedStartupShardAgeMs,
+              },
+            ),
           ),
         );
         unawaited(
@@ -148,13 +531,46 @@ extension _SplashViewStartupPart on _SplashViewState {
             playbackWindow: playbackKpi.summarizePlaybackWindow(
               surface: 'short',
             ),
-            extra: <String, dynamic>{
-              'launchToRouteMs':
-                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
-              'warmSnapshotHit': _shortWarmSnapshotHit,
-              'warmSnapshotSource': _shortWarmSnapshotSource,
-              'warmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
-            },
+            extra: _startupAnalyticsExtra(
+              surface: 'short',
+              launchToRouteMs: launchToRouteMs,
+              loggedIn: loggedIn,
+              extra: <String, dynamic>{
+                'warmSnapshotHit': _shortWarmSnapshotHit,
+                'warmSnapshotSource': _shortWarmSnapshotSource,
+                'warmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
+                'startupShardHydrated': _shortStartupShardHydrated,
+                'startupShardAgeMs': _shortStartupShardAgeMs,
+              },
+            ),
+          ),
+        );
+        unawaited(
+          UserAnalyticsService.instance.trackRuntimeHealthSummary(
+            surface: 'explore',
+            cacheFirst: playbackKpi.summarizeCacheFirst(
+              surfaceKeyPrefix: 'explore_',
+            ),
+            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'explore'),
+            extra: _startupAnalyticsExtra(
+              surface: 'explore',
+              launchToRouteMs: launchToRouteMs,
+              loggedIn: loggedIn,
+            ),
+          ),
+        );
+        unawaited(
+          UserAnalyticsService.instance.trackRuntimeHealthSummary(
+            surface: 'profile',
+            cacheFirst: playbackKpi.summarizeCacheFirst(
+              surfaceKeyPrefix: 'profile_',
+            ),
+            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'profile'),
+            extra: _startupAnalyticsExtra(
+              surface: 'profile',
+              launchToRouteMs: launchToRouteMs,
+              loggedIn: loggedIn,
+            ),
           ),
         );
         unawaited(
@@ -163,10 +579,11 @@ extension _SplashViewStartupPart on _SplashViewState {
             cacheFirst: playbackKpi.summarizeCacheFirst(
               surfaceKeyPrefix: 'market_',
             ),
-            extra: <String, dynamic>{
-              'launchToRouteMs':
-                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
-            },
+            extra: _startupAnalyticsExtra(
+              surface: 'market',
+              launchToRouteMs: launchToRouteMs,
+              loggedIn: loggedIn,
+            ),
           ),
         );
         unawaited(
@@ -175,199 +592,256 @@ extension _SplashViewStartupPart on _SplashViewState {
             cacheFirst: playbackKpi.summarizeCacheFirst(
               surfaceKeyPrefix: 'jobs_',
             ),
-            extra: <String, dynamic>{
-              'launchToRouteMs':
-                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
-            },
+            extra: _startupAnalyticsExtra(
+              surface: 'jobs',
+              launchToRouteMs: launchToRouteMs,
+              loggedIn: loggedIn,
+            ),
           ),
         );
       }
     }
+    unawaited(
+      ensureStartupSnapshotManifestStore().markNavigation(
+        userId: effectiveUserId,
+        routeHint: resolvedStartupRouteHint,
+        loggedIn: loggedIn,
+        minimumStartupPrepared: _minimumStartupPrepared,
+        launchToRouteMs: launchToRouteMs,
+        extra: <String, dynamic>{
+          'requestedStartupRouteHint': requestedStartupRouteHint,
+          'effectiveStartupRouteHint': effectiveStartupRouteHint,
+          'resolvedStartupRouteHint': resolvedStartupRouteHint,
+          'startupRouteFallbackApplied':
+              requestedStartupRouteHint != effectiveStartupRouteHint,
+          'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
+          'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
+          'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
+          'startupPrioritizeEducationWarmups':
+              _shouldPrioritizeEducationWarmups(),
+          'feedWarmSnapshotHit': _feedWarmSnapshotHit,
+          'feedWarmSnapshotSource': _feedWarmSnapshotSource,
+          'feedWarmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
+          'feedStartupShardHydrated': _feedStartupShardHydrated,
+          'feedStartupShardAgeMs': _feedStartupShardAgeMs,
+          'shortWarmSnapshotHit': _shortWarmSnapshotHit,
+          'shortWarmSnapshotSource': _shortWarmSnapshotSource,
+          'shortWarmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
+          'shortStartupShardHydrated': _shortStartupShardHydrated,
+          'shortStartupShardAgeMs': _shortStartupShardAgeMs,
+          'previousStartupRouteHint': _previousStartupRouteHint,
+          'previousStartupLoggedIn': _previousStartupLoggedIn,
+          'previousStartupMinimumPrepared': _previousStartupMinimumPrepared,
+          'previousStartupNavIndex': _previousStartupNavIndex,
+          'previousEducationTabId': _previousEducationTabId,
+          'previousStartupManifestAgeMs': _previousStartupManifestAgeMs,
+          'navSelectedIndex': loggedIn ? _preferredStartupNavIndex() : null,
+          ..._startupSurfaceTelemetryFields('feed', prefix: 'manifestFeed'),
+          ..._startupSurfaceTelemetryFields('short', prefix: 'manifestShort'),
+          ..._startupSurfaceTelemetryFields(
+            'explore',
+            prefix: 'manifestExplore',
+          ),
+          ..._startupSurfaceTelemetryFields(
+            'profile',
+            prefix: 'manifestProfile',
+          ),
+          ..._startupSurfaceTelemetryFields('market', prefix: 'manifestMarket'),
+          ..._startupSurfaceTelemetryFields('jobs', prefix: 'manifestJobs'),
+        },
+      ),
+    );
     _didNavigate = true;
     if (loggedIn) {
-      NavBarController.maybeFind()?.selectedIndex.value = 0;
+      final preferredIndex = _preferredStartupNavIndex();
+      if (preferredIndex != null) {
+        ensureNavBarController().selectedIndex.value = preferredIndex;
+      }
       Get.offAll(() => NavBarView());
       return;
     }
     Get.offAll(() => SignIn());
   }
 
-  Future<void> _performBackgroundInit({required bool isFirstLaunch}) async {
-    try {
-      unawaited(_initCacheProxy());
-
-      final loggedIn = CurrentUserService.instance.effectiveUserId.isNotEmpty;
-      if (loggedIn) {
-        if (!_minimumStartupPrepared) {
-          final criticalDelay = Platform.isIOS
-              ? Duration.zero
-              : Duration(milliseconds: isFirstLaunch ? 250 : 600);
-          if (criticalDelay == Duration.zero) {
-            unawaited(_runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch));
-          } else {
-            Future.delayed(criticalDelay, () {
-              unawaited(
-                _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch),
-              );
-            });
-          }
-        }
-
-        final onWiFi = _isOnWiFiNow();
-        Future.delayed(Duration(seconds: isFirstLaunch ? 5 : 8), () {
-          if (onWiFi) {
-            unawaited(_runWarmStartLoads(isFirstLaunch: isFirstLaunch));
-          }
-        });
-      }
-
-      Future.delayed(const Duration(milliseconds: 900), () {
-        unawaited(NotificationService.instance.initialize());
-      });
-
-      Future.delayed(Duration(seconds: isFirstLaunch ? 2 : 4), () {
-        unawaited(_requestTrackingPermission());
-        unawaited(_initAdMob(targetCount: isFirstLaunch ? 6 : 5));
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _initCacheProxy() async {
-    if (_SplashViewState._globalCacheProxyReady) return;
-    final inFlight = _SplashViewState._globalCacheProxyInitFuture;
-    if (inFlight != null) return inFlight;
-
-    final future = _initCacheProxyInternal();
-    _SplashViewState._globalCacheProxyInitFuture = future;
-    return future;
-  }
-
-  Future<void> _initCacheProxyInternal() async {
-    try {
-      final remote = VideoRemoteConfigService.ensure();
-      if (!remote.isReady) {
-        await remote.initialize();
-      }
-
-      final server = HLSProxyServer.ensure(permanent: true);
-      if (!server.isStarted) {
-        await server.start();
-      }
-
-      final cache = SegmentCacheManager.ensure();
-      await cache.init();
-      await _applyGlobalMediaCacheQuota();
-
-      PrefetchScheduler.ensure(permanent: true);
-      _SplashViewState._globalCacheProxyReady = true;
-    } catch (_) {
-      _SplashViewState._globalCacheProxyReady = false;
-    } finally {
-      _SplashViewState._globalCacheProxyInitFuture = null;
+  int? _preferredStartupNavIndex() {
+    final hasEducation =
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+    final profileIndex = hasEducation ? 4 : 3;
+    switch (_effectiveStartupRouteHint()) {
+      case 'nav_feed':
+      case 'nav_home':
+        return 0;
+      case 'nav_explore':
+        return 1;
+      case 'nav_education':
+        return hasEducation ? 3 : 0;
+      case 'nav_profile':
+        return profileIndex;
+      default:
+        return null;
     }
   }
 
-  Future<void> _applyGlobalMediaCacheQuota() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
-      final quotaGb = (savedGb + 1).clamp(4, 7);
-      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
-      final cache = SegmentCacheManager.maybeFind();
-      if (cache == null) return;
-      await cache.setUserLimitGB(quotaGb);
-    } catch (_) {}
-  }
-
-  Future<void> _initAudioContext() async {
-    try {
-      await AudioPlayer.global.setAudioContext(
-        AudioContext(
-          android: const AudioContextAndroid(
-            isSpeakerphoneOn: false,
-            stayAwake: false,
-            contentType: AndroidContentType.music,
-            usageType: AndroidUsageType.media,
-            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-          ),
-          iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.playback,
-            options: {AVAudioSessionOptions.mixWithOthers},
-          ),
-        ),
-      );
-    } catch (_) {}
-  }
-
-  Future<void> _initAdMob({int targetCount = 4}) async {
-    try {
-      await AdmobBannerWarmupService.ensure().warmFromSplash(
-        isFirstLaunch:
-            targetCount >= AdmobBannerWarmupService.splashFirstLaunchTarget,
-      );
-    } catch (_) {}
-  }
-
-  void _registerDependencies() {
-    Get.lazyPut(() => NetworkAwarenessService());
-    Get.lazyPut(() => OfflineModeService.instance);
-
-    GlobalLoaderController.ensure();
-    AdmobBannerWarmupService.ensure();
-    StoryInteractionOptimizer.ensure();
-    Get.lazyPut(() => UnreadMessagesController());
-    Get.lazyPut(() => NavBarController());
-    Get.lazyPut(() => ProfileController());
-    Get.lazyPut(() => AgendaController());
-    Get.lazyPut(() => RecommendedUserListController(), fenix: true);
-    Get.lazyPut(() => ExploreController());
-    Get.lazyPut(() => ShortController());
-    Get.lazyPut(() => EducationController());
-    Get.lazyPut(() => SavedPostsController());
-    Get.lazyPut(() => JobFinderController());
-    Get.lazyPut(() => StoryRowController(), fenix: true);
-    UploadQueueService.ensure(permanent: true);
-    if (!Platform.isIOS) {
-      DeepLinkService.ensure();
+  bool _isStartupNavIndexWarm(
+    int navIndex, {
+    required bool hasEducation,
+  }) {
+    switch (navIndex) {
+      case 0:
+        return true;
+      case 1:
+        return _isStartupRouteWarm('nav_explore');
+      case 3:
+        return hasEducation
+            ? _isStartupRouteWarm('nav_education')
+            : _isStartupRouteWarm('nav_profile');
+      case 4:
+        return _isStartupRouteWarm('nav_profile');
+      default:
+        return false;
     }
-    IndexPoolStore.ensure(permanent: true);
-    UserProfileCacheService.ensure();
-    StorageBudgetManager.ensure();
-    PlaybackPolicyEngine.ensure();
-    PlaybackKpiService.ensure();
   }
 
-  Future<void> _requestTrackingPermission() async {
-    return;
-  }
-
-  Future<bool> _handleFirstLaunchAuthCleanup({
-    required SharedPreferences prefs,
-  }) async {
-    try {
-      const firstLaunchKey = 'app_has_launched_before';
-
-      final hasLaunchedBefore = prefs.getBool(firstLaunchKey) ?? false;
-      final isFirstLaunch = !hasLaunchedBefore;
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-
-      if (!hasLaunchedBefore && firebaseUser != null) {
-        await FirebaseAuth.instance.signOut();
-        await CurrentUserService.instance.logout();
-        await AccountCenterService.ensure().signOutAllLocal();
-      }
-
-      if (!hasLaunchedBefore) {
-        await prefs.setBool(firstLaunchKey, true);
-      }
-      return isFirstLaunch;
-    } catch (_) {
+  Future<void> _ensureAuthenticatedPrimaryRouteReady() async {
+    if (_shouldPrioritizeExploreWarmups()) {
       try {
-        await FirebaseAuth.instance.signOut();
-        await CurrentUserService.instance.logout();
-        await AccountCenterService.ensure().signOutAllLocal();
-      } catch (_) {}
-      return true;
+        if (_hasWarmStartupSurface('explore')) {
+          return;
+        }
+        final exploreController =
+            maybeFindExploreController() ?? ensureExploreController();
+        if (exploreController.explorePosts.isNotEmpty ||
+            exploreController.trendingTags.isNotEmpty) {
+          return;
+        }
+        await exploreController
+            .prepareStartupSurface(
+              allowBackgroundRefresh: ContentPolicy.allowBackgroundRefresh(
+                ContentScreenKind.explore,
+              ),
+            )
+            .timeout(
+              const Duration(milliseconds: 900),
+              onTimeout: () {},
+            );
+        return;
+      } catch (error, stackTrace) {
+        StartupSessionFailureReporter.defaultReporter.record(
+          kind: StartupSessionFailureKind.primaryRouteReadiness,
+          operation: 'SplashView.ensureExplorePrimaryRouteReady',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+      return;
+    }
+    if (_shouldPrioritizeProfileWarmups()) {
+      try {
+        if (_hasWarmStartupSurface(
+          'profile',
+          minItemCount: 0,
+          requirePositiveItems: false,
+        )) {
+          return;
+        }
+        final profileController =
+            ProfileController.maybeFind() ?? ProfileController.ensure();
+        if (profileController.headerDisplayName.value.trim().isNotEmpty ||
+            profileController.allPosts.isNotEmpty) {
+          return;
+        }
+        await profileController
+            .prepareStartupSurface(
+              allowBackgroundRefresh: ContentPolicy.allowBackgroundRefresh(
+                ContentScreenKind.profile,
+              ),
+            )
+            .timeout(
+              const Duration(milliseconds: 900),
+              onTimeout: () {},
+            );
+      } catch (error, stackTrace) {
+        StartupSessionFailureReporter.defaultReporter.record(
+          kind: StartupSessionFailureKind.primaryRouteReadiness,
+          operation: 'SplashView.ensureProfilePrimaryRouteReady',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+      return;
+    }
+    if (_effectiveStartupRouteHint() == 'nav_education') {
+      try {
+        final marketEnabled = _shouldPrioritizeEducationMarketWarmups()
+            ? await isPasajTabEnabled(PasajTabIds.market)
+            : false;
+        final jobEnabled = _shouldPrioritizeEducationJobWarmups()
+            ? await isPasajTabEnabled(PasajTabIds.jobFinder)
+            : false;
+        await Future.wait([
+          if (marketEnabled)
+            if (_hasWarmStartupSurface('market'))
+              Future<void>.value()
+            else
+              prepareMarketStartupSurface(
+                maybeFindMarketController() ?? ensureMarketController(),
+                allowBackgroundRefresh: _isOnWiFiNow(),
+              ).timeout(
+                const Duration(milliseconds: 900),
+                onTimeout: () {},
+              ),
+          if (jobEnabled)
+            if (_hasWarmStartupSurface('jobs'))
+              Future<void>.value()
+            else
+              prepareJobFinderStartupSurface(
+                maybeFindJobFinderController() ?? ensureJobFinderController(),
+                allowBackgroundRefresh: _isOnWiFiNow(),
+              ).timeout(
+                const Duration(milliseconds: 900),
+                onTimeout: () {},
+              ),
+        ]);
+      } catch (error, stackTrace) {
+        StartupSessionFailureReporter.defaultReporter.record(
+          kind: StartupSessionFailureKind.primaryRouteReadiness,
+          operation: 'SplashView.ensureEducationPrimaryRouteReady',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+      return;
+    }
+    if (!_shouldRequireFeedReadiness()) {
+      return;
+    }
+    try {
+      if (_hasWarmStartupSurface(
+        'feed',
+        minItemCount: _SplashViewState._minFeedPostsForNav,
+      )) {
+        return;
+      }
+      final agendaController =
+          maybeFindAgendaController() ?? ensureAgendaController();
+      if (agendaController.agendaList.isNotEmpty) {
+        return;
+      }
+      await agendaController
+          .prepareStartupSurface(
+            allowBackgroundRefresh: false,
+          )
+          .timeout(
+            const Duration(milliseconds: 900),
+            onTimeout: () {},
+          );
+    } catch (error, stackTrace) {
+      StartupSessionFailureReporter.defaultReporter.record(
+        kind: StartupSessionFailureKind.primaryRouteReadiness,
+        operation: 'SplashView.ensureAuthenticatedPrimaryRouteReady',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 }

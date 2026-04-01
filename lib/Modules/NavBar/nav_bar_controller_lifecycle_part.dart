@@ -1,6 +1,17 @@
 part of 'nav_bar_controller.dart';
 
 extension _NavBarControllerLifecyclePart on NavBarController {
+  int _asNavStatInt(Object? value) {
+    if (value is num) return value.toInt();
+    return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  bool _asNavStatBool(Object? value) {
+    if (value is bool) return value;
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    return raw == 'true' || raw == '1';
+  }
+
   void _startBackgroundCacheLoopImpl() {
     _backgroundCacheTimer?.cancel();
     _backgroundCacheTimer =
@@ -11,21 +22,28 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       }
 
       try {
-        AgendaController.maybeFind()?.ensureFeedCacheWarm();
+        maybeFindAgendaController()?.ensureFeedCacheWarm();
       } catch (_) {}
 
       try {
-        final shortsController = ShortController.maybeFind();
-        if (shortsController != null && shortsController.shorts.length < 8) {
-          shortsController.warmStart(targetCount: 8, maxPages: 2);
+        final shortsController = maybeFindShortController();
+        if (shortsController != null &&
+            shortsController.shorts.length <
+                ReadBudgetRegistry.shortBackgroundWarmTargetCount) {
+          shortsController.warmStart(
+            targetCount: ReadBudgetRegistry.shortBackgroundWarmTargetCount,
+            maxPages: ReadBudgetRegistry.shortBackgroundWarmMaxPages,
+          );
         }
       } catch (_) {}
 
       try {
-        final storyController = StoryRowController.maybeFind();
-        if (storyController != null && storyController.users.length < 30) {
+        final storyController = maybeFindStoryRowController();
+        if (storyController != null &&
+            storyController.users.length <
+                ReadBudgetRegistry.storyInitialLimit) {
           await storyController.loadStories(
-            limit: 30,
+            limit: ReadBudgetRegistry.storyInitialLimit,
             cacheFirst: true,
             silentLoad: true,
           );
@@ -44,8 +62,8 @@ extension _NavBarControllerLifecyclePart on NavBarController {
         return;
       }
       final stats = queue.getQueueStats();
-      final pending = (stats['pending'] as int?) ?? 0;
-      final processing = (stats['processing'] as bool?) ?? false;
+      final pending = _asNavStatInt(stats['pending']);
+      final processing = _asNavStatBool(stats['processing']);
       uploadingPosts.value = processing || pending > 0;
     });
   }
@@ -70,28 +88,42 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   void _didChangeAppLifecycleStateImpl(AppLifecycleState state) {
     if (_isDisposed) return;
     final hasEducation =
-        SettingsController.maybeFind()?.educationScreenIsOn.value ?? false;
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
+    final profileIndex = hasEducation ? 4 : 3;
 
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       pauseGlobalTabMedia();
+      unawaited(
+        _persistCurrentStartupSurfacesImpl(
+          includeHomeSurfaces: true,
+        ),
+      );
       return;
     }
 
     if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
       if (!IntegrationTestMode.suppressPeriodicSideEffects) {
-        unawaited(checkAppVersion());
-        _scheduleRatingPrompt(const Duration(seconds: 12));
+        unawaited(_checkAppVersionImpl());
+        _scheduleRatingPromptImpl(const Duration(seconds: 12));
       }
-      resumeFeedIfNeeded();
+      _resumeFeedIfNeededImpl();
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      _primeVisibleSurfaceAfterTabChangeImpl(
+        index: selectedIndex.value,
+        educationIndex: educationIndex,
+        profileIndex: profileIndex,
+      );
     }
 
     if (state == AppLifecycleState.resumed &&
         educationIndex >= 0 &&
         selectedIndex.value == educationIndex) {
       try {
-        EducationController.maybeFind()?.resetActivePasajSurfaceToTop();
+        maybeFindEducationController()?.resetActivePasajSurfaceToTop();
       } catch (_) {}
     }
   }
@@ -99,35 +131,66 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   void _changeIndexImpl(int index) {
     final previous = selectedIndex.value;
     final hasEducation =
-        SettingsController.maybeFind()?.educationScreenIsOn.value ?? false;
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
 
     if (index != previous) {
-      suspendFeedForTabExit();
+      try {
+        FocusManager.instance.primaryFocus?.unfocus();
+      } catch (_) {}
+      unawaited(
+        _persistStartupSurfacesForIndexImpl(
+          previous,
+          includeHomeSurfaces: previous == 0,
+        ),
+      );
+      _suspendFeedForTabExitImpl();
       _pauseGlobalTabMediaImpl();
     }
 
     selectedIndex.value = index;
     unawaited(_persistSelectedIndex(index));
+    unawaited(_persistStartupRouteHint(index));
 
-    if (index == 0) {
+    if (index != previous) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
-        _resumeFeedIfNeededImpl();
+        _resetPrimaryTabSurfacesForTransitionImpl(
+          educationIndex: educationIndex,
+        );
+        _primeVisibleSurfaceAfterTabChangeImpl(
+          index: index,
+          educationIndex: educationIndex,
+          profileIndex: hasEducation ? 4 : 3,
+        );
+        if (index == 0) {
+          _resumeFeedIfNeededImpl();
+        }
       });
     }
+  }
 
-    if (educationIndex >= 0 && index == educationIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_isDisposed) return;
-        try {
-          EducationController.maybeFind()?.resetActivePasajSurfaceToTop();
-        } catch (_) {}
-      });
+  void _resetPrimaryTabSurfacesForTransitionImpl({
+    required int educationIndex,
+  }) {
+    try {
+      maybeFindAgendaController()?.resetSurfaceForTabTransition();
+    } catch (_) {}
+    try {
+      maybeFindExploreController()?.resetSurfaceForTabTransition();
+    } catch (_) {}
+    final profile = ProfileController.maybeFind();
+    final preserveIntegrationProfileShell = IntegrationTestMode.enabled &&
+        profile?.postSelection.value == kProfileIntegrationSmokeShellSelection;
+    if (!preserveIntegrationProfileShell) {
+      try {
+        profile?.resetSurfaceForTabTransition();
+      } catch (_) {}
     }
-
-    if (previous == 1 && index != 1) {
-      ExploreController.maybeFind()?.resetSearchToDefault();
+    if (educationIndex >= 0) {
+      try {
+        maybeFindEducationController()?.resetSurfaceForTabTransition();
+      } catch (_) {}
     }
   }
 
@@ -141,7 +204,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   }
 
   void _suspendFeedForTabExitImpl() {
-    final agenda = AgendaController.maybeFind();
+    final agenda = maybeFindAgendaController();
     if (agenda == null) return;
     final prevIndex = agenda.lastCenteredIndex;
     agenda.lastCenteredIndex = prevIndex;
@@ -150,16 +213,113 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   }
 
   void _resumeFeedIfNeededImpl() {
+    if (mediaOverlayActive) return;
     try {
-      AgendaController.maybeFind()?.resumePlaybackAfterOverlay();
+      maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     } catch (_) {}
   }
 
-  Future<void> _ensureProactiveShortPreloadStartedImpl() async {
-    if (_proactiveShortPreloadStarted) return;
-    _proactiveShortPreloadStarted = true;
-    try {
-      await shortCtrl.backgroundPreload();
-    } catch (_) {}
+  void _pushMediaOverlayLockImpl() {
+    _mediaOverlayDepth.value = _mediaOverlayDepth.value + 1;
+    _suspendFeedForTabExitImpl();
+    _pauseGlobalTabMediaImpl();
+  }
+
+  void _popMediaOverlayLockImpl() {
+    final next = _mediaOverlayDepth.value - 1;
+    _mediaOverlayDepth.value = next < 0 ? 0 : next;
+    if (mediaOverlayActive) return;
+    _resumeFeedIfNeededImpl();
+  }
+
+  void _primeVisibleSurfaceAfterTabChangeImpl({
+    required int index,
+    required int educationIndex,
+    required int profileIndex,
+  }) {
+    if (index == 0) {
+      unawaited(maybeFindAgendaController()?.onPrimarySurfaceVisible());
+      return;
+    }
+    if (index == 1) {
+      unawaited(maybeFindExploreController()?.onPrimarySurfaceVisible());
+      return;
+    }
+    if (educationIndex >= 0 && index == educationIndex) {
+      final activeEducationTabId =
+          maybeFindEducationController()?.currentPasajTabId();
+      if (activeEducationTabId == PasajTabIds.market) {
+        unawaited(maybeFindMarketController()?.onPrimarySurfaceVisible());
+        return;
+      }
+      if (activeEducationTabId == PasajTabIds.jobFinder) {
+        unawaited(maybeFindJobFinderController()?.onPrimarySurfaceVisible());
+      }
+      return;
+    }
+    if (index == profileIndex) {
+      unawaited(ProfileController.maybeFind()?.onPrimarySurfaceVisible());
+    }
+  }
+
+  Future<void> _persistCurrentStartupSurfacesImpl({
+    required bool includeHomeSurfaces,
+  }) {
+    return _persistStartupSurfacesForIndexImpl(
+      selectedIndex.value,
+      includeHomeSurfaces: includeHomeSurfaces,
+    );
+  }
+
+  Future<void> _persistStartupSurfacesForIndexImpl(
+    int index, {
+    required bool includeHomeSurfaces,
+  }) async {
+    final normalizedIndex = index < 0 ? 0 : index;
+    final hasEducation =
+        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+    final educationIndex = hasEducation ? 3 : -1;
+    final profileIndex = hasEducation ? 4 : 3;
+
+    final tasks = <Future<void>>[];
+    if (includeHomeSurfaces || normalizedIndex == 0) {
+      final agenda = maybeFindAgendaController();
+      if (agenda != null) {
+        tasks.add(agenda.persistStartupShard());
+      }
+      final shorts = maybeFindShortController();
+      if (shorts != null) {
+        tasks.add(shorts.persistStartupShard());
+      }
+    }
+
+    if (normalizedIndex == 1) {
+      final explore = maybeFindExploreController();
+      if (explore != null) {
+        tasks.add(explore.persistStartupShard());
+      }
+    } else if (educationIndex >= 0 && normalizedIndex == educationIndex) {
+      final activeEducationTabId =
+          maybeFindEducationController()?.currentPasajTabId();
+      if (activeEducationTabId == PasajTabIds.market) {
+        final market = maybeFindMarketController();
+        if (market != null) {
+          tasks.add(market.persistStartupShard());
+        }
+      } else if (activeEducationTabId == PasajTabIds.jobFinder) {
+        final jobs = maybeFindJobFinderController();
+        if (jobs != null) {
+          tasks.add(jobs.persistStartupShard());
+        }
+      }
+    } else if (normalizedIndex == profileIndex) {
+      final profile = ProfileController.maybeFind();
+      if (profile != null) {
+        tasks.add(profile.persistStartupShard());
+      }
+    }
+
+    if (tasks.isEmpty) return;
+    await Future.wait(tasks, eagerError: false);
   }
 }

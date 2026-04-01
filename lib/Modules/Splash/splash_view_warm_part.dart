@@ -1,164 +1,409 @@
 part of 'splash_view.dart';
 
 extension _SplashViewWarmPart on _SplashViewState {
+  bool _shouldPrioritizeEducationWarmups() {
+    return _effectiveStartupRouteHint() == 'nav_education';
+  }
+
   Future<void> _performRunCriticalWarmStartLoads({
     required bool isFirstLaunch,
   }) async {
     try {
       final onWiFi = _isOnWiFiNow();
-      final storyController = StoryRowController.maybeFind();
-      if (storyController == null) return;
-      final agendaController = AgendaController.ensure();
+      final storyController = maybeFindStoryRowController();
+      final agendaController = ensureAgendaController();
+      final recommendedController = ensureRecommendedUserListController();
+      final prioritizeHomeWarmups = _shouldRequireFeedReadiness();
+      final prioritizeExploreWarmups = _shouldPrioritizeExploreWarmups();
+      final prioritizeProfileWarmups = _shouldPrioritizeProfileWarmups();
+      final prioritizeEducationWarmups = _shouldPrioritizeEducationWarmups();
+      final prioritizeEducationMarketWarmups =
+          _shouldPrioritizeEducationMarketWarmups();
+      final prioritizeEducationJobWarmups =
+          _shouldPrioritizeEducationJobWarmups();
 
       await Future.wait([
-        (() async {
-          try {
-            final shorts = ShortController.maybeFind();
-            if (shorts == null) return;
-            await _warmShortSnapshotForStartup(
+        if (prioritizeHomeWarmups)
+          (() async {
+            try {
+              final shorts = maybeFindShortController();
+              if (shorts == null) return;
+              await _warmShortSnapshotForStartup(
+                onWiFi: onWiFi,
+                isFirstLaunch: isFirstLaunch,
+              );
+              await shorts
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh: false,
+                  )
+                  .timeout(
+                    Duration(seconds: onWiFi ? 4 : 2),
+                    onTimeout: () {},
+                  );
+              shorts.warmStart(
+                targetCount: ReadBudgetRegistry.shortWarmTargetCount(
+                  onWiFi: onWiFi,
+                  isFirstLaunch: isFirstLaunch,
+                ),
+                maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
+              );
+              _primeShortVideoSegments(shorts);
+            } catch (_) {}
+          })(),
+        if (prioritizeHomeWarmups && storyController != null)
+          _forceLoadStoriesSync(
+            storyController,
+            limit: ReadBudgetRegistry.storyStartupWarmLimit(
               onWiFi: onWiFi,
               isFirstLaunch: isFirstLaunch,
-            );
-            await shorts.backgroundPreload().timeout(
-                  Duration(seconds: onWiFi ? 4 : 2),
-                  onTimeout: () {},
-                );
-            shorts.warmStart(
-              targetCount:
-                  onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4),
-              maxPages: onWiFi ? 2 : 1,
-            );
-            _primeShortVideoSegments(shorts);
-          } catch (_) {}
-        })(),
-        _forceLoadStoriesSync(
-          storyController,
-          limit: onWiFi ? (isFirstLaunch ? 20 : 30) : (isFirstLaunch ? 10 : 16),
-        ),
-        (() async {
-          try {
-            await _warmFeedSnapshotForStartup(
-              onWiFi: onWiFi,
-              isFirstLaunch: isFirstLaunch,
-            );
-            await agendaController
-                .ensureInitialFeedLoaded()
-                .timeout(const Duration(seconds: 3));
-            await _ensureMinimumFeedPosts(
-              agendaController,
-              minPosts:
-                  onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6),
-              maxExtraFetch: onWiFi ? 2 : 1,
-            );
-            _primeFeedVideoSegments(agendaController);
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await _warmMarketListings(onWiFi: onWiFi).timeout(
-              Duration(milliseconds: onWiFi ? 1400 : 900),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await _warmJobListings(onWiFi: onWiFi).timeout(
-              Duration(milliseconds: onWiFi ? 1400 : 900),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
+            ),
+          ),
+        if (prioritizeHomeWarmups)
+          (() async {
+            try {
+              await _warmFeedSnapshotForStartup(
+                onWiFi: onWiFi,
+                isFirstLaunch: isFirstLaunch,
+              );
+              await agendaController
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh: false,
+                  )
+                  .timeout(const Duration(seconds: 3));
+              _primeFeedVideoSegments(agendaController);
+            } catch (_) {}
+          })(),
+        if (prioritizeHomeWarmups)
+          (() async {
+            try {
+              await recommendedController
+                  .ensureLoaded(limit: recommendedController.usersWarmCount)
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1600 : 1100),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
+        if (prioritizeProfileWarmups)
+          (() async {
+            try {
+              final profileController =
+                  ProfileController.maybeFind() ?? ProfileController.ensure();
+              await profileController
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh:
+                        ContentPolicy.allowBackgroundRefresh(
+                      ContentScreenKind.profile,
+                    ),
+                  )
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1000 : 650),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
+        if (prioritizeProfileWarmups)
+          (() async {
+            try {
+              await _warmProfileCacheSurfaces(
+                onWiFi: onWiFi,
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 900 : 500),
+                onTimeout: () {},
+              );
+            } catch (_) {}
+          })(),
+        if (prioritizeExploreWarmups)
+          (() async {
+            try {
+              final exploreController =
+                  maybeFindExploreController() ?? ensureExploreController();
+              await exploreController
+                  .prepareStartupSurface(
+                    allowBackgroundRefresh:
+                        ContentPolicy.allowBackgroundRefresh(
+                      ContentScreenKind.explore,
+                    ),
+                  )
+                  .timeout(
+                    Duration(milliseconds: onWiFi ? 1100 : 650),
+                    onTimeout: () {},
+                  );
+            } catch (_) {}
+          })(),
+        if (prioritizeEducationWarmups)
+          (() async {
+            try {
+              if (!prioritizeEducationMarketWarmups) return;
+              if (!await isPasajTabEnabled(PasajTabIds.market)) return;
+              await prepareMarketStartupSurface(
+                maybeFindMarketController() ?? ensureMarketController(),
+                allowBackgroundRefresh: onWiFi,
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 1200 : 800),
+                onTimeout: () {},
+              );
+            } catch (_) {}
+          })(),
+        if (prioritizeEducationWarmups)
+          (() async {
+            try {
+              if (!prioritizeEducationJobWarmups) return;
+              if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) return;
+              await prepareJobFinderStartupSurface(
+                maybeFindJobFinderController() ?? ensureJobFinderController(),
+                allowBackgroundRefresh: onWiFi,
+              ).timeout(
+                Duration(milliseconds: onWiFi ? 1200 : 800),
+                onTimeout: () {},
+              );
+            } catch (_) {}
+          })(),
       ]);
 
-      unawaited(() async {
-        try {
-          final recommended = RecommendedUserListController.ensure();
-          await recommended.ensureLoaded(
-            limit: onWiFi
-                ? (isFirstLaunch ? 140 : 220)
-                : (isFirstLaunch ? 80 : 120),
-          );
-        } catch (_) {}
-      }());
+      final warmUserMetaFuture =
+          !prioritizeHomeWarmups || storyController == null
+              ? Future<void>.value()
+              : _warmUserMetaAndAvatars(
+                  agendaController: agendaController,
+                  storyController: storyController,
+                  recommendedController: recommendedController,
+                  onWiFi: onWiFi,
+                ).timeout(
+                  Duration(milliseconds: onWiFi ? 900 : 500),
+                  onTimeout: () {},
+                );
+      final warmProfileSurfacesFuture = prioritizeProfileWarmups
+          ? Future<void>.value()
+          : _warmProfileCacheSurfaces(
+              onWiFi: onWiFi,
+            ).timeout(
+              Duration(milliseconds: onWiFi ? 900 : 500),
+              onTimeout: () {},
+            );
+      final warmSliderFuture = _warmSliderCaches(onWiFi: onWiFi).timeout(
+        Duration(milliseconds: onWiFi ? 1200 : 650),
+        onTimeout: () {},
+      );
 
-      unawaited(
-        _warmUserMetaAndAvatars(
-          agendaController: agendaController,
-          storyController: storyController,
-          recommendedController: null,
-          onWiFi: onWiFi,
-        ).timeout(
-          Duration(milliseconds: onWiFi ? 900 : 500),
-          onTimeout: () {},
-        ),
-      );
-      unawaited(
-        _warmProfileCacheSurfaces(onWiFi: onWiFi).timeout(
-          Duration(milliseconds: onWiFi ? 900 : 500),
-          onTimeout: () {},
-        ),
-      );
-      unawaited(
-        _warmSliderCaches(onWiFi: onWiFi).timeout(
-          Duration(milliseconds: onWiFi ? 1200 : 650),
-          onTimeout: () {},
-        ),
-      );
+      if (Platform.isAndroid && isFirstLaunch) {
+        await Future.any([
+          Future.wait([
+            warmUserMetaFuture,
+            warmProfileSurfacesFuture,
+          ]),
+          Future.delayed(
+            Duration(milliseconds: onWiFi ? 280 : 180),
+          ),
+        ]);
+        unawaited(warmSliderFuture);
+      } else {
+        unawaited(warmUserMetaFuture);
+        unawaited(warmProfileSurfacesFuture);
+        unawaited(warmSliderFuture);
+      }
     } catch (_) {}
   }
 
   void _primeShortVideoSegments(ShortController shorts) {
     try {
-      final prefetch = PrefetchScheduler.maybeFind();
+      final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
-      final docIds = shorts.shorts
-          .where((p) => p.hasPlayableVideo)
-          .map((p) => p.docID)
-          .where((id) => id.isNotEmpty)
-          .take(12)
-          .toList();
-      if (docIds.isEmpty) return;
-      unawaited(prefetch.updateQueue(docIds, 0));
+      unawaited(prefetch.updateQueueForPosts(
+        shorts.shorts,
+        0,
+        maxDocs: ReadBudgetRegistry.startupShortPrefetchDocLimit,
+      ));
+      _primeShortStartupSegments(shorts, prefetch);
+    } catch (_) {}
+  }
+
+  void _primeShortStartupSegments(
+    ShortController shorts,
+    PrefetchScheduler prefetch,
+  ) {
+    try {
+      final startupWindow = shorts.shorts
+          .where((post) => post.hasPlayableVideo)
+          .take(3)
+          .toList(growable: false);
+      for (final post in startupWindow) {
+        prefetch.boostDoc(
+          post.docID,
+          readySegments: 2,
+        );
+      }
     } catch (_) {}
   }
 
   void _primeFeedVideoSegments(AgendaController agendaController) {
     try {
-      final prefetch = PrefetchScheduler.maybeFind();
+      final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
-      final docIds = agendaController.agendaList
-          .where((p) => p.hasPlayableVideo)
-          .map((p) => p.docID)
-          .where((id) => id.isNotEmpty)
-          .take(15)
-          .toList();
-      if (docIds.isEmpty) return;
-      unawaited(prefetch.updateFeedQueue(docIds, 0));
+      unawaited(prefetch.updateFeedQueueForPosts(
+        agendaController.agendaList,
+        0,
+        maxDocs: ReadBudgetRegistry.startupFeedPrefetchDocLimit,
+      ));
+      _primeFeedFloodSeriesRoots(agendaController, prefetch);
+      _primeFeedFloodSeriesMembers(agendaController, prefetch);
+    } catch (_) {}
+  }
+
+  void _primeFeedFloodSeriesRoots(
+    AgendaController agendaController,
+    PrefetchScheduler prefetch,
+  ) {
+    try {
+      final roots = agendaController.agendaList
+          .take(ReadBudgetRegistry.startupFeedPrefetchDocLimit)
+          .where(
+            (post) =>
+                post.hasPlayableVideo &&
+                post.isFloodSeriesRoot &&
+                post.docID.trim().endsWith('_0'),
+          )
+          .toList(growable: false);
+      for (final root in roots) {
+        prefetch.boostDoc(
+          root.docID,
+          readySegments: 2,
+        );
+      }
+    } catch (_) {}
+  }
+
+  void _primeFeedFloodSeriesMembers(
+    AgendaController agendaController,
+    PrefetchScheduler prefetch,
+  ) {
+    try {
+      final members = agendaController.agendaList
+          .take(ReadBudgetRegistry.startupFeedPrefetchDocLimit)
+          .where((post) => post.hasPlayableVideo && post.isFloodMember)
+          .toList(growable: false);
+      for (final member in members) {
+        prefetch.boostDoc(
+          member.docID,
+          readySegments: 1,
+        );
+      }
     } catch (_) {}
   }
 
   Future<void> _performRunWarmStartLoads({required bool isFirstLaunch}) async {
     try {
       final onWiFi = _isOnWiFiNow();
-      final storyController = StoryRowController.maybeFind();
-      if (storyController == null) return;
-      final shortTarget =
-          onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 4 : 6);
-      final storyTarget = onWiFi ? 30 : 18;
+      final storyController = maybeFindStoryRowController();
+      final shortTarget = ReadBudgetRegistry.shortWarmTargetCount(
+        onWiFi: onWiFi,
+        isFirstLaunch: isFirstLaunch,
+      );
+      final storyTarget =
+          ReadBudgetRegistry.storyWarmReadyTarget(onWiFi: onWiFi);
 
       try {
-        final shorts = ShortController.maybeFind();
+        final shorts = maybeFindShortController();
         if (shorts != null && shorts.shorts.length < shortTarget) {
           shorts.warmStart(
             targetCount: shortTarget,
-            maxPages: onWiFi ? 2 : 1,
+            maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
           );
         }
       } catch (_) {}
 
-      if (storyController.users.length < storyTarget) {
+      if (storyController != null &&
+          storyController.users.length < storyTarget) {
         await _forceLoadStoriesSync(storyController, limit: storyTarget);
+      }
+      if (storyController != null) {
+        unawaited(
+          _warmCurrentStoryMedia(
+            storyController,
+            take: storyTarget,
+          ),
+        );
+      }
+
+      await Future.wait([
+        (() async {
+          try {
+            await _warmMarketListings(
+              onWiFi: onWiFi,
+            ).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+        (() async {
+          try {
+            await _warmJobListings(
+              onWiFi: onWiFi,
+            ).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+        (() async {
+          try {
+            await _warmScholarshipListings(
+              onWiFi: onWiFi,
+            ).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+        (() async {
+          try {
+            await _warmTutoringListings(
+              onWiFi: onWiFi,
+            ).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+      ]);
+    } catch (_) {}
+  }
+
+  Future<void> _warmCurrentStoryMedia(
+    StoryRowController storyController, {
+    required int take,
+  }) async {
+    try {
+      final urls = <String>{};
+      for (final user in storyController.users.cast<dynamic>().take(take)) {
+        final avatarUrl = (user.avatarUrl ?? '').toString().trim();
+        if (avatarUrl.isNotEmpty) {
+          urls.add(avatarUrl);
+        }
+        final stories = (user.stories as List?) ?? const <dynamic>[];
+        if (stories.isEmpty) continue;
+        final story = stories.first;
+        final musicCoverUrl = (story.musicCoverUrl ?? '').toString().trim();
+        if (musicCoverUrl.isNotEmpty) {
+          urls.add(musicCoverUrl);
+        }
+        final elements = (story.elements as List?) ?? const <dynamic>[];
+        for (final element in elements) {
+          final type = (element.type?.toString() ?? '').toLowerCase();
+          final content = (element.content ?? '').toString().trim();
+          if (content.isEmpty) continue;
+          if (type.endsWith('image') || type.endsWith('gif')) {
+            urls.add(content);
+            break;
+          }
+        }
+      }
+      if (urls.isEmpty) return;
+      for (final url in urls) {
+        try {
+          await TurqImageCacheManager.warmUrl(url);
+        } catch (_) {}
       }
     } catch (_) {}
   }
@@ -230,19 +475,19 @@ extension _SplashViewWarmPart on _SplashViewState {
   }
 
   bool _isFeedReady() {
-    return (AgendaController.maybeFind()?.agendaList.length ?? 0) >=
+    return (maybeFindAgendaController()?.agendaList.length ?? 0) >=
         _SplashViewState._minFeedPostsForNav;
   }
 
   bool _isStoryReady() {
-    final storyController = StoryRowController.maybeFind();
+    final storyController = maybeFindStoryRowController();
     if (storyController == null) return false;
     return storyController.users.length >=
         _SplashViewState._minStoryUsersForNav;
   }
 
   bool _isShortsReady() {
-    return (ShortController.maybeFind()?.shorts.length ?? 0) >=
+    return (maybeFindShortController()?.shorts.length ?? 0) >=
         _SplashViewState._minShortsForNav;
   }
 
@@ -266,33 +511,23 @@ extension _SplashViewWarmPart on _SplashViewState {
         .catchError((_) {});
   }
 
-  Future<void> _ensureMinimumFeedPosts(
-    AgendaController agendaController, {
-    required int minPosts,
-    required int maxExtraFetch,
-  }) async {
-    try {
-      var extra = 0;
-      while (agendaController.agendaList.length < minPosts &&
-          agendaController.hasMore.value &&
-          extra < maxExtraFetch) {
-        await agendaController.fetchAgendaBigData();
-        extra++;
-      }
-    } catch (_) {}
-  }
-
   bool _isOnWiFiNow() {
     try {
-      return NetworkAwarenessService.ensure().isOnWiFi;
+      return _SplashViewState._networkRuntimeService.isOnWiFi;
     } catch (_) {
       return false;
     }
   }
 
-  Future<void> _warmMarketListings({required bool onWiFi}) async {
+  Future<void> _warmMarketListings({
+    required bool onWiFi,
+  }) async {
     try {
-      final warmLimit = onWiFi ? 18 : 10;
+      if (!await isPasajTabEnabled(PasajTabIds.market)) {
+        return;
+      }
+      final warmLimit =
+          ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
       final userId = CurrentUserService.instance.effectiveUserId;
       final cached = await MarketSnapshotRepository.ensure()
           .openHome(
@@ -306,8 +541,9 @@ extension _SplashViewWarmPart on _SplashViewState {
         itemCount: (cached.data ?? const <MarketItemModel>[]).length,
       );
       final cachedItems = cached.data ?? const <MarketItemModel>[];
-
-      if (cachedItems.where((item) => item.status == 'active').length >= 10) {
+      final activeCount =
+          cachedItems.where((item) => item.status == 'active').length;
+      if (activeCount >= warmLimit && !cached.isStale) {
         return;
       }
 
@@ -319,11 +555,17 @@ extension _SplashViewWarmPart on _SplashViewState {
     } catch (_) {}
   }
 
-  Future<void> _warmJobListings({required bool onWiFi}) async {
+  Future<void> _warmJobListings({
+    required bool onWiFi,
+  }) async {
     try {
-      final warmLimit = onWiFi ? 18 : 10;
+      if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+        return;
+      }
+      final warmLimit =
+          ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
       final userId = CurrentUserService.instance.effectiveUserId;
-      final cached = await JobHomeSnapshotRepository.ensure()
+      final cached = await ensureJobHomeSnapshotRepository()
           .openHome(
             userId: userId,
             limit: warmLimit,
@@ -335,12 +577,79 @@ extension _SplashViewWarmPart on _SplashViewState {
         itemCount: (cached.data ?? const <dynamic>[]).length,
       );
       final cachedItems = cached.data ?? const <dynamic>[];
-
-      if (cachedItems.length >= 10) {
+      if (cachedItems.length >= warmLimit && !cached.isStale) {
         return;
       }
 
-      await JobHomeSnapshotRepository.ensure().loadHome(
+      await ensureJobHomeSnapshotRepository().loadHome(
+        userId: userId,
+        limit: warmLimit,
+        forceSync: true,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _warmScholarshipListings({
+    required bool onWiFi,
+  }) async {
+    try {
+      if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+        return;
+      }
+      final warmLimit =
+          ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
+      final userId = CurrentUserService.instance.effectiveUserId;
+      final cached = await ensureScholarshipSnapshotRepository()
+          .openHome(
+            userId: userId,
+            limit: warmLimit,
+          )
+          .first;
+      _trackStartupSnapshot(
+        surface: 'scholarships',
+        resource: cached,
+        itemCount: cached.data?.items.length ?? 0,
+      );
+      final cachedItems = cached.data?.items ?? const <Map<String, dynamic>>[];
+      if (cachedItems.length >= warmLimit && !cached.isStale) {
+        return;
+      }
+
+      await ensureScholarshipSnapshotRepository().loadHome(
+        userId: userId,
+        limit: warmLimit,
+        forceSync: true,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _warmTutoringListings({
+    required bool onWiFi,
+  }) async {
+    try {
+      if (!await isPasajTabEnabled(PasajTabIds.tutoring)) {
+        return;
+      }
+      final warmLimit =
+          ReadBudgetRegistry.startupListingWarmLimit(onWiFi: onWiFi);
+      final userId = CurrentUserService.instance.effectiveUserId;
+      final cached = await ensureTutoringSnapshotRepository()
+          .openHome(
+            userId: userId,
+            limit: warmLimit,
+          )
+          .first;
+      _trackStartupSnapshot(
+        surface: 'tutoring',
+        resource: cached,
+        itemCount: (cached.data ?? const <dynamic>[]).length,
+      );
+      final cachedItems = cached.data ?? const <dynamic>[];
+      if (cachedItems.length >= warmLimit && !cached.isStale) {
+        return;
+      }
+
+      await ensureTutoringSnapshotRepository().loadHome(
         userId: userId,
         limit: warmLimit,
         forceSync: true,
@@ -355,9 +664,8 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final userId = CurrentUserService.instance.effectiveUserId;
       if (userId.isEmpty) return;
-      final warmLimit =
-          onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6);
-      final snapshot = await FeedSnapshotRepository.ensure().bootstrapHome(
+      final warmLimit = _feedWarmPoolLimit();
+      final snapshot = await ensureFeedSnapshotRepository().inspectWarmHome(
         userId: userId,
         limit: warmLimit,
       );
@@ -370,6 +678,8 @@ extension _SplashViewWarmPart on _SplashViewState {
         surface: 'feed',
         resource: snapshot,
         itemCount: (snapshot.data ?? const <dynamic>[]).length,
+        startupShardHydrated: _feedStartupShardHydrated,
+        startupShardAgeMs: _feedStartupShardAgeMs,
       );
     } catch (_) {}
   }
@@ -381,9 +691,11 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final userId = CurrentUserService.instance.effectiveUserId;
       if (userId.isEmpty) return;
-      final warmLimit =
-          onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4);
-      final snapshot = await ShortSnapshotRepository.ensure().bootstrapHome(
+      final warmLimit = ReadBudgetRegistry.shortStartupSnapshotLimit(
+        onWiFi: onWiFi,
+        isFirstLaunch: isFirstLaunch,
+      );
+      final snapshot = await ensureShortSnapshotRepository().bootstrapHome(
         userId: userId,
         limit: warmLimit,
       );
@@ -396,6 +708,14 @@ extension _SplashViewWarmPart on _SplashViewState {
         surface: 'short',
         resource: snapshot,
         itemCount: (snapshot.data ?? const <dynamic>[]).length,
+        startupShardHydrated: _shortStartupShardHydrated,
+        startupShardAgeMs: _shortStartupShardAgeMs,
+      );
+      unawaited(
+        _persistShortStartupShard(
+          snapshot,
+          onWiFi: onWiFi,
+        ),
       );
     } catch (_) {}
   }
@@ -404,8 +724,10 @@ extension _SplashViewWarmPart on _SplashViewState {
     required String surface,
     required CachedResource<T> resource,
     required int itemCount,
+    bool startupShardHydrated = false,
+    int? startupShardAgeMs,
   }) {
-    final playbackKpi = PlaybackKpiService.maybeFind();
+    final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
     playbackKpi.track(
       PlaybackKpiEventType.startup,
@@ -419,6 +741,16 @@ extension _SplashViewWarmPart on _SplashViewState {
             : DateTime.now().difference(resource.snapshotAt!).inMilliseconds,
         'itemCount': itemCount,
       },
+    );
+    unawaited(
+      ensureStartupSnapshotManifestStore().recordSurface(
+        surface: surface,
+        userId: CurrentUserService.instance.effectiveUserId,
+        resource: resource,
+        itemCount: itemCount,
+        startupShardHydrated: startupShardHydrated,
+        startupShardAgeMs: startupShardAgeMs,
+      ),
     );
   }
 
@@ -435,9 +767,12 @@ extension _SplashViewWarmPart on _SplashViewState {
         userIds.add(currentUid);
       }
 
-      final feedTake = onWiFi ? 28 : 14;
-      final storyTake = onWiFi ? 18 : 10;
-      final recommendedTake = onWiFi ? 18 : 10;
+      final feedTake =
+          ReadBudgetRegistry.startupUserMetaFeedTake(onWiFi: onWiFi);
+      final storyTake =
+          ReadBudgetRegistry.startupUserMetaStoryTake(onWiFi: onWiFi);
+      final recommendedTake =
+          ReadBudgetRegistry.startupUserMetaRecommendedTake(onWiFi: onWiFi);
 
       for (final post in agendaController.agendaList.take(feedTake)) {
         userIds.add(post.userID);
@@ -456,7 +791,7 @@ extension _SplashViewWarmPart on _SplashViewState {
 
       if (userIds.isEmpty) return;
 
-      final userCache = UserProfileCacheService.ensure();
+      final userCache = ensureUserProfileCacheService();
       final profiles = await userCache.getProfiles(
         userIds.toList(),
         preferCache: true,
@@ -468,7 +803,8 @@ extension _SplashViewWarmPart on _SplashViewState {
         if (url.isNotEmpty) avatarUrls.add(url);
       }
 
-      final warmCount = onWiFi ? 36 : 12;
+      final warmCount =
+          ReadBudgetRegistry.startupAvatarWarmCount(onWiFi: onWiFi);
       for (final url in avatarUrls.take(warmCount)) {
         try {
           await TurqImageCacheManager.instance.getSingleFile(url);
@@ -516,7 +852,9 @@ extension _SplashViewWarmPart on _SplashViewState {
       ]);
 
       for (final bucket in buckets) {
-        for (final post in bucket.take(onWiFi ? 18 : 10)) {
+        for (final post in bucket.take(
+          ReadBudgetRegistry.startupProfileBucketTake(onWiFi: onWiFi),
+        )) {
           if (post.thumbnail.trim().isNotEmpty) {
             urls.add(post.thumbnail.trim());
           }
@@ -529,8 +867,9 @@ extension _SplashViewWarmPart on _SplashViewState {
         }
       }
 
-      for (final url
-          in urls.where((e) => e.isNotEmpty).take(onWiFi ? 40 : 20)) {
+      for (final url in urls.where((e) => e.isNotEmpty).take(
+            ReadBudgetRegistry.startupProfileUrlWarmCount(onWiFi: onWiFi),
+          )) {
         try {
           await TurqImageCacheManager.instance.getSingleFile(url);
         } catch (_) {}
@@ -541,6 +880,14 @@ extension _SplashViewWarmPart on _SplashViewState {
   Future<void> _warmSliderCaches({required bool onWiFi}) async {
     try {
       const sliderIds = <String>[
+        'ads_feed',
+        'ads_profile',
+        'ads_market',
+        'ads_scholarship',
+        'ads_answer_key',
+        'ads_job',
+        'ads_practice_exam',
+        'ads_tutoring',
         'is_bul',
         'online_sinav',
         'cevap_anahtari',
@@ -552,9 +899,12 @@ extension _SplashViewWarmPart on _SplashViewState {
       for (final sliderId in sliderIds) {
         final snapshot = await cache.readSnapshot(sliderId);
         if (snapshot.hasItems) {
-          for (final url in snapshot.items
-              .where((e) => e.startsWith('http'))
-              .take(onWiFi ? 8 : 4)) {
+          for (final url
+              in snapshot.items.where((e) => e.startsWith('http')).take(
+                    ReadBudgetRegistry.startupSliderWarmRemoteLimit(
+                      onWiFi: onWiFi,
+                    ),
+                  )) {
             try {
               await TurqImageCacheManager.instance.getSingleFile(url);
             } catch (_) {}
@@ -566,7 +916,8 @@ extension _SplashViewWarmPart on _SplashViewState {
 
         final resolved = await cache.refreshAndCacheSources(
           sliderId,
-          warmRemoteLimit: onWiFi ? 8 : 4,
+          warmRemoteLimit:
+              ReadBudgetRegistry.startupSliderWarmRemoteLimit(onWiFi: onWiFi),
         );
         if (resolved.isEmpty) continue;
       }
@@ -575,7 +926,7 @@ extension _SplashViewWarmPart on _SplashViewState {
 
   Future<void> _forceLoadStoriesSync(
     StoryRowController storyController, {
-    int limit = 30,
+    int limit = ReadBudgetRegistry.storyInitialLimit,
   }) async {
     try {
       if (storyController.users.length >= limit ||

@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/empty_row.dart';
@@ -19,6 +23,8 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
+import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -53,7 +59,11 @@ import '../../Models/social_media_model.dart';
 
 part 'social_profile_lifecycle_part.dart';
 part 'social_profile_content_part.dart';
+part 'social_profile_content_grid_part.dart';
 part 'social_profile_sections_part.dart';
+part 'social_profile_sections_actions_part.dart';
+part 'social_profile_header_part.dart';
+part 'social_profile_header_actions_part.dart';
 
 class SocialProfile extends StatefulWidget {
   final String userID;
@@ -66,9 +76,12 @@ class SocialProfile extends StatefulWidget {
 class _SocialProfileState extends State<SocialProfile> {
   late SocialProfileController controller;
   late ChatListingController chatListingController;
+  final ScrollController _linksHighlightsScrollController =
+      ScrollController(keepScrollOffset: false);
   final Map<int, ScrollController> _scrollControllers =
       <int, ScrollController>{};
   bool _scrollProbeScheduled = false;
+  Timer? _scrollSettleDebounce;
   bool _ownsController = false;
   bool _ownsHighlightsController = false;
   bool _ownsChatListingController = false;

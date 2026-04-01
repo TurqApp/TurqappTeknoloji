@@ -36,10 +36,16 @@ final class AVPlayerPlaybackProbe: NSObject {
         attachObservers()
     }
 
-    func attachPlayerLayer(_ layer: AVPlayerLayer?) {
+    func attachPlayerLayer(_ layer: AVPlayerLayer?, didAttach: Bool = false) {
         guard let layer else { return }
+        let isSameLayer = playerLayer === layer
         playerLayer = layer
-        monitor.onPlayerLayerAttached()
+        if didAttach || !isSameLayer {
+            monitor.onPlayerLayerAttached()
+        }
+        if isSameLayer && !didAttach && layerReadyObserver != nil {
+            return
+        }
         layerReadyObserver?.invalidate()
         layerReadyObserver = layer.observe(\.isReadyForDisplay, options: [.new, .initial]) { [weak self] layer, _ in
             guard let self else { return }

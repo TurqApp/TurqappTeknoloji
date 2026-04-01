@@ -32,6 +32,65 @@ class MessageModel {
   final int audioDurationMs;
   final bool isStarred;
 
+  static List<String> _cloneStringList(Iterable<dynamic> source) {
+    return source
+        .map((item) => item.toString())
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Map<String, List<String>> _cloneReactionsMap(
+    Map<String, List<String>> source,
+  ) {
+    return source.map(
+      (key, value) => MapEntry(
+        key,
+        List<String>.from(value, growable: false),
+      ),
+    );
+  }
+
+  static String _asString(dynamic value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    final normalized = value.toString();
+    return normalized;
+  }
+
+  static num _asNum(dynamic value, {num fallback = 0}) {
+    if (value is num) return value;
+    return num.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static bool _asBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized.isEmpty) return fallback;
+      switch (normalized) {
+        case 'true':
+        case '1':
+        case 'yes':
+        case 'y':
+        case 'on':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+        case 'n':
+        case 'off':
+          return false;
+      }
+    }
+    return fallback;
+  }
+
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
   MessageModel({
     required this.docID,
     required this.rawDocID,
@@ -42,15 +101,15 @@ class MessageModel {
     required this.long,
     required this.postType,
     required this.postID,
-    required this.imgs,
+    required List<String> imgs,
     required this.video,
     required this.isRead,
-    required this.kullanicilar,
+    required List<String> kullanicilar,
     required this.metin,
     required this.sesliMesaj,
     required this.kisiAdSoyad,
     required this.kisiTelefon,
-    required this.begeniler,
+    required List<String> begeniler,
     required this.isEdited,
     required this.isUnsent,
     required this.isForwarded,
@@ -58,45 +117,48 @@ class MessageModel {
     required this.replySenderId,
     required this.replyText,
     required this.replyType,
-    required this.reactions,
+    required Map<String, List<String>> reactions,
     this.status = '',
     this.videoThumbnail = '',
     this.audioDurationMs = 0,
     this.isStarred = false,
-  });
+  })  : imgs = List<String>.from(imgs, growable: false),
+        kullanicilar = List<String>.from(kullanicilar, growable: false),
+        begeniler = List<String>.from(begeniler, growable: false),
+        reactions = _cloneReactionsMap(reactions);
 
   factory MessageModel.fromJson(Map<String, dynamic> json, String docID) {
     return MessageModel(
       docID: docID,
-      rawDocID: json['rawDocID'] ?? docID,
-      source: json['source'] ?? 'legacy',
-      timeStamp: json['timeStamp'] ?? 0,
-      userID: json['userID'] ?? '',
-      lat: json['lat'] ?? 0,
-      long: json['long'] ?? 0,
-      postType: json['postType'] ?? '',
-      postID: json['postID'] ?? '',
-      imgs: List<String>.from(json['imgs'] ?? []),
-      video: json['video'] ?? '',
-      isRead: json['isRead'] ?? false,
-      kullanicilar: List<String>.from(json['kullanicilar'] ?? []),
-      begeniler: List<String>.from(json['begeniler'] ?? []),
-      metin: json['metin'] ?? '',
-      sesliMesaj: json['sesliMesaj'] ?? '',
-      kisiAdSoyad: json['kisiAdSoyad'] ?? '',
-      kisiTelefon: json['kisiTelefon'] ?? '',
-      isEdited: json['isEdited'] ?? false,
-      isUnsent: json['unsent'] ?? false,
-      isForwarded: json['forwarded'] ?? false,
-      replyMessageId: json['replyMessageId'] ?? '',
-      replySenderId: json['replySenderId'] ?? '',
-      replyText: json['replyText'] ?? '',
-      replyType: json['replyType'] ?? '',
+      rawDocID: _asString(json['rawDocID'], fallback: docID),
+      source: _asString(json['source'], fallback: 'legacy'),
+      timeStamp: _asNum(json['timeStamp']),
+      userID: _asString(json['userID']),
+      lat: _asNum(json['lat']),
+      long: _asNum(json['long']),
+      postType: _asString(json['postType']),
+      postID: _asString(json['postID']),
+      imgs: _cloneStringList(json['imgs'] ?? const []),
+      video: _asString(json['video']),
+      isRead: _asBool(json['isRead']),
+      kullanicilar: _cloneStringList(json['kullanicilar'] ?? const []),
+      begeniler: _cloneStringList(json['begeniler'] ?? const []),
+      metin: _asString(json['metin']),
+      sesliMesaj: _asString(json['sesliMesaj']),
+      kisiAdSoyad: _asString(json['kisiAdSoyad']),
+      kisiTelefon: _asString(json['kisiTelefon']),
+      isEdited: _asBool(json['isEdited']),
+      isUnsent: _asBool(json['unsent']),
+      isForwarded: _asBool(json['forwarded']),
+      replyMessageId: _asString(json['replyMessageId']),
+      replySenderId: _asString(json['replySenderId']),
+      replyText: _asString(json['replyText']),
+      replyType: _asString(json['replyType']),
       reactions: _normalizeReactions(json['reactions']),
-      status: json['status'] ?? '',
-      videoThumbnail: json['videoThumbnail'] ?? '',
-      audioDurationMs: json['audioDurationMs'] ?? 0,
-      isStarred: json['isStarred'] ?? false,
+      status: _asString(json['status']),
+      videoThumbnail: _asString(json['videoThumbnail']),
+      audioDurationMs: _asInt(json['audioDurationMs']),
+      isStarred: _asBool(json['isStarred']),
     );
   }
 
@@ -122,12 +184,12 @@ class MessageModel {
       ts = createdAt;
     }
 
-    final mediaUrls = List<String>.from(data['mediaUrls'] ?? []);
+    final mediaUrls = _cloneStringList(data['mediaUrls'] ?? const []);
     final location = data['location'] as Map<String, dynamic>?;
     final contact = data['contact'] as Map<String, dynamic>?;
     final postRef = data['postRef'] as Map<String, dynamic>?;
-    final seenBy = List<String>.from(data['seenBy'] ?? []);
-    final likes = List<String>.from(data['likes'] ?? []);
+    final seenBy = _cloneStringList(data['seenBy'] ?? const []);
+    final likes = _cloneStringList(data['likes'] ?? const []);
     final replyTo = data['replyTo'] as Map<String, dynamic>?;
 
     return MessageModel(
@@ -135,32 +197,32 @@ class MessageModel {
       rawDocID: docId,
       source: 'conversation',
       timeStamp: ts,
-      userID: data['senderId'] ?? '',
-      lat: (location?['lat'] ?? 0).toDouble(),
-      long: (location?['lng'] ?? 0).toDouble(),
-      postType: postRef?['postType'] ?? '',
-      postID: postRef?['postId'] ?? '',
+      userID: _asString(data['senderId']),
+      lat: _asNum(location?['lat']),
+      long: _asNum(location?['lng']),
+      postType: _asString(postRef?['postType']),
+      postID: _asString(postRef?['postId']),
       imgs: mediaUrls,
-      video: data['videoUrl'] ?? '',
+      video: _asString(data['videoUrl']),
       isRead: seenBy.length > 1,
       kullanicilar: [],
       begeniler: likes,
-      metin: data['text'] ?? '',
-      sesliMesaj: data['audioUrl'] ?? '',
-      kisiAdSoyad: contact?['name'] ?? '',
-      kisiTelefon: contact?['phone'] ?? '',
-      isEdited: data['isEdited'] ?? false,
-      isUnsent: data['unsent'] ?? false,
-      isForwarded: data['forwarded'] ?? false,
-      replyMessageId: replyTo?['messageId'] ?? '',
-      replySenderId: replyTo?['senderId'] ?? '',
-      replyText: replyTo?['text'] ?? '',
-      replyType: replyTo?['type'] ?? '',
+      metin: _asString(data['text']),
+      sesliMesaj: _asString(data['audioUrl']),
+      kisiAdSoyad: _asString(contact?['name']),
+      kisiTelefon: _asString(contact?['phone']),
+      isEdited: _asBool(data['isEdited']),
+      isUnsent: _asBool(data['unsent']),
+      isForwarded: _asBool(data['forwarded']),
+      replyMessageId: _asString(replyTo?['messageId']),
+      replySenderId: _asString(replyTo?['senderId']),
+      replyText: _asString(replyTo?['text']),
+      replyType: _asString(replyTo?['type']),
       reactions: _normalizeReactions(data['reactions']),
-      status: data['status'] ?? '',
-      videoThumbnail: data['videoThumbnail'] ?? '',
-      audioDurationMs: data['audioDurationMs'] ?? 0,
-      isStarred: data['isStarred'] ?? false,
+      status: _asString(data['status']),
+      videoThumbnail: _asString(data['videoThumbnail']),
+      audioDurationMs: _asInt(data['audioDurationMs']),
+      isStarred: _asBool(data['isStarred']),
     );
   }
 
@@ -168,7 +230,7 @@ class MessageModel {
     if (raw is! Map) return {};
     final out = <String, List<String>>{};
     raw.forEach((key, value) {
-      out[key.toString()] = List<String>.from(value ?? const []);
+      out[key.toString()] = _cloneStringList(value ?? const []);
     });
     return out;
   }

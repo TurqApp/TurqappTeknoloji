@@ -1,6 +1,33 @@
 part of 'short_controller.dart';
 
 extension ShortControllerCachePart on ShortController {
+  void _registerPlaybackHandleForIndex(int index, HLSVideoAdapter adapter) {
+    if (index < 0 || index >= shorts.length) return;
+    final docId = shorts[index].docID.trim();
+    if (docId.isEmpty) return;
+    try {
+      _playbackRuntimeService.registerPlaybackHandle(
+        playbackHandleKeyForDoc(docId),
+        HLSAdapterPlaybackHandle(adapter),
+      );
+    } catch (_) {}
+  }
+
+  void _unregisterPlaybackHandleForIndex(
+    int index, {
+    String? docIdOverride,
+  }) {
+    final docId = (docIdOverride ??
+            (index >= 0 && index < shorts.length ? shorts[index].docID : ''))
+        .trim();
+    if (docId.isEmpty) return;
+    try {
+      _playbackRuntimeService.unregisterPlaybackHandle(
+        playbackHandleKeyForDoc(docId),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
     await adapter.pause();
   }
@@ -20,12 +47,13 @@ extension ShortControllerCachePart on ShortController {
       }
 
       final adapter = _videoPool.acquire(
-        cacheKey: short.docID,
+        cacheKey: playbackHandleKeyForDoc(short.docID),
         url: videoUrl,
         autoPlay: false,
         loop: true,
       );
       cacheTarget[index] = adapter;
+      _registerPlaybackHandleForIndex(index, adapter);
 
       _log('[Shorts] ✅ Video $index HLS adapter hazır');
       return adapter;
@@ -66,14 +94,11 @@ extension ShortControllerCachePart on ShortController {
       if (adapter == null) continue;
       final distance = (i - currentIndex).abs();
       if (distance == 0) {
-        adapter
-            .setPreferredBufferDuration(ShortController._activeBufferSeconds);
+        adapter.setPreferredBufferDuration(_activeBufferSeconds);
       } else if (distance == 1) {
-        adapter.setPreferredBufferDuration(
-          ShortController._neighborBufferSeconds,
-        );
+        adapter.setPreferredBufferDuration(_neighborBufferSeconds);
       } else {
-        adapter.setPreferredBufferDuration(ShortController._prepBufferSeconds);
+        adapter.setPreferredBufferDuration(_prepBufferSeconds);
       }
     }
 
@@ -93,6 +118,7 @@ extension ShortControllerCachePart on ShortController {
         cache.remove(k);
         _tiers.remove(k);
         if (adapter != null) {
+          _unregisterPlaybackHandleForIndex(k);
           unawaited(_videoPool.release(adapter));
         }
       }
@@ -101,8 +127,8 @@ extension ShortControllerCachePart on ShortController {
     _enforceMaxPlayers(currentIndex, window.maxAttachedPlayers);
 
     try {
-      PrefetchScheduler.maybeFind()?.updateQueue(
-        shorts.map((s) => s.docID).toList(),
+      maybeFindPrefetchScheduler()?.updateQueueForPosts(
+        shorts,
         currentIndex,
       );
     } catch (_) {}
@@ -144,6 +170,7 @@ extension ShortControllerCachePart on ShortController {
         cache.remove(k);
         _tiers.remove(k);
         if (adapter != null) {
+          _unregisterPlaybackHandleForIndex(k);
           unawaited(_videoPool.release(adapter));
         }
       }
@@ -161,6 +188,7 @@ extension ShortControllerCachePart on ShortController {
       final adapter = cache.remove(key);
       _tiers.remove(key);
       if (adapter != null) {
+        _unregisterPlaybackHandleForIndex(key);
         try {
           await _videoPool.release(adapter);
         } catch (_) {}
@@ -182,8 +210,10 @@ extension ShortControllerCachePart on ShortController {
 
   void clearCache() {
     _playbackCoordinator.reset();
-    for (final adapter in cache.values) {
-      unawaited(_videoPool.release(adapter));
+    final entries = cache.entries.toList(growable: false);
+    for (final entry in entries) {
+      _unregisterPlaybackHandleForIndex(entry.key);
+      unawaited(_videoPool.release(entry.value));
     }
     cache.clear();
     _tiers.clear();
@@ -205,16 +235,19 @@ extension ShortControllerCachePart on ShortController {
   Future<void> refreshVideoController(int idx) async {
     final post = shorts[idx];
     if (cache[idx] != null) {
+      _unregisterPlaybackHandleForIndex(idx);
       await _videoPool.release(cache[idx]!);
       cache.remove(idx);
     }
     if (post.playbackUrl.isNotEmpty) {
-      cache[idx] = _videoPool.acquire(
-        cacheKey: post.docID,
+      final adapter = _videoPool.acquire(
+        cacheKey: playbackHandleKeyForDoc(post.docID),
         url: post.playbackUrl,
         autoPlay: false,
         loop: true,
       );
+      cache[idx] = adapter;
+      _registerPlaybackHandleForIndex(idx, adapter);
     }
   }
 

@@ -31,12 +31,12 @@ class _ScholarshipApplicationsContentState
     super.initState();
     _controllerTag =
         'scholarship_application_tile_${widget.userID}_${identityHashCode(this)}';
-    final existing = ScholarshipApplicationsContentController.maybeFind(
+    final existing = maybeFindScholarshipApplicationsContentController(
       tag: _controllerTag,
     );
     _ownsController = existing == null;
     controller = existing ??
-        ScholarshipApplicationsContentController.ensure(
+        ensureScholarshipApplicationsContentController(
           tag: _controllerTag,
           userID: widget.userID,
         );
@@ -46,7 +46,7 @@ class _ScholarshipApplicationsContentState
   void dispose() {
     if (_ownsController &&
         identical(
-          ScholarshipApplicationsContentController.maybeFind(
+          maybeFindScholarshipApplicationsContentController(
               tag: _controllerTag),
           controller,
         )) {

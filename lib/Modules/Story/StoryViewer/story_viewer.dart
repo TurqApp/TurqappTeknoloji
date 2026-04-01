@@ -6,7 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
-import 'package:turqappv2/Core/Services/video_state_manager.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import '../StoryRow/story_user_model.dart';
 import 'user_story_content.dart';
 import '../StoryMaker/story_maker_controller.dart';
@@ -16,6 +17,7 @@ import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import '../StoryRow/story_row_controller.dart';
 
 part 'story_viewer_shell_part.dart';
+part 'story_viewer_shell_content_part.dart';
 part 'story_viewer_story_part.dart';
 
 class StoryViewer extends StatefulWidget {
@@ -34,6 +36,8 @@ class StoryViewer extends StatefulWidget {
 
 class _StoryViewerState extends State<StoryViewer>
     with TickerProviderStateMixin {
+  final PlaybackRuntimeService _playbackRuntimeService =
+      const PlaybackRuntimeService();
   late PageController pageController;
   int currentPageIndex = 0;
   final Map<int, GlobalKey> _pageKeys = {};
@@ -65,7 +69,8 @@ class _StoryViewerState extends State<StoryViewer>
   @override
   void initState() {
     super.initState();
-    VideoStateManager.instance.pauseAllVideos(force: true);
+    maybeFindAgendaController()?.suspendPlaybackForOverlay();
+    _playbackRuntimeService.pauseAll(force: true);
     currentPageIndex = widget.storyOwnerUsers
         .indexWhere((u) => u.userID == widget.startedUser.userID);
     if (currentPageIndex < 0) currentPageIndex = 0;
@@ -109,6 +114,7 @@ class _StoryViewerState extends State<StoryViewer>
 
   @override
   void dispose() {
+    maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     _returnController.dispose();
     pageController.dispose();
     _screenshotChannel.setMethodCallHandler(null);

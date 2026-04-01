@@ -22,15 +22,15 @@ class _MyTestsState extends State<MyTests> {
   void initState() {
     super.initState();
     _controllerTag = 'tests_my_${identityHashCode(this)}';
-    final existing = MyTestsController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindMyTestsController(tag: _controllerTag);
     _ownsController = existing == null;
-    controller = existing ?? MyTestsController.ensure(tag: _controllerTag);
+    controller = existing ?? ensureMyTestsController(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController = MyTestsController.maybeFind(
+      final registeredController = maybeFindMyTestsController(
         tag: _controllerTag,
       );
       if (identical(registeredController, controller)) {
@@ -42,6 +42,10 @@ class _MyTestsState extends State<MyTests> {
 
   @override
   Widget build(BuildContext context) {
+    return _buildPage();
+  }
+
+  Widget _buildPage() {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -50,121 +54,125 @@ class _MyTestsState extends State<MyTests> {
           children: [
             Column(
               children: [
-                BackButtons(text: "tests.my_tests_title".tr),
+                BackButtons(text: 'tests.my_tests_title'.tr),
                 Expanded(
                   child: RefreshIndicator(
                     color: Colors.white,
                     backgroundColor: Colors.black,
                     onRefresh: controller.getData,
-                    child: Obx(
-                      () => controller.isLoading.value
-                          ? const Center(
-                              child: CupertinoActivityIndicator(
-                                radius: 20,
-                                color: Colors.black,
-                              ),
-                            )
-                          : controller.list.isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.only(top: 15),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.info_outline,
-                                        color: Colors.black,
-                                        size: 40,
-                                      ),
-                                      SizedBox(height: 10),
-                                      Text(
-                                        "tests.my_tests_empty".tr,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "Montserrat",
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 15,
-                                    right: 15,
-                                  ),
-                                  child: GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 5.0,
-                                      mainAxisSpacing: 5.0,
-                                      childAspectRatio: 1.85 / 3.6,
-                                    ),
-                                    itemCount: controller.list.length,
-                                    itemBuilder: (context, index) {
-                                      return TestsGrid(
-                                        model: controller.list[index],
-                                        update: controller.getData,
-                                      );
-                                    },
-                                  ),
-                                ),
-                    ),
+                    child: Obx(() => _buildContent()),
                   ),
                 ),
               ],
             ),
-            GestureDetector(
-              onTap: () {
-                Get.to(() => CreateTest());
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Obx(
-                      () => controller.list.isEmpty
-                          ? Transform.translate(
-                              offset: const Offset(-20, -30),
-                              child: Image.asset(
-                                "assets/education/arrowdef.webp",
-                                height: 80,
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    Container(
-                      height: 60,
-                      width: 60,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(12),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 20,
-                            spreadRadius: 6,
-                          ),
-                        ],
+            _buildCreateButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreateButton() {
+    return GestureDetector(
+      onTap: () => Get.to(() => const CreateTest()),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Obx(
+              () => controller.list.isEmpty
+                  ? Transform.translate(
+                      offset: const Offset(-20, -30),
+                      child: Image.asset(
+                        'assets/education/arrowdef.webp',
+                        height: 80,
                       ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    ),
-                  ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            Container(
+              height: 60,
+              width: 60,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(12),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 20,
+                    spreadRadius: 6,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 30,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (controller.isLoading.value) {
+      return const Center(
+        child: CupertinoActivityIndicator(
+          radius: 20,
+          color: Colors.black,
+        ),
+      );
+    }
+
+    if (controller.list.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.info_outline,
+              color: Colors.black,
+              size: 40,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'tests.my_tests_empty'.tr,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 15,
+                fontFamily: 'Montserrat',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 15, right: 15),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 5.0,
+          mainAxisSpacing: 5.0,
+          childAspectRatio: 1.85 / 3.6,
+        ),
+        itemCount: controller.list.length,
+        itemBuilder: (context, index) {
+          return TestsGrid(
+            model: controller.list[index],
+            update: controller.getData,
+          );
+        },
       ),
     );
   }

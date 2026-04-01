@@ -76,6 +76,10 @@ class PlaybackHealthMonitor(
         private set
 
     @Volatile
+    var stallCount: Int = 0
+        private set
+
+    @Volatile
     var lastKnownPlaybackAdvanceAt: Long = 0L
         private set
 
@@ -118,6 +122,7 @@ class PlaybackHealthMonitor(
         surfaceDetachCount = 0
         droppedFramesTotal = 0
         rebufferCount = 0
+        stallCount = 0
         lastKnownPlaybackAdvanceAt = 0L
         fullscreenTransitionStartedAt = 0L
         appBackgroundedAt = 0L
@@ -164,12 +169,25 @@ class PlaybackHealthMonitor(
         isPlaying = true
         isPlaybackExpected = true
         isBuffering = false
+        clearErrors("PLAYBACK_NOT_STARTED")
         publish("playbackStarted")
     }
 
     fun onPlaybackPaused() {
         isPlaying = false
         publish("playbackPaused")
+    }
+
+    fun onPlaybackCompleted() {
+        isPlaying = false
+        isPlaybackExpected = false
+        isBuffering = false
+        lastKnownPlaybackPosition = 0L
+        lastKnownPlaybackAdvanceAt = 0L
+        lastFrameRenderedAt = 0L
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        publish("playbackCompleted")
     }
 
     fun onFirstFrameRendered() {
@@ -181,6 +199,15 @@ class PlaybackHealthMonitor(
         lastFrameRenderedAt = timestamp
         awaitingFullscreenRecovery = false
         awaitingBackgroundRecovery = false
+        clearErrors(
+            "FIRST_FRAME_TIMEOUT",
+            "READY_WITHOUT_FRAME",
+            "PLAYBACK_NOT_STARTED",
+            "VIDEO_FREEZE",
+            "AUDIO_NOT_STARTED",
+            "FULLSCREEN_INTERRUPTION",
+            "BACKGROUND_RESUME_FAILURE",
+        )
         log("firstFrameRendered ttffMs=${deltaFrom(playbackRequestedAt, timestamp)}")
         publish("firstFrameRendered")
     }
@@ -195,10 +222,42 @@ class PlaybackHealthMonitor(
         }
         awaitingFullscreenRecovery = false
         awaitingBackgroundRecovery = false
+        clearErrors(
+            "VIDEO_FREEZE",
+            "AUDIO_NOT_STARTED",
+            "FULLSCREEN_INTERRUPTION",
+            "BACKGROUND_RESUME_FAILURE",
+        )
         publish("frameRendered")
     }
 
+    fun onFrameRenderedSample() {
+        lastFrameRenderedAt = now()
+        if (!hasRenderedFirstFrame) {
+            hasRenderedFirstFrame = true
+            if (firstFrameRenderedAt == 0L) {
+                firstFrameRenderedAt = lastFrameRenderedAt
+            }
+        }
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        clearErrors(
+            "VIDEO_FREEZE",
+            "AUDIO_NOT_STARTED",
+            "FULLSCREEN_INTERRUPTION",
+            "BACKGROUND_RESUME_FAILURE",
+        )
+    }
+
     fun onPositionUpdate(positionMs: Long) {
+        if (!isPlaybackExpected &&
+            !isPlaying &&
+            !hasRenderedFirstFrame &&
+            !playerReadyObserved &&
+            positionMs <= 0L
+        ) {
+            return
+        }
         if (positionMs > lastKnownPlaybackPosition + 40L) {
             lastKnownPlaybackAdvanceAt = now()
         }
@@ -209,6 +268,9 @@ class PlaybackHealthMonitor(
     fun onBufferingStarted() {
         if (!isBuffering) {
             rebufferCount += 1
+            if (playerReadyObserved || hasRenderedFirstFrame || lastKnownPlaybackPosition > 0L) {
+                stallCount += 1
+            }
             if (rebufferCount >= excessiveRebufferThreshold) {
                 addError("EXCESSIVE_REBUFFERING")
             }
@@ -255,6 +317,17 @@ class PlaybackHealthMonitor(
 
     fun onSurfaceDetached() {
         surfaceDetachCount += 1
+        if (!canExpectRenderableFrames()) {
+            clearErrors(
+                "FIRST_FRAME_TIMEOUT",
+                "READY_WITHOUT_FRAME",
+                "PLAYBACK_NOT_STARTED",
+                "VIDEO_FREEZE",
+                "AUDIO_NOT_STARTED",
+                "FULLSCREEN_INTERRUPTION",
+                "BACKGROUND_RESUME_FAILURE",
+            )
+        }
         publish("surfaceDetached")
     }
 
@@ -310,12 +383,17 @@ class PlaybackHealthMonitor(
         return lastFrameRenderedAt >= timestamp && lastFrameRenderedAt > 0L
     }
 
+    fun hasActiveSurface(): Boolean {
+        return surfaceAttachCount > surfaceDetachCount
+    }
+
     fun snapshot(): Map<String, Any> = mapOf(
         "playbackRequestedAt" to playbackRequestedAt,
         "playerReadyAt" to playerReadyAt,
         "firstFrameRenderedAt" to firstFrameRenderedAt,
         "lastFrameRenderedAt" to lastFrameRenderedAt,
         "lastKnownPlaybackPosition" to lastKnownPlaybackPosition,
+        "lastKnownPlaybackTime" to (lastKnownPlaybackPosition / 1000.0),
         "isPlaybackExpected" to isPlaybackExpected,
         "isPlaying" to isPlaying,
         "hasRenderedFirstFrame" to hasRenderedFirstFrame,
@@ -323,10 +401,15 @@ class PlaybackHealthMonitor(
         "isInFullscreenTransition" to isInFullscreenTransition,
         "surfaceAttachCount" to surfaceAttachCount,
         "surfaceDetachCount" to surfaceDetachCount,
+        "layerAttachCount" to surfaceAttachCount,
+        "isLayerAttached" to hasActiveSurface(),
         "droppedFramesTotal" to droppedFramesTotal,
         "rebufferCount" to rebufferCount,
+        "stallCount" to stallCount,
         "appBackgroundedAt" to appBackgroundedAt,
         "appForegroundedAt" to appForegroundedAt,
+        "appDidEnterBackgroundAt" to appBackgroundedAt,
+        "appWillEnterForegroundAt" to appForegroundedAt,
         "awaitingFullscreenRecovery" to awaitingFullscreenRecovery,
         "awaitingBackgroundRecovery" to awaitingBackgroundRecovery,
         "errors" to getErrors(),
@@ -334,8 +417,10 @@ class PlaybackHealthMonitor(
 
     fun evaluatePassiveTimeouts() {
         val timestamp = now()
+        val expectRenderableFrames = canExpectRenderableFrames()
         if (playbackRequestedAt > 0L &&
             !hasRenderedFirstFrame &&
+            expectRenderableFrames &&
             timestamp - playbackRequestedAt > firstFrameTimeoutMs
         ) {
             onFirstFrameTimeout()
@@ -346,6 +431,7 @@ class PlaybackHealthMonitor(
 
         if (playerReadyAt > 0L &&
             !hasRenderedFirstFrame &&
+            expectRenderableFrames &&
             timestamp - playerReadyAt > firstFrameTimeoutMs
         ) {
             onReadyWithoutFrame()
@@ -373,6 +459,7 @@ class PlaybackHealthMonitor(
     fun shouldFlagVideoFreeze(timestamp: Long = now()): Boolean {
         if (!hasRenderedFirstFrame || lastFrameRenderedAt <= 0L) return false
         if (!(isPlaybackExpected || isPlaying || lastKnownPlaybackAdvanceAt > 0L)) return false
+        if (!canExpectRenderableFrames()) return false
         return timestamp - lastFrameRenderedAt > freezeFrameTimeoutMs
     }
 
@@ -383,6 +470,15 @@ class PlaybackHealthMonitor(
         publish("error=$code")
     }
 
+    private fun clearErrors(vararg codes: String) {
+        if (codes.isEmpty()) return
+        val changed = synchronized(errorLock) {
+            recordedErrors.removeAll(codes.toSet())
+        }
+        if (!changed) return
+        publish("clear=${codes.joinToString(",")}")
+    }
+
     private fun publish(event: String) {
         log(event)
         stateListener?.invoke(this)
@@ -391,6 +487,10 @@ class PlaybackHealthMonitor(
     private fun deltaFrom(start: Long, end: Long): Long {
         if (start <= 0L || end <= 0L || end < start) return 0L
         return end - start
+    }
+
+    private fun canExpectRenderableFrames(): Boolean {
+        return hasActiveSurface() || awaitingFullscreenRecovery || awaitingBackgroundRecovery
     }
 
     private fun log(message: String) {

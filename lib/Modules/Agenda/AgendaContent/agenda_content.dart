@@ -23,10 +23,12 @@ import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
 import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -51,6 +53,7 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -60,7 +63,7 @@ import '../../../Core/rozet_content.dart';
 import '../../../Core/Services/upload_queue_service.dart';
 import '../../../Core/texts.dart';
 import '../../../Themes/app_colors.dart';
-import '../../Profile/MyProfile/profile_view.dart';
+import '../../../Themes/app_tokens.dart';
 import '../../SocialProfile/social_profile.dart';
 import '../Common/post_content_base.dart';
 import '../Common/post_content_controller.dart';
@@ -71,11 +74,15 @@ import 'agenda_content_controller.dart';
 part 'agenda_content_quote_part.dart';
 part 'agenda_content_media_part.dart';
 part 'agenda_content_header_actions_part.dart';
+part 'agenda_content_header_menu_part.dart';
+part 'agenda_content_header_navigation_part.dart';
 part 'agenda_content_body_part.dart';
+part 'agenda_content_body_widgets_part.dart';
 
 class AgendaContent extends PostContentBase {
   final bool hideVideoPoster;
   final bool suppressFloodBadge;
+  final FloodListingHostSurface floodHostSurface;
   const AgendaContent({
     super.key,
     required super.model,
@@ -84,6 +91,7 @@ class AgendaContent extends PostContentBase {
     super.instanceTag,
     this.hideVideoPoster = false,
     this.suppressFloodBadge = false,
+    this.floodHostSurface = FloodListingHostSurface.generic,
     bool isYenidenPaylasilanPost = false,
     super.reshareUserID,
     bool? showComments = false,
@@ -110,7 +118,7 @@ class _AgendaContentState extends State<AgendaContent>
   static const Color _videoFallbackColor = Colors.black;
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
-  final arsivController = ArchiveController.ensure();
+  final arsivController = ensureArchiveController();
   bool _isFullscreen = false;
   bool _pauseQueuedAfterBuild = false;
   late final RelativeTimeTickService _relativeTimeTickService;
@@ -118,7 +126,12 @@ class _AgendaContentState extends State<AgendaContent>
   String _quotedSourceFutureUserId = '';
   String _quotedSourceFuturePostId = '';
 
-  String get _currentUid => controller.userService.effectiveUserId;
+  String get _currentUid {
+    final cachedUid =
+        (controller.userService.currentUserRx.value?.userID ?? '').trim();
+    if (cachedUid.isNotEmpty) return cachedUid;
+    return controller.userService.authUserId.trim();
+  }
 
   int get _feedCacheWidth {
     final media = MediaQuery.of(context);
@@ -317,7 +330,7 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   StoryUserModel? _resolveStoryUser() {
-    final rowController = StoryRowController.maybeFind();
+    final rowController = maybeFindStoryRowController();
     if (rowController == null) return null;
     final users = rowController.users;
     for (final user in users) {

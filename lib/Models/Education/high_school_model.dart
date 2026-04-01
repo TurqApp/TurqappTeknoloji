@@ -21,14 +21,14 @@ class HighSchoolModel {
 
   factory HighSchoolModel.fromJson(Map<String, dynamic> json) {
     return HighSchoolModel(
-      tip: json['tip'] ?? '',
-      sub: json['sub'] ?? '',
-      il: json['il'] ?? '',
-      ilce: json['ilce'] ?? '',
-      adi: json['adi'] ?? '',
-      url: json['url'] ?? '',
-      tel: json['tel'] ?? '',
-      adres: json['adres'] ?? '',
+      tip: (json['tip'] ?? '').toString(),
+      sub: (json['sub'] ?? '').toString(),
+      il: (json['il'] ?? '').toString(),
+      ilce: (json['ilce'] ?? '').toString(),
+      adi: (json['adi'] ?? '').toString(),
+      url: (json['url'] ?? '').toString(),
+      tel: (json['tel'] ?? '').toString(),
+      adres: (json['adres'] ?? '').toString(),
     );
   }
 }

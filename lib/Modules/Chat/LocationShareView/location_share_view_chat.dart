@@ -23,7 +23,7 @@ class _LocationShareViewChatState extends State<LocationShareViewChat> {
     super.initState();
     _controllerTag =
         'location_share_${widget.chatID}_${identityHashCode(this)}';
-    controller = LocationShareController.ensure(
+    controller = ensureLocationShareController(
       chatID: widget.chatID,
       tag: _controllerTag,
     );
@@ -31,7 +31,7 @@ class _LocationShareViewChatState extends State<LocationShareViewChat> {
 
   @override
   void dispose() {
-    final existing = LocationShareController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindLocationShareController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<LocationShareController>(tag: _controllerTag, force: true);
     }

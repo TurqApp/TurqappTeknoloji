@@ -28,8 +28,8 @@ class _CategoryBasedAnswerKeyState extends State<CategoryBasedAnswerKey> {
     _controllerTag =
         'category_answer_key_${widget.sinavTuru.hashCode}_${identityHashCode(this)}';
     _ownsController =
-        CategoryBasedAnswerKeyController.maybeFind(tag: _controllerTag) == null;
-    controller = CategoryBasedAnswerKeyController.ensure(
+        maybeFindCategoryBasedAnswerKeyController(tag: _controllerTag) == null;
+    controller = ensureCategoryBasedAnswerKeyController(
       widget.sinavTuru,
       tag: _controllerTag,
     );
@@ -37,7 +37,7 @@ class _CategoryBasedAnswerKeyState extends State<CategoryBasedAnswerKey> {
 
   @override
   void dispose() {
-    final registeredController = CategoryBasedAnswerKeyController.maybeFind(
+    final registeredController = maybeFindCategoryBasedAnswerKeyController(
       tag: _controllerTag,
     );
     if (_ownsController && identical(registeredController, controller)) {

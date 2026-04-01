@@ -14,7 +14,13 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import '../../Core/Helpers/custom_nickname_formatter.dart';
 
 part 'sign_in_auth_part.dart';
+part 'sign_in_start_part.dart';
+part 'sign_in_signin_part.dart';
+part 'sign_in_password_reset_part.dart';
 part 'sign_in_signup_part.dart';
+part 'sign_in_signup_identity_part.dart';
+part 'sign_in_signup_profile_part.dart';
+part 'sign_in_signup_otp_part.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({
@@ -38,14 +44,23 @@ class _SignInState extends State<SignIn> {
   void initState() {
     super.initState();
     _controllerTag = 'sign_in_${identityHashCode(this)}';
-    controller = SignInController.ensure(tag: _controllerTag);
+    controller = ensureSignInController(tag: _controllerTag);
     controller.prepareSignInPrefill(widget.initialIdentifier);
-    controller.prepareStoredAccountContext(widget.storedAccountUid);
+    if (widget.storedAccountUid.trim().isNotEmpty &&
+        widget.initialIdentifier.trim().isEmpty) {
+      controller.selection.value = 1;
+    }
+    unawaited(
+      controller.prepareStoredAccountContext(
+        widget.storedAccountUid,
+        initialIdentifier: widget.initialIdentifier,
+      ),
+    );
   }
 
   @override
   void dispose() {
-    final existing = SignInController.maybeFind(tag: _controllerTag);
+    final existing = maybeFindSignInController(tag: _controllerTag);
     if (identical(existing, controller)) {
       Get.delete<SignInController>(tag: _controllerTag);
     }
