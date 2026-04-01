@@ -230,7 +230,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       for (final post in startupWindow) {
         prefetch.boostDoc(
           post.docID,
-          readySegments: 2,
+          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
         );
       }
     } catch (_) {}
@@ -267,7 +267,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       for (final root in roots) {
         prefetch.boostDoc(
           root.docID,
-          readySegments: 2,
+          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
         );
       }
     } catch (_) {}
@@ -285,7 +285,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       for (final member in members) {
         prefetch.boostDoc(
           member.docID,
-          readySegments: 1,
+          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
         );
       }
     } catch (_) {}

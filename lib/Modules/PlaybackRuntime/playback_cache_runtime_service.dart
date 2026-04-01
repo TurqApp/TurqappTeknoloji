@@ -93,6 +93,9 @@ class SegmentCacheRuntimeService {
   final SegmentCacheProgressAction? updateWatchProgressAction;
   final SegmentCacheReadySegmentsAction? boostReadySegmentsAction;
 
+  static const int globalReadySegmentCount = 2;
+  static const int globalWatchLookAheadSegments = 1;
+
   static final Map<String, int> _lastRequestedReadySegmentsByDoc =
       <String, int>{};
 
@@ -180,7 +183,7 @@ class SegmentCacheRuntimeService {
   void ensureNextSegmentReady(
     String docId,
     double progress, {
-    int lookAheadSegments = 1,
+    int lookAheadSegments = globalWatchLookAheadSegments,
   }) {
     final normalized = progress.clamp(0.0, 1.0);
     if (normalized <= 0) return;

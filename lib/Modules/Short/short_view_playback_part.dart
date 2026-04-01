@@ -44,7 +44,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     try {
       ensurePrefetchScheduler().boostDoc(
         _cachedShorts[page].docID,
-        readySegments: 2,
+        readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
       );
     } catch (_) {}
   }

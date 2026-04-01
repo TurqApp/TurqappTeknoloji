@@ -14,7 +14,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _boostAutoplaySegments({int? readySegments}) {
     try {
       final resolvedReadySegments =
-          readySegments ?? (_isFloodSurfaceInstance ? 1 : 2);
+          readySegments ?? SegmentCacheRuntimeService.globalReadySegmentCount;
       ensurePrefetchScheduler().boostDoc(
         widget.model.docID,
         readySegments: resolvedReadySegments,
@@ -338,15 +338,11 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                   ? 'manager_not_ready'
                   : 'manager_not_current',
         );
-        _playbackRuntimeService.requestPlay(
-          playbackHandleKey,
-          HLSAdapterPlaybackHandle(adapter),
-        );
         _recordPlaybackDispatch(
-          'feed_card_adapter_play',
+          'feed_card_manager_play_only_this',
           source: '$source:manager_reclaim',
         );
-        unawaited(adapter.play());
+        _playbackRuntimeService.playOnlyThis(playbackHandleKey);
       } else {
         _recordPlaybackDispatch(
           'feed_card_manager_resume_current',

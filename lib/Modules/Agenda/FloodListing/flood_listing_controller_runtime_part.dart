@@ -15,7 +15,10 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       final model = floods[i];
       if (!model.hasPlayableVideo) continue;
       try {
-        prefetch.boostDoc(model.docID, readySegments: 1);
+        prefetch.boostDoc(
+          model.docID,
+          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+        );
       } catch (_) {}
     }
   }

@@ -24,7 +24,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     try {
       ensurePrefetchScheduler().boostDoc(
         shorts[index].docID,
-        readySegments: 2,
+        readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
       );
     } catch (_) {}
   }
@@ -131,10 +131,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     _pageActivatedAt = DateTime.now();
     if (currentPage >= 0 && currentPage < shorts.length) {
       try {
-        _playbackRuntimeService
-            .updateExclusiveModeDoc(
-              _playbackHandleKeyForDoc(shorts[currentPage].docID),
-            );
+        _playbackRuntimeService.updateExclusiveModeDoc(
+          _playbackHandleKeyForDoc(shorts[currentPage].docID),
+        );
       } catch (_) {}
     }
 
