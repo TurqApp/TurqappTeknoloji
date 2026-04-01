@@ -179,6 +179,12 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.explorePhotoPageLimit;
   static const int exploreFloodPageLimit =
       SurfacePolicyRegistry.exploreFloodPageLimit;
+  static const int exploreFloodInitialBatch =
+      SurfacePolicyRegistry.exploreFloodInitialBatch;
+  static const int exploreFloodBufferedFetchLimit =
+      SurfacePolicyRegistry.exploreFloodBufferedFetchLimit;
+  static const int exploreFloodTriggerRemaining =
+      SurfacePolicyRegistry.exploreFloodTriggerRemaining;
   static const int explorePostsBootstrapTargetBatch =
       SurfacePolicyRegistry.explorePostsBootstrapTargetBatch;
   static const int explorePostsTargetBatch =

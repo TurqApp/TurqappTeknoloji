@@ -36,11 +36,6 @@ extension ExploreControllerRuntime on ExploreController {
     });
 
     floodsScroll.addListener(() {
-      if (floodsScroll.position.pixels >=
-          floodsScroll.position.maxScrollExtent - 200) {
-        fetchFloods();
-      }
-
       _updateFloodVisibleIndex();
       _syncScrollToTopVisibility(floodsScroll.offset);
     });

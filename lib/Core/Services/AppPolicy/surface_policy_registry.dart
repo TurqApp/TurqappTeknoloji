@@ -133,6 +133,9 @@ class SurfacePolicyRegistry {
   static const int exploreVideoPageLimit = 30;
   static const int explorePhotoPageLimit = 20;
   static const int exploreFloodPageLimit = 60;
+  static const int exploreFloodInitialBatch = 6;
+  static const int exploreFloodBufferedFetchLimit = 6;
+  static const int exploreFloodTriggerRemaining = 3;
   static const int explorePostsBootstrapTargetBatch = 12;
   static const int explorePostsTargetBatch = 24;
   static const int explorePostsBootstrapMaxPages = 4;

@@ -23,6 +23,8 @@ extension ExploreControllerFeedPart on ExploreController {
       floodsVisibleIndex.value = 0;
       lastFloodVisibleIndex = 0;
       capturePendingFloodEntry(preferredIndex: 0);
+      _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: 0);
+      _performFetchFloodsIfNearVisibleEnd(preferredIndex: 0);
       return;
     }
     final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
@@ -43,6 +45,8 @@ extension ExploreControllerFeedPart on ExploreController {
     floodsVisibleIndex.value = nextIndex;
     lastFloodVisibleIndex = nextIndex;
     capturePendingFloodEntry(preferredIndex: nextIndex);
+    _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: nextIndex);
+    _performFetchFloodsIfNearVisibleEnd(preferredIndex: nextIndex);
   }
 
   int _performResolveFloodSeriesFocusIndex() {
@@ -70,6 +74,52 @@ extension ExploreControllerFeedPart on ExploreController {
     if (target < 0 || target >= exploreFloods.length) return;
     floodsVisibleIndex.value = target;
     lastFloodVisibleIndex = target;
+    _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: target);
+    _performFetchFloodsIfNearVisibleEnd(preferredIndex: target);
+  }
+
+  void _performScheduleExploreFloodPrefetchFromVisible({
+    int? preferredIndex,
+  }) {
+    if (exploreFloods.isEmpty) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+
+    final focusIndex =
+        (preferredIndex ?? _performResolveFloodSeriesFocusIndex())
+            .clamp(0, exploreFloods.length - 1);
+    final visibleWindow = ReadBudgetRegistry.exploreFloodInitialBatch
+        .clamp(1, exploreFloods.length);
+    final start = focusIndex.clamp(0, exploreFloods.length - 1);
+    final endExclusive = (start + visibleWindow).clamp(0, exploreFloods.length);
+    final windowedPosts = exploreFloods.sublist(start, endExclusive);
+    if (windowedPosts.isEmpty) return;
+
+    unawaited(prefetch.updateQueueForPosts(
+      windowedPosts,
+      0,
+      maxDocs: visibleWindow,
+    ));
+  }
+
+  void _performFetchFloodsIfNearVisibleEnd({
+    int? preferredIndex,
+  }) {
+    if (floodsIsLoading.value ||
+        !floodsHasMore.value ||
+        exploreFloods.isEmpty) {
+      return;
+    }
+    final focusIndex = preferredIndex ?? _performResolveFloodSeriesFocusIndex();
+    if (focusIndex < 0 || focusIndex >= exploreFloods.length) return;
+
+    final remainingAfterVisible = exploreFloods.length - focusIndex - 1;
+    if (remainingAfterVisible >
+        ReadBudgetRegistry.exploreFloodTriggerRemaining) {
+      return;
+    }
+
+    unawaited(fetchFloods());
   }
 
   void _performCapturePendingFloodEntry({
@@ -770,7 +820,8 @@ extension ExploreControllerFeedPart on ExploreController {
       if (lastFloodsDoc == null) _floodsEmptyScans = 0;
       int pagesFetched = 0;
       const int maxPages = ReadBudgetRegistry.explorePostsMaxPages;
-      const int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit;
+      const int pageLimit = ReadBudgetRegistry.exploreFloodBufferedFetchLimit;
+      const int targetBatch = ReadBudgetRegistry.exploreFloodBufferedFetchLimit;
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       List<PostsModel> accumulated = [];
       bool noMoreServerPages = false;
@@ -817,7 +868,7 @@ extension ExploreControllerFeedPart on ExploreController {
         batch = await _filterByPrivacy(batch);
         if (batch.isNotEmpty) {
           accumulated.addAll(batch);
-          if (accumulated.length >= 30) {
+          if (accumulated.length >= targetBatch) {
             break;
           }
         }
@@ -828,6 +879,7 @@ extension ExploreControllerFeedPart on ExploreController {
         final prioritized = _prioritizeCachedVideos(accumulated);
         exploreFloods.addAll(prioritized);
         restoreFloodSeriesFocus();
+        _performScheduleExploreFloodPrefetchFromVisible();
         _floodsEmptyScans = 0;
         floodsHasMore.value = !noMoreServerPages;
       } else {
@@ -962,6 +1014,9 @@ extension ExploreControllerFeedPart on ExploreController {
       fetchExplorePosts();
     } else if (index == 2 && exploreFloods.isEmpty && !floodsIsLoading.value) {
       fetchFloods();
+    } else if (index == 2) {
+      _performScheduleExploreFloodPrefetchFromVisible();
+      _performFetchFloodsIfNearVisibleEnd();
     }
 
     pageController.animateToPage(
