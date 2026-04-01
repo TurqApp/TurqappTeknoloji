@@ -62,6 +62,12 @@ extension SinavHazirlaControllerSubmissionPart on SinavHazirlaController {
   void setData(BuildContext context) async {
     isSaving.value = true;
     try {
+      if (!await TextModerationService.ensureAllowed(<String?>[
+        sinavIsmi.value.text,
+        aciklama.value.text,
+      ])) {
+        return;
+      }
       final combinedDateTime = DateTime(
         startDate.value.year,
         startDate.value.month,

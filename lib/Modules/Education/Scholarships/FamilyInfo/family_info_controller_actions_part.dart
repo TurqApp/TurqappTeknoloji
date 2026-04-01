@@ -219,6 +219,14 @@ extension FamilyInfoControllerActionsPart on FamilyInfoController {
       );
       return;
     }
+    if (!await TextModerationService.ensureAllowed(<String?>[
+      if (_isYesValue(fatherLiving.value)) fatherName.value.text,
+      if (_isYesValue(fatherLiving.value)) fatherSurname.value.text,
+      if (_isYesValue(motherLiving.value)) motherName.value.text,
+      if (_isYesValue(motherLiving.value)) motherSurname.value.text,
+    ])) {
+      return;
+    }
 
     try {
       await _userRepository.updateUserFields(

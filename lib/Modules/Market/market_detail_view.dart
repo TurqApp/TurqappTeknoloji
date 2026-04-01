@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/market_review_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
+import 'package:turqappv2/Core/Services/text_moderation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';

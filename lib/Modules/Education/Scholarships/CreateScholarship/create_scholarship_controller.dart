@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/education_reference_data_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Services/text_moderation_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/scholarship_preview_view.dart';

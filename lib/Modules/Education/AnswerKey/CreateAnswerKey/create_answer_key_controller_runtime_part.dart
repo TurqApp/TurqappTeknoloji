@@ -53,6 +53,10 @@ void _removeCreateAnswerKeySelection(
 Future<void> _saveCreateAnswerKeyForm(
   CreateAnswerKeyController controller,
 ) async {
+  if (!await TextModerationService.ensureAllowed(
+      [controller.nameController.text])) {
+    return;
+  }
   final docID = DateTime.now().millisecondsSinceEpoch.toString();
 
   await FirebaseFirestore.instance.collection('optikForm').doc(docID).set({

@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/text_moderation_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';

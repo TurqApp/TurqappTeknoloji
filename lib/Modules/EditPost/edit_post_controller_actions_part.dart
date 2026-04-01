@@ -136,6 +136,9 @@ extension EditPostControllerActionsPart on EditPostController {
         );
         return;
       }
+      if (!await TextModerationService.ensureAllowed([text.text])) {
+        return;
+      }
 
       bekle.value = true;
       final docRef =

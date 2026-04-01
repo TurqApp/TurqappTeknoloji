@@ -54,6 +54,7 @@ extension CreateTestControllerActionsPart on CreateTestController {
 
   Future<void> saveTest(BuildContext context) async {
     if (!legacyTestsNetworkEnabled) return;
+    if (!await TextModerationService.ensureAllowed([aciklama.text])) return;
     await FirebaseFirestore.instance
         .collection("Testler")
         .doc(testID.value.toString())
@@ -71,6 +72,7 @@ extension CreateTestControllerActionsPart on CreateTestController {
 
   Future<void> prepareTest(BuildContext context) async {
     if (!legacyTestsNetworkEnabled) return;
+    if (!await TextModerationService.ensureAllowed([aciklama.text])) return;
     await FirebaseFirestore.instance
         .collection("Testler")
         .doc(testID.value.toString())

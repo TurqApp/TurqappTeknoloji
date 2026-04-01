@@ -35,6 +35,9 @@ extension AntremanCommentsControllerActionsPart on AntremanCommentsController {
       AppSnackbar('common.error'.tr, 'training.comment_or_photo_required'.tr);
       return;
     }
+    if (!await TextModerationService.ensureAllowed([commentController.text])) {
+      return;
+    }
 
     String? photoUrl;
     if (selectedImage.value != null) {
@@ -71,6 +74,9 @@ extension AntremanCommentsControllerActionsPart on AntremanCommentsController {
   Future<void> addReply(String commentDocID) async {
     if (commentController.text.isEmpty && selectedImage.value == null) {
       AppSnackbar('common.error'.tr, 'training.reply_or_photo_required'.tr);
+      return;
+    }
+    if (!await TextModerationService.ensureAllowed([commentController.text])) {
       return;
     }
 
@@ -137,6 +143,9 @@ extension AntremanCommentsControllerActionsPart on AntremanCommentsController {
   }
 
   Future<void> editComment(String commentDocID, String newText) async {
+    if (!await TextModerationService.ensureAllowed([newText])) {
+      return;
+    }
     try {
       await _antremanRepository.updateCommentText(
         questionId: question.docID,
@@ -158,6 +167,9 @@ extension AntremanCommentsControllerActionsPart on AntremanCommentsController {
     String replyDocID,
     String newText,
   ) async {
+    if (!await TextModerationService.ensureAllowed([newText])) {
+      return;
+    }
     try {
       await _antremanRepository.updateReplyText(
         questionId: question.docID,

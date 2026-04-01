@@ -5,15 +5,15 @@ extension CreateScholarshipControllerSubmissionPart
   Future<RenderRepaintBoundary?> _waitForTemplateBoundary() async {
     for (var attempt = 0; attempt < 5; attempt++) {
       await WidgetsBinding.instance.endOfFrame;
-      final boundary =
-          templateKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary = templateKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
       if (boundary != null && !boundary.debugNeedsPaint) {
         return boundary;
       }
       await Future<void>.delayed(const Duration(milliseconds: 16));
     }
-    final boundary =
-        templateKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    final boundary = templateKey.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
     if (boundary != null && !boundary.debugNeedsPaint) {
       return boundary;
     }
@@ -260,6 +260,16 @@ extension CreateScholarshipControllerSubmissionPart
     isLoading.value = true;
     try {
       if (!formKey.currentState!.validate()) return;
+      if (!await TextModerationService.ensureAllowed(<String?>[
+        baslik.value,
+        bursVeren.value,
+        aciklama.value,
+        basvuruYapilacakYer.value,
+        basvuruKosullari.value,
+        hedefKitle.value,
+      ])) {
+        return;
+      }
 
       try {
         if (selectedTemplateIndex.value != -1) {
@@ -314,6 +324,16 @@ extension CreateScholarshipControllerSubmissionPart
     isLoading.value = true;
     try {
       if (!formKey.currentState!.validate()) return;
+      if (!await TextModerationService.ensureAllowed(<String?>[
+        baslik.value,
+        bursVeren.value,
+        aciklama.value,
+        basvuruYapilacakYer.value,
+        basvuruKosullari.value,
+        hedefKitle.value,
+      ])) {
+        return;
+      }
 
       try {
         if (selectedTemplateIndex.value != -1 &&

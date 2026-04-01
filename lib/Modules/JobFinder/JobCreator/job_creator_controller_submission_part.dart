@@ -111,6 +111,15 @@ extension JobCreatorControllerSubmissionPart on JobCreatorController {
         GlobalLoaderController.ensure(tag: loaderTag, permanent: false);
     loader.isOn.value = true;
     try {
+      if (!await TextModerationService.ensureAllowed(<String?>[
+        about.text,
+        adres.value,
+        brand.text,
+        isTanimi.text,
+        ilanBasligi.text,
+      ])) {
+        return;
+      }
       final current = CurrentUserService.instance.currentUser;
       final nickname = (current?.nickname ?? '').trim();
       final fullName = [

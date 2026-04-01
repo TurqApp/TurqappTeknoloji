@@ -203,6 +203,13 @@ extension MarketCreateControllerSubmissionPart on MarketCreateController {
       );
       return;
     }
+    if (!await TextModerationService.ensureAllowed(<String?>[
+      titleController.text,
+      descriptionController.text,
+      ..._fieldControllers.values.map((controller) => controller.text),
+    ])) {
+      return;
+    }
 
     final itemId =
         initialItem?.id ?? DateTime.now().millisecondsSinceEpoch.toString();

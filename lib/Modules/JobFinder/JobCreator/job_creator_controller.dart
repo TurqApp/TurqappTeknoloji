@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/text_moderation_service.dart';
 import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';

@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/text_moderation_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';

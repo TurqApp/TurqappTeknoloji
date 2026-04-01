@@ -25,6 +25,7 @@ extension TutoringDetailControllerReviewsPart on TutoringDetailController {
   Future<void> submitReview(String docID, int rating, String comment) async {
     final uid = _uid;
     if (uid.isEmpty) return;
+    if (!await TextModerationService.ensureAllowed([comment])) return;
 
     try {
       await _tutoringRepository.submitReview(

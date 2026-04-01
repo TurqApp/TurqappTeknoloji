@@ -403,6 +403,11 @@ extension _MarketDetailViewReviewsPart on _MarketDetailViewState {
                                 );
                                 return;
                               }
+                              if (!await TextModerationService.ensureAllowed([
+                                commentController.text,
+                              ])) {
+                                return;
+                              }
                               isSubmitting.value = true;
                               try {
                                 await _MarketDetailViewState._reviewService

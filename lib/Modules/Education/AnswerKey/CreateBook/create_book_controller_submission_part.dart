@@ -26,39 +26,55 @@ extension CreateBookControllerSubmissionPart on CreateBookController {
 
   Future<void> setData(BuildContext context) async {
     showIndicator.value = true;
-    await FirebaseFirestore.instance.collection('books').doc(docID).set({
-      'basimTarihi': basimTarihiController.text,
-      'baslik': baslikController.text,
-      'cover': existingBook?.cover ?? '',
-      'dil': 'Türkçe',
-      'sinavTuru': sinavTuru.value,
-      'timeStamp':
-          existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
-      'yayinEvi': yayinEviController.text,
-      'userID':
-          existingBook?.userID ?? CurrentUserService.instance.effectiveUserId,
-      'viewCount': existingBook?.viewCount ?? 0,
-    }, SetOptions(merge: true));
+    try {
+      if (!await TextModerationService.ensureAllowed(<String?>[
+        baslikController.text,
+        yayinEviController.text,
+        ...list.map((item) => item.baslik),
+      ])) {
+        return;
+      }
 
-    await _bookletRepository.replaceAnswerKeys(
-      docID,
-      list
-          .map(
-            (item) => <String, dynamic>{
-              'baslik': item.baslik,
-              'sira': item.sira,
-              'dogruCevaplar': item.dogruCevaplar,
-            },
-          )
-          .toList(growable: false),
-    );
+      await FirebaseFirestore.instance.collection('books').doc(docID).set({
+        'basimTarihi': basimTarihiController.text,
+        'baslik': baslikController.text,
+        'cover': existingBook?.cover ?? '',
+        'dil': 'Türkçe',
+        'sinavTuru': sinavTuru.value,
+        'timeStamp':
+            existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
+        'yayinEvi': yayinEviController.text,
+        'userID':
+            existingBook?.userID ?? CurrentUserService.instance.effectiveUserId,
+        'viewCount': existingBook?.viewCount ?? 0,
+      }, SetOptions(merge: true));
 
-    if (imageFile.value != null) {
-      await uploadImageToFirebaseStorage(imageFile.value!, context);
-    } else {
+      await _bookletRepository.replaceAnswerKeys(
+        docID,
+        list
+            .map(
+              (item) => <String, dynamic>{
+                'baslik': item.baslik,
+                'sira': item.sira,
+                'dogruCevaplar': item.dogruCevaplar,
+              },
+            )
+            .toList(growable: false),
+      );
+
+      if (imageFile.value != null) {
+        await uploadImageToFirebaseStorage(imageFile.value!, context);
+      } else {
+        showIndicator.value = false;
+        onBack?.call(true);
+        Get.back();
+      }
+    } catch (_) {
       showIndicator.value = false;
-      onBack?.call(true);
-      Get.back();
+      AppSnackbar(
+        'common.error'.tr,
+        'answer_key.cover_update_failed'.tr,
+      );
     }
   }
 

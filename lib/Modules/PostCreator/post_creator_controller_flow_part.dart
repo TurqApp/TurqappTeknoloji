@@ -149,6 +149,21 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
   Future<bool> _runModerationPreflightForComposer() async {
     for (final postModel in postList) {
       final controller = ensureComposerControllerFor(postModel.index);
+      final text = controller.textEdit.text.trim();
+
+      if (text.isNotEmpty) {
+        final blockedMatch = await kufurEslesmesiniBul(text);
+        if (blockedMatch != null) {
+          final blockedWord = blockedMatch.displayValue.replaceAll('"', "'");
+          _showModerationSnackbarOnce(
+            'comments.community_violation_title'.tr,
+            'comments.community_violation_body_with_word'.trParams({
+              'word': blockedWord,
+            }),
+          );
+          return false;
+        }
+      }
 
       for (final image in controller.selectedImages) {
         final nsfwImage = await OptimizedNSFWService.checkImage(image);
@@ -389,10 +404,9 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       final batchCreatedAt = DateTime.now();
       final normalizedScheduledAt =
           _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0;
-      final batchTimeStamp =
-          normalizedScheduledAt != 0
-              ? normalizedScheduledAt
-              : batchCreatedAt.millisecondsSinceEpoch;
+      final batchTimeStamp = normalizedScheduledAt != 0
+          ? normalizedScheduledAt
+          : batchCreatedAt.millisecondsSinceEpoch;
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
         final controller = ensureComposerControllerFor(postModel.index);

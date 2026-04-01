@@ -83,6 +83,9 @@ extension JobDetailsControllerActionsPart on JobDetailsController {
       );
       return false;
     }
+    if (!await TextModerationService.ensureAllowed([comment])) {
+      return false;
+    }
 
     try {
       await _jobRepository.saveReview(

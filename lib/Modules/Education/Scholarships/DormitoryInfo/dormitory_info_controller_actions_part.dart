@@ -101,6 +101,11 @@ extension DormitoryInfoControllerActionsPart on DormitoryInfoController {
   Future<void> saveData() async {
     if ((listedeYok.value && yurtInputText.value.isNotEmpty) ||
         (!listedeYok.value && yurt.value.isNotEmpty)) {
+      if (!await TextModerationService.ensureAllowed([
+        listedeYok.value ? yurtInputText.value : '',
+      ])) {
+        return;
+      }
       try {
         final savedYurt = listedeYok.value ? yurtInputText.value : yurt.value;
         await _userRepository.updateUserFields(

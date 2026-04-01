@@ -24,6 +24,11 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
     bool sharedAsPost = false,
   }) async {
     if (isSharing.value) return;
+    if (!await TextModerationService.ensureAllowed([
+      textEditingController.text,
+    ])) {
+      return;
+    }
 
     isSharing.value = true;
     this.originalUserID = originalUserID;
@@ -188,18 +193,13 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
 
       final agendaController = maybeFindAgendaController();
       if (agendaController != null) {
-        agendaController.addUploadedPostsAtTop([newPost]);
-
-        if (agendaController.scrollController.hasClients) {
-          agendaController.scrollController.animateTo(
-            0.0,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-          );
-        }
+        agendaController.promoteUploadedPosts(
+          [newPost],
+          scrollToTop: agendaController.scrollController.hasClients,
+        );
       }
 
-      ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
+      ProfileController.maybeFind()?.promoteUploadedPosts([newPost]);
       GlobalLoaderController.ensure().isOn.value = false;
       isSharing.value = false;
       Get.back();

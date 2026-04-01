@@ -78,6 +78,13 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
         AppSnackbar('common.error'.tr, 'tutoring.create.fill_required'.tr);
         return;
       }
+      if (!await TextModerationService.ensureAllowed(<String?>[
+        descriptionController.text,
+        titleController.text,
+        branchController.text,
+      ])) {
+        return;
+      }
 
       final imageUrls = await uploadImages();
       final profile = _profileFields();
@@ -128,6 +135,13 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
     try {
       if (_hasMissingRequiredFields) {
         AppSnackbar('common.error'.tr, 'tutoring.create.fill_required'.tr);
+        return;
+      }
+      if (!await TextModerationService.ensureAllowed(<String?>[
+        titleController.text,
+        descriptionController.text,
+        branchController.text,
+      ])) {
         return;
       }
 
