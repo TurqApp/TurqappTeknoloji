@@ -77,6 +77,11 @@ Her degisiklikten sonra:
 5. Kullanici `commit` istediyse commit alma istegi unutulmayacak.
    - Dogrulama zinciri tamamlanir tamamlanmaz uygun commit alinacak.
    - Commit alinmadiysa nedeni final cevapta acikca yazilacak.
+6. Kullanici yalnizca `run` dediginde varsayilan kosu profili sunlardir:
+   - Android tarafinda Wi-Fi bagli cihaz kullanilir.
+   - iOS tarafinda release run kullanilir.
+   - Kullanici ayrica platform, cihaz veya build modu belirtirse bu varsayilan
+     gecersiz olur ve acik talimat uygulanir.
 
 ## Cikti Formati Zorunlulugu
 

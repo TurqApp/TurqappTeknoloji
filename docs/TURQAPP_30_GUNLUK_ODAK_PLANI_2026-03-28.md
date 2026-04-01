@@ -85,6 +85,7 @@ Baglayici kurallar:
 - Hiz, dogrulama ve sira disiplininin yerine gecemez
 - Konu disi mimari degisiklik yasaktir
 - Ben istenmeden yeni hedef uretilmez
+- Osman yalnizca `run` dediginde varsayilan calisma profili `Android debug run` ve `iOS release run` olarak yorumlanir; aksi ayrica belirtilmedikce Chat bu profili kullanir
 
 Zorunlu kayit tipleri:
 
