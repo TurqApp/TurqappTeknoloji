@@ -58,6 +58,17 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     final nav = maybeFindNavBarController();
     if (nav != null) {
       _profileTabWorker = ever<int>(nav.selectedIndex, (_) {
+        if (!_isProfileSurfaceActive()) {
+          _suspendProfileFeedForRoute();
+          try {
+            VideoStateManager.instance.pauseAllVideos(force: true);
+          } catch (_) {}
+          try {
+            AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+          } catch (_) {}
+          return;
+        }
+        _resumeProfileFeedAfterRoute();
         _refreshProfileSurfaceMetaIfActive(force: false);
       });
     }
@@ -128,6 +139,12 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
         : controller.lastCenteredIndex;
     controller.pausetheall.value = true;
     controller.centeredIndex.value = -1;
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
   }
 
   void _resumeProfileFeedAfterRoute() {

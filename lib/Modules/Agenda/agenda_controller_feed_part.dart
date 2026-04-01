@@ -3,6 +3,28 @@ part of 'agenda_controller.dart';
 extension AgendaControllerFeedPart on AgendaController {
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
+  bool _reclaimFeedPlaybackFromExternalOwner(
+    VideoStateManager manager, {
+    required String source,
+  }) {
+    final currentPlayingDocId = manager.currentPlayingDocID;
+    if (!_hasExternalPlaybackOwner(currentPlayingDocId)) return false;
+    recordQALabPlaybackDispatch(
+      surface: 'feed',
+      stage: 'feed_reclaim_external_owner',
+      metadata: <String, dynamic>{
+        'source': source,
+        'currentPlayingDocID': currentPlayingDocId ?? '',
+        'centeredIndex': centeredIndex.value,
+        'isPrimaryFeedRouteVisible': isPrimaryFeedRouteVisible,
+        'canClaimPlaybackNow': canClaimPlaybackNow,
+      },
+    );
+    manager.exitExclusiveMode();
+    manager.pauseAllVideos(force: true);
+    return true;
+  }
+
   Duration _playbackReassertDelayForAttempt(int attempt) {
     if (!GetPlatform.isAndroid) {
       return attempt == 0
@@ -45,6 +67,10 @@ extension AgendaControllerFeedPart on AgendaController {
     if (!_canAutoplayVideoPost(post)) return;
     final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
     final manager = VideoStateManager.instance;
+    _reclaimFeedPlaybackFromExternalOwner(
+      manager,
+      source: 'ensure_feed_playback',
+    );
     final now = DateTime.now();
     final pendingPlay = manager.hasPendingPlayFor(playbackKey);
     final needsCurrentRecovery = !pendingPlay &&
@@ -117,7 +143,12 @@ extension AgendaControllerFeedPart on AgendaController {
 
       if (newIndex == -1) {
         _cancelPendingPlaybackReassert();
-        if (!preserveExternalPlayback) {
+        if (preserveExternalPlayback && canClaimPlaybackNow) {
+          _reclaimFeedPlaybackFromExternalOwner(
+            videoManager,
+            source: 'centered_index_empty',
+          );
+        } else if (!preserveExternalPlayback) {
           videoManager.pauseAllVideos();
         }
         return;
@@ -129,7 +160,14 @@ extension AgendaControllerFeedPart on AgendaController {
           _ensureFeedPlaybackForIndex(newIndex);
         } else {
           _cancelPendingPlaybackReassert();
-          videoManager.pauseAllVideos();
+          if (preserveExternalPlayback && canClaimPlaybackNow) {
+            _reclaimFeedPlaybackFromExternalOwner(
+              videoManager,
+              source: 'centered_index_non_playable',
+            );
+          } else {
+            videoManager.pauseAllVideos();
+          }
         }
       }
 
