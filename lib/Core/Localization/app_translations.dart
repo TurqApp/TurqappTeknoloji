@@ -888,7 +888,7 @@ class AppTranslations extends Translations {
         'comments.community_violation_body':
             'Kullandığınız dil, topluluk kurallarımıza uymamaktadır. Lütfen saygılı bir dil kullanınız.',
         'comments.community_violation_body_with_word':
-            'Kullandığınız "@word" kelimesi topluluk kurallarına aykırıdır. Lütfen düzeltip devam edin.',
+            'Kullandığınız "@word" kelimesi topluluk kurallarına aykırıdır.',
         'post_sharers.empty': 'Henüz kimse bu gönderiyi paylaşmamış',
         'notifications.post_activity': 'Gönderi etkileşimleri',
         'notifications.post_activity_desc':
