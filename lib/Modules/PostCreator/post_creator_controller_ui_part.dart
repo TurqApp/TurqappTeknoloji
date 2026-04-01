@@ -65,11 +65,33 @@ extension _PostCreatorControllerUiX on PostCreatorController {
       if (uploadedPosts.isNotEmpty) {
         final agendaController = maybeFindAgendaController();
         await Future.delayed(const Duration(milliseconds: 150));
-        await _promoteUploadedPostsToSurfaces(
-          uploadedPosts,
-          agendaController: agendaController,
-          scrollToTop: true,
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final nowPosts =
+            uploadedPosts.where((e) => e.timeStamp <= nowMs).toList();
+        if (agendaController != null && nowPosts.isNotEmpty) {
+          final ids = nowPosts.map((e) => e.docID).toList();
+          agendaController.markHighlighted(ids);
+          agendaController.addUploadedPostsAtTop(nowPosts);
+        }
+        if (agendaController != null &&
+            agendaController.scrollController.hasClients) {
+          agendaController.scrollController.jumpTo(0);
+        }
+        await persistUploadedPostsToHomeFeed(nowPosts);
+        unawaited(
+          _hydrateUploadedPostShortLinks(
+            nowPosts,
+            agendaController: agendaController,
+          ),
         );
+        final uploaderUid = userService.effectiveUserId.trim();
+        if (uploaderUid.isNotEmpty) {
+          _profileRepository.invalidateLatestProfilePost(uploaderUid);
+          await _profileSnapshotRepository.clearUserSnapshots(
+            userId: uploaderUid,
+          );
+        }
+        ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
         progressController.complete('post_creator.upload_success'.tr);
       } else {
         progressController.setError('post_creator.upload_error'.tr);
