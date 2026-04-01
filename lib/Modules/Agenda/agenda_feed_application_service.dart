@@ -86,12 +86,6 @@ class AgendaFeedApplicationService {
         lastCenteredIndex < agendaList.length) {
       return lastCenteredIndex;
     }
-
-    final firstAutoplay =
-        agendaList.indexWhere((post) => canAutoplayPost(post));
-    if (firstAutoplay >= 0) {
-      return firstAutoplay;
-    }
     return 0;
   }
 
@@ -136,20 +130,6 @@ class AgendaFeedApplicationService {
 
     if (target < 0 || target >= agendaList.length) {
       target = 0;
-    }
-    if (!canAutoplayPost(agendaList[target])) {
-      final nextVideo = agendaList.indexWhere(
-        (post) => canAutoplayPost(post),
-        target,
-      );
-      if (nextVideo != -1) {
-        target = nextVideo;
-      } else {
-        final anyVideo = agendaList.indexWhere((post) => canAutoplayPost(post));
-        if (anyVideo != -1) {
-          target = anyVideo;
-        }
-      }
     }
     return target;
   }

@@ -57,8 +57,7 @@ void main() {
       expect(anchor, 'p2');
     });
 
-    test('resolveInitialCenteredIndex prefers pending doc then first autoplay',
-        () {
+    test('resolveInitialCenteredIndex prefers pending doc then first item', () {
       final service = AgendaFeedApplicationService();
       final agendaList = <PostsModel>[
         _post(id: 'p1'),
@@ -83,12 +82,12 @@ void main() {
           lastCenteredIndex: null,
           canAutoplayPost: (post) => post.video.isNotEmpty,
         ),
-        1,
+        0,
       );
     });
 
     test(
-        'resolveResumeIndex prefers visible strongest post and falls back to autoplay item',
+        'resolveResumeIndex prefers visible strongest post and keeps non-video current item when nothing is visible',
         () {
       final service = AgendaFeedApplicationService();
       final agendaList = <PostsModel>[
@@ -118,7 +117,7 @@ void main() {
           visibleFractions: const <int, double>{},
           canAutoplayPost: (post) => post.video.isNotEmpty,
         ),
-        1,
+        0,
       );
     });
 

@@ -43,6 +43,25 @@ void main() {
     expect(target, 1);
   });
 
+  test(
+      'resolveCenteredIndex can keep dominant non-playable feed row from handing off to a neighboring video',
+      () {
+    final target = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+      visibleFractions: const <int, double>{
+        0: 0.64,
+        1: 0.60,
+      },
+      currentIndex: 1,
+      lastCenteredIndex: 1,
+      itemCount: 2,
+      canAutoplayIndex: (index) => index == 1,
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+      preferDominantVisibleIndexWhenNonPlayable: true,
+    );
+
+    expect(target, 0);
+  });
+
   test('retains recently activated Android target while it is still visible',
       () {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;

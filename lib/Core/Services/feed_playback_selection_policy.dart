@@ -41,9 +41,7 @@ class FeedPlaybackSelectionPolicy {
       : const Duration(milliseconds: 180);
 
   static Duration get pendingPlaybackTargetRetentionDuration =>
-      _isAndroidPlatform
-      ? const Duration(milliseconds: 260)
-      : Duration.zero;
+      _isAndroidPlatform ? const Duration(milliseconds: 260) : Duration.zero;
 
   static bool shouldPlayCenteredItem({
     required bool isCentered,
@@ -90,6 +88,7 @@ class FeedPlaybackSelectionPolicy {
     required int itemCount,
     required bool Function(int index) canAutoplayIndex,
     required double stopThreshold,
+    bool preferDominantVisibleIndexWhenNonPlayable = false,
   }) {
     if (itemCount <= 0) return -1;
 
@@ -141,6 +140,13 @@ class FeedPlaybackSelectionPolicy {
         dominantVisibleIndex < itemCount &&
         !canAutoplayIndex(dominantVisibleIndex) &&
         strongestOverallFraction >= playThreshold;
+    if (preferDominantVisibleIndexWhenNonPlayable &&
+        strongestOverallIndex >= 0 &&
+        strongestOverallIndex < itemCount &&
+        !canAutoplayIndex(strongestOverallIndex) &&
+        strongestOverallFraction >= secondaryThreshold) {
+      return strongestOverallIndex;
+    }
     if (dominantVisibleIsNonPlayable) {
       return -1;
     }

@@ -124,6 +124,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
       itemCount: agendaList.length,
       canAutoplayIndex: (index) => _canAutoplayVideoPost(agendaList[index]),
       stopThreshold: stopThreshold,
+      preferDominantVisibleIndexWhenNonPlayable: true,
     );
 
     if (targetIndex >= 0 && targetIndex < agendaList.length) {
