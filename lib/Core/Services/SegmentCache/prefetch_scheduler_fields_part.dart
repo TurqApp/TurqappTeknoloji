@@ -2,6 +2,8 @@ part of 'prefetch_scheduler.dart';
 
 class _PrefetchSchedulerState {
   final List<_PrefetchJob> queue = <_PrefetchJob>[];
+  final Map<String, _PrefetchJob> pendingFollowUpJobs =
+      <String, _PrefetchJob>{};
   bool paused = false;
   bool mobileSeedMode = false;
   int activeDownloads = 0;
@@ -23,6 +25,8 @@ class _PrefetchSchedulerState {
 
 extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   List<_PrefetchJob> get _queue => _state.queue;
+  Map<String, _PrefetchJob> get _pendingFollowUpJobs =>
+      _state.pendingFollowUpJobs;
   bool get _paused => _state.paused;
   set _paused(bool value) => _state.paused = value;
   bool get _mobileSeedMode => _state.mobileSeedMode;

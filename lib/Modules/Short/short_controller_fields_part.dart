@@ -51,6 +51,7 @@ extension ShortControllerFieldsPart on ShortController {
   set _startupPrepareFuture(Future<void>? value) =>
       _state.startupPrepareFuture = value;
   int get pageSize => ReadBudgetRegistry.shortHomeInitialLimitValue;
+  int get bufferedPageSize => ReadBudgetRegistry.shortBufferedFetchLimit;
   RxBool get isLoading => _state.isLoading;
   RxBool get hasMore => _state.hasMore;
   RxBool get isRefreshing => _state.isRefreshing;

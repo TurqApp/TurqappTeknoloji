@@ -64,6 +64,7 @@ class SurfacePolicyRegistry {
   static const int feedShuffleInitialFetchSize = 60;
   static const int feedShuffleBackgroundFetchSize = 300;
   static const int shortHomeInitialLimit = 30;
+  static const int shortBufferedFetchLimit = 15;
   static const int shortRandomReadyPoolLimit = 1000;
   static const int marketHomeInitialLimit = 10;
   static const int marketSearchInitialLimit = 40;

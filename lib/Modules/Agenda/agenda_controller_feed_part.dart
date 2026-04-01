@@ -471,7 +471,8 @@ extension AgendaControllerFeedPart on AgendaController {
         scrollController.position.hasContentDimensions &&
         (scrollController.position.pixels >=
                 scrollController.position.maxScrollExtent - 300 ||
-            remainingAfterCentered <= 3)) {
+            remainingAfterCentered <=
+                ReadBudgetRegistry.feedBufferedFetchLimit)) {
       recordQALabScrollEvent(
         surface: 'feed',
         phase: 'near_end',

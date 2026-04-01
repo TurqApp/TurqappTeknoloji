@@ -69,6 +69,7 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<_ShortPageResult> _fetchPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+    int? pageSizeOverride,
     String trigger = 'manual',
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -76,11 +77,12 @@ extension ShortControllerLoadingPart on ShortController {
     QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
     bool hasMoreDocs = true;
     const int maxEmptyPageSkips = 3;
+    final effectivePageSize = pageSizeOverride ?? pageSize;
 
     for (int attempt = 0; attempt < maxEmptyPageSkips; attempt++) {
       final page = await _shortRepository.fetchReadyPage(
         startAfter: cursor,
-        pageSize: pageSize,
+        pageSize: effectivePageSize,
         nowMs: nowMs,
       );
 
@@ -495,12 +497,13 @@ extension ShortControllerLoadingPart on ShortController {
       );
       return;
     }
-    if (currentIndex >= shorts.length - 3) {
+    final remainingAfterCurrent = shorts.length - currentIndex - 1;
+    if (remainingAfterCurrent <= bufferedPageSize) {
       _log('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
       await _loadNextPage(trigger: 'scroll_near_end');
     } else {
       _log(
-        '[Shorts] loadMoreIfNeeded - Not yet time to load (need ${shorts.length - 3} but at $currentIndex)',
+        '[Shorts] loadMoreIfNeeded - Not yet time to load (remaining: $remainingAfterCurrent, triggerRemaining: $bufferedPageSize, at: $currentIndex)',
       );
     }
   }
@@ -561,6 +564,7 @@ extension ShortControllerLoadingPart on ShortController {
     try {
       final result = await _fetchPage(
         startAfter: _lastDoc,
+        pageSizeOverride: bufferedPageSize,
         trigger: trigger,
       );
 

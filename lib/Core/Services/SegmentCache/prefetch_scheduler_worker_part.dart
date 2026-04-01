@@ -1,6 +1,37 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
+  _PrefetchJob _buildFollowUpJob(_PrefetchJob job) {
+    return _PrefetchJob(
+      job.docID,
+      job.maxSegments,
+      job.priority + 1,
+      -1000000.0,
+    );
+  }
+
+  void _deferFollowUpJob(_PrefetchJob job) {
+    _pendingFollowUpJobs[job.docID] = _buildFollowUpJob(job);
+  }
+
+  void _clearFollowUpJob(String docID) {
+    _pendingFollowUpJobs.remove(docID);
+  }
+
+  void _requeueDeferredJobIfNeeded(
+    String docID,
+    SegmentCacheManager cacheManager,
+  ) {
+    final followUpJob = _pendingFollowUpJobs.remove(docID);
+    if (followUpJob == null) return;
+    final entry = cacheManager.getEntry(docID);
+    final cachedSegments = entry?.cachedSegmentCount ?? 0;
+    final totalSegments = entry?.totalSegmentCount ?? 0;
+    if (cachedSegments >= followUpJob.maxSegments) return;
+    if (totalSegments > 0 && cachedSegments >= totalSegments) return;
+    _requeueJob(followUpJob);
+  }
+
   void _requeueJob(_PrefetchJob job) {
     _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
     _queue.add(job);
@@ -11,6 +42,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   void pause() {
     _paused = true;
     _queue.clear();
+    _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
 
     if (_activeDownloads > 0) {
@@ -218,8 +250,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         return;
       }
 
+      final seedNextSegmentLater = isUnwatched && !fullOfflineDownload;
+      final dispatchLimit = seedNextSegmentLater ? 1 : availableSlots;
       final dispatchNow =
-          orderedDownloads.take(availableSlots).toList(growable: false);
+          orderedDownloads.take(dispatchLimit).toList(growable: false);
       final hasRemaining = orderedDownloads.length > dispatchNow.length;
 
       for (final segUri in dispatchNow) {
@@ -251,9 +285,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       if (hasRemaining &&
           !_paused &&
           !_hasReachedWifiQuotaFillTarget(cacheManager)) {
-        _requeueJob(job);
+        if (seedNextSegmentLater) {
+          _deferFollowUpJob(job);
+        } else {
+          _requeueJob(job);
+        }
       }
     } catch (e, stackTrace) {
+      _clearFollowUpJob(job.docID);
       debugPrint('[Prefetch] Job failed for ${job.docID}: $e');
       debugPrintStack(
         label: '[Prefetch] Job failed stack for ${job.docID}',
@@ -284,8 +323,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
               .then((_) {
             _updateFeedReadyRatio();
             _publishPrefetchHealthIfNeeded();
+            _requeueDeferredJobIfNeeded(result.docID, cacheManager);
             _processQueue();
           }).catchError((_) {
+            _clearFollowUpJob(result.docID);
             _publishPrefetchHealthIfNeeded();
             _processQueue();
           }),
@@ -293,6 +334,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         return;
       }
     } else {
+      _clearFollowUpJob(result.docID);
       debugPrint(
         '[Prefetch] Download failed: ${result.docID}/${result.segmentKey} — ${result.error}',
       );

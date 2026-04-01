@@ -47,6 +47,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     }
 
     _queue.clear();
+    _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
 
     for (var i = 1; i <= _breadthCount; i++) {
@@ -147,6 +148,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (docIDs.isEmpty) return;
 
     _queue.clear();
+    _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
 
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
@@ -233,6 +235,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     }
 
     _queue.removeWhere((job) => job.docID == docID);
+    _pendingFollowUpJobs.remove(docID);
     _queue.add(
       _PrefetchJob(
         docID,
@@ -286,7 +289,6 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
   bool _isEligibleOfflineCandidatePost(PostsModel post) {
     if (!post.hasPlayableVideo) return false;
-    if (post.isFloodSeriesContent) return false;
     return normalizeRozetValue(post.rozet).isNotEmpty;
   }
 

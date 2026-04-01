@@ -48,6 +48,8 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.feedShuffleBackgroundFetchSize;
   static const int shortHomeInitialLimit =
       SurfacePolicyRegistry.shortHomeInitialLimit;
+  static const int shortBufferedFetchLimit =
+      SurfacePolicyRegistry.shortBufferedFetchLimit;
   static const int shortRandomReadyPoolLimit =
       SurfacePolicyRegistry.shortRandomReadyPoolLimit;
   static const int marketHomeInitialLimit =
