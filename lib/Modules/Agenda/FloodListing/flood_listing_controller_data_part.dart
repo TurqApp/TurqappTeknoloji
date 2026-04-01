@@ -40,5 +40,6 @@ extension FloodListingControllerDataPart on FloodListingController {
       }
     }
     resumeCenteredPost();
+    _scheduleFloodSegmentWarmup(preferredIndex: 0);
   }
 }
