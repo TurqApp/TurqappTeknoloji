@@ -200,16 +200,19 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final entryForPolicy = cacheManager.getEntry(job.docID);
       final watchedProgress = entryForPolicy?.watchProgress ?? 0.0;
       final isUnwatched = watchedProgress <= 0.01;
-      final fullOfflineDownload = _isOnWiFi && !_mobileSeedMode;
+      final quotaFillMode = _isOnWiFi && !_mobileSeedMode;
 
       final Iterable<String> toDownload;
-      if (fullOfflineDownload) {
-        toDownload = _pickOfflinePrioritySegments(
+      if (quotaFillMode) {
+        final readyCap = job.maxSegments > 0
+            ? job.maxSegments
+            : _prefetchSchedulerTargetReadySegments;
+        toDownload = _pickQuotaFillPrioritySegments(
           docID: job.docID,
           segmentUris: segmentUris,
           variantDir: variantDir,
           cacheManager: cacheManager,
-          watchProgress: watchedProgress,
+          desiredReadySegments: readyCap,
         );
       } else if (_mobileSeedMode && isUnwatched) {
         final mobileOrdered = _pickMobileSeedSegments(
@@ -250,7 +253,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         return;
       }
 
-      final seedNextSegmentLater = isUnwatched && !fullOfflineDownload;
+      final seedNextSegmentLater =
+          quotaFillMode || (isUnwatched && !_mobileSeedMode);
       final dispatchLimit = seedNextSegmentLater ? 1 : availableSlots;
       final dispatchNow =
           orderedDownloads.take(dispatchLimit).toList(growable: false);
@@ -390,8 +394,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     for (final idx in targetIndices) {
       final docID = _lastFeedDocIDs[idx];
       final entry = cacheManager.getEntry(docID);
+      final readySegments = _resolvedReadySegmentTarget(
+        docID: docID,
+        cacheManager: cacheManager,
+      );
       if (entry != null &&
-          entry.cachedSegmentCount >= _prefetchSchedulerTargetReadySegments) {
+          entry.cachedSegmentCount >= readySegments) {
         ready++;
       }
     }

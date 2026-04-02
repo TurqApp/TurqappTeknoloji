@@ -86,6 +86,8 @@ class _SplashViewState extends State<SplashView> {
   String? _previousEducationTabId;
   Map<String, StartupSnapshotSurfaceRecord> _previousStartupSurfaces =
       const <String, StartupSnapshotSurfaceRecord>{};
+  Map<String, bool>? _pasajVisibilitySnapshot;
+  Future<Map<String, bool>>? _pasajVisibilitySnapshotFuture;
   int? _feedWarmSnapshotAgeMs;
   int? _shortWarmSnapshotAgeMs;
   int? _feedStartupShardAgeMs;

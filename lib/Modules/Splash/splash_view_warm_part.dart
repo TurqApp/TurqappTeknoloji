@@ -1,6 +1,131 @@
 part of 'splash_view.dart';
 
 extension _SplashViewWarmPart on _SplashViewState {
+  Future<void> _runWarmSlice(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {}
+  }
+
+  Future<void> _runWarmSlices(
+    Iterable<Future<void> Function()> slices,
+  ) async {
+    for (final slice in slices) {
+      await _runWarmSlice(slice);
+    }
+  }
+
+  Future<Map<String, bool>> _loadSplashPasajVisibilitySnapshot({
+    bool forceRefresh = false,
+  }) async {
+    if (forceRefresh) {
+      _pasajVisibilitySnapshot = null;
+      _pasajVisibilitySnapshotFuture = null;
+    }
+
+    final cached = _pasajVisibilitySnapshot;
+    if (cached != null) {
+      return cached;
+    }
+
+    final inFlight = _pasajVisibilitySnapshotFuture;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = () async {
+      try {
+        final resolved = await loadEffectivePasajVisibility(
+          preferCache: true,
+          forceRefresh: forceRefresh,
+        );
+        final normalized = <String, bool>{
+          for (final tabId in pasajTabs) tabId: resolved[tabId] ?? true,
+        };
+        _pasajVisibilitySnapshot = normalized;
+        return normalized;
+      } catch (_) {
+        try {
+          final local = await loadPasajVisibilitySnapshot();
+          final normalized = <String, bool>{
+            for (final tabId in pasajTabs) tabId: local[tabId] ?? true,
+          };
+          _pasajVisibilitySnapshot = normalized;
+          return normalized;
+        } catch (_) {
+          final fallback = <String, bool>{
+            for (final tabId in pasajTabs) tabId: false,
+          };
+          _pasajVisibilitySnapshot = fallback;
+          return fallback;
+        }
+      } finally {
+        _pasajVisibilitySnapshotFuture = null;
+      }
+    }();
+
+    _pasajVisibilitySnapshotFuture = future;
+    return future;
+  }
+
+  Future<bool> _isSplashPasajTabEnabled(String tabId) async {
+    if (!pasajTabs.contains(tabId)) {
+      return true;
+    }
+    final snapshot = await _loadSplashPasajVisibilitySnapshot();
+    return snapshot[tabId] ?? false;
+  }
+
+  Future<List<String>> _orderedWarmPasajListingTabs() async {
+    const listingTabs = <String>[
+      PasajTabIds.market,
+      PasajTabIds.jobFinder,
+      PasajTabIds.scholarships,
+      PasajTabIds.tutoring,
+    ];
+    final snapshot = await _loadSplashPasajVisibilitySnapshot();
+    final ordered = <String>[];
+
+    void addIfVisible(String tabId) {
+      if (!listingTabs.contains(tabId)) return;
+      if (!(snapshot[tabId] ?? false)) return;
+      if (!ordered.contains(tabId)) {
+        ordered.add(tabId);
+      }
+    }
+
+    final preferred = _effectiveEducationTabId();
+    if (preferred != null) {
+      addIfVisible(preferred);
+    }
+    for (final tabId in listingTabs) {
+      addIfVisible(tabId);
+    }
+    return ordered;
+  }
+
+  Future<void> _warmPasajListingSurface(
+    String tabId, {
+    required bool onWiFi,
+  }) async {
+    switch (tabId) {
+      case PasajTabIds.market:
+        await _warmMarketListings(onWiFi: onWiFi);
+        return;
+      case PasajTabIds.jobFinder:
+        await _warmJobListings(onWiFi: onWiFi);
+        return;
+      case PasajTabIds.scholarships:
+        await _warmScholarshipListings(onWiFi: onWiFi);
+        return;
+      case PasajTabIds.tutoring:
+        await _warmTutoringListings(onWiFi: onWiFi);
+        return;
+      default:
+        return;
+    }
+  }
+
   bool _shouldPrioritizeEducationWarmups() {
     return _effectiveStartupRouteHint() == 'nav_education';
   }
@@ -21,166 +146,160 @@ extension _SplashViewWarmPart on _SplashViewState {
           _shouldPrioritizeEducationMarketWarmups();
       final prioritizeEducationJobWarmups =
           _shouldPrioritizeEducationJobWarmups();
+      final criticalSlices = <Future<void> Function()>[];
 
-      await Future.wait([
-        if (prioritizeHomeWarmups)
-          (() async {
-            try {
-              final shorts = maybeFindShortController();
-              if (shorts == null) return;
-              await _warmShortSnapshotForStartup(
+      if (prioritizeHomeWarmups) {
+        criticalSlices.add(() async {
+          final shorts = maybeFindShortController();
+          if (shorts == null) return;
+          await _warmShortSnapshotForStartup(
+            onWiFi: onWiFi,
+            isFirstLaunch: isFirstLaunch,
+          );
+          await shorts
+              .prepareStartupSurface(
+                allowBackgroundRefresh: false,
+              )
+              .timeout(
+                Duration(seconds: onWiFi ? 4 : 2),
+                onTimeout: () {},
+              );
+          _primeShortVideoSegments(shorts);
+        });
+        if (storyController != null) {
+          criticalSlices.add(() async {
+            await _forceLoadStoriesSync(
+              storyController,
+              limit: ReadBudgetRegistry.storyStartupWarmLimit(
                 onWiFi: onWiFi,
                 isFirstLaunch: isFirstLaunch,
+              ),
+            );
+          });
+        }
+        criticalSlices.add(() async {
+          await _warmFeedSnapshotForStartup(
+            onWiFi: onWiFi,
+            isFirstLaunch: isFirstLaunch,
+          );
+          await agendaController
+              .prepareStartupSurface(
+                allowBackgroundRefresh: false,
+              )
+              .timeout(const Duration(seconds: 3), onTimeout: () {});
+          _primeFeedVideoSegments(agendaController);
+        });
+        criticalSlices.add(() async {
+          await recommendedController
+              .ensureLoaded(limit: recommendedController.usersWarmCount)
+              .timeout(
+                Duration(milliseconds: onWiFi ? 1600 : 1100),
+                onTimeout: () {},
               );
-              await shorts
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh: false,
-                  )
-                  .timeout(
-                    Duration(seconds: onWiFi ? 4 : 2),
-                    onTimeout: () {},
-                  );
-              shorts.warmStart(
-                targetCount: ReadBudgetRegistry.shortWarmTargetCount(
-                  onWiFi: onWiFi,
-                  isFirstLaunch: isFirstLaunch,
+        });
+      }
+
+      if (prioritizeProfileWarmups) {
+        criticalSlices.add(() async {
+          final profileController =
+              ProfileController.maybeFind() ?? ProfileController.ensure();
+          await profileController
+              .prepareStartupSurface(
+                allowBackgroundRefresh:
+                    ContentPolicy.allowBackgroundRefresh(
+                  ContentScreenKind.profile,
                 ),
-                maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
-              );
-              _primeShortVideoSegments(shorts);
-            } catch (_) {}
-          })(),
-        if (prioritizeHomeWarmups && storyController != null)
-          _forceLoadStoriesSync(
-            storyController,
-            limit: ReadBudgetRegistry.storyStartupWarmLimit(
-              onWiFi: onWiFi,
-              isFirstLaunch: isFirstLaunch,
-            ),
-          ),
-        if (prioritizeHomeWarmups)
-          (() async {
-            try {
-              await _warmFeedSnapshotForStartup(
-                onWiFi: onWiFi,
-                isFirstLaunch: isFirstLaunch,
-              );
-              await agendaController
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh: false,
-                  )
-                  .timeout(const Duration(seconds: 3));
-              _primeFeedVideoSegments(agendaController);
-            } catch (_) {}
-          })(),
-        if (prioritizeHomeWarmups)
-          (() async {
-            try {
-              await recommendedController
-                  .ensureLoaded(limit: recommendedController.usersWarmCount)
-                  .timeout(
-                    Duration(milliseconds: onWiFi ? 1600 : 1100),
-                    onTimeout: () {},
-                  );
-            } catch (_) {}
-          })(),
-        if (prioritizeProfileWarmups)
-          (() async {
-            try {
-              final profileController =
-                  ProfileController.maybeFind() ?? ProfileController.ensure();
-              await profileController
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh:
-                        ContentPolicy.allowBackgroundRefresh(
-                      ContentScreenKind.profile,
-                    ),
-                  )
-                  .timeout(
-                    Duration(milliseconds: onWiFi ? 1000 : 650),
-                    onTimeout: () {},
-                  );
-            } catch (_) {}
-          })(),
-        if (prioritizeProfileWarmups)
-          (() async {
-            try {
-              await _warmProfileCacheSurfaces(
-                onWiFi: onWiFi,
-              ).timeout(
-                Duration(milliseconds: onWiFi ? 900 : 500),
+              )
+              .timeout(
+                Duration(milliseconds: onWiFi ? 1000 : 650),
                 onTimeout: () {},
               );
-            } catch (_) {}
-          })(),
-        if (prioritizeExploreWarmups)
-          (() async {
-            try {
-              final exploreController =
-                  maybeFindExploreController() ?? ensureExploreController();
-              await exploreController
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh:
-                        ContentPolicy.allowBackgroundRefresh(
-                      ContentScreenKind.explore,
-                    ),
-                  )
-                  .timeout(
-                    Duration(milliseconds: onWiFi ? 1100 : 650),
-                    onTimeout: () {},
-                  );
-            } catch (_) {}
-          })(),
-        if (prioritizeEducationWarmups)
-          (() async {
-            try {
-              if (!prioritizeEducationMarketWarmups) return;
-              if (!await isPasajTabEnabled(PasajTabIds.market)) return;
-              await prepareMarketStartupSurface(
-                maybeFindMarketController() ?? ensureMarketController(),
-                allowBackgroundRefresh: onWiFi,
-              ).timeout(
-                Duration(milliseconds: onWiFi ? 1200 : 800),
-                onTimeout: () {},
-              );
-            } catch (_) {}
-          })(),
-        if (prioritizeEducationWarmups)
-          (() async {
-            try {
-              if (!prioritizeEducationJobWarmups) return;
-              if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) return;
-              await prepareJobFinderStartupSurface(
-                maybeFindJobFinderController() ?? ensureJobFinderController(),
-                allowBackgroundRefresh: onWiFi,
-              ).timeout(
-                Duration(milliseconds: onWiFi ? 1200 : 800),
-                onTimeout: () {},
-              );
-            } catch (_) {}
-          })(),
-      ]);
+        });
+        criticalSlices.add(() async {
+          await _warmProfileCacheSurfaces(
+            onWiFi: onWiFi,
+          ).timeout(
+            Duration(milliseconds: onWiFi ? 900 : 500),
+            onTimeout: () {},
+          );
+        });
+      }
 
-      final warmUserMetaFuture =
-          !prioritizeHomeWarmups || storyController == null
-              ? Future<void>.value()
-              : _warmUserMetaAndAvatars(
-                  agendaController: agendaController,
-                  storyController: storyController,
-                  recommendedController: recommendedController,
-                  onWiFi: onWiFi,
-                ).timeout(
-                  Duration(milliseconds: onWiFi ? 900 : 500),
-                  onTimeout: () {},
-                );
-      final warmProfileSurfacesFuture = prioritizeProfileWarmups
-          ? Future<void>.value()
-          : _warmProfileCacheSurfaces(
-              onWiFi: onWiFi,
+      if (prioritizeExploreWarmups) {
+        criticalSlices.add(() async {
+          final exploreController =
+              maybeFindExploreController() ?? ensureExploreController();
+          await exploreController
+              .prepareStartupSurface(
+                allowBackgroundRefresh:
+                    ContentPolicy.allowBackgroundRefresh(
+                  ContentScreenKind.explore,
+                ),
+              )
+              .timeout(
+                Duration(milliseconds: onWiFi ? 1100 : 650),
+                onTimeout: () {},
+              );
+        });
+      }
+
+      if (prioritizeEducationWarmups) {
+        if (prioritizeEducationMarketWarmups) {
+          criticalSlices.add(() async {
+            if (!await _isSplashPasajTabEnabled(PasajTabIds.market)) return;
+            await prepareMarketStartupSurface(
+              maybeFindMarketController() ?? ensureMarketController(),
+              allowBackgroundRefresh: onWiFi,
             ).timeout(
-              Duration(milliseconds: onWiFi ? 900 : 500),
+              Duration(milliseconds: onWiFi ? 1200 : 800),
               onTimeout: () {},
             );
+          });
+        }
+        if (prioritizeEducationJobWarmups) {
+          criticalSlices.add(() async {
+            if (!await _isSplashPasajTabEnabled(PasajTabIds.jobFinder)) {
+              return;
+            }
+            await prepareJobFinderStartupSurface(
+              maybeFindJobFinderController() ?? ensureJobFinderController(),
+              allowBackgroundRefresh: onWiFi,
+            ).timeout(
+              Duration(milliseconds: onWiFi ? 1200 : 800),
+              onTimeout: () {},
+            );
+          });
+        }
+      }
+
+      await _runWarmSlices(criticalSlices);
+
+      final deferredSlices = <Future<void> Function()>[];
+      if (prioritizeHomeWarmups && storyController != null) {
+        deferredSlices.add(() async {
+          await _warmUserMetaAndAvatars(
+            agendaController: agendaController,
+            storyController: storyController,
+            recommendedController: recommendedController,
+            onWiFi: onWiFi,
+          ).timeout(
+            Duration(milliseconds: onWiFi ? 900 : 500),
+            onTimeout: () {},
+          );
+        });
+      }
+      if (!prioritizeProfileWarmups) {
+        deferredSlices.add(() async {
+          await _warmProfileCacheSurfaces(
+            onWiFi: onWiFi,
+          ).timeout(
+            Duration(milliseconds: onWiFi ? 900 : 500),
+            onTimeout: () {},
+          );
+        });
+      }
+
+      final deferredWarmSlicesFuture = _runWarmSlices(deferredSlices);
       final warmSliderFuture = _warmSliderCaches(onWiFi: onWiFi).timeout(
         Duration(milliseconds: onWiFi ? 1200 : 650),
         onTimeout: () {},
@@ -188,18 +307,14 @@ extension _SplashViewWarmPart on _SplashViewState {
 
       if (Platform.isAndroid && isFirstLaunch) {
         await Future.any([
-          Future.wait([
-            warmUserMetaFuture,
-            warmProfileSurfacesFuture,
-          ]),
+          deferredWarmSlicesFuture,
           Future.delayed(
             Duration(milliseconds: onWiFi ? 280 : 180),
           ),
         ]);
         unawaited(warmSliderFuture);
       } else {
-        unawaited(warmUserMetaFuture);
-        unawaited(warmProfileSurfacesFuture);
+        unawaited(deferredWarmSlicesFuture);
         unawaited(warmSliderFuture);
       }
     } catch (_) {}
@@ -267,7 +382,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       for (final root in roots) {
         prefetch.boostDoc(
           root.docID,
-          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+          readySegments: 1,
         );
       }
     } catch (_) {}
@@ -285,7 +400,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       for (final member in members) {
         prefetch.boostDoc(
           member.docID,
-          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+          readySegments: 1,
         );
       }
     } catch (_) {}
@@ -302,71 +417,45 @@ extension _SplashViewWarmPart on _SplashViewState {
       final storyTarget =
           ReadBudgetRegistry.storyWarmReadyTarget(onWiFi: onWiFi);
 
-      try {
-        final shorts = maybeFindShortController();
-        if (shorts != null && shorts.shorts.length < shortTarget) {
-          shorts.warmStart(
-            targetCount: shortTarget,
-            maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
-          );
-        }
-      } catch (_) {}
+      final warmSlices = <Future<void> Function()>[];
 
-      if (storyController != null &&
-          storyController.users.length < storyTarget) {
-        await _forceLoadStoriesSync(storyController, limit: storyTarget);
-      }
+      warmSlices.add(() async {
+        final shorts = maybeFindShortController();
+        if (shorts == null || shorts.shorts.length >= shortTarget) return;
+        await shorts.warmStart(
+          targetCount: shortTarget,
+          maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
+        );
+      });
+
       if (storyController != null) {
-        unawaited(
-          _warmCurrentStoryMedia(
+        warmSlices.add(() async {
+          if (storyController.users.length < storyTarget) {
+            await _forceLoadStoriesSync(storyController, limit: storyTarget);
+          }
+        });
+        warmSlices.add(() async {
+          await _warmCurrentStoryMedia(
             storyController,
             take: storyTarget,
-          ),
-        );
+          );
+        });
       }
 
-      await Future.wait([
-        (() async {
-          try {
-            await _warmMarketListings(
-              onWiFi: onWiFi,
-            ).timeout(
-              const Duration(milliseconds: 1400),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await _warmJobListings(
-              onWiFi: onWiFi,
-            ).timeout(
-              const Duration(milliseconds: 1400),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await _warmScholarshipListings(
-              onWiFi: onWiFi,
-            ).timeout(
-              const Duration(milliseconds: 1400),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
-        (() async {
-          try {
-            await _warmTutoringListings(
-              onWiFi: onWiFi,
-            ).timeout(
-              const Duration(milliseconds: 1400),
-              onTimeout: () {},
-            );
-          } catch (_) {}
-        })(),
-      ]);
+      final orderedListingTabs = await _orderedWarmPasajListingTabs();
+      for (final tabId in orderedListingTabs) {
+        warmSlices.add(() async {
+          await _warmPasajListingSurface(
+            tabId,
+            onWiFi: onWiFi,
+          ).timeout(
+            const Duration(milliseconds: 1400),
+            onTimeout: () {},
+          );
+        });
+      }
+
+      await _runWarmSlices(warmSlices);
     } catch (_) {}
   }
 
@@ -523,7 +612,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool onWiFi,
   }) async {
     try {
-      if (!await isPasajTabEnabled(PasajTabIds.market)) {
+      if (!await _isSplashPasajTabEnabled(PasajTabIds.market)) {
         return;
       }
       final warmLimit =
@@ -559,7 +648,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool onWiFi,
   }) async {
     try {
-      if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
+      if (!await _isSplashPasajTabEnabled(PasajTabIds.jobFinder)) {
         return;
       }
       final warmLimit =
@@ -593,7 +682,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool onWiFi,
   }) async {
     try {
-      if (!await isPasajTabEnabled(PasajTabIds.scholarships)) {
+      if (!await _isSplashPasajTabEnabled(PasajTabIds.scholarships)) {
         return;
       }
       final warmLimit =
@@ -627,7 +716,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool onWiFi,
   }) async {
     try {
-      if (!await isPasajTabEnabled(PasajTabIds.tutoring)) {
+      if (!await _isSplashPasajTabEnabled(PasajTabIds.tutoring)) {
         return;
       }
       final warmLimit =

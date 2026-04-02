@@ -773,10 +773,10 @@ extension _SplashViewStartupPart on _SplashViewState {
     if (_effectiveStartupRouteHint() == 'nav_education') {
       try {
         final marketEnabled = _shouldPrioritizeEducationMarketWarmups()
-            ? await isPasajTabEnabled(PasajTabIds.market)
+            ? await _isSplashPasajTabEnabled(PasajTabIds.market)
             : false;
         final jobEnabled = _shouldPrioritizeEducationJobWarmups()
-            ? await isPasajTabEnabled(PasajTabIds.jobFinder)
+            ? await _isSplashPasajTabEnabled(PasajTabIds.jobFinder)
             : false;
         await Future.wait([
           if (marketEnabled)
