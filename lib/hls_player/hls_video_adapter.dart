@@ -85,6 +85,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   // Pending command queue
   bool _wantPlay = false;
   bool _wantPause = false;
+  bool _pendingReloadOnReady = false;
   double _pendingVolume = 1.0;
   bool _hasPendingVolume = false;
   Duration? _pendingSeek;

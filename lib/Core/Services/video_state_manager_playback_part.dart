@@ -149,6 +149,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           _playbackExecutionService.quietHandle(
             handle,
             persistState: () => _saveVideoState(entry.key, handle),
+            stopPlayback: true,
           );
         }
       } catch (_) {}

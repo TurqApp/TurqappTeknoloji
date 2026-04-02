@@ -91,6 +91,8 @@ extension ShortControllerPublicApiPart on ShortController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    final initialLimit =
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
     if (shorts.isEmpty && !_startupPresentationApplied) {
       final deviceSession = DeviceSessionService.instance;
       final deviceSalt = deviceSession.cachedDeviceKey;
@@ -112,9 +114,14 @@ extension ShortControllerPublicApiPart on ShortController {
         );
       }
     }
+    final restoredSnapshot =
+        await _tryRestoreVisibleSnapshotIfCurrentListCollapsed(
+      limit: initialLimit,
+      trigger: 'primary_surface_visible',
+    );
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
-    if (shorts.isEmpty) {
+    if (!restoredSnapshot && shorts.isEmpty) {
       if (_backgroundPreloadFuture != null) {
         await _backgroundPreloadFuture;
       } else {

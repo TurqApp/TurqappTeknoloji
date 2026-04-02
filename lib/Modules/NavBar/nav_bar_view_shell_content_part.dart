@@ -150,13 +150,11 @@ extension _NavBarViewShellContentPart on NavBarView {
 
   Future<void> _openShortRoute() async {
     final shortController = ensureShortController();
-    if (shortController.shorts.isEmpty) {
-      shortController
-          .prepareStartupSurface(
-            allowBackgroundRefresh: false,
-          )
-          .catchError((_) {});
-    }
+    try {
+      await shortController.prepareStartupSurface(
+        allowBackgroundRefresh: false,
+      );
+    } catch (_) {}
 
     controller.suspendFeedForTabExit();
     controller.pauseGlobalTabMedia();

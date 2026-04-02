@@ -21,6 +21,82 @@ extension ShortControllerLoadingPart on ShortController {
   bool get _shouldPreferOfflineCache =>
       NetworkAwarenessService.maybeFind()?.isConnected == false;
 
+  Future<bool> _tryRestoreVisibleSnapshotIfCurrentListCollapsed({
+    required int limit,
+    required String trigger,
+  }) async {
+    final currentShorts = shorts.toList(growable: false);
+    final maxCollapsedCount = _initialPreloadCount + 1;
+    if (currentShorts.isNotEmpty && currentShorts.length > maxCollapsedCount) {
+      return false;
+    }
+
+    final snapshot = await _shortSnapshotRepository.loadHome(
+      userId: _currentUserId,
+      limit: limit,
+    );
+    final snapshotPosts = (snapshot.data ?? const <PostsModel>[])
+        .where(_isEligibleShortPost)
+        .toList(growable: false);
+    if (snapshotPosts.length <= maxCollapsedCount) {
+      final liveResult = await _fetchPage(
+        pageSizeOverride: limit,
+        trigger: '${trigger}_surface_live_restore',
+      );
+      final livePosts = liveResult.posts;
+      final shouldReplaceWithLive = livePosts.isNotEmpty &&
+          (currentShorts.isEmpty ||
+              currentShorts.length <= maxCollapsedCount) &&
+          livePosts.length > currentShorts.length;
+      if (shouldReplaceWithLive) {
+        _recordShortFetchEvent(
+          stage: 'surface_live_restore',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'currentCount': currentShorts.length,
+            'snapshotCount': snapshotPosts.length,
+            'liveCount': livePosts.length,
+          },
+        );
+        _replaceShorts(
+          _applyStartupShortPresentationOrder(livePosts),
+          remapCache: true,
+        );
+        _lastDoc = liveResult.lastDoc;
+        hasMore.value = liveResult.hasMore;
+        return true;
+      }
+    }
+    if (snapshotPosts.isEmpty) {
+      return false;
+    }
+
+    final shouldReplace = currentShorts.isEmpty ||
+        (currentShorts.length < snapshotPosts.length &&
+            currentShorts.length <= maxCollapsedCount);
+    if (!shouldReplace) {
+      return false;
+    }
+
+    _recordShortFetchEvent(
+      stage: 'surface_snapshot_restore',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'currentCount': currentShorts.length,
+        'snapshotCount': snapshotPosts.length,
+        'source': snapshot.source.name,
+      },
+    );
+
+    _replaceShorts(
+      _applyStartupShortPresentationOrder(snapshotPosts),
+      remapCache: true,
+    );
+    _lastDoc = null;
+    hasMore.value = true;
+    return true;
+  }
+
   Future<bool> _tryApplyOfflineCachedShorts({
     required int limit,
     required String trigger,
@@ -196,9 +272,8 @@ extension ShortControllerLoadingPart on ShortController {
       }
       filtered.add(
         p.copyWith(
-          authorNickname: p.authorNickname.isNotEmpty
-              ? p.authorNickname
-              : summary.nickname,
+          authorNickname:
+              p.authorNickname.isNotEmpty ? p.authorNickname : summary.nickname,
           authorDisplayName: p.authorDisplayName.isNotEmpty
               ? p.authorDisplayName
               : summary.displayName,

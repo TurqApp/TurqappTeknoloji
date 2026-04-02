@@ -18,6 +18,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
     // bırakmazsak sonraki kart eski sessize alma veya pause isteğini devralıyor.
     _wantPlay = false;
     _wantPause = false;
+    _pendingReloadOnReady = false;
     _pendingVolume = 1.0;
     _hasPendingVolume = false;
     _pendingSeek = null;
@@ -117,6 +118,11 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
   }
 
   void _performExecutePendingCommands() {
+    if (_pendingReloadOnReady && _isStopped) {
+      final shouldAutoPlay = _wantPlay && !_wantPause;
+      unawaited(_performRestartStoppedPlayback(autoPlay: shouldAutoPlay));
+      return;
+    }
     if (_pendingPreferredBufferDurationSeconds != null) {
       _hls.setPreferredBufferDuration(_pendingPreferredBufferDurationSeconds!);
       _pendingPreferredBufferDurationSeconds = null;

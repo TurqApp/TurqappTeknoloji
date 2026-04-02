@@ -1,6 +1,43 @@
 part of 'hls_video_adapter.dart';
 
 extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
+  Future<void> _performRestartStoppedPlayback({
+    required bool autoPlay,
+  }) async {
+    if (_disposed) return;
+    _refreshProxyUrlIfNeeded();
+    if (!_isStopped) return;
+    if (!_hls.canRestartStoppedPlayback) {
+      _pendingReloadOnReady = true;
+      return;
+    }
+
+    final pendingSeek = _pendingSeek;
+    final hasPendingVolume = _hasPendingVolume;
+    final pendingVolume = _pendingVolume;
+
+    _pendingReloadOnReady = false;
+    _isStopped = false;
+    _wantPlay = autoPlay;
+    _wantPause = false;
+
+    await _hls.loadVideo(url, autoPlay: autoPlay, loop: loop);
+
+    if (hasPendingVolume) {
+      await _hls.setVolume(pendingVolume);
+      _hasPendingVolume = false;
+    }
+    if (pendingSeek != null) {
+      await _hls.seekTo(pendingSeek.inMilliseconds / 1000.0);
+      _pendingSeek = null;
+    }
+
+    if (autoPlay) {
+      _wantPlay = false;
+      _wantPause = false;
+    }
+  }
+
   Future<void> _performRecoverFrozenPlayback() async {
     if (_disposed) return;
     final resumeAt = _value.position;
@@ -37,10 +74,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     if (_isStopped) {
       _wantPlay = true;
       _wantPause = false;
-      if (_hls.canRestartStoppedPlayback) {
-        _isStopped = false;
-        await _hls.loadVideo(url, autoPlay: true, loop: loop);
-      }
+      await _performRestartStoppedPlayback(autoPlay: true);
       return;
     }
     if (_viewReady) {
@@ -132,6 +166,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
   Future<void> _performStopPlayback() {
     if (_disposed) return Future.value();
     _isStopped = true;
+    _pendingReloadOnReady = false;
     _wantPlay = false;
     _wantPause = false;
     _hls.cancelPendingResume();
@@ -151,10 +186,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     if (_disposed) return;
     _refreshProxyUrlIfNeeded();
     if (!_isStopped) return;
-    if (_hls.canRestartStoppedPlayback) {
-      _isStopped = false;
-      await _hls.loadVideo(url, autoPlay: false, loop: loop);
-    }
+    await _performRestartStoppedPlayback(autoPlay: false);
   }
 
   Future<void> _performSetPreferredBufferDuration(double seconds) {
