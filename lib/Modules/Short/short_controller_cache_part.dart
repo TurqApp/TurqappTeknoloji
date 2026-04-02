@@ -69,6 +69,26 @@ extension ShortControllerCachePart on ShortController {
     return cache.containsKey(0);
   }
 
+  Future<void> ensureActiveAdapterReady(int currentIndex) async {
+    if (shorts.isEmpty) return;
+    final safeIndex = currentIndex.clamp(0, shorts.length - 1);
+    final existing = cache[safeIndex];
+    if (existing == null) {
+      final adapter =
+          await _preloadSingleVideoWithCache(safeIndex, shorts[safeIndex]);
+      if (adapter == null) return;
+      _tiers[safeIndex] = _CacheTier.hot;
+      await adapter.setPreferredBufferDuration(_activeBufferSeconds);
+      return;
+    }
+
+    if (existing.isStopped) {
+      await existing.reloadVideo();
+    }
+    _tiers[safeIndex] = _CacheTier.hot;
+    await existing.setPreferredBufferDuration(_activeBufferSeconds);
+  }
+
   Future<void> updateCacheTiers(
     int currentIndex, {
     bool suppressWarmPause = false,

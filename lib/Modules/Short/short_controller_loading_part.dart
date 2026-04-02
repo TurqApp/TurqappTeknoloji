@@ -76,10 +76,12 @@ extension ShortControllerLoadingPart on ShortController {
     QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
     QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
     bool hasMoreDocs = true;
-    const int maxEmptyPageSkips = 3;
+    const int maxPageScans = 4;
     final effectivePageSize = pageSizeOverride ?? pageSize;
+    final collected = <PostsModel>[];
+    final seenDocIds = <String>{};
 
-    for (int attempt = 0; attempt < maxEmptyPageSkips; attempt++) {
+    for (int attempt = 0; attempt < maxPageScans; attempt++) {
       final page = await _shortRepository.fetchReadyPage(
         startAfter: cursor,
         pageSize: effectivePageSize,
@@ -90,11 +92,7 @@ extension ShortControllerLoadingPart on ShortController {
       hasMoreDocs = page.hasMore;
 
       if (page.posts.isEmpty) {
-        return _ShortPageResult(
-          const [],
-          cursor,
-          false,
-        );
+        break;
       }
 
       final sourceNotReady = page.posts
@@ -133,11 +131,17 @@ extension ShortControllerLoadingPart on ShortController {
       if (finalFiltered.isNotEmpty) {
         final filtered = await _filterVisibleShortPosts(finalFiltered);
         if (filtered.isNotEmpty) {
-          return _ShortPageResult(
-            filtered,
-            lastDoc,
-            hasMoreDocs,
-          );
+          for (final post in filtered) {
+            if (!seenDocIds.add(post.docID)) continue;
+            collected.add(post);
+            if (collected.length >= effectivePageSize) {
+              return _ShortPageResult(
+                collected.take(effectivePageSize).toList(growable: false),
+                lastDoc,
+                hasMoreDocs,
+              );
+            }
+          }
         }
       }
 
@@ -148,7 +152,7 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     return _ShortPageResult(
-      const [],
+      collected.take(effectivePageSize).toList(growable: false),
       lastDoc,
       hasMoreDocs,
     );

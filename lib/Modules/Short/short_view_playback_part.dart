@@ -200,12 +200,33 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _scheduleTierUpdate(int page) {
     _tierDebounce?.cancel();
+    _tierReconcileDebounce?.cancel();
     _tierDebounce = Timer(_shortTierDebounceDelay, () async {
       final hadActiveAdapter = controller.cache[page] != null;
-      await controller.updateCacheTiers(page);
+      await controller.ensureActiveAdapterReady(page);
       if (!mounted || page != currentPage) return;
       _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
       _schedulePlayForPage(page);
+      _scheduleTierReconcile(page);
+    });
+  }
+
+  void _scheduleTierReconcile(
+    int page, {
+    bool suppressWarmPause = false,
+  }) {
+    _tierReconcileDebounce?.cancel();
+    _tierReconcileDebounce = Timer(_shortTierReconcileDelay, () async {
+      final hadActiveAdapter = controller.cache[page] != null;
+      await controller.updateCacheTiers(
+        page,
+        suppressWarmPause: suppressWarmPause,
+      );
+      if (!mounted || page != currentPage) return;
+      _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
+      if (!isManuallyPaused && controller.cache[page] != null) {
+        _schedulePlayForPage(page);
+      }
     });
   }
 
@@ -229,13 +250,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
       await controller.keepOnlyIndex(currentPage);
     }
 
-    await controller.updateCacheTiers(
-      currentPage,
-      suppressWarmPause: true,
-    );
+    await controller.ensureActiveAdapterReady(currentPage);
     if (!mounted) return;
     _setStateIfActiveAdapterChanged(currentPage, hadActiveAdapter,
         force: false);
+    _scheduleTierReconcile(
+      currentPage,
+      suppressWarmPause: true,
+    );
 
     _schedulePlayForPage(currentPage);
   }
@@ -264,12 +286,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
       try {
         if (!mounted || page != currentPage) return;
         final hadActiveAdapter = controller.cache[page] != null;
-        await controller.updateCacheTiers(
+        await controller.ensureActiveAdapterReady(page);
+        if (!mounted || page != currentPage) return;
+        _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
+        _scheduleTierReconcile(
           page,
           suppressWarmPause: true,
         );
-        if (!mounted || page != currentPage) return;
-        _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
         if (!isManuallyPaused && controller.cache[page] != null) {
           _schedulePlayForPage(page);
         }

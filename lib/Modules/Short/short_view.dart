@@ -35,6 +35,7 @@ const Duration _shortPlayResumeDelay = Duration(milliseconds: 50);
 const Duration _shortPlayResumeDelayAndroid = Duration.zero;
 const Duration _shortScrollDebounceAndroid = Duration(milliseconds: 24);
 const Duration _shortTierDebounceDelay = Duration(milliseconds: 70);
+const Duration _shortTierReconcileDelay = Duration(milliseconds: 220);
 const Duration _shortEngagementRescoreDelay = Duration(milliseconds: 2500);
 const Duration _shortPlayWatchdogDelay = Duration(milliseconds: 450);
 const Duration _shortProgressPersistInterval = Duration(seconds: 2);
@@ -171,6 +172,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Timer? _scrollDebounce;
   Timer? _playDebounce;
   Timer? _tierDebounce;
+  Timer? _tierReconcileDebounce;
   Timer? _engagementRescoreTimer;
   Timer? _playbackWatchdogTimer;
   DateTime? _autoplaySegmentGateStartedAt;
@@ -232,7 +234,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     }
     setState(() {});
     if (_cachedShorts.isNotEmpty) {
-      unawaited(controller.updateCacheTiers(currentPage));
+      unawaited(controller.ensureActiveAdapterReady(currentPage));
       _primeInitialPlayback();
     }
   }
@@ -241,6 +243,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _scrollDebounce?.cancel();
     _playDebounce?.cancel();
     _tierDebounce?.cancel();
+    _tierReconcileDebounce?.cancel();
     _engagementRescoreTimer?.cancel();
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
@@ -335,6 +338,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _scrollDebounce?.cancel();
     _playDebounce?.cancel();
     _tierDebounce?.cancel();
+    _tierReconcileDebounce?.cancel();
     _engagementRescoreTimer?.cancel();
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
