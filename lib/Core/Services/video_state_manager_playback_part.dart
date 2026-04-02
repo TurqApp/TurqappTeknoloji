@@ -3,6 +3,19 @@ part of 'video_state_manager.dart';
 const int _videoStateManagerMaxPendingPlayRetries = 28;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
+  bool _shouldKeepDormantAndroidFeedHandleWarm(
+    String allowedDocID,
+    String docID,
+    PlaybackHandle handle,
+  ) {
+    if (!GetPlatform.isAndroid) return false;
+    if (!allowedDocID.startsWith('feed:')) return false;
+    if (!docID.startsWith('feed:')) return false;
+    if (handle is! HLSAdapterPlaybackHandle) return false;
+    if (!handle.isInitialized || handle.isPlaying) return false;
+    return handle.position > Duration.zero;
+  }
+
   void _markTargetPlaybackDoc(String? docID) {
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = docID == null ? null : DateTime.now();
@@ -155,6 +168,17 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (handle is! HLSAdapterPlaybackHandle) continue;
       if (!handle.isInitialized) continue;
       if (handle.isPlaying) continue;
+      if (_shouldKeepDormantAndroidFeedHandleWarm(
+        allowedDocID,
+        entry.key,
+        handle,
+      )) {
+        _playbackExecutionService.quietHandle(
+          handle,
+          persistState: () => _saveVideoState(entry.key, handle),
+        );
+        continue;
+      }
       if (handle.position > Duration.zero) {
         _saveVideoState(entry.key, handle);
       }
