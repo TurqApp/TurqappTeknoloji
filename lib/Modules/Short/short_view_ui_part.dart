@@ -300,10 +300,10 @@ extension ShortViewUiPart on _ShortViewState {
                         },
                         volumeOff: (v) {
                           if (v) {
-                            vp.play();
+                            _playbackExecutionService.playAdapter(vp);
                             isManuallyPaused = false;
                           } else {
-                            vp.pause();
+                            _playbackExecutionService.pauseAdapter(vp);
                             isManuallyPaused = true;
                           }
                           if (idx == currentPage) {

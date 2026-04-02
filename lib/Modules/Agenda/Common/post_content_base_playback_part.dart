@@ -99,7 +99,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final v = _videoAdapter;
     if (v != null) {
       _lastAppliedPlaybackVolume = null;
-      unawaited(v.forceSilence());
+      unawaited(_playbackExecutionService.quietBackgroundAdapter(v));
       _hasAutoPlayed = false;
       _resetAutoplaySegmentGate();
       _playbackIntentTracked = false;
@@ -111,7 +111,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final v = _videoAdapter;
     if (v != null) {
       _lastAppliedPlaybackVolume = null;
-      unawaited(v.silenceAndStopPlayback());
+      unawaited(_playbackExecutionService.stopAdapter(v));
       _hasAutoPlayed = false;
       _resetAutoplaySegmentGate();
       _playbackIntentTracked = false;
@@ -197,7 +197,13 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
     _lastAppliedPlaybackVolume = volume;
-    _videoAdapter?.setVolume(volume);
+    final adapter = _videoAdapter;
+    if (adapter != null) {
+      _playbackExecutionService.applyPresentation(
+        adapter,
+        shouldBeAudible: volume > 0.0,
+      );
+    }
     _syncRuntimeHints(isAudible: volume > 0.0);
   }
 
@@ -427,7 +433,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           'feed_card_adapter_play',
           source: source,
         );
-        unawaited(adapter.play());
+        unawaited(_playbackExecutionService.playAdapter(adapter));
       }
     } else {
       _recordPlaybackDispatch(

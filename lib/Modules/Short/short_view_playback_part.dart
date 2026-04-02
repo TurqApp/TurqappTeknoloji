@@ -371,7 +371,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
         if (isManuallyPaused) return;
         if (!vc.value.isPlaying) {
-          vc.play();
+          _playbackExecutionService.playAdapter(vc);
         }
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
@@ -462,7 +462,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           },
         );
         _applyShortPlaybackPresentation(page, vc);
-        await vc.play();
+        await _playbackExecutionService.playAdapter(vc);
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
           _applyShortPlaybackPresentation(page, vc);
@@ -507,7 +507,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           },
         );
         _applyShortPlaybackPresentation(page, vc);
-        await vc.play();
+        await _playbackExecutionService.playAdapter(vc);
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
           _applyShortPlaybackPresentation(page, vc);

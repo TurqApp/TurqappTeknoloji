@@ -12,23 +12,11 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     String docID,
     PlaybackHandle handle,
   ) {
-    try {
-      if (handle.isInitialized) {
-        _saveVideoState(docID, handle);
-      }
-    } catch (_) {}
-
-    if (handle is HLSAdapterPlaybackHandle) {
-      unawaited(handle.adapter.silenceAndStopPlayback());
-      return;
-    }
-
-    try {
-      unawaited(handle.setVolume(0.0));
-    } catch (_) {}
-    try {
-      unawaited(handle.pause());
-    } catch (_) {}
+    _playbackExecutionService.quietHandle(
+      handle,
+      persistState: () => _saveVideoState(docID, handle),
+      stopPlayback: true,
+    );
   }
 
   void _saveVideoState(String docID, PlaybackHandle handle) {
@@ -151,12 +139,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       try {
         final handle = entry.value;
         if (handle.isInitialized) {
-          if (handle is HLSAdapterPlaybackHandle) {
-            unawaited(handle.adapter.forceSilence());
-          } else {
-            unawaited(handle.pause());
-            unawaited(handle.setVolume(0.0));
-          }
+          _playbackExecutionService.quietHandle(handle);
         }
       } catch (_) {}
     }
@@ -208,7 +191,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         return;
       }
       if (!handle.isPlaying) {
-        handle.play();
+        _playbackExecutionService.resumeHandle(handle);
         _stopDormantAndroidHandlesExcept(docID);
       }
     });

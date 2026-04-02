@@ -56,7 +56,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           preferredIndex: currentPage,
         );
         try {
-          await ctrl.play();
+          await _playbackExecutionService.playAdapter(ctrl);
         } catch (_) {}
         _requestExclusivePlayback(docId);
         _applySingleShortPlaybackPresentation(currentPage, ctrl);
@@ -131,7 +131,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
-    await adapter.pause();
+    await _playbackExecutionService.pauseAdapter(adapter);
   }
 
   void _updateTelemetryHintsForCurrentPage({

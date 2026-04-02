@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/playback_execution_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
@@ -150,6 +151,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       ensureShortRenderCoordinator();
   final PlaybackRuntimeService _playbackRuntimeService =
       const PlaybackRuntimeService();
+  final PlaybackExecutionService _playbackExecutionService =
+      const PlaybackExecutionService();
   final SegmentCacheRuntimeService _segmentCacheRuntimeService =
       const SegmentCacheRuntimeService();
 
@@ -248,7 +251,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   void _applyShortPlaybackPresentation(int page, HLSVideoAdapter adapter) {
     final decision = _shortPlaybackDecisionFor(page, adapter.value);
-    adapter.setVolume(decision.shouldBeAudible ? 1 : 0);
+    _playbackExecutionService.applyPresentation(
+      adapter,
+      shouldBeAudible: decision.shouldBeAudible,
+    );
   }
 
   void _scheduleRouteVisiblePlaybackBootstrap({
@@ -265,13 +271,13 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
-    await adapter.forceSilence();
+    await _playbackExecutionService.quietBackgroundAdapter(adapter);
   }
 
   Future<void> _quietBackgroundPlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     try {
-      await adapter.forceSilence();
+      await _playbackExecutionService.quietBackgroundAdapter(adapter);
     } catch (_) {}
   }
 

@@ -244,7 +244,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
           },
           volumeOff: (volume) {
             if (!volume) {
-              vp.pause();
+              _playbackExecutionService.pauseAdapter(vp);
               if (idx == currentPage) {
                 _updateTelemetryHintsForCurrentPage(
                   isAudible: this.volume,
@@ -333,7 +333,10 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                               onPressed: () async {
                                 try {
                                   if (vp.value.isInitialized) {
-                                    await vp.pause();
+                                    await _playbackExecutionService
+                                        .pauseAdapter(
+                                      vp,
+                                    );
                                   }
                                 } catch (_) {}
                                 await Get.to(

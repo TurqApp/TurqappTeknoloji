@@ -15,6 +15,7 @@ import '../../Models/posts_model.dart';
 import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../../Core/Services/playback_execution_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/read_budget_registry.dart';
@@ -162,6 +163,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final shorts = <PostsModel>[].obs;
   final PlaybackRuntimeService _playbackRuntimeService =
       const PlaybackRuntimeService();
+  final PlaybackExecutionService _playbackExecutionService =
+      const PlaybackExecutionService();
   final SegmentCacheRuntimeService _segmentCacheRuntimeService =
       const SegmentCacheRuntimeService();
   final GlobalVideoAdapterPool _videoPool = ensureGlobalVideoAdapterPool();
@@ -258,7 +261,10 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   void _applySingleShortPlaybackPresentation(
       int page, HLSVideoAdapter adapter) {
     final decision = _singleShortPlaybackDecisionFor(page, adapter.value);
-    adapter.setVolume(decision.shouldBeAudible ? 1 : 0);
+    _playbackExecutionService.applyPresentation(
+      adapter,
+      shouldBeAudible: decision.shouldBeAudible,
+    );
   }
 
   @override

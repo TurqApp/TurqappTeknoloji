@@ -11,6 +11,7 @@ import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
+import '../../../Core/Services/playback_execution_service.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../../Ads/admob_kare.dart';
 import '../../Agenda/agenda_controller.dart';
@@ -66,6 +67,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       ensureGlobalVideoAdapterPool();
   final PlaybackRuntimeService _playbackRuntimeService =
       const PlaybackRuntimeService();
+  final PlaybackExecutionService _playbackExecutionService =
+      const PlaybackExecutionService();
   final SegmentCacheRuntimeService _segmentCacheRuntimeService =
       const SegmentCacheRuntimeService();
   PlaybackRuntimeService get playbackRuntimeService => _playbackRuntimeService;
@@ -339,9 +342,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       autoPlay: _useLegacyIosFeedBehavior ? widget.shouldPlay : false,
       loop: shouldLoopVideo,
     );
-    // Fresh adapters always start muted; lifecycle opens audio only after
-    // visual readiness is stable.
-    _videoAdapter!.setVolume(0.0);
+    _playbackExecutionService.primeAdapter(_videoAdapter!);
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
 
     _playbackRuntimeService.registerPlaybackHandle(

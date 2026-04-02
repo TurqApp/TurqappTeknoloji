@@ -73,7 +73,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       ctrl,
       preferredIndex: index,
     );
-    await ctrl.play();
+    await _playbackExecutionService.playAdapter(ctrl);
     _requestExclusivePlayback(shorts[index].docID);
     _applySingleShortPlaybackPresentation(index, ctrl);
     if (index == currentPage) {

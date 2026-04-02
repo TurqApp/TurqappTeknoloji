@@ -16,6 +16,9 @@ class _VideoStateManagerState {
 }
 
 extension VideoStateManagerFieldsPart on VideoStateManager {
+  PlaybackExecutionService get _playbackExecutionService =>
+      const PlaybackExecutionService();
+
   Map<String, VideoState> get _videoStates => _state.videoStates;
 
   Map<String, PlaybackHandle> get _allVideoControllers =>
