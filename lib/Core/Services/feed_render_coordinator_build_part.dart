@@ -31,10 +31,13 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
     // Main feed ordering stays anchored to real Posts documents. Bare reshare
     // events are kept as metadata until they are materialized as shared posts.
 
-    final merged = displayByDoc.values.toList(growable: false)
-      ..sort(
-        (a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int),
-      );
+    final merged = <Map<String, dynamic>>[];
+    for (final post in agendaList) {
+      final entry = displayByDoc[post.docID];
+      if (entry != null) {
+        merged.add(entry);
+      }
+    }
 
     return merged;
   }

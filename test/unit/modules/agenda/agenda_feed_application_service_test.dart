@@ -184,7 +184,7 @@ void main() {
       );
     });
 
-    test('composeStartupFeedItems builds a homogeneous 30-card startup mix',
+    test('composeStartupFeedItems builds a homogeneous mixed startup flow when image text and flood exist',
         () {
       final service = AgendaFeedApplicationService();
 
@@ -215,48 +215,57 @@ void main() {
         liveCandidates: liveCandidates,
         cacheCandidates: cacheCandidates,
         targetCount: 30,
+        startupVariantOverride: 0,
       );
 
       expect(result, hasLength(30));
       expect(
-        result.map(_startupKindForPost).toList(growable: false),
+        result.map(_startupSlotKindForPost).toList(growable: false),
         const <String>[
-          'cache',
-          'cache',
-          'cache',
+          'video',
+          'video',
+          'video',
           'image',
-          'live',
-          'live',
           'flood',
-          'cache',
-          'cache',
-          'cache',
+          'video',
+          'video',
+          'video',
           'text',
-          'live',
-          'live',
-          'image',
-          'cache',
-          'image',
+          'flood',
+          'video',
+          'video',
+          'video',
           'image',
           'flood',
-          'live',
-          'live',
-          'image',
+          'video',
+          'video',
+          'video',
           'text',
-          'cache',
-          'image',
-          'live',
           'flood',
+          'video',
+          'video',
+          'video',
           'image',
-          'live',
-          'image',
+          'flood',
+          'video',
+          'video',
+          'video',
+          'text',
           'flood',
         ],
+      );
+      expect(
+        result.where((post) => _startupSlotKindForPost(post) == 'video').length,
+        18,
+      );
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'text').length,
+        3,
       );
     });
 
     test(
-        'composeStartupFeedItems backfills missing image and text slots with live video first',
+        'composeStartupFeedItems backfills missing image and text support slots with videos before flood overflow',
         () {
       final service = AgendaFeedApplicationService();
 
@@ -279,6 +288,7 @@ void main() {
         liveCandidates: liveCandidates,
         cacheCandidates: cacheCandidates,
         targetCount: 30,
+        startupVariantOverride: 0,
       );
 
       expect(result, hasLength(30));
@@ -292,11 +302,11 @@ void main() {
       );
       expect(
         result.where((post) => _startupKindForPost(post) == 'live').length,
-        20,
+        18,
       );
       expect(
         result.where((post) => _startupKindForPost(post) == 'cache').length,
-        8,
+        10,
       );
       expect(
         result.where((post) => _startupKindForPost(post) == 'flood').length,
@@ -328,16 +338,17 @@ void main() {
         liveCandidates: liveCandidates,
         cacheCandidates: cacheCandidates,
         targetCount: 30,
+        startupVariantOverride: 0,
       );
 
       expect(result, hasLength(30));
       expect(
         result.where((post) => _startupKindForPost(post) == 'flood').length,
-        4,
+        6,
       );
       expect(
         result.where((post) => _startupKindForPost(post) == 'live').length,
-        greaterThanOrEqualTo(8),
+        greaterThanOrEqualTo(6),
       );
       expect(
         result
@@ -347,7 +358,7 @@ void main() {
                   _startupKindForPost(post) == 'cache',
             )
             .length,
-        26,
+        24,
       );
     });
 
@@ -380,6 +391,7 @@ void main() {
         liveItems: liveItems,
         targetCount: 6,
         nowMs: nowMs,
+        startupVariantOverride: 0,
       );
       final expectedHead = service.composeStartupFeedItems(
         liveCandidates: liveItems,
@@ -392,6 +404,7 @@ void main() {
           _readyVideoPost(id: 'cv3'),
         ],
         targetCount: 6,
+        startupVariantOverride: 0,
       );
 
       expect(
@@ -500,4 +513,10 @@ String _startupKindForPost(PostsModel post) {
   if (post.docID.startsWith('fl')) return 'flood';
   if (post.docID.startsWith('tx')) return 'text';
   return 'other';
+}
+
+String _startupSlotKindForPost(PostsModel post) {
+  final kind = _startupKindForPost(post);
+  if (kind == 'live' || kind == 'cache') return 'video';
+  return kind;
 }

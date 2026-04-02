@@ -2,6 +2,14 @@ import 'dart:math';
 
 final int _startupSurfaceOrderSeed = DateTime.now().millisecondsSinceEpoch;
 
+int startupVariantIndexForSurface({
+  required String surfaceKey,
+  int variantCount = 10,
+}) {
+  if (variantCount <= 1) return 0;
+  return Object.hash(surfaceKey, _startupSurfaceOrderSeed).abs() % variantCount;
+}
+
 List<T> reorderForStartupSurface<T>(
   List<T> items, {
   required String surfaceKey,

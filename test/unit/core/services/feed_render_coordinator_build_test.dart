@@ -51,7 +51,26 @@ void main() {
       expect(merged, isEmpty);
     });
 
-    test('lifts self-reshared posts using the reshare action timestamp', () {
+    test('preserves agenda order instead of re-sorting by timestamp', () {
+      final coordinator = FeedRenderCoordinator();
+      final agendaList = <PostsModel>[
+        _post(id: 'first', timeStamp: 100),
+        _post(id: 'second', timeStamp: 900),
+      ];
+
+      final merged = coordinator.buildMergedEntries(
+        agendaList: agendaList,
+        feedReshareEntries: const <Map<String, dynamic>>[],
+        myReshares: const <String, int>{},
+        currentUserId: 'viewer-1',
+      );
+
+      expect(merged, hasLength(2));
+      expect((merged[0]['model'] as PostsModel).docID, 'first');
+      expect((merged[1]['model'] as PostsModel).docID, 'second');
+    });
+
+    test('marks self-reshared posts without reordering agenda sequence', () {
       final coordinator = FeedRenderCoordinator();
       final agendaList = <PostsModel>[
         _post(id: 'older', timeStamp: 100),
@@ -68,10 +87,11 @@ void main() {
       );
 
       expect(merged, hasLength(2));
-      expect((merged.first['model'] as PostsModel).docID, 'mine');
-      expect(merged.first['reshare'], isTrue);
-      expect(merged.first['reshareUserID'], 'viewer-1');
-      expect(merged.first['timestamp'], 600);
+      expect((merged[0]['model'] as PostsModel).docID, 'older');
+      expect((merged[1]['model'] as PostsModel).docID, 'mine');
+      expect(merged[1]['reshare'], isTrue);
+      expect(merged[1]['reshareUserID'], 'viewer-1');
+      expect(merged[1]['timestamp'], 600);
     });
   });
 }
