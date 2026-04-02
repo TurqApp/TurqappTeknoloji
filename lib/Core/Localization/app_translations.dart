@@ -3819,7 +3819,7 @@ class AppTranslations extends Translations {
             'Gönderiler kuyruğa eklendi! Arka planda yüklenecek.',
         'post_creator.queue_title': 'Yükleme Kuyruğu',
         'post_creator.queue_added_body':
-            'Gönderiler arka plan kuyruğuna eklendi',
+            'Gönderiler arka plan kuyruğuna eklendi.',
         'post_creator.queue_add_failed': 'Kuyruk ekleme başarısız',
         'post_creator.photo_with_video_forbidden':
             'Video seçiliyken fotoğraf ekleyemezsiniz. En fazla 1 video seçilebilir.',

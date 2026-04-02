@@ -530,7 +530,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
 
       progressController.complete('post_creator.queue_added_complete'.tr);
       AppSnackbar(
-        'post_creator.queue_title'.tr,
+        '',
         'post_creator.queue_added_body'.tr,
         backgroundColor: Colors.green.withValues(alpha: 0.7),
       );
