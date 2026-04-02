@@ -338,11 +338,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                   ? 'manager_not_ready'
                   : 'manager_not_current',
         );
+        _playbackRuntimeService.requestPlay(
+          playbackHandleKey,
+          HLSAdapterPlaybackHandle(adapter),
+        );
         _recordPlaybackDispatch(
-          'feed_card_manager_play_only_this',
+          'feed_card_adapter_play',
           source: '$source:manager_reclaim',
         );
-        _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+        unawaited(adapter.play());
       } else {
         _recordPlaybackDispatch(
           'feed_card_manager_resume_current',
