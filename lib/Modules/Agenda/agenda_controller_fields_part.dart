@@ -69,6 +69,7 @@ class _AgendaControllerState {
   int feedModeFallbackEpoch = 0;
   bool feedRefreshInFlight = false;
   bool startupPresentationApplied = false;
+  bool startupLiveHeadApplied = false;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -215,4 +216,7 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupPresentationApplied => _state.startupPresentationApplied;
   set _startupPresentationApplied(bool value) =>
       _state.startupPresentationApplied = value;
+  bool get _startupLiveHeadApplied => _state.startupLiveHeadApplied;
+  set _startupLiveHeadApplied(bool value) =>
+      _state.startupLiveHeadApplied = value;
 }

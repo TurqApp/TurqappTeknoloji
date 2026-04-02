@@ -182,6 +182,179 @@ void main() {
         loadingSource,
         contains('_agendaFeedApplicationService.capturePlaybackAnchor'),
       );
+      expect(
+        RegExp(r'composeStartupFeedItems\(')
+            .allMatches(loadingSource)
+            .length,
+        greaterThanOrEqualTo(2),
+      );
+    });
+
+    test('composeStartupFeedItems builds a homogeneous 30-card startup mix',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        12,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          6,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          4,
+          (index) => _textPost(id: 'tx${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+      );
+
+      expect(result, hasLength(30));
+      expect(
+        result.map(_startupKindForPost).toList(growable: false),
+        const <String>[
+          'cache',
+          'cache',
+          'cache',
+          'image',
+          'live',
+          'live',
+          'flood',
+          'cache',
+          'cache',
+          'cache',
+          'text',
+          'live',
+          'live',
+          'image',
+          'cache',
+          'image',
+          'image',
+          'flood',
+          'live',
+          'live',
+          'image',
+          'text',
+          'cache',
+          'image',
+          'live',
+          'flood',
+          'image',
+          'live',
+          'image',
+          'flood',
+        ],
+      );
+    });
+
+    test(
+        'composeStartupFeedItems backfills missing image and text slots with live video first',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        20,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          10,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          2,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+      );
+
+      expect(result, hasLength(30));
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'image'),
+        isEmpty,
+      );
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'text'),
+        isEmpty,
+      );
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'live').length,
+        20,
+      );
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'cache').length,
+        8,
+      );
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'flood').length,
+        2,
+      );
+    });
+
+    test(
+        'composeStartupFeedItems keeps flood count bounded when videos can fill missing slots',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        20,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          20,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+      );
+
+      expect(result, hasLength(30));
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'flood').length,
+        4,
+      );
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'live').length,
+        greaterThanOrEqualTo(8),
+      );
+      expect(
+        result
+            .where(
+              (post) =>
+                  _startupKindForPost(post) == 'live' ||
+                  _startupKindForPost(post) == 'cache',
+            )
+            .length,
+        26,
+      );
     });
   });
 }
@@ -228,4 +401,48 @@ PostsModel _videoPost({
   int timeStamp = 0,
 }) {
   return _post(id: id, timeStamp: timeStamp)..video = 'video-$id.mp4';
+}
+
+PostsModel _readyVideoPost({
+  required String id,
+  int timeStamp = 0,
+}) {
+  return _post(id: id, timeStamp: timeStamp)
+    ..video = 'https://cdn.example.com/$id/master.m3u8'
+    ..hlsMasterUrl = 'https://cdn.example.com/$id/master.m3u8'
+    ..hlsStatus = 'ready'
+    ..thumbnail = 'https://cdn.example.com/$id/thumb.jpg';
+}
+
+PostsModel _imagePost({
+  required String id,
+  int timeStamp = 0,
+}) {
+  return _post(id: id, timeStamp: timeStamp)
+    ..img = <String>['https://cdn.example.com/$id.jpg'];
+}
+
+PostsModel _textPost({
+  required String id,
+  int timeStamp = 0,
+}) {
+  return _post(id: id, timeStamp: timeStamp)..metin = 'text-$id';
+}
+
+PostsModel _floodPost({
+  required String id,
+  int timeStamp = 0,
+}) {
+  return _post(id: id, timeStamp: timeStamp)
+    ..floodCount = 3
+    ..thumbnail = 'https://cdn.example.com/$id-thumb.jpg';
+}
+
+String _startupKindForPost(PostsModel post) {
+  if (post.docID.startsWith('lv')) return 'live';
+  if (post.docID.startsWith('cv')) return 'cache';
+  if (post.docID.startsWith('im')) return 'image';
+  if (post.docID.startsWith('fl')) return 'flood';
+  if (post.docID.startsWith('tx')) return 'text';
+  return 'other';
 }

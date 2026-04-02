@@ -1,17 +1,40 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingCachePart on AgendaController {
+  int _startupSeedLoadLimit(int targetCount) {
+    if (targetCount <= 0) return 0;
+    return 210;
+  }
+
+  List<PostsModel> _composeStartupFeedItems({
+    required List<PostsModel> cacheCandidates,
+    List<PostsModel> liveCandidates = const <PostsModel>[],
+    required int targetCount,
+  }) {
+    if ((cacheCandidates.isEmpty && liveCandidates.isEmpty) ||
+        targetCount <= 0) {
+      return const <PostsModel>[];
+    }
+    _startupPresentationApplied = true;
+    return _agendaFeedApplicationService.composeStartupFeedItems(
+      liveCandidates: liveCandidates,
+      cacheCandidates: cacheCandidates,
+      targetCount: targetCount,
+    );
+  }
+
   List<PostsModel> _applyStartupFeedPresentationOrder(
     List<PostsModel> posts,
   ) {
     if (_startupPresentationApplied || posts.length < 2) {
       return posts;
     }
-    _startupPresentationApplied = true;
-    return reorderForStartupSurface(
-      posts,
-      surfaceKey: 'feed_startup',
-      maxShuffleWindow: FeedSnapshotRepository.startupHomeLimitValue,
+    return _composeStartupFeedItems(
+      cacheCandidates: posts,
+      targetCount: min(
+        posts.length,
+        FeedSnapshotRepository.startupHomeLimitValue,
+      ),
     );
   }
 
@@ -24,6 +47,46 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         agendaList.toList(growable: false),
       ),
     );
+  }
+
+  Future<_AgendaSourcePage?> _loadStartupLiveHeadPage({
+    required int targetCount,
+  }) async {
+    if (!ContentPolicy.isConnected || targetCount <= 0) {
+      return null;
+    }
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cutoffMs = _agendaCutoffMs(nowMs);
+    final liveLimit = min(
+      ReadBudgetRegistry.feedHomeInitialLimitValue,
+      targetCount,
+    );
+    if (liveLimit <= 0) {
+      return null;
+    }
+
+    try {
+      final page = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: liveLimit,
+        useStoredCursor: false,
+        preferCache: false,
+        cacheOnly: false,
+      );
+      final liveHead = page.items.take(liveLimit).toList(growable: false);
+      if (liveHead.isEmpty) {
+        return null;
+      }
+      return _AgendaSourcePage(
+        liveHead,
+        page.lastDoc,
+        page.usesPrimaryFeed,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<Set<String>> _loadStartupFollowingIds(
@@ -67,15 +130,19 @@ extension AgendaControllerLoadingCachePart on AgendaController {
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cutoffMs = _agendaCutoffMs(nowMs);
+    final seedLoadLimit = _startupSeedLoadLimit(effectiveLimit);
     final page = await _loadAgendaSourcePage(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: effectiveLimit,
+      limit: seedLoadLimit,
       useStoredCursor: false,
       preferCache: true,
       cacheOnly: true,
     );
-    final filtered = page.items;
+    final filtered = _composeStartupFeedItems(
+      cacheCandidates: page.items,
+      targetCount: effectiveLimit,
+    );
     if (filtered.isEmpty) return;
     final existingIDs = agendaList.map((e) => e.docID).toSet();
     final toAdd =
@@ -102,13 +169,43 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     if (me.isEmpty) return false;
     final effectiveLimit =
         limit ?? FeedSnapshotRepository.startupHomeLimitValue;
+    final seedLoadLimit = _startupSeedLoadLimit(effectiveLimit);
     final snapshot = await _feedSnapshotRepository.bootstrapHome(
       userId: me,
-      limit: effectiveLimit,
+      limit: seedLoadLimit,
     );
     final hadWarmSnapshot = snapshot.hasLocalSnapshot;
-    final quickFiltered = snapshot.data ?? const <PostsModel>[];
+    final warmSeed = snapshot.data ?? const <PostsModel>[];
+    if (warmSeed.isEmpty) return hadWarmSnapshot;
+
+    final liveHeadPage = await _loadStartupLiveHeadPage(
+      targetCount: effectiveLimit,
+    );
+    final liveHead = liveHeadPage?.items ?? const <PostsModel>[];
+    _startupLiveHeadApplied = liveHead.isNotEmpty;
+
+    final quickFiltered = _composeStartupFeedItems(
+      cacheCandidates: warmSeed,
+      liveCandidates: liveHead,
+      targetCount: effectiveLimit,
+    );
     if (quickFiltered.isEmpty) return hadWarmSnapshot;
+
+    if (_startupLiveHeadApplied && liveHeadPage != null) {
+      final visibleIds = quickFiltered.map((post) => post.docID).toSet();
+      final pendingLiveOverflow = liveHead
+          .where((post) => !visibleIds.contains(post.docID))
+          .toList(growable: false);
+
+      _usePrimaryFeedPaging = liveHeadPage.usesPrimaryFeed;
+      lastDoc = liveHeadPage.lastDoc;
+      if (pendingLiveOverflow.isNotEmpty) {
+        _shuffleCache.replace(pendingLiveOverflow);
+        hasMore.value = true;
+      } else {
+        hasMore.value = liveHeadPage.lastDoc != null;
+      }
+    }
 
     _addUniqueToAgenda(quickFiltered);
     _reorderAgendaForStartupPresentationIfNeeded();
@@ -133,7 +230,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     try {
       final protectVisibleAgenda =
           ContentPolicy.isConnected && agendaList.isNotEmpty;
-      if (protectVisibleAgenda) {
+      if (protectVisibleAgenda && !_startupLiveHeadApplied) {
         try {
           await syncFeedHeadAfterSurfaceOpen();
         } catch (_) {}
@@ -413,6 +510,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final ordered = agendaList.toList(growable: false)
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     return ordered.take(limit).toList(growable: false);
+  }
+
+  List<PostsModel> _buildVisibleAgendaSnapshot({required int limit}) {
+    if (limit <= 0) return const <PostsModel>[];
+    return agendaList.take(limit).toList(growable: false);
   }
 
   List<List<T>> _chunkList<T>(List<T> input, int size) {

@@ -88,6 +88,43 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
+  bool _shouldRecomposeStartupHeadOnInitialBootstrap(
+    List<PostsModel> currentAgenda,
+  ) {
+    return currentAgenda.isNotEmpty &&
+        _startupPresentationApplied &&
+        !_startupLiveHeadApplied;
+  }
+
+  List<PostsModel> _composeInitialBootstrapAgendaWithLiveHead({
+    required List<PostsModel> currentAgenda,
+    required List<PostsModel> liveItems,
+    required int nowMs,
+  }) {
+    final refreshPlan = _agendaFeedApplicationService.buildRefreshPlan(
+      currentItems: currentAgenda,
+      fetchedPosts: liveItems,
+      nowMs: nowMs,
+    );
+    final fetchedById = <String, PostsModel>{
+      for (final post in liveItems) post.docID: post,
+    };
+    final updatedCurrentItems = currentAgenda
+        .map((post) => fetchedById[post.docID] ?? post)
+        .toList(growable: false);
+    final startupHead = _agendaFeedApplicationService.composeStartupFeedItems(
+      liveCandidates: liveItems,
+      cacheCandidates: updatedCurrentItems,
+      targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+    );
+    final startupHeadIds = startupHead.map((post) => post.docID).toSet();
+    return <PostsModel>[
+      ...startupHead,
+      ...refreshPlan.replacementItems
+          .where((post) => !startupHeadIds.contains(post.docID)),
+    ];
+  }
+
   void _performResetSurfaceForTabTransition() {
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
@@ -251,6 +288,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       _usePrimaryFeedPaging = true;
       hasMore.value = true;
       _startupPresentationApplied = false;
+      _startupLiveHeadApplied = false;
       _prefetchedThumbnailPostCount = 0;
       agendaList.clear();
       _shuffleCache.clear();
@@ -271,6 +309,15 @@ extension AgendaControllerLoadingPart on AgendaController {
 
       // Reshare yüklemelerini ilk render sonrasına ertele; launch jank'i azaltır.
       _scheduleInitialReshareMerge();
+
+      if (agendaList.isNotEmpty && _startupLiveHeadApplied) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+            primeInitialCenteredPost();
+          }
+        });
+        return;
+      }
 
       if (agendaList.isNotEmpty &&
           !ContentPolicy.shouldBootstrapNetwork(
@@ -313,9 +360,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       try {
         final nextBatch = _shuffleCache.takeNext(fetchLimit);
         _addUniqueToAgenda(nextBatch);
-        if (!_shuffleCache.hasMore) {
-          hasMore.value = false;
-        }
+        hasMore.value = _shuffleCache.hasMore || lastDoc != null;
       } finally {
         isLoading.value = false;
       }
@@ -353,6 +398,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       final loadLimit = initial
           ? ReadBudgetRegistry.feedLivePageLimit
           : (pageLimit ?? fetchLimit);
+      final currentAgenda = agendaList.toList(growable: false);
       final liveConnected = ContentPolicy.isConnected;
       final shouldPreferCacheOnOpen =
           !liveConnected || (initial && agendaList.isEmpty);
@@ -377,6 +423,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       lastDoc = pageApplyPlan.lastDoc;
 
       if (visibleItems.isNotEmpty) {
+        final shouldRecomposeStartupHead = initial &&
+            _shouldRecomposeStartupHeadOnInitialBootstrap(currentAgenda);
         unawaited(
           _saveFeedPostsToPool(
             visibleItems,
@@ -387,7 +435,24 @@ extension AgendaControllerLoadingPart on AgendaController {
           markHighlighted(pageApplyPlan.freshScheduledIds,
               keepFor: const Duration(milliseconds: 900));
         }
-        if (pageApplyPlan.itemsToAdd.isNotEmpty) {
+        if (shouldRecomposeStartupHead) {
+          final recomposedAgenda = _composeInitialBootstrapAgendaWithLiveHead(
+            currentAgenda: currentAgenda,
+            liveItems: visibleItems,
+            nowMs: nowMs,
+          );
+          agendaList.assignAll(recomposedAgenda);
+          _startupLiveHeadApplied = true;
+          _scheduleInitialFeedVideoPosterWarmup(
+            _initialVisibleVideoWarmupWindow(recomposedAgenda),
+          );
+          if (pageApplyPlan.itemsToAdd.isNotEmpty) {
+            _scheduleReshareFetchForPosts(
+              pageApplyPlan.itemsToAdd,
+              perPostLimit: 1,
+            );
+          }
+        } else if (pageApplyPlan.itemsToAdd.isNotEmpty) {
           _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
           if (initial) {
             _reorderAgendaForStartupPresentationIfNeeded();
@@ -718,7 +783,23 @@ extension AgendaControllerLoadingPart on AgendaController {
         fetchedPosts: page.items,
         nowMs: nowMs,
       );
-      final mergedAgenda = refreshPlan.replacementItems;
+      final fetchedById = <String, PostsModel>{
+        for (final post in page.items) post.docID: post,
+      };
+      final updatedCurrentItems = previousAgenda
+          .map((post) => fetchedById[post.docID] ?? post)
+          .toList(growable: false);
+      final refreshHead = _agendaFeedApplicationService.composeStartupFeedItems(
+        liveCandidates: page.items,
+        cacheCandidates: updatedCurrentItems,
+        targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+      );
+      final refreshHeadIds = refreshHead.map((post) => post.docID).toSet();
+      final mergedAgenda = <PostsModel>[
+        ...refreshHead,
+        ...refreshPlan.replacementItems
+            .where((post) => !refreshHeadIds.contains(post.docID)),
+      ];
       final refreshTargetIndex = mergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
       );

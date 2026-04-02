@@ -20,7 +20,7 @@ extension AgendaControllerSupportPart on AgendaController {
 
   bool _isRenderablePost(PostsModel post) {
     if (!post.hasVideoSignal) return true;
-    return post.hasRenderableVideoCard;
+    return post.hasPlayableVideo;
   }
 
   bool canAutoplayInTests(PostsModel post) => _canAutoplayVideoPost(post);
@@ -187,19 +187,19 @@ extension AgendaControllerPublicApiPart on AgendaController {
     );
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed);
-    if (!allowRefresh || agendaList.isEmpty) return;
+    if (!allowRefresh || agendaList.isEmpty || _startupLiveHeadApplied) return;
     unawaited(syncFeedHeadAfterSurfaceOpen());
   }
 
   Future<void> persistStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
-    final ordered = _buildOrderedAgendaSnapshot(
-      limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+    final visibleStartup = _buildVisibleAgendaSnapshot(
+      limit: FeedSnapshotRepository.startupHomeLimitValue,
     );
     await _persistFeedStartupShardOnly(
       userId: userId,
-      ordered: ordered,
+      ordered: visibleStartup,
       snapshotAt: DateTime.now(),
       source: 'feed_runtime',
     );
@@ -212,10 +212,13 @@ extension AgendaControllerPublicApiPart on AgendaController {
     final ordered = _buildOrderedAgendaSnapshot(
       limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
     );
+    final visibleStartup = _buildVisibleAgendaSnapshot(
+      limit: FeedSnapshotRepository.startupHomeLimitValue,
+    );
     if (ordered.isEmpty) {
       await _persistFeedStartupShardOnly(
         userId: userId,
-        ordered: ordered,
+        ordered: visibleStartup,
         snapshotAt: snapshotAt,
         source: 'none',
       );
@@ -230,7 +233,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     );
     await _persistFeedStartupShardOnly(
       userId: userId,
-      ordered: ordered,
+      ordered: visibleStartup,
       snapshotAt: snapshotAt,
       source: 'feed_runtime',
     );

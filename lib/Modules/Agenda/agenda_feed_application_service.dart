@@ -1,5 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+
+enum _AgendaStartupBucket {
+  cacheVideo,
+  liveVideo,
+  image,
+  flood,
+  text,
+}
 
 class AgendaFeedPageApplyPlan {
   const AgendaFeedPageApplyPlan({
@@ -28,6 +37,49 @@ class AgendaFeedRefreshPlan {
 }
 
 class AgendaFeedApplicationService {
+  static const List<_AgendaStartupBucket> _startupPreferredSlotPlan =
+      <_AgendaStartupBucket>[
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.flood,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.text,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.flood,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.text,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.flood,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.flood,
+  ];
+
+  static const List<_AgendaStartupBucket> _startupGlobalFallbackOrder =
+      <_AgendaStartupBucket>[
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.text,
+    _AgendaStartupBucket.flood,
+  ];
+
   AgendaFeedPageApplyPlan buildPageApplyPlan({
     required List<PostsModel> currentItems,
     required List<PostsModel> pageItems,
@@ -114,6 +166,80 @@ class AgendaFeedApplicationService {
       replacementItems: replacementItems,
       freshScheduledIds: freshScheduledIds,
     );
+  }
+
+  List<PostsModel> composeStartupFeedItems({
+    required List<PostsModel> liveCandidates,
+    required List<PostsModel> cacheCandidates,
+    required int targetCount,
+  }) {
+    if (targetCount <= 0) return const <PostsModel>[];
+
+    final normalizedLive = _dedupePosts(liveCandidates);
+    final normalizedCache = _dedupePosts(cacheCandidates);
+    final orderedCache = reorderForStartupSurface(
+      normalizedCache,
+      surfaceKey: 'feed_startup_cache_pool',
+      maxShuffleWindow: normalizedCache.length,
+    );
+    final buckets = <_AgendaStartupBucket, List<PostsModel>>{
+      _AgendaStartupBucket.cacheVideo: <PostsModel>[],
+      _AgendaStartupBucket.liveVideo: <PostsModel>[],
+      _AgendaStartupBucket.image: <PostsModel>[],
+      _AgendaStartupBucket.flood: <PostsModel>[],
+      _AgendaStartupBucket.text: <PostsModel>[],
+    };
+    final seenIds = <String>{};
+    for (final post in normalizedLive) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenIds.add(docId)) continue;
+      final bucket = _resolveStartupBucket(post, isLiveCandidate: true);
+      if (bucket == null) continue;
+      buckets[bucket]!.add(post);
+    }
+    for (final post in orderedCache) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenIds.add(docId)) continue;
+      final bucket = _resolveStartupBucket(post, isLiveCandidate: false);
+      if (bucket == null) continue;
+      buckets[bucket]!.add(post);
+    }
+
+    final slotPlan = _startupPreferredSlotPlan.take(targetCount).toList();
+    final cursorByBucket = <_AgendaStartupBucket, int>{
+      _AgendaStartupBucket.cacheVideo: 0,
+      _AgendaStartupBucket.liveVideo: 0,
+      _AgendaStartupBucket.image: 0,
+      _AgendaStartupBucket.flood: 0,
+      _AgendaStartupBucket.text: 0,
+    };
+
+    final output = <PostsModel>[];
+    for (final desiredBucket in slotPlan) {
+      final selectedBucket = _selectStartupBucketForSlot(
+        desiredBucket,
+        buckets,
+        cursorByBucket,
+      );
+      if (selectedBucket == null) continue;
+      final cursor = cursorByBucket[selectedBucket] ?? 0;
+      output.add(buckets[selectedBucket]![cursor]);
+      cursorByBucket[selectedBucket] = cursor + 1;
+      if (output.length >= targetCount) break;
+    }
+
+    while (output.length < targetCount) {
+      final selectedBucket = _selectFallbackStartupBucket(
+        buckets,
+        cursorByBucket,
+      );
+      if (selectedBucket == null) break;
+      final cursor = cursorByBucket[selectedBucket] ?? 0;
+      output.add(buckets[selectedBucket]![cursor]);
+      cursorByBucket[selectedBucket] = cursor + 1;
+    }
+
+    return output.take(targetCount).toList(growable: false);
   }
 
   String? capturePlaybackAnchor({
@@ -205,5 +331,113 @@ class AgendaFeedApplicationService {
     final pendingDocId = pendingCenteredDocId?.trim() ?? '';
     if (pendingDocId.isEmpty) return -1;
     return agendaList.indexWhere((post) => post.docID == pendingDocId);
+  }
+
+  _AgendaStartupBucket? _resolveStartupBucket(
+    PostsModel post, {
+    required bool isLiveCandidate,
+  }) {
+    if (post.isFloodSeriesRoot) {
+      return _AgendaStartupBucket.flood;
+    }
+    if (post.hasPlayableVideo) {
+      return isLiveCandidate
+          ? _AgendaStartupBucket.liveVideo
+          : _AgendaStartupBucket.cacheVideo;
+    }
+    if (!post.hasVideoSignal && post.hasImageContent) {
+      return _AgendaStartupBucket.image;
+    }
+    if (!post.hasVideoSignal && !post.hasImageContent && post.hasTextContent) {
+      return _AgendaStartupBucket.text;
+    }
+    return null;
+  }
+
+  _AgendaStartupBucket? _selectStartupBucketForSlot(
+    _AgendaStartupBucket desiredBucket,
+    Map<_AgendaStartupBucket, List<PostsModel>> buckets,
+    Map<_AgendaStartupBucket, int> cursorByBucket,
+  ) {
+    for (final bucket in _startupSlotFallbackOrder(desiredBucket)) {
+      final cursor = cursorByBucket[bucket] ?? 0;
+      final items = buckets[bucket]!;
+      if (cursor < items.length) {
+        return bucket;
+      }
+    }
+    return null;
+  }
+
+  _AgendaStartupBucket? _selectFallbackStartupBucket(
+    Map<_AgendaStartupBucket, List<PostsModel>> buckets,
+    Map<_AgendaStartupBucket, int> cursorByBucket,
+  ) {
+    for (final bucket in _startupGlobalFallbackOrder) {
+      final cursor = cursorByBucket[bucket] ?? 0;
+      final items = buckets[bucket]!;
+      if (cursor < items.length) {
+        return bucket;
+      }
+    }
+    return null;
+  }
+
+  List<_AgendaStartupBucket> _startupSlotFallbackOrder(
+    _AgendaStartupBucket desiredBucket,
+  ) {
+    switch (desiredBucket) {
+      case _AgendaStartupBucket.cacheVideo:
+        return const <_AgendaStartupBucket>[
+          _AgendaStartupBucket.cacheVideo,
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.image,
+          _AgendaStartupBucket.text,
+          _AgendaStartupBucket.flood,
+        ];
+      case _AgendaStartupBucket.liveVideo:
+        return const <_AgendaStartupBucket>[
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+          _AgendaStartupBucket.image,
+          _AgendaStartupBucket.text,
+          _AgendaStartupBucket.flood,
+        ];
+      case _AgendaStartupBucket.image:
+        return const <_AgendaStartupBucket>[
+          _AgendaStartupBucket.image,
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+          _AgendaStartupBucket.text,
+          _AgendaStartupBucket.flood,
+        ];
+      case _AgendaStartupBucket.flood:
+        return const <_AgendaStartupBucket>[
+          _AgendaStartupBucket.flood,
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+          _AgendaStartupBucket.image,
+          _AgendaStartupBucket.text,
+        ];
+      case _AgendaStartupBucket.text:
+        return const <_AgendaStartupBucket>[
+          _AgendaStartupBucket.text,
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+          _AgendaStartupBucket.image,
+          _AgendaStartupBucket.flood,
+        ];
+    }
+  }
+
+  List<PostsModel> _dedupePosts(List<PostsModel> posts) {
+    final seenIds = <String>{};
+    final output = <PostsModel>[];
+    for (final post in posts) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenIds.add(docId)) continue;
+      output.add(post);
+    }
+    return output;
   }
 }
