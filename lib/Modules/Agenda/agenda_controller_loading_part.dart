@@ -608,26 +608,16 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     final currentAgenda = agendaList.toList(growable: false);
-    final existingIds = currentAgenda.map((post) => post.docID).toSet();
-    final added = visibleItems
-        .where((post) => !existingIds.contains(post.docID))
+    final fetchedById = <String, PostsModel>{
+      for (final post in visibleItems) post.docID: post,
+    };
+    final mergedAgenda = currentAgenda
+        .map((post) => fetchedById[post.docID] ?? post)
         .toList(growable: false);
-    final refreshPlan = _agendaFeedApplicationService.buildRefreshPlan(
-      currentItems: currentAgenda,
-      fetchedPosts: visibleItems,
-      nowMs: nowMs,
-    );
-    final mergedAgenda = refreshPlan.replacementItems;
     agendaList.assignAll(mergedAgenda);
-    _reorderAgendaForStartupPresentationIfNeeded();
     _scheduleInitialFeedVideoPosterWarmup(visibleItems);
     if (playbackAnchor != null && playbackAnchor.isNotEmpty) {
       _pendingCenteredDocId = playbackAnchor;
-    }
-
-    if (added.isNotEmpty) {
-      _scheduleFeedPrefetch();
-      _scheduleReshareFetchForPosts(added, perPostLimit: 1);
     }
 
     if (playbackAnchor != null &&

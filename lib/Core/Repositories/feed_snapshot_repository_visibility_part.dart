@@ -154,7 +154,7 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
   bool _isRenderablePost(PostsModel post) {
     if (post.isCompletelyEmptyPost) return false;
     if (!post.hasVideoSignal) return true;
-    return post.hasRenderableVideoCard;
+    return post.hasPlayableVideo;
   }
 
   bool _isInAgendaWindow(int timeStamp, int nowMs, int cutoffMs) {
