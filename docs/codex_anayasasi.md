@@ -93,6 +93,15 @@ Her zaman su formatta cevap ver:
 4. Calistirma Komutu
 5. Kapsam Notu
 
+Her is kapanisinda, yukaridaki 5 ana basliga ek olarak zorunlu bir review
+ozeti de verilir. Bu review ozeti yalnizca yapilan ise odaklanir ve su sabit
+formatla yazilir:
+
+- Sonuc: Dogru / Kismen / Hatali
+- Bulunan sorunlar
+- Firebase maliyet etkisi
+- Merge oncesi duzeltilmesi gerekenler
+
 ## Guvenlik ve Hata Onleme
 
 - Emin degilsen kod yazma.
