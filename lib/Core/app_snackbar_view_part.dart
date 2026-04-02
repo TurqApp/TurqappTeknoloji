@@ -97,10 +97,13 @@ void AppSnackbar(
               child: Text.rich(
                 TextSpan(
                   children: [
-                    TextSpan(text: normalizedTitle, style: mergedTitleStyle),
+                    if (normalizedTitle.isNotEmpty)
+                      TextSpan(text: normalizedTitle, style: mergedTitleStyle),
                     if (normalizedMessage.isNotEmpty)
                       TextSpan(
-                        text: '  $normalizedMessage',
+                        text: normalizedTitle.isNotEmpty
+                            ? '  $normalizedMessage'
+                            : normalizedMessage,
                         style: mergedMessageStyle,
                       ),
                   ],

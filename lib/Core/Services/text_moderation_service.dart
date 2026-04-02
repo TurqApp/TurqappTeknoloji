@@ -22,7 +22,7 @@ class TextModerationService {
     if (blockedMatch == null) return true;
     final blockedWord = blockedMatch.displayValue.replaceAll('"', "'");
     AppSnackbar(
-      'comments.community_violation_title'.tr,
+      '',
       'comments.community_violation_body_with_word'.trParams({
         'word': blockedWord,
       }),

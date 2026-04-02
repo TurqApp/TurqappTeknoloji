@@ -154,6 +154,9 @@ _AppSnackbarPalette _resolvePalette({
     'autorisation',
     'permesso',
     'разрешение',
+    'topluluk kurall',
+    'community rules',
+    'community-regeln',
     'eksik',
     'missing',
   ].map(normalizeLowercase).toList();

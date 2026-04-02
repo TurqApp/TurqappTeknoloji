@@ -156,7 +156,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         if (blockedMatch != null) {
           final blockedWord = blockedMatch.displayValue.replaceAll('"', "'");
           _showModerationSnackbarOnce(
-            'comments.community_violation_title'.tr,
+            '',
             'comments.community_violation_body_with_word'.trParams({
               'word': blockedWord,
             }),
