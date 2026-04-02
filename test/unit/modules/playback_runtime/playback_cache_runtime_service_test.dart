@@ -1,12 +1,21 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/hls_segment_policy.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/models.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 
 void main() {
+  setUp(() {
+    HlsSegmentPolicy.debugReset();
+    HlsSegmentPolicy.debugSetSegments(
+      firstSegmentSeconds: 2,
+      nextSegmentSeconds: 6,
+    );
+  });
+
   test('playback runtime service preserves exclusive lifecycle semantics',
       () async {
     final manager = VideoStateManager();
@@ -265,9 +274,10 @@ void main() {
       lookBehind: 2,
     );
     service.updateWatchProgress('doc-c', 0.6);
-    service.ensureNextSegmentReady('doc-c', 0.21);
-    service.ensureNextSegmentReady('doc-c', 0.40);
-    service.ensureNextSegmentReady('doc-c', 0.80);
+    service.ensureNextSegmentReady('doc-c', 0.03, positionSeconds: 1.0);
+    service.ensureNextSegmentReady('doc-c', 0.15, positionSeconds: 4.0);
+    service.ensureNextSegmentReady('doc-c', 0.38, positionSeconds: 10.0);
+    service.ensureNextSegmentReady('doc-c', 0.84, positionSeconds: 22.0);
 
     expect(marked, <String>['doc-c']);
     expect(touched, isEmpty);
@@ -289,6 +299,7 @@ void main() {
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/Common/post_content_base.dart',
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view.dart',
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/single_short_view.dart',
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Story/StoryViewer/story_video_widget.dart',
     ];
     final boundaryFiles = <String>{
       ...playbackLibraryFiles,

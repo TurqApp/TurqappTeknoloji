@@ -39,16 +39,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
     }
   }
 
-  void _boostShortSegments(int page) {
-    if (page < 0 || page >= _cachedShorts.length) return;
-    try {
-      ensurePrefetchScheduler().boostDoc(
-        _cachedShorts[page].docID,
-        readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
-      );
-    } catch (_) {}
-  }
-
   bool _hasRenderableListChanged(
     List<PostsModel> previous,
     List<PostsModel> next,
@@ -344,7 +334,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
           },
         );
         _applyShortPlaybackPresentation(page, vc);
-        _boostShortSegments(page);
         final shouldGate = !_autoplaySegmentGateTimedOut &&
             vc.value.position <= Duration.zero &&
             !vc.value.isPlaying &&
@@ -589,6 +578,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _segmentCacheRuntimeService.ensureNextSegmentReady(
           videoId,
           (pos / dur).clamp(0.0, 1.0),
+          positionSeconds: pos,
         );
       } catch (_) {}
     }

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+import 'hls_segment_policy.dart';
 import 'm3u8_parser.dart';
 
 part 'hls_data_usage_probe_class_part.dart';

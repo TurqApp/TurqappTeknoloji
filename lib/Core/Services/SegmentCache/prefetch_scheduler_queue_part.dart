@@ -2,7 +2,7 @@ part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   void focusDoc(String? docID) {
-    final normalized = docID?.trim();
+    final normalized = HlsSegmentPolicy.normalizeDocId(docID);
     _restrictToFocusedDoc = true;
     _focusedDocID =
         normalized == null || normalized.isEmpty ? null : normalized;
@@ -349,15 +349,17 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   }) {
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
-    if (docID.trim().isEmpty) return;
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalizedDocId == null || normalizedDocId.isEmpty) return;
     if (_restrictToFocusedDoc &&
         _focusedDocID != null &&
-        _focusedDocID != docID.trim()) {
+        _focusedDocID != normalizedDocId) {
       return;
     }
 
     _mobileSeedMode = _shouldEnableMobileSeedMode(
-      docIDs: _lastFeedDocIDs.isEmpty ? <String>[docID] : _lastFeedDocIDs,
+      docIDs:
+          _lastFeedDocIDs.isEmpty ? <String>[normalizedDocId] : _lastFeedDocIDs,
       cacheManager: cacheManager,
     );
 
@@ -367,9 +369,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
     _paused = false;
 
-    final entry = cacheManager.getEntry(docID);
+    final entry = cacheManager.getEntry(normalizedDocId);
     final resolvedReadySegments = _resolvedReadySegmentTarget(
-      docID: docID,
+      docID: normalizedDocId,
       cacheManager: cacheManager,
       fallback: readySegments,
     );
@@ -377,19 +379,19 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       return;
     }
 
-    _queue.removeWhere((job) => job.docID == docID);
-    _pendingFollowUpJobs.remove(docID);
+    _queue.removeWhere((job) => job.docID == normalizedDocId);
+    _pendingFollowUpJobs.remove(normalizedDocId);
     _queue.add(
       _PrefetchJob(
-        docID,
+        normalizedDocId,
         resolvedReadySegments,
         -1,
         (1000000 + resolvedReadySegments - (entry?.cachedSegmentCount ?? 0))
             .toDouble(),
       ),
     );
-    _jobEnqueuedAt[docID] = DateTime.now();
-    cacheManager.touchEntry(docID);
+    _jobEnqueuedAt[normalizedDocId] = DateTime.now();
+    cacheManager.touchEntry(normalizedDocId);
     _queue.sort(_compareJobs);
     _publishPrefetchHealthIfNeeded();
     _processQueue();
@@ -594,8 +596,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required double watchProgress,
     required int totalSegments,
   }) {
-    final p = watchProgress.clamp(0.0, 1.0);
-    final raw = (p * totalSegments).ceil();
-    return raw.clamp(1, totalSegments);
+    return HlsSegmentPolicy.estimateCurrentSegmentFromProgress(
+      progress: watchProgress,
+      totalSegments: totalSegments,
+    );
   }
 }

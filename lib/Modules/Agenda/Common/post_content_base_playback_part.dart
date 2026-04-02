@@ -11,17 +11,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   bool get _hasReadyAutoplaySegment => cachedSegmentCountForCurrentVideo >= 1;
 
-  void _boostAutoplaySegments({int? readySegments}) {
-    try {
-      final resolvedReadySegments =
-          readySegments ?? SegmentCacheRuntimeService.globalReadySegmentCount;
-      ensurePrefetchScheduler().boostDoc(
-        widget.model.docID,
-        readySegments: resolvedReadySegments,
-      );
-    } catch (_) {}
-  }
-
   bool _shouldDelayAutoplayForSegments(HLSVideoAdapter adapter) {
     if (!widget.model.hasPlayableVideo) return false;
     if (!widget.shouldPlay) return false;
@@ -49,7 +38,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     final adapter = _videoAdapter;
     if (adapter == null) return;
-    _boostAutoplaySegments();
     if (!_shouldDelayAutoplayForSegments(adapter)) {
       _resetAutoplaySegmentGate();
       _startPlayback(source: source);
@@ -247,7 +235,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
 
-    _boostAutoplaySegments();
     final adapter = _videoAdapter;
     if (adapter == null) {
       _recordPlaybackDispatch(

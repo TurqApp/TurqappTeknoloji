@@ -116,6 +116,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                                 return StoryVideoWidget(
                                   key: ValueKey(
                                       'vid_${element.content}_${currentStory.id}'),
+                                  storyId: currentStory.id,
                                   element: element,
                                   maxDuration: const Duration(seconds: 60),
                                   paused: _isHoldPaused,

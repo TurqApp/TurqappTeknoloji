@@ -134,6 +134,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool isFirstLaunch,
   }) async {
     try {
+      unawaited(HlsSegmentPolicy.refresh());
       final onWiFi = _isOnWiFiNow();
       final storyController = maybeFindStoryRowController();
       final agendaController = ensureAgendaController();
@@ -205,8 +206,7 @@ extension _SplashViewWarmPart on _SplashViewState {
               ProfileController.maybeFind() ?? ProfileController.ensure();
           await profileController
               .prepareStartupSurface(
-                allowBackgroundRefresh:
-                    ContentPolicy.allowBackgroundRefresh(
+                allowBackgroundRefresh: ContentPolicy.allowBackgroundRefresh(
                   ContentScreenKind.profile,
                 ),
               )
@@ -231,8 +231,7 @@ extension _SplashViewWarmPart on _SplashViewState {
               maybeFindExploreController() ?? ensureExploreController();
           await exploreController
               .prepareStartupSurface(
-                allowBackgroundRefresh:
-                    ContentPolicy.allowBackgroundRefresh(
+                allowBackgroundRefresh: ContentPolicy.allowBackgroundRefresh(
                   ContentScreenKind.explore,
                 ),
               )

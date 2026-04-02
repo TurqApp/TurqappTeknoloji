@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'package:turqappv2/hls_player/hls_player_module.dart'; // ✅ HLS PLAYER
 import '../StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/main.dart';
 
 class StoryVideoWidget extends StatefulWidget {
+  final String storyId;
   final StoryElement element;
   final Function(Duration actualDuration) onStarted;
   final VoidCallback onEnded;
@@ -14,6 +16,7 @@ class StoryVideoWidget extends StatefulWidget {
 
   const StoryVideoWidget({
     super.key,
+    required this.storyId,
     required this.element,
     required this.onStarted,
     required this.onEnded,
@@ -27,6 +30,8 @@ class StoryVideoWidget extends StatefulWidget {
 
 class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   final HLSController _hlsController = HLSController(); // ✅ HLS CONTROLLER
+  final SegmentCacheRuntimeService _segmentCacheRuntimeService =
+      const SegmentCacheRuntimeService();
 
   bool _notifiedStarted = false;
   bool _notifiedEnded = false;
@@ -34,6 +39,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   bool _routePaused = false;
   Timer? _maxTimer;
   StreamSubscription? _hlsStateSub;
+  StreamSubscription<Duration>? _hlsPositionSub;
 
   bool get _effectivePaused => widget.paused || _routePaused;
 
@@ -54,6 +60,27 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       } else if (state == PlayerState.completed) {
         _onHLSEnded();
       }
+    });
+    _hlsPositionSub = _hlsController.onPositionChanged.listen((position) {
+      if (!mounted) return;
+      final durationSeconds = _hlsController.duration;
+      if (!durationSeconds.isFinite || durationSeconds <= 0) return;
+      final positionSeconds = position.inMilliseconds / 1000.0;
+      final progress = (positionSeconds / durationSeconds).clamp(0.0, 1.0);
+      if (progress <= 0) return;
+      try {
+        _segmentCacheRuntimeService.ensureNextSegmentReady(
+          widget.storyId,
+          progress,
+          positionSeconds: positionSeconds,
+        );
+      } catch (_) {}
+      try {
+        _segmentCacheRuntimeService.updateWatchProgress(
+          widget.storyId,
+          progress,
+        );
+      } catch (_) {}
     });
   }
 
@@ -102,6 +129,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   void dispose() {
     routeObserver.unsubscribe(this);
     _hlsStateSub?.cancel();
+    _hlsPositionSub?.cancel();
     _hlsController.dispose();
     _maxTimer?.cancel();
     super.dispose();

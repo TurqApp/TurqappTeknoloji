@@ -265,6 +265,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         _segmentCacheRuntimeService.ensureNextSegmentReady(
           docId,
           progress,
+          positionSeconds: pos,
         );
       } catch (_) {}
       final now = DateTime.now();

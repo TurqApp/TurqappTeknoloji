@@ -1,4 +1,5 @@
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/hls_segment_policy.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/models.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
@@ -304,31 +305,45 @@ class SegmentCacheRuntimeService {
     String docId,
     double progress, {
     int lookAheadSegments = globalWatchLookAheadSegments,
+    double? positionSeconds,
   }) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return;
     final normalized = progress.clamp(0.0, 1.0);
     if (normalized <= 0) return;
-    final entry = _readEntry(docId);
+    final entry = _readEntry(normalizedDocId);
     if (entry == null) return;
 
     final totalSegmentCount = entry.totalSegmentCount;
     if (totalSegmentCount <= 1) return;
 
-    final currentSegment = _estimateCurrentSegment(
-      progress: normalized,
-      totalSegments: totalSegmentCount,
-    );
+    final currentSegment = positionSeconds != null
+        ? HlsSegmentPolicy.estimateCurrentSegment(
+            positionSeconds: positionSeconds,
+            totalSegments: totalSegmentCount,
+          )
+        : _estimateCurrentSegment(
+            progress: normalized,
+            totalSegments: totalSegmentCount,
+          );
+    if (positionSeconds != null &&
+        !HlsSegmentPolicy.hasReachedWatchIntent(positionSeconds)) {
+      return;
+    }
     final targetReadySegments =
         (currentSegment + lookAheadSegments).clamp(1, totalSegmentCount);
 
     if (entry.cachedSegmentCount >= targetReadySegments) {
-      final lastRequested = _lastRequestedReadySegmentsByDoc[docId] ?? 0;
+      final lastRequested =
+          _lastRequestedReadySegmentsByDoc[normalizedDocId] ?? 0;
       if (lastRequested <= entry.cachedSegmentCount) {
-        _lastRequestedReadySegmentsByDoc.remove(docId);
+        _lastRequestedReadySegmentsByDoc.remove(normalizedDocId);
       }
       return;
     }
 
-    final lastRequested = _lastRequestedReadySegmentsByDoc[docId] ?? 0;
+    final lastRequested =
+        _lastRequestedReadySegmentsByDoc[normalizedDocId] ?? 0;
     if (targetReadySegments <= lastRequested &&
         lastRequested > entry.cachedSegmentCount) {
       return;
@@ -336,14 +351,14 @@ class SegmentCacheRuntimeService {
 
     final boostAction = boostReadySegmentsAction;
     if (boostAction != null) {
-      _lastRequestedReadySegmentsByDoc[docId] = targetReadySegments;
-      boostAction(docId, targetReadySegments);
+      _lastRequestedReadySegmentsByDoc[normalizedDocId] = targetReadySegments;
+      boostAction(normalizedDocId, targetReadySegments);
       return;
     }
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler == null) return;
-    _lastRequestedReadySegmentsByDoc[docId] = targetReadySegments;
-    scheduler.boostDoc(docId, readySegments: targetReadySegments);
+    _lastRequestedReadySegmentsByDoc[normalizedDocId] = targetReadySegments;
+    scheduler.boostDoc(normalizedDocId, readySegments: targetReadySegments);
   }
 
   void markPlayingAndTouchRecent(
@@ -367,7 +382,9 @@ class SegmentCacheRuntimeService {
     required double progress,
     required int totalSegments,
   }) {
-    final raw = (progress * totalSegments).ceil();
-    return raw.clamp(1, totalSegments);
+    return HlsSegmentPolicy.estimateCurrentSegmentFromProgress(
+      progress: progress,
+      totalSegments: totalSegments,
+    );
   }
 }

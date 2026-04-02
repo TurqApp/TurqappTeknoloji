@@ -243,6 +243,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           _segmentCacheRuntimeService.ensureNextSegmentReady(
             widget.model.docID,
             progress,
+            positionSeconds: v.position.inMilliseconds / 1000.0,
           );
         } catch (_) {}
         try {

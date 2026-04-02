@@ -60,8 +60,22 @@ extension HlsDataUsageProbeSnapshotPart on HlsDataUsageProbe {
       anomalies.add(
           'Off-screen parallel HLS downloads too high: $_peakOffscreenParallelDownloads');
     }
+    final expectedMinSegmentDuration = math.max(
+      0.2,
+      math.min(
+            HlsSegmentPolicy.firstSegmentSeconds.toDouble(),
+            HlsSegmentPolicy.nextSegmentSeconds.toDouble(),
+          ) -
+          0.8,
+    );
+    final expectedMaxSegmentDuration = math.max(
+          HlsSegmentPolicy.firstSegmentSeconds.toDouble(),
+          HlsSegmentPolicy.nextSegmentSeconds.toDouble(),
+        ) +
+        0.8;
     for (final doc in topDocs.take(5)) {
-      if (doc.maxSegmentDurationSec > 3.2 || doc.minSegmentDurationSec < 0.8) {
+      if (doc.maxSegmentDurationSec > expectedMaxSegmentDuration ||
+          doc.minSegmentDurationSec < expectedMinSegmentDuration) {
         anomalies.add(
           'Unexpected segment duration window for ${doc.docId}: '
           '${doc.minSegmentDurationSec.toStringAsFixed(2)}-${doc.maxSegmentDurationSec.toStringAsFixed(2)}s',

@@ -19,16 +19,6 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     }
   }
 
-  void _boostSingleShortSegments(int index) {
-    if (index < 0 || index >= shorts.length) return;
-    try {
-      ensurePrefetchScheduler().boostDoc(
-        shorts[index].docID,
-        readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
-      );
-    } catch (_) {}
-  }
-
   Future<void> _playSingleShortWhenReady(
     int index,
     HLSVideoAdapter ctrl, {
@@ -37,7 +27,6 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     if (!mounted || ctrl.isDisposed || index < 0 || index >= shorts.length) {
       return;
     }
-    _boostSingleShortSegments(index);
     final shouldGate = !_autoplaySegmentGateTimedOut &&
         ctrl.value.position <= Duration.zero &&
         !ctrl.value.isPlaying &&
