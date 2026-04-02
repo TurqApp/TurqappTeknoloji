@@ -9,6 +9,7 @@ import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 
 import 'e2e_progress_tracker.dart';
 import 'native_exoplayer_probe.dart';
+import 'route_replay.dart';
 import 'smoke_artifact_collector.dart';
 import '../bootstrap/test_app_bootstrap.dart';
 
@@ -101,6 +102,7 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'profile', () async {
+        prepareProfileShellRouteReplay();
         await pressItKey(tester, IntegrationTestKeys.navProfile);
         await _ensureProfileScreen(tester);
         expect(

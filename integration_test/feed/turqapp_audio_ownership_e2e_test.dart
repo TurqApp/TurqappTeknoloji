@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 
 import '../core/helpers/native_exoplayer_probe.dart';
+import '../core/helpers/route_replay.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
 
 void _phase(String label) {
@@ -71,6 +72,7 @@ void main() {
       );
 
       _phase('profile');
+      prepareProfileShellRouteReplay();
       await _tapAndAssertQuiet(
         tester,
         IntegrationTestKeys.navProfile,

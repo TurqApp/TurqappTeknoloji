@@ -80,9 +80,10 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      slivers: const [
-        SliverToBoxAdapter(
-          child: SizedBox(height: 1),
+      slivers: [
+        SliverToBoxAdapter(child: header()),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 50),
         ),
       ],
     );
