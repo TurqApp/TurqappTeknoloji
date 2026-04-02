@@ -96,35 +96,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         !_startupLiveHeadApplied;
   }
 
-  List<PostsModel> _composeInitialBootstrapAgendaWithLiveHead({
-    required List<PostsModel> currentAgenda,
-    required List<PostsModel> liveItems,
-    required int nowMs,
-  }) {
-    final refreshPlan = _agendaFeedApplicationService.buildRefreshPlan(
-      currentItems: currentAgenda,
-      fetchedPosts: liveItems,
-      nowMs: nowMs,
-    );
-    final fetchedById = <String, PostsModel>{
-      for (final post in liveItems) post.docID: post,
-    };
-    final updatedCurrentItems = currentAgenda
-        .map((post) => fetchedById[post.docID] ?? post)
-        .toList(growable: false);
-    final startupHead = _agendaFeedApplicationService.composeStartupFeedItems(
-      liveCandidates: liveItems,
-      cacheCandidates: updatedCurrentItems,
-      targetCount: FeedSnapshotRepository.startupHomeLimitValue,
-    );
-    final startupHeadIds = startupHead.map((post) => post.docID).toSet();
-    return <PostsModel>[
-      ...startupHead,
-      ...refreshPlan.replacementItems
-          .where((post) => !startupHeadIds.contains(post.docID)),
-    ];
-  }
-
   void _performResetSurfaceForTabTransition() {
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
@@ -436,9 +407,11 @@ extension AgendaControllerLoadingPart on AgendaController {
               keepFor: const Duration(milliseconds: 900));
         }
         if (shouldRecomposeStartupHead) {
-          final recomposedAgenda = _composeInitialBootstrapAgendaWithLiveHead(
-            currentAgenda: currentAgenda,
+          final recomposedAgenda = _agendaFeedApplicationService
+              .mergeStartupHeadWithCurrentItems(
+            currentItems: currentAgenda,
             liveItems: visibleItems,
+            targetCount: FeedSnapshotRepository.startupHomeLimitValue,
             nowMs: nowMs,
           );
           agendaList.assignAll(recomposedAgenda);
@@ -783,23 +756,13 @@ extension AgendaControllerLoadingPart on AgendaController {
         fetchedPosts: page.items,
         nowMs: nowMs,
       );
-      final fetchedById = <String, PostsModel>{
-        for (final post in page.items) post.docID: post,
-      };
-      final updatedCurrentItems = previousAgenda
-          .map((post) => fetchedById[post.docID] ?? post)
-          .toList(growable: false);
-      final refreshHead = _agendaFeedApplicationService.composeStartupFeedItems(
-        liveCandidates: page.items,
-        cacheCandidates: updatedCurrentItems,
+      final mergedAgenda =
+          _agendaFeedApplicationService.mergeStartupHeadWithCurrentItems(
+        currentItems: previousAgenda,
+        liveItems: page.items,
         targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+        nowMs: nowMs,
       );
-      final refreshHeadIds = refreshHead.map((post) => post.docID).toSet();
-      final mergedAgenda = <PostsModel>[
-        ...refreshHead,
-        ...refreshPlan.replacementItems
-            .where((post) => !refreshHeadIds.contains(post.docID)),
-      ];
       final refreshTargetIndex = mergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
       );

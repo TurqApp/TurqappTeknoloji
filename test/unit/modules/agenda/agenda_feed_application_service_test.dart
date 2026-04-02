@@ -182,12 +182,6 @@ void main() {
         loadingSource,
         contains('_agendaFeedApplicationService.capturePlaybackAnchor'),
       );
-      expect(
-        RegExp(r'composeStartupFeedItems\(')
-            .allMatches(loadingSource)
-            .length,
-        greaterThanOrEqualTo(2),
-      );
     });
 
     test('composeStartupFeedItems builds a homogeneous 30-card startup mix',
@@ -354,6 +348,67 @@ void main() {
             )
             .length,
         26,
+      );
+    });
+
+    test(
+        'mergeStartupHeadWithCurrentItems keeps mixed startup head and preserves unique tail items',
+        () {
+      final service = AgendaFeedApplicationService();
+      final nowMs = DateTime(2026, 4, 2, 15).millisecondsSinceEpoch;
+
+      final currentItems = <PostsModel>[
+        _readyVideoPost(id: 'cv1'),
+        _readyVideoPost(id: 'cv2'),
+        _imagePost(id: 'im1'),
+        _textPost(id: 'tx1'),
+        _floodPost(id: 'fl1'),
+        _readyVideoPost(id: 'cv3'),
+      ];
+      final updatedCv2 = _readyVideoPost(
+        id: 'cv2',
+        timeStamp: nowMs - const Duration(minutes: 1).inMilliseconds,
+      );
+      final liveItems = <PostsModel>[
+        _readyVideoPost(id: 'lv1'),
+        _readyVideoPost(id: 'lv2'),
+        updatedCv2,
+      ];
+
+      final merged = service.mergeStartupHeadWithCurrentItems(
+        currentItems: currentItems,
+        liveItems: liveItems,
+        targetCount: 6,
+        nowMs: nowMs,
+      );
+      final expectedHead = service.composeStartupFeedItems(
+        liveCandidates: liveItems,
+        cacheCandidates: <PostsModel>[
+          _readyVideoPost(id: 'cv1'),
+          updatedCv2,
+          _imagePost(id: 'im1'),
+          _textPost(id: 'tx1'),
+          _floodPost(id: 'fl1'),
+          _readyVideoPost(id: 'cv3'),
+        ],
+        targetCount: 6,
+      );
+
+      expect(
+        merged.take(6).map((post) => post.docID).toList(growable: false),
+        expectedHead.map((post) => post.docID).toList(growable: false),
+      );
+      expect(
+        merged.map((post) => post.docID).toSet().length,
+        merged.length,
+      );
+      expect(
+        merged.firstWhere((post) => post.docID == 'cv2').timeStamp,
+        updatedCv2.timeStamp,
+      );
+      expect(
+        merged.any((post) => post.docID == 'tx1'),
+        isTrue,
       );
     });
   });

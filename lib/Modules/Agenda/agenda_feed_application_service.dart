@@ -242,6 +242,36 @@ class AgendaFeedApplicationService {
     return output.take(targetCount).toList(growable: false);
   }
 
+  List<PostsModel> mergeStartupHeadWithCurrentItems({
+    required List<PostsModel> currentItems,
+    required List<PostsModel> liveItems,
+    required int targetCount,
+    required int nowMs,
+  }) {
+    final refreshPlan = buildRefreshPlan(
+      currentItems: currentItems,
+      fetchedPosts: liveItems,
+      nowMs: nowMs,
+    );
+    final fetchedById = <String, PostsModel>{
+      for (final post in liveItems) post.docID: post,
+    };
+    final updatedCurrentItems = currentItems
+        .map((post) => fetchedById[post.docID] ?? post)
+        .toList(growable: false);
+    final startupHead = composeStartupFeedItems(
+      liveCandidates: liveItems,
+      cacheCandidates: updatedCurrentItems,
+      targetCount: targetCount,
+    );
+    final startupHeadIds = startupHead.map((post) => post.docID).toSet();
+    return <PostsModel>[
+      ...startupHead,
+      ...refreshPlan.replacementItems
+          .where((post) => !startupHeadIds.contains(post.docID)),
+    ];
+  }
+
   String? capturePlaybackAnchor({
     required List<PostsModel> agendaList,
     required int centeredIndex,
