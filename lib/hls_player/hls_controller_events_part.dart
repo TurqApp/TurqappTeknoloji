@@ -7,6 +7,7 @@ extension HLSControllerEventsPart on HLSController {
     _eventSubscription = _eventChannel!.receiveBroadcastStream().listen(
       (dynamic event) {
         if (event is! Map) return;
+        if (_isInactive) return;
 
         final eventType = event['event'] as String?;
         if (kDebugMode && !_suppressHlsSmokeLogs) {
@@ -20,8 +21,9 @@ extension HLSControllerEventsPart on HLSController {
             final durationSeconds =
                 (event['duration'] as num?)?.toDouble() ?? 0.0;
             _duration = durationSeconds;
-            _durationController
-                .add(Duration(milliseconds: (durationSeconds * 1000).toInt()));
+            _emitDuration(
+              Duration(milliseconds: (durationSeconds * 1000).toInt()),
+            );
             _updateState(PlayerState.ready);
             final pendingSeek = _pendingReattachSeekSeconds;
             final pendingPlay = _pendingReattachShouldPlay;
@@ -48,7 +50,7 @@ extension HLSControllerEventsPart on HLSController {
           case 'surfaceDetached':
             if (!_shouldPreserveResumeVisual) {
               _hasRenderedFirstFrame = false;
-              _firstFrameController.add(false);
+              _emitFirstFrame(false);
             }
             break;
 
@@ -62,7 +64,7 @@ extension HLSControllerEventsPart on HLSController {
 
           case 'buffering':
             final isBuffering = (event['isBuffering'] as bool?) ?? false;
-            _bufferingController.add(isBuffering);
+            _emitBuffering(isBuffering);
             if (isBuffering) {
               if (_telemetryVideoId != null) {
                 _telemetry.onBufferingStart(_telemetryVideoId!);
@@ -81,10 +83,12 @@ extension HLSControllerEventsPart on HLSController {
             final duration = (event['duration'] as num?)?.toDouble() ?? 0.0;
             _currentPosition = position;
             _duration = duration;
-            _positionController
-                .add(Duration(milliseconds: (position * 1000).toInt()));
-            _durationController
-                .add(Duration(milliseconds: (duration * 1000).toInt()));
+            _emitPosition(
+              Duration(milliseconds: (position * 1000).toInt()),
+            );
+            _emitDuration(
+              Duration(milliseconds: (duration * 1000).toInt()),
+            );
             if (_telemetryVideoId != null) {
               _telemetry.onPositionUpdate(
                 _telemetryVideoId!,
@@ -159,6 +163,7 @@ extension HLSControllerEventsPart on HLSController {
         }
       },
       onError: (dynamic error) {
+        if (_isInactive) return;
         if (kDebugMode && !_suppressHlsSmokeLogs) {
           debugPrint(
             '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] streamError=$error url=$_currentUrl',
@@ -172,14 +177,14 @@ extension HLSControllerEventsPart on HLSController {
   void _updateState(PlayerState newState) {
     if (_state != newState) {
       _state = newState;
-      _stateController.add(_state);
+      _emitState(_state);
     }
   }
 
   void _markFirstFrameRendered() {
     if (_hasRenderedFirstFrame) return;
     _hasRenderedFirstFrame = true;
-    _firstFrameController.add(true);
+    _emitFirstFrame(true);
     if (!_firstFrameEmitted && _telemetryVideoId != null) {
       _firstFrameEmitted = true;
       _telemetry.onFirstFrame(_telemetryVideoId!);
@@ -187,6 +192,7 @@ extension HLSControllerEventsPart on HLSController {
   }
 
   void _handleError(String message) {
+    if (_isInactive) return;
     if (kDebugMode && !_suppressHlsSmokeLogs) {
       debugPrint(
         '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] error=$message url=$_currentUrl fallback=$_fallbackUrl attempted=$_fallbackAttempted',
@@ -200,7 +206,7 @@ extension HLSControllerEventsPart on HLSController {
 
     _errorMessage = message;
     _updateState(PlayerState.error);
-    _errorController.add(message);
+    _emitError(message);
   }
 
   Future<void> _restorePlaybackAfterReattach({

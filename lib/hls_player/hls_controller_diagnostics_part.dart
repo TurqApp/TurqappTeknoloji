@@ -2,7 +2,7 @@ part of 'hls_controller.dart';
 
 extension HLSControllerDiagnosticsPart on HLSController {
   Future<double> getCurrentTime() async {
-    if (_viewId == null) return 0.0;
+    if (_isInactive || _viewId == null) return 0.0;
 
     try {
       final result = await HLSController._methodChannel
@@ -17,7 +17,7 @@ extension HLSControllerDiagnosticsPart on HLSController {
   }
 
   Future<double> getDuration() async {
-    if (_viewId == null) return 0.0;
+    if (_isInactive || _viewId == null) return 0.0;
 
     try {
       final result = await HLSController._methodChannel.invokeMethod<double>(
@@ -34,7 +34,7 @@ extension HLSControllerDiagnosticsPart on HLSController {
   }
 
   Future<bool> isMutedNative() async {
-    if (_viewId == null) return false;
+    if (_isInactive || _viewId == null) return false;
 
     try {
       final result = await HLSController._methodChannel.invokeMethod<bool>(
@@ -51,7 +51,7 @@ extension HLSControllerDiagnosticsPart on HLSController {
   }
 
   Future<bool> isPlayingNative() async {
-    if (_viewId == null) return false;
+    if (_isInactive || _viewId == null) return false;
 
     try {
       final result = await HLSController._methodChannel.invokeMethod<bool>(
@@ -68,7 +68,7 @@ extension HLSControllerDiagnosticsPart on HLSController {
   }
 
   Future<bool> isBufferingNative() async {
-    if (_viewId == null) return false;
+    if (_isInactive || _viewId == null) return false;
 
     try {
       final result = await HLSController._methodChannel.invokeMethod<bool>(
@@ -85,7 +85,7 @@ extension HLSControllerDiagnosticsPart on HLSController {
   }
 
   Future<Map<String, dynamic>> getPlaybackDiagnostics() async {
-    if (_viewId == null) return const <String, dynamic>{};
+    if (_isInactive || _viewId == null) return const <String, dynamic>{};
 
     try {
       final result = await HLSController._methodChannel.invokeMethod<dynamic>(
@@ -103,7 +103,7 @@ extension HLSControllerDiagnosticsPart on HLSController {
   }
 
   Future<Map<String, dynamic>> getProcessDiagnostics() async {
-    if (_viewId == null) return const <String, dynamic>{};
+    if (_isInactive || _viewId == null) return const <String, dynamic>{};
 
     try {
       final result = await HLSController._methodChannel.invokeMethod<dynamic>(

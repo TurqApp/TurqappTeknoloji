@@ -65,6 +65,8 @@ class HLSController {
   bool _pendingReattachShouldPlay = false;
   int _rendererStallCount = 0;
   int _surfaceRebindCount = 0;
+  bool _isDisposing = false;
+  bool _isDisposed = false;
 
   // Fallback support
   String? _fallbackUrl;
@@ -97,6 +99,7 @@ class HLSController {
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
   int get rendererStallCount => _rendererStallCount;
   int get surfaceRebindCount => _surfaceRebindCount;
+  bool get _isInactive => _isDisposing || _isDisposed;
 
   bool get _isAtPlaybackEnd {
     if (!_duration.isFinite || _duration <= 0) return false;
@@ -116,6 +119,36 @@ class HLSController {
     _pendingReattachShouldPlay = false;
   }
 
+  void _emitState(PlayerState state) {
+    if (_isInactive || _stateController.isClosed) return;
+    _stateController.add(state);
+  }
+
+  void _emitPosition(Duration position) {
+    if (_isInactive || _positionController.isClosed) return;
+    _positionController.add(position);
+  }
+
+  void _emitDuration(Duration duration) {
+    if (_isInactive || _durationController.isClosed) return;
+    _durationController.add(duration);
+  }
+
+  void _emitBuffering(bool isBuffering) {
+    if (_isInactive || _bufferingController.isClosed) return;
+    _bufferingController.add(isBuffering);
+  }
+
+  void _emitError(String message) {
+    if (_isInactive || _errorController.isClosed) return;
+    _errorController.add(message);
+  }
+
+  void _emitFirstFrame(bool hasRenderedFirstFrame) {
+    if (_isInactive || _firstFrameController.isClosed) return;
+    _firstFrameController.add(hasRenderedFirstFrame);
+  }
+
   // Streams
   Stream<PlayerState> get onStateChanged => _stateController.stream;
   Stream<Duration> get onPositionChanged => _positionController.stream;
@@ -127,11 +160,12 @@ class HLSController {
   void resetSurfaceVisualStateForReuse() {
     if (!_hasRenderedFirstFrame) return;
     _hasRenderedFirstFrame = false;
-    _firstFrameController.add(false);
+    _emitFirstFrame(false);
   }
 
   // Initialize controller with view ID
   void initialize(int viewId) {
+    if (_isInactive) return;
     final previousViewId = _viewId;
     final hadBoundView = previousViewId != null;
     if (hadBoundView) {
@@ -140,8 +174,7 @@ class HLSController {
       final shouldRestorePosition = previousPosition > 0.05;
       final hadStablePlaybackFrame =
           _hasRenderedFirstFrame || previousPosition > 0.05;
-      final shouldResumePlay =
-          hadStablePlaybackFrame &&
+      final shouldResumePlay = hadStablePlaybackFrame &&
           (_state == PlayerState.playing || _state == PlayerState.buffering);
       if (shouldRestorePosition || shouldResumePlay) {
         _pendingReattachSeekSeconds = previousPosition;
@@ -158,7 +191,7 @@ class HLSController {
     _eventSubscription = null;
     if (!_shouldPreserveResumeVisual) {
       _hasRenderedFirstFrame = false;
-      _firstFrameController.add(false);
+      _emitFirstFrame(false);
     }
     _rendererStallCount = 0;
     _surfaceRebindCount = 0;
@@ -275,30 +308,50 @@ class HLSController {
 
   // Dispose
   Future<void> dispose() async {
+    if (_isDisposed || _isDisposing) return;
+    _isDisposing = true;
     if (_telemetryVideoId != null) {
       _telemetry.endSession(_telemetryVideoId!);
       _telemetryVideoId = null;
     }
 
-    if (_viewId != null) {
+    final disposeViewId = _viewId;
+    _viewId = null;
+    _eventChannel = null;
+    cancelPendingResume();
+
+    final eventSubscription = _eventSubscription;
+    _eventSubscription = null;
+    await eventSubscription?.cancel();
+
+    if (disposeViewId != null) {
       try {
-        await _methodChannel.invokeMethod('dispose', {'viewId': _viewId});
+        await _methodChannel.invokeMethod('dispose', {'viewId': disposeViewId});
       } catch (e) {
         // Ignore errors during dispose
       }
     }
 
-    await _eventSubscription?.cancel();
-    _eventSubscription = null;
+    if (!_stateController.isClosed) {
+      await _stateController.close();
+    }
+    if (!_positionController.isClosed) {
+      await _positionController.close();
+    }
+    if (!_durationController.isClosed) {
+      await _durationController.close();
+    }
+    if (!_bufferingController.isClosed) {
+      await _bufferingController.close();
+    }
+    if (!_errorController.isClosed) {
+      await _errorController.close();
+    }
+    if (!_firstFrameController.isClosed) {
+      await _firstFrameController.close();
+    }
 
-    await _stateController.close();
-    await _positionController.close();
-    await _durationController.close();
-    await _bufferingController.close();
-    await _errorController.close();
-    await _firstFrameController.close();
-
-    _viewId = null;
-    _eventChannel = null;
+    _isDisposed = true;
+    _isDisposing = false;
   }
 }

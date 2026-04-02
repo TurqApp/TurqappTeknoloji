@@ -25,6 +25,7 @@ extension HLSControllerPlaybackPart on HLSController {
     bool autoPlay = true,
     bool loop = false,
   }) async {
+    if (_isInactive) return;
     if (_viewId == null) {
       throw Exception('Controller not initialized. Call initialize() first.');
     }
@@ -36,7 +37,7 @@ extension HLSControllerPlaybackPart on HLSController {
     _firstFrameEmitted = false;
     if (!sameVideoReload) {
       _hasRenderedFirstFrame = false;
-      _firstFrameController.add(false);
+      _emitFirstFrame(false);
     }
     _rendererStallCount = 0;
     _surfaceRebindCount = 0;
@@ -57,7 +58,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> play() async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
 
     try {
       await HLSController._methodChannel
@@ -68,7 +69,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> pause() async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
     cancelPendingResume();
 
     try {
@@ -80,7 +81,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> seekTo(double seconds) async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
 
     try {
       await HLSController._methodChannel.invokeMethod('seek', {
@@ -88,14 +89,14 @@ extension HLSControllerPlaybackPart on HLSController {
         'seconds': seconds,
       });
       _currentPosition = seconds;
-      _positionController.add(Duration(milliseconds: (seconds * 1000).toInt()));
+      _emitPosition(Duration(milliseconds: (seconds * 1000).toInt()));
     } on PlatformException catch (e) {
       _handleError('Failed to seek: ${e.message}');
     }
   }
 
   Future<void> setMuted(bool muted) async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
 
     try {
       await HLSController._methodChannel.invokeMethod('setMuted', {
@@ -109,7 +110,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> setVolume(double volume) async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
 
     final clampedVolume = volume.clamp(0.0, 1.0);
 
@@ -124,7 +125,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> stopPlayback() async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
     cancelPendingResume();
     try {
       await HLSController._methodChannel
@@ -135,7 +136,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> setPreferredBufferDuration(double seconds) async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
     try {
       await HLSController._methodChannel
           .invokeMethod('setPreferredBufferDuration', {
@@ -148,7 +149,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> setLoop(bool loop) async {
-    if (_viewId == null) return;
+    if (_isInactive || _viewId == null) return;
 
     try {
       await HLSController._methodChannel.invokeMethod('setLoop', {
@@ -162,6 +163,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }
 
   Future<void> togglePlayPause() async {
+    if (_isInactive) return;
     if (_state == PlayerState.playing) {
       await pause();
     } else if (_state == PlayerState.paused || _state == PlayerState.ready) {
