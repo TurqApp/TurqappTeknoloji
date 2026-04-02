@@ -27,7 +27,11 @@ class DeviceSessionService {
   DateTime? _pendingClaimUntil;
   static const Duration _pendingClaimWindow = Duration(seconds: 20);
   bool _freshKeyGeneratedThisLaunch = false;
+  String _cachedDeviceKey = '';
+  Future<String>? _deviceKeyFuture;
   final Map<String, int> _ownershipClaimAtByUid = <String, int>{};
+
+  String get cachedDeviceKey => _cachedDeviceKey.trim();
 
   void beginSessionClaim(String uid) {
     final normalized = uid.trim();
@@ -82,14 +86,42 @@ class DeviceSessionService {
   }
 
   Future<String> getOrCreateDeviceKey() async {
+    final cached = cachedDeviceKey;
+    if (cached.isNotEmpty) return cached;
+
+    final active = _deviceKeyFuture;
+    if (active != null) {
+      return active;
+    }
+
+    final future = _loadOrCreateDeviceKey();
+    _deviceKeyFuture = future;
+    return future.whenComplete(() {
+      if (identical(_deviceKeyFuture, future)) {
+        _deviceKeyFuture = null;
+      }
+    });
+  }
+
+  Future<void> warmDeviceKey() async {
+    try {
+      await getOrCreateDeviceKey();
+    } catch (_) {}
+  }
+
+  Future<String> _loadOrCreateDeviceKey() async {
     final secureExisting =
         (await _storage.read(key: _secureKeyV2) ?? '').trim();
-    if (secureExisting.isNotEmpty) return secureExisting;
+    if (secureExisting.isNotEmpty) {
+      _cachedDeviceKey = secureExisting;
+      return secureExisting;
+    }
 
     final generated = await _generateDeviceScopedKey();
     await _writeSecureKeyWithRecovery(generated);
     await _clearLegacyKeys();
     _freshKeyGeneratedThisLaunch = true;
+    _cachedDeviceKey = generated;
     return generated;
   }
 

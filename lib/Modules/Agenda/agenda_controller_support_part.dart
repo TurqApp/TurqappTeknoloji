@@ -182,15 +182,25 @@ extension AgendaControllerPublicApiPart on AgendaController {
     bool? allowBackgroundRefresh,
   }) async {
     if (agendaList.isEmpty && !_startupPresentationApplied) {
-      String deviceSalt = '';
-      try {
-        deviceSalt = await DeviceSessionService.instance.getOrCreateDeviceKey();
-      } catch (_) {}
+      final deviceSession = DeviceSessionService.instance;
+      final deviceSalt = deviceSession.cachedDeviceKey;
       beginStartupSurfaceSession(
         sessionNamespace: 'feed',
         deviceSalt: deviceSalt,
         forceNew: true,
       );
+      if (deviceSalt.isEmpty) {
+        unawaited(
+          deviceSession.warmDeviceKey().then((_) {
+            final warmedSalt = deviceSession.cachedDeviceKey;
+            if (warmedSalt.isEmpty) return;
+            beginStartupSurfaceSession(
+              sessionNamespace: 'feed',
+              deviceSalt: warmedSalt,
+            );
+          }),
+        );
+      }
     }
     await ensureFeedSurfaceReady();
     await _recordFeedStartupSurface(

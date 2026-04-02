@@ -39,6 +39,7 @@ extension _ShortControllerRuntimeX on ShortController {
 
   void handleOnInit() {
     applyUserCacheQuota();
+    unawaited(DeviceSessionService.instance.warmDeviceKey());
     _log('[Shorts] 🔄 ShortController.onInit() called');
     _bindFollowingListener();
   }
@@ -90,6 +91,27 @@ extension ShortControllerPublicApiPart on ShortController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    if (shorts.isEmpty && !_startupPresentationApplied) {
+      final deviceSession = DeviceSessionService.instance;
+      final deviceSalt = deviceSession.cachedDeviceKey;
+      beginStartupSurfaceSession(
+        sessionNamespace: 'short',
+        deviceSalt: deviceSalt,
+        forceNew: true,
+      );
+      if (deviceSalt.isEmpty) {
+        unawaited(
+          deviceSession.warmDeviceKey().then((_) {
+            final warmedSalt = deviceSession.cachedDeviceKey;
+            if (warmedSalt.isEmpty) return;
+            beginStartupSurfaceSession(
+              sessionNamespace: 'short',
+              deviceSalt: warmedSalt,
+            );
+          }),
+        );
+      }
+    }
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
     if (shorts.isEmpty) {

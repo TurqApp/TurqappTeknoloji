@@ -11,6 +11,7 @@ extension ShortControllerLoadingPart on ShortController {
     return reorderForStartupSurface(
       posts,
       surfaceKey: 'short_startup',
+      sessionNamespace: 'short',
       maxShuffleWindow: ContentPolicy.initialPoolLimit(
         ContentScreenKind.shorts,
       ),

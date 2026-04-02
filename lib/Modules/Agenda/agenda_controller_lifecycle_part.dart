@@ -35,6 +35,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
   void _handleLifecycleInit() {
     scrollController.addListener(_onScroll);
     navBarController = ensureNavBarController();
+    unawaited(DeviceSessionService.instance.warmDeviceKey());
     _bindFollowingListener();
     _bindCenteredIndexListener();
     _bindMergedFeedEntries();

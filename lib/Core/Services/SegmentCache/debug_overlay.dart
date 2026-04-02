@@ -11,7 +11,12 @@ import 'prefetch_scheduler.dart';
 /// Debug-only segment cache metrics overlay.
 /// Sadece kDebugMode'da gösterilir. Tıkla → genişlet/daralt.
 class CacheDebugOverlay extends StatefulWidget {
-  const CacheDebugOverlay({super.key});
+  const CacheDebugOverlay({
+    super.key,
+    this.totalCount,
+  });
+
+  final int? totalCount;
 
   @override
   State<CacheDebugOverlay> createState() => _CacheDebugOverlayState();
@@ -70,8 +75,11 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
     final hitRate = metrics.proxyRequestsTotal > 0
         ? (metrics.cacheHitRate * 100).toStringAsFixed(0)
         : '--';
+    final totalCount = widget.totalCount;
+    final countPrefix =
+        totalCount != null && totalCount > 0 ? '$totalCount • ' : '';
     return Text(
-      'Cache $hitRate%',
+      '${countPrefix}Cache $hitRate%',
       style: const TextStyle(
         color: Colors.green,
         fontSize: 10,

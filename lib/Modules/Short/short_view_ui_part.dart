@@ -405,7 +405,7 @@ extension ShortViewUiPart on _ShortViewState {
                 Positioned(
                   bottom: MediaQuery.of(context).padding.bottom + 60,
                   right: 8,
-                  child: const CacheDebugOverlay(),
+                  child: CacheDebugOverlay(totalCount: list.length),
                 ),
             ],
           );
