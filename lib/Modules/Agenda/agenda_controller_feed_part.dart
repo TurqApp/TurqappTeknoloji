@@ -31,12 +31,12 @@ extension AgendaControllerFeedPart on AgendaController {
   Duration _playbackReassertDelayForAttempt(int attempt) {
     if (!GetPlatform.isAndroid) {
       return attempt == 0
-          ? const Duration(milliseconds: 480)
-          : const Duration(milliseconds: 220);
+          ? const Duration(milliseconds: 260)
+          : const Duration(milliseconds: 140);
     }
     return attempt == 0
-        ? const Duration(milliseconds: 320)
-        : const Duration(milliseconds: 180);
+        ? const Duration(milliseconds: 180)
+        : const Duration(milliseconds: 120);
   }
 
   bool _hasExternalPlaybackOwner(String? playbackHandleKey) {
@@ -95,7 +95,7 @@ extension AgendaControllerFeedPart on AgendaController {
             (_lastPlaybackCommandDocId != playbackKey ||
                 _lastPlaybackCommandAt == null ||
                 now.difference(_lastPlaybackCommandAt!) >
-                    const Duration(milliseconds: 180)));
+                    const Duration(milliseconds: 120)));
     if (shouldIssueImmediateCommand) {
       final readyForImmediateHandoff =
           manager.canResumePlaybackFor(playbackKey);
@@ -396,8 +396,8 @@ extension AgendaControllerFeedPart on AgendaController {
           lastCommandDocId: _lastPlaybackCommandDocId,
           lastCommandAt: _lastPlaybackCommandAt,
           minInterval: attempt == 0
-              ? const Duration(milliseconds: 180)
-              : const Duration(milliseconds: 120),
+              ? const Duration(milliseconds: 120)
+              : const Duration(milliseconds: 80),
         );
         if (issuedAt != null) {
           _lastPlaybackCommandDocId = playbackKey;

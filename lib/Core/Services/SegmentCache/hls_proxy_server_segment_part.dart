@@ -17,11 +17,12 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     final activeOwnerDocId = HlsSegmentPolicy.normalizeDocId(
       VideoStateManager.instance.currentPlayingDocID,
     );
-    if (activeOwnerDocId == null || activeOwnerDocId.isEmpty) {
-      return false;
-    }
+    final targetOwnerDocId = HlsSegmentPolicy.normalizeDocId(
+      VideoStateManager.instance.targetPlaybackDocID,
+    );
 
-    return requestedDocId == activeOwnerDocId;
+    return requestedDocId == activeOwnerDocId ||
+        requestedDocId == targetOwnerDocId;
   }
 
   /// Segment isteği (.ts) — cache'den veya CDN'den.

@@ -1,7 +1,7 @@
 part of 'video_state_manager.dart';
 
 const int _videoStateManagerMaxTrackedControllers = 30;
-const Duration _videoStateManagerPlayResumeDelay = Duration(milliseconds: 140);
+const Duration _videoStateManagerPlayResumeDelay = Duration(milliseconds: 80);
 
 class _VideoStateManagerState {
   Map<String, VideoState> videoStates = <String, VideoState>{};

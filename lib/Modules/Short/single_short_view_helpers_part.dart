@@ -131,7 +131,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
-    await _playbackExecutionService.pauseAdapter(adapter);
+    await _playbackExecutionService.stopAdapter(adapter);
   }
 
   void _updateTelemetryHintsForCurrentPage({

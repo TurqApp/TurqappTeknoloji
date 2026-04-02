@@ -7,6 +7,7 @@ void _handleVideoStateManagerClose(VideoStateManager manager) {
 
 extension VideoStateManagerRuntimePart on VideoStateManager {
   String? get currentPlayingDocID => _currentPlayingDocID;
+  String? get targetPlaybackDocID => _targetPlaybackDocID;
 
   bool shouldKeepAudiblePlayback(
     String docID, {

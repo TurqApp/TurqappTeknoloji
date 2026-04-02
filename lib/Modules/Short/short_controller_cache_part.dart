@@ -29,7 +29,7 @@ extension ShortControllerCachePart on ShortController {
   }
 
   Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
-    await adapter.pause();
+    await adapter.silenceAndStopPlayback();
   }
 
   Future<HLSVideoAdapter?> _preloadSingleVideoWithCache(

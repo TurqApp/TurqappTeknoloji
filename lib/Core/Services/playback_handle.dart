@@ -101,39 +101,60 @@ class HLSAdapterPlaybackHandle implements PlaybackHandle {
 /// Legacy video_player handle (for backward compatibility).
 class LegacyPlaybackHandle implements PlaybackHandle {
   final VideoPlayerController controller;
+  bool _isDisposed = false;
 
   LegacyPlaybackHandle(this.controller);
 
   @override
-  Future<void> play() => controller.play();
-
-  @override
-  Future<void> pause() => controller.pause();
-
-  @override
-  Future<void> stop() async {
-    await controller.pause();
-    await controller.dispose();
+  Future<void> play() async {
+    if (_isDisposed) return;
+    await controller.play();
   }
 
   @override
-  bool get isPlaying => controller.value.isPlaying;
+  Future<void> pause() async {
+    if (_isDisposed) return;
+    await controller.pause();
+  }
 
   @override
-  bool get isInitialized => controller.value.isInitialized;
+  Future<void> stop() async {
+    if (_isDisposed) return;
+    await controller.pause();
+    await controller.dispose();
+    _isDisposed = true;
+  }
 
   @override
-  Duration get position => controller.value.position;
+  bool get isPlaying => !_isDisposed && controller.value.isPlaying;
 
   @override
-  Duration get duration => controller.value.duration;
+  bool get isInitialized => !_isDisposed && controller.value.isInitialized;
 
   @override
-  Future<void> seekTo(Duration position) => controller.seekTo(position);
+  Duration get position =>
+      _isDisposed ? Duration.zero : controller.value.position;
 
   @override
-  Future<void> setVolume(double volume) => controller.setVolume(volume);
+  Duration get duration =>
+      _isDisposed ? Duration.zero : controller.value.duration;
 
   @override
-  Future<void> dispose() => controller.dispose();
+  Future<void> seekTo(Duration position) async {
+    if (_isDisposed) return;
+    await controller.seekTo(position);
+  }
+
+  @override
+  Future<void> setVolume(double volume) async {
+    if (_isDisposed) return;
+    await controller.setVolume(volume);
+  }
+
+  @override
+  Future<void> dispose() async {
+    if (_isDisposed) return;
+    await controller.dispose();
+    _isDisposed = true;
+  }
 }

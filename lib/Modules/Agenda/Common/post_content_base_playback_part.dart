@@ -430,7 +430,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         isAudible: _resolvedPlaybackVolume() > 0.0,
         hasStableFocus: true,
       );
-      Future.delayed(const Duration(milliseconds: 140), () {
+      Future.delayed(const Duration(milliseconds: 70), () {
         if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
         if (!_isSurfacePlaybackAllowed) return;
         _applyPlaybackVolume();
@@ -497,7 +497,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       isAudible: _resolvedPlaybackVolume() > 0.0,
       hasStableFocus: true,
     );
-    Future.delayed(const Duration(milliseconds: 140), () {
+    Future.delayed(const Duration(milliseconds: 70), () {
       if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
       if (!_isSurfacePlaybackAllowed) return;
       _applyPlaybackVolume();

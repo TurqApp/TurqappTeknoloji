@@ -40,6 +40,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   Timer? _maxTimer;
   StreamSubscription? _hlsStateSub;
   StreamSubscription<Duration>? _hlsPositionSub;
+  double? _offscreenResumePositionSeconds;
 
   bool get _effectivePaused => widget.paused || _routePaused;
 
@@ -97,7 +98,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       _maxTimer?.cancel();
       _maxTimer = Timer(widget.maxDuration, () {
         if (!mounted) return;
-        _hlsController.pause();
+        unawaited(_stopForOffscreen());
         _emitEnded();
       });
     }
@@ -117,6 +118,38 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
 
   void _onHLSEnded() {
     _emitEnded();
+  }
+
+  Future<void> _stopForOffscreen() async {
+    _offscreenResumePositionSeconds = _hlsController.currentPosition;
+    if (_hlsReady && mounted) {
+      setState(() {
+        _hlsReady = false;
+      });
+    } else {
+      _hlsReady = false;
+    }
+    await _hlsController.stopPlayback();
+  }
+
+  Future<void> _restartAfterOffscreen() async {
+    final resumeAt = _offscreenResumePositionSeconds;
+    _offscreenResumePositionSeconds = null;
+    _hlsReady = false;
+    if (mounted) {
+      setState(() {});
+    }
+    await _hlsController.loadVideo(
+      widget.element.content,
+      autoPlay: false,
+      loop: false,
+    );
+    if (resumeAt != null && resumeAt > 0.05) {
+      await _hlsController.seekTo(resumeAt);
+    }
+    if (!_effectivePaused && !_notifiedEnded) {
+      await _hlsController.play();
+    }
   }
 
   @override
@@ -153,19 +186,19 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   @override
   void didPushNext() {
     _routePaused = true;
-    _hlsController.pause();
+    unawaited(_stopForOffscreen());
   }
 
   @override
   void didPopNext() {
     _routePaused = false;
     if (!_effectivePaused && !_notifiedEnded) {
-      _hlsController.play();
+      unawaited(_restartAfterOffscreen());
     }
   }
 
   void pause() {
-    _hlsController.pause();
+    unawaited(_stopForOffscreen());
   }
 
   @override

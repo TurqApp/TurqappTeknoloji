@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
-import '../../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
@@ -112,7 +111,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   static const Duration _autoplaySegmentGateTimeout =
       Duration(milliseconds: 950);
   static const Duration _autoplaySegmentGatePollInterval =
-      Duration(milliseconds: 120);
+      Duration(milliseconds: 80);
   static const Duration _surfaceKeepAliveDebounce = Duration(milliseconds: 320);
 
   AgendaController _resolveAgendaController() {
