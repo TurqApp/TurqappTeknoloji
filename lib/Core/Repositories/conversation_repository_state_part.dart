@@ -166,9 +166,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
     try {
-      await _firestore.collection("conversations").doc(chatId).set({
+      await _firestore.collection("conversations").doc(chatId).update({
         "archived.$currentUid": archived,
-      }, SetOptions(merge: true));
+      });
     } catch (_) {}
   }
 
@@ -177,9 +177,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     required String currentUid,
     required int unreadCount,
   }) async {
-    await _firestore.collection("conversations").doc(chatId).set({
+    await _firestore.collection("conversations").doc(chatId).update({
       "unread.$currentUid": unreadCount < 0 ? 0 : unreadCount,
-    }, SetOptions(merge: true));
+    });
   }
 
   Future<void> setPinned({
@@ -187,9 +187,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     required String currentUid,
     required bool pinned,
   }) async {
-    await _firestore.collection("conversations").doc(chatId).set({
+    await _firestore.collection("conversations").doc(chatId).update({
       "pinned.$currentUid": pinned,
-    }, SetOptions(merge: true));
+    });
   }
 
   Future<void> setMuted({
@@ -197,9 +197,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     required String currentUid,
     required bool muted,
   }) async {
-    await _firestore.collection("conversations").doc(chatId).set({
+    await _firestore.collection("conversations").doc(chatId).update({
       "muted.$currentUid": muted,
-    }, SetOptions(merge: true));
+    });
   }
 
   Future<void> setDeletedCutoff({
@@ -234,10 +234,10 @@ extension ConversationRepositoryStatePart on ConversationRepository {
       "updatedDate": now,
     }, SetOptions(merge: true));
 
-    await conversationRef.set({
+    await conversationRef.update({
       "deletedAt.$currentUid": deletedAt,
       "archived.$currentUid": false,
-    }, SetOptions(merge: true));
+    });
   }
 
   Future<Map<String, dynamic>?> getConversation(
@@ -310,9 +310,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     required String currentUid,
     required int timestampMs,
   }) async {
-    await _firestore.collection("conversations").doc(chatId).set({
+    await _firestore.collection("conversations").doc(chatId).update({
       "typing.$currentUid": timestampMs < 0 ? 0 : timestampMs,
-    }, SetOptions(merge: true));
+    });
   }
 
   Future<void> setChatBackgroundIndex({
@@ -320,9 +320,9 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     required String currentUid,
     required int index,
   }) async {
-    await _firestore.collection("conversations").doc(chatId).set({
+    await _firestore.collection("conversations").doc(chatId).update({
       "chatBg.$currentUid": index.clamp(0, 5),
-    }, SetOptions(merge: true));
+    });
   }
 
   Future<void> ensureConversationForPostShare({

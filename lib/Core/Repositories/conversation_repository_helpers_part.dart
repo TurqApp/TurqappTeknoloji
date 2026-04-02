@@ -261,7 +261,10 @@ extension ConversationRepositoryHelpersPart on ConversationRepository {
   }) async {
     if (preferCache) {
       try {
-        return await query.get(const GetOptions(source: Source.cache));
+        final cached = await query.get(const GetOptions(source: Source.cache));
+        if (cacheOnly || cached.docs.isNotEmpty) {
+          return cached;
+        }
       } catch (_) {}
     }
     if (cacheOnly) {

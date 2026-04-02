@@ -214,10 +214,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     if (unreadCount != null) {
       update['unread.$uid'] = unreadCount < 0 ? 0 : unreadCount;
     }
-    await _firestore
-        .collection('conversations')
-        .doc(chatId)
-        .set(update, SetOptions(merge: true));
+    await _firestore.collection('conversations').doc(chatId).update(update);
   }
 
   int _countUnreadMessagesForUser(
@@ -560,12 +557,11 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     );
 
     final batch = _firestore.batch();
-    batch.set(
+    batch.update(
       _firestore.collection("conversations").doc(chatId),
       {
         "unread.$currentUid": 0,
       },
-      SetOptions(merge: true),
     );
     await batch.commit();
   }
