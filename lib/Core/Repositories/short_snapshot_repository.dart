@@ -119,7 +119,6 @@ extension ShortSnapshotRepositoryFieldsPart on ShortSnapshotRepository {
   RuntimeInvariantGuard get _invariantGuard => _shellState.invariantGuard;
   UserSummaryResolver get _userSummaryResolver =>
       _shellState.userSummaryResolver;
-  VisibilityPolicyService get _visibilityPolicy => _shellState.visibilityPolicy;
   WarmLaunchPool get _warmLaunchPool => _shellState.warmLaunchPool;
   MemoryScopedSnapshotStore<List<PostsModel>> get _memoryStore =>
       _shellState.memoryStore;

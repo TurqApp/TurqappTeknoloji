@@ -26,6 +26,7 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
       .where((post) => post.timeStamp <= nowMs)
       .where((post) => !post.deletedPost)
       .where((post) => !post.arsiv)
+      .where((post) => !post.gizlendi)
       .where((post) => post.hasPlayableVideo)
       .toList(growable: false);
   if (normalized.isEmpty) return const <PostsModel>[];
@@ -42,30 +43,21 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
   final visible = <PostsModel>[];
   for (final post in normalized) {
     final summary = summaries[post.userID];
-    if (summary == null) continue;
-    final canSeeAuthor =
-        repository._visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
-      authorUserId: post.userID,
-      followingIds: followingIds,
-      rozet: summary.rozet,
-      isApproved: summary.isApproved,
-      isDeleted: summary.isDeleted,
-    );
-    if (!canSeeAuthor) {
+    if (summary?.isDeleted == true) {
       continue;
     }
     visible.add(
       post.copyWith(
         authorNickname: post.authorNickname.isNotEmpty
             ? post.authorNickname
-            : summary.nickname,
+            : (summary?.nickname ?? ''),
         authorDisplayName: post.authorDisplayName.isNotEmpty
             ? post.authorDisplayName
-            : summary.displayName,
+            : (summary?.displayName ?? ''),
         authorAvatarUrl: post.authorAvatarUrl.isNotEmpty
             ? post.authorAvatarUrl
-            : summary.avatarUrl,
-        rozet: post.rozet.isNotEmpty ? post.rozet : summary.rozet,
+            : (summary?.avatarUrl ?? ''),
+        rozet: post.rozet.isNotEmpty ? post.rozet : (summary?.rozet ?? ''),
       ),
     );
   }

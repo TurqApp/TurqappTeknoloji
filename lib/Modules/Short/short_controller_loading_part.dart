@@ -142,6 +142,7 @@ extension ShortControllerLoadingPart on ShortController {
           timeFiltered.where((p) => p.arsiv == false).toList(growable: false);
       final finalFiltered = arsivFiltered
           .where((p) => p.deletedPost != true)
+          .where((p) => p.gizlendi != true)
           .toList(growable: false);
 
       if (finalFiltered.isNotEmpty) {
@@ -186,46 +187,26 @@ extension ShortControllerLoadingPart on ShortController {
     for (final p in posts) {
       final summary = userSummaries[p.userID];
       if (summary == null) {
-        final includeFromPost =
-            _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
-          authorUserId: p.userID,
-          followingIds: _followingIDs,
-          rozet: p.rozet,
-          isApproved: false,
-          isDeleted: false,
-        );
-        if (!includeFromPost) {
-          continue;
-        }
         filtered.add(p);
         continue;
       }
       if (summary.isDeleted) {
         continue;
       }
-      final include = _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
-        authorUserId: p.userID,
-        followingIds: _followingIDs,
-        rozet: summary.rozet,
-        isApproved: summary.isApproved,
-        isDeleted: summary.isDeleted,
+      filtered.add(
+        p.copyWith(
+          authorNickname: p.authorNickname.isNotEmpty
+              ? p.authorNickname
+              : summary.nickname,
+          authorDisplayName: p.authorDisplayName.isNotEmpty
+              ? p.authorDisplayName
+              : summary.displayName,
+          authorAvatarUrl: p.authorAvatarUrl.isNotEmpty
+              ? p.authorAvatarUrl
+              : summary.avatarUrl,
+          rozet: p.rozet.isNotEmpty ? p.rozet : summary.rozet,
+        ),
       );
-      if (include) {
-        filtered.add(
-          p.copyWith(
-            authorNickname: p.authorNickname.isNotEmpty
-                ? p.authorNickname
-                : summary.nickname,
-            authorDisplayName: p.authorDisplayName.isNotEmpty
-                ? p.authorDisplayName
-                : summary.displayName,
-            authorAvatarUrl: p.authorAvatarUrl.isNotEmpty
-                ? p.authorAvatarUrl
-                : summary.avatarUrl,
-            rozet: p.rozet.isNotEmpty ? p.rozet : summary.rozet,
-          ),
-        );
-      }
     }
 
     return filtered;
@@ -270,6 +251,7 @@ extension ShortControllerLoadingPart on ShortController {
         .where(_isEligibleShortPost)
         .where((post) => post.timeStamp <= nowMs)
         .where((post) => !post.arsiv && post.deletedPost != true)
+        .where((post) => post.gizlendi != true)
         .toList(growable: false);
     final filtered = await _filterVisibleShortPosts(ordered);
     _recordShortFetchEvent(
