@@ -665,11 +665,15 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
       await _refreshAgendaFromLiveSource(refreshEpoch: refreshEpoch);
-      await _fetchAndMergeReshareEvents(
-        eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
-      );
       _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
+      unawaited(Future<void>(() async {
+        try {
+          await _fetchAndMergeReshareEvents(
+            eventLimit: ReadBudgetRegistry.reshareFeedWarmupInitialLimit,
+          );
+        } catch (_) {}
+      }));
     } catch (e) {
       print("refreshAgenda error: $e");
       _feedRefreshInFlight = false;
@@ -715,9 +719,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         fetchedPosts: page.items,
         nowMs: nowMs,
       );
-      await _warmInitialFeedVideoPosters(
-        _initialVisibleVideoWarmupWindow(refreshPlan.replacementItems),
-      );
       final mergedAgenda = refreshPlan.replacementItems;
       final refreshTargetIndex = mergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
@@ -762,13 +763,20 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
       }
 
-      await _saveFeedPostsToPool(
-        _buildOrderedAgendaSnapshot(
-          limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
-        ),
-        const <String, Map<String, dynamic>>{},
-        source: CachedResourceSource.server,
+      _scheduleInitialFeedVideoPosterWarmup(
+        _initialVisibleVideoWarmupWindow(mergedAgenda),
       );
+      unawaited(Future<void>(() async {
+        try {
+          await _saveFeedPostsToPool(
+            _buildOrderedAgendaSnapshot(
+              limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
+            ),
+            const <String, Map<String, dynamic>>{},
+            source: CachedResourceSource.server,
+          );
+        } catch (_) {}
+      }));
 
       if (agendaList.isNotEmpty && pageApplyPlan.itemsToAdd.isNotEmpty) {
         _scheduleReshareFetchForPosts(
