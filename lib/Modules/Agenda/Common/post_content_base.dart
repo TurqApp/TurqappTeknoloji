@@ -83,6 +83,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _replayAdVisible = false;
   bool _replayButtonVisible = false;
   bool _replayAdImpressionReceived = false;
+  bool _autoplayReplayInFlight = false;
+  bool _surfaceKeepAliveDebounceActive = false;
   Timer? _replayAdHideTimer;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
@@ -91,9 +93,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
   Timer? _autoplaySegmentGateTimer;
+  Timer? _surfaceKeepAliveTimer;
   bool _playbackIntentTracked = false;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
+  VoidCallback? _keepAliveUpdateCallback;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
@@ -105,6 +109,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       Duration(milliseconds: 950);
   static const Duration _autoplaySegmentGatePollInterval =
       Duration(milliseconds: 120);
+  static const Duration _surfaceKeepAliveDebounce =
+      Duration(milliseconds: 320);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -174,6 +180,36 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isPrimaryFeedSurfaceInstance =>
       !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
+
+  bool get shouldKeepVideoSurfaceAlive =>
+      widget.model.hasPlayableVideo &&
+      (widget.shouldPlay || _surfaceKeepAliveDebounceActive);
+
+  void bindKeepAliveUpdater(VoidCallback callback) {
+    _keepAliveUpdateCallback = callback;
+  }
+
+  void _setSurfaceKeepAliveDebounce(bool value) {
+    if (_surfaceKeepAliveDebounceActive == value) return;
+    _surfaceKeepAliveDebounceActive = value;
+    _keepAliveUpdateCallback?.call();
+  }
+
+  void _cancelSurfaceKeepAliveDebounce() {
+    _surfaceKeepAliveTimer?.cancel();
+    _surfaceKeepAliveTimer = null;
+    _setSurfaceKeepAliveDebounce(false);
+  }
+
+  void _scheduleSurfaceKeepAliveDebounce() {
+    if (!widget.model.hasPlayableVideo) return;
+    _surfaceKeepAliveTimer?.cancel();
+    _setSurfaceKeepAliveDebounce(true);
+    _surfaceKeepAliveTimer = Timer(_surfaceKeepAliveDebounce, () {
+      _surfaceKeepAliveTimer = null;
+      _setSurfaceKeepAliveDebounce(false);
+    });
+  }
 
   bool get _useLegacyIosFeedBehavior =>
       defaultTargetPlatform == TargetPlatform.iOS &&
@@ -316,8 +352,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     if (!isStandalonePostInstance) {
       _muteWorker = ever<bool>(agendaController.isMuted, (muted) {
-        _videoAdapter?.setVolume(muted ? 0.0 : 1.0);
-        _syncRuntimeHints(isAudible: !muted);
+        _applyPlaybackVolume();
       });
     } else {
       _videoAdapter?.setVolume(1.0);

@@ -133,8 +133,7 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
   }
 
   bool _currentIsAudible() {
-    if (isStandalonePostInstance) return true;
-    return !agendaController.isMuted.value;
+    return _resolvedPlaybackVolume() > 0.0;
   }
 
   void _syncRuntimeHints({

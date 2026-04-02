@@ -111,7 +111,9 @@ class AgendaContent extends PostContentBase {
 }
 
 class _AgendaContentState extends State<AgendaContent>
-    with PostContentBaseState<AgendaContent> {
+    with
+        PostContentBaseState<AgendaContent>,
+        AutomaticKeepAliveClientMixin<AgendaContent> {
   static const PostActionStyle _actionStyle = PostActionStyle.modern();
   static const bool _showActionTapAreas = false;
   static const Color _actionColor = Color(0xFF6F7A85);
@@ -156,9 +158,13 @@ class _AgendaContentState extends State<AgendaContent>
   @override
   void initState() {
     super.initState();
+    bindKeepAliveUpdater(updateKeepAlive);
     _relativeTimeTickService = RelativeTimeTickService.ensure();
     _refreshQuotedSourceFuture();
   }
+
+  @override
+  bool get wantKeepAlive => shouldKeepVideoSurfaceAlive;
 
   @override
   void didUpdateWidget(covariant AgendaContent oldWidget) {
@@ -280,6 +286,7 @@ class _AgendaContentState extends State<AgendaContent>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     // Build sırasında doğrudan pause() çağırmak Obx'i yeniden kirletebilir.
     // Bu yüzden pause işlemini frame sonuna erteliyoruz.
     if (controller.gizlendi.value ||

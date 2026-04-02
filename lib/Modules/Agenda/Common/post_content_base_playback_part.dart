@@ -149,13 +149,59 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   void pauseVideo() => _safePauseVideo();
 
-  void _applyPlaybackVolume() {
-    _videoAdapter?.setVolume(
-      isStandalonePostInstance
-          ? 1.0
-          : (agendaController.isMuted.value ? 0.0 : 1.0),
+  Future<void> _restartCompletedPlaybackForAutoplay({
+    required String source,
+  }) async {
+    if (_autoplayReplayInFlight) return;
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    _autoplayReplayInFlight = true;
+    _recordPlaybackDispatch(
+      'feed_card_autoplay_replay',
+      source: source,
+      dispatchIssued: false,
     );
-    _syncRuntimeHints(isAudible: _currentIsAudible());
+    _replayOverlayLatched = false;
+    _replayAdPrewarmed = false;
+    _replayAdVisible = false;
+    _replayButtonVisible = false;
+    _replayAdImpressionReceived = false;
+    _replayAdHideTimer?.cancel();
+    _manualPauseRequested = false;
+    _hasAutoPlayed = false;
+    try {
+      await adapter.setLooping(shouldLoopVideo);
+      await adapter.seekTo(Duration.zero);
+    } catch (_) {
+      // Surface may be mid-refresh; autoplay re-entry should fail silently.
+    } finally {
+      _autoplayReplayInFlight = false;
+    }
+    if (!mounted || _videoAdapter != adapter) return;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+    _startPlaybackWhenReady(source: '$source:reentry_restart');
+  }
+
+  double _resolvedPlaybackVolume() {
+    if (isStandalonePostInstance) return 1.0;
+    if (agendaController.isMuted.value) return 0.0;
+    if (_controllerOwnsInlinePlayback) {
+      final isCurrentOwner =
+          _playbackRuntimeService.currentPlayingDocId == playbackHandleKey;
+      final hasPendingClaim = _playbackRuntimeService.hasPendingPlayFor(
+        playbackHandleKey,
+      );
+      if (!isCurrentOwner && !hasPendingClaim) {
+        return 0.0;
+      }
+    }
+    return 1.0;
+  }
+
+  void _applyPlaybackVolume() {
+    final volume = _resolvedPlaybackVolume();
+    _videoAdapter?.setVolume(volume);
+    _syncRuntimeHints(isAudible: volume > 0.0);
   }
 
   void _resumePlaybackIfEligible({
@@ -212,15 +258,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
 
     if (!shouldLoopVideo && adapter.value.isCompleted) {
-      _recordPlaybackDispatch(
-        'feed_card_completion_blocked',
-        source: source,
-        dispatchIssued: false,
-        skipReason: 'completed',
-        metadata: <String, dynamic>{
-          'positionMs': adapter.value.position.inMilliseconds,
-          'durationMs': adapter.value.duration.inMilliseconds,
-        },
+      unawaited(
+        _restartCompletedPlaybackForAutoplay(
+          source: '$source:completed_resume',
+        ),
       );
       return;
     }
@@ -303,15 +344,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
     if (!shouldLoopVideo && adapter.value.isCompleted) {
-      _recordPlaybackDispatch(
-        'feed_card_start_blocked_completed',
-        source: source,
-        dispatchIssued: false,
-        skipReason: 'completed',
-        metadata: <String, dynamic>{
-          'positionMs': adapter.value.position.inMilliseconds,
-          'durationMs': adapter.value.duration.inMilliseconds,
-        },
+      unawaited(
+        _restartCompletedPlaybackForAutoplay(
+          source: '$source:completed_start',
+        ),
       );
       return;
     }
@@ -324,7 +360,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       },
     );
     unawaited(adapter.setLooping(shouldLoopVideo));
-    _applyPlaybackVolume();
     if (_controllerOwnsInlinePlayback) {
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
@@ -354,9 +389,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           dispatchIssued: false,
         );
       }
+      _applyPlaybackVolume();
       _hasAutoPlayed = true;
       _syncRuntimeHints(
-        isAudible: _currentIsAudible(),
+        isAudible: _resolvedPlaybackVolume() > 0.0,
         hasStableFocus: true,
       );
       Future.delayed(const Duration(milliseconds: 140), () {
@@ -421,8 +457,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         skipReason: 'already_current_playing',
       );
     }
+    _applyPlaybackVolume();
     _syncRuntimeHints(
-      isAudible: _currentIsAudible(),
+      isAudible: _resolvedPlaybackVolume() > 0.0,
       hasStableFocus: true,
     );
     Future.delayed(const Duration(milliseconds: 140), () {

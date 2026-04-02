@@ -39,6 +39,10 @@ class PlaybackRuntimeService {
     _manager.requestPlayVideo(docId, handle);
   }
 
+  void requestStop(String docId) {
+    _manager.requestStopVideo(docId);
+  }
+
   void registerPlaybackHandle(String docId, PlaybackHandle handle) {
     _manager.registerPlaybackHandle(docId, handle);
   }

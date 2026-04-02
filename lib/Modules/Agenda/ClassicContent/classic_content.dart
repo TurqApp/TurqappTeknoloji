@@ -93,7 +93,9 @@ class ClassicContent extends PostContentBase {
 }
 
 class _ClassicContentState extends State<ClassicContent>
-    with PostContentBaseState<ClassicContent> {
+    with
+        PostContentBaseState<ClassicContent>,
+        AutomaticKeepAliveClientMixin<ClassicContent> {
   final PostRepository _postRepository = PostRepository.ensure();
   static const PostActionStyle _actionStyle = PostActionStyle(
     iconSize: 22,
@@ -147,9 +149,13 @@ class _ClassicContentState extends State<ClassicContent>
   @override
   void initState() {
     super.initState();
+    bindKeepAliveUpdater(updateKeepAlive);
     _relativeTimeTickService = RelativeTimeTickService.ensure();
     _refreshQuotedSourceProfileFuture();
   }
+
+  @override
+  bool get wantKeepAlive => shouldKeepVideoSurfaceAlive;
 
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
@@ -228,6 +234,7 @@ class _ClassicContentState extends State<ClassicContent>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     // Gizli, arşivli veya silindi ise videoyu durdur
     if (controller.gizlendi.value ||
         controller.arsiv.value ||

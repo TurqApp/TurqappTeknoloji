@@ -67,6 +67,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       if (route != null) routeObserver.unsubscribe(this);
     } catch (_) {}
 
+    _cancelSurfaceKeepAliveDebounce();
     _lazyInitTimer?.cancel();
     _playbackRecoveryTimer?.cancel();
     _autoplaySegmentGateTimer?.cancel();
@@ -90,6 +91,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   void _handleDidUpdateWidget(T oldWidget) {
     if (oldWidget.shouldPlay != widget.shouldPlay) {
       if (widget.shouldPlay) {
+        _cancelSurfaceKeepAliveDebounce();
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
         if (isStandalonePostInstance) {
@@ -97,9 +99,11 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
         _resumePlaybackIfEligible(source: 'widget_should_play_changed');
       } else {
+        _scheduleSurfaceKeepAliveDebounce();
         _manualPauseRequested = false;
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
+        _playbackRuntimeService.requestStop(playbackHandleKey);
         if (_blockPause) return;
         if (_skipNextPause) {
           _skipNextPause = false;
