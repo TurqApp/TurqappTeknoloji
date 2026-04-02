@@ -181,6 +181,17 @@ extension AgendaControllerPublicApiPart on AgendaController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    if (agendaList.isEmpty && !_startupPresentationApplied) {
+      String deviceSalt = '';
+      try {
+        deviceSalt = await DeviceSessionService.instance.getOrCreateDeviceKey();
+      } catch (_) {}
+      beginStartupSurfaceSession(
+        sessionNamespace: 'feed',
+        deviceSalt: deviceSalt,
+        forceNew: true,
+      );
+    }
     await ensureFeedSurfaceReady();
     await _recordFeedStartupSurface(
       source: 'feed_surface_ready',

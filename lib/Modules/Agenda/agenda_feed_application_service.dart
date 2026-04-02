@@ -152,17 +152,20 @@ class AgendaFeedApplicationService {
     final startupVariant = startupVariantOverride ??
         startupVariantIndexForSurface(
           surfaceKey: 'feed_visible_startup_head',
+          sessionNamespace: 'feed',
           variantCount: 10,
         );
     final normalizedLive = reorderForStartupSurface(
       _dedupePosts(liveCandidates),
       surfaceKey: 'feed_startup_live_pool_v$startupVariant',
+      sessionNamespace: 'feed',
       maxShuffleWindow: liveCandidates.length,
     );
     final normalizedCache = _dedupePosts(cacheCandidates);
     final orderedCache = reorderForStartupSurface(
       normalizedCache,
       surfaceKey: 'feed_startup_cache_pool_v$startupVariant',
+      sessionNamespace: 'feed',
       maxShuffleWindow: normalizedCache.length,
     );
     final buckets = <_AgendaStartupBucket, List<PostsModel>>{
@@ -194,6 +197,7 @@ class AgendaFeedApplicationService {
           entry.value,
           surfaceKey:
               'feed_startup_${_startupBucketKey(entry.key)}_v$startupVariant',
+          sessionNamespace: 'feed',
           maxShuffleWindow: entry.value.length,
         ),
     };
