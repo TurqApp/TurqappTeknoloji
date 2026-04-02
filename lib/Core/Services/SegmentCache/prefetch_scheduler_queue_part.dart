@@ -21,6 +21,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     int currentIndex, {
     int? maxDocs,
   }) async {
+    seedFeedBankCandidates(posts, currentIndex: currentIndex);
     final resolved = _resolveOfflineCandidateQueue(
       posts,
       currentIndex: currentIndex,
@@ -29,6 +30,34 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (resolved == null) return;
     _getCacheManager()?.cachePostCards(resolved.posts);
     await updateFeedQueue(resolved.docIDs, resolved.currentIndex);
+  }
+
+  void seedFeedBankCandidates(
+    List<PostsModel> posts, {
+    required int currentIndex,
+    int maxDocs = _prefetchSchedulerFeedBankMaxDocs,
+  }) {
+    final prunedExisting = pruneSeenFeedBankDocIds(
+      bankDocIds: _lastFeedBankDocIDs,
+      posts: posts,
+      currentIndex: currentIndex,
+    );
+    final incomingDocIds = buildFeedBankDocIds(
+      posts: posts,
+      currentIndex: currentIndex,
+      maxDocs: maxDocs,
+    );
+    if (incomingDocIds.isNotEmpty) {
+      final incomingDocIdSet = incomingDocIds.toSet();
+      _getCacheManager()?.cachePostCards(
+        posts.where((post) => incomingDocIdSet.contains(post.docID.trim())),
+      );
+    }
+    _lastFeedBankDocIDs = mergeFeedBankDocIds(
+      existingDocIds: prunedExisting,
+      incomingDocIds: incomingDocIds,
+      maxDocs: maxDocs,
+    );
   }
 
   Future<void> updateQueue(List<String> docIDs, int currentIndex) async {
@@ -212,6 +241,34 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
     for (int i = initialEnd + 1; i <= prepEnd; i++) {
       addJob(i, 1);
+    }
+
+    int bankOffset = 0;
+    for (final docID in _lastFeedBankDocIDs) {
+      if (!queued.add(docID)) continue;
+      final entry = cacheManager.getEntry(docID);
+      if (entry != null && entry.isFullyCached) continue;
+      final readySegments = _resolvedReadySegmentTarget(
+        docID: docID,
+        cacheManager: cacheManager,
+      );
+      final targetIndex = docIDs.length + bankOffset;
+      _queue.add(_PrefetchJob(
+        docID,
+        readySegments,
+        3,
+        _buildJobScore(
+          currentIndex: safeCurrent,
+          currentDocId: docIDs[safeCurrent],
+          targetIndex: targetIndex,
+          priority: 3,
+          watchProgress: entry?.watchProgress ?? 0.0,
+          cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+          totalSegmentCount: entry?.totalSegmentCount ?? 0,
+        ),
+      ));
+      _jobEnqueuedAt[docID] = DateTime.now();
+      bankOffset++;
     }
 
     for (var i = 1; i <= 5; i++) {

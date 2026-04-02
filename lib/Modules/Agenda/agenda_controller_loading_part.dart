@@ -2,6 +2,7 @@ part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
   int get _initialHeadSyncLimit => ReadBudgetRegistry.feedHomeInitialLimitValue;
+  int get _refreshHeadSyncLimit => min(8, ReadBudgetRegistry.feedLivePageLimit);
 
   List<PostsModel> _initialVisibleVideoWarmupWindow(
     List<PostsModel> posts, {
@@ -686,7 +687,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       final previousAgenda = agendaList.toList(growable: false);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      const loadLimit = ReadBudgetRegistry.feedLivePageLimit;
+      final loadLimit = _refreshHeadSyncLimit;
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
@@ -709,14 +710,15 @@ extension AgendaControllerLoadingPart on AgendaController {
         lastDoc: page.lastDoc,
         usesPrimaryFeed: page.usesPrimaryFeed,
       );
-      final liveHeadIds = page.items.map((post) => post.docID).toSet();
-      await _warmInitialFeedVideoPosters(
-        _initialVisibleVideoWarmupWindow(page.items),
+      final refreshPlan = _agendaFeedApplicationService.buildRefreshPlan(
+        currentItems: previousAgenda,
+        fetchedPosts: page.items,
+        nowMs: nowMs,
       );
-      final mergedAgenda = <PostsModel>[
-        ...page.items,
-        ...previousAgenda.where((post) => !liveHeadIds.contains(post.docID)),
-      ];
+      await _warmInitialFeedVideoPosters(
+        _initialVisibleVideoWarmupWindow(refreshPlan.replacementItems),
+      );
+      final mergedAgenda = refreshPlan.replacementItems;
       final refreshTargetIndex = mergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
       );
@@ -734,6 +736,12 @@ extension AgendaControllerLoadingPart on AgendaController {
       feedReshareEntries.clear();
       highlightDocIDs.clear();
       agendaList.assignAll(mergedAgenda);
+      try {
+        maybeFindPrefetchScheduler()?.seedFeedBankCandidates(
+          mergedAgenda,
+          currentIndex: 0,
+        );
+      } catch (_) {}
       if (refreshEpoch == _feedMutationEpoch) {
         _pendingCenteredDocId = refreshTargetDocId;
         _startupLockedFeedDocId = refreshTargetDocId;
@@ -747,9 +755,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         centeredIndex.value = -1;
       }
 
-      if (pageApplyPlan.freshScheduledIds.isNotEmpty) {
+      if (refreshPlan.freshScheduledIds.isNotEmpty) {
         markHighlighted(
-          pageApplyPlan.freshScheduledIds,
+          refreshPlan.freshScheduledIds,
           keepFor: const Duration(milliseconds: 900),
         );
       }

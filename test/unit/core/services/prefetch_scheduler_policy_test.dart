@@ -88,4 +88,62 @@ void main() {
       expect(result, isFalse);
     });
   });
+
+  group('feed bank helpers', () {
+    test('buildFeedBankDocIds skips the visible head and keeps unseen video docs',
+        () {
+      final posts = <PostsModel>[
+        _readyPost('p1'),
+        _readyPost('p2'),
+        _readyPost('p3'),
+        _readyPost('p4'),
+        _readyPost('p5'),
+      ];
+
+      final bank = buildFeedBankDocIds(
+        posts: posts,
+        currentIndex: 0,
+        unseenHeadWindow: 3,
+        maxDocs: 10,
+      );
+
+      expect(bank, <String>['p4', 'p5']);
+    });
+
+    test('merge/prune feed bank doc ids keeps unseen items only', () {
+      final posts = <PostsModel>[
+        _readyPost('p1'),
+        _readyPost('p2'),
+        _readyPost('p3'),
+        _readyPost('p4'),
+      ];
+
+      final pruned = pruneSeenFeedBankDocIds(
+        bankDocIds: const <String>['p2', 'p4', 'p5'],
+        posts: posts,
+        currentIndex: 0,
+        seenHeadWindow: 3,
+      );
+      final merged = mergeFeedBankDocIds(
+        existingDocIds: pruned,
+        incomingDocIds: const <String>['p6', 'p4'],
+        maxDocs: 10,
+      );
+
+      expect(pruned, <String>['p4', 'p5']);
+      expect(merged, <String>['p6', 'p4', 'p5']);
+    });
+  });
 }
+
+PostsModel _readyPost(String id) => PostsModel.fromMap(
+      <String, dynamic>{
+        'hlsMasterUrl': 'Posts/$id/hls/master.m3u8',
+        'hlsStatus': 'ready',
+        'rozet': 'gri',
+        'flood': false,
+        'mainFlood': '',
+        'floodCount': 0,
+      },
+      id,
+    );

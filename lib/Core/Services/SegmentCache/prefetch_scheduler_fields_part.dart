@@ -10,6 +10,7 @@ class _PrefetchSchedulerState {
   int pendingDownloadBytes = 0;
   final Map<String, DateTime> jobEnqueuedAt = <String, DateTime>{};
   List<String> lastFeedDocIDs = const <String>[];
+  List<String> lastFeedBankDocIDs = const <String>[];
   int lastFeedCurrentIndex = 0;
   int lastFeedReadyCount = 0;
   int lastFeedWindowCount = 0;
@@ -38,6 +39,9 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   Map<String, DateTime> get _jobEnqueuedAt => _state.jobEnqueuedAt;
   List<String> get _lastFeedDocIDs => _state.lastFeedDocIDs;
   set _lastFeedDocIDs(List<String> value) => _state.lastFeedDocIDs = value;
+  List<String> get _lastFeedBankDocIDs => _state.lastFeedBankDocIDs;
+  set _lastFeedBankDocIDs(List<String> value) =>
+      _state.lastFeedBankDocIDs = value;
   int get _lastFeedCurrentIndex => _state.lastFeedCurrentIndex;
   set _lastFeedCurrentIndex(int value) => _state.lastFeedCurrentIndex = value;
   int get _lastFeedReadyCount => _state.lastFeedReadyCount;

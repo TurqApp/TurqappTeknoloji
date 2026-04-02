@@ -17,6 +17,16 @@ class AgendaFeedPageApplyPlan {
   final bool usesPrimaryFeed;
 }
 
+class AgendaFeedRefreshPlan {
+  const AgendaFeedRefreshPlan({
+    required this.replacementItems,
+    required this.freshScheduledIds,
+  });
+
+  final List<PostsModel> replacementItems;
+  final List<String> freshScheduledIds;
+}
+
 class AgendaFeedApplicationService {
   AgendaFeedPageApplyPlan buildPageApplyPlan({
     required List<PostsModel> currentItems,
@@ -49,6 +59,60 @@ class AgendaFeedApplicationService {
       hasMore: lastDoc != null && pageItems.length >= loadLimit,
       lastDoc: lastDoc,
       usesPrimaryFeed: usesPrimaryFeed,
+    );
+  }
+
+  AgendaFeedRefreshPlan buildRefreshPlan({
+    required List<PostsModel> currentItems,
+    required List<PostsModel> fetchedPosts,
+    required int nowMs,
+  }) {
+    if (fetchedPosts.isEmpty) {
+      return AgendaFeedRefreshPlan(
+        replacementItems: currentItems,
+        freshScheduledIds: const <String>[],
+      );
+    }
+
+    final existingIds = currentItems.map((post) => post.docID).toSet();
+    final fetchedById = <String, PostsModel>{
+      for (final post in fetchedPosts) post.docID: post,
+    };
+    final freshScheduledIds = <String>[];
+    final fifteenMinAgo = nowMs - const Duration(minutes: 15).inMilliseconds;
+    final newHeadItems = <PostsModel>[];
+
+    for (final post in fetchedPosts) {
+      if (existingIds.contains(post.docID)) {
+        continue;
+      }
+      newHeadItems.add(post);
+      final justBecameVisible =
+          post.timeStamp != 0 && post.timeStamp >= fifteenMinAgo;
+      if (justBecameVisible) {
+        freshScheduledIds.add(post.docID);
+      }
+    }
+
+    final replacementItems = <PostsModel>[];
+    final seenIds = <String>{};
+
+    for (final post in newHeadItems) {
+      if (seenIds.add(post.docID)) {
+        replacementItems.add(post);
+      }
+    }
+
+    for (final post in currentItems) {
+      final replacement = fetchedById[post.docID] ?? post;
+      if (seenIds.add(replacement.docID)) {
+        replacementItems.add(replacement);
+      }
+    }
+
+    return AgendaFeedRefreshPlan(
+      replacementItems: replacementItems,
+      freshScheduledIds: freshScheduledIds,
     );
   }
 

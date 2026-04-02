@@ -40,6 +40,39 @@ void main() {
     });
 
     test(
+        'buildRefreshPlan keeps current splash list and only prepends new live head posts',
+        () {
+      final service = AgendaFeedApplicationService();
+      final nowMs = DateTime(2026, 4, 2, 12).millisecondsSinceEpoch;
+      final currentItems = <PostsModel>[
+        _post(id: 'p1'),
+        _post(id: 'p2'),
+        _post(id: 'p3'),
+      ];
+      final fetchedPosts = <PostsModel>[
+        _post(
+          id: 'p4',
+          timeStamp: nowMs - const Duration(minutes: 5).inMilliseconds,
+        ),
+        _post(id: 'p2', timeStamp: nowMs - 1000),
+        _post(id: 'p1', timeStamp: nowMs - 2000),
+      ];
+
+      final plan = service.buildRefreshPlan(
+        currentItems: currentItems,
+        fetchedPosts: fetchedPosts,
+        nowMs: nowMs,
+      );
+
+      expect(
+        plan.replacementItems.map((post) => post.docID).toList(),
+        <String>['p4', 'p1', 'p2', 'p3'],
+      );
+      expect(plan.replacementItems[2].timeStamp, nowMs - 1000);
+      expect(plan.freshScheduledIds, <String>['p4']);
+    });
+
+    test(
         'capturePlaybackAnchor prefers centered index over last centered index',
         () {
       final service = AgendaFeedApplicationService();
