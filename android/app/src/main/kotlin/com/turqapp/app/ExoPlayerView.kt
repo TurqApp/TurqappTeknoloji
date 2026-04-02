@@ -194,8 +194,14 @@ class ExoPlayerView(
         isLooping = loop
         val existing = player
 
-        // Aynı URL tekrar istenirse player'ı yeniden kurma.
-        if (existing != null && currentUrl == url) {
+        // Aynı URL için sadece player hâlâ media item taşıyorsa soft resume yap.
+        // stopPlayback() clearMediaItems() çağırdığı için bu durumda full reload şart.
+        val canSoftResumeSameUrl =
+            existing != null &&
+            currentUrl == url &&
+            existing.mediaItemCount > 0 &&
+            existing.playbackState != Player.STATE_IDLE
+        if (canSoftResumeSameUrl) {
             existing.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             if (autoPlay) {
                 startupRecoveryAttempts = 0

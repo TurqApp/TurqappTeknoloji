@@ -3,13 +3,6 @@ part of 'video_state_manager.dart';
 const int _videoStateManagerMaxPendingPlayRetries = 28;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
-  bool _isRestartableStoppedAndroidHandle(PlaybackHandle handle) {
-    if (!GetPlatform.isAndroid) return false;
-    if (handle is! HLSAdapterPlaybackHandle) return false;
-    return handle.adapter.isStopped &&
-        handle.adapter.hlsController.canRestartStoppedPlayback;
-  }
-
   void _markTargetPlaybackDoc(String? docID) {
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = docID == null ? null : DateTime.now();
@@ -184,9 +177,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         );
         return;
       }
-      final canRestartStoppedHandle =
-          _isRestartableStoppedAndroidHandle(handle);
-      if (!handle.isInitialized && !canRestartStoppedHandle) {
+      if (!handle.isInitialized) {
         if (attempt >= _videoStateManagerMaxPendingPlayRetries) return;
         _schedulePendingPlayResume(
           docID,
@@ -195,7 +186,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         );
         return;
       }
-      if (!handle.isPlaying || canRestartStoppedHandle) {
+      if (!handle.isPlaying) {
         _playbackExecutionService.resumeHandle(handle);
       }
     });
