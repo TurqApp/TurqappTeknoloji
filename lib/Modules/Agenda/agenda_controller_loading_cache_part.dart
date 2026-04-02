@@ -1,6 +1,31 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingCachePart on AgendaController {
+  List<PostsModel> _applyStartupFeedPresentationOrder(
+    List<PostsModel> posts,
+  ) {
+    if (_startupPresentationApplied || posts.length < 2) {
+      return posts;
+    }
+    _startupPresentationApplied = true;
+    return reorderForStartupSurface(
+      posts,
+      surfaceKey: 'feed_startup',
+      maxShuffleWindow: FeedSnapshotRepository.startupHomeLimitValue,
+    );
+  }
+
+  void _reorderAgendaForStartupPresentationIfNeeded() {
+    if (_startupPresentationApplied || agendaList.length < 2) {
+      return;
+    }
+    agendaList.assignAll(
+      _applyStartupFeedPresentationOrder(
+        agendaList.toList(growable: false),
+      ),
+    );
+  }
+
   Future<Set<String>> _loadStartupFollowingIds(
     String uid, {
     Duration timeout = const Duration(milliseconds: 180),
@@ -57,6 +82,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         filtered.where((p) => !existingIDs.contains(p.docID)).toList();
     if (toAdd.isNotEmpty) {
       _addUniqueToAgenda(toAdd);
+      _reorderAgendaForStartupPresentationIfNeeded();
       _scheduleInitialFeedVideoPosterWarmup(toAdd);
       unawaited(_revalidateQuickFilledAgenda(toAdd));
       _scheduleReshareFetchForPosts(toAdd, perPostLimit: 1);
@@ -85,6 +111,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     if (quickFiltered.isEmpty) return hadWarmSnapshot;
 
     _addUniqueToAgenda(quickFiltered);
+    _reorderAgendaForStartupPresentationIfNeeded();
     _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
     unawaited(_revalidateQuickFilledAgenda(quickFiltered));
 

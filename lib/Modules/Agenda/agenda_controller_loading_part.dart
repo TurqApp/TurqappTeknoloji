@@ -249,6 +249,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       lastDoc = null;
       _usePrimaryFeedPaging = true;
       hasMore.value = true;
+      _startupPresentationApplied = false;
       _prefetchedThumbnailPostCount = 0;
       agendaList.clear();
       _shuffleCache.clear();
@@ -387,6 +388,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
         if (pageApplyPlan.itemsToAdd.isNotEmpty) {
           _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
+          if (initial) {
+            _reorderAgendaForStartupPresentationIfNeeded();
+          }
           _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
           _scheduleReshareFetchForPosts(
             pageApplyPlan.itemsToAdd,
@@ -612,6 +616,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       ...agendaList.where((post) => !liveHeadIds.contains(post.docID)),
     ];
     agendaList.assignAll(mergedAgenda);
+    _reorderAgendaForStartupPresentationIfNeeded();
     _scheduleInitialFeedVideoPosterWarmup(visibleItems);
     if (playbackAnchor != null && playbackAnchor.isNotEmpty) {
       _pendingCenteredDocId = playbackAnchor;

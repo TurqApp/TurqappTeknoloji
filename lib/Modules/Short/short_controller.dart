@@ -19,6 +19,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';
+import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';

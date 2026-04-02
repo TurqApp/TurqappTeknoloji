@@ -27,6 +27,7 @@ class _ShortControllerState {
   final shortSnapshotRepository = ensureShortSnapshotRepository();
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
+  bool startupPresentationApplied = false;
 }
 
 extension ShortControllerFieldsPart on ShortController {
@@ -67,4 +68,7 @@ extension ShortControllerFieldsPart on ShortController {
       _state.shortSnapshotRepository;
   RuntimeInvariantGuard get _invariantGuard => _state.invariantGuard;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
+  bool get _startupPresentationApplied => _state.startupPresentationApplied;
+  set _startupPresentationApplied(bool value) =>
+      _state.startupPresentationApplied = value;
 }

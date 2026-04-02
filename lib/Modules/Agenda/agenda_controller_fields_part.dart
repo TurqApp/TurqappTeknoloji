@@ -67,6 +67,7 @@ class _AgendaControllerState {
   bool feedModeFallbackQueued = false;
   int feedModeFallbackEpoch = 0;
   bool feedRefreshInFlight = false;
+  bool startupPresentationApplied = false;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -207,4 +208,7 @@ extension AgendaControllerFieldsPart on AgendaController {
   set _feedModeFallbackEpoch(int value) => _state.feedModeFallbackEpoch = value;
   bool get _feedRefreshInFlight => _state.feedRefreshInFlight;
   set _feedRefreshInFlight(bool value) => _state.feedRefreshInFlight = value;
+  bool get _startupPresentationApplied => _state.startupPresentationApplied;
+  set _startupPresentationApplied(bool value) =>
+      _state.startupPresentationApplied = value;
 }

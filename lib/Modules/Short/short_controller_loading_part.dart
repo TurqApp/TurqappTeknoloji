@@ -1,6 +1,22 @@
 part of 'short_controller.dart';
 
 extension ShortControllerLoadingPart on ShortController {
+  List<PostsModel> _applyStartupShortPresentationOrder(
+    List<PostsModel> posts,
+  ) {
+    if (_startupPresentationApplied || posts.length < 2) {
+      return posts;
+    }
+    _startupPresentationApplied = true;
+    return reorderForStartupSurface(
+      posts,
+      surfaceKey: 'short_startup',
+      maxShuffleWindow: ContentPolicy.initialPoolLimit(
+        ContentScreenKind.shorts,
+      ),
+    );
+  }
+
   bool get _shouldPreferOfflineCache =>
       NetworkAwarenessService.maybeFind()?.isConnected == false;
 
@@ -338,7 +354,9 @@ extension ShortControllerLoadingPart on ShortController {
         isEligiblePost: _isEligibleShortPost,
       );
       if (initialPlan.replacementItems != null) {
-        _replaceShorts(initialPlan.replacementItems!);
+        _replaceShorts(
+          _applyStartupShortPresentationOrder(initialPlan.replacementItems!),
+        );
         await preloadRange(0, range: 0);
         if (initialPlan.shouldScheduleBackgroundRefresh &&
             ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
@@ -579,7 +597,9 @@ extension ShortControllerLoadingPart on ShortController {
             trigger: '${trigger}_offline_cache_fallback',
           );
           if (offlineFallback.isNotEmpty) {
-            _replaceShorts(offlineFallback);
+            _replaceShorts(
+              _applyStartupShortPresentationOrder(offlineFallback),
+            );
             await _shortSnapshotRepository.persistHomeSnapshot(
               userId: _currentUserId,
               posts: offlineFallback,
@@ -625,7 +645,10 @@ extension ShortControllerLoadingPart on ShortController {
         isEligiblePost: _isEligibleShortPost,
       );
       if (appendPlan.itemsToAppend.isNotEmpty) {
-        shorts.addAll(appendPlan.itemsToAppend);
+        final nextItems = shorts.isEmpty
+            ? _applyStartupShortPresentationOrder(appendPlan.itemsToAppend)
+            : appendPlan.itemsToAppend;
+        shorts.addAll(nextItems);
         unawaited(_persistVisibleSnapshot());
       }
 
