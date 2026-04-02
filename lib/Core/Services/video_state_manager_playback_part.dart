@@ -3,17 +3,11 @@ part of 'video_state_manager.dart';
 const int _videoStateManagerMaxPendingPlayRetries = 28;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
-  bool _shouldKeepDormantAndroidFeedHandleWarm(
-    String allowedDocID,
-    String docID,
-    PlaybackHandle handle,
-  ) {
+  bool _isRestartableStoppedAndroidHandle(PlaybackHandle handle) {
     if (!GetPlatform.isAndroid) return false;
-    if (!allowedDocID.startsWith('feed:')) return false;
-    if (!docID.startsWith('feed:')) return false;
     if (handle is! HLSAdapterPlaybackHandle) return false;
-    if (!handle.isInitialized || handle.isPlaying) return false;
-    return handle.position > Duration.zero;
+    return handle.adapter.isStopped &&
+        handle.adapter.hlsController.canRestartStoppedPlayback;
   }
 
   void _markTargetPlaybackDoc(String? docID) {
@@ -152,38 +146,22 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       try {
         final handle = entry.value;
         if (handle.isInitialized) {
-          _playbackExecutionService.quietHandle(handle);
+          _playbackExecutionService.quietHandle(
+            handle,
+            persistState: () => _saveVideoState(entry.key, handle),
+          );
         }
       } catch (_) {}
     }
 
     _currentPlayingDocID = allowedDocID;
+    _syncFocusedPrefetchDoc(allowedDocID);
   }
 
-  void _stopDormantAndroidHandlesExcept(String allowedDocID) {
-    if (!GetPlatform.isAndroid) return;
-    for (final entry in _allVideoControllers.entries) {
-      if (entry.key == allowedDocID) continue;
-      final handle = entry.value;
-      if (handle is! HLSAdapterPlaybackHandle) continue;
-      if (!handle.isInitialized) continue;
-      if (handle.isPlaying) continue;
-      if (_shouldKeepDormantAndroidFeedHandleWarm(
-        allowedDocID,
-        entry.key,
-        handle,
-      )) {
-        _playbackExecutionService.quietHandle(
-          handle,
-          persistState: () => _saveVideoState(entry.key, handle),
-        );
-        continue;
-      }
-      if (handle.position > Duration.zero) {
-        _saveVideoState(entry.key, handle);
-      }
-      unawaited(handle.adapter.silenceAndStopPlayback());
-    }
+  void _syncFocusedPrefetchDoc(String? activeDocID) {
+    try {
+      maybeFindPrefetchScheduler()?.focusDoc(activeDocID);
+    } catch (_) {}
   }
 
   void _schedulePendingPlayResume(
@@ -205,7 +183,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         );
         return;
       }
-      if (!handle.isInitialized) {
+      final canRestartStoppedHandle =
+          _isRestartableStoppedAndroidHandle(handle);
+      if (!handle.isInitialized && !canRestartStoppedHandle) {
         if (attempt >= _videoStateManagerMaxPendingPlayRetries) return;
         _schedulePendingPlayResume(
           docID,
@@ -214,9 +194,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         );
         return;
       }
-      if (!handle.isPlaying) {
+      if (!handle.isPlaying || canRestartStoppedHandle) {
         _playbackExecutionService.resumeHandle(handle);
-        _stopDormantAndroidHandlesExcept(docID);
       }
     });
   }

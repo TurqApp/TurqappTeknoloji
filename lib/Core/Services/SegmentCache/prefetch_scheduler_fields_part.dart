@@ -11,6 +11,8 @@ class _PrefetchSchedulerState {
   final Map<String, DateTime> jobEnqueuedAt = <String, DateTime>{};
   List<String> lastFeedDocIDs = const <String>[];
   List<String> lastFeedBankDocIDs = const <String>[];
+  String? focusedDocID;
+  bool restrictToFocusedDoc = false;
   int lastFeedCurrentIndex = 0;
   int lastFeedReadyCount = 0;
   int lastFeedWindowCount = 0;
@@ -42,6 +44,10 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   List<String> get _lastFeedBankDocIDs => _state.lastFeedBankDocIDs;
   set _lastFeedBankDocIDs(List<String> value) =>
       _state.lastFeedBankDocIDs = value;
+  String? get _focusedDocID => _state.focusedDocID;
+  set _focusedDocID(String? value) => _state.focusedDocID = value;
+  bool get _restrictToFocusedDoc => _state.restrictToFocusedDoc;
+  set _restrictToFocusedDoc(bool value) => _state.restrictToFocusedDoc = value;
   int get _lastFeedCurrentIndex => _state.lastFeedCurrentIndex;
   set _lastFeedCurrentIndex(int value) => _state.lastFeedCurrentIndex = value;
   int get _lastFeedReadyCount => _state.lastFeedReadyCount;

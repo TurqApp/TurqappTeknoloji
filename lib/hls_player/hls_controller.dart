@@ -97,6 +97,11 @@ class HLSController {
   bool get isPaused => _state == PlayerState.paused;
   bool get isReady => _state == PlayerState.ready;
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
+  bool get canRestartStoppedPlayback =>
+      !_isInactive &&
+      _viewId != null &&
+      _eventSubscription != null &&
+      _currentUrl != null;
   int get rendererStallCount => _rendererStallCount;
   int get surfaceRebindCount => _surfaceRebindCount;
   bool get _isInactive => _isDisposing || _isDisposed;

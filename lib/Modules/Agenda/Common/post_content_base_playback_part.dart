@@ -270,6 +270,21 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
 
     _applyPlaybackVolume();
+    if (GetPlatform.isAndroid &&
+        _controllerOwnsInlinePlayback &&
+        adapter.isStopped) {
+      _recordPlaybackDispatch(
+        'feed_card_resume_stopped_restart',
+        source: source,
+        dispatchIssued: false,
+        metadata: <String, dynamic>{
+          'currentPlayingDocId':
+              _playbackRuntimeService.currentPlayingDocId ?? '',
+        },
+      );
+      _startPlaybackWhenReady(source: '$source:resume_stopped_restart');
+      return;
+    }
     if (adapter.value.isInitialized) {
       _recordPlaybackDispatch(
         'feed_card_resume_initialized',
@@ -372,6 +387,29 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
+        final shouldRestartStoppedOwner = GetPlatform.isAndroid &&
+            currentOwner &&
+            (adapter.isStopped ||
+                (!adapter.value.isInitialized &&
+                    adapter.hlsController.canRestartStoppedPlayback));
+        if (shouldRestartStoppedOwner) {
+          _recordPlaybackDispatch(
+            'feed_card_adapter_restart_stopped',
+            source: source,
+          );
+          _hasAutoPlayed = true;
+          unawaited(_playbackExecutionService.playAdapter(adapter));
+          _applyPlaybackVolume();
+          _syncRuntimeHints(
+            isAudible: _resolvedPlaybackVolume() > 0.0,
+            hasStableFocus: false,
+          );
+          _trackPlaybackIntent();
+          try {
+            _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+          } catch (_) {}
+          return;
+        }
         _recordPlaybackDispatch(
           'feed_card_manager_wait',
           source: source,

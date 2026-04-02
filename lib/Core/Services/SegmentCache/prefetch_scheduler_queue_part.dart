@@ -1,6 +1,56 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerQueuePart on PrefetchScheduler {
+  void focusDoc(String? docID) {
+    final normalized = docID?.trim();
+    _restrictToFocusedDoc = true;
+    _focusedDocID =
+        normalized == null || normalized.isEmpty ? null : normalized;
+    pause();
+  }
+
+  bool _queueFocusedDocIfNeeded({
+    required SegmentCacheManager cacheManager,
+  }) {
+    if (!_restrictToFocusedDoc) return false;
+
+    final focusedDocID = _focusedDocID;
+
+    _queue.clear();
+    _pendingFollowUpJobs.clear();
+    _jobEnqueuedAt.clear();
+
+    if (focusedDocID == null || focusedDocID.isEmpty) {
+      _publishPrefetchHealthIfNeeded();
+      return true;
+    }
+
+    final entry = cacheManager.getEntry(focusedDocID);
+    if (entry == null || !entry.isFullyCached) {
+      final readySegments = _resolvedReadySegmentTarget(
+        docID: focusedDocID,
+        cacheManager: cacheManager,
+      );
+      _queue.add(
+        _PrefetchJob(
+          focusedDocID,
+          readySegments,
+          -1,
+          (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0))
+              .toDouble(),
+        ),
+      );
+      _jobEnqueuedAt[focusedDocID] = DateTime.now();
+      cacheManager.touchEntry(focusedDocID);
+    }
+
+    _paused = false;
+    _queue.sort(_compareJobs);
+    _publishPrefetchHealthIfNeeded();
+    _processQueue();
+    return true;
+  }
+
   Future<void> updateQueueForPosts(
     List<PostsModel> posts,
     int currentIndex, {
@@ -72,6 +122,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
     if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
       pause();
+      return;
+    }
+
+    if (_queueFocusedDocIfNeeded(cacheManager: cacheManager)) {
       return;
     }
 
@@ -188,6 +242,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     }
     if (docIDs.isEmpty) return;
 
+    if (_queueFocusedDocIfNeeded(cacheManager: cacheManager)) {
+      return;
+    }
+
     _queue.clear();
     _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
@@ -292,6 +350,11 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
     if (docID.trim().isEmpty) return;
+    if (_restrictToFocusedDoc &&
+        _focusedDocID != null &&
+        _focusedDocID != docID.trim()) {
+      return;
+    }
 
     _mobileSeedMode = _shouldEnableMobileSeedMode(
       docIDs: _lastFeedDocIDs.isEmpty ? <String>[docID] : _lastFeedDocIDs,
@@ -301,6 +364,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
       return;
     }
+
+    _paused = false;
 
     final entry = cacheManager.getEntry(docID);
     final resolvedReadySegments = _resolvedReadySegmentTarget(
@@ -530,7 +595,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required int totalSegments,
   }) {
     final p = watchProgress.clamp(0.0, 1.0);
-    final raw = (p * totalSegments).floor();
+    final raw = (p * totalSegments).ceil();
     return raw.clamp(1, totalSegments);
   }
 }

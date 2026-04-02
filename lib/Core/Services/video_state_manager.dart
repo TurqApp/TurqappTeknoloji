@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/playback_execution_service.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';

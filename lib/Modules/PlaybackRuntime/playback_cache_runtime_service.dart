@@ -367,7 +367,7 @@ class SegmentCacheRuntimeService {
     required double progress,
     required int totalSegments,
   }) {
-    final raw = (progress * totalSegments).floor();
+    final raw = (progress * totalSegments).ceil();
     return raw.clamp(1, totalSegments);
   }
 }

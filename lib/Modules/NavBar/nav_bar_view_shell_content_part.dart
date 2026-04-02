@@ -161,6 +161,7 @@ extension _NavBarViewShellContentPart on NavBarView {
     controller.suspendFeedForTabExit();
     controller.pauseGlobalTabMedia();
     await Get.to(() => const ShortView());
+    maybeFindAgendaController()?.reshuffleVisibleHeadAfterShortReturn();
     controller.resumeFeedIfNeeded();
   }
 

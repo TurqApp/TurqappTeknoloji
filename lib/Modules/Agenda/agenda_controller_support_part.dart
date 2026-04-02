@@ -267,6 +267,9 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   void resumePlaybackAfterOverlay() => _performResumePlaybackAfterOverlay();
 
+  void reshuffleVisibleHeadAfterShortReturn() =>
+      _performReshuffleVisibleHeadAfterShortReturn();
+
   void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
 
   void _scheduleVisibilityEvaluation({
@@ -366,5 +369,60 @@ extension AgendaControllerPublicApiPart on AgendaController {
       source: source,
       itemCount: ordered.length,
     );
+  }
+}
+
+extension AgendaControllerOverlayReturnPart on AgendaController {
+  void _performReshuffleVisibleHeadAfterShortReturn() {
+    final currentItems = agendaList.toList(growable: false);
+    if (currentItems.isEmpty) {
+      _performResetSurfaceForTabTransition();
+      return;
+    }
+
+    final headLimit = min(
+      FeedSnapshotRepository.startupHomeLimitValue,
+      currentItems.length,
+    );
+    final currentHead = currentItems.take(headLimit).toList(growable: false);
+
+    if (currentHead.length >= 2) {
+      final deviceSession = DeviceSessionService.instance;
+      beginStartupSurfaceSession(
+        sessionNamespace: 'feed',
+        deviceSalt: deviceSession.cachedDeviceKey,
+        forceNew: true,
+      );
+      if (deviceSession.cachedDeviceKey.isEmpty) {
+        unawaited(deviceSession.warmDeviceKey());
+      }
+
+      final recomposedHead =
+          _agendaFeedApplicationService.composeStartupFeedItems(
+        liveCandidates: const <PostsModel>[],
+        cacheCandidates: currentHead,
+        targetCount: currentHead.length,
+      );
+
+      final seenDocIds = <String>{};
+      final stableHead = <PostsModel>[];
+      for (final post in recomposedHead) {
+        if (seenDocIds.add(post.docID)) {
+          stableHead.add(post);
+        }
+      }
+      for (final post in currentHead) {
+        if (seenDocIds.add(post.docID)) {
+          stableHead.add(post);
+        }
+      }
+
+      agendaList.assignAll(<PostsModel>[
+        ...stableHead,
+        ...currentItems.skip(headLimit),
+      ]);
+    }
+
+    _performResetSurfaceForTabTransition();
   }
 }

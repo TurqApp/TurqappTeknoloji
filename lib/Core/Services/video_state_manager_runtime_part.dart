@@ -31,7 +31,10 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
       return false;
     }
     final handle = _allVideoControllers[docID];
-    return handle != null && handle.isInitialized;
+    return handle != null &&
+        (handle.isInitialized ||
+            VideoStateManagerPlaybackPart(this)
+                ._isRestartableStoppedAndroidHandle(handle));
   }
 
   DateTime? activatePlaybackTargetIfReady(
@@ -83,12 +86,14 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = DateTime.now();
     final handle = _allVideoControllers[docID];
-    if (handle == null || !handle.isInitialized) return false;
+    if (handle == null) return false;
+    final canRestartStoppedHandle = VideoStateManagerPlaybackPart(this)
+        ._isRestartableStoppedAndroidHandle(handle);
+    if (!handle.isInitialized && !canRestartStoppedHandle) return false;
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
-    if (!handle.isPlaying) {
+    if (!handle.isPlaying || canRestartStoppedHandle) {
       _playbackExecutionService.resumeHandle(handle);
-      _stopDormantAndroidHandlesExcept(docID);
     }
     return true;
   }

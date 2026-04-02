@@ -35,12 +35,11 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     }
     _refreshProxyUrlIfNeeded();
     if (_isStopped) {
-      _isStopped = false;
       _wantPlay = true;
       _wantPause = false;
-      if (_viewReady) {
+      if (_hls.canRestartStoppedPlayback) {
+        _isStopped = false;
         await _hls.loadVideo(url, autoPlay: true, loop: loop);
-        return;
       }
       return;
     }
@@ -108,8 +107,8 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performSeekTo(Duration pos) {
     if (_disposed) return Future.value();
-    final shouldClearCompleted =
-        _value.isCompleted && (_value.duration == Duration.zero || pos < _value.duration);
+    final shouldClearCompleted = _value.isCompleted &&
+        (_value.duration == Duration.zero || pos < _value.duration);
     if (shouldClearCompleted) {
       _value = HLSVideoValue(
         isInitialized: _value.isInitialized,
@@ -152,8 +151,8 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     if (_disposed) return;
     _refreshProxyUrlIfNeeded();
     if (!_isStopped) return;
-    _isStopped = false;
-    if (_viewReady) {
+    if (_hls.canRestartStoppedPlayback) {
+      _isStopped = false;
       await _hls.loadVideo(url, autoPlay: false, loop: loop);
     }
   }
